@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/core';
 import { MaintenanceRepository } from '../../db/repositories/MaintenanceRepository';
+import { EntityManager } from '@mikro-orm/core';
+import { Module } from '@nestjs/common';
 
 /**
  * Provides `MaintenanceRepository`, the home of the few whole-database

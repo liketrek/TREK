@@ -4,6 +4,25 @@
  * byte-faithful to the module functions it replaces; broadcast goes to a
  * FakeRealtimeService handed in through the constructor.
  */
+import { db as testDb } from '../../../src/db/database';
+import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { McpSharedModule } from '../../../src/nest/mcp-shared/mcp-shared.module';
+import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { createUser } from '../../helpers/factories';
+import { deleteRows, updateRows } from '../../helpers/factories/rows';
+import { makeTrip } from '../../helpers/factories/trips';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestTripsRepo,
+  createTestUsersRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
@@ -11,20 +30,6 @@ vi.mock('../../../src/db/database', async () => {
   const db = createSnapshotTestDb();
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
-
-import { db as testDb } from '../../../src/db/database';
-
-import { createUser } from '../../helpers/factories';
-import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
-import { McpSharedModule } from '../../../src/nest/mcp-shared/mcp-shared.module';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo, createTestUsersRepo, sharedTestOrm } from '../../helpers/test-uow';
-import { deleteRows, updateRows } from '../../helpers/factories/rows';
-import { makeTrip } from '../../helpers/factories/trips';
-import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -99,7 +104,9 @@ describe('safeBroadcast', () => {
   });
 
   it('GRD-021: swallows broadcast failures so a tool result is never lost to a ws error', () => {
-    broadcastMock.mockImplementationOnce(() => { throw new Error('ws down'); });
+    broadcastMock.mockImplementationOnce(() => {
+      throw new Error('ws down');
+    });
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => svc.safeBroadcast(7, 'todo:created', {})).not.toThrow();
     expect(errSpy).toHaveBeenCalled();

@@ -1,11 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { PhotoProviderFields } from '../../../../src/db/entities/PhotoProviderFields.entity';
 import { PhotoProviders } from '../../../../src/db/entities/PhotoProviders.entity';
-import { deleteRows, insertRow } from '../../../helpers/factories/rows';
 import type { PhotoProviderFieldsRepository } from '../../../../src/db/repositories/PhotoProviderFields.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { deleteRows, insertRow } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -122,17 +123,83 @@ describe('PhotoProviderFieldsRepository.listAllOrderedForAdminShelf', () => {
   it('AD28: returns the full legacy row shape, ordered by sort_order then id, across all providers', async () => {
     await insertProvider('immich');
     await insertProvider('synology');
-    await insertField({ provider_id: 'synology', field_key: 'url', label: 'Server URL', input_type: 'text', placeholder: 'https://photos.example.com', hint: 'ignored: not in the AD28 shape', required: 1, secret: 0, settings_key: 'synology_url', payload_key: 'url', sort_order: 1 });
-    await insertField({ provider_id: 'immich', field_key: 'url', label: 'Server URL', input_type: 'text', placeholder: 'https://immich.example.com', required: 1, secret: 0, settings_key: 'immich_url', payload_key: 'url', sort_order: 0 });
-    await insertField({ provider_id: 'immich', field_key: 'api_key', label: 'API Key', input_type: 'password', required: 1, secret: 1, settings_key: 'immich_api_key', payload_key: 'apiKey', sort_order: 1 });
+    await insertField({
+      provider_id: 'synology',
+      field_key: 'url',
+      label: 'Server URL',
+      input_type: 'text',
+      placeholder: 'https://photos.example.com',
+      hint: 'ignored: not in the AD28 shape',
+      required: 1,
+      secret: 0,
+      settings_key: 'synology_url',
+      payload_key: 'url',
+      sort_order: 1,
+    });
+    await insertField({
+      provider_id: 'immich',
+      field_key: 'url',
+      label: 'Server URL',
+      input_type: 'text',
+      placeholder: 'https://immich.example.com',
+      required: 1,
+      secret: 0,
+      settings_key: 'immich_url',
+      payload_key: 'url',
+      sort_order: 0,
+    });
+    await insertField({
+      provider_id: 'immich',
+      field_key: 'api_key',
+      label: 'API Key',
+      input_type: 'password',
+      required: 1,
+      secret: 1,
+      settings_key: 'immich_api_key',
+      payload_key: 'apiKey',
+      sort_order: 1,
+    });
 
     const rows = await fields.listAllOrderedForAdminShelf();
     // sort_order 0 first; the sort_order-1 tie breaks by id (insertion order:
     // synology's url row was inserted before immich's api_key row).
     expect(rows).toEqual([
-      { provider_id: 'immich', field_key: 'url', label: 'Server URL', input_type: 'text', placeholder: 'https://immich.example.com', required: 1, secret: 0, settings_key: 'immich_url', payload_key: 'url', sort_order: 0 },
-      { provider_id: 'synology', field_key: 'url', label: 'Server URL', input_type: 'text', placeholder: 'https://photos.example.com', required: 1, secret: 0, settings_key: 'synology_url', payload_key: 'url', sort_order: 1 },
-      { provider_id: 'immich', field_key: 'api_key', label: 'API Key', input_type: 'password', placeholder: null, required: 1, secret: 1, settings_key: 'immich_api_key', payload_key: 'apiKey', sort_order: 1 },
+      {
+        provider_id: 'immich',
+        field_key: 'url',
+        label: 'Server URL',
+        input_type: 'text',
+        placeholder: 'https://immich.example.com',
+        required: 1,
+        secret: 0,
+        settings_key: 'immich_url',
+        payload_key: 'url',
+        sort_order: 0,
+      },
+      {
+        provider_id: 'synology',
+        field_key: 'url',
+        label: 'Server URL',
+        input_type: 'text',
+        placeholder: 'https://photos.example.com',
+        required: 1,
+        secret: 0,
+        settings_key: 'synology_url',
+        payload_key: 'url',
+        sort_order: 1,
+      },
+      {
+        provider_id: 'immich',
+        field_key: 'api_key',
+        label: 'API Key',
+        input_type: 'password',
+        placeholder: null,
+        required: 1,
+        secret: 1,
+        settings_key: 'immich_api_key',
+        payload_key: 'apiKey',
+        sort_order: 1,
+      },
     ]);
   });
 

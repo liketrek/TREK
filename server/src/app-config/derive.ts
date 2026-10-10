@@ -14,7 +14,7 @@
  * call, which is what keeps the runtime env-mutation semantics the test suite
  * depends on. Zod validation runs once at boot (env.schema.ts), never here.
  */
-import { SUPPORTED_LANGUAGE_CODES } from '@trek/shared';
+import { imageVersion } from './image-version';
 import {
   csvList,
   csvListFiltered,
@@ -29,7 +29,7 @@ import {
   resolveSessionTtlMs,
   stripTrailingSlashes,
 } from './parsers';
-import { imageVersion } from './image-version';
+import { SUPPORTED_LANGUAGE_CODES } from '@trek/shared';
 
 export type RawEnv = Record<string, string | undefined>;
 
@@ -358,7 +358,7 @@ export function deriveNet(raw: RawEnv) {
       https: (raw.HTTPS_PROXY ?? raw.https_proxy)?.trim() || undefined,
       noProxy: ((raw.NO_PROXY ?? raw.no_proxy) || '')
         .split(',')
-        .map(entry => entry.trim().toLowerCase())
+        .map((entry) => entry.trim().toLowerCase())
         .filter(Boolean),
     },
   };

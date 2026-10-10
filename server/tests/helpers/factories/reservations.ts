@@ -1,9 +1,9 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
 import { ReservationTravelers } from '../../../src/db/entities/ReservationTravelers.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import type { FactoryOrm } from './context';
 import { createRow } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type ReservationRow = EntityDTO<Reservations>;
 export type ReservationEndpointRow = EntityDTO<ReservationEndpoints>;

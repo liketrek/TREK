@@ -5,10 +5,23 @@
  * tests/unit/services/inAppNotificationPrefs.test.ts when the in-app store
  * SQL folded into nest/notifications).
  */
+import { db as testDb } from '../../../src/db/database';
+import { Notifications } from '../../../src/db/entities/Notifications.entity';
+import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { registerAction } from '../../../src/nest/notifications/in-app-actions';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { createUser, createAdmin, disableNotificationPref } from '../../helpers/factories';
+import { makeNotification } from '../../helpers/factories/notifications';
+import { findRow, insertRow } from '../../helpers/factories/rows';
+import { makeTrip } from '../../helpers/factories/trips';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -19,22 +32,8 @@ vi.mock('../../../src/db/database', async () => {
     canAccessTrip: () => null,
     isOwner: () => false,
   };
-    return mock;
+  return mock;
 });
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, disableNotificationPref } from '../../helpers/factories';
-import { registerAction } from '../../../src/nest/notifications/in-app-actions';
-import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
-import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { findRow, insertRow } from '../../helpers/factories/rows';
-import { makeNotification } from '../../helpers/factories/notifications';
-import { makeTrip } from '../../helpers/factories/trips';
-import { Notifications } from '../../../src/db/entities/Notifications.entity';
-import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastToUserMock;
@@ -46,7 +45,8 @@ let notifications: NotificationsService;
 // type-aware lint rules (recipe R4).
 type Svc = NotificationsService;
 const createNotification = (...a: Parameters<Svc['createNotification']>) => notifications.createNotification(...a);
-const createNotificationForRecipient = (...a: Parameters<Svc['createNotificationForRecipient']>) => notifications.createNotificationForRecipient(...a);
+const createNotificationForRecipient = (...a: Parameters<Svc['createNotificationForRecipient']>) =>
+  notifications.createNotificationForRecipient(...a);
 const respondToBoolean = (...a: Parameters<Svc['respond']>) => notifications.respond(...a);
 
 beforeAll(async () => {
@@ -176,7 +176,7 @@ describe('createNotification — preference filtering', () => {
         navigate_target: '/trips/99',
       },
       recipient.id,
-      { username: 'admin', avatar: null }
+      { username: 'admin', avatar: null },
     );
 
     expect(id).toBeTypeOf('number');
@@ -221,11 +221,21 @@ describe('createNotification — preference filtering', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** A yes/no notification for the user whose two buttons run the named actions. */
-async function insertBoolean(recipientId: number, senderId: number | null, positive: string, negative = positive): Promise<number> {
+async function insertBoolean(
+  recipientId: number,
+  senderId: number | null,
+  positive: string,
+  negative = positive,
+): Promise<number> {
   const row = await makeNotification(orm, recipientId, {
-    type: 'boolean', sender: senderId,
-    title_key: 'notif.test.title', title_params: '{}', text_key: 'notif.test.text', text_params: '{}',
-    positive_text_key: 'notif.action.accept', negative_text_key: 'notif.action.decline',
+    type: 'boolean',
+    sender: senderId,
+    title_key: 'notif.test.title',
+    title_params: '{}',
+    text_key: 'notif.test.text',
+    text_params: '{}',
+    positive_text_key: 'notif.action.accept',
+    negative_text_key: 'notif.action.decline',
     positive_callback: JSON.stringify({ action: positive, payload: {} }),
     negative_callback: JSON.stringify({ action: negative, payload: {} }),
   });
@@ -238,7 +248,11 @@ function insertBooleanNotification(recipientId: number, senderId: number | null 
 
 async function insertSimpleNotification(recipientId: number): Promise<number> {
   const row = await makeNotification(orm, recipientId, {
-    sender: null, title_key: 'notif.test.title', title_params: '{}', text_key: 'notif.test.text', text_params: '{}',
+    sender: null,
+    title_key: 'notif.test.title',
+    title_params: '{}',
+    text_key: 'notif.test.text',
+    text_params: '{}',
   });
   return row.id;
 }

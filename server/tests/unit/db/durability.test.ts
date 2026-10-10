@@ -1,12 +1,12 @@
+import { resolveDurability } from '../../../src/app-config/parsers';
+import { applyDurabilityPragmas } from '../../../src/db/durability';
+
+import Database from 'better-sqlite3';
 import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { resolveDurability } from '../../../src/app-config/parsers';
-import { applyDurabilityPragmas } from '../../../src/db/durability';
 
 // journal_mode is written into the database file header, so it outlives the
 // connection that set it. Anything asserting a mode here therefore reopens the
@@ -222,8 +222,7 @@ describe('standalone scripts honour the same configuration', () => {
     const db = new Database(dbPath);
     // test-sql-allow: the file reset-admin.js just rewrote has no ORM bound to it; it is read as the script left it.
     const admin = db.prepare('SELECT role FROM users WHERE email = ?').get('locked-out@example.com') as
-      | { role: string }
-      | undefined;
+      { role: string } | undefined;
     db.close();
     expect(admin?.role).toBe('admin');
   }, 60000);
@@ -232,12 +231,21 @@ describe('standalone scripts honour the same configuration', () => {
     seedWalDb();
     const seed = new Database(dbPath);
     // test-sql-allow: the database file reset-admin.js works on has no ORM bound to it.
-    seed.prepare("INSERT INTO users (username, email, password_hash, role, password_version) VALUES ('boss', 'Boss@Example.com', 'x', 'user', 3)").run();
+    seed
+      .prepare(
+        "INSERT INTO users (username, email, password_hash, role, password_version) VALUES ('boss', 'Boss@Example.com', 'x', 'user', 3)",
+      )
+      .run();
     seed.close();
 
     execFileSync(process.execPath, ['reset-admin.js'], {
       cwd: SERVER_ROOT,
-      env: { ...process.env, TREK_DB_FILE: dbPath, RESET_ADMIN_EMAIL: 'boss@example.com', RESET_ADMIN_PASSWORD: 'Recovery12345!' },
+      env: {
+        ...process.env,
+        TREK_DB_FILE: dbPath,
+        RESET_ADMIN_EMAIL: 'boss@example.com',
+        RESET_ADMIN_PASSWORD: 'Recovery12345!',
+      },
       stdio: 'pipe',
     });
 

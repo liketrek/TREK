@@ -1,4 +1,5 @@
 import type { TranslationStrings } from '../types';
+
 const shared: TranslationStrings = {
   'shared.expired': 'Linkin vaxtı bitib və ya link etibarsızdır',
   'shared.expiredHint': 'Bu paylaşılan səyahət linki artıq aktiv deyil.',

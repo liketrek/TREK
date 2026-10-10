@@ -1,7 +1,7 @@
 import { readEnv } from '../../app-config';
-import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { UsersRepository, InstanceApiKeyName } from '../../db/repositories/Users.repository';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import type { ApiKeySource } from '@trek/shared';
 
 /**
@@ -97,7 +97,10 @@ export function operatorKeyVariables(): Partial<Record<InstanceApiKeyName, strin
 }
 
 /** The instance-wide value in cleartext, or null when unset/cleared. */
-export async function readInstanceApiKey(appSettings: AppSettingsRepository, name: InstanceApiKeyName): Promise<string | null> {
+export async function readInstanceApiKey(
+  appSettings: AppSettingsRepository,
+  name: InstanceApiKeyName,
+): Promise<string | null> {
   return readInstanceValue(appSettings, name);
 }
 
@@ -107,7 +110,11 @@ export async function readInstanceApiKey(appSettings: AppSettingsRepository, nam
  * key", and a missing row would let the resolver fall through to whatever old
  * value still sits in their own users column.
  */
-export async function writeInstanceApiKey(appSettings: AppSettingsRepository, name: InstanceApiKeyName, value: unknown): Promise<void> {
+export async function writeInstanceApiKey(
+  appSettings: AppSettingsRepository,
+  name: InstanceApiKeyName,
+  value: unknown,
+): Promise<void> {
   await appSettings.setValue(name, maybe_encrypt_api_key(value) ?? '');
 }
 

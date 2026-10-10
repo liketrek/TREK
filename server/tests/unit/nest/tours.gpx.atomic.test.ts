@@ -6,54 +6,68 @@
  * the way rolls all of it back, and the realtime events go out only after the
  * commit. Failures are injected with SQLite triggers on the real tables.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { db as testDb } from '../../../src/db/database';
+import { Places } from '../../../src/db/entities/Places.entity';
+import { TourWaypoints } from '../../../src/db/entities/TourWaypoints.entity';
+import { Tours } from '../../../src/db/entities/Tours.entity';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
+import { gpxGeometryParser } from '../../../src/nest/place-import/gpx.codec';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { PlacesService } from '../../../src/nest/places/places.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { ToursService } from '../../../src/nest/tours/tours.service';
+import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
+import { accommodationsOver } from '../../helpers/accommodations-service';
+import { createTrip, createUser } from '../../helpers/factories';
+import { countRows, findRows } from '../../helpers/factories/rows';
+import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
+import { noGoogleQuota } from '../../helpers/google-quota';
+import {
+  createTestJourneysRepo,
+  createTestJourneyContributorsRepo,
+  createTestJourneyTripsRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyPhotosRepo,
+  createTestJourneyEntryPhotosRepo,
+} from '../../helpers/journey-repos';
+import { buildMapsService } from '../../helpers/maps-service';
+import { buildPlaceImportService } from '../../helpers/place-import';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestUsersRepo,
+  createTestTagsRepo,
+  createTestPlaceRatingsRepo,
+  createTestAssignmentParticipantsRepo,
+  createTestPlacesRepo,
+  createTestTripMembersRepo,
+  createTestDayAssignmentsRepo,
+  createTestCategoriesRepo,
+  createTestTripsRepo,
+  createTestCollectionPlacesRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+import { createTestToursRepo, createTestTourTypesRepo, createTestTourWaypointsRepo } from '../../helpers/tours-repos';
+import type { EntityClass } from '@mikro-orm/core';
 import { Logger } from '@nestjs/common';
+
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../../src/db/database';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
-import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
-import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { PlacesService } from '../../../src/nest/places/places.service';
-import { buildPlaceImportService } from '../../helpers/place-import';
-import { buildMapsService } from '../../helpers/maps-service';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { ToursService } from '../../../src/nest/tours/tours.service';
-import { gpxGeometryParser } from '../../../src/nest/place-import/gpx.codec';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTrip, createUser } from '../../helpers/factories';
-import { accommodationsOver } from '../../helpers/accommodations-service';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
-import { noGoogleQuota } from '../../helpers/google-quota';
-import {
-  createTestUnitOfWork, createTestAppSettingsRepo, createTestUsersRepo, createTestTagsRepo, createTestPlaceRatingsRepo,
-  createTestAssignmentParticipantsRepo, createTestPlacesRepo, createTestTripMembersRepo, createTestDayAssignmentsRepo,
-  createTestCategoriesRepo, createTestTripsRepo, createTestCollectionPlacesRepo, sharedTestOrm,
-} from '../../helpers/test-uow';
-import type { EntityClass } from '@mikro-orm/core';
-import { countRows, findRows } from '../../helpers/factories/rows';
-import { Places } from '../../../src/db/entities/Places.entity';
-import { TourWaypoints } from '../../../src/db/entities/TourWaypoints.entity';
-import { Tours } from '../../../src/db/entities/Tours.entity';
-import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import {
-  createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
-import { createTestToursRepo, createTestTourTypesRepo, createTestTourWaypointsRepo } from '../../helpers/tours-repos';
 
 const mixedGpx = Buffer.from(`<gpx>
   <wpt lat="1" lon="2"><name>Ignored POI</name></wpt>
@@ -77,17 +91,38 @@ async function makePlacesService(): Promise<PlacesService> {
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     new RealtimeService(),
     buildMapsService(photoCacheStub, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota),
-    new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
-    new UnsplashService(await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), new RuntimeEnvService(), storage),
+    new QueryHelpersService(
+      await createTestTagsRepo(testDb),
+      await createTestPlaceRatingsRepo(testDb),
+      await createTestAssignmentParticipantsRepo(testDb),
+    ),
+    new UnsplashService(
+      await createTestAppSettingsRepo(testDb),
+      await createTestUsersRepo(testDb),
+      new RuntimeEnvService(),
+      storage,
+    ),
     photoCacheStub,
     new JourneyDomainService(
-      new RealtimeService(), new TrekPhotoRegistrationService(orm.repo(TrekPhotos), orm.repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)), await createTestUnitOfWork(testDb),
-      await createTestJourneysRepo(testDb), await createTestJourneyContributorsRepo(testDb),
-      await createTestJourneyTripsRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestTripsRepo(testDb),
-      await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
+      new RealtimeService(),
+      new TrekPhotoRegistrationService(
+        orm.repo(TrekPhotos),
+        orm.repo(TripPhotos),
+        await createTestJourneyPhotosRepo(testDb),
+      ),
+      await createTestUnitOfWork(testDb),
+      await createTestJourneysRepo(testDb),
+      await createTestJourneyContributorsRepo(testDb),
+      await createTestJourneyTripsRepo(testDb),
+      await createTestJourneyEntriesRepo(testDb),
+      await createTestTripsRepo(testDb),
+      await createTestJourneyPhotosRepo(testDb),
+      await createTestJourneyEntryPhotosRepo(testDb),
+      await createTestPlacesRepo(testDb),
     ),
     storage,
-    await accommodationsOver(testDb), await createTestUnitOfWork(testDb),
+    await accommodationsOver(testDb),
+    await createTestUnitOfWork(testDb),
     await createTestPlacesRepo(testDb),
     await createTestTagsRepo(testDb),
     await createTestPlaceRatingsRepo(testDb),
@@ -124,7 +159,12 @@ beforeAll(async () => {
   uow = await createTestUnitOfWork(testDb);
   places = await makePlacesService();
   tours = new ToursService(
-    uow, places, await createTestToursRepo(testDb), await createTestTourTypesRepo(testDb), await createTestTourWaypointsRepo(testDb), await createTestPlacesRepo(testDb),
+    uow,
+    places,
+    await createTestToursRepo(testDb),
+    await createTestTourTypesRepo(testDb),
+    await createTestTourWaypointsRepo(testDb),
+    await createTestPlacesRepo(testDb),
     buildPlaceImportService(),
   );
 });
@@ -142,7 +182,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-afterAll(() => { testDb.close(); });
+afterAll(() => {
+  testDb.close();
+});
 
 describe('Tours GPX atomic persistence and postcommit publication', () => {
   async function expectEmpty() {
@@ -153,7 +195,9 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
   it('commits routes, tracks, colors and facets once before publishing, without Planner waypoints', async () => {
     const transactional = vi.spyOn(uow, 'transactional');
     const seen: { inTransaction: boolean; tours: number }[] = [];
-    broadcast.mockImplementation(() => { seen.push({ inTransaction: testDb.inTransaction, tours: countNow('tours') }); });
+    broadcast.mockImplementation(() => {
+      seen.push({ inTransaction: testDb.inTransaction, tours: countNow('tours') });
+    });
 
     const result = (await tours.importGpxAsTour(tripId, mixedGpx, 'walk.gpx', 'socket'))!;
 
@@ -162,30 +206,69 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
     expect(result.tours).toHaveLength(2);
     expect(result.skipped).toBe(0);
     expect(result.caution).toBe(true);
-    expect(result.tours[0]).toMatchObject({ name: 'walk', tour_type: 'hike', max_hiking_difficulty: 2, planned: false, has_waypoints: false, caution: true, match_confidence: 0.3 });
-    expect(result.tours[1]).toMatchObject({ name: 'Ridge', elevation_gain: 50, elevation_loss: 30, caution: false, match_confidence: 1 });
+    expect(result.tours[0]).toMatchObject({
+      name: 'walk',
+      tour_type: 'hike',
+      max_hiking_difficulty: 2,
+      planned: false,
+      has_waypoints: false,
+      caution: true,
+      match_confidence: 0.3,
+    });
+    expect(result.tours[1]).toMatchObject({
+      name: 'Ridge',
+      elevation_gain: 50,
+      elevation_loss: 30,
+      caution: false,
+      match_confidence: 1,
+    });
 
-    const rows = (await findRows(await sharedTestOrm(testDb), Places, {}, { id: 'asc' })) as Array<{ id: number; trip_id: number; description: string; route_geometry: string; route_color: string }>;
-    expect(rows.map(row => row.trip_id)).toEqual([Number(tripId), Number(tripId)]);
-    expect(rows.map(row => row.description)).toEqual(['Route description', 'Track description']);
-    expect(JSON.parse(rows[0].route_geometry)).toEqual([[48, 11], [48.01, 11.01]]);
-    expect(JSON.parse(rows[1].route_geometry)).toEqual([[49, 12, 100], [49.01, 12.01, 150], [49.02, 12.02, 120]]);
-    expect(new Set(rows.map(row => row.route_color)).size).toBe(2);
-    expect((await findRows(await sharedTestOrm(testDb), Tours, {}, { place: 'asc' })).map(tour => ({ place_id: tour.place_id, tour_type: tour.tour_type })))
-      .toEqual(rows.map(row => ({ place_id: row.id, tour_type: 'hike' })));
+    const rows = (await findRows(await sharedTestOrm(testDb), Places, {}, { id: 'asc' })) as Array<{
+      id: number;
+      trip_id: number;
+      description: string;
+      route_geometry: string;
+      route_color: string;
+    }>;
+    expect(rows.map((row) => row.trip_id)).toEqual([Number(tripId), Number(tripId)]);
+    expect(rows.map((row) => row.description)).toEqual(['Route description', 'Track description']);
+    expect(JSON.parse(rows[0].route_geometry)).toEqual([
+      [48, 11],
+      [48.01, 11.01],
+    ]);
+    expect(JSON.parse(rows[1].route_geometry)).toEqual([
+      [49, 12, 100],
+      [49.01, 12.01, 150],
+      [49.02, 12.02, 120],
+    ]);
+    expect(new Set(rows.map((row) => row.route_color)).size).toBe(2);
+    expect(
+      (await findRows(await sharedTestOrm(testDb), Tours, {}, { place: 'asc' })).map((tour) => ({
+        place_id: tour.place_id,
+        tour_type: tour.tour_type,
+      })),
+    ).toEqual(rows.map((row) => ({ place_id: row.id, tour_type: 'hike' })));
     expect(await count('tour_waypoints')).toBe(0);
 
     expect(seen).toEqual([
-      { inTransaction: false, tours: 2 }, { inTransaction: false, tours: 2 }, { inTransaction: false, tours: 2 },
+      { inTransaction: false, tours: 2 },
+      { inTransaction: false, tours: 2 },
+      { inTransaction: false, tours: 2 },
     ]);
-    expect(broadcast.mock.calls.map(call => call[1])).toEqual(['tours:changed', 'place:created', 'place:created']);
-    expect(broadcast.mock.calls[0]).toEqual([tripId, 'tours:changed', { placeIds: rows.map(row => row.id) }, 'socket']);
+    expect(broadcast.mock.calls.map((call) => call[1])).toEqual(['tours:changed', 'place:created', 'place:created']);
+    expect(broadcast.mock.calls[0]).toEqual([
+      tripId,
+      'tours:changed',
+      { placeIds: rows.map((row) => row.id) },
+      'socket',
+    ]);
     for (const call of broadcast.mock.calls.slice(1)) {
       expect(call[3]).toBe('socket');
       expect((call[2] as { place: { route_color: string } }).place.route_color).toBeTruthy();
     }
-    expect(broadcast.mock.calls.slice(1).map(call => (call[2] as { place: { id: number } }).place.id))
-      .toEqual(result.tours.map(tour => tour.place_id));
+    expect(broadcast.mock.calls.slice(1).map((call) => (call[2] as { place: { id: number } }).place.id)).toEqual(
+      result.tours.map((tour) => tour.place_id),
+    );
   });
 
   it.each([1, 2])('rolls back every carrier and facet when facet %i fails', async (ordinal) => {
@@ -210,7 +293,12 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
     await expectEmpty();
   });
 
-  it.each(['<not-gpx/>', '<gpx/>', '<gpx><wpt lat="1" lon="2"/></gpx>', '<gpx><trk><trkseg><trkpt/></trkseg></trk></gpx>'])('does not write or publish unusable input %s', async (xml) => {
+  it.each([
+    '<not-gpx/>',
+    '<gpx/>',
+    '<gpx><wpt lat="1" lon="2"/></gpx>',
+    '<gpx><trk><trkseg><trkpt/></trkseg></trk></gpx>',
+  ])('does not write or publish unusable input %s', async (xml) => {
     const transactional = vi.spyOn(uow, 'transactional');
     expect(await tours.importGpxAsTour(tripId, Buffer.from(xml))).toBeNull();
     expect(transactional).not.toHaveBeenCalled();
@@ -219,7 +307,9 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
 
   it('propagates parser failures before entering the transaction', async () => {
     const transactional = vi.spyOn(uow, 'transactional');
-    vi.spyOn(gpxGeometryParser, 'parse').mockImplementationOnce(() => { throw new Error('parser failure'); });
+    vi.spyOn(gpxGeometryParser, 'parse').mockImplementationOnce(() => {
+      throw new Error('parser failure');
+    });
     await expect(tours.importGpxAsTour(tripId, mixedGpx)).rejects.toThrow('parser failure');
     expect(transactional).not.toHaveBeenCalled();
     await expectEmpty();
@@ -227,7 +317,9 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
 
   it('keeps a committed response and attempts remaining events if publication throws', async () => {
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
-    broadcast.mockImplementationOnce(() => { throw new Error('transport unavailable'); });
+    broadcast.mockImplementationOnce(() => {
+      throw new Error('transport unavailable');
+    });
     expect((await tours.importGpxAsTour(tripId, mixedGpx))?.tours).toHaveLength(2);
     expect(await count('tours')).toBe(2);
     expect(broadcast).toHaveBeenCalledTimes(3);
@@ -256,16 +348,22 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
     expect(result?.tours).toHaveLength(2);
     expect(await count('places')).toBe(2);
     expect(await count('tours')).toBe(2);
-    expect(broadcast.mock.calls.map(call => call[1])).toEqual(['tours:changed', 'place:created', 'place:created']);
+    expect(broadcast.mock.calls.map((call) => call[1])).toEqual(['tours:changed', 'place:created', 'place:created']);
     expect(warn).toHaveBeenCalledOnce();
   });
 
   it('returns a successful skipped result for duplicate-only imports without publishing events', async () => {
     expect((await tours.importGpxAsTour(tripId, mixedGpx))?.tours).toHaveLength(2);
     const placeRows = async () =>
-      (await findRows(await sharedTestOrm(testDb), Places, {}, { id: 'asc' })).map(row => ({ id: row.id, trip_id: row.trip_id, name: row.name }));
+      (await findRows(await sharedTestOrm(testDb), Places, {}, { id: 'asc' })).map((row) => ({
+        id: row.id,
+        trip_id: row.trip_id,
+        name: row.name,
+      }));
     const tourFacets = async () =>
-      (await findRows(await sharedTestOrm(testDb), Tours, {}, { place: 'asc' })).map(tour => ({ place_id: tour.place_id }));
+      (await findRows(await sharedTestOrm(testDb), Tours, {}, { place: 'asc' })).map((tour) => ({
+        place_id: tour.place_id,
+      }));
     const rowsBefore = await placeRows();
     const facetsBefore = await tourFacets();
     broadcast.mockClear();
@@ -291,7 +389,7 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
     expect(await count('places')).toBe(2);
     expect(await count('tours')).toBe(2);
     const walkId = result!.tours[0].place_id;
-    expect(broadcast.mock.calls.map(call => [call[1], call[2]])).toEqual([
+    expect(broadcast.mock.calls.map((call) => [call[1], call[2]])).toEqual([
       ['tours:changed', { placeIds: [walkId] }],
       ['place:created', expect.objectContaining({ place: expect.objectContaining({ id: walkId, name: 'walk' }) })],
     ]);
@@ -300,16 +398,20 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
   it('preserves single-track response and trip scoping', async () => {
     const { user } = createUser(testDb);
     const otherTripId = String(createTrip(testDb, user.id).id);
-    const single = Buffer.from('<gpx><trk><trkseg><trkpt lat="48" lon="11"/><trkpt lat="48.01" lon="11.01"/></trkseg></trk></gpx>');
+    const single = Buffer.from(
+      '<gpx><trk><trkseg><trkpt lat="48" lon="11"/><trkpt lat="48.01" lon="11.01"/></trkseg></trk></gpx>',
+    );
 
     const result = (await tours.importGpxAsTour(otherTripId, single, 'single.gpx'))!;
 
     expect(result.tours).toHaveLength(1);
     expect(result.tours[0].name).toBe('single');
     expect(result.caution).toBe(true);
-    expect((await findRows(await sharedTestOrm(testDb), Places, {}, { id: 'asc' })).map(row => ({ trip_id: row.trip_id }))).toEqual([{ trip_id: Number(otherTripId) }]);
-    expect((await tours.listTours(otherTripId)).map(t => t.place_id)).toEqual([result.tours[0].place_id]);
+    expect(
+      (await findRows(await sharedTestOrm(testDb), Places, {}, { id: 'asc' })).map((row) => ({ trip_id: row.trip_id })),
+    ).toEqual([{ trip_id: Number(otherTripId) }]);
+    expect((await tours.listTours(otherTripId)).map((t) => t.place_id)).toEqual([result.tours[0].place_id]);
     expect(await tours.listTours(tripId)).toEqual([]);
-    expect(broadcast.mock.calls.map(call => call[1])).toEqual(['tours:changed', 'place:created']);
+    expect(broadcast.mock.calls.map((call) => call[1])).toEqual(['tours:changed', 'place:created']);
   });
 });

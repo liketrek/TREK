@@ -1,18 +1,18 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { DaysService } from '../days/days.service';
 import { AccommodationsService } from '../accommodations/accommodations.service';
 import { BudgetService } from '../budget/budget.service';
-import { PackingService } from '../packing/packing.service';
-import { ReservationsService } from '../reservations/reservations.service';
 import { CollabService } from '../collab/collab.service';
-import { PlacesService } from '../places/places.service';
-import { TodoService } from '../todo/todo.service';
+import { DaysService } from '../days/days.service';
 import { FilesService } from '../files/files.service';
+import { PackingService } from '../packing/packing.service';
+import { PlacesService } from '../places/places.service';
+import { ReservationsService } from '../reservations/reservations.service';
+import { TodoService } from '../todo/todo.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { withoutFeedToken } from '../trips/trips.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The two read aggregates over a trip: the MCP summary and the offline bundle.
@@ -58,7 +58,11 @@ export class TripReadModelService {
     // In the trip currency, each row at the rate it was booked at (#2525). A raw sum of
     // total_price added a dollar bill to the euros and called the result euros.
     const tripCurrency = String(trip.currency || 'EUR');
-    const totals = await this.budget.tripTotals(tripId, tripCurrency, await this.budget.ratesForTripTotals(tripId, tripCurrency));
+    const totals = await this.budget.tripTotals(
+      tripId,
+      tripCurrency,
+      await this.budget.ratesForTripTotals(tripId, tripCurrency),
+    );
     const budget = {
       items: budgetItems,
       item_count: budgetItems.length,
@@ -75,7 +79,7 @@ export class TripReadModelService {
     const packing = {
       items: packingItems,
       total: packingItems.length,
-      checked: (packingItems as { checked: number }[]).filter(i => i.checked).length,
+      checked: (packingItems as { checked: number }[]).filter((i) => i.checked).length,
     };
 
     const reservations = await this.reservations.list(tripId);

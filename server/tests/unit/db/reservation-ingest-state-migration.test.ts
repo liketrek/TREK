@@ -14,10 +14,18 @@
  * bookkeeping) to prove the `addColumnIfMissing` guard is what the legacy
  * test's schema_version rewind was really exercising.
  */
-import { describe, it, expect } from 'vitest';
-import type { MikroORM } from '@mikro-orm/sqlite';
-import { createMigrationOrm, migrateTo, pendingNames, rawExec, rawQuery, runMigrationDirect } from '../../helpers/migration-step';
 import { Migration20200101031900_reservations_an_automated_ingest_parked_for_review as TargetMigration } from '../../../src/db/migrations/Migration20200101031900_reservations_an_automated_ingest_parked_for_review';
+import {
+  createMigrationOrm,
+  migrateTo,
+  pendingNames,
+  rawExec,
+  rawQuery,
+  runMigrationDirect,
+} from '../../helpers/migration-step';
+import type { MikroORM } from '@mikro-orm/sqlite';
+
+import { describe, it, expect } from 'vitest';
 
 const TARGET = 'Migration20200101031900_reservations_an_automated_ingest_parked_for_review';
 
@@ -54,7 +62,10 @@ describe('reservations ingest_state migration', () => {
       // throws.
       await runMigrationDirect(orm, TargetMigration);
 
-      const cols = await rawQuery(orm, "SELECT name FROM pragma_table_info('reservations') WHERE name = 'ingest_state'");
+      const cols = await rawQuery(
+        orm,
+        "SELECT name FROM pragma_table_info('reservations') WHERE name = 'ingest_state'",
+      );
       expect(cols).toHaveLength(1);
       const rows = await rawQuery<{ ingest_state: string }>(orm, 'SELECT ingest_state FROM reservations WHERE id = 1');
       expect(rows[0].ingest_state).toBe('live');

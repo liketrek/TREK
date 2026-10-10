@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { AddonsModule } from '../addons/addons.module';
-import { SystemNoticesController } from './system-notices.controller';
-import { SystemNoticesService } from './system-notices.service';
-import { AppConfigModule } from '../app-config/app-config.module';
-import { Users } from '../../db/entities/Users.entity';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { UserNoticeDismissals } from '../../db/entities/UserNoticeDismissals.entity';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { Users } from '../../db/entities/Users.entity';
+import { AddonsModule } from '../addons/addons.module';
+import { AppConfigModule } from '../app-config/app-config.module';
+import { SystemNoticesController } from './system-notices.controller';
+import { SystemNoticesService } from './system-notices.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * System-notices domain. Registered in AppModule.
@@ -19,7 +19,11 @@ import { AppSettings } from '../../db/entities/AppSettings.entity';
  * constructing module.
  */
 @Module({
-  imports: [AppConfigModule, AddonsModule, MikroOrmModule.forFeature([Users, Trips, UserNoticeDismissals, AppSettings])],
+  imports: [
+    AppConfigModule,
+    AddonsModule,
+    MikroOrmModule.forFeature([Users, Trips, UserNoticeDismissals, AppSettings]),
+  ],
   controllers: [SystemNoticesController],
   providers: [SystemNoticesService],
 })

@@ -20,9 +20,11 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Vệ tinh',
   'map.baseLayer.switchToSatellite': 'Chuyển sang chế độ xem vệ tinh',
   'map.baseLayer.switchToDefault': 'Chuyển sang chế độ xem bản đồ',
-  'map.location.denied': 'Quyền truy cập vị trí đang bị chặn. Hãy kiểm tra cài đặt thiết bị; ứng dụng đã cài đặt có quyền vị trí riêng, tách biệt với trình duyệt.',
+  'map.location.denied':
+    'Quyền truy cập vị trí đang bị chặn. Hãy kiểm tra cài đặt thiết bị; ứng dụng đã cài đặt có quyền vị trí riêng, tách biệt với trình duyệt.',
   'map.location.unavailable': 'Không thể xác định vị trí của bạn.',
-  'map.location.timeout': 'Việc xác định vị trí mất quá nhiều thời gian. Hãy thử lại ở nơi nhìn thấy bầu trời thoáng hơn.',
+  'map.location.timeout':
+    'Việc xác định vị trí mất quá nhiều thời gian. Hãy thử lại ở nơi nhìn thấy bầu trời thoáng hơn.',
   'map.overview.show': 'Hiện toàn bộ chuyến đi',
   'map.lock.lock': 'Khóa góc nhìn bản đồ',
   'map.lock.unlock': 'Để bản đồ đi theo mục đang chọn',

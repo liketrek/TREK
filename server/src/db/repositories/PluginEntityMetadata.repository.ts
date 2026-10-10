@@ -1,5 +1,5 @@
-import type { PluginEntityMetadata } from '../entities/PluginEntityMetadata.entity';
 import { currentTimestamp } from '../dialect/sql-functions';
+import type { PluginEntityMetadata } from '../entities/PluginEntityMetadata.entity';
 import { TrekRepository } from './_shared/trek-repository';
 
 export class PluginEntityMetadataRepository extends TrekRepository<PluginEntityMetadata> {
@@ -22,7 +22,10 @@ export class PluginEntityMetadataRepository extends TrekRepository<PluginEntityM
    * narrower method for the same 4-column read.
    */
   async findValue(pluginId: string, entityType: string, entityId: number, key: string): Promise<string | null> {
-    const row = await this.findOne({ plugin_id: pluginId, entity_type: entityType, entity_id: entityId, key }, { fields: ['value'] });
+    const row = await this.findOne(
+      { plugin_id: pluginId, entity_type: entityType, entity_id: entityId, key },
+      { fields: ['value'] },
+    );
     return row?.value ?? null;
   }
 
@@ -45,7 +48,14 @@ export class PluginEntityMetadataRepository extends TrekRepository<PluginEntityM
   async upsertValue(pluginId: string, entityType: string, entityId: number, key: string, value: string): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.upsert(
-      { plugin_id: pluginId, entity_type: entityType, entity_id: entityId, key, value, updated_at: currentTimestamp(platform) },
+      {
+        plugin_id: pluginId,
+        entity_type: entityType,
+        entity_id: entityId,
+        key,
+        value,
+        updated_at: currentTimestamp(platform),
+      },
       {
         onConflictFields: ['plugin_id', 'entity_type', 'entity_id', 'key'],
         onConflictAction: 'merge',
@@ -55,7 +65,11 @@ export class PluginEntityMetadataRepository extends TrekRepository<PluginEntityM
   }
 
   /** MR5 — `SELECT key, value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? ORDER BY key`. */
-  async listForEntity(pluginId: string, entityType: string, entityId: number): Promise<{ key: string; value: string }[]> {
+  async listForEntity(
+    pluginId: string,
+    entityType: string,
+    entityId: number,
+  ): Promise<{ key: string; value: string }[]> {
     const rows = await this.find(
       { plugin_id: pluginId, entity_type: entityType, entity_id: entityId },
       { fields: ['key', 'value'], orderBy: { key: 'asc' } },
@@ -87,7 +101,14 @@ export class PluginEntityMetadataRepository extends TrekRepository<PluginEntityM
    * Returns whether the write happened; `false` means a NEW key was blocked
    * by the cap (the caller maps that to `BadParams`, same message as before).
    */
-  async upsertValueCapped(pluginId: string, entityType: string, entityId: number, key: string, value: string, maxKeys: number): Promise<boolean> {
+  async upsertValueCapped(
+    pluginId: string,
+    entityType: string,
+    entityId: number,
+    key: string,
+    value: string,
+    maxKeys: number,
+  ): Promise<boolean> {
     return this.getEntityManager().transactional(async () => {
       const exists = (await this.findValue(pluginId, entityType, entityId, key)) !== null;
       if (!exists) {

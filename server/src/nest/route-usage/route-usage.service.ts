@@ -1,5 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { RouteUsageDaily } from '../../db/entities/RouteUsageDaily.entity';
+import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { RouteUsageDailyRepository } from '../../db/repositories/RouteUsageDaily.repository';
+import { readAppSetting } from '../common/app-settings.registry';
+import { UnitOfWork } from '../database/unit-of-work';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import type {
   RouteUsageDayRow,
   RouteUsageProfile,
@@ -8,12 +14,6 @@ import type {
   RouteUsageSurface,
 } from '@trek/shared';
 import { todayUtc } from '@trek/shared';
-import { RouteUsageDaily } from '../../db/entities/RouteUsageDaily.entity';
-import { RouteUsageDailyRepository } from '../../db/repositories/RouteUsageDaily.repository';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { UnitOfWork } from '../database/unit-of-work';
-import { readAppSetting } from '../common/app-settings.registry';
 
 /** Days a counted day survives. Aggregates are tiny, so this is a year and a bit. */
 export const RETENTION_DAYS = 400;

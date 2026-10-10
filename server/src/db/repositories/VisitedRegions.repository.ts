@@ -1,6 +1,6 @@
 import type { VisitedRegions } from '../entities/VisitedRegions.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** `visited_regions` — the columns `AT21`'s read needs. */
 export interface VisitedRegionRow {
@@ -79,11 +79,19 @@ export class VisitedRegionsRepository extends TrekRepository<VisitedRegions> {
 
   /** AT15 (`unmarkCountry`, inside its transaction) — `DELETE FROM visited_regions WHERE user_id = ? AND country_code = ?` (every region in the country). */
   async unmarkAllInCountry(userId: number, countryCode: string): Promise<void> {
-    await this.writeDb().deleteFrom('visited_regions').where('user_id', '=', userId).where('country_code', '=', countryCode).execute();
+    await this.writeDb()
+      .deleteFrom('visited_regions')
+      .where('user_id', '=', userId)
+      .where('country_code', '=', countryCode)
+      .execute();
   }
 
   /** AT26 (`unmarkRegion`, inside its transaction) — `DELETE FROM visited_regions WHERE user_id = ? AND region_code = ?` (one region). */
   async unmark(userId: number, regionCode: string): Promise<void> {
-    await this.writeDb().deleteFrom('visited_regions').where('user_id', '=', userId).where('region_code', '=', regionCode).execute();
+    await this.writeDb()
+      .deleteFrom('visited_regions')
+      .where('user_id', '=', userId)
+      .where('region_code', '=', regionCode)
+      .execute();
   }
 }

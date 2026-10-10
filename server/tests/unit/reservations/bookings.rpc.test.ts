@@ -8,30 +8,46 @@
  * budget item with it. Every one of those side effects is a broadcast the web app
  * relies on, so they are asserted by event name and order.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
-import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
-import { ReservationsRpc } from '../../../src/nest/reservations/reservations.rpc';
-import { ReservationsModule } from '../../../src/nest/reservations/reservations.module';
-import { AccommodationsRpc } from '../../../src/nest/accommodations/accommodations.rpc';
-import { AccommodationsModule } from '../../../src/nest/accommodations/accommodations.module';
-import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import type { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
-import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import { AccommodationsModule } from '../../../src/nest/accommodations/accommodations.module';
+import { AccommodationsRpc } from '../../../src/nest/accommodations/accommodations.rpc';
+import type { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
+import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { ReservationsModule } from '../../../src/nest/reservations/reservations.module';
+import { ReservationsRpc } from '../../../src/nest/reservations/reservations.rpc';
+import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 
-const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
+import { describe, it, expect, vi } from 'vitest';
+
+const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({
+  k: 'req',
+  id: 'x',
+  method,
+  params,
+});
 const events = (r: { broadcast: ReturnType<typeof vi.fn> }) => r.broadcast.mock.calls.map((c) => c[1]);
 
 /** Trip 1 belongs to user 42; reservation 5 and accommodation 11 sit on it. */
-function build(opts: { canEdit?: boolean; cascade?: boolean; stop?: boolean; seenActions?: string[]; unresolved?: string[]; foreign?: string[]; expenses?: number[] } = {}) {
+function build(
+  opts: {
+    canEdit?: boolean;
+    cascade?: boolean;
+    stop?: boolean;
+    seenActions?: string[];
+    unresolved?: string[];
+    foreign?: string[];
+    expenses?: number[];
+  } = {},
+) {
   const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
   // The expenses a delete takes with it: one with `cascade`, any number with `expenses` (#2084).
   const expenses = opts.expenses ?? (opts.cascade ? [7] : []);
@@ -41,7 +57,12 @@ function build(opts: { canEdit?: boolean; cascade?: boolean; stop?: boolean; see
     updateWithCost: vi.fn(() => ({ reservation: { id: 5 }, accommodationChanged: !!opts.cascade, costEvents: [] })),
     remove: vi.fn((id: string) =>
       id === '5'
-        ? { deleted: { title: 'Hotel', type: 'lodging', accommodation_id: opts.cascade ? 11 : null }, accommodationDeleted: !!opts.cascade, deletedBudgetItemId: expenses[0] ?? null, deletedBudgetItemIds: expenses }
+        ? {
+            deleted: { title: 'Hotel', type: 'lodging', accommodation_id: opts.cascade ? 11 : null },
+            accommodationDeleted: !!opts.cascade,
+            deletedBudgetItemId: expenses[0] ?? null,
+            deletedBudgetItemIds: expenses,
+          }
         : { deleted: null, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] },
     ),
     announceCost: vi.fn(),
@@ -53,15 +74,22 @@ function build(opts: { canEdit?: boolean; cascade?: boolean; stop?: boolean; see
     unresolvedReferences: vi.fn(() => opts.unresolved ?? []),
   } as unknown as ReservationsService & Record<string, ReturnType<typeof vi.fn>>;
   /** What a stay write did to the day plan, on top of writing the stay itself. */
-  type Mirror = { created: { id: number; day_id: number } | null; removed: { id: number; dayId: number }[]; stamped: null };
+  type Mirror = {
+    created: { id: number; day_id: number } | null;
+    removed: { id: number; dayId: number }[];
+    stamped: null;
+  };
   /** A stay write that left the day plan alone, which is what most of these cases are. */
   const noMirror = (): Mirror => ({ created: null, removed: [], stamped: null });
   /** With `stop`, the write moved its day stop from day 3 to day 4. */
-  const mirror = (): Mirror => (opts.stop ? { created: { id: 78, day_id: 4 }, removed: [{ id: 77, dayId: 3 }], stamped: null } : noMirror());
+  const mirror = (): Mirror =>
+    opts.stop ? { created: { id: 78, day_id: 4 }, removed: [{ id: 77, dayId: 3 }], stamped: null } : noMirror();
   // The lodging blocks live in AccommodationsService; AccommodationsRpc still calls its
   // injected copy `days`, which is why the fixture keeps that name.
   const days = {
-    validateAccommodationRefs: vi.fn((_t: number, placeId?: number) => (placeId === 404 ? [{ message: 'place 404 is not on this trip' }] : [])),
+    validateAccommodationRefs: vi.fn((_t: number, placeId?: number) =>
+      placeId === 404 ? [{ message: 'place 404 is not on this trip' }] : [],
+    ),
     createAccommodation: vi.fn(() => ({ accommodation: { id: 60 }, mirror: mirror() })),
     getAccommodation: vi.fn((id: number) => (id === 11 ? { id: 11 } : undefined)),
     updateAccommodation: vi.fn(() => ({ accommodation: { id: 11 }, mirror: mirror() })),
@@ -84,7 +112,9 @@ function build(opts: { canEdit?: boolean; cascade?: boolean; stop?: boolean; see
   } as unknown as AccommodationsService & Record<string, ReturnType<typeof vi.fn>>;
   const guards = new PluginGuards(
     {
-      findAccessible: vi.fn(async (tripId: number, userId: number) => (tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined)),
+      findAccessible: vi.fn(async (tripId: number, userId: number) =>
+        tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined,
+      ),
     } as unknown as TripsRepository,
     {
       checkPermission: vi.fn((action: string) => {
@@ -100,7 +130,12 @@ function build(opts: { canEdit?: boolean; cascade?: boolean; stop?: boolean; see
     new AccommodationsRpc(days, realtime, guards),
   ]);
   const host = (...grants: string[]) =>
-    new PluginRpcHost('p', new Set(grants.length ? grants : ['db:write:reservations', 'db:write:accommodations']), makeDeps(), registry);
+    new PluginRpcHost(
+      'p',
+      new Set(grants.length ? grants : ['db:write:reservations', 'db:write:accommodations']),
+      makeDeps(),
+      registry,
+    );
   return { reservations, days, realtime, host };
 }
 
@@ -108,16 +143,31 @@ describe('ReservationsRpc', () => {
   it('BOOK-RPC-001 writes need the grant, reservation_edit and a bound user', async () => {
     const seen: string[] = [];
     const f = build({ seenActions: seen });
-    expect((await f.host().dispatch(req('reservations.create', { tripId: 1, input: { title: 'Hotel', type: 'lodging' } }), 42)).ok).toBe(true);
+    expect(
+      (
+        await f
+          .host()
+          .dispatch(req('reservations.create', { tripId: 1, input: { title: 'Hotel', type: 'lodging' } }), 42)
+      ).ok,
+    ).toBe(true);
     expect(seen).toContain('reservation_edit');
-    const noUser = (await f.host().dispatch(req('reservations.create', { tripId: 1, input: { title: 'x', type: 'lodging' } }), undefined)) as RpcError;
+    const noUser = (await f
+      .host()
+      .dispatch(
+        req('reservations.create', { tripId: 1, input: { title: 'x', type: 'lodging' } }),
+        undefined,
+      )) as RpcError;
     expect(noUser.error.message).toBe('reservation writes require an authenticated user context');
   });
 
   it('BOOK-RPC-002 a malformed endpoints array is rejected up front', async () => {
     const f = build();
     const res = (await f.host().dispatch(
-      req('reservations.create', { tripId: 1, input: { title: 'Flight', type: 'flight', endpoints: [{ nonsense: true }] } }), 42,
+      req('reservations.create', {
+        tripId: 1,
+        input: { title: 'Flight', type: 'flight', endpoints: [{ nonsense: true }] },
+      }),
+      42,
     )) as RpcError;
     expect(res.error.code).toBe('BAD_PARAMS');
     // Otherwise it fails deep in the service mid-transaction, or is silently dropped.
@@ -126,15 +176,31 @@ describe('ReservationsRpc', () => {
 
   it('BOOK-RPC-003 an absent endpoints field stays absent, which means "keep"', async () => {
     const f = build();
-    expect((await f.host().dispatch(req('reservations.create', { tripId: 1, input: { title: 'Hotel', type: 'lodging' } }), 42)).ok).toBe(true);
+    expect(
+      (
+        await f
+          .host()
+          .dispatch(req('reservations.create', { tripId: 1, input: { title: 'Hotel', type: 'lodging' } }), 42)
+      ).ok,
+    ).toBe(true);
   });
 
   it('BOOK-RPC-004 a missing reservation is RESOURCE_FORBIDDEN, naming it', async () => {
     const f = build();
-    expect(((await f.host().dispatch(req('reservations.update', { tripId: 1, reservationId: 404, input: { title: 'x', type: 'lodging' } }), 42)) as RpcError).error.message)
-      .toBe('no reservation 404 on trip 1');
-    expect(((await f.host().dispatch(req('reservations.delete', { tripId: 1, reservationId: 404 }), 42)) as RpcError).error.message)
-      .toBe('no reservation 404 on trip 1');
+    expect(
+      (
+        (await f
+          .host()
+          .dispatch(
+            req('reservations.update', { tripId: 1, reservationId: 404, input: { title: 'x', type: 'lodging' } }),
+            42,
+          )) as RpcError
+      ).error.message,
+    ).toBe('no reservation 404 on trip 1');
+    expect(
+      ((await f.host().dispatch(req('reservations.delete', { tripId: 1, reservationId: 404 }), 42)) as RpcError).error
+        .message,
+    ).toBe('no reservation 404 on trip 1');
   });
 
   it('BOOK-RPC-005 creating a lodging booking cascades into the accommodation event', async () => {
@@ -162,7 +228,11 @@ describe('ReservationsRpc', () => {
   it('BOOK-RPC-007 the booking and its cost are one service write, and the booking notification runs', async () => {
     const f = build();
     await f.host().dispatch(req('reservations.create', { tripId: 1, input: { title: 'Hotel', type: 'lodging' } }), 42);
-    expect(f.reservations.createWithCost).toHaveBeenCalledWith('1', expect.objectContaining({ title: 'Hotel' }), undefined);
+    expect(f.reservations.createWithCost).toHaveBeenCalledWith(
+      '1',
+      expect.objectContaining({ title: 'Hotel' }),
+      undefined,
+    );
     expect(f.reservations.announceCost).toHaveBeenCalledWith(1, [], undefined);
     expect(f.reservations.notifyBookingChange).toHaveBeenCalledWith(1, 42, 'Hotel', 'lodging');
   });
@@ -192,10 +262,17 @@ describe('ReservationsRpc', () => {
 
   it('BOOK-RPC-008d a non-lodging booking cascades nothing', async () => {
     const f = build();
-    await f.host().dispatch(req('reservations.create', { tripId: 1, input: { title: 'Museum', type: 'activity' } }), 42);
+    await f
+      .host()
+      .dispatch(req('reservations.create', { tripId: 1, input: { title: 'Museum', type: 'activity' } }), 42);
     expect(events(f.realtime)).toEqual(['reservation:created']);
     f.realtime.broadcast.mockClear();
-    await f.host().dispatch(req('reservations.update', { tripId: 1, reservationId: 5, input: { title: 'x', type: 'activity' } }), 42);
+    await f
+      .host()
+      .dispatch(
+        req('reservations.update', { tripId: 1, reservationId: 5, input: { title: 'x', type: 'activity' } }),
+        42,
+      );
     expect(events(f.realtime)).toEqual(['reservation:updated']);
     f.realtime.broadcast.mockClear();
     await f.host().dispatch(req('reservations.delete', { tripId: 1, reservationId: 5 }), 42);
@@ -205,7 +282,12 @@ describe('ReservationsRpc', () => {
   it('BOOK-RPC-008e an update with a malformed endpoints array is BAD_PARAMS too', async () => {
     const f = build();
     const res = (await f.host().dispatch(
-      req('reservations.update', { tripId: 1, reservationId: 5, input: { title: 'x', type: 'lodging', endpoints: [{ nonsense: true }] } }), 42,
+      req('reservations.update', {
+        tripId: 1,
+        reservationId: 5,
+        input: { title: 'x', type: 'lodging', endpoints: [{ nonsense: true }] },
+      }),
+      42,
     )) as RpcError;
     expect(res.error.code).toBe('BAD_PARAMS');
     expect(f.reservations.updateWithCost).not.toHaveBeenCalled();
@@ -213,9 +295,12 @@ describe('ReservationsRpc', () => {
 
   it('BOOK-RPC-018 an id that resolves to nothing is BAD_PARAMS, not a constraint failure', async () => {
     const f = build({ unresolved: ['place_id'] });
-    const res = (await f.host().dispatch(
-      req('reservations.create', { tripId: 1, input: { title: 'Hotel', type: 'lodging', place_id: 999999 } }), 42,
-    )) as RpcError;
+    const res = (await f
+      .host()
+      .dispatch(
+        req('reservations.create', { tripId: 1, input: { title: 'Hotel', type: 'lodging', place_id: 999999 } }),
+        42,
+      )) as RpcError;
     expect(res.error.code).toBe('BAD_PARAMS');
     expect(res.error.message).toBe('unknown reference: place_id');
     expect(f.reservations.createWithCost).not.toHaveBeenCalled();
@@ -224,7 +309,12 @@ describe('ReservationsRpc', () => {
   it('BOOK-RPC-019 the same on update', async () => {
     const f = build({ unresolved: ['day_id'] });
     const res = (await f.host().dispatch(
-      req('reservations.update', { tripId: 1, reservationId: 5, input: { title: 'x', type: 'lodging', day_id: 999999 } }), 42,
+      req('reservations.update', {
+        tripId: 1,
+        reservationId: 5,
+        input: { title: 'x', type: 'lodging', day_id: 999999 },
+      }),
+      42,
     )) as RpcError;
     expect(res.error.code).toBe('BAD_PARAMS');
     expect(f.reservations.updateWithCost).not.toHaveBeenCalled();
@@ -235,15 +325,29 @@ describe('ReservationsRpc', () => {
     // written against another trip's day puts a stop on that day, in a plan the
     // acting user may not even read, so the body is checked the way the REST route
     // and the MCP tool check it, and ownership is judged before existence.
-    const f = build({ foreign: ['create_accommodation.start_day_id'], unresolved: ['create_accommodation.start_day_id'] });
-    const stay = { title: 'Hotel', type: 'lodging', create_accommodation: { place_id: 9, start_day_id: 4711, end_day_id: 4712 } };
+    const f = build({
+      foreign: ['create_accommodation.start_day_id'],
+      unresolved: ['create_accommodation.start_day_id'],
+    });
+    const stay = {
+      title: 'Hotel',
+      type: 'lodging',
+      create_accommodation: { place_id: 9, start_day_id: 4711, end_day_id: 4712 },
+    };
     const created = (await f.host().dispatch(req('reservations.create', { tripId: 1, input: stay }), 42)) as RpcError;
     expect(created.error.code).toBe('RESOURCE_FORBIDDEN');
     expect(created.error.message).toBe('not part of trip 1: create_accommodation.start_day_id');
     expect(f.reservations.createWithCost).not.toHaveBeenCalled();
 
     const g = build({ foreign: ['day_id'] });
-    const updated = (await g.host().dispatch(req('reservations.update', { tripId: 1, reservationId: 5, input: { title: 'x', type: 'lodging', day_id: 4711 } }), 42)) as RpcError;
+    const updated = (await g.host().dispatch(
+      req('reservations.update', {
+        tripId: 1,
+        reservationId: 5,
+        input: { title: 'x', type: 'lodging', day_id: 4711 },
+      }),
+      42,
+    )) as RpcError;
     expect(updated.error.code).toBe('RESOURCE_FORBIDDEN');
     expect(updated.error.message).toBe('not part of trip 1: day_id');
     expect(g.reservations.updateWithCost).not.toHaveBeenCalled();
@@ -251,8 +355,21 @@ describe('ReservationsRpc', () => {
 
     // The same body with this trip's ids goes through.
     const h = build();
-    expect((await h.host().dispatch(req('reservations.create', { tripId: 1, input: { ...stay, create_accommodation: { ...stay.create_accommodation, start_day_id: 3 } } }), 42)).ok).toBe(true);
-    expect(h.reservations.referencesOutsideTrip).toHaveBeenLastCalledWith('1', expect.objectContaining({ create_accommodation: expect.objectContaining({ start_day_id: 3 }) }));
+    expect(
+      (
+        await h.host().dispatch(
+          req('reservations.create', {
+            tripId: 1,
+            input: { ...stay, create_accommodation: { ...stay.create_accommodation, start_day_id: 3 } },
+          }),
+          42,
+        )
+      ).ok,
+    ).toBe(true);
+    expect(h.reservations.referencesOutsideTrip).toHaveBeenLastCalledWith(
+      '1',
+      expect.objectContaining({ create_accommodation: expect.objectContaining({ start_day_id: 3 }) }),
+    );
   });
 
   it('BOOK-RPC-009 the class is listed in its module providers', () => {
@@ -264,7 +381,12 @@ describe('AccommodationsRpc', () => {
   it('BOOK-RPC-010 lodging blocks run under day_edit, NOT reservation_edit', async () => {
     const seen: string[] = [];
     const f = build({ seenActions: seen });
-    await f.host().dispatch(req('accommodations.create', { tripId: 1, input: { place_id: 7, start_day_id: 3, end_day_id: 4 } }), 42);
+    await f
+      .host()
+      .dispatch(
+        req('accommodations.create', { tripId: 1, input: { place_id: 7, start_day_id: 3, end_day_id: 4 } }),
+        42,
+      );
     // They hold db:write:accommodations but the app gates them on the day permission.
     expect(seen).toEqual(['day_edit']);
   });
@@ -274,23 +396,40 @@ describe('AccommodationsRpc', () => {
     // The shared schema runs before the handler's own check, so a missing id is
     // reported as a schema failure. The handler's check is the second line of
     // defence, for values the schema lets through but the service cannot use.
-    const missing = (await f.host().dispatch(req('accommodations.create', { tripId: 1, input: { place_id: 7 } }), 42)) as RpcError;
+    const missing = (await f
+      .host()
+      .dispatch(req('accommodations.create', { tripId: 1, input: { place_id: 7 } }), 42)) as RpcError;
     expect(missing.error.code).toBe('BAD_PARAMS');
-    const zero = (await f.host().dispatch(req('accommodations.create', { tripId: 1, input: { place_id: 0, start_day_id: 0, end_day_id: 0 } }), 42)) as RpcError;
+    const zero = (await f
+      .host()
+      .dispatch(
+        req('accommodations.create', { tripId: 1, input: { place_id: 0, start_day_id: 0, end_day_id: 0 } }),
+        42,
+      )) as RpcError;
     expect(zero.error.code).toBe('BAD_PARAMS');
     expect(f.days.createAccommodation).not.toHaveBeenCalled();
   });
 
   it('BOOK-RPC-012 a place or day from another trip is refused with the validator message', async () => {
     const f = build();
-    const res = (await f.host().dispatch(req('accommodations.create', { tripId: 1, input: { place_id: 404, start_day_id: 3, end_day_id: 4 } }), 42)) as RpcError;
+    const res = (await f
+      .host()
+      .dispatch(
+        req('accommodations.create', { tripId: 1, input: { place_id: 404, start_day_id: 3, end_day_id: 4 } }),
+        42,
+      )) as RpcError;
     expect(res.error.message).toBe('place 404 is not on this trip');
     expect(f.days.createAccommodation).not.toHaveBeenCalled();
   });
 
   it('BOOK-RPC-013 creating a block announces the partner reservation too', async () => {
     const f = build();
-    await f.host().dispatch(req('accommodations.create', { tripId: 1, input: { place_id: 7, start_day_id: 3, end_day_id: 4 } }), 42);
+    await f
+      .host()
+      .dispatch(
+        req('accommodations.create', { tripId: 1, input: { place_id: 7, start_day_id: 3, end_day_id: 4 } }),
+        42,
+      );
     expect(events(f.realtime)).toEqual(['accommodation:created', 'reservation:created']);
   });
 
@@ -302,39 +441,79 @@ describe('AccommodationsRpc', () => {
 
   it('BOOK-RPC-015 a missing block is RESOURCE_FORBIDDEN, naming it', async () => {
     const f = build();
-    expect(((await f.host().dispatch(req('accommodations.update', { tripId: 1, accommodationId: 404, input: {} }), 42)) as RpcError).error.message)
-      .toBe('no accommodation 404 on trip 1');
-    expect(((await f.host().dispatch(req('accommodations.delete', { tripId: 1, accommodationId: 404 }), 42)) as RpcError).error.message)
-      .toBe('no accommodation 404 on trip 1');
+    expect(
+      (
+        (await f
+          .host()
+          .dispatch(req('accommodations.update', { tripId: 1, accommodationId: 404, input: {} }), 42)) as RpcError
+      ).error.message,
+    ).toBe('no accommodation 404 on trip 1');
+    expect(
+      ((await f.host().dispatch(req('accommodations.delete', { tripId: 1, accommodationId: 404 }), 42)) as RpcError)
+        .error.message,
+    ).toBe('no accommodation 404 on trip 1');
   });
 
   it('BOOK-RPC-015b optional block fields are passed through, absent ones as undefined', async () => {
     const f = build();
-    await f.host().dispatch(req('accommodations.create', { tripId: 1, input: { place_id: 7, start_day_id: 3, end_day_id: 4, check_in: '15:00', notes: 'late' } }), 42);
-    expect(f.days.createAccommodation).toHaveBeenCalledWith(1, expect.objectContaining({ check_in: '15:00', notes: 'late', check_out: undefined }));
+    await f.host().dispatch(
+      req('accommodations.create', {
+        tripId: 1,
+        input: { place_id: 7, start_day_id: 3, end_day_id: 4, check_in: '15:00', notes: 'late' },
+      }),
+      42,
+    );
+    expect(f.days.createAccommodation).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ check_in: '15:00', notes: 'late', check_out: undefined }),
+    );
   });
 
   it('BOOK-RPC-015c an update with a bad ref is refused before the write', async () => {
     const f = build();
-    const res = (await f.host().dispatch(req('accommodations.update', { tripId: 1, accommodationId: 11, input: { place_id: 404 } }), 42)) as RpcError;
+    const res = (await f
+      .host()
+      .dispatch(
+        req('accommodations.update', { tripId: 1, accommodationId: 11, input: { place_id: 404 } }),
+        42,
+      )) as RpcError;
     expect(res.error.message).toBe('place 404 is not on this trip');
     expect(f.days.updateAccommodation).not.toHaveBeenCalled();
   });
 
   it('BOOK-RPC-017 the day stop a booking writes is announced through the plugin surface too', async () => {
     const f = build();
-    await f.host().dispatch(req('accommodations.create', { tripId: 1, input: { place_id: 7, start_day_id: 3, end_day_id: 4 } }), 42);
+    await f
+      .host()
+      .dispatch(
+        req('accommodations.create', { tripId: 1, input: { place_id: 7, start_day_id: 3, end_day_id: 4 } }),
+        42,
+      );
     // Same call the REST route makes, so a plugin booking a night cannot leave the
     // other sessions without the stop that puts it on the route.
-    expect(f.days.announceMirror).toHaveBeenCalledWith(1, { created: null, removed: [], stamped: null }, expect.any(Function));
+    expect(f.days.announceMirror).toHaveBeenCalledWith(
+      1,
+      { created: null, removed: [], stamped: null },
+      expect.any(Function),
+    );
   });
 
   it('BOOK-RPC-017b editing a block writes it, announces it and answers with the block', async () => {
     const f = build();
-    const res = await f.host().dispatch(req('accommodations.update', { tripId: 1, accommodationId: 11, input: { check_in: '15:00' } }), 42);
-    expect(f.days.updateAccommodation).toHaveBeenCalledWith(11, { id: 11 }, expect.objectContaining({ check_in: '15:00' }));
+    const res = await f
+      .host()
+      .dispatch(req('accommodations.update', { tripId: 1, accommodationId: 11, input: { check_in: '15:00' } }), 42);
+    expect(f.days.updateAccommodation).toHaveBeenCalledWith(
+      11,
+      { id: 11 },
+      expect.objectContaining({ check_in: '15:00' }),
+    );
     expect(events(f.realtime)).toEqual(['accommodation:updated']);
-    expect(f.days.announceMirror).toHaveBeenCalledWith(1, { created: null, removed: [], stamped: null }, expect.any(Function));
+    expect(f.days.announceMirror).toHaveBeenCalledWith(
+      1,
+      { created: null, removed: [], stamped: null },
+      expect.any(Function),
+    );
     // The block itself, not the { accommodation, mirror } pair the service returns:
     // the mirror is a broadcast concern and plugins never asked for it.
     expect(res).toMatchObject({ k: 'res', result: { id: 11 } });

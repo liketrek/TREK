@@ -1,13 +1,14 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createInviteToken, createTrip, createUser } from '../../../helpers/factories';
 import { InviteTokens } from '../../../../src/db/entities/InviteTokens.entity';
 import type { InviteTokensRepository } from '../../../../src/db/repositories/InviteTokens.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createInviteToken, createTrip, createUser } from '../../../helpers/factories';
 import { updateRows } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -17,8 +18,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   invites = t.repo(InviteTokens);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function rawInvite(id: number): unknown {
   // test-sql-allow: the raw full row is the parity oracle the repository's reads are compared against.
@@ -120,10 +127,7 @@ describe('InviteTokensRepository', () => {
 
     it('INVREPO-009: two concurrent increments on a one-use invite — exactly one wins (D6 single-connection race safety)', async () => {
       const created = createInviteToken(testDb, { token: 'race-me', max_uses: 1 });
-      const [a, b] = await Promise.all([
-        invites.incrementUsedCount('race-me'),
-        invites.incrementUsedCount('race-me'),
-      ]);
+      const [a, b] = await Promise.all([invites.incrementUsedCount('race-me'), invites.incrementUsedCount('race-me')]);
       const results = [a, b];
       const winners = results.filter((r) => r !== null);
       const losers = results.filter((r) => r === null);
@@ -136,7 +140,7 @@ describe('InviteTokensRepository', () => {
 
   // RI1/RI5 — the admin invite list's joined projection.
   describe('listWithCreatorAndTrip / findWithCreatorAndTrip', () => {
-    it('INVREPO-010: projects the creator\'s username and a bound trip\'s title, newest first', async () => {
+    it("INVREPO-010: projects the creator's username and a bound trip's title, newest first", async () => {
       const { user: admin } = createUser(testDb, { username: 'inviter-1' });
       const trip = createTrip(testDb, admin.id, { title: 'Bound Trip' });
       const older = createInviteToken(testDb, { token: 'older', created_by: admin.id });
@@ -147,7 +151,12 @@ describe('InviteTokensRepository', () => {
       const rows = await invites.listWithCreatorAndTrip();
 
       expect(rows.map((r) => r.token)).toEqual(['newer', 'older']); // ORDER BY created_at DESC
-      expect(rows[0]).toMatchObject({ token: 'newer', created_by_name: 'inviter-1', trip_title: 'Bound Trip', trip_id: trip.id });
+      expect(rows[0]).toMatchObject({
+        token: 'newer',
+        created_by_name: 'inviter-1',
+        trip_title: 'Bound Trip',
+        trip_id: trip.id,
+      });
       expect(rows[1]).toMatchObject({ token: 'older', created_by_name: 'inviter-1', trip_title: null, trip_id: null });
     });
 
@@ -163,7 +172,7 @@ describe('InviteTokensRepository', () => {
       expect(await invites.findWithCreatorAndTrip(999_999)).toBeNull();
     });
 
-    it('INVREPO-015: the generated SQL joins users with an INNER JOIN and trips with a LEFT JOIN — pins RI1\'s join TYPE (Plan 3b Task 3 review, F4; a `leftJoin` rewrite of the users join must fail this)', async () => {
+    it("INVREPO-015: the generated SQL joins users with an INNER JOIN and trips with a LEFT JOIN — pins RI1's join TYPE (Plan 3b Task 3 review, F4; a `leftJoin` rewrite of the users join must fail this)", async () => {
       const { user: admin } = createUser(testDb, { username: 'join-type-check' });
       createInviteToken(testDb, { token: 'join-type-check', created_by: admin.id });
 
@@ -174,7 +183,7 @@ describe('InviteTokensRepository', () => {
       expect(sql).not.toMatch(/left join `?users`?/i);
     });
 
-    it('INVREPO-016: findWithCreatorAndTrip\'s generated SQL joins users with an INNER JOIN and trips with a LEFT JOIN — pins RI5\'s join TYPE (task-3-rereview.md R2; a `leftJoin` rewrite of the users join must fail this)', async () => {
+    it("INVREPO-016: findWithCreatorAndTrip's generated SQL joins users with an INNER JOIN and trips with a LEFT JOIN — pins RI5's join TYPE (task-3-rereview.md R2; a `leftJoin` rewrite of the users join must fail this)", async () => {
       const { user: admin } = createUser(testDb, { username: 'join-type-check-single' });
       const invite = createInviteToken(testDb, { token: 'join-type-check-single', created_by: admin.id });
 

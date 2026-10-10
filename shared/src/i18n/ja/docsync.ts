@@ -172,7 +172,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': '転送できませんでした。',
 
   'docsync.error.unknown_provider': 'この連携先はこのインスタンスでは利用できません。',
-  'docsync.error.provider_disabled': '一時停止中：管理者がこの連携先を無効にしました。再び有効になると同期が再開されます。',
+  'docsync.error.provider_disabled':
+    '一時停止中：管理者がこの連携先を無効にしました。再び有効になると同期が再開されます。',
   'docsync.binding.reconnect': '再接続',
 };
 

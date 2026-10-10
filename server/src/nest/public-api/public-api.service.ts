@@ -1,3 +1,17 @@
+import { BucketList } from '../../db/entities/BucketList.entity';
+import { DayNotes } from '../../db/entities/DayNotes.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { BucketListRepository } from '../../db/repositories/BucketList.repository';
+import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
+import type { DaysRepository } from '../../db/repositories/Days.repository';
+import type { PlacesRepository, PublicApiAssignedPlaceRow } from '../../db/repositories/Places.repository';
+import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import type {
   PublicApiAccommodation,
@@ -11,20 +25,6 @@ import type {
   PublicApiTrip,
   PublicApiTripSummary,
 } from '@trek/shared';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository } from '../../db/repositories/Days.repository';
-import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository, PublicApiAssignedPlaceRow } from '../../db/repositories/Places.repository';
-import { DayNotes } from '../../db/entities/DayNotes.entity';
-import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
-import { BucketList } from '../../db/entities/BucketList.entity';
-import type { BucketListRepository } from '../../db/repositories/BucketList.repository';
-import { TripMembershipService } from '../trip-membership/trip-membership.service';
 
 /**
  * Assembles the read-only public API payloads.
@@ -79,7 +79,12 @@ export class PublicApiService {
    * turns both into the same 404, so the endpoint cannot be used to probe which
    * trip ids exist.
    */
-  async getTrip(tripId: number, userId: number, include: PublicApiInclude[], granted: readonly string[] = include): Promise<PublicApiTrip | null> {
+  async getTrip(
+    tripId: number,
+    userId: number,
+    include: PublicApiInclude[],
+    granted: readonly string[] = include,
+  ): Promise<PublicApiTrip | null> {
     if (!(await this.tripsRepo.findAccessible(tripId, userId))) return null;
     const row = await this.tripsRepo.findSummaryById(tripId);
     if (!row) return null;
@@ -125,15 +130,13 @@ export class PublicApiService {
 
     const placesByDay = include.includes('places') ? await this.placesByDay(tripId) : new Map();
     const notesByDay = include.includes('notes') ? await this.dayNotesByDay(tripId) : new Map();
-    const reservationsByDay = include.includes('reservations')
-      ? await this.reservationsByDay(tripId)
-      : new Map();
+    const reservationsByDay = include.includes('reservations') ? await this.reservationsByDay(tripId) : new Map();
 
     return days.map((day) => ({
       date: day.date,
       day_number: day.day_number,
-      title: dayFields ? day.title ?? null : null,
-      notes: dayFields ? day.notes ?? null : null,
+      title: dayFields ? (day.title ?? null) : null,
+      notes: dayFields ? (day.notes ?? null) : null,
       places: placesByDay.get(day.id) ?? [],
       day_notes: notesByDay.get(day.id) ?? [],
       reservations: reservationsByDay.get(day.id) ?? [],
@@ -160,10 +163,14 @@ export class PublicApiService {
 
   private async dayNotesByDay(tripId: number): Promise<Map<number, PublicApiDayNote[]>> {
     const rows = await this.dayNotesRepo.listForPublicApi(tripId);
-    return groupBy(rows, (r) => r.day_id, (r) => ({
-      text: r.text,
-      time: r.time ?? null,
-    }));
+    return groupBy(
+      rows,
+      (r) => r.day_id,
+      (r) => ({
+        text: r.text,
+        time: r.time ?? null,
+      }),
+    );
   }
 
   /**
@@ -319,11 +326,7 @@ function toTripSummary(row: TripRow): PublicApiTripSummary {
   };
 }
 
-function groupBy<Row, Out>(
-  rows: Row[],
-  key: (row: Row) => number,
-  map: (row: Row) => Out,
-): Map<number, Out[]> {
+function groupBy<Row, Out>(rows: Row[], key: (row: Row) => number, map: (row: Row) => Out): Map<number, Out[]> {
   const grouped = new Map<number, Out[]>();
   for (const row of rows) {
     const id = key(row);

@@ -1,10 +1,11 @@
-import type { EntityDTO } from '@mikro-orm/core';
-import bcrypt from 'bcryptjs';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { encrypt_api_key } from '../../../src/nest/common/crypto/apiKeyCrypto';
 import { encryptMfaSecret } from '../../../src/nest/common/crypto/mfaCrypto';
 import { nextSeq, type FactoryOrm } from './context';
 import { createRow, findRow, updateRows } from './rows';
+import type { EntityDTO } from '@mikro-orm/core';
+
+import bcrypt from 'bcryptjs';
 
 export type UserRow = EntityDTO<Users>;
 
@@ -74,7 +75,12 @@ export async function readUser(orm: FactoryOrm, id: number): Promise<UserRow> {
 }
 
 /** Immich credentials, with the API key encrypted the way the settings route stores it. */
-export async function setImmichCredentials(orm: FactoryOrm, userId: number, url: string, apiKey: string): Promise<void> {
+export async function setImmichCredentials(
+  orm: FactoryOrm,
+  userId: number,
+  url: string,
+  apiKey: string,
+): Promise<void> {
   await updateRows(orm, Users, { id: userId }, { immich_url: url, immich_api_key: encrypt_api_key(apiKey) });
 }
 

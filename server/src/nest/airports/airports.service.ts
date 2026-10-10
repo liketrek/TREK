@@ -1,15 +1,15 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { Airport } from '@trek/shared';
-import { searchAirports, findByIata, load } from './airports.data';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
 import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
-import { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
-import { CronRegistrarService } from '../scheduling/cron-registrar.service';
-import { UnitOfWork } from '../database/unit-of-work';
+import { Reservations } from '../../db/entities/Reservations.entity';
 import { RESERVATION_METADATA } from '../../db/json-columns';
+import { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
+import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
 import { decodeJsonResult, logJsonFailure } from '../../utils/json-column';
+import { UnitOfWork } from '../database/unit-of-work';
+import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { searchAirports, findByIata, load } from './airports.data';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import type { Airport } from '@trek/shared';
 
 /**
  * The in-container face of the airport dataset, plus the flight-endpoint
@@ -96,8 +96,16 @@ export class AirportsService implements OnApplicationBootstrap {
   }
 
   /** One flight's endpoints, or its review flag. True when it was filled. */
-  private async backfillOne(r: { id: number; metadata: string | null; reservation_time: string | null; reservation_end_time: string | null }): Promise<boolean> {
-    if (!r.metadata) { await this.reservationsRepo.markNeedsReview(r.id); return false; }
+  private async backfillOne(r: {
+    id: number;
+    metadata: string | null;
+    reservation_time: string | null;
+    reservation_end_time: string | null;
+  }): Promise<boolean> {
+    if (!r.metadata) {
+      await this.reservationsRepo.markNeedsReview(r.id);
+      return false;
+    }
     const decoded = decodeJsonResult(RESERVATION_METADATA, r.metadata);
     if (!decoded.ok) {
       logJsonFailure(RESERVATION_METADATA, decoded.reason, `reservation ${r.id}`);
@@ -109,7 +117,10 @@ export class AirportsService implements OnApplicationBootstrap {
     const dep = meta.departure_airport ? findByIata(String(meta.departure_airport).slice(0, 3)) : null;
     const arr = meta.arrival_airport ? findByIata(String(meta.arrival_airport).slice(0, 3)) : null;
 
-    if (!dep || !arr) { await this.reservationsRepo.markNeedsReview(r.id); return false; }
+    if (!dep || !arr) {
+      await this.reservationsRepo.markNeedsReview(r.id);
+      return false;
+    }
 
     const split = (iso: string | null) => {
       if (!iso) return { date: null as string | null, time: null as string | null };
@@ -120,14 +131,28 @@ export class AirportsService implements OnApplicationBootstrap {
     const arrParts = split(r.reservation_end_time);
 
     await this.endpointsRepo.insertEndpoint({
-      reservation_id: r.id, role: 'from', sequence: 0,
-      name: dep.city ? `${dep.city} (${dep.iata})` : dep.name, code: dep.iata,
-      lat: dep.lat, lng: dep.lng, timezone: dep.tz, local_time: depParts.time, local_date: depParts.date,
+      reservation_id: r.id,
+      role: 'from',
+      sequence: 0,
+      name: dep.city ? `${dep.city} (${dep.iata})` : dep.name,
+      code: dep.iata,
+      lat: dep.lat,
+      lng: dep.lng,
+      timezone: dep.tz,
+      local_time: depParts.time,
+      local_date: depParts.date,
     });
     await this.endpointsRepo.insertEndpoint({
-      reservation_id: r.id, role: 'to', sequence: 1,
-      name: arr.city ? `${arr.city} (${arr.iata})` : arr.name, code: arr.iata,
-      lat: arr.lat, lng: arr.lng, timezone: arr.tz, local_time: arrParts.time, local_date: arrParts.date,
+      reservation_id: r.id,
+      role: 'to',
+      sequence: 1,
+      name: arr.city ? `${arr.city} (${arr.iata})` : arr.name,
+      code: arr.iata,
+      lat: arr.lat,
+      lng: arr.lng,
+      timezone: arr.tz,
+      local_time: arrParts.time,
+      local_date: arrParts.date,
     });
     return true;
   }

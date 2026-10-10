@@ -1,5 +1,6 @@
-import type { ExpressionBuilder, ExpressionWrapper, SqlBool } from 'kysely';
 import type { DB } from '../../kysely/db';
+
+import type { ExpressionBuilder, ExpressionWrapper, SqlBool } from 'kysely';
 
 /**
  * The `TRAVELER_OWNS` predicate atlas's `AtlasService` inlines as a
@@ -128,8 +129,5 @@ export function travelerOwnsExpr(
     .select('rt.reservation_id')
     .whereRef('rt.reservation_id', '=', 'r.id');
 
-  return eb.or([
-    eb.not(eb.exists(forThisReservation)),
-    eb.exists(forThisReservation.where('rt.user_id', '=', userId)),
-  ]);
+  return eb.or([eb.not(eb.exists(forThisReservation)), eb.exists(forThisReservation.where('rt.user_id', '=', userId))]);
 }

@@ -1,6 +1,7 @@
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, errorResult, ok, type McpContext } from '../../nest-mcp';
-import { z } from 'zod';
 import { getWikiIndex, getWikiPage, searchWiki, WikiNotFound, type WikiPage } from './wiki';
+
+import { z } from 'zod';
 
 /**
  * Help MCP surface over the bundled wiki, reading through the same functions
@@ -34,7 +35,7 @@ export class HelpMcp {
   @Tool({
     name: 'list_help_topics',
     description:
-      'List the table of contents of the TREK user manual bundled with this instance: sections, page titles, and the slugs get_help_page takes. Start here when the user asks how something in TREK works or how to do something in the app, then read the matching page. This is documentation about the product, never the user\'s own data: for that use list_trips or get_trip_summary.',
+      "List the table of contents of the TREK user manual bundled with this instance: sections, page titles, and the slugs get_help_page takes. Start here when the user asks how something in TREK works or how to do something in the app, then read the matching page. This is documentation about the product, never the user's own data: for that use list_trips or get_trip_summary.",
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
   })

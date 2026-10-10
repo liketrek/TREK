@@ -1,6 +1,6 @@
 import type { TourWaypoints } from '../entities/TourWaypoints.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** One saved routing control point of a tour, in route order. */
 export interface TourWaypointRow {

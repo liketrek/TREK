@@ -7,29 +7,42 @@
  * notice riding the attach ctx, and the scope gating (declarative
  * trips:write markers + the canReadTrips/canDeleteTrips predicates).
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, addTripMember, createBudgetItem, createPackingItem, createReservation, createDayNote, createCollabNote, createDayAssignment, createDayAccommodation } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { MAX_TRIP_DAYS } from '@trek/shared';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow, findRows, insertRow, insertRows, updateRows } from '../../helpers/factories/rows';
-import { setUserSetting } from '../../helpers/factories/settings';
-import { makeVacayEntry, makeVacayPlan, addVacayPlanMember } from '../../helpers/factories/vacay';
-import { makePackingItem } from '../../helpers/factories/packing';
 import { Days } from '../../../src/db/entities/Days.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { VacayEntries } from '../../../src/db/entities/VacayEntries.entity';
 import { VacayUserYears } from '../../../src/db/entities/VacayUserYears.entity';
 import { VacayYears } from '../../../src/db/entities/VacayYears.entity';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  addTripMember,
+  createBudgetItem,
+  createPackingItem,
+  createReservation,
+  createDayNote,
+  createCollabNote,
+  createDayAssignment,
+  createDayAccommodation,
+} from '../../helpers/factories';
+import { makePackingItem } from '../../helpers/factories/packing';
+import { countRows, findRow, findRows, insertRow, insertRows, updateRows } from '../../helpers/factories/rows';
+import { setUserSetting } from '../../helpers/factories/settings';
+import { makeVacayEntry, makeVacayPlan, addVacayPlanMember } from '../../helpers/factories/vacay';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { MAX_TRIP_DAYS } from '@trek/shared';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
+
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -62,8 +75,13 @@ async function tripRow(id: number) {
 
 /** The vacay entry dates of the user in the plan between `from` and `to`, both included, in date order. */
 async function vacayDatesBetween(planId: number, userId: number, from: string, to: string): Promise<string[]> {
-  const rows = await findRows(orm, VacayEntries, { plan: planId, user: userId, date: { $gte: from, $lte: to } }, { date: 'asc' });
-  return rows.map(r => r.date);
+  const rows = await findRows(
+    orm,
+    VacayEntries,
+    { plan: planId, user: userId, date: { $gte: from, $lte: to } },
+    { date: 'asc' },
+  );
+  return rows.map((r) => r.date);
 }
 
 /** A vacay plan for the user with the year 2026 open and 30 days in it. */
@@ -76,7 +94,11 @@ async function vacayPlanWithYear(userId: number): Promise<number> {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +160,10 @@ describe('Tool: create_trip', () => {
   it('returns error for invalid start_date format', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_trip', arguments: { title: 'Trip', start_date: 'not-a-date' } });
+      const result = await h.client.callTool({
+        name: 'create_trip',
+        arguments: { title: 'Trip', start_date: 'not-a-date' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -166,7 +191,10 @@ describe('Tool: create_trip', () => {
   it('gives a dateless trip the requested day_count instead of the default 7', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_trip', arguments: { title: 'Open Ended', day_count: 12 } });
+      const result = await h.client.callTool({
+        name: 'create_trip',
+        arguments: { title: 'Open Ended', day_count: 12 },
+      });
       const data = parseToolResult(result) as any;
       const days = await countRows(orm, Days, { trip: data.trip.id });
       expect(days).toBe(12);
@@ -179,8 +207,13 @@ describe('Tool: create_trip', () => {
   it('refuses a day_count outside 1..MAX_TRIP_DAYS', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      expect((await h.client.callTool({ name: 'create_trip', arguments: { title: 'Zero', day_count: 0 } })).isError).toBe(true);
-      expect((await h.client.callTool({ name: 'create_trip', arguments: { title: 'Huge', day_count: MAX_TRIP_DAYS + 1 } })).isError).toBe(true);
+      expect(
+        (await h.client.callTool({ name: 'create_trip', arguments: { title: 'Zero', day_count: 0 } })).isError,
+      ).toBe(true);
+      expect(
+        (await h.client.callTool({ name: 'create_trip', arguments: { title: 'Huge', day_count: MAX_TRIP_DAYS + 1 } }))
+          .isError,
+      ).toBe(true);
       expect(await countRows(orm, Trips)).toBe(0);
     });
   });
@@ -188,7 +221,10 @@ describe('Tool: create_trip', () => {
   it('stores the requested reminder_days', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_trip', arguments: { title: 'Reminded', reminder_days: 14 } });
+      const result = await h.client.callTool({
+        name: 'create_trip',
+        arguments: { title: 'Reminded', reminder_days: 14 },
+      });
       const data = parseToolResult(result) as any;
       const row = await tripRow(data.trip.id);
       expect(row.reminder_days).toBe(14);
@@ -208,8 +244,12 @@ describe('Tool: create_trip', () => {
   it('refuses a reminder_days outside 0..30', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      expect((await h.client.callTool({ name: 'create_trip', arguments: { title: 'Early', reminder_days: 31 } })).isError).toBe(true);
-      expect((await h.client.callTool({ name: 'create_trip', arguments: { title: 'Negative', reminder_days: -1 } })).isError).toBe(true);
+      expect(
+        (await h.client.callTool({ name: 'create_trip', arguments: { title: 'Early', reminder_days: 31 } })).isError,
+      ).toBe(true);
+      expect(
+        (await h.client.callTool({ name: 'create_trip', arguments: { title: 'Negative', reminder_days: -1 } })).isError,
+      ).toBe(true);
       expect(await countRows(orm, Trips)).toBe(0);
     });
   });
@@ -218,9 +258,13 @@ describe('Tool: create_trip', () => {
     const { user } = createUser(testDb);
     await setUserSetting(orm, user.id, 'default_currency', JSON.stringify('USD'));
     await withHarness(user.id, async (h) => {
-      const fromSettings = parseToolResult(await h.client.callTool({ name: 'create_trip', arguments: { title: 'Road trip' } })) as any;
+      const fromSettings = parseToolResult(
+        await h.client.callTool({ name: 'create_trip', arguments: { title: 'Road trip' } }),
+      ) as any;
       expect(fromSettings.trip.currency).toBe('USD');
-      const explicit = parseToolResult(await h.client.callTool({ name: 'create_trip', arguments: { title: 'Tokyo', currency: 'JPY' } })) as any;
+      const explicit = parseToolResult(
+        await h.client.callTool({ name: 'create_trip', arguments: { title: 'Tokyo', currency: 'JPY' } }),
+      ) as any;
       expect(explicit.trip.currency).toBe('JPY');
     });
   });
@@ -228,7 +272,9 @@ describe('Tool: create_trip', () => {
   it('falls back to EUR when neither the user nor the admin set a display currency', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const data = parseToolResult(await h.client.callTool({ name: 'create_trip', arguments: { title: 'Plain' } })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({ name: 'create_trip', arguments: { title: 'Plain' } }),
+      ) as any;
       expect(data.trip.currency).toBe('EUR');
     });
   });
@@ -243,7 +289,10 @@ describe('Tool: update_trip', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Old Title' });
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, title: 'New Title' } });
+      const result = await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, title: 'New Title' },
+      });
       const data = parseToolResult(result) as any;
       expect(data.trip.title).toBe('New Title');
     });
@@ -313,13 +362,7 @@ describe('Tool: update_trip', () => {
     expect(oldWindow).toHaveLength(0);
 
     const shifted = await vacayDatesBetween(planId, user.id, '2026-08-08', '2026-08-16');
-    expect(shifted).toEqual([
-      '2026-08-10',
-      '2026-08-11',
-      '2026-08-12',
-      '2026-08-13',
-      '2026-08-14',
-    ]);
+    expect(shifted).toEqual(['2026-08-10', '2026-08-11', '2026-08-12', '2026-08-13', '2026-08-14']);
   });
 
   it('shifts entries from the owners own plan even if another vacay plan is active', async () => {
@@ -356,7 +399,10 @@ describe('Tool: update_trip', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-07-01', end_date: '2026-07-05' });
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, clear_dates: true } });
+      const result = await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, clear_dates: true },
+      });
       expect(result.isError).toBeFalsy();
       const row = await tripRow(trip.id);
       expect(row.start_date).toBeNull();
@@ -408,8 +454,13 @@ describe('Tool: update_trip', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Untouched' });
     await withHarness(user.id, async (h) => {
-      expect((await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, day_count: 0 } })).isError).toBe(true);
-      expect((await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, day_count: MAX_TRIP_DAYS + 1 } })).isError).toBe(true);
+      expect(
+        (await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, day_count: 0 } })).isError,
+      ).toBe(true);
+      expect(
+        (await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, day_count: MAX_TRIP_DAYS + 1 } }))
+          .isError,
+      ).toBe(true);
       expect(await countRows(orm, Days, { trip: trip.id })).toBe(0);
     });
   });
@@ -417,7 +468,7 @@ describe('Tool: update_trip', () => {
   it('says in its description what shortening a dated trip takes, and where the result lists it', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const tool = (await h.client.listTools()).tools.find(t => t.name === 'update_trip');
+      const tool = (await h.client.listTools()).tools.find((t) => t.name === 'update_trip');
       expect(tool?.description).toContain('Shortening a dated trip deletes its last days by position');
       expect(tool?.description).toContain('removed_days');
     });
@@ -429,13 +480,17 @@ describe('Tool: update_trip', () => {
     const days = await findRows(orm, Days, { trip: trip.id }, { day_number: 'asc' });
     await withHarness(user.id, async (h) => {
       type Answer = { trip: { end_date: string; title: string }; removed_days?: unknown[] };
-      const shortened = parseToolResult(await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, end_date: '2026-07-03' } })) as Answer;
+      const shortened = parseToolResult(
+        await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, end_date: '2026-07-03' } }),
+      ) as Answer;
       expect(shortened.trip.end_date).toBe('2026-07-03');
       expect(shortened.removed_days).toEqual([
         { id: days[3].id, day_number: 4, date: '2026-07-04', reason: 'overflow' },
         { id: days[4].id, day_number: 5, date: '2026-07-05', reason: 'overflow' },
       ]);
-      const renamed = parseToolResult(await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, title: 'Shorter' } })) as Answer;
+      const renamed = parseToolResult(
+        await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, title: 'Shorter' } }),
+      ) as Answer;
       expect(renamed.trip.title).toBe('Shorter');
       expect(renamed).not.toHaveProperty('removed_days');
     });
@@ -445,7 +500,10 @@ describe('Tool: update_trip', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Untouched', start_date: '2026-07-01', end_date: '2026-07-07' });
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, end_date: '2036-07-01' } });
+      const result = await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, end_date: '2036-07-01' },
+      });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain(`at most ${MAX_TRIP_DAYS} days`);
       const row = await tripRow(trip.id);
@@ -468,7 +526,10 @@ describe('Tool: update_trip', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, reminder_days: 31 } });
+      const result = await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, reminder_days: 31 },
+      });
       expect(result.isError).toBe(true);
       expect((await tripRow(trip.id)).reminder_days).toBe(3);
     });
@@ -502,23 +563,31 @@ describe('Tool: update_trip', () => {
 
 describe('Tool: search_cover_images', () => {
   function stubUnsplash(body: unknown, init: { ok?: boolean; status?: number } = {}) {
-    vi.stubGlobal('fetch', vi.fn(async () => ({
-      ok: init.ok ?? true,
-      status: init.status ?? 200,
-      json: async () => body,
-    })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: init.ok ?? true,
+        status: init.status ?? 200,
+        json: async () => body,
+      })),
+    );
   }
 
   it('returns the photo candidates for a query', async () => {
     const { user } = createUser(testDb);
     stubUnsplash({
-      results: [{
-        id: 'p1',
-        urls: { regular: 'https://images.unsplash.com/photo-1.jpg', small: 'https://images.unsplash.com/thumb-1.jpg' },
-        alt_description: 'Rooftops at sunset',
-        user: { name: 'Ada L.' },
-        links: { html: 'https://unsplash.com/photos/p1' },
-      }],
+      results: [
+        {
+          id: 'p1',
+          urls: {
+            regular: 'https://images.unsplash.com/photo-1.jpg',
+            small: 'https://images.unsplash.com/thumb-1.jpg',
+          },
+          alt_description: 'Rooftops at sunset',
+          user: { name: 'Ada L.' },
+          links: { html: 'https://unsplash.com/photos/p1' },
+        },
+      ],
     });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'search_cover_images', arguments: { query: 'Lisbon rooftops' } });
@@ -780,20 +849,32 @@ describe('Tool: get_trip_summary', () => {
   });
 
   // Regression: get_trip_summary must hide another member's private packing items (#858).
-  it('hides another member\'s private packing item from the summary', async () => {
+  it("hides another member's private packing item from the summary", async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: 'Shared Trip' });
     addTripMember(testDb, trip.id, member.id);
-    await makePackingItem(orm, trip.id, { name: 'Secret gift', category: 'Misc', checked: 0, is_private: 1, owner: owner.id });
-    await makePackingItem(orm, trip.id, { name: 'Sunscreen', category: 'Misc', checked: 0, is_private: 0, owner: owner.id });
+    await makePackingItem(orm, trip.id, {
+      name: 'Secret gift',
+      category: 'Misc',
+      checked: 0,
+      is_private: 1,
+      owner: owner.id,
+    });
+    await makePackingItem(orm, trip.id, {
+      name: 'Sunscreen',
+      category: 'Misc',
+      checked: 0,
+      is_private: 0,
+      owner: owner.id,
+    });
 
     await withHarness(member.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
       const data = parseToolResult(result) as any;
       const names = (data.packing?.items || []).map((i: any) => i.name);
-      expect(names).toContain('Sunscreen');       // common item visible
-      expect(names).not.toContain('Secret gift');  // owner's private item hidden from the member
+      expect(names).toContain('Sunscreen'); // common item visible
+      expect(names).not.toContain('Secret gift'); // owner's private item hidden from the member
     });
   });
 });
@@ -928,7 +1009,13 @@ describe('static-token deprecation notice', () => {
       emitted = true;
       return 'static tokens are deprecated';
     };
-    const h = await createMcpHarness({ realtime, userId: user.id, withResources: false, isStaticToken: true, getDeprecationNotice });
+    const h = await createMcpHarness({
+      realtime,
+      userId: user.id,
+      withResources: false,
+      isStaticToken: true,
+      getDeprecationNotice,
+    });
     try {
       const first = await h.client.callTool({ name: 'list_trips', arguments: {} });
       expect(first.isError).toBe(true);
@@ -962,7 +1049,14 @@ describe('scope gating', () => {
     }
   }
 
-  const WRITE_TOOLS = ['create_trip', 'update_trip', 'add_trip_member', 'remove_trip_member', 'leave_trip', 'copy_trip'];
+  const WRITE_TOOLS = [
+    'create_trip',
+    'update_trip',
+    'add_trip_member',
+    'remove_trip_member',
+    'leave_trip',
+    'copy_trip',
+  ];
   const READ_TOOLS = ['list_trip_members', 'export_trip_ics', 'search_cover_images'];
   const NAV_TOOLS = ['list_trips', 'get_trip_summary'];
   const SHARE_TOOLS = ['get_share_link', 'create_share_link', 'delete_share_link'];

@@ -1,12 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
+import { ReservationImportController } from '../../../../src/nest/reservation-import/reservation-import.controller';
+import type { User } from '../../../../src/types';
 import { HttpException, type Type } from '@nestjs/common';
 import { INTERCEPTORS_METADATA } from '@nestjs/common/constants';
-import { ReservationImportController } from '../../../../src/nest/reservation-import/reservation-import.controller';
-import type { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
-import type { User } from '../../../../src/types';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const user = { id: 1, role: 'user' } as User;
-const file = (name = 'a.pdf') => ({ originalname: name, buffer: Buffer.from('x') } as Express.Multer.File);
+const file = (name = 'a.pdf') => ({ originalname: name, buffer: Buffer.from('x') }) as Express.Multer.File;
 
 function make(over: Partial<BookingImportService> = {}) {
   const svc = {
@@ -23,7 +24,12 @@ function make(over: Partial<BookingImportService> = {}) {
 }
 
 async function status(fn: () => Promise<unknown>): Promise<number> {
-  try { await fn(); } catch (e) { expect(e).toBeInstanceOf(HttpException); return (e as HttpException).getStatus(); }
+  try {
+    await fn();
+  } catch (e) {
+    expect(e).toBeInstanceOf(HttpException);
+    return (e as HttpException).getStatus();
+  }
   throw new Error('expected throw');
 }
 
@@ -67,7 +73,9 @@ describe('ReservationImportController.preview', () => {
 
   it('refuses a photo with 400 when the model does not read images, or AI is not asked', async () => {
     const { c, svc } = make({ readsImages: vi.fn(async () => false) });
-    expect(await status(() => c.preview(user, 't1', [file('a.pdf'), file('ticket.png')], { mode: 'fallback-on-empty' }))).toBe(400);
+    expect(
+      await status(() => c.preview(user, 't1', [file('a.pdf'), file('ticket.png')], { mode: 'fallback-on-empty' })),
+    ).toBe(400);
     const { c: c2 } = make();
     expect(await status(() => c2.preview(user, 't1', [file('ticket.png')], { mode: 'no-ai' }))).toBe(400);
     expect(svc.preview).not.toHaveBeenCalled();
@@ -80,9 +88,12 @@ describe('ReservationImportController.preview', () => {
 
   it('names the photo formats in that refusal too', async () => {
     const { c } = make();
-    const err = await c.preview(user, 't1', [file('IMG_1.heic')], { mode: 'fallback-on-empty' }).catch((e: unknown) => e);
+    const err = await c
+      .preview(user, 't1', [file('IMG_1.heic')], { mode: 'fallback-on-empty' })
+      .catch((e: unknown) => e);
     expect((err as HttpException).getResponse()).toEqual({
-      error: 'Unsupported file type: IMG_1.heic. Accepted: EML, PDF, PKPass, HTML, TXT, JPG, JPEG, PNG, WEBP (photos when the AI model reads images)',
+      error:
+        'Unsupported file type: IMG_1.heic. Accepted: EML, PDF, PKPass, HTML, TXT, JPG, JPEG, PNG, WEBP (photos when the AI model reads images)',
     });
   });
 
@@ -101,7 +112,10 @@ describe('ReservationImportController.preview', () => {
  */
 describe('ReservationImportController upload options', () => {
   const multerOf = (handler: keyof ReservationImportController) => {
-    const [Interceptor] = Reflect.getMetadata(INTERCEPTORS_METADATA, ReservationImportController.prototype[handler]) as Type<{ multer: { defParamCharset: string; limits: unknown } }>[];
+    const [Interceptor] = Reflect.getMetadata(
+      INTERCEPTORS_METADATA,
+      ReservationImportController.prototype[handler],
+    ) as Type<{ multer: { defParamCharset: string; limits: unknown } }>[];
     return new Interceptor().multer;
   };
 

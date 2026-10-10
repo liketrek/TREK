@@ -266,26 +266,41 @@ export function analyse(classes) {
       return true;
     }
     const first = call.arguments[0];
-    return Boolean(first && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first)) && RAW_WRITE.test(first.text));
+    return Boolean(
+      first && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first)) && RAW_WRITE.test(first.text),
+    );
   }
 
   /** Write units of `node`, read inside `cls`. `covered` is true inside a transactional callback. */
   function count(cls, node, covered) {
     if (!node) return 0;
     if (ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) return 0;
-    if (ts.isBlock(node) || ts.isSourceFile(node) || ts.isModuleBlock(node)) return statements(cls, node.statements, 0, covered);
+    if (ts.isBlock(node) || ts.isSourceFile(node) || ts.isModuleBlock(node))
+      return statements(cls, node.statements, 0, covered);
     if (ts.isIfStatement(node)) {
-      return count(cls, node.expression, covered) + Math.max(count(cls, node.thenStatement, covered), count(cls, node.elseStatement, covered));
+      return (
+        count(cls, node.expression, covered) +
+        Math.max(count(cls, node.thenStatement, covered), count(cls, node.elseStatement, covered))
+      );
     }
     if (ts.isConditionalExpression(node)) {
-      return count(cls, node.condition, covered) + Math.max(count(cls, node.whenTrue, covered), count(cls, node.whenFalse, covered));
+      return (
+        count(cls, node.condition, covered) +
+        Math.max(count(cls, node.whenTrue, covered), count(cls, node.whenFalse, covered))
+      );
     }
     if (ts.isSwitchStatement(node)) {
       let max = 0;
       for (const clause of node.caseBlock.clauses) max = Math.max(max, statements(cls, clause.statements, 0, covered));
       return count(cls, node.expression, covered) + max;
     }
-    if (ts.isForStatement(node) || ts.isForOfStatement(node) || ts.isForInStatement(node) || ts.isWhileStatement(node) || ts.isDoStatement(node)) {
+    if (
+      ts.isForStatement(node) ||
+      ts.isForOfStatement(node) ||
+      ts.isForInStatement(node) ||
+      ts.isWhileStatement(node) ||
+      ts.isDoStatement(node)
+    ) {
       let head = 0;
       if (ts.isForStatement(node)) head = count(cls, node.initializer, covered);
       else if (!ts.isDoStatement(node) && !ts.isWhileStatement(node)) head = count(cls, node.expression, covered);
@@ -325,7 +340,9 @@ export function analyse(classes) {
   function call(cls, node, covered) {
     const callee = node.expression;
     const method = ts.isPropertyAccessExpression(callee) ? callee.name.text : null;
-    const receiver = ts.isPropertyAccessExpression(callee) ? count(cls, callee.expression, covered) : count(cls, callee, covered);
+    const receiver = ts.isPropertyAccessExpression(callee)
+      ? count(cls, callee.expression, covered)
+      : count(cls, callee, covered);
     if (method === 'transactional') {
       let inner = 0;
       frames.push([]); // what runs inside is one unit, not a list of its own
@@ -381,7 +398,7 @@ export function analyse(classes) {
   // transactional callback or comes from a method that is bound itself. Grown from
   // nothing to a fixed point, so a cycle of methods calling each other binds none.
   const bound = new Set();
-  for (let grew = true; grew; ) {
+  for (let grew = true; grew;) {
     grew = false;
     for (const [key, list] of callSites) {
       if (bound.has(key) || list.length === 0) continue;
@@ -404,7 +421,10 @@ export function analyse(classes) {
       explained[`${cls.file}#${key}`] = sites.get(key);
     }
   }
-  return { found: Object.fromEntries(Object.entries(reported).sort(([a], [b]) => a.localeCompare(b))), sites: explained };
+  return {
+    found: Object.fromEntries(Object.entries(reported).sort(([a], [b]) => a.localeCompare(b))),
+    sites: explained,
+  };
 }
 
 /** The baseline as committed. Missing or malformed stops the run instead of reading as empty. */
@@ -420,7 +440,9 @@ export function readBaseline(path) {
   }
   for (const [key, n] of Object.entries(parsed)) {
     if (!Number.isInteger(n) || n < 2) {
-      throw new Error(`scripts/tx-writes-baseline.json: ${key} holds ${JSON.stringify(n)}, expected an integer of at least 2`);
+      throw new Error(
+        `scripts/tx-writes-baseline.json: ${key} holds ${JSON.stringify(n)}, expected an integer of at least 2`,
+      );
     }
   }
   return parsed;
@@ -479,12 +501,16 @@ function main(argv) {
   if (stale.length) {
     console.error('Run npm run lint:tx -- --update to lower the baseline with the change that fixed it.');
   }
-  console.log(`tx: ${Object.keys(found).length} method(s) with writes outside one transaction, ${Object.keys(baseline).length} held at their baseline`);
+  console.log(
+    `tx: ${Object.keys(found).length} method(s) with writes outside one transaction, ${Object.keys(baseline).length} held at their baseline`,
+  );
   return grown.length || stale.length ? 1 : 0;
 }
 
 const isCli =
-  Boolean(process.argv[1]) && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  Boolean(process.argv[1]) &&
+  existsSync(process.argv[1]) &&
+  realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isCli) {
   try {
     process.exitCode = main(process.argv.slice(2));

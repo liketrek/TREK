@@ -3,15 +3,16 @@
  * carry): "getStats rows, including a NULL vacation_days row" (VC34/98/109/
  * 123) had no repository-level `toEqual(<legacy raw>)` parity test.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
 import { VacayUserYears } from '../../../../src/db/entities/VacayUserYears.entity';
 import type { VacayUserYearsRepository } from '../../../../src/db/repositories/VacayUserYears.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
 import { insertRow } from '../../../helpers/factories/rows';
 import { makeVacayPlan } from '../../../helpers/factories/vacay';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -21,8 +22,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(VacayUserYears);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 async function insertPlan(ownerId: number): Promise<number> {
   return (await makeVacayPlan(t, ownerId)).id;
@@ -35,17 +42,27 @@ describe('VacayUserYearsRepository.findForYear (VC34/98/109/123, getStats)', () 
     await insertRow(t, VacayUserYears, { user: user.id, plan: planId, year: 2026, vacation_days: 25, carried_over: 3 });
 
     // test-sql-allow: the legacy full-row SELECT is the parity oracle the repository is compared against.
-    const legacy = testDb.prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?').get(user.id, planId, 2026);
+    const legacy = testDb
+      .prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?')
+      .get(user.id, planId, 2026);
     expect(await repo.findForYear(user.id, planId, 2026)).toEqual(legacy);
   });
 
-  it('VACAYUYEARREPO-002: matches the legacy row with vacation_days explicitly NULL — the review\'s named gap', async () => {
+  it("VACAYUYEARREPO-002: matches the legacy row with vacation_days explicitly NULL — the review's named gap", async () => {
     const { user } = createUser(testDb);
     const planId = await insertPlan(user.id);
-    await insertRow(t, VacayUserYears, { user: user.id, plan: planId, year: 2027, vacation_days: null, carried_over: null });
+    await insertRow(t, VacayUserYears, {
+      user: user.id,
+      plan: planId,
+      year: 2027,
+      vacation_days: null,
+      carried_over: null,
+    });
 
     // test-sql-allow: the legacy full-row SELECT is the parity oracle the repository is compared against.
-    const legacy = testDb.prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?').get(user.id, planId, 2027);
+    const legacy = testDb
+      .prepare('SELECT * FROM vacay_user_years WHERE user_id = ? AND plan_id = ? AND year = ?')
+      .get(user.id, planId, 2027);
     const row = await repo.findForYear(user.id, planId, 2027);
     expect(row).toEqual(legacy);
     expect(row!.vacation_days).toBeNull();

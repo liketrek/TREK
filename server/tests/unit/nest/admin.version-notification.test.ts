@@ -6,51 +6,57 @@
  * case, which would leak into the ADMIN-SVC-* suite. The notification path runs
  * for real against the temp db's notifications table.
  */
-import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpers';
-import { createAdmin } from '../../helpers/factories';
-import { resetTestDb } from '../../helpers/test-db';
-
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-
-  const { createSnapshotTestDb } = await import('../../helpers/db-mock');
-  const db = createSnapshotTestDb();
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: () => null,
-    isOwner: () => false,
-  };
-    return mock;
-});
-
-// Mock MCP to avoid session side-effects
-vi.mock('../../../src/mcp', () => ({ revokeUserSessions: vi.fn(), invalidateMcpSessions: vi.fn() }));
-vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn() }));
-
 import { db as testDb } from '../../../src/db/database';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { SettingsService } from '../../../src/nest/settings/settings.service';
-import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
-import { AuthService } from '../../../src/nest/auth/auth.service';
-import { PasskeyService } from '../../../src/nest/auth/passkey.service';
-import { PackingService } from '../../../src/nest/packing/packing.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { Addons } from '../../../src/db/entities/Addons.entity';
+import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
+import { DocumentProviders } from '../../../src/db/entities/DocumentProviders.entity';
+import { Notifications } from '../../../src/db/entities/Notifications.entity';
+import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
+import { PushSubscriptions } from '../../../src/db/entities/PushSubscriptions.entity';
+import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
+import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
+import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpers';
 import { AdminService } from '../../../src/nest/admin/admin.service';
 import { DataPathsService } from '../../../src/nest/app-config/data-paths.service';
-import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
 import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
+import { AuthService } from '../../../src/nest/auth/auth.service';
+import { PasskeyService } from '../../../src/nest/auth/passkey.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import type { DatabaseBackupStrategy } from '../../../src/nest/database/database-backup.interface';
 import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { PackingService } from '../../../src/nest/packing/packing.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { SettingsService } from '../../../src/nest/settings/settings.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+import { budgetRepoArgs } from '../../helpers/budget-repos';
+import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
+import { createAdmin } from '../../helpers/factories';
+import { countRows, findRow, findRows } from '../../helpers/factories/rows';
+import { readAppSetting, setAppSetting } from '../../helpers/factories/settings';
+import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
+import {
+  createTestJourneysRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyContributorsRepo,
+} from '../../helpers/journey-repos';
+import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
+import { createTestPushSubscriptionsRepo } from '../../helpers/notifications-repos';
+import { createTestSessionsService } from '../../helpers/sessions';
+import {
+  createTestShareTokensRepo,
+  createTestPluginsRepo,
+  createTestPluginUserErasureQueueRepo,
+} from '../../helpers/share-repos';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { resetTestDb } from '../../helpers/test-db';
 import {
   createTestUnitOfWork,
   createTestAppSettingsRepo,
@@ -67,26 +73,29 @@ import {
   createTestPlacesRepo,
   sharedTestOrm,
 } from '../../helpers/test-uow';
-import { countRows, findRow, findRows } from '../../helpers/factories/rows';
-import { readAppSetting, setAppSetting } from '../../helpers/factories/settings';
-import { Notifications } from '../../../src/db/entities/Notifications.entity';
-import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
-import { Addons } from '../../../src/db/entities/Addons.entity';
-import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
-import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
-import { DocumentProviders } from '../../../src/db/entities/DocumentProviders.entity';
-import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
-import { PushSubscriptions } from '../../../src/db/entities/PushSubscriptions.entity';
-import { budgetRepoArgs } from '../../helpers/budget-repos';
-import { createTestShareTokensRepo, createTestPluginsRepo, createTestPluginUserErasureQueueRepo } from '../../helpers/share-repos';
-import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import { createTestJourneysRepo, createTestJourneyEntriesRepo, createTestJourneyContributorsRepo } from '../../helpers/journey-repos';
-import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
-import { createTestPushSubscriptionsRepo } from '../../helpers/notifications-repos';
-import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
-import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
-import type { DatabaseBackupStrategy } from '../../../src/nest/database/database-backup.interface';
-import { createTestSessionsService } from '../../helpers/sessions';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../helpers/db-mock');
+  const db = createSnapshotTestDb();
+  const mock = {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => null,
+    isOwner: () => false,
+  };
+  return mock;
+});
+
+// Mock MCP to avoid session side-effects
+vi.mock('../../../src/mcp', () => ({ revokeUserSessions: vi.fn(), invalidateMcpSessions: vi.fn() }));
+vi.mock('../../../src/mcp/sessionManager', () => ({
+  revokeUserSessions: vi.fn(),
+  revokeUserSessionsForClient: vi.fn(),
+}));
 
 const realtime = new RealtimeService();
 
@@ -106,41 +115,85 @@ const databaseBackupStub = {} as unknown as DatabaseBackupStrategy;
 beforeAll(async () => {
   webauthn = new WebauthnConfigService(await createTestAppSettingsRepo(testDb));
   permissions = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
-  userCleanup = new UserCleanupService(new MaintenanceRepository((await sharedTestOrm(testDb)).em), new BudgetService(permissions, new ExchangeRatesService(), realtime, await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb))), await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb));
+  userCleanup = new UserCleanupService(
+    new MaintenanceRepository((await sharedTestOrm(testDb)).em),
+    new BudgetService(
+      permissions,
+      new ExchangeRatesService(),
+      realtime,
+      await createTestUnitOfWork(testDb),
+      ...(await budgetRepoArgs(testDb)),
+    ),
+    await createTestUnitOfWork(testDb),
+    await createTestUsersRepo(testDb),
+    await createTestTripMembersRepo(testDb),
+    await createTestBudgetItemsRepo(testDb),
+    await createTestBudgetSettlementsRepo(testDb),
+    await createTestJourneyShareTokensRepo(testDb),
+    await createTestJourneysRepo(testDb),
+    await createTestJourneyEntriesRepo(testDb),
+    await createTestJourneyContributorsRepo(testDb),
+    await createTestShareTokensRepo(testDb),
+    await createTestPluginsRepo(testDb),
+    await createTestPluginUserErasureQueueRepo(testDb),
+  );
   auth = new AuthService(
-    permissions, new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)), webauthn, userCleanup, new MailerService(await createTestUsersRepo(testDb), await createTestSettingsRepo(testDb), await createTestAppSettingsRepo(testDb)), new EphemeralTokenService(), new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)), await createTestUnitOfWork(testDb),
-    await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestInviteTokensRepo(testDb), await createTestMcpTokensRepo(testDb),
-    await createTestOauthTokensRepo(testDb), await createTestWebauthnCredentialsRepo(testDb), await createTestPasswordResetTokensRepo(testDb),
+    permissions,
+    new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)),
+    webauthn,
+    userCleanup,
+    new MailerService(
+      await createTestUsersRepo(testDb),
+      await createTestSettingsRepo(testDb),
+      await createTestAppSettingsRepo(testDb),
+    ),
+    new EphemeralTokenService(),
+    new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)),
+    await createTestUnitOfWork(testDb),
+    await createTestAppSettingsRepo(testDb),
+    await createTestUsersRepo(testDb),
+    await createTestInviteTokensRepo(testDb),
+    await createTestMcpTokensRepo(testDb),
+    await createTestOauthTokensRepo(testDb),
+    await createTestWebauthnCredentialsRepo(testDb),
+    await createTestPasswordResetTokensRepo(testDb),
     await createTestPushSubscriptionsRepo(testDb),
     await createTestSessionsService(testDb),
   );
   const t = await sharedTestOrm(testDb);
   svc = new AdminService(
-  await createTestUsersRepo(testDb),
-  t.repo(AuditLog),
-  await createTestAppSettingsRepo(testDb),
-  t.repo(Addons),
-  t.repo(PhotoProviders),
-  t.repo(PhotoProviderFields),
-  t.repo(DocumentProviders),
-  await createTestMcpTokensRepo(testDb),
-  await createTestOauthTokensRepo(testDb),
-  await createTestTripsRepo(testDb),
-  await createTestPlacesRepo(testDb),
-  t.repo(TripFiles),
-  t.repo(PushSubscriptions),
-  await createTestAddonsService(testDb),
-  new PasskeyService(auth, webauthn, await createTestUnitOfWork(testDb), await createTestWebauthnCredentialsRepo(testDb), await createTestWebauthnChallengesRepo(testDb), await createTestUsersRepo(testDb)),
-  auth,
-  permissions,
-  await makeNotificationsService(testDb, realtime),
-  userCleanup,
-  realtime,
-  await createTestUnitOfWork(testDb),
-  databaseBackupStub,
-  new DataPathsService(),
-  await createTestSessionsService(testDb),
-);
+    await createTestUsersRepo(testDb),
+    t.repo(AuditLog),
+    await createTestAppSettingsRepo(testDb),
+    t.repo(Addons),
+    t.repo(PhotoProviders),
+    t.repo(PhotoProviderFields),
+    t.repo(DocumentProviders),
+    await createTestMcpTokensRepo(testDb),
+    await createTestOauthTokensRepo(testDb),
+    await createTestTripsRepo(testDb),
+    await createTestPlacesRepo(testDb),
+    t.repo(TripFiles),
+    t.repo(PushSubscriptions),
+    await createTestAddonsService(testDb),
+    new PasskeyService(
+      auth,
+      webauthn,
+      await createTestUnitOfWork(testDb),
+      await createTestWebauthnCredentialsRepo(testDb),
+      await createTestWebauthnChallengesRepo(testDb),
+      await createTestUsersRepo(testDb),
+    ),
+    auth,
+    permissions,
+    await makeNotificationsService(testDb, realtime),
+    userCleanup,
+    realtime,
+    await createTestUnitOfWork(testDb),
+    databaseBackupStub,
+    new DataPathsService(),
+    await createTestSessionsService(testDb),
+  );
 });
 const checkAndNotifyVersion = () => svc.checkAndNotifyVersion();
 
@@ -151,7 +204,8 @@ function mockGitHubLatest(tagName: string, ok = true): void {
     vi.fn().mockResolvedValue({
       ok,
       // fetchGithub reads text() and parses it itself (size cap), so stub both.
-      text: async () => JSON.stringify({ tag_name: tagName, html_url: `https://github.com/liketrek/TREK/releases/tag/${tagName}` }),
+      text: async () =>
+        JSON.stringify({ tag_name: tagName, html_url: `https://github.com/liketrek/TREK/releases/tag/${tagName}` }),
       json: async () => ({ tag_name: tagName, html_url: `https://github.com/liketrek/TREK/releases/tag/${tagName}` }),
     }),
   );

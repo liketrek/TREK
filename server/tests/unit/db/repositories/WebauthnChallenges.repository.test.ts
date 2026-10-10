@@ -1,11 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
-import { countRows, findRow, findRows, insertRow } from '../../../helpers/factories/rows';
 import { WebauthnChallenges } from '../../../../src/db/entities/WebauthnChallenges.entity';
 import type { WebauthnChallengesRepository } from '../../../../src/db/repositories/WebauthnChallenges.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { countRows, findRow, findRows, insertRow } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -15,8 +16,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   challenges = t.repo(WebauthnChallenges);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 async function seedChallenge(challenge: string, userId: number | null, type: string, expiresAt: number): Promise<void> {
   await insertRow(t, WebauthnChallenges, { challenge, user: userId, type, expires_at: expiresAt });
@@ -52,15 +59,30 @@ describe('WebauthnChallengesRepository', () => {
     it('WEBAUTHN-CHAL-REPO-003: writes the exact column set, user-bound (registration)', async () => {
       const { user } = createUser(testDb);
       const expiresAt = Date.now() + 300_000;
-      await challenges.insertChallenge({ challenge: 'reg-chal', user_id: user.id, type: 'registration', expires_at: expiresAt });
+      await challenges.insertChallenge({
+        challenge: 'reg-chal',
+        user_id: user.id,
+        type: 'registration',
+        expires_at: expiresAt,
+      });
 
       const row = await findRow(t, WebauthnChallenges, { challenge: 'reg-chal' });
-      expect(row).toMatchObject({ challenge: 'reg-chal', user_id: user.id, type: 'registration', expires_at: expiresAt });
+      expect(row).toMatchObject({
+        challenge: 'reg-chal',
+        user_id: user.id,
+        type: 'registration',
+        expires_at: expiresAt,
+      });
     });
 
     it('WEBAUTHN-CHAL-REPO-004: writes a NULL user_id (anonymous authentication challenge)', async () => {
       const expiresAt = Date.now() + 300_000;
-      await challenges.insertChallenge({ challenge: 'auth-chal', user_id: null, type: 'authentication', expires_at: expiresAt });
+      await challenges.insertChallenge({
+        challenge: 'auth-chal',
+        user_id: null,
+        type: 'authentication',
+        expires_at: expiresAt,
+      });
 
       const row = await findRow(t, WebauthnChallenges, { challenge: 'auth-chal' });
       expect(row).toMatchObject({ user_id: null, type: 'authentication' });
@@ -90,7 +112,7 @@ describe('WebauthnChallengesRepository', () => {
       expect(await challenges.claimChallenge('never-stored', 'registration', Date.now())).toBeNull();
     });
 
-    it('WEBAUTHN-CHAL-REPO-008: an expired row is null and stays in the table (purgeExpired\'s job, not claimChallenge\'s)', async () => {
+    it("WEBAUTHN-CHAL-REPO-008: an expired row is null and stays in the table (purgeExpired's job, not claimChallenge's)", async () => {
       const now = Date.now();
       await seedChallenge('stale', null, 'registration', now - 1);
 

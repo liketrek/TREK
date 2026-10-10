@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { Trips } from '../../db/entities/Trips.entity';
 import { Users } from '../../db/entities/Users.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { CalendarService, CALENDAR_HEADER, foldICS } from '../calendar/calendar.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+import { randomUUID } from 'crypto';
 
 /** Subscribable calendars advertise how often to re-fetch; the one-time download does not. */
 const FEED_REFRESH_HINTS = 'REFRESH-INTERVAL;VALUE=DURATION:PT1H\r\nX-PUBLISHED-TTL:PT1H\r\n';

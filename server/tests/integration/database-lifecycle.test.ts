@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
-import type { INestApplication } from '@nestjs/common';
 import { buildApp } from '../../src/bootstrap';
-import { DatabaseLifecycle } from '../../src/nest/database/database-lifecycle.service';
-import { DATABASE_BACKUP, type DatabaseBackupStrategy } from '../../src/nest/database/database-backup.interface';
 import { SqliteDatabaseBackup } from '../../src/nest/backup/sqlite-database-backup';
+import { DATABASE_BACKUP, type DatabaseBackupStrategy } from '../../src/nest/database/database-backup.interface';
+import { DatabaseLifecycle } from '../../src/nest/database/database-lifecycle.service';
+import type { INestApplication } from '@nestjs/common';
+
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 /**
  * The core database's lifecycle, owned by the DatabaseLifecycle provider, on a

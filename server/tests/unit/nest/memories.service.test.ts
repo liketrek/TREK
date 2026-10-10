@@ -1,3 +1,10 @@
+import type { ImmichService } from '../../../src/nest/memories/immich.service';
+import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import { MemoriesService } from '../../../src/nest/memories/memories.service';
+import type { SynologyService } from '../../../src/nest/memories/synology.service';
+import type { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The MemoriesService is a thin pass-through over the legacy services/memories/*
@@ -39,20 +46,16 @@ const synology = vi.hoisted(() => ({
   testSynologyConnection: vi.fn(async () => ({ success: true, data: {} })),
   listSynologyAlbums: vi.fn(async () => ({ success: true, data: {} })),
   getSynologyAlbumPhotos: vi.fn(async () => ({ success: true, data: {} })),
-  collectSynologyAlbumSelection: vi.fn(async () => ({ success: true, data: { selection: { provider: 'synologyphotos', asset_ids: [] }, total: 0 } })),
+  collectSynologyAlbumSelection: vi.fn(async () => ({
+    success: true,
+    data: { selection: { provider: 'synologyphotos', asset_ids: [] }, total: 0 },
+  })),
   searchSynologyPhotos: vi.fn(async () => ({ success: true, data: {} })),
   getSynologyAssetInfo: vi.fn(async () => ({ success: true, data: {} })),
   streamSynologyAsset: vi.fn(async () => undefined),
 }));
 
 const helpers = vi.hoisted(() => ({ canAccessUserPhoto: vi.fn(() => true) }));
-
-import { MemoriesService } from '../../../src/nest/memories/memories.service';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
-import type { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
-import type { ImmichService } from '../../../src/nest/memories/immich.service';
-import type { SynologyService } from '../../../src/nest/memories/synology.service';
-import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
 
 const res = {} as import('express').Response;
 const realtime = new FakeRealtimeService();

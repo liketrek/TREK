@@ -2,12 +2,55 @@
  * Unit tests for JourneyShareService — JOURNEY-SHARE-001 through JOURNEY-SHARE-018.
  * Uses a real in-memory SQLite DB so SQL logic is exercised faithfully.
  */
+import { db as testDb } from '../../../src/db/database';
+import { db as dbConn } from '../../../src/db/database';
+import { JourneyEntries } from '../../../src/db/entities/JourneyEntries.entity';
+import { JourneyEntryPhotos } from '../../../src/db/entities/JourneyEntryPhotos.entity';
+import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
+import { JourneyShareTokens } from '../../../src/db/entities/JourneyShareTokens.entity';
+import { Journeys } from '../../../src/db/entities/Journeys.entity';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import type { JourneyEntriesRepository } from '../../../src/db/repositories/JourneyEntries.repository';
+import type { JourneyEntryPhotosRepository } from '../../../src/db/repositories/JourneyEntryPhotos.repository';
+import type {
+  JourneyPublicGalleryRow,
+  JourneyShareTokensRepository,
+} from '../../../src/db/repositories/JourneyShareTokens.repository';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { JourneyShareService } from '../../../src/nest/journey/journey-share.service';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { SettingsService } from '../../../src/nest/settings/settings.service';
+import { createUser, createJourney, createJourneyEntry, addJourneyContributor } from '../../helpers/factories';
+import { countRows, findRow, insertRow, insertRowIgnoringConflict, updateRows } from '../../helpers/factories/rows';
+import { setAppSetting, setUserSetting } from '../../helpers/factories/settings';
+import {
+  createTestJourneysRepo,
+  createTestJourneyContributorsRepo,
+  createTestJourneyTripsRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyPhotosRepo,
+  createTestJourneyEntryPhotosRepo,
+} from '../../helpers/journey-repos';
+import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
+import { GALLERY_CHRONOLOGICAL_ORDER } from '../../helpers/legacy-gallery-order';
+import { resetTestDb } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import {
+  sharedTestOrm,
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestSettingsRepo,
+  createTestTripsRepo,
+  createTestPlacesRepo,
+} from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // -- DB setup -----------------------------------------------------------------
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -18,38 +61,8 @@ vi.mock('../../../src/db/database', async () => {
     canAccessTrip: () => null,
     isOwner: () => false,
   };
-    return mock;
+  return mock;
 });
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createJourney, createJourneyEntry, addJourneyContributor } from '../../helpers/factories';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { JourneyShareService } from '../../../src/nest/journey/journey-share.service';
-import { SettingsService } from '../../../src/nest/settings/settings.service';
-import { db as dbConn } from '../../../src/db/database';
-import { sharedTestOrm, createTestUnitOfWork, createTestAppSettingsRepo, createTestSettingsRepo, createTestTripsRepo, createTestPlacesRepo } from '../../helpers/test-uow';
-import type { TestOrm } from '../../helpers/test-orm';
-import {
-  createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
-import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
-import type { JourneyPublicGalleryRow, JourneyShareTokensRepository } from '../../../src/db/repositories/JourneyShareTokens.repository';
-import type { JourneyEntriesRepository } from '../../../src/db/repositories/JourneyEntries.repository';
-import type { JourneyEntryPhotosRepository } from '../../../src/db/repositories/JourneyEntryPhotos.repository';
-import { GALLERY_CHRONOLOGICAL_ORDER } from '../../helpers/legacy-gallery-order';
-import { countRows, findRow, insertRow, insertRowIgnoringConflict, updateRows } from '../../helpers/factories/rows';
-import { setAppSetting, setUserSetting } from '../../helpers/factories/settings';
-import { JourneyEntries } from '../../../src/db/entities/JourneyEntries.entity';
-import { JourneyEntryPhotos } from '../../../src/db/entities/JourneyEntryPhotos.entity';
-import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
-import { JourneyShareTokens } from '../../../src/db/entities/JourneyShareTokens.entity';
-import { Journeys } from '../../../src/db/entities/Journeys.entity';
 
 let svc: JourneyShareService;
 let t: TestOrm;
@@ -65,24 +78,38 @@ beforeAll(async () => {
   const journeysRepo = await createTestJourneysRepo(testDb);
   svc = new JourneyShareService(
     new JourneyDomainService(
-      new RealtimeService(), new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)), uow,
-      journeysRepo, await createTestJourneyContributorsRepo(testDb),
-      await createTestJourneyTripsRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestTripsRepo(testDb),
+      new RealtimeService(),
+      new TrekPhotoRegistrationService(
+        t.repo(TrekPhotos),
+        t.repo(TripPhotos),
+        await createTestJourneyPhotosRepo(testDb),
+      ),
+      uow,
+      journeysRepo,
+      await createTestJourneyContributorsRepo(testDb),
+      await createTestJourneyTripsRepo(testDb),
+      await createTestJourneyEntriesRepo(testDb),
+      await createTestTripsRepo(testDb),
       // Plan 3g Task 2 constructor-ripple: JourneyPhotosRepository/JourneyEntryPhotosRepository/PlacesRepository.
-      await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
+      await createTestJourneyPhotosRepo(testDb),
+      await createTestJourneyEntryPhotosRepo(testDb),
+      await createTestPlacesRepo(testDb),
     ),
     new SettingsService(uow, await createTestAppSettingsRepo(testDb), await createTestSettingsRepo(testDb)),
     // Plan 3g Task 3: JourneyShareTokensRepository (JS1-JS15) + the
     // already-built JourneysRepository (JS8/JS12), same instance the domain
     // service above uses.
-    await createTestJourneyShareTokensRepo(testDb), journeysRepo,
+    await createTestJourneyShareTokensRepo(testDb),
+    journeysRepo,
     // task-5-fix-brief constructor-ripple: `UnitOfWork` (L1's transactional
     // create/update) + `JourneyPhotosRepository` (L2's `galleryRead` reuse).
-    uow, await createTestJourneyPhotosRepo(testDb),
+    uow,
+    await createTestJourneyPhotosRepo(testDb),
     // Plan 4 Task 8b constructor-ripple: `JourneyEntriesRepository` (JS13) +
     // `JourneyEntryPhotosRepository` (JS14), relocated off
     // `JourneyShareTokensRepository`'s own fallback stub.
-    await createTestJourneyEntriesRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb),
+    await createTestJourneyEntriesRepo(testDb),
+    await createTestJourneyEntryPhotosRepo(testDb),
   );
 });
 
@@ -101,7 +128,7 @@ afterAll(async () => {
 /** Insert a trek_photos + journey_photos (gallery) + journey_entry_photos row and return the trek_photos id (used as photoId in public URLs). */
 async function insertJourneyPhoto(
   entryId: number,
-  opts: { filePath?: string; assetId?: string; ownerId?: number } = {}
+  opts: { filePath?: string; assetId?: string; ownerId?: number } = {},
 ): Promise<number> {
   const provider = opts.assetId ? 'immich' : 'local';
   const filePath = !opts.assetId ? (opts.filePath ?? '/photos/test.jpg') : null;
@@ -121,12 +148,23 @@ async function insertJourneyPhoto(
   const journeyId = entryRow.journey_id;
   const now = Date.now();
 
-  await insertRowIgnoringConflict(t, JourneyPhotos, { journey: journeyId, photo: trekId, caption: null, sort_order: 0, created_at: now });
+  await insertRowIgnoringConflict(t, JourneyPhotos, {
+    journey: journeyId,
+    photo: trekId,
+    caption: null,
+    sort_order: 0,
+    created_at: now,
+  });
 
   const galleryRow = await findRow(t, JourneyPhotos, { journey: journeyId, photo: trekId });
   if (!galleryRow) throw new Error(`no gallery row for photo ${trekId}`);
 
-  await insertRowIgnoringConflict(t, JourneyEntryPhotos, { entry: entryId, journeyPhoto: galleryRow.id, sort_order: 0, created_at: now });
+  await insertRowIgnoringConflict(t, JourneyEntryPhotos, {
+    entry: entryId,
+    journeyPhoto: galleryRow.id,
+    sort_order: 0,
+    created_at: now,
+  });
 
   // Return trek_photos.id — this is p.photo_id in the public API response
   // and the value the client sends to /api/public/journey/:token/photos/:photoId/:kind
@@ -380,7 +418,11 @@ describe('validateShareTokenForPhoto', () => {
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id);
     const photoId = await insertJourneyPhoto(entry.id, { ownerId: user.id });
-    const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: true, share_gallery: false, share_map: true });
+    const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true,
+      share_gallery: false,
+      share_map: true,
+    });
 
     expect(await svc.validateShareTokenForPhoto(token, photoId)).toBeNull();
   });
@@ -395,7 +437,12 @@ describe('validateShareTokenForPhoto', () => {
 
     // Pre-populate trek_photos to push the autoincrement higher
     for (let i = 0; i < 5; i++) {
-      await insertRow(t, TrekPhotos, { provider: 'immich', asset_id: `bulk-asset-${i}`, owner: user.id, created_at: String(Date.now()) });
+      await insertRow(t, TrekPhotos, {
+        provider: 'immich',
+        asset_id: `bulk-asset-${i}`,
+        owner: user.id,
+        created_at: String(Date.now()),
+      });
     }
 
     // This trek_photos row gets a high id (e.g. 6) while journey_photos id will be 1
@@ -436,7 +483,11 @@ describe('validateShareTokenForAsset', () => {
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id);
     await insertJourneyPhoto(entry.id, { assetId: 'immich-asset-999', ownerId: user.id });
-    const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: true, share_gallery: false, share_map: true });
+    const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true,
+      share_gallery: false,
+      share_map: true,
+    });
 
     expect(await svc.validateShareTokenForAsset(token, 'immich-asset-999')).toBeNull();
   });
@@ -545,7 +596,9 @@ describe('getPublicJourney', () => {
     await updateRows(t, Journeys, { id: journey.id }, { show_mood: 0, show_weather: 0 });
     createJourneyEntry(testDb, journey.id, user.id, { type: 'entry', title: 'Tag 1', entry_date: '2026-03-20' });
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: true, share_gallery: false, share_map: true,
+      share_timeline: true,
+      share_gallery: false,
+      share_map: true,
     });
 
     const result = (await svc.getPublicJourney(token))!;
@@ -587,8 +640,16 @@ describe('getPublicJourney', () => {
     const sharedPhoto = await insertJourneyPhoto(draft.id, { ownerId: user.id, filePath: '/photos/both.jpg' });
     const sharedRow = await findRow(t, JourneyPhotos, { photo: sharedPhoto });
     if (!sharedRow) throw new Error('the shared photo should be in the gallery');
-    await insertRow(t, JourneyEntryPhotos, { entry: published.id, journeyPhoto: sharedRow.id, sort_order: 1, created_at: 0 });
-    const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: true, share_gallery: true });
+    await insertRow(t, JourneyEntryPhotos, {
+      entry: published.id,
+      journeyPhoto: sharedRow.id,
+      sort_order: 1,
+      created_at: 0,
+    });
+    const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: true,
+      share_gallery: true,
+    });
 
     const result = (await svc.getPublicJourney(token))!;
     expect(result.entries.map((e: any) => e.title)).toEqual(['Published']);
@@ -638,12 +699,18 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id, { title: 'Secret' });
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', story: 'private notes', entry_date: '2026-05-01', location_name: 'Paris',
+      type: 'entry',
+      title: 'Day 1',
+      story: 'private notes',
+      entry_date: '2026-05-01',
+      location_name: 'Paris',
     });
     await updateRows(t, JourneyEntries, { id: entry.id }, { location_lat: 48.8566, location_lng: 2.3522 });
     await insertJourneyPhoto(entry.id);
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: false, share_gallery: false, share_map: false,
+      share_timeline: false,
+      share_gallery: false,
+      share_map: false,
     });
 
     const result = (await svc.getPublicJourney(token))!;
@@ -656,11 +723,17 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', story: 'notes', entry_date: '2026-05-01', location_name: 'Paris',
+      type: 'entry',
+      title: 'Day 1',
+      story: 'notes',
+      entry_date: '2026-05-01',
+      location_name: 'Paris',
     });
     await updateRows(t, JourneyEntries, { id: entry.id }, { location_lat: 48.8566, location_lng: 2.3522 });
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: true, share_gallery: true, share_map: false,
+      share_timeline: true,
+      share_gallery: true,
+      share_map: false,
     });
 
     const result = (await svc.getPublicJourney(token))!;
@@ -675,11 +748,17 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', story: 'private notes', entry_date: '2026-05-01', location_name: 'Paris',
+      type: 'entry',
+      title: 'Day 1',
+      story: 'private notes',
+      entry_date: '2026-05-01',
+      location_name: 'Paris',
     });
     await updateRows(t, JourneyEntries, { id: entry.id }, { location_lat: 48.8566, location_lng: 2.3522 });
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: false, share_gallery: false, share_map: true,
+      share_timeline: false,
+      share_gallery: false,
+      share_map: true,
     });
 
     const result = (await svc.getPublicJourney(token))!;
@@ -696,13 +775,18 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', story: 'notes', entry_date: '2026-05-01',
+      type: 'entry',
+      title: 'Day 1',
+      story: 'notes',
+      entry_date: '2026-05-01',
     });
     const trekId = await insertJourneyPhoto(entry.id, { ownerId: user.id });
     await updateRows(t, TrekPhotos, { id: trekId }, { lat: 48.8584, lng: 2.2945, taken_at: '2026-05-01T10:00:00Z' });
 
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: true, share_gallery: true, share_map: false,
+      share_timeline: true,
+      share_gallery: true,
+      share_map: false,
     });
 
     const result = (await svc.getPublicJourney(token))!;
@@ -722,13 +806,17 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', entry_date: '2026-05-01',
+      type: 'entry',
+      title: 'Day 1',
+      entry_date: '2026-05-01',
     });
     const trekId = await insertJourneyPhoto(entry.id, { ownerId: user.id });
     await updateRows(t, TrekPhotos, { id: trekId }, { lat: 48.8584, lng: 2.2945 });
 
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: true, share_gallery: true, share_map: true,
+      share_timeline: true,
+      share_gallery: true,
+      share_map: true,
     });
 
     const gallery = (await svc.getPublicJourney(token))!.gallery as JourneyPublicGalleryRow[];
@@ -740,11 +828,16 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', story: 'notes', entry_date: '2026-05-01',
+      type: 'entry',
+      title: 'Day 1',
+      story: 'notes',
+      entry_date: '2026-05-01',
     });
     await insertJourneyPhoto(entry.id, { ownerId: user.id });
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: true, share_gallery: false, share_map: true,
+      share_timeline: true,
+      share_gallery: false,
+      share_map: true,
     });
 
     const result = (await svc.getPublicJourney(token))!;
@@ -759,10 +852,14 @@ describe('getPublicJourney', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const day1 = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 1', entry_date: '2026-05-01',
+      type: 'entry',
+      title: 'Day 1',
+      entry_date: '2026-05-01',
     });
     const day2 = createJourneyEntry(testDb, journey.id, user.id, {
-      type: 'entry', title: 'Day 2', entry_date: '2026-05-02',
+      type: 'entry',
+      title: 'Day 2',
+      entry_date: '2026-05-02',
     });
 
     const late = await insertJourneyPhoto(day2.id, { filePath: '/photos/day2.jpg' });
@@ -770,11 +867,13 @@ describe('getPublicJourney', () => {
     await updateRows(t, TrekPhotos, { id: late }, { taken_at: '2026-05-02T16:00:00.000Z' });
 
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: true, share_gallery: true, share_map: true,
+      share_timeline: true,
+      share_gallery: true,
+      share_map: true,
     });
 
     const gallery = (await svc.getPublicJourney(token))!.gallery as JourneyPublicGalleryRow[];
-    expect(gallery.map(p => p.file_path)).toEqual(['/photos/day1.jpg', '/photos/day2.jpg']);
+    expect(gallery.map((p) => p.file_path)).toEqual(['/photos/day1.jpg', '/photos/day2.jpg']);
   });
 
   it('JOURNEY-SHARE-030: cartoApiKey resolves owner setting → admin instance default → empty (#2054)', async () => {
@@ -816,12 +915,17 @@ describe('parity — JourneyShareTokensRepository reads match the legacy stateme
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: false, share_gallery: true, share_map: false, newest_first: true,
+      share_timeline: false,
+      share_gallery: true,
+      share_map: false,
+      newest_first: true,
     });
 
     const legacy = testDb
       // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-      .prepare('SELECT token, share_timeline, share_gallery, share_map, newest_first FROM journey_share_tokens WHERE journey_id = ?')
+      .prepare(
+        'SELECT token, share_timeline, share_gallery, share_map, newest_first FROM journey_share_tokens WHERE journey_id = ?',
+      )
       .get(journey.id);
 
     expect(await shareTokensRepo.findFlagsByJourneyId(journey.id)).toEqual(legacy);
@@ -831,7 +935,10 @@ describe('parity — JourneyShareTokensRepository reads match the legacy stateme
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
-      share_timeline: true, share_gallery: false, share_map: true, newest_first: false,
+      share_timeline: true,
+      share_gallery: false,
+      share_map: true,
+      newest_first: false,
     });
 
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
@@ -849,7 +956,9 @@ describe('parity — JourneyShareTokensRepository reads match the legacy stateme
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_gallery: false });
 
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-    const legacy = testDb.prepare('SELECT journey_id, share_gallery FROM journey_share_tokens WHERE token = ?').get(token);
+    const legacy = testDb
+      .prepare('SELECT journey_id, share_gallery FROM journey_share_tokens WHERE token = ?')
+      .get(token);
 
     expect(await shareTokensRepo.findAccessByToken(token)).toEqual(legacy);
   });
@@ -857,8 +966,16 @@ describe('parity — JourneyShareTokensRepository reads match the legacy stateme
   it('JOURNEY-SHARE-P04: listPublicEntries (JS13) matches the legacy statement for entries with and without GPS', async () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
-    createJourneyEntry(testDb, journey.id, user.id, { type: 'entry', entry_date: '2026-01-01', location_name: 'No GPS' });
-    const withGps = createJourneyEntry(testDb, journey.id, user.id, { type: 'entry', entry_date: '2026-01-02', location_name: 'Has GPS' });
+    createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry',
+      entry_date: '2026-01-01',
+      location_name: 'No GPS',
+    });
+    const withGps = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry',
+      entry_date: '2026-01-02',
+      location_name: 'Has GPS',
+    });
     await updateRows(t, JourneyEntries, { id: withGps.id }, { location_lat: 48.85, location_lng: 2.35 });
     // A skeleton and a dismissed entry — both must be excluded, same as the legacy WHERE.
     createJourneyEntry(testDb, journey.id, user.id, { type: 'skeleton', entry_date: '2026-01-03' });
@@ -867,11 +984,13 @@ describe('parity — JourneyShareTokensRepository reads match the legacy stateme
 
     const legacy = testDb
       // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-      .prepare(`
+      .prepare(
+        `
         SELECT je.* FROM journey_entries je
         WHERE je.journey_id = ? AND je.type != 'skeleton' AND je.dismissed = 0
         ORDER BY je.entry_date, je.sort_order
-      `)
+      `,
+      )
       .all(journey.id);
 
     expect(await journeyEntriesRepo.listPublicEntries(journey.id)).toEqual(legacy);
@@ -885,7 +1004,8 @@ describe('parity — JourneyShareTokensRepository reads match the legacy stateme
 
     const legacy = testDb
       // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-      .prepare(`
+      .prepare(
+        `
         SELECT gp.id, jep.entry_id, gp.photo_id, gp.caption, jep.sort_order, gp.shared, gp.created_at,
                tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height,
                tkp.media_type, tkp.duration_ms, tkp.taken_at, tkp.lat, tkp.lng
@@ -894,7 +1014,8 @@ describe('parity — JourneyShareTokensRepository reads match the legacy stateme
         JOIN trek_photos tkp ON tkp.id = gp.photo_id
         WHERE gp.journey_id = ?
         ORDER BY jep.sort_order
-      `)
+      `,
+      )
       .all(journey.id);
 
     expect(await journeyEntryPhotosRepo.listForPublicJourney(journey.id)).toEqual(legacy);
@@ -913,11 +1034,17 @@ describe('parity — JourneyShareTokensRepository reads match the legacy stateme
       file_path: '/photos/unattached.jpg',
       created_at: String(Date.now()),
     });
-    await insertRow(t, JourneyPhotos, { journey: journey.id, photo: unattachedTrekId, sort_order: 1, created_at: Date.now() });
+    await insertRow(t, JourneyPhotos, {
+      journey: journey.id,
+      photo: unattachedTrekId,
+      sort_order: 1,
+      created_at: Date.now(),
+    });
 
     const legacy = testDb
       // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-      .prepare(`
+      .prepare(
+        `
         SELECT gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
                tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height,
                tp.media_type, tp.duration_ms, tp.taken_at, tp.lat, tp.lng
@@ -925,7 +1052,8 @@ describe('parity — JourneyShareTokensRepository reads match the legacy stateme
         JOIN trek_photos tp ON tp.id = gp.photo_id
         WHERE gp.journey_id = ?
         ${GALLERY_CHRONOLOGICAL_ORDER}
-      `)
+      `,
+      )
       .all(journey.id);
 
     expect(await journeyPhotosRepo.galleryRead(journey.id)).toEqual(legacy);
@@ -939,12 +1067,20 @@ describe('parity — JourneyShareTokensRepository reads match the legacy stateme
         for (const share_map of [true, false]) {
           for (const newest_first of [true, false]) {
             const journey = createJourney(testDb, user.id);
-            await svc.createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline, share_gallery, share_map, newest_first });
+            await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+              share_timeline,
+              share_gallery,
+              share_map,
+              newest_first,
+            });
             const link = await svc.getJourneyShareLink(journey.id);
             expect(link).toEqual({
               token: link!.token,
               created_at: link!.created_at,
-              share_timeline, share_gallery, share_map, newest_first,
+              share_timeline,
+              share_gallery,
+              share_map,
+              newest_first,
             });
           }
         }
@@ -1002,7 +1138,9 @@ describe('R4 — JS6/JS9/JS11 are exact-match token lookups (revoked / wrong-cas
     // WOULD wrongly match — proving the null above depends on the real
     // exact-match WHERE, not a coincidence of the fixture.
     // test-sql-allow: a COLLATE NOCASE lookup is the mutation this pins against, so it has to run as that SQL.
-    expect(testDb.prepare('SELECT 1 FROM journey_share_tokens WHERE token = ? COLLATE NOCASE').get(wrongCase)).toBeTruthy();
+    expect(
+      testDb.prepare('SELECT 1 FROM journey_share_tokens WHERE token = ? COLLATE NOCASE').get(wrongCase),
+    ).toBeTruthy();
   });
 
   it('JOURNEY-SHARE-R05: validateShareTokenForAsset does not match a differently-cased token', async () => {
@@ -1015,7 +1153,9 @@ describe('R4 — JS6/JS9/JS11 are exact-match token lookups (revoked / wrong-cas
 
     expect(await svc.validateShareTokenForAsset(wrongCase, 'case-asset')).toBeNull();
     // test-sql-allow: a COLLATE NOCASE lookup is the mutation this pins against, so it has to run as that SQL.
-    expect(testDb.prepare('SELECT 1 FROM journey_share_tokens WHERE token = ? COLLATE NOCASE').get(wrongCase)).toBeTruthy();
+    expect(
+      testDb.prepare('SELECT 1 FROM journey_share_tokens WHERE token = ? COLLATE NOCASE').get(wrongCase),
+    ).toBeTruthy();
   });
 
   it('JOURNEY-SHARE-R06: getPublicJourney does not match a differently-cased token', async () => {
@@ -1026,7 +1166,9 @@ describe('R4 — JS6/JS9/JS11 are exact-match token lookups (revoked / wrong-cas
 
     expect(await svc.getPublicJourney(wrongCase)).toBeNull();
     // test-sql-allow: a COLLATE NOCASE lookup is the mutation this pins against, so it has to run as that SQL.
-    expect(testDb.prepare('SELECT 1 FROM journey_share_tokens WHERE token = ? COLLATE NOCASE').get(wrongCase)).toBeTruthy();
+    expect(
+      testDb.prepare('SELECT 1 FROM journey_share_tokens WHERE token = ? COLLATE NOCASE').get(wrongCase),
+    ).toBeTruthy();
   });
 
   it('JOURNEY-SHARE-R07: validateShareTokenForPhoto does not match a token with an embedded NUL byte', async () => {

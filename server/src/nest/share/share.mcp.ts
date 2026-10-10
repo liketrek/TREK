@@ -1,14 +1,19 @@
+import { canShareTrips } from '../../mcp/scopes';
+import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
   ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { idSchema } from '@trek/shared';
-import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { canShareTrips } from '../../mcp/scopes';
 import { ShareService } from './share.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 /**
  * Share-link MCP surface — ported 1:1 from the three share tools that lived in
@@ -27,7 +32,8 @@ export class ShareMcp {
 
   @Tool({
     name: 'get_share_link',
-    description: 'Get the current public share link for a trip, including its permission flags. Returns null if no share link exists.',
+    description:
+      'Get the current public share link for a trip, including its permission flags. Returns null if no share link exists.',
     inputSchema: {
       tripId: idSchema,
     },
@@ -47,7 +53,8 @@ export class ShareMcp {
 
   @Tool({
     name: 'create_share_link',
-    description: 'Create or update the public share link for a trip. Set permission flags to control what is visible to guests.',
+    description:
+      'Create or update the public share link for a trip. Set permission flags to control what is visible to guests.',
     inputSchema: {
       tripId: idSchema,
       share_map: z.boolean().optional().default(true).describe('Share the map and places'),
@@ -55,16 +62,41 @@ export class ShareMcp {
       share_packing: z.boolean().optional().default(false).describe('Share packing list'),
       share_budget: z.boolean().optional().default(false).describe('Share budget'),
       share_collab: z.boolean().optional().default(false).describe('Share collab messages'),
-      share_travel_only: z.boolean().optional().default(false).describe('Narrow the shared plan to transport and stays: no activities, no day notes, only transport and hotel bookings'),
-      share_hide_images: z.boolean().optional().default(false).describe('Leave the place photos out of the shared page'),
+      share_travel_only: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          'Narrow the shared plan to transport and stays: no activities, no day notes, only transport and hotel bookings',
+        ),
+      share_hide_images: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe('Leave the place photos out of the shared page'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: (ctx) => canShareTrips(ctx.scopes),
   })
   async createShareLink(
-    { tripId, share_map, share_bookings, share_packing, share_budget, share_collab, share_travel_only, share_hide_images }: {
-      tripId: number; share_map?: boolean; share_bookings?: boolean; share_packing?: boolean; share_budget?: boolean; share_collab?: boolean;
-      share_travel_only?: boolean; share_hide_images?: boolean;
+    {
+      tripId,
+      share_map,
+      share_bookings,
+      share_packing,
+      share_budget,
+      share_collab,
+      share_travel_only,
+      share_hide_images,
+    }: {
+      tripId: number;
+      share_map?: boolean;
+      share_bookings?: boolean;
+      share_packing?: boolean;
+      share_budget?: boolean;
+      share_collab?: boolean;
+      share_travel_only?: boolean;
+      share_hide_images?: boolean;
     },
     ctx: McpContext,
   ) {
@@ -73,7 +105,13 @@ export class ShareMcp {
     // The zod .default()s above fill omitted flags, and ShareService applies
     // the same defaults again for undefined — no re-defaulting needed here.
     const { token, created } = await this.share.createOrUpdate(String(tripId), ctx.userId, {
-      share_map, share_bookings, share_packing, share_budget, share_collab, share_travel_only, share_hide_images,
+      share_map,
+      share_bookings,
+      share_packing,
+      share_budget,
+      share_collab,
+      share_travel_only,
+      share_hide_images,
     });
     return ok({ token, created });
   }

@@ -17,13 +17,19 @@
  * flight take minutes on a CPU host. The flat results map into the kitinerary pipeline via the
  * existing `nuExtractToKiReservations` mapper, so nothing downstream changes.
  */
-
-import { normalizeLocalDateTime, parseMeridiemClock } from '@trek/shared';
 import type { KiReservation } from '../../booking-import/kitinerary.types';
 import { nuExtractToKiReservations } from '../clients/nuextract';
-import { FLAT_SCHEMA_BY_TYPE, FLAT_TYPES, FLIGHTS_ARRAY_SCHEMA, UNION_SINGLE_SCHEMA, type FlatType, type FlatLike } from './flat-schemas';
-import { extractEnforced } from './ollama-format.client';
 import { parseLenientJson } from '../lenient-json';
+import {
+  FLAT_SCHEMA_BY_TYPE,
+  FLAT_TYPES,
+  FLIGHTS_ARRAY_SCHEMA,
+  UNION_SINGLE_SCHEMA,
+  type FlatType,
+  type FlatLike,
+} from './flat-schemas';
+import { extractEnforced } from './ollama-format.client';
+import { normalizeLocalDateTime, parseMeridiemClock } from '@trek/shared';
 
 export interface RouterContext {
   baseUrl: string;
@@ -36,14 +42,19 @@ const TRANSPORT_TYPES: FlatType[] = ['flight', 'train', 'bus', 'ferry'];
 /** Per-type guidance for the single-reservation prompt. `price`/`currency` are the total
  *  paid and its currency on every type; `address` is the venue street address for stays/venues. */
 const TYPE_HINT: Record<FlatType, string> = {
-  flight: 'flight. vehicle_number = flight number, from_code/to_code = IATA codes, times = full ISO, price/currency = total fare.',
-  train: 'train. from_name/to_name = stations, vehicle_number = train number, times = full ISO, price/currency = total fare.',
+  flight:
+    'flight. vehicle_number = flight number, from_code/to_code = IATA codes, times = full ISO, price/currency = total fare.',
+  train:
+    'train. from_name/to_name = stations, vehicle_number = train number, times = full ISO, price/currency = total fare.',
   bus: 'bus. from_name/to_name = stops, times = full ISO, price/currency = total fare.',
   ferry: 'ferry/cruise. from_name/to_name = terminals/ports, times = full ISO, price/currency = total fare.',
   car: 'rental car. operator = the rental company, from_name = pick-up location, to_name = return location (may differ), departure_time = pick-up, arrival_time = return, times = full ISO (24-hour), price/currency = total rental cost.',
-  hotel: 'hotel stay. name = hotel name, address = the hotel street address, checkin_time/checkout_time = full ISO date-time, price/currency = total paid.',
-  restaurant: 'restaurant booking. name = the restaurant, address = its street address, start_time = the reservation date-time as full ISO (24-hour), price/currency = total if shown.',
-  event: 'event/attraction. name = the event/ticket, address = the venue, start_time/end_time = full ISO, price/currency = ticket price.',
+  hotel:
+    'hotel stay. name = hotel name, address = the hotel street address, checkin_time/checkout_time = full ISO date-time, price/currency = total paid.',
+  restaurant:
+    'restaurant booking. name = the restaurant, address = its street address, start_time = the reservation date-time as full ISO (24-hour), price/currency = total if shown.',
+  event:
+    'event/attraction. name = the event/ticket, address = the venue, start_time/end_time = full ISO, price/currency = ticket price.',
 };
 
 /**
@@ -186,7 +197,14 @@ export function fixArrivalDate(flat: FlatLike): FlatLike {
   return flat;
 }
 
-const DATE_FIELDS = ['departure_time', 'arrival_time', 'checkin_time', 'checkout_time', 'start_time', 'end_time'] as const;
+const DATE_FIELDS = [
+  'departure_time',
+  'arrival_time',
+  'checkin_time',
+  'checkout_time',
+  'start_time',
+  'end_time',
+] as const;
 
 /**
  * Coerce a date value to ISO 8601. Models occasionally ignore the format instruction and
@@ -215,7 +233,8 @@ function toIso(value: unknown): unknown {
 
 /** Normalize every date-ish field on a flat reservation to ISO before mapping. */
 function normalizeDates(flat: FlatLike): FlatLike {
-  for (const f of DATE_FIELDS) if (f in flat) (flat as Record<string, unknown>)[f] = toIso((flat as Record<string, unknown>)[f]);
+  for (const f of DATE_FIELDS)
+    if (f in flat) (flat as Record<string, unknown>)[f] = toIso((flat as Record<string, unknown>)[f]);
   return flat;
 }
 
@@ -225,8 +244,18 @@ async function extractFlights(text: string, ctx: RouterContext): Promise<FlatLik
     'Extract EVERY flight segment in the document (each flight number is one segment; a round trip has the ' +
     'outbound AND the return legs). vehicle_number = the flight number, from_code/to_code = 3-letter IATA codes, ' +
     "departure_time/arrival_time = full ISO 'YYYY-MM-DDTHH:MM:00' using the date of the section heading each flight is listed under.";
-  const out = await extractEnforced({ baseUrl: ctx.baseUrl, model: ctx.model, apiKey: ctx.apiKey, system, user: `Document:\n${text}`, schema: FLIGHTS_ARRAY_SCHEMA, numPredict: 900 });
-  const legs = Array.isArray((out as { flights?: unknown })?.flights) ? (out as { flights: Record<string, unknown>[] }).flights : [];
+  const out = await extractEnforced({
+    baseUrl: ctx.baseUrl,
+    model: ctx.model,
+    apiKey: ctx.apiKey,
+    system,
+    user: `Document:\n${text}`,
+    schema: FLIGHTS_ARRAY_SCHEMA,
+    numPredict: 900,
+  });
+  const legs = Array.isArray((out as { flights?: unknown })?.flights)
+    ? (out as { flights: Record<string, unknown>[] }).flights
+    : [];
   return legs.map((leg) => fixArrivalDate(normalizeDates({ ...leg, type: 'flight' as FlatType })));
 }
 
@@ -236,7 +265,9 @@ async function extractSingle(text: string, ctx: RouterContext, images?: Buffer[]
   const known = detectType(text);
   const call = (schema: Record<string, unknown>, hint: string) =>
     extractEnforced({
-      baseUrl: ctx.baseUrl, model: ctx.model, apiKey: ctx.apiKey,
+      baseUrl: ctx.baseUrl,
+      model: ctx.model,
+      apiKey: ctx.apiKey,
       system: `Extract the single reservation from the document into the flat fields. ${hint} Omit any field that is truly absent.`,
       user: images?.length ? 'The document is the attached photo.' : `Document:\n${text}`,
       schema,
@@ -260,9 +291,7 @@ async function extractSingle(text: string, ctx: RouterContext, images?: Buffer[]
   // out loud that the type was guessed. Only here: a valid pick by the model is
   // a real answer, and flagging it would push AI-parsed hotels into the
   // transport form whenever the document never says the word "hotel".
-  const flat: FlatLike = picked
-    ? { ...out, type: picked }
-    : { ...out, type: 'hotel' as FlatType, type_guessed: true };
+  const flat: FlatLike = picked ? { ...out, type: picked } : { ...out, type: 'hotel' as FlatType, type_guessed: true };
   return fixArrivalDate(normalizeDates(flat));
 }
 
@@ -294,7 +323,10 @@ function fillBookingWideFields(flats: Record<string, unknown>[], text: string): 
  * Run the router on extracted document text and return schema.org KiReservation nodes.
  * Returns `[]` (never throws for content reasons) so the caller degrades gracefully.
  */
-export async function routeExtraction(text: string, ctx: RouterContext): Promise<{ kiItems: KiReservation[]; warnings: string[] }> {
+export async function routeExtraction(
+  text: string,
+  ctx: RouterContext,
+): Promise<{ kiItems: KiReservation[]; warnings: string[] }> {
   const warnings: string[] = [];
 
   // Schicht 1 — exactly one model call.
@@ -306,8 +338,7 @@ export async function routeExtraction(text: string, ctx: RouterContext): Promise
     // digits test cannot tell from an airline code, and the ticket came back a flight
     // without detectType ever running (#2076).
     const named = detectType(text);
-    const looksLikeFlight = detectFlightNumbers(text).length > 0
-      && !(named && TRANSPORT_FLAT_TYPES.has(named));
+    const looksLikeFlight = detectFlightNumbers(text).length > 0 && !(named && TRANSPORT_FLAT_TYPES.has(named));
     flats = looksLikeFlight ? await extractFlights(text, ctx) : [await extractSingle(text, ctx)];
   } catch (err) {
     return { kiItems: [], warnings: [`AI parsing failed — ${err instanceof Error ? err.message : String(err)}`] };
@@ -316,7 +347,9 @@ export async function routeExtraction(text: string, ctx: RouterContext): Promise
   // Schicht 2 — deterministic booking-wide fields the per-call schema doesn't carry.
   fillBookingWideFields(flats, text);
 
-  const kiItems = nuExtractToKiReservations(flats as unknown as Record<string, unknown>[]) as unknown as KiReservation[];
+  const kiItems = nuExtractToKiReservations(
+    flats as unknown as Record<string, unknown>[],
+  ) as unknown as KiReservation[];
   return { kiItems, warnings };
 }
 
@@ -326,14 +359,20 @@ export async function routeExtraction(text: string, ctx: RouterContext): Promise
  * spot a flight number or a vendor in, so the model picks the type, and the
  * booking-wide fields come from its answer alone.
  */
-export async function routeImageExtraction(images: Buffer[], ctx: RouterContext): Promise<{ kiItems: KiReservation[]; warnings: string[] }> {
+export async function routeImageExtraction(
+  images: Buffer[],
+  ctx: RouterContext,
+): Promise<{ kiItems: KiReservation[]; warnings: string[] }> {
   let flat: FlatLike;
   try {
     flat = unwrapPrice(await extractSingle('', ctx, images));
   } catch (err) {
     return { kiItems: [], warnings: [`AI parsing failed — ${err instanceof Error ? err.message : String(err)}`] };
   }
-  const kiItems = nuExtractToKiReservations([flat] as unknown as Record<string, unknown>[]) as unknown as KiReservation[];
+  const kiItems = nuExtractToKiReservations([flat] as unknown as Record<
+    string,
+    unknown
+  >[]) as unknown as KiReservation[];
   return { kiItems, warnings: [] };
 }
 

@@ -31,7 +31,6 @@
  * measurement, written by `--update` or taken from the CI artifact, is
  * committed.
  */
-
 import { readFileSync } from 'node:fs';
 
 export interface ProbeBaseline {
@@ -104,7 +103,8 @@ function parseFailing(failing: unknown, source: string): Record<string, number> 
 /** A missing `uncovered` key reads as unmeasured, so a baseline written before the list existed gets it seeded. */
 function parseUncovered(uncovered: unknown, source: string): string[] | null {
   if (uncovered === undefined || uncovered === null) return null;
-  if (!Array.isArray(uncovered)) throw new Error(`${source}: "uncovered" must be null or an array of Class.method names`);
+  if (!Array.isArray(uncovered))
+    throw new Error(`${source}: "uncovered" must be null or an array of Class.method names`);
   const seen = new Set<string>();
   for (const method of uncovered as unknown[]) {
     if (typeof method !== 'string' || !METHOD_KEY.test(method)) {
@@ -169,7 +169,8 @@ export function lowerBaseline(
       if (now > 0) next[method] = now;
     }
   }
-  const uncovered = baseline.uncovered === null ? [...uncoveredNow] : baseline.uncovered.filter((method) => uncoveredNow.has(method));
+  const uncovered =
+    baseline.uncovered === null ? [...uncoveredNow] : baseline.uncovered.filter((method) => uncoveredNow.has(method));
   return {
     failing: Object.fromEntries(Object.entries(next).sort(([a], [b]) => a.localeCompare(b))),
     uncovered: [...new Set(uncovered)].sort((a, b) => a.localeCompare(b)),

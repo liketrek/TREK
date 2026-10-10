@@ -1,6 +1,6 @@
+import { caseWhenEquals, coalesce } from '../dialect/sql-functions';
 import type { TripMembers } from '../entities/TripMembers.entity';
 import { Trips } from '../entities/Trips.entity';
-import { caseWhenEquals, coalesce } from '../dialect/sql-functions';
 import { TrekRepository } from './_shared/trek-repository';
 
 /**
@@ -263,11 +263,7 @@ export class TripMembersRepository extends TrekRepository<TripMembers> {
    */
   async remove(trip_id: number, user_id: number): Promise<void> {
     if (!Number.isFinite(user_id)) return;
-    await this.qb('m')
-      .delete()
-      .where({ trip: trip_id })
-      .andWhere('m.user_id = ?', [user_id])
-      .execute('run');
+    await this.qb('m').delete().where({ trip: trip_id }).andWhere('m.user_id = ?', [user_id]).execute('run');
   }
 
   // ---------------------------------------------------------------------------
@@ -287,7 +283,9 @@ export class TripMembersRepository extends TrekRepository<TripMembers> {
    * `trips.members` and the REST/MCP roster are two different wire shapes on
    * purpose, inventory §18.10).
    */
-  async listRawUsernameAndDisplayName(trip_id: number | string): Promise<{ id: number; username: string; display_name: string | null; avatar: string | null }[]> {
+  async listRawUsernameAndDisplayName(
+    trip_id: number | string,
+  ): Promise<{ id: number; username: string; display_name: string | null; avatar: string | null }[]> {
     return await this.qb('m')
       .join('m.user', 'u')
       .select(['u.id', 'u.username', 'u.display_name', 'u.avatar'])

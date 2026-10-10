@@ -71,7 +71,7 @@ describe('dialect-lint.mjs', () => {
   it.each([
     ['insert-or', "void 'INSERT OR IGNORE INTO t (a) VALUES (?)';"],
     ['insert-or', 'void `INSERT OR REPLACE INTO t (a) VALUES (?)`;'],
-    ['datetime', "void \"UPDATE t SET at = datetime('now')\";"],
+    ['datetime', 'void "UPDATE t SET at = datetime(\'now\')";'],
     ['datetime', "declare function fn(name: string, args: string[]): void;\nfn('julianday', ['now']);"],
     ['strftime', "void `SELECT strftime('%s', 'now')`;"],
     ['json', "void 'SELECT json_extract(settings, ?) FROM users';"],
@@ -80,8 +80,8 @@ describe('dialect-lint.mjs', () => {
     ['last-insert-rowid', "void 'SELECT last_insert_rowid()';"],
     ['autoincrement', "void 'id INTEGER PRIMARY KEY AUTOINCREMENT';"],
     ['pragma', "void 'PRAGMA foreign_keys = OFF';"],
-    ['concat', "declare const sql: (s: TemplateStringsArray, ...v: unknown[]) => unknown;\nvoid sql`a || b`;"],
-    ['concat', "void \"SELECT first || ' ' || last FROM users\";"],
+    ['concat', 'declare const sql: (s: TemplateStringsArray, ...v: unknown[]) => unknown;\nvoid sql`a || b`;'],
+    ['concat', 'void "SELECT first || \' \' || last FROM users";'],
     ['insert-id', 'declare const r: { insertId: bigint };\nvoid Number(r.insertId);'],
     ['insert-id', 'declare const r: { insertId: bigint };\nconst { insertId } = r;\nvoid insertId;'],
   ])('DIALECT-002: fails a new %s hit and names the rule', (rule, code) => {
@@ -92,11 +92,11 @@ describe('dialect-lint.mjs', () => {
 
   it('DIALECT-003: leaves comments, ordinary strings and the HTTP Pragma header alone', () => {
     const code = [
-      '// INSERT OR IGNORE INTO t, datetime(\'now\'), PRAGMA foreign_keys',
+      "// INSERT OR IGNORE INTO t, datetime('now'), PRAGMA foreign_keys",
       '/** strftime and json_extract and GLOB and AUTOINCREMENT */',
-      "declare const res: { set(k: string, v: string): void };",
+      'declare const res: { set(k: string, v: string): void };',
       "res.set('Pragma', 'no-cache');",
-      "export const fallback = (a: string | null, b: string) => a || b;",
+      'export const fallback = (a: string | null, b: string) => a || b;',
       "export const label = 'one || two';",
       '',
     ].join('\n');
@@ -115,7 +115,8 @@ describe('dialect-lint.mjs', () => {
 
   it('DIALECT-005: a newer migration is held to the DML rules but may spell its own DDL and PRAGMA', () => {
     const migration = 'src/db/migrations/Migration20990101000000_probe.ts';
-    const ddl = "export const t = 'CREATE TABLE t (id INTEGER PRIMARY KEY AUTOINCREMENT)';\nexport const p = 'PRAGMA foreign_keys = OFF';\n";
+    const ddl =
+      "export const t = 'CREATE TABLE t (id INTEGER PRIMARY KEY AUTOINCREMENT)';\nexport const p = 'PRAGMA foreign_keys = OFF';\n";
     expect(run(serverRoot({ [migration]: ddl })).status).toBe(0);
 
     const dml = "export const s = 'INSERT OR IGNORE INTO t (a) VALUES (1)';\n";
@@ -139,7 +140,9 @@ describe('dialect-lint.mjs', () => {
 
     const stale = run(serverRoot({ [REPO]: one }, { [REPO]: { 'insert-or': 2 } }));
     expect(stale.status).toBe(1);
-    expect(stale.out).toContain(`FAIL  ${REPO} is held at 2 insert-or hit(s) in scripts/dialect-baseline.json, but has 1 now.`);
+    expect(stale.out).toContain(
+      `FAIL  ${REPO} is held at 2 insert-or hit(s) in scripts/dialect-baseline.json, but has 1 now.`,
+    );
     expect(stale.out).toContain('npm run lint:dialect -- --update');
   });
 

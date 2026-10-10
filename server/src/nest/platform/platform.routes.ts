@@ -1,20 +1,20 @@
-import express, { Request, Response, NextFunction } from 'express';
-import path from 'node:path';
-import type { EntityManager } from '@mikro-orm/core';
-
 import { readEnv } from '../../app-config';
+import { Photos } from '../../db/entities/Photos.entity';
+import { ShareTokens } from '../../db/entities/ShareTokens.entity';
+import { UserSessions } from '../../db/entities/UserSessions.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { PhotosRepository } from '../../db/repositories/Photos.repository';
+import type { ShareTokensRepository } from '../../db/repositories/ShareTokens.repository';
+import type { UserSessionsRepository } from '../../db/repositories/UserSessions.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { withRequestContext } from '../database/request-context';
 import { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError, StorageNotFoundError, type StorageCategory } from '../storage/storage.types';
-import { Users } from '../../db/entities/Users.entity';
-import { UserSessions } from '../../db/entities/UserSessions.entity';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
-import type { UserSessionsRepository } from '../../db/repositories/UserSessions.repository';
-import { ShareTokens } from '../../db/entities/ShareTokens.entity';
-import type { ShareTokensRepository } from '../../db/repositories/ShareTokens.repository';
-import { Photos } from '../../db/entities/Photos.entity';
-import type { PhotosRepository } from '../../db/repositories/Photos.repository';
+import type { EntityManager } from '@mikro-orm/core';
+
+import express, { Request, Response, NextFunction } from 'express';
+import path from 'node:path';
 
 // Platform / transport routes extracted verbatim from createApp() (app.ts) so they can be
 // mounted on either the legacy Express app or the NestJS Express instance (strangler A6/A8).
@@ -216,7 +216,11 @@ async function servePhoto(
  * WS adapter's message dispatch already uses (throw before calling the
  * handler at all, never a silent degrade).
  */
-export function applyPlatformUploads(app: express.Application, storage: StorageService, orm?: { em: EntityManager }): void {
+export function applyPlatformUploads(
+  app: express.Application,
+  storage: StorageService,
+  orm?: { em: EntityManager },
+): void {
   // Static: avatars, covers, and journey photos.
   //
   // Security model (audit SEC-M9): these paths are unauthenticated by

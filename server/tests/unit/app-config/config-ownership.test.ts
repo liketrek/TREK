@@ -7,13 +7,14 @@
  * Proxy over the raw environment, so a new field in the wrong derive function
  * fails here rather than in review.
  */
-import { describe, it, expect } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
-import { deriveAll, type RawEnv } from '../../../src/app-config/derive';
 import { BOOT_DERIVERS, type BootNamespace } from '../../../src/app-config/boot-derive';
+import { deriveAll, type RawEnv } from '../../../src/app-config/derive';
 import { envSchema } from '../../../src/app-config/env.schema';
 import { BOOT_STABLE_TOKENS } from '../../../src/nest/app-config/tokens';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect } from 'vitest';
 
 const SRC = path.join(__dirname, '..', '..', '..', 'src');
 const TOKENS_FILE = path.join(SRC, 'nest', 'app-config', 'tokens.ts');

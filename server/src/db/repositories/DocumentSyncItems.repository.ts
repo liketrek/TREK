@@ -1,10 +1,10 @@
-import type { EntityData } from '@mikro-orm/core';
-import { coalesceOverride, currentTimestamp, foundAgainState, nowPlusSeconds } from '../dialect/sql-functions';
 import { currentTimestampKysely, nowPlusSecondsKysely } from '../dialect/kysely-functions';
+import { coalesceOverride, currentTimestamp, foundAgainState, nowPlusSeconds } from '../dialect/sql-functions';
 import type { DocumentSyncItems } from '../entities/DocumentSyncItems.entity';
+import type { DB } from '../kysely/db';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
+import type { EntityData } from '@mikro-orm/core';
 
 /** A bare `document_sync_items` row (every scalar column). */
 export interface DocumentSyncItemRow {
@@ -98,7 +98,10 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
   // ── applyAction's eight state-machine UPDATEs (DS2-DS12) ──────────────────
 
   /** DS2 (`applyAction` 'relocate') — `UPDATE ... SET remote_id=?, remote_version=?, remote_size=COALESCE(?,remote_size), remote_modified_at=COALESCE(?,remote_modified_at), ${FOUND_AGAIN}, last_seen_at=CURRENT_TIMESTAMP WHERE id=?`. */
-  async applyRelocate(id: number, data: { remote_id: string; remote_version: string; remote_size: number | null; remote_modified_at: string | null }): Promise<void> {
+  async applyRelocate(
+    id: number,
+    data: { remote_id: string; remote_version: string; remote_size: number | null; remote_modified_at: string | null },
+  ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate(
       { id },
@@ -152,7 +155,14 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
   /** DS7 (`applyAction` 'mark_remote_missing') — `UPDATE ... SET state='remote_missing', remote_missing_at=CURRENT_TIMESTAMP, last_seen_at=CURRENT_TIMESTAMP WHERE id=?`. */
   async markRemoteMissing(id: number): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
-    await this.nativeUpdate({ id }, { state: 'remote_missing', remote_missing_at: currentTimestamp(platform), last_seen_at: currentTimestamp(platform) });
+    await this.nativeUpdate(
+      { id },
+      {
+        state: 'remote_missing',
+        remote_missing_at: currentTimestamp(platform),
+        last_seen_at: currentTimestamp(platform),
+      },
+    );
   }
 
   /**
@@ -201,7 +211,14 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate(
       { id },
-      { state: 'pending', remote_id: null, remote_version: null, remote_trashed_at: null, error_code: null, last_seen_at: currentTimestamp(platform) },
+      {
+        state: 'pending',
+        remote_id: null,
+        remote_version: null,
+        remote_trashed_at: null,
+        error_code: null,
+        last_seen_at: currentTimestamp(platform),
+      },
     );
   }
 
@@ -214,7 +231,13 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
   /** DS12 (`applyAction` 'touch') — the most-used state-machine action: `UPDATE ... SET last_seen_at=CURRENT_TIMESTAMP, remote_version=COALESCE(?,remote_version), remote_name=COALESCE(?,remote_name), remote_id=COALESCE(?,remote_id), remote_size=COALESCE(?,remote_size), remote_modified_at=COALESCE(?,remote_modified_at), ${FOUND_AGAIN} WHERE id=?`. */
   async applyTouch(
     id: number,
-    data: { remote_version: string | null; remote_name: string | null; remote_id: string | null; remote_size: number | null; remote_modified_at: string | null },
+    data: {
+      remote_version: string | null;
+      remote_name: string | null;
+      remote_id: string | null;
+      remote_size: number | null;
+      remote_modified_at: string | null;
+    },
   ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate(
@@ -235,13 +258,21 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
   // ── Reads ───────────────────────────────────────────────────────────────
 
   /** DS13 (`pull`'s pre-image read) — `SELECT file_id, remote_name, content_sha256 FROM document_sync_items WHERE id=?`. */
-  async findPairing(id: number): Promise<{ file_id: number | null; remote_name: string | null; content_sha256: string | null } | undefined> {
+  async findPairing(
+    id: number,
+  ): Promise<{ file_id: number | null; remote_name: string | null; content_sha256: string | null } | undefined> {
     const row = await this.kysely<DocumentSyncItemsKyselyDB>()
       .selectFrom('document_sync_items')
       .select(['file_id', 'remote_name', 'content_sha256'])
       .where('id', '=', id)
       .executeTakeFirst();
-    return row ? { file_id: row.file_id ?? null, remote_name: row.remote_name ?? null, content_sha256: row.content_sha256 ?? null } : undefined;
+    return row
+      ? {
+          file_id: row.file_id ?? null,
+          remote_name: row.remote_name ?? null,
+          content_sha256: row.content_sha256 ?? null,
+        }
+      : undefined;
   }
 
   /**
@@ -261,8 +292,21 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
     const rows = await this.kysely<DocumentSyncItemsKyselyDB>()
       .selectFrom('document_sync_items')
       .select([
-        'id', 'file_id', 'trek_doc_uid', 'remote_id', 'remote_version', 'remote_name', 'remote_size', 'remote_modified_at',
-        'content_sha256', 'pushed_sha256', 'state', 'attempts', 'next_attempt_at', 'remote_missing_at', 'remote_trashed_at',
+        'id',
+        'file_id',
+        'trek_doc_uid',
+        'remote_id',
+        'remote_version',
+        'remote_name',
+        'remote_size',
+        'remote_modified_at',
+        'content_sha256',
+        'pushed_sha256',
+        'state',
+        'attempts',
+        'next_attempt_at',
+        'remote_missing_at',
+        'remote_trashed_at',
       ])
       .where('link_id', '=', linkId)
       .execute();
@@ -309,7 +353,11 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
 
   /** DS22 (`upsertItem`'s read-before-write attempt counter) — `SELECT attempts FROM document_sync_items WHERE id=?`. */
   async getAttempts(id: number): Promise<number | undefined> {
-    const row = await this.kysely<DocumentSyncItemsKyselyDB>().selectFrom('document_sync_items').select('attempts').where('id', '=', id).executeTakeFirst();
+    const row = await this.kysely<DocumentSyncItemsKyselyDB>()
+      .selectFrom('document_sync_items')
+      .select('attempts')
+      .where('id', '=', id)
+      .executeTakeFirst();
     return row?.attempts;
   }
 
@@ -374,7 +422,8 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
       content_sha256: coalesceOverride(platform, patch.content_sha256, 'content_sha256'),
       pushed_sha256: coalesceOverride(platform, patch.pushed_sha256, 'pushed_sha256'),
       attempts: patch.attempts,
-      next_attempt_at: patch.next_attempt_after_seconds !== null ? nowPlusSeconds(platform, patch.next_attempt_after_seconds) : null,
+      next_attempt_at:
+        patch.next_attempt_after_seconds !== null ? nowPlusSeconds(platform, patch.next_attempt_after_seconds) : null,
       remote_missing_at: null,
       last_seen_at: currentTimestamp(platform),
     };
@@ -444,7 +493,9 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
         error_code: data.error_code,
         attempts: data.attempts,
         next_attempt_at:
-          data.next_attempt_after_seconds !== null ? nowPlusSecondsKysely(platform, eb, data.next_attempt_after_seconds) : null,
+          data.next_attempt_after_seconds !== null
+            ? nowPlusSecondsKysely(platform, eb, data.next_attempt_after_seconds)
+            : null,
         synced_at: data.synced_now ? currentTimestampKysely(platform) : null,
         last_seen_at: currentTimestampKysely(platform),
       }))
@@ -456,9 +507,12 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
             state: (eb) => eb.ref('excluded.state'),
             error_code: (eb) => eb.ref('excluded.error_code'),
             file_id: (eb) => eb.fn.coalesce(eb.ref('excluded.file_id'), eb.ref('document_sync_items.file_id')),
-            remote_version: (eb) => eb.fn.coalesce(eb.ref('excluded.remote_version'), eb.ref('document_sync_items.remote_version')),
-            content_sha256: (eb) => eb.fn.coalesce(eb.ref('excluded.content_sha256'), eb.ref('document_sync_items.content_sha256')),
-            pushed_sha256: (eb) => eb.fn.coalesce(eb.ref('excluded.pushed_sha256'), eb.ref('document_sync_items.pushed_sha256')),
+            remote_version: (eb) =>
+              eb.fn.coalesce(eb.ref('excluded.remote_version'), eb.ref('document_sync_items.remote_version')),
+            content_sha256: (eb) =>
+              eb.fn.coalesce(eb.ref('excluded.content_sha256'), eb.ref('document_sync_items.content_sha256')),
+            pushed_sha256: (eb) =>
+              eb.fn.coalesce(eb.ref('excluded.pushed_sha256'), eb.ref('document_sync_items.pushed_sha256')),
             last_seen_at: () => currentTimestampKysely(platform),
           }),
       )
@@ -470,7 +524,10 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
   /** DS27 (`renameRemoteTo`) — `UPDATE ... SET remote_name=?, remote_version=?, last_seen_at=CURRENT_TIMESTAMP WHERE id=?`. No `FOUND_AGAIN` — a distinct, simpler shape from DS3 (both rename the same two columns, but only DS3's caller is inside the reconciler's state machine). */
   async setRemoteName(id: number, data: { remote_name: string; remote_version: string }): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
-    await this.nativeUpdate({ id }, { remote_name: data.remote_name, remote_version: data.remote_version, last_seen_at: currentTimestamp(platform) });
+    await this.nativeUpdate(
+      { id },
+      { remote_name: data.remote_name, remote_version: data.remote_version, last_seen_at: currentTimestamp(platform) },
+    );
   }
 
   /** DS28 (`resolveConflict`'s pre-image read) — `SELECT * FROM document_sync_items WHERE id=?`. */
@@ -511,7 +568,14 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
     return await this.kysely<DocumentSyncItemsKyselyDB>()
       .selectFrom('document_sync_items as i')
       .leftJoin('trip_files as f', 'f.id', 'i.file_id')
-      .select(['i.id', 'i.state', 'i.error_code', 'i.remote_name', 'i.remote_missing_at', 'f.original_name as file_name'])
+      .select([
+        'i.id',
+        'i.state',
+        'i.error_code',
+        'i.remote_name',
+        'i.remote_missing_at',
+        'f.original_name as file_name',
+      ])
       .where('i.trip_id', '=', tripId)
       .where('i.state', 'in', [...ISSUE_STATES])
       .orderBy('i.id', 'desc')
@@ -548,7 +612,9 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
           .sum<number>(
             eb
               .case()
-              .when(eb.and([eb('file_id', 'is not', null), eb('remote_id', 'is not', null), eb('state', '=', 'synced')]))
+              .when(
+                eb.and([eb('file_id', 'is not', null), eb('remote_id', 'is not', null), eb('state', '=', 'synced')]),
+              )
               .then(1)
               .else(0)
               .end(),
@@ -571,7 +637,16 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
               .end(),
           )
           .as('atProvider'),
-        eb.fn.sum<number>(eb.case().when(eb('state', '=', 'remote_missing')).then(1).else(0).end()).as('missing'),
+        eb.fn
+          .sum<number>(
+            eb
+              .case()
+              .when(eb('state', '=', 'remote_missing'))
+              .then(1)
+              .else(0)
+              .end(),
+          )
+          .as('missing'),
       ])
       .where('trip_id', '=', tripId)
       .groupBy('link_id')
@@ -590,7 +665,12 @@ export class DocumentSyncItemsRepository extends TrekRepository<DocumentSyncItem
    * stay three methods, the WHERE/LIMIT shapes are not identical).
    */
   async listForTripByState(tripId: number, state: string): Promise<DocumentSyncItemWithFileRow[]> {
-    return await this.itemsWithFileQuery().where('i.trip_id', '=', tripId).where('i.state', '=', state).orderBy('i.id', 'desc').limit(500).execute();
+    return await this.itemsWithFileQuery()
+      .where('i.trip_id', '=', tripId)
+      .where('i.state', '=', state)
+      .orderBy('i.id', 'desc')
+      .limit(500)
+      .execute();
   }
 
   /** DSCTRL5 (`DocSyncController.items`, unfiltered) — same as {@link listForTripByState} minus the state predicate. */

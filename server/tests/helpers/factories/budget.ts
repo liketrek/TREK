@@ -1,9 +1,9 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { BudgetItemMembers } from '../../../src/db/entities/BudgetItemMembers.entity';
 import { BudgetItemPayers } from '../../../src/db/entities/BudgetItemPayers.entity';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import type { FactoryOrm } from './context';
 import { createRow } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type BudgetItemRow = EntityDTO<BudgetItems>;
 

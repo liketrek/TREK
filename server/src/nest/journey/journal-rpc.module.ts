@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
-import { AllowedFileTypesModule } from '../files/allowed-file-types.module';
 import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
-import { StorageModule } from '../storage/storage.module';
 import { DemoModule } from '../common/demo.module';
+import { AllowedFileTypesModule } from '../files/allowed-file-types.module';
+import { StorageModule } from '../storage/storage.module';
+import { JournalRpc } from './journal.rpc';
 import { JourneyDomainModule } from './journey-domain.module';
 import { JourneyPhotoCaptureModule } from './journey-photo-capture.module';
-import { JournalRpc } from './journal.rpc';
+import { Module } from '@nestjs/common';
 
 /**
  * The journal plugin surface, in its own container.
@@ -33,7 +33,14 @@ import { JournalRpc } from './journal.rpc';
  * longer needs the entity registered for that call.
  */
 @Module({
-  imports: [JourneyDomainModule, StorageModule, AllowedFileTypesModule, JourneyPhotoCaptureModule, PluginGuardsModule, DemoModule],
+  imports: [
+    JourneyDomainModule,
+    StorageModule,
+    AllowedFileTypesModule,
+    JourneyPhotoCaptureModule,
+    PluginGuardsModule,
+    DemoModule,
+  ],
   providers: [JournalRpc],
   exports: [JourneyDomainModule],
 })

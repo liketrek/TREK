@@ -1,3 +1,19 @@
+import type { User } from '../../types';
+import { AdminGuard } from '../auth-core/admin.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { ManagedForbidden } from '../common/managed';
+import { NotificationPreferencesService } from './notification-preferences.service';
+import {
+  PreferencesUpdateDto,
+  TestSmtpDto,
+  TestWebhookDto,
+  TestNtfyDto,
+  NotificationRespondDto,
+} from './notifications.dto';
+import { AdminNotificationPreferencesDto, NotificationDefaultsUpdateDto } from './notifications.dto';
+import { NotificationsService } from './notifications.service';
+import { resolveNtfyToken } from './transports/ntfy.service';
 import {
   Body,
   Controller,
@@ -12,22 +28,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { ChannelTestResult, UnreadCountResult } from '@trek/shared';
-import type { User } from '../../types';
-import { NotificationsService } from './notifications.service';
-import { resolveNtfyToken } from './transports/ntfy.service';
-import {
-  PreferencesUpdateDto,
-  TestSmtpDto,
-  TestWebhookDto,
-  TestNtfyDto,
-  NotificationRespondDto,
-} from './notifications.dto';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { AdminGuard } from '../auth-core/admin.guard';
-import { NotificationPreferencesService } from './notification-preferences.service';
-import { AdminNotificationPreferencesDto, NotificationDefaultsUpdateDto } from './notifications.dto';
-import { CurrentUser } from '../auth-core/current-user.decorator';
-import { ManagedForbidden } from '../common/managed';
 
 // The masked placeholder the client sends instead of a stored secret (8× U+2022).
 const MASKED = '••••••••';
@@ -108,9 +108,8 @@ export class NotificationsController {
     // (GHSA-7pqc-fj3c-9346). Same rule as the live send path, and target-based
     // rather than role-based on purpose — an admin-only gate here would take a
     // working button away from every user with their own ntfy config.
-    const resolvedToken = (token && token !== MASKED)
-      ? token
-      : resolveNtfyToken(adminCfg, userCfg, resolvedServer ?? null);
+    const resolvedToken =
+      token && token !== MASKED ? token : resolveNtfyToken(adminCfg, userCfg, resolvedServer ?? null);
 
     if (!resolvedTopic) {
       throw new HttpException({ error: 'No ntfy topic configured' }, 400);

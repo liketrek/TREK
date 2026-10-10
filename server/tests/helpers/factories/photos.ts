@@ -1,9 +1,9 @@
-import type { EntityDTO } from '@mikro-orm/core';
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { TripAlbumLinks } from '../../../src/db/entities/TripAlbumLinks.entity';
 import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
 import type { FactoryOrm } from './context';
 import { createRow, findRow, insertRow } from './rows';
+import type { EntityDTO } from '@mikro-orm/core';
 
 export type TripPhotoRow = EntityDTO<TripPhotos>;
 

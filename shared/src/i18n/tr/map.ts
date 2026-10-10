@@ -20,7 +20,8 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Uydu',
   'map.baseLayer.switchToSatellite': 'Uydu görünümüne geç',
   'map.baseLayer.switchToDefault': 'Harita görünümüne geç',
-  'map.location.denied': 'Konum erişimi engellendi. Cihaz ayarlarını kontrol edin; yüklü bir uygulamanın tarayıcıdan ayrı kendi konum izni vardır.',
+  'map.location.denied':
+    'Konum erişimi engellendi. Cihaz ayarlarını kontrol edin; yüklü bir uygulamanın tarayıcıdan ayrı kendi konum izni vardır.',
   'map.location.unavailable': 'Konumunuz belirlenemedi.',
   'map.location.timeout': 'Konum belirleme çok uzun sürdü. Gökyüzünü daha iyi gören bir yerde tekrar deneyin.',
   'map.overview.show': 'Tüm geziyi göster',

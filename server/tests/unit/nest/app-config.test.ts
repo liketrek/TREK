@@ -1,14 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
-import { Test } from '@nestjs/testing';
-import { ConfigService, ConfigType } from '@nestjs/config';
-
+import { imageVersion } from '../../../src/app-config/image-version';
 import { AppConfigModule } from '../../../src/nest/app-config/app-config.module';
+import { DataPathsService } from '../../../src/nest/app-config/data-paths.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { httpConfig, storageConfig, BOOT_STABLE_TOKENS } from '../../../src/nest/app-config/tokens';
-import { DataPathsService } from '../../../src/nest/app-config/data-paths.service';
-import { imageVersion } from '../../../src/app-config/image-version';
+import { ConfigService, ConfigType } from '@nestjs/config';
+import { Test } from '@nestjs/testing';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('RuntimeEnvService', () => {
   const service = new RuntimeEnvService();
@@ -88,14 +88,17 @@ describe('RuntimeEnvService getters (live per call)', () => {
 
   // A checkout has no image VERSION file; inside a built image the file would
   // win over APP_VERSION (derive.ts), so this case only means something here.
-  it.skipIf(imageVersion() !== null)('APPCFG-RT-004: appVersion reads APP_VERSION live when the image ships no VERSION file', () => {
-    process.env.APP_VERSION = '4.4.0';
-    expect(service.appVersion()).toBe('4.4.0');
-    process.env.APP_VERSION = '4.4.1';
-    expect(service.appVersion()).toBe('4.4.1');
-    delete process.env.APP_VERSION;
-    expect(service.appVersion()).toBeUndefined();
-  });
+  it.skipIf(imageVersion() !== null)(
+    'APPCFG-RT-004: appVersion reads APP_VERSION live when the image ships no VERSION file',
+    () => {
+      process.env.APP_VERSION = '4.4.0';
+      expect(service.appVersion()).toBe('4.4.0');
+      process.env.APP_VERSION = '4.4.1';
+      expect(service.appVersion()).toBe('4.4.1');
+      delete process.env.APP_VERSION;
+      expect(service.appVersion()).toBeUndefined();
+    },
+  );
 });
 
 describe('boot-stable tokens', () => {

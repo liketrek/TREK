@@ -6,11 +6,28 @@
  * trip is resolved. The GPX import answers the same matrix from its handler.
  */
 import 'reflect-metadata';
-import { describe, expect, it, vi } from 'vitest';
+
+import { AddonGuard } from '../../../src/nest/addons/addon.guard';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
+import { extractToken, verifyJwtAndLoadUser } from '../../../src/nest/auth-core/jwt-verify';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import {
+  TripAccessGuard,
+  TRIP_PERMISSION_KEY,
+  TRIP_REQUEST_KEY,
+} from '../../../src/nest/permissions/trip-access.guard';
+import type { PlacesService } from '../../../src/nest/places/places.service';
+import { ToursImportController } from '../../../src/nest/tours/tours-import.controller';
+import { ToursController } from '../../../src/nest/tours/tours.controller';
+import type { ToursService } from '../../../src/nest/tours/tours.service';
+import type { User } from '../../../src/types';
+import type { EntityManager } from '@mikro-orm/core';
 import { HttpException, type ExecutionContext } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
-import type { EntityManager } from '@mikro-orm/core';
+
+import { describe, expect, it, vi } from 'vitest';
 
 const { legacyDatabaseAccess } = vi.hoisted(() => ({
   legacyDatabaseAccess: vi.fn((property: string | symbol): never => {
@@ -19,9 +36,12 @@ const { legacyDatabaseAccess } = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../src/db/database', () => ({
-  db: new Proxy({}, {
-    get: (_target, property: string | symbol) => legacyDatabaseAccess(property),
-  }),
+  db: new Proxy(
+    {},
+    {
+      get: (_target, property: string | symbol) => legacyDatabaseAccess(property),
+    },
+  ),
 }));
 vi.mock('../../../src/nest/permissions/permissions.service', () => ({ PermissionsService: class {} }));
 vi.mock('../../../src/nest/addons/addons.service', () => ({ AddonsService: class {} }));
@@ -29,44 +49,47 @@ vi.mock('../../../src/nest/places/places.service', () => ({ PlacesService: class
 vi.mock('../../../src/nest/tours/tours.service', () => ({ ToursService: class {} }));
 vi.mock('../../../src/nest/auth-core/jwt-verify', () => ({ extractToken: vi.fn(), verifyJwtAndLoadUser: vi.fn() }));
 
-import { ToursController } from '../../../src/nest/tours/tours.controller';
-import { ToursImportController } from '../../../src/nest/tours/tours-import.controller';
-import { TripAccessGuard, TRIP_PERMISSION_KEY, TRIP_REQUEST_KEY } from '../../../src/nest/permissions/trip-access.guard';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import type { PlacesService } from '../../../src/nest/places/places.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import type { ToursService } from '../../../src/nest/tours/tours.service';
-import { AddonGuard } from '../../../src/nest/addons/addon.guard';
-import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
-import { extractToken, verifyJwtAndLoadUser } from '../../../src/nest/auth-core/jwt-verify';
-import type { User } from '../../../src/types';
-
-const matrix = [[false, false], [true, false], [false, true], [true, true]] as const;
+const matrix = [
+  [false, false],
+  [true, false],
+  [false, true],
+  [true, true],
+] as const;
 const user = { id: 2, role: 'user' } as User;
 const trip = { id: 7, user_id: 1 };
 
 /** Trip 7 is reachable for user 2; it belongs to user 1, so every check is a shared-trip check. */
 function fixture(handler: keyof ToursController, canEdit = false, canAssign = false, tripId = '7') {
   const request = { params: { tripId }, user };
-  const access = vi.fn(async (id: number, userId: number) => id === 7 && userId === 2 ? trip : undefined);
-  const permission = vi.fn(async (action: string) => action === 'place_edit' ? canEdit : action === 'day_edit' && canAssign);
+  const access = vi.fn(async (id: number, userId: number) => (id === 7 && userId === 2 ? trip : undefined));
+  const permission = vi.fn(async (action: string) =>
+    action === 'place_edit' ? canEdit : action === 'day_edit' && canAssign,
+  );
   const context = {
     switchToHttp: () => ({ getRequest: () => request }),
     getHandler: () => ToursController.prototype[handler],
     getClass: () => ToursController,
   } as unknown as ExecutionContext;
   const em = { getRepository: vi.fn(() => ({ findAccessible: access })) } as unknown as EntityManager;
-  const guard = new TripAccessGuard(em, { checkPermission: permission } as unknown as PermissionsService, new Reflector());
+  const guard = new TripAccessGuard(
+    em,
+    { checkPermission: permission } as unknown as PermissionsService,
+    new Reflector(),
+  );
   return { request, access, permission, context, guard };
 }
 
 /** The import handler's own checks, with the same access and permission doubles. */
 function importFixture(canEdit: boolean, canAssign: boolean) {
-  const permission = vi.fn(async (action: string, ..._context: unknown[]) => action === 'place_edit' ? canEdit : action === 'day_edit' && canAssign);
-  const access = vi.fn(async (id: string, userId: number) => id === '7' && userId === 2 ? trip : undefined);
+  const permission = vi.fn(async (action: string, ..._context: unknown[]) =>
+    action === 'place_edit' ? canEdit : action === 'day_edit' && canAssign,
+  );
+  const access = vi.fn(async (id: string, userId: number) => (id === '7' && userId === 2 ? trip : undefined));
   const places = {
     verifyTripAccess: access,
-    canEdit: vi.fn(async (t: typeof trip, u: User) => permission('place_edit', u.role, t.user_id, u.id, t.user_id !== u.id)),
+    canEdit: vi.fn(async (t: typeof trip, u: User) =>
+      permission('place_edit', u.role, t.user_id, u.id, t.user_id !== u.id),
+    ),
   };
   const importGpxAsTour = vi.fn(async () => ({ tours: [{ place_id: 42 }], caution: false, skipped: 0 }));
   const controller = new ToursImportController(
@@ -132,12 +155,15 @@ describe('Tours permission contract (mock-only, no DB)', () => {
     expect(test.permission).toHaveBeenCalledExactlyOnceWith('place_edit', 'user', 1, 2, true);
   });
 
-  it.each(['list', 'detail', 'create', 'update'] as const)('%s rejects inaccessible route trips before any write permission check', async handler => {
-    const test = fixture(handler, true, true, '8');
-    await expectStatus(() => test.guard.canActivate(test.context), 404);
-    expect(test.access).toHaveBeenCalledWith(8, 2);
-    expect(test.permission).not.toHaveBeenCalled();
-  });
+  it.each(['list', 'detail', 'create', 'update'] as const)(
+    '%s rejects inaccessible route trips before any write permission check',
+    async (handler) => {
+      const test = fixture(handler, true, true, '8');
+      await expectStatus(() => test.guard.canActivate(test.context), 404);
+      expect(test.access).toHaveBeenCalledWith(8, 2);
+      expect(test.permission).not.toHaveBeenCalled();
+    },
+  );
 
   it('importGpx rejects an inaccessible route trip before any permission check', async () => {
     const test = importFixture(true, true);
@@ -149,7 +175,10 @@ describe('Tours permission contract (mock-only, no DB)', () => {
 
   it('preserves addon and JWT refusal without reaching trip resolution', async () => {
     const test = fixture('create', true, true);
-    const addon = new AddonGuard({ isAddonEnabled: vi.fn(async () => false) } as unknown as AddonsService, new Reflector());
+    const addon = new AddonGuard(
+      { isAddonEnabled: vi.fn(async () => false) } as unknown as AddonsService,
+      new Reflector(),
+    );
     await expectStatus(() => addon.canActivate(test.context), 404);
     const jwt = new JwtAuthGuard({ getRepository: vi.fn() } as unknown as EntityManager);
     vi.mocked(extractToken).mockReturnValue(null);

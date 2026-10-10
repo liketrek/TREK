@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { KitineraryExtractorService } from './kitinerary-extractor.service';
+import { Module } from '@nestjs/common';
 
 /** The kitinerary binary probe on its own. Its only dependency is the
  *  kitineraryConfig token (AppConfigModule), and the feature-flag endpoint in

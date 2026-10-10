@@ -1,9 +1,10 @@
-import type Database from 'better-sqlite3';
-import { sharedTestOrm } from './test-uow';
-import { JourneyShareTokens } from '../../src/db/entities/JourneyShareTokens.entity';
-import type { JourneyShareTokensRepository } from '../../src/db/repositories/JourneyShareTokens.repository';
 import { JourneyBooks } from '../../src/db/entities/JourneyBooks.entity';
+import { JourneyShareTokens } from '../../src/db/entities/JourneyShareTokens.entity';
 import type { JourneyBooksRepository } from '../../src/db/repositories/JourneyBooks.repository';
+import type { JourneyShareTokensRepository } from '../../src/db/repositories/JourneyShareTokens.repository';
+import { sharedTestOrm } from './test-uow';
+
+import type Database from 'better-sqlite3';
 
 /**
  * Plan 3g Task 3 (`JourneyShareService`/`JourneyBookService`) test-only

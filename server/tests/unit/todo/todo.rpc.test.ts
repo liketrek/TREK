@@ -3,23 +3,29 @@
  * app edits todos under 'packing_edit', not under a todo-specific action, which is
  * easy to lose in a move and is asserted here explicitly.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
-import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
-import { TodoRpc } from '../../../src/nest/todo/todo.rpc';
-import { TodoModule } from '../../../src/nest/todo/todo.module';
-import type { TodoService } from '../../../src/nest/todo/todo.service';
-import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
+import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TodoModule } from '../../../src/nest/todo/todo.module';
+import { TodoRpc } from '../../../src/nest/todo/todo.rpc';
+import type { TodoService } from '../../../src/nest/todo/todo.service';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 
-const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({
+  k: 'req',
+  id: 'x',
+  method,
+  params,
+});
 
 /** Trip 1 belongs to user 42; todo 90 sits on it. */
 function build(canEdit = true) {
@@ -33,7 +39,9 @@ function build(canEdit = true) {
   const permissions = { checkPermission: vi.fn(() => canEdit) } as unknown as PermissionsService;
   const guards = new PluginGuards(
     {
-      findAccessible: vi.fn(async (tripId: number, userId: number) => (tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined)),
+      findAccessible: vi.fn(async (tripId: number, userId: number) =>
+        tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined,
+      ),
     } as unknown as TripsRepository,
     permissions,
     { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
@@ -54,15 +62,22 @@ describe('TodoRpc through the router', () => {
   it('TODO-RPC-001 todos.list is trip-membership-gated', async () => {
     const host = f.host('db:read:todos');
     expect((await host.dispatch(req('todos.list', { tripId: 1 }), 42)).ok).toBe(true);
-    expect(((await host.dispatch(req('todos.list', { tripId: 2 }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(((await host.dispatch(req('todos.list', { tripId: 2 }), 42)) as RpcError).error.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
   });
 
   it('TODO-RPC-002 writes need the grant, the edit right and a bound user', async () => {
     const host = f.host('db:write:todos');
     expect((await host.dispatch(req('todos.create', { tripId: 1, input: { name: 'Pack' } }), 42)).ok).toBe(true);
-    expect((await host.dispatch(req('todos.update', { tripId: 1, todoId: 90, input: { checked: 1 } }), 42)).ok).toBe(true);
+    expect((await host.dispatch(req('todos.update', { tripId: 1, todoId: 90, input: { checked: 1 } }), 42)).ok).toBe(
+      true,
+    );
     expect((await host.dispatch(req('todos.delete', { tripId: 1, todoId: 90 }), 42)).ok).toBe(true);
-    const noUser = (await host.dispatch(req('todos.create', { tripId: 1, input: { name: 'x' } }), undefined)) as RpcError;
+    const noUser = (await host.dispatch(
+      req('todos.create', { tripId: 1, input: { name: 'x' } }),
+      undefined,
+    )) as RpcError;
     expect(noUser.error.message).toBe('todo writes require an authenticated user context');
   });
 
@@ -72,7 +87,9 @@ describe('TodoRpc through the router', () => {
   });
 
   it('TODO-RPC-004 a blank name is BAD_PARAMS', async () => {
-    const res = (await f.host('db:write:todos').dispatch(req('todos.create', { tripId: 1, input: { name: '  ' } }), 42)) as RpcError;
+    const res = (await f
+      .host('db:write:todos')
+      .dispatch(req('todos.create', { tripId: 1, input: { name: '  ' } }), 42)) as RpcError;
     expect(res.error.code).toBe('BAD_PARAMS');
     expect(res.error.message).toBe('todo name is required');
   });
@@ -99,13 +116,17 @@ describe('TodoRpc through the router', () => {
   });
 
   it('TODO-RPC-008 the read grant does not unlock a write', async () => {
-    const res = (await f.host('db:read:todos').dispatch(req('todos.create', { tripId: 1, input: { name: 'x' } }), 42)) as RpcError;
+    const res = (await f
+      .host('db:read:todos')
+      .dispatch(req('todos.create', { tripId: 1, input: { name: 'x' } }), 42)) as RpcError;
     expect(res.error.code).toBe('PERMISSION_DENIED');
   });
 
   it('TODO-RPC-009 without the edit right the write is refused before it touches the service', async () => {
     const noEdit = build(false);
-    const res = (await noEdit.host('db:write:todos').dispatch(req('todos.create', { tripId: 1, input: { name: 'x' } }), 42)) as RpcError;
+    const res = (await noEdit
+      .host('db:write:todos')
+      .dispatch(req('todos.create', { tripId: 1, input: { name: 'x' } }), 42)) as RpcError;
     expect(res.error.message).toBe('no permission to edit trip 1');
     expect(noEdit.todos.createItem).not.toHaveBeenCalled();
   });

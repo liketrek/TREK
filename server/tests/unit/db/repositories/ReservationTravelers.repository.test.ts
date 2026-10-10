@@ -4,16 +4,17 @@
  * test file). ONE seeded world, one `toEqual(<legacy raw>)` test per read
  * method.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { ReservationTravelers } from '../../../../src/db/entities/ReservationTravelers.entity';
+import { Users } from '../../../../src/db/entities/Users.entity';
+import type { ReservationTravelersRepository } from '../../../../src/db/repositories/ReservationTravelers.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createReservation, createTrip, createUser } from '../../../helpers/factories';
+import { addReservationTraveler } from '../../../helpers/factories/reservations';
+import { updateRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createReservation, createTrip, createUser } from '../../../helpers/factories';
-import { ReservationTravelers } from '../../../../src/db/entities/ReservationTravelers.entity';
-import type { ReservationTravelersRepository } from '../../../../src/db/repositories/ReservationTravelers.repository';
-import { updateRows } from '../../../helpers/factories/rows';
-import { addReservationTraveler } from '../../../helpers/factories/reservations';
-import { Users } from '../../../../src/db/entities/Users.entity';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -23,19 +24,35 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(ReservationTravelers);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 // test-sql-allow: the legacy statement is the parity oracle the repository is compared against.
-const legacyListForTrip = (trip_id: number) => testDb.prepare(`
+const legacyListForTrip = (trip_id: number) =>
+  testDb
+    .prepare(
+      `
   SELECT rt.reservation_id, rt.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar, u.is_guest
   FROM reservation_travelers rt JOIN reservations r ON rt.reservation_id = r.id JOIN users u ON rt.user_id = u.id
-  WHERE r.trip_id = ? ORDER BY rt.reservation_id`).all(trip_id);
+  WHERE r.trip_id = ? ORDER BY rt.reservation_id`,
+    )
+    .all(trip_id);
 
 // test-sql-allow: the legacy statement is the parity oracle the repository is compared against.
-const legacyListForReservation = (reservation_id: number) => testDb.prepare(`
+const legacyListForReservation = (reservation_id: number) =>
+  testDb
+    .prepare(
+      `
   SELECT rt.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar, u.is_guest
-  FROM reservation_travelers rt JOIN users u ON rt.user_id = u.id WHERE rt.reservation_id = ?`).all(reservation_id);
+  FROM reservation_travelers rt JOIN users u ON rt.user_id = u.id WHERE rt.reservation_id = ?`,
+    )
+    .all(reservation_id);
 
 describe('ReservationTravelersRepository — fully seeded world', () => {
   const seed = async () => {

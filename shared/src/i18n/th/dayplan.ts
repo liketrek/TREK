@@ -99,7 +99,8 @@ const dayplan: TranslationStrings = {
   'dayplan.offRouteHint': 'ยังอยู่ในวันนี้และบนแผนที่ แต่เส้นทางจะข้ามไป',
   'dayplan.clearDay': 'ล้างวัน',
   'dayplan.clearDayTitle': 'ล้าง {day} ใช่ไหม',
-  'dayplan.clearDayBody': 'สถานที่ทั้งหมดจะถูกนำออกจากวันนี้ สถานที่ยังคงอยู่ในการเดินทาง และบันทึกกับการจองของวันนี้ยังคงอยู่',
+  'dayplan.clearDayBody':
+    'สถานที่ทั้งหมดจะถูกนำออกจากวันนี้ สถานที่ยังคงอยู่ในการเดินทาง และบันทึกกับการจองของวันนี้ยังคงอยู่',
   'dayplan.deleteDayEmpty': 'ไม่มีอะไรวางแผนไว้ในวันนี้',
   'dayplan.impactPlaces': 'สถานที่ที่วางแผนไว้: {count}',
   'dayplan.impactPlacesHint': 'ยังคงอยู่ในรายการสถานที่',
@@ -110,9 +111,11 @@ const dayplan: TranslationStrings = {
   'dayplan.impactStay': 'การพักที่ {name}',
   'dayplan.deleteDayBookingsHint': 'ยังคงอยู่ในส่วนการจอง โดยไม่ผูกกับวันใด',
   'dayplan.deleteDayStayHint': 'เช็คอินหรือเช็คเอาท์ในวันนี้และจะถูกยกเลิก',
-  'dayplan.deleteDayStayBookedHint': 'เช็คอินหรือเช็คเอาท์ในวันนี้และจะถูกยกเลิก พร้อมกับการจอง “{booking}” และค่าใช้จ่าย',
+  'dayplan.deleteDayStayBookedHint':
+    'เช็คอินหรือเช็คเอาท์ในวันนี้และจะถูกยกเลิก พร้อมกับการจอง “{booking}” และค่าใช้จ่าย',
   'dayplan.deleteDayStayBookingHint': 'เช็คอินหรือเช็คเอาท์ในวันนี้และจะถูกยกเลิก พร้อมกับการจอง “{booking}”',
-  'dayplan.deleteDayStayPaidHint': 'เช็คอินหรือเช็คเอาท์ในวันนี้และจะถูกยกเลิก พร้อมกับการจอง “{booking}” และค่าใช้จ่าย {amount}',
+  'dayplan.deleteDayStayPaidHint':
+    'เช็คอินหรือเช็คเอาท์ในวันนี้และจะถูกยกเลิก พร้อมกับการจอง “{booking}” และค่าใช้จ่าย {amount}',
   'dayplan.deleteDayShift': 'วันถัดไป: {count}',
   'dayplan.deleteDayShiftHint': 'แต่ละวันจะเลื่อนวันที่เร็วขึ้นหนึ่งวัน',
   'dayplan.deleteDayShiftBookingsHint': 'แต่ละวันจะเลื่อนวันที่เร็วขึ้นหนึ่งวัน การจองที่เลื่อนตาม: {count}',

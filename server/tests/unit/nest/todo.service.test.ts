@@ -5,31 +5,36 @@
  * registrar migrated). Uses a real in-memory SQLite DB so SQL logic is
  * exercised faithfully.
  */
+import { db as testDb } from '../../../src/db/database';
+import { TodoCategoryAssignees } from '../../../src/db/entities/TodoCategoryAssignees.entity';
+import { TodoItems } from '../../../src/db/entities/TodoItems.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TodoService } from '../../../src/nest/todo/todo.service';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
+import { createUser, createTrip, addTripMember } from '../../helpers/factories';
+import { countRows, findRows, updateRows } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestTripsRepo,
+  createTestTripMembersRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+import { createTestTodoItemsRepo, createTestTodoCategoryAssigneesRepo } from '../../helpers/todo-repos';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   // Trip access reads through TripsRepository now; the module only hands out the handle.
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember } from '../../helpers/factories';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { TodoService } from '../../../src/nest/todo/todo.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo, createTestTripMembersRepo, sharedTestOrm } from '../../helpers/test-uow';
-import { countRows, findRows, updateRows } from '../../helpers/factories/rows';
-import { TodoItems } from '../../../src/db/entities/TodoItems.entity';
-import { TodoCategoryAssignees } from '../../../src/db/entities/TodoCategoryAssignees.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { createTestTodoItemsRepo, createTestTodoCategoryAssigneesRepo } from '../../helpers/todo-repos';
-import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 let svc: TodoService;
 let todoItemsRepoDirect: Awaited<ReturnType<typeof createTestTodoItemsRepo>>;
@@ -37,8 +42,11 @@ beforeAll(async () => {
   const uow = await createTestUnitOfWork(testDb);
   todoItemsRepoDirect = await createTestTodoItemsRepo(testDb);
   svc = new TodoService(
-    new PermissionsService(await createTestAppSettingsRepo(testDb), uow), new RealtimeService(), uow,
-    todoItemsRepoDirect, await createTestTodoCategoryAssigneesRepo(testDb),
+    new PermissionsService(await createTestAppSettingsRepo(testDb), uow),
+    new RealtimeService(),
+    uow,
+    todoItemsRepoDirect,
+    await createTestTodoCategoryAssigneesRepo(testDb),
     // Plan 4 Task 2 — TodoService's own canAccessTrip delegate is now
     // TripsRepository.findAccessible, a new trailing constructor param.
     new TripAccessService(await createTestTripsRepo(testDb)),
@@ -117,8 +125,9 @@ describe('listItems and createItem', () => {
     const trip = createTrip(testDb, user.id);
     // Without the transaction both read the same MAX and both landed on 0.
     await Promise.all(['A', 'B', 'C'].map((name) => svc.createItem(trip.id, { name })));
-    const orders = (await findRows(await sharedTestOrm(testDb), TodoItems, { trip: trip.id }, { sort_order: 'asc' }))
-      .map((r) => r.sort_order);
+    const orders = (
+      await findRows(await sharedTestOrm(testDb), TodoItems, { trip: trip.id }, { sort_order: 'asc' })
+    ).map((r) => r.sort_order);
     expect(orders).toEqual([0, 1, 2]);
   });
 
@@ -172,7 +181,10 @@ describe('updateItem', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const item = (await svc.createItem(trip.id, { name: 'Old' })) as any;
-    const updated = (await svc.updateItem(trip.id, item.id, { name: 'New', category: 'Misc' }, ['name', 'category'])) as any;
+    const updated = (await svc.updateItem(trip.id, item.id, { name: 'New', category: 'Misc' }, [
+      'name',
+      'category',
+    ])) as any;
     expect(updated.name).toBe('New');
     expect(updated.category).toBe('Misc');
   });
@@ -301,9 +313,11 @@ describe('getCategoryAssignees / updateCategoryAssignees', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
 
-    const rows = (await svc.updateCategoryAssignees(trip.id, 'Packing', [owner.id, stranger.id, member.id])) as { user_id: number }[];
+    const rows = (await svc.updateCategoryAssignees(trip.id, 'Packing', [owner.id, stranger.id, member.id])) as {
+      user_id: number;
+    }[];
 
-    expect(rows.map(r => r.user_id).sort()).toEqual([owner.id, member.id].sort());
+    expect(rows.map((r) => r.user_id).sort()).toEqual([owner.id, member.id].sort());
     expect(JSON.stringify(rows)).not.toContain(stranger.username);
     expect(await countRows(await sharedTestOrm(testDb), TodoCategoryAssignees, { user: stranger.id })).toBe(0);
   });
@@ -316,7 +330,7 @@ describe('getCategoryAssignees / updateCategoryAssignees', () => {
     addTripMember(testDb, trip.id, guest.id);
 
     const rows = (await svc.updateCategoryAssignees(trip.id, 'Packing', [guest.id])) as { user_id: number }[];
-    expect(rows.map(r => r.user_id)).toEqual([guest.id]);
+    expect(rows.map((r) => r.user_id)).toEqual([guest.id]);
   });
 
   it('TODO-SVC-020: updateCategoryAssignees replaces existing assignees (not append)', async () => {
@@ -344,7 +358,12 @@ describe('TodoItemsRepository / TodoCategoryAssigneesRepository — parity', () 
     const trip = createTrip(testDb, user.id);
 
     const full = (await svc.createItem(trip.id, {
-      name: 'Full item', category: 'Cat', due_date: '2026-06-01', description: 'Desc', assigned_user_id: user.id, priority: 5,
+      name: 'Full item',
+      category: 'Cat',
+      due_date: '2026-06-01',
+      description: 'Desc',
+      assigned_user_id: user.id,
+      priority: 5,
     })) as any;
     await svc.updateItem(trip.id, full.id, { checked: 1 }, ['checked']);
 
@@ -353,12 +372,14 @@ describe('TodoItemsRepository / TodoCategoryAssigneesRepository — parity', () 
 
     const converted = await svc.listItems(trip.id);
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-    const legacy = testDb.prepare('SELECT * FROM todo_items WHERE trip_id = ? ORDER BY sort_order ASC, created_at ASC').all(trip.id);
+    const legacy = testDb
+      .prepare('SELECT * FROM todo_items WHERE trip_id = ? ORDER BY sort_order ASC, created_at ASC')
+      .all(trip.id);
     expect(converted).toEqual(legacy);
     expect(converted).toHaveLength(2);
   });
 
-  it('TODO-REPO-002: updateCategoryAssignees\' TD14 re-select matches the legacy joined statement run raw, with an off-roster id present to prove the silent drop', async () => {
+  it("TODO-REPO-002: updateCategoryAssignees' TD14 re-select matches the legacy joined statement run raw, with an off-roster id present to prove the silent drop", async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const { user: stranger } = createUser(testDb);
@@ -368,12 +389,16 @@ describe('TodoItemsRepository / TodoCategoryAssigneesRepository — parity', () 
     const converted = await svc.updateCategoryAssignees(trip.id, 'Packing', [owner.id, stranger.id, member.id]);
 
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT tca.user_id, u.username, u.avatar
       FROM todo_category_assignees tca
       JOIN users u ON tca.user_id = u.id
       WHERE tca.trip_id = ? AND tca.category_name = ?
-    `).all(trip.id, 'Packing');
+    `,
+      )
+      .all(trip.id, 'Packing');
 
     expect(converted).toEqual(legacy);
     expect((converted as { user_id: number }[]).map((r) => r.user_id).sort()).toEqual([owner.id, member.id].sort());
@@ -395,9 +420,13 @@ describe('TodoService.canEdit', () => {
     const checkPermission = vi.fn(() => true);
     const permissions = { checkPermission } as unknown as PermissionsService;
     const withStub = new TodoService(
-      permissions, new RealtimeService(), await createTestUnitOfWork(testDb),
-      await createTestTodoItemsRepo(testDb), await createTestTodoCategoryAssigneesRepo(testDb),
-      new TripAccessService(await createTestTripsRepo(testDb)), await createTestTripMembersRepo(testDb),
+      permissions,
+      new RealtimeService(),
+      await createTestUnitOfWork(testDb),
+      await createTestTodoItemsRepo(testDb),
+      await createTestTodoCategoryAssigneesRepo(testDb),
+      new TripAccessService(await createTestTripsRepo(testDb)),
+      await createTestTripMembersRepo(testDb),
     );
     const trip = { id: 1, user_id: 1 } as never;
 

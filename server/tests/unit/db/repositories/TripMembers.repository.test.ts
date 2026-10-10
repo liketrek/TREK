@@ -5,15 +5,16 @@
  * ?` — as two reads merged through a `Set`. Real rows, on the real test DB,
  * through the same `TestOrm` harness `Trips.repository.test.ts` uses.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { TripMembers } from '../../../../src/db/entities/TripMembers.entity';
+import { Users } from '../../../../src/db/entities/Users.entity';
+import type { TripMembersRepository } from '../../../../src/db/repositories/TripMembers.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { addTripMember, createTrip, createUser } from '../../../helpers/factories';
+import { countRows, findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { addTripMember, createTrip, createUser } from '../../../helpers/factories';
-import { TripMembers } from '../../../../src/db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../../../src/db/repositories/TripMembers.repository';
-import { Users } from '../../../../src/db/entities/Users.entity';
-import { countRows, findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -23,8 +24,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   tripMembers = t.repo(TripMembers);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 /** The membership row of the user on the trip, or null. */
 function memberRow(tripId: number, userId: number) {
@@ -74,7 +81,7 @@ describe('TripMembersRepository.rosterUserIds — parity with the legacy UNION s
     expect(roster.size).toBe(1);
   });
 
-  it('TMEMREPO-004: a trip belonging to someone else never leaks its roster into another trip\'s read', async () => {
+  it("TMEMREPO-004: a trip belonging to someone else never leaks its roster into another trip's read", async () => {
     const { user: ownerA } = createUser(testDb);
     const { user: ownerB } = createUser(testDb);
     const { user: memberOfA } = createUser(testDb);
@@ -156,7 +163,9 @@ describe('TripMembersRepository — listUserIdsByTrip / exists / addMember (Plan
 /** TM2's statement, run raw on the same rows — the parity oracle every assertion below is checked against. */
 function legacyListWithUserAndInviter(tripId: number, ownerId: number): unknown {
   // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-  return testDb.prepare(`
+  return testDb
+    .prepare(
+      `
     SELECT u.id, COALESCE(u.display_name, u.username) AS username, u.email, u.avatar, u.is_guest,
       CASE WHEN u.id = ? THEN 'owner' ELSE 'member' END as role,
       m.added_at,
@@ -166,7 +175,9 @@ function legacyListWithUserAndInviter(tripId: number, ownerId: number): unknown 
     LEFT JOIN users ib ON ib.id = m.invited_by
     WHERE m.trip_id = ?
     ORDER BY m.added_at ASC
-  `).all(ownerId, tripId);
+  `,
+    )
+    .all(ownerId, tripId);
 }
 
 describe('TripMembersRepository.listWithUserAndInviter (TM2, Plan 3c Task 6)', () => {
@@ -180,7 +191,11 @@ describe('TripMembersRepository.listWithUserAndInviter (TM2, Plan 3c Task 6)', (
 
     const { user: memberWithDisplayName } = createUser(testDb, { username: 'member-1-handle' });
     await updateRows(t, Users, { id: memberWithDisplayName.id }, { display_name: 'Member One', avatar: 'm1.png' });
-    await insertRow(t, TripMembers, { trip: trip.id, user: memberWithDisplayName.id, invitedByRef: inviterWithName.id });
+    await insertRow(t, TripMembers, {
+      trip: trip.id,
+      user: memberWithDisplayName.id,
+      invitedByRef: inviterWithName.id,
+    });
 
     const { user: memberBare } = createUser(testDb, { username: 'member-2-handle' });
     await insertRow(t, TripMembers, { trip: trip.id, user: memberBare.id, invitedByRef: inviterBare.id });
@@ -192,7 +207,12 @@ describe('TripMembersRepository.listWithUserAndInviter (TM2, Plan 3c Task 6)', (
     await updateRows(t, Users, { id: guest.id }, { is_guest: 1 });
     await insertRow(t, TripMembers, { trip: trip.id, user: guest.id, invitedByRef: owner.id });
 
-    await updateRows(t, TripMembers, { trip: trip.id, user: memberWithDisplayName.id }, { added_at: '2026-01-01 00:00:00' });
+    await updateRows(
+      t,
+      TripMembers,
+      { trip: trip.id, user: memberWithDisplayName.id },
+      { added_at: '2026-01-01 00:00:00' },
+    );
     await updateRows(t, TripMembers, { trip: trip.id, user: memberBare.id }, { added_at: '2026-01-02 00:00:00' });
     await updateRows(t, TripMembers, { trip: trip.id, user: memberNoInviter.id }, { added_at: '2026-01-03 00:00:00' });
     await updateRows(t, TripMembers, { trip: trip.id, user: guest.id }, { added_at: '2026-01-04 00:00:00' });
@@ -200,10 +220,46 @@ describe('TripMembersRepository.listWithUserAndInviter (TM2, Plan 3c Task 6)', (
     const rows = await tripMembers.listWithUserAndInviter(trip.id, owner.id);
     expect(rows).toEqual(legacyListWithUserAndInviter(trip.id, owner.id));
     expect(rows).toEqual([
-      { id: memberWithDisplayName.id, username: 'Member One', email: memberWithDisplayName.email, avatar: 'm1.png', is_guest: 0, role: 'member', added_at: '2026-01-01 00:00:00', invited_by_username: 'Inviter One' },
-      { id: memberBare.id, username: 'member-2-handle', email: memberBare.email, avatar: null, is_guest: 0, role: 'member', added_at: '2026-01-02 00:00:00', invited_by_username: 'inviter-2' },
-      { id: memberNoInviter.id, username: 'member-3-handle', email: memberNoInviter.email, avatar: null, is_guest: 0, role: 'member', added_at: '2026-01-03 00:00:00', invited_by_username: null },
-      { id: guest.id, username: 'guest-handle', email: guest.email, avatar: null, is_guest: 1, role: 'member', added_at: '2026-01-04 00:00:00', invited_by_username: 'owner-handle' },
+      {
+        id: memberWithDisplayName.id,
+        username: 'Member One',
+        email: memberWithDisplayName.email,
+        avatar: 'm1.png',
+        is_guest: 0,
+        role: 'member',
+        added_at: '2026-01-01 00:00:00',
+        invited_by_username: 'Inviter One',
+      },
+      {
+        id: memberBare.id,
+        username: 'member-2-handle',
+        email: memberBare.email,
+        avatar: null,
+        is_guest: 0,
+        role: 'member',
+        added_at: '2026-01-02 00:00:00',
+        invited_by_username: 'inviter-2',
+      },
+      {
+        id: memberNoInviter.id,
+        username: 'member-3-handle',
+        email: memberNoInviter.email,
+        avatar: null,
+        is_guest: 0,
+        role: 'member',
+        added_at: '2026-01-03 00:00:00',
+        invited_by_username: null,
+      },
+      {
+        id: guest.id,
+        username: 'guest-handle',
+        email: guest.email,
+        avatar: null,
+        is_guest: 1,
+        role: 'member',
+        added_at: '2026-01-04 00:00:00',
+        invited_by_username: 'owner-handle',
+      },
     ]);
   });
 
@@ -360,7 +416,7 @@ describe('NaN user_id — rule 15 (a non-numeric route id parses to NaN, must no
 // ── Plan 3c Task 7 (trips.rpc.ts::members, RP3) — additive ──────────────────
 
 describe('TripMembersRepository.listRawUsernameAndDisplayName (RP3)', () => {
-  it('TMEMREPO-026: byte-identical to the legacy statement — raw username AND display_name, NOT TM2\'s COALESCE', async () => {
+  it("TMEMREPO-026: byte-identical to the legacy statement — raw username AND display_name, NOT TM2's COALESCE", async () => {
     const { user: owner } = createUser(testDb);
     const { user: named } = createUser(testDb, { username: 'bare-name' });
     await updateRows(t, Users, { id: named.id }, { display_name: 'Displayed', avatar: 'a.png' });
@@ -370,14 +426,21 @@ describe('TripMembersRepository.listRawUsernameAndDisplayName (RP3)', () => {
     addTripMember(testDb, trip.id, bare.id);
 
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb.prepare(
-      'SELECT u.id, u.username, u.display_name, u.avatar FROM trip_members tm JOIN users u ON u.id = tm.user_id WHERE tm.trip_id = ?',
-    ).all(trip.id);
+    const legacy = testDb
+      .prepare(
+        'SELECT u.id, u.username, u.display_name, u.avatar FROM trip_members tm JOIN users u ON u.id = tm.user_id WHERE tm.trip_id = ?',
+      )
+      .all(trip.id);
     const rows = await tripMembers.listRawUsernameAndDisplayName(trip.id);
     expect(rows).toEqual(legacy);
     const byId = new Map(rows.map((r) => [r.id, r]));
     // Raw username, not COALESCEd with display_name — TM2's shape is different on purpose (§18.10).
-    expect(byId.get(named.id)).toEqual({ id: named.id, username: 'bare-name', display_name: 'Displayed', avatar: 'a.png' });
+    expect(byId.get(named.id)).toEqual({
+      id: named.id,
+      username: 'bare-name',
+      display_name: 'Displayed',
+      avatar: 'a.png',
+    });
     expect(byId.get(bare.id)).toEqual({ id: bare.id, username: 'no-display', display_name: null, avatar: null });
   });
 

@@ -58,15 +58,19 @@ const system_notice: TranslationStrings = {
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Đã cập nhật',
   'system_notice.release_notes.headline': 'Bốn điều TREK giờ tự làm được.',
-  'system_notice.release_notes.intro': 'API địa điểm riêng, chuyến đi đường bộ được lên kế hoạch từ đầu đến cuối, lịch sử vị trí trong tay bạn, và tài liệu được đồng bộ.',
+  'system_notice.release_notes.intro':
+    'API địa điểm riêng, chuyến đi đường bộ được lên kế hoạch từ đầu đến cuối, lịch sử vị trí trong tay bạn, và tài liệu được đồng bộ.',
   'system_notice.release_notes.features_label': 'Những điểm nhấn',
   'system_notice.release_notes.features_aside': 'Chưa phải tất cả',
   'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': 'Trình lập kế hoạch du lịch mã nguồn mở đầu tiên có API địa điểm riêng. 73,6 triệu địa điểm, không cần khóa, không giới hạn.',
+  'system_notice.release_notes.feature_places_body':
+    'Trình lập kế hoạch du lịch mã nguồn mở đầu tiên có API địa điểm riêng. 73,6 triệu địa điểm, không cần khóa, không giới hạn.',
   'system_notice.release_notes.feature_roadtrip_title': 'Tiện ích Chuyến đi đường bộ',
-  'system_notice.release_notes.feature_roadtrip_body': 'Tự lên kế hoạch chuyến lái: tuyến đường, quãng đường, số giờ và điểm dừng. Tắt cho đến khi quản trị viên bật.',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Tự lên kế hoạch chuyến lái: tuyến đường, quãng đường, số giờ và điểm dừng. Tắt cho đến khi quản trị viên bật.',
   'system_notice.release_notes.feature_dawarich_title': 'Tích hợp Dawarich',
-  'system_notice.release_notes.feature_dawarich_body': 'Lựa chọn tự lưu trữ thay cho Google Timeline, giờ đã đọc được ngay trong TREK. TREK chỉ đọc, và chỉ đọc mà thôi.',
+  'system_notice.release_notes.feature_dawarich_body':
+    'Lựa chọn tự lưu trữ thay cho Google Timeline, giờ đã đọc được ngay trong TREK. TREK chỉ đọc, và chỉ đọc mà thôi.',
   'system_notice.release_notes.footnote':
     'Và còn cả một danh sách dài những thay đổi nhỏ hơn ở khắp phần còn lại của TREK.',
   'system_notice.release_notes.notes_label': 'Ghi chú phát hành',
@@ -88,6 +92,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Hỗ trợ trên Ko-fi',
   'system_notice.release_notes.feature_docsync_title': 'Đồng bộ tài liệu',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud và Synology Drive. Tài liệu của chuyến đi luân chuyển hai chiều với kho lưu trữ bạn đang dùng.',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx, Papra, Nextcloud, OpenCloud và Synology Drive. Tài liệu của chuyến đi luân chuyển hai chiều với kho lưu trữ bạn đang dùng.',
 };
 export default system_notice;

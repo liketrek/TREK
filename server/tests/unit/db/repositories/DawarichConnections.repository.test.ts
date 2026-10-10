@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { DawarichConnections } from '../../../../src/db/entities/DawarichConnections.entity';
+import { DawarichVisitSuggestions } from '../../../../src/db/entities/DawarichVisitSuggestions.entity';
+import type { DawarichConnectionsRepository } from '../../../../src/db/repositories/DawarichConnections.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { createUser } from '../../../helpers/factories';
 import { countRows, deleteRows, findRow, insertRow, updateRows, upsertRow } from '../../../helpers/factories/rows';
-import { DawarichVisitSuggestions } from '../../../../src/db/entities/DawarichVisitSuggestions.entity';
-import { DawarichConnections } from '../../../../src/db/entities/DawarichConnections.entity';
-import type { DawarichConnectionsRepository } from '../../../../src/db/repositories/DawarichConnections.repository';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -26,16 +27,19 @@ afterAll(async () => {
   testDb.close();
 });
 
-async function seed(userId: number, over: Partial<{
-  url: string | null;
-  api_key: string | null;
-  allow_insecure_tls: number;
-  sync_enabled: number;
-  last_sync_at: string | null;
-  last_sync_state: string;
-  last_sync_error: string | null;
-  capabilities: string | null;
-}> = {}): Promise<void> {
+async function seed(
+  userId: number,
+  over: Partial<{
+    url: string | null;
+    api_key: string | null;
+    allow_insecure_tls: number;
+    sync_enabled: number;
+    last_sync_at: string | null;
+    last_sync_state: string;
+    last_sync_error: string | null;
+    capabilities: string | null;
+  }> = {},
+): Promise<void> {
   await upsertRow(t, DawarichConnections, {
     user: userId,
     url: over.url === undefined ? 'https://dawarich.example' : over.url,
@@ -75,7 +79,10 @@ describe('DawarichConnectionsRepository', () => {
 
       const row = await connections.findRow(user.id);
       // test-sql-allow: the legacy SELECT of the same 9 columns is the oracle this case holds findRow to.
-      const legacy = testDb.prepare('SELECT * FROM dawarich_connections WHERE user_id = ?').get(user.id) as Record<string, unknown>;
+      const legacy = testDb.prepare('SELECT * FROM dawarich_connections WHERE user_id = ?').get(user.id) as Record<
+        string,
+        unknown
+      >;
 
       expect(row).toEqual({
         user_id: legacy.user_id,
@@ -123,18 +130,38 @@ describe('DawarichConnectionsRepository', () => {
   describe('upsertConnection (DWC4)', () => {
     it('CONNREPO-030: inserts a new row with the other columns at their schema defaults', async () => {
       const { user } = createUser(testDb);
-      await connections.upsertConnection(user.id, { url: 'https://d.example', allowInsecureTls: true, syncEnabled: false });
+      await connections.upsertConnection(user.id, {
+        url: 'https://d.example',
+        allowInsecureTls: true,
+        syncEnabled: false,
+      });
 
       const row = (await raw(user.id))!;
-      expect(row).toMatchObject({ url: 'https://d.example', allow_insecure_tls: 1, sync_enabled: 0, api_key: null, capabilities: null, last_sync_state: 'never' });
+      expect(row).toMatchObject({
+        url: 'https://d.example',
+        allow_insecure_tls: 1,
+        sync_enabled: 0,
+        api_key: null,
+        capabilities: null,
+        last_sync_state: 'never',
+      });
       expect(row.updated_at).toBeTruthy();
     });
 
     it('CONNREPO-031: on conflict merges ONLY url/allow_insecure_tls/sync_enabled/updated_at — api_key and capabilities survive untouched', async () => {
       const { user } = createUser(testDb);
-      await seed(user.id, { url: 'https://old.example', api_key: 'enc:v1:stored', capabilities: '{"visits":true}', last_sync_state: 'ok' });
+      await seed(user.id, {
+        url: 'https://old.example',
+        api_key: 'enc:v1:stored',
+        capabilities: '{"visits":true}',
+        last_sync_state: 'ok',
+      });
 
-      await connections.upsertConnection(user.id, { url: 'https://new.example', allowInsecureTls: true, syncEnabled: true });
+      await connections.upsertConnection(user.id, {
+        url: 'https://new.example',
+        allowInsecureTls: true,
+        syncEnabled: true,
+      });
 
       const row = (await raw(user.id))!;
       expect(row.url).toBe('https://new.example');
@@ -146,10 +173,18 @@ describe('DawarichConnectionsRepository', () => {
 
     it('CONNREPO-032: updated_at is bumped unconditionally, insert or merge alike', async () => {
       const { user } = createUser(testDb);
-      await connections.upsertConnection(user.id, { url: 'https://d.example', allowInsecureTls: false, syncEnabled: true });
+      await connections.upsertConnection(user.id, {
+        url: 'https://d.example',
+        allowInsecureTls: false,
+        syncEnabled: true,
+      });
       await updateRows(t, DawarichConnections, {}, { updated_at: '2000-01-01 00:00:00' });
 
-      await connections.upsertConnection(user.id, { url: 'https://d.example', allowInsecureTls: false, syncEnabled: false });
+      await connections.upsertConnection(user.id, {
+        url: 'https://d.example',
+        allowInsecureTls: false,
+        syncEnabled: false,
+      });
 
       expect((await raw(user.id))!.updated_at).not.toBe('2000-01-01 00:00:00');
     });
@@ -171,35 +206,66 @@ describe('DawarichConnectionsRepository', () => {
   describe('resetSyncState (DWC6)', () => {
     it('CONNREPO-050: clears capabilities/last_sync_* without touching api_key', async () => {
       const { user } = createUser(testDb);
-      await seed(user.id, { api_key: 'enc:v1:kept', capabilities: '{"a":1}', last_sync_state: 'ok', last_sync_error: 'x', last_sync_at: '2026-01-01T00:00:00Z' });
+      await seed(user.id, {
+        api_key: 'enc:v1:kept',
+        capabilities: '{"a":1}',
+        last_sync_state: 'ok',
+        last_sync_error: 'x',
+        last_sync_at: '2026-01-01T00:00:00Z',
+      });
 
       await connections.resetSyncState(user.id);
 
       const row = (await raw(user.id))!;
-      expect(row).toMatchObject({ api_key: 'enc:v1:kept', capabilities: null, last_sync_state: 'never', last_sync_error: null, last_sync_at: null });
+      expect(row).toMatchObject({
+        api_key: 'enc:v1:kept',
+        capabilities: null,
+        last_sync_state: 'never',
+        last_sync_error: null,
+        last_sync_at: null,
+      });
     });
   });
 
   describe('clearForRemovedUrl (DWC8)', () => {
     it('CONNREPO-060: clears api_key together with capabilities/last_sync_* in one statement', async () => {
       const { user } = createUser(testDb);
-      await seed(user.id, { api_key: 'enc:v1:gone', capabilities: '{"a":1}', last_sync_state: 'ok', last_sync_error: 'x', last_sync_at: '2026-01-01T00:00:00Z' });
+      await seed(user.id, {
+        api_key: 'enc:v1:gone',
+        capabilities: '{"a":1}',
+        last_sync_state: 'ok',
+        last_sync_error: 'x',
+        last_sync_at: '2026-01-01T00:00:00Z',
+      });
 
       await connections.clearForRemovedUrl(user.id);
 
-      expect((await raw(user.id))!).toMatchObject({ api_key: null, capabilities: null, last_sync_state: 'never', last_sync_error: null, last_sync_at: null });
+      expect((await raw(user.id))!).toMatchObject({
+        api_key: null,
+        capabilities: null,
+        last_sync_state: 'never',
+        last_sync_error: null,
+        last_sync_at: null,
+      });
     });
   });
 
   describe('disconnect (DWC9)', () => {
-    it('CONNREPO-070: removes only the named user\'s row, and does not cascade to suggestions (no FK relation exists for it to cascade through)', async () => {
+    it("CONNREPO-070: removes only the named user's row, and does not cascade to suggestions (no FK relation exists for it to cascade through)", async () => {
       const { user } = createUser(testDb);
       const other = createUser(testDb).user.id;
       await seed(user.id);
       await seed(other);
       await insertRow(t, DawarichVisitSuggestions, {
-        user: user.id, source_visit_id: 'v1', name: 'Cafe', lat: 1, lng: 1,
-        started_at: '2026-01-01T00:00:00Z', ended_at: '2026-01-01T01:00:00Z', local_date: '2026-01-01', source_hash: 'hash',
+        user: user.id,
+        source_visit_id: 'v1',
+        name: 'Cafe',
+        lat: 1,
+        lng: 1,
+        started_at: '2026-01-01T00:00:00Z',
+        ended_at: '2026-01-01T01:00:00Z',
+        local_date: '2026-01-01',
+        source_hash: 'hash',
       });
 
       await connections.disconnect(user.id);
@@ -226,9 +292,17 @@ describe('DawarichConnectionsRepository', () => {
       await seed(user.id);
       await seed(other, { last_sync_state: 'ok' });
 
-      await connections.recordSyncResult(user.id, { lastSyncAt: '2026-09-12T04:15:00.000Z', state: 'failed', error: 'unreachable' });
+      await connections.recordSyncResult(user.id, {
+        lastSyncAt: '2026-09-12T04:15:00.000Z',
+        state: 'failed',
+        error: 'unreachable',
+      });
 
-      expect((await raw(user.id))!).toMatchObject({ last_sync_at: '2026-09-12T04:15:00.000Z', last_sync_state: 'failed', last_sync_error: 'unreachable' });
+      expect((await raw(user.id))!).toMatchObject({
+        last_sync_at: '2026-09-12T04:15:00.000Z',
+        last_sync_state: 'failed',
+        last_sync_error: 'unreachable',
+      });
       expect((await raw(other))!.last_sync_state).toBe('ok');
     });
   });

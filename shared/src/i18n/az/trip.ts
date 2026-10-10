@@ -73,10 +73,8 @@ const trip: TranslationStrings = {
   'transit.search': 'Axtar',
   'transit.searching': 'Axtarılır…',
   'transit.searchError': 'Marşrut axtarışı uğursuz oldu. Yenidən cəhd edin.',
-  'transit.noResultsVia':
-    '{provider} vasitəsilə uyğun bağlantı tapılmadı. Başqa vaxt və ya filtrlər seçin.',
-  'transit.noResults':
-    'Uyğun bağlantı tapılmadı. Başqa vaxt və ya filtrlər seçin.',
+  'transit.noResultsVia': '{provider} vasitəsilə uyğun bağlantı tapılmadı. Başqa vaxt və ya filtrlər seçin.',
+  'transit.noResults': 'Uyğun bağlantı tapılmadı. Başqa vaxt və ya filtrlər seçin.',
   'transit.direct': 'Birbaşa',
   'transit.transfers': '{count} dəyişmə',
   'transit.transfers.one': '{count} dəyişmə',
@@ -107,8 +105,7 @@ const trip: TranslationStrings = {
   'transit.searchHint':
     'Real bağlantıları axtarın və birbaşa günə əlavə edin — məlumatlar Transitous tərəfindən təmin edilir.',
 
-  'trip.confirm.deletePlaceNight':
-    'Bu, həmçinin “{name}” məkanında rezervasiya edilmiş qalmanı silir.',
+  'trip.confirm.deletePlaceNight': 'Bu, həmçinin “{name}” məkanında rezervasiya edilmiş qalmanı silir.',
   'trip.confirm.deletePlaceBooked':
     'Bu, həmçinin “{name}” məkanında rezervasiya edilmiş qalmanı, “{booking}” rezervasiyasını və onunla əlaqəli bütün xərcləri silir.',
   'trip.confirm.deletePlaceBookedSame':

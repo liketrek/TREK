@@ -4,6 +4,14 @@
  * and the access log writes a 5xx with that id and the stack the exception
  * filter left behind, as one entry. REQID-001 through REQID-008.
  */
+import { applyGlobalMiddleware } from '../../../src/middleware/globalMiddleware';
+import { httpConfig } from '../../../src/nest/app-config/tokens';
+import { ACCESS_LOG_ATTACHED, UNHANDLED_ERROR, currentCorrelation } from '../../../src/nest/common/request-correlation';
+
+import express, { type Request, type Response } from 'express';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import request from 'supertest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const log = vi.hoisted(() => ({
@@ -14,18 +22,6 @@ const log = vi.hoisted(() => ({
   logError: vi.fn(),
 }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => log);
-
-import express, { type Request, type Response } from 'express';
-import http from 'node:http';
-import type { AddressInfo } from 'node:net';
-import request from 'supertest';
-import { applyGlobalMiddleware } from '../../../src/middleware/globalMiddleware';
-import { httpConfig } from '../../../src/nest/app-config/tokens';
-import {
-  ACCESS_LOG_ATTACHED,
-  UNHANDLED_ERROR,
-  currentCorrelation,
-} from '../../../src/nest/common/request-correlation';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 

@@ -1,3 +1,28 @@
+import { ADDON_IDS } from '../../addons';
+import type { User } from '../../types';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { withRequestContext } from '../database/request-context';
+import { TripAccessGuard } from '../permissions/trip-access.guard';
+import { RealtimeService } from '../realtime/realtime.service';
+import { DocSyncConfigService, type LinkRow } from './doc-sync-config.service';
+import { PROVIDER_DISABLED } from './doc-sync.constants';
+import {
+  DocsyncConnectionDto,
+  DocsyncConnectionTestDto,
+  DocsyncLinkDto,
+  DocsyncLinkUpdateDto,
+  DocsyncResolveConflictDto,
+  DocsyncScopeCreateDto,
+  DocsyncSyncNowDto,
+} from './doc-sync.dto';
+import { sameOrigin } from './doc-sync.helpers';
+import { DocSyncService } from './doc-sync.service';
+import { docFailed } from './document-provider';
+import { DocumentProviderRegistry } from './document-provider.registry';
+import { MikroORM } from '@mikro-orm/core';
 import {
   Body,
   Controller,
@@ -14,32 +39,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { MikroORM } from '@mikro-orm/core';
+
 import type { Request } from 'express';
-import type { User } from '../../types';
-import { ADDON_IDS } from '../../addons';
-import { AddonGuard } from '../addons/addon.guard';
-import { RequireAddon } from '../addons/require-addon.decorator';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { CurrentUser } from '../auth-core/current-user.decorator';
-import { TripAccessGuard } from '../permissions/trip-access.guard';
-import { RealtimeService } from '../realtime/realtime.service';
-import { withRequestContext } from '../database/request-context';
-import { docFailed } from './document-provider';
-import { DocSyncConfigService, type LinkRow } from './doc-sync-config.service';
-import { DocSyncService } from './doc-sync.service';
-import { DocumentProviderRegistry } from './document-provider.registry';
-import { PROVIDER_DISABLED } from './doc-sync.constants';
-import { sameOrigin } from './doc-sync.helpers';
-import {
-  DocsyncConnectionDto,
-  DocsyncConnectionTestDto,
-  DocsyncLinkDto,
-  DocsyncLinkUpdateDto,
-  DocsyncResolveConflictDto,
-  DocsyncScopeCreateDto,
-  DocsyncSyncNowDto,
-} from './doc-sync.dto';
 
 /**
  * `/api/trips/:tripId/docsync`: a trip's document provider binding.
@@ -171,9 +172,7 @@ export class DocSyncController {
 
     // Probing with the values on screen, merged over whatever is stored, so a
     // user testing an unchanged connection does not have to retype the secret.
-    const existing = (await this.config.listConnections(Number(tripId))).find(
-      (c) => c.provider_id === body.providerId,
-    );
+    const existing = (await this.config.listConnections(Number(tripId))).find((c) => c.provider_id === body.providerId);
     // Only for the address the credential was stored against. Merging it into a
     // probe of an arbitrary baseUrl turns this route into a way to have TREK
     // post a stored API token at a server of the caller's choosing, which is
@@ -358,11 +357,7 @@ export class DocSyncController {
 
   @Delete('links/:linkId')
   @HttpCode(200)
-  async deleteLink(
-    @Param('tripId') tripId: string,
-    @Param('linkId') linkId: string,
-    @CurrentUser() user: User,
-  ) {
+  async deleteLink(@Param('tripId') tripId: string, @Param('linkId') linkId: string, @CurrentUser() user: User) {
     await this.assertCanManage(tripId, user);
     const link = await this.config.getLink(Number(linkId));
     if (!link || link.trip_id !== Number(tripId)) throw new HttpException('Link not found', 404);
@@ -380,11 +375,7 @@ export class DocSyncController {
 
   @Post('links/:linkId/sync')
   @HttpCode(200)
-  async syncNow(
-    @Param('tripId') tripId: string,
-    @Param('linkId') linkId: string,
-    @Body() body: DocsyncSyncNowDto,
-  ) {
+  async syncNow(@Param('tripId') tripId: string, @Param('linkId') linkId: string, @Body() body: DocsyncSyncNowDto) {
     const link = await this.config.getLink(Number(linkId));
     if (!link || link.trip_id !== Number(tripId)) throw new HttpException('Link not found', 404);
     // An orphaned binding stays orphaned: its credential belongs to somebody who
@@ -396,7 +387,7 @@ export class DocSyncController {
     // Refused before the shelved rows are touched, so a binding an admin
     // switched off stays exactly as it was and resumes where it stopped. A code
     // rather than a sentence: the client says it in the reader's language.
-    if ((await this.sync.isSwitchedOff(link))) {
+    if (await this.sync.isSwitchedOff(link)) {
       throw new HttpException({ error: PROVIDER_DISABLED }, 409);
     }
     // A person asking for a run is also asking for the rows that gave up to be

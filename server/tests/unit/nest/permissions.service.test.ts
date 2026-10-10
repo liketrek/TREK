@@ -16,13 +16,26 @@
  * failure through `vi.spyOn(appSettings, 'findByKeyPrefix')` instead of a
  * hand-rolled DatabaseService/all() stub.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { db as testDb } from '../../../src/db/database';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import { logError } from '../../../src/nest/audit/audit-log.logger';
+import {
+  getPermissionsCache,
+  invalidatePermissionsCache as invalidateSharedCache,
+} from '../../../src/nest/permissions/permissions-cache';
+import { PermissionsService, PERMISSION_ACTIONS } from '../../../src/nest/permissions/permissions.service';
+import { deleteRows, findRows } from '../../helpers/factories/rows';
+import { readAppSetting, setAppSetting } from '../../helpers/factories/settings';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { createTestUnitOfWork } from '../../helpers/test-uow';
 import { ValidationError } from '@mikro-orm/core';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -30,9 +43,8 @@ vi.mock('../../../src/db/database', async () => {
     closeDb: () => {},
     reinitialize: () => {},
   };
-    return mock;
+  return mock;
 });
-
 
 // The service logs unexpected load failures via the plain audit logger.
 vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
@@ -42,20 +54,6 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
   logError: vi.fn(),
   logWarn: vi.fn(),
 }));
-
-import { db as testDb } from '../../../src/db/database';
-import { logError } from '../../../src/nest/audit/audit-log.logger';
-import { PermissionsService, PERMISSION_ACTIONS } from '../../../src/nest/permissions/permissions.service';
-import {
-  getPermissionsCache,
-  invalidatePermissionsCache as invalidateSharedCache,
-} from '../../../src/nest/permissions/permissions-cache';
-import { createTestUnitOfWork } from '../../helpers/test-uow';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { deleteRows, findRows } from '../../helpers/factories/rows';
-import { readAppSetting, setAppSetting } from '../../helpers/factories/settings';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 
 let svc: PermissionsService;
 let t: TestOrm;
@@ -189,12 +187,12 @@ describe('corrupt stored levels', () => {
     // default instead of the old display-default/deny-in-check split.
     expect(await svc.getPermissionLevel('trip_edit')).toBe('trip_owner');
     expect((await svc.getAllPermissions()).trip_edit).toBe('trip_owner');
-    expect(await svc.checkPermission('trip_edit', 'user', 10, 10, false)).toBe(true);   // owner passes the default
-    expect(await svc.checkPermission('trip_edit', 'user', 10, 20, true)).toBe(false);   // member still denied
+    expect(await svc.checkPermission('trip_edit', 'user', 10, 10, false)).toBe(true); // owner passes the default
+    expect(await svc.checkPermission('trip_edit', 'user', 10, 20, true)).toBe(false); // member still denied
     expect(await svc.getPermissionLevel('trip_delete')).toBe('trip_owner');
   });
 
-  it('PERM-SVC-021: a stored level outside the action\'s allowedLevels is ignored too', async () => {
+  it("PERM-SVC-021: a stored level outside the action's allowedLevels is ignored too", async () => {
     // trip_edit only allows trip_owner/trip_member — a raw 'everybody' row must not widen it.
     await setAppSetting(t, 'perm_trip_edit', 'everybody');
     await svc.invalidatePermissionsCache();

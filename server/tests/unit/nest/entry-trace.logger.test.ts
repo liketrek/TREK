@@ -3,6 +3,9 @@
  * log line per call of a non-HTTP entry point, without changing what the call
  * returns or when it runs. TRACE-001 through TRACE-010.
  */
+import { traceEntry, wasTraced } from '../../../src/nest/audit/entry-trace.logger';
+import { currentCorrelation, runWithCorrelation } from '../../../src/nest/common/request-correlation';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const log = vi.hoisted(() => ({
@@ -13,9 +16,6 @@ const log = vi.hoisted(() => ({
   logError: vi.fn(),
 }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => log);
-
-import { traceEntry, wasTraced } from '../../../src/nest/audit/entry-trace.logger';
-import { currentCorrelation, runWithCorrelation } from '../../../src/nest/common/request-correlation';
 
 beforeEach(() => {
   vi.clearAllMocks();

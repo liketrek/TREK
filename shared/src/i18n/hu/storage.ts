@@ -141,6 +141,7 @@ const storage: TranslationStrings = {
   'storage.migrate.cancel': 'Áthelyezés megszakítása',
   'storage.migrate.promptCancel': 'Mégse',
   'storage.migrate.queued': 'Várólistán: {categories}',
-  'storage.migrate.queueDropped': 'A következő áthelyezés nem indítható el — a hátralévő várólista törlésre került: {categories}',
+  'storage.migrate.queueDropped':
+    'A következő áthelyezés nem indítható el — a hátralévő várólista törlésre került: {categories}',
 };
 export default storage;

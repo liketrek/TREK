@@ -155,7 +155,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'リストに追加',
   'collections.file.targetExistingHint': 'すでにあるリストへ',
   'collections.file.searchLists': 'リストを検索',
-  'collections.file.intoHint': 'リストにすでにある場所はそのまま残り、名前と色も変わりません。ファイルのラベルは追加されます。',
+  'collections.file.intoHint':
+    'リストにすでにある場所はそのまま残り、名前と色も変わりません。ファイルのラベルは追加されます。',
   'collections.file.confirmInto': 'リストに追加',
   'collections.file.doneInto': '{count} 件の場所を {name} に追加しました',
   'collections.file.doneIntoDuplicates': '{count} 件を {name} に追加しました。{duplicates} 件はすでにありました',
@@ -180,7 +181,8 @@ const collection: TranslationStrings = {
     'このファイルにはトラックポイントも {count} 件あります。トラックはインポートされず、ウェイポイントのみが対象です。',
   'collections.file.gpxEmpty': 'この GPX ファイルにはウェイポイントがないため、インポートするものがありません。',
   'collections.file.errorNotGpx': 'これは GPX ファイルではありません。',
-  'collections.file.errorTooManyPlaces': 'このファイルには {count} 件を超える場所があります。分割して、1 つずつインポートしてください。',
+  'collections.file.errorTooManyPlaces':
+    'このファイルには {count} 件を超える場所があります。分割して、1 つずつインポートしてください。',
 
   'collections.share.title': 'リストを共有',
   'collections.share.titleNamed': '「{name}」を共有',

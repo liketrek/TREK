@@ -6,6 +6,9 @@
  * actually recorded — a declared-but-ungranted provider can never serve a route,
  * so offering its profiles in the picker would produce dead buttons.
  */
+import type { PluginsRepository } from '../../../src/db/repositories/Plugins.repository';
+import { PluginsFeedController } from '../../../src/nest/plugins/plugins-feed.controller';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { rows, pluginsEnabled } = vi.hoisted(() => ({
@@ -14,12 +17,13 @@ const { rows, pluginsEnabled } = vi.hoisted(() => ({
 }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { PluginsFeedController } from '../../../src/nest/plugins/plugins-feed.controller';
-import type { PluginsRepository } from '../../../src/db/repositories/Plugins.repository';
-
 const row = (over: Record<string, unknown> = {}) => ({
-  id: 'p1', name: 'P', type: 'integration', icon: null,
-  capabilities: '{}', granted_permissions: '[]',
+  id: 'p1',
+  name: 'P',
+  type: 'integration',
+  icon: null,
+  capabilities: '{}',
+  granted_permissions: '[]',
   ...over,
 });
 
@@ -27,7 +31,10 @@ describe('PluginsFeedController', () => {
   // PFC1 (Plan 3j Task 5) — the feed read is now Plugins.repository.ts#findActiveFeedRows.
   const plugins = { findActiveFeedRows: vi.fn(async () => rows.value) } as unknown as PluginsRepository;
   const c = new PluginsFeedController(plugins);
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); rows.value = []; });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+    rows.value = [];
+  });
 
   it('marks a plugin as a search provider only alongside the recorded hook:search-provider grant (#2221)', async () => {
     rows.value = [
@@ -36,9 +43,9 @@ describe('PluginsFeedController', () => {
       row({ id: 'poi-only', granted_permissions: JSON.stringify(['hook:poi-category-provider']) }),
     ];
     const { plugins } = await c.list();
-    expect(plugins.find(p => p.id === 'index')?.searchProvider).toBe(true);
-    expect(plugins.find(p => p.id === 'asked-only')).not.toHaveProperty('searchProvider');
-    expect(plugins.find(p => p.id === 'poi-only')).not.toHaveProperty('searchProvider');
+    expect(plugins.find((p) => p.id === 'index')?.searchProvider).toBe(true);
+    expect(plugins.find((p) => p.id === 'asked-only')).not.toHaveProperty('searchProvider');
+    expect(plugins.find((p) => p.id === 'poi-only')).not.toHaveProperty('searchProvider');
   });
 
   it('returns an empty feed when the runtime is disabled', async () => {
@@ -49,68 +56,93 @@ describe('PluginsFeedController', () => {
 
   it('serves routeProfiles only alongside the recorded hook:route-provider grant', async () => {
     rows.value = [
-      row({ id: 'granted', capabilities: JSON.stringify({ routeProfiles: [{ id: 'ev', label: 'EV' }] }), granted_permissions: JSON.stringify(['hook:route-provider']) }),
+      row({
+        id: 'granted',
+        capabilities: JSON.stringify({ routeProfiles: [{ id: 'ev', label: 'EV' }] }),
+        granted_permissions: JSON.stringify(['hook:route-provider']),
+      }),
       row({ id: 'ungranted', capabilities: JSON.stringify({ routeProfiles: [{ id: 'ev', label: 'EV' }] }) }),
     ];
     const { plugins } = await c.list();
-    expect(plugins.find(p => p.id === 'granted')?.routeProfiles).toEqual([{ id: 'ev', label: 'EV' }]);
-    expect(plugins.find(p => p.id === 'ungranted')?.routeProfiles).toBeUndefined();
+    expect(plugins.find((p) => p.id === 'granted')?.routeProfiles).toEqual([{ id: 'ev', label: 'EV' }]);
+    expect(plugins.find((p) => p.id === 'ungranted')?.routeProfiles).toBeUndefined();
   });
 
   it('re-validates hand-edited routeProfiles rows (bad ids dropped, labels capped, max 3)', async () => {
-    rows.value = [row({
-      id: 'edited',
-      capabilities: JSON.stringify({
-        routeProfiles: [
-          { id: '../up', label: 'bad id' },
-          { id: 'ok', label: '  L  '.padEnd(60, 'x') },
-          { id: 'a', label: 'A' }, { id: 'b', label: 'B' }, { id: 'c', label: 'C' },
-        ],
+    rows.value = [
+      row({
+        id: 'edited',
+        capabilities: JSON.stringify({
+          routeProfiles: [
+            { id: '../up', label: 'bad id' },
+            { id: 'ok', label: '  L  '.padEnd(60, 'x') },
+            { id: 'a', label: 'A' },
+            { id: 'b', label: 'B' },
+            { id: 'c', label: 'C' },
+          ],
+        }),
+        granted_permissions: JSON.stringify(['hook:route-provider']),
       }),
-      granted_permissions: JSON.stringify(['hook:route-provider']),
-    })];
+    ];
     const profiles = (await c.list()).plugins[0].routeProfiles!;
-    expect(profiles.every(p => /^[a-z][a-z0-9-]{0,23}$/.test(p.id))).toBe(true);
+    expect(profiles.every((p) => /^[a-z][a-z0-9-]{0,23}$/.test(p.id))).toBe(true);
     expect(profiles.length).toBeLessThanOrEqual(3);
-    expect(profiles.every(p => p.label.length <= 40)).toBe(true);
+    expect(profiles.every((p) => p.label.length <= 40)).toBe(true);
   });
 
   describe('poiCategories (#1781)', () => {
-    const cat = { id: 'trailheads', label: 'Trailheads', labels: { de: 'Wanderparkplätze' }, icon: 'Signpost', color: '#2f855a' };
+    const cat = {
+      id: 'trailheads',
+      label: 'Trailheads',
+      labels: { de: 'Wanderparkplätze' },
+      icon: 'Signpost',
+      color: '#2f855a',
+    };
     const granted = JSON.stringify(['hook:poi-category-provider']);
 
     it('serves them only alongside the recorded hook:poi-category-provider grant', async () => {
       rows.value = [
         row({ id: 'granted', capabilities: JSON.stringify({ poiCategories: [cat] }), granted_permissions: granted }),
         row({ id: 'ungranted', capabilities: JSON.stringify({ poiCategories: [cat] }) }),
-        row({ id: 'searchOnly', capabilities: JSON.stringify({ poiCategories: [cat] }), granted_permissions: JSON.stringify(['hook:search-provider']) }),
+        row({
+          id: 'searchOnly',
+          capabilities: JSON.stringify({ poiCategories: [cat] }),
+          granted_permissions: JSON.stringify(['hook:search-provider']),
+        }),
       ];
       const { plugins } = await c.list();
-      expect(plugins.find(p => p.id === 'granted')?.poiCategories).toEqual([cat]);
-      expect(plugins.find(p => p.id === 'ungranted')?.poiCategories).toBeUndefined();
-      expect(plugins.find(p => p.id === 'searchOnly')?.poiCategories).toBeUndefined();
+      expect(plugins.find((p) => p.id === 'granted')?.poiCategories).toEqual([cat]);
+      expect(plugins.find((p) => p.id === 'ungranted')?.poiCategories).toBeUndefined();
+      expect(plugins.find((p) => p.id === 'searchOnly')?.poiCategories).toBeUndefined();
     });
 
     it('re-validates a hand-edited row: bad colour, icon or id dropped, duplicates and the fifth one gone', async () => {
-      rows.value = [row({
-        capabilities: JSON.stringify({
-          poiCategories: [
-            { ...cat, color: '#fff;background:url(https://tracker.example)' },
-            { ...cat, id: 'x', icon: 'Skull' },
-            { ...cat, id: '../x' },
-            { ...cat, id: 'ok', label: 'Water \u{1F6B0}' },
-            { ...cat, id: 'ok' },
-            { ...cat, id: 'late' },
-          ],
+      rows.value = [
+        row({
+          capabilities: JSON.stringify({
+            poiCategories: [
+              { ...cat, color: '#fff;background:url(https://tracker.example)' },
+              { ...cat, id: 'x', icon: 'Skull' },
+              { ...cat, id: '../x' },
+              { ...cat, id: 'ok', label: 'Water \u{1F6B0}' },
+              { ...cat, id: 'ok' },
+              { ...cat, id: 'late' },
+            ],
+          }),
+          granted_permissions: granted,
         }),
-        granted_permissions: granted,
-      })];
+      ];
       // The first four entries are the ones read (the cap), and only one of them survives.
       expect((await c.list()).plugins[0].poiCategories).toEqual([{ ...cat, id: 'ok', label: 'Water' }]);
     });
 
     it('omits the field when nothing survives', async () => {
-      rows.value = [row({ capabilities: JSON.stringify({ poiCategories: [{ ...cat, color: 'red' }] }), granted_permissions: granted })];
+      rows.value = [
+        row({
+          capabilities: JSON.stringify({ poiCategories: [{ ...cat, color: 'red' }] }),
+          granted_permissions: granted,
+        }),
+      ];
       expect((await c.list()).plugins[0]).not.toHaveProperty('poiCategories');
     });
   });
@@ -121,8 +153,8 @@ describe('PluginsFeedController', () => {
       row({ id: 'ungranted' }),
     ];
     const { plugins } = await c.list();
-    expect(plugins.find(p => p.id === 'granted')?.geolocation).toBe(true);
-    expect(plugins.find(p => p.id === 'ungranted')?.geolocation).toBeUndefined();
+    expect(plugins.find((p) => p.id === 'granted')?.geolocation).toBe(true);
+    expect(plugins.find((p) => p.id === 'ungranted')?.geolocation).toBeUndefined();
   });
 
   it('survives malformed JSON blobs without dropping the plugin', async () => {

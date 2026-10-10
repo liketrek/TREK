@@ -7,11 +7,13 @@
  * baseline depends on) and that the ORM is rebuilt around a reopened handle.
  * The real open, migrate and reopen run in tests/integration/database-lifecycle.test.ts.
  */
+import { DatabaseLifecycle } from '../../../../src/nest/database/database-lifecycle.service';
+import type { MikroORM } from '@mikro-orm/core';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { MikroORM } from '@mikro-orm/core';
 
 const { dbMock, ormMock, calls } = vi.hoisted(() => {
   const calls: string[] = [];
@@ -42,8 +44,6 @@ const { dbMock, ormMock, calls } = vi.hoisted(() => {
 
 vi.mock('../../../../src/db/database', () => dbMock);
 vi.mock('../../../../src/db/orm', () => ormMock);
-
-import { DatabaseLifecycle } from '../../../../src/nest/database/database-lifecycle.service';
 
 function ormStub() {
   const connection = {

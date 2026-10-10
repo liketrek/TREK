@@ -1,26 +1,39 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
 import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the heavy side-effect imports so the service module loads cleanly; the
 // preview() path under test only touches the extractor + llmParse deps.
 vi.mock('../../../../src/db/database', () => ({
-  db: { prepare: vi.fn() }, closeDb: () => {}, reinitialize: () => {},
+  db: { prepare: vi.fn() },
+  closeDb: () => {},
+  reinitialize: () => {},
   // Trip access reaches these through DatabaseService; preview() never calls
   // them, but the module-level import has to resolve.
-  canAccessTrip: vi.fn(), isOwner: () => false, getPlaceWithTags: () => null,
+  canAccessTrip: vi.fn(),
+  isOwner: () => false,
+  getPlaceWithTags: () => null,
 }));
 const permissionsStub = { checkPermission: vi.fn(() => true) };
 // Runs the callback in place; the tests that care about the boundary wrap it to record it.
 const uowStub = { transactional: <T>(fn: () => Promise<T>) => fn() };
 
-import { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
-
-const HOTEL_KI = { '@type': 'LodgingReservation', reservationNumber: 'ABC', reservationFor: { name: 'Hotel X' }, checkinTime: '2026-06-11T15:00', checkoutTime: '2026-06-12T11:00' };
-const file = (name = 'a.pdf') => ({ buffer: Buffer.from('x'), originalname: name } as any);
+const HOTEL_KI = {
+  '@type': 'LodgingReservation',
+  reservationNumber: 'ABC',
+  reservationFor: { name: 'Hotel X' },
+  checkinTime: '2026-06-11T15:00',
+  checkoutTime: '2026-06-12T11:00',
+};
+const file = (name = 'a.pdf') => ({ buffer: Buffer.from('x'), originalname: name }) as any;
 
 function make(opts: { kit?: boolean; ai?: boolean; extract?: any; parse?: any }) {
   const extractor = { isAvailable: () => opts.kit ?? false, extract: vi.fn(opts.extract ?? (async () => [])) };
-  const llmParse = { isAvailable: () => opts.ai ?? false, parse: vi.fn(opts.parse ?? (async () => ({ kiItems: [], warnings: [] }))) };
+  const llmParse = {
+    isAvailable: () => opts.ai ?? false,
+    parse: vi.fn(opts.parse ?? (async () => ({ kiItems: [], warnings: [] }))),
+  };
   const reservations = { create: vi.fn() };
   // budget/addons/realtime/maps ride the confirm() path only — the preview()
   // tests never reach them, so stubs beyond the positional slots aren't needed.
@@ -33,11 +46,24 @@ function make(opts: { kit?: boolean; ai?: boolean; extract?: any; parse?: any })
   const places = { create: vi.fn() };
   return {
     svc: new BookingImportService(
-      extractor as any, llmParse as any, undefined as never, undefined as never,
-      reservations as never, permissionsStub as never, undefined as never, undefined as never, undefined as never, maps as never, places as never,
+      extractor as any,
+      llmParse as any,
+      undefined as never,
+      undefined as never,
+      reservations as never,
+      permissionsStub as never,
+      undefined as never,
+      undefined as never,
+      undefined as never,
+      maps as never,
+      places as never,
       uowStub as never,
     ),
-    extractor, llmParse, reservations, maps, places,
+    extractor,
+    llmParse,
+    reservations,
+    maps,
+    places,
   };
 }
 
@@ -66,7 +92,8 @@ describe('BookingImportService.preview', () => {
 
   it('fallback-on-empty: runs the LLM when kitinerary finds nothing and flags needs_review', async () => {
     const { svc, extractor, llmParse } = make({
-      kit: true, ai: true,
+      kit: true,
+      ai: true,
       extract: async () => [],
       parse: async () => ({ kiItems: [HOTEL_KI], warnings: [] }),
     });
@@ -87,7 +114,8 @@ describe('BookingImportService.preview', () => {
 
   it('fallback-on-empty: a photo goes straight to the LLM, kitinerary is not asked', async () => {
     const { svc, extractor, llmParse } = make({
-      kit: true, ai: true,
+      kit: true,
+      ai: true,
       extract: async () => [HOTEL_KI],
       parse: async () => ({ kiItems: [HOTEL_KI], warnings: [] }),
     });
@@ -99,7 +127,8 @@ describe('BookingImportService.preview', () => {
 
   it('force-ai: skips kitinerary entirely and uses the LLM', async () => {
     const { svc, extractor, llmParse } = make({
-      kit: true, ai: true,
+      kit: true,
+      ai: true,
       parse: async () => ({ kiItems: [HOTEL_KI], warnings: [] }),
     });
     const res = await svc.preview([file()], 'force-ai', 1);
@@ -178,8 +207,8 @@ describe('BookingImportService.preview endpoint geocoding (#1969)', () => {
 
     const res = await svc.preview([file()], 'no-ai', 1);
     const endpoints = (res.items[0] as { endpoints?: { name: string }[] }).endpoints ?? [];
-    expect(endpoints.map(e => e.name)).toContain('Berlin Hbf');
-    expect(res.warnings.some(w => w.includes('Berlin Hbf'))).toBe(true);
+    expect(endpoints.map((e) => e.name)).toContain('Berlin Hbf');
+    expect(res.warnings.some((w) => w.includes('Berlin Hbf'))).toBe(true);
   });
 
   it('survives a geocoder that throws, rather than failing the import', async () => {
@@ -196,7 +225,7 @@ describe('BookingImportService.preview endpoint geocoding (#1969)', () => {
       reservationFor: {
         ...TRAIN_KI.reservationFor,
         departureStation: { name: 'Berlin Hbf', geo: { latitude: 52.525, longitude: 13.369 } },
-        arrivalStation: { name: 'München Hbf', geo: { latitude: 48.140, longitude: 11.558 } },
+        arrivalStation: { name: 'München Hbf', geo: { latitude: 48.14, longitude: 11.558 } },
       },
     };
     const { svc, maps } = make({ kit: true, extract: async () => [withGeo] });
@@ -211,15 +240,30 @@ describe('BookingImportService.preview endpoint geocoding (#1969)', () => {
 describe('BookingImportService.confirm venue website (#2483)', () => {
   it('BOOKING-IMPORT-2483-01: a bare host is saved with https, a script link or nothing not at all', async () => {
     const reservations = {
-      createWithCostInTx: vi.fn(() => ({ reservation: { id: 1 }, accommodationCreated: false, costEvents: [], stayMirror: {} })),
-      announceStayMirror: vi.fn(), announceCost: vi.fn(),
+      createWithCostInTx: vi.fn(() => ({
+        reservation: { id: 1 },
+        accommodationCreated: false,
+        costEvents: [],
+        stayMirror: {},
+      })),
+      announceStayMirror: vi.fn(),
+      announceCost: vi.fn(),
     };
     const places = { create: vi.fn((_tripId: string, _input: { website?: string }) => ({ id: 7 })) };
     // No dates on a restaurant, so the day repositories are never reached.
     const svc = new BookingImportService(
-      {} as never, {} as never, undefined as never, undefined as never, reservations as never, permissionsStub as never,
-      undefined as never, { isAddonEnabled: () => false } as never, { broadcast: vi.fn() } as never,
-      { geocodeQuery: vi.fn() } as never, places as never, uowStub as never,
+      {} as never,
+      {} as never,
+      undefined as never,
+      undefined as never,
+      reservations as never,
+      permissionsStub as never,
+      undefined as never,
+      { isAddonEnabled: () => false } as never,
+      { broadcast: vi.fn() } as never,
+      { geocodeQuery: vi.fn() } as never,
+      places as never,
+      uowStub as never,
     );
     const item = (website?: string) => ({
       type: 'restaurant',
@@ -228,7 +272,11 @@ describe('BookingImportService.confirm venue website (#2483)', () => {
       source: { fileName: 'booking.eml', index: 0 },
     });
 
-    const res = await svc.confirm('5', [item('www.creperie.example/carte'), item('javascript:alert(1)'), item()], undefined);
+    const res = await svc.confirm(
+      '5',
+      [item('www.creperie.example/carte'), item('javascript:alert(1)'), item()],
+      undefined,
+    );
 
     expect(res.created).toHaveLength(3);
     expect(places.create.mock.calls.map(([, input]) => input.website)).toEqual([
@@ -242,7 +290,13 @@ describe('BookingImportService.confirm venue website (#2483)', () => {
 // The booking and the cost its extracted price becomes go in as one write, through
 // ReservationsService.createWithCostInTx with the venue, and the FX rate frozen before it.
 describe('BookingImportService.confirm writes the booking with its cost', () => {
-  function makeConfirm(opts: { budget?: boolean; failWrite?: boolean; freeze?: (tripId: string, entry: { currency?: string | null; exchange_rate?: number }) => Promise<void> } = {}) {
+  function makeConfirm(
+    opts: {
+      budget?: boolean;
+      failWrite?: boolean;
+      freeze?: (tripId: string, entry: { currency?: string | null; exchange_rate?: number }) => Promise<void>;
+    } = {},
+  ) {
     const order: string[] = [];
     const costEvents = [{ event: 'budget:created', payload: { item: { id: 9 } } }];
     const reservations = {
@@ -251,26 +305,65 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
         order.push('write');
         return { reservation: { id: 1 }, accommodationCreated: false, costEvents, stayMirror: {} };
       }),
-      announceStayMirror: vi.fn(async () => { order.push('announceStayMirror'); }),
-      announceCost: vi.fn(() => { order.push('announceCost'); }),
+      announceStayMirror: vi.fn(async () => {
+        order.push('announceStayMirror');
+      }),
+      announceCost: vi.fn(() => {
+        order.push('announceCost');
+      }),
     };
-    const places = { create: vi.fn(async () => { order.push('place'); return { id: 7 }; }) };
-    const uow = { transactional: vi.fn(async <T>(fn: () => Promise<T>) => { order.push('begin'); const out = await fn(); order.push('commit'); return out; }) };
+    const places = {
+      create: vi.fn(async () => {
+        order.push('place');
+        return { id: 7 };
+      }),
+    };
+    const uow = {
+      transactional: vi.fn(async <T>(fn: () => Promise<T>) => {
+        order.push('begin');
+        const out = await fn();
+        order.push('commit');
+        return out;
+      }),
+    };
     const budget = {
       freezeForeignRate: vi.fn(async (tripId: string, entry: { currency?: string | null; exchange_rate?: number }) => {
         order.push('freeze');
-        await (opts.freeze ?? (async (_t: string, e: { exchange_rate?: number }) => { e.exchange_rate = 0.5; }))(tripId, entry);
+        await (
+          opts.freeze ??
+          (async (_t: string, e: { exchange_rate?: number }) => {
+            e.exchange_rate = 0.5;
+          })
+        )(tripId, entry);
       }),
     };
-    const realtime = { broadcast: vi.fn((_tripId: string, event: string) => { order.push(event); }) };
+    const realtime = {
+      broadcast: vi.fn((_tripId: string, event: string) => {
+        order.push(event);
+      }),
+    };
     const svc = new BookingImportService(
-      {} as never, {} as never, undefined as never, undefined as never, reservations as never, permissionsStub as never,
-      budget as never, { isAddonEnabled: async () => opts.budget ?? true } as never, realtime as never,
-      { geocodeQuery: vi.fn() } as never, places as never, uow as never,
+      {} as never,
+      {} as never,
+      undefined as never,
+      undefined as never,
+      reservations as never,
+      permissionsStub as never,
+      budget as never,
+      { isAddonEnabled: async () => opts.budget ?? true } as never,
+      realtime as never,
+      { geocodeQuery: vi.fn() } as never,
+      places as never,
+      uow as never,
     );
     return { svc, reservations, budget, places, realtime, order, costEvents };
   }
-  const priced = { type: 'train', title: 'ICE 123', metadata: { price: '49.9', priceCurrency: 'CHF' }, source: { fileName: 'ticket.pdf', index: 0 } };
+  const priced = {
+    type: 'train',
+    title: 'ICE 123',
+    metadata: { price: '49.9', priceCurrency: 'CHF' },
+    source: { fileName: 'ticket.pdf', index: 0 },
+  };
 
   it('BOOKING-IMPORT-TX-001: freezes the rate first, writes booking and cost in one call, announces the cost after the booking', async () => {
     const { svc, reservations, order, costEvents } = makeConfirm();
@@ -278,11 +371,26 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
     const res = await svc.confirm('5', [priced as never], 'sock');
 
     expect(res.created).toEqual([{ id: 1 }]);
-    expect(reservations.createWithCostInTx).toHaveBeenCalledWith('5', expect.objectContaining({ title: 'ICE 123', type: 'train' }), {
-      total_price: 49.9, category: 'transport', currency: 'CHF', exchange_rate: 0.5,
-    });
+    expect(reservations.createWithCostInTx).toHaveBeenCalledWith(
+      '5',
+      expect.objectContaining({ title: 'ICE 123', type: 'train' }),
+      {
+        total_price: 49.9,
+        category: 'transport',
+        currency: 'CHF',
+        exchange_rate: 0.5,
+      },
+    );
     expect(reservations.announceCost).toHaveBeenCalledWith('5', costEvents, 'sock');
-    expect(order).toEqual(['freeze', 'begin', 'write', 'commit', 'reservation:created', 'announceStayMirror', 'announceCost']);
+    expect(order).toEqual([
+      'freeze',
+      'begin',
+      'write',
+      'commit',
+      'reservation:created',
+      'announceStayMirror',
+      'announceCost',
+    ]);
   });
 
   it('BOOKING-IMPORT-TX-002: no cost without the Costs addon or without a price', async () => {
@@ -297,16 +405,37 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
     expect(free.reservations.createWithCostInTx).toHaveBeenCalledWith('5', expect.anything(), undefined);
   });
 
-  const atVenue = { type: 'restaurant', title: 'Dîner', _venue: { name: 'Crêperie', lat: 48.03, lng: -3.49 }, source: { fileName: 'booking.eml', index: 0 } };
+  const atVenue = {
+    type: 'restaurant',
+    title: 'Dîner',
+    _venue: { name: 'Crêperie', lat: 48.03, lng: -3.49 },
+    source: { fileName: 'booking.eml', index: 0 },
+  };
 
   it('BOOKING-IMPORT-TX-004: writes the venue in the booking transaction and announces it after the commit', async () => {
     const { svc, places, reservations, order } = makeConfirm({ budget: false });
 
     await svc.confirm('5', [atVenue as never], 'sock');
 
-    expect(order).toEqual(['begin', 'place', 'write', 'commit', 'place:created', 'reservation:created', 'announceStayMirror', 'announceCost']);
-    expect(places.create).toHaveBeenCalledWith('5', expect.objectContaining({ name: 'Crêperie', lat: 48.03, lng: -3.49 }));
-    expect(reservations.createWithCostInTx).toHaveBeenCalledWith('5', expect.objectContaining({ place_id: 7 }), undefined);
+    expect(order).toEqual([
+      'begin',
+      'place',
+      'write',
+      'commit',
+      'place:created',
+      'reservation:created',
+      'announceStayMirror',
+      'announceCost',
+    ]);
+    expect(places.create).toHaveBeenCalledWith(
+      '5',
+      expect.objectContaining({ name: 'Crêperie', lat: 48.03, lng: -3.49 }),
+    );
+    expect(reservations.createWithCostInTx).toHaveBeenCalledWith(
+      '5',
+      expect.objectContaining({ place_id: 7 }),
+      undefined,
+    );
   });
 
   it('BOOKING-IMPORT-TX-005: a booking that fails takes its venue with it and announces nothing', async () => {
@@ -328,7 +457,11 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
   it('BOOKING-IMPORT-TX-003: a rate that cannot be frozen keeps the booking, without its cost', async () => {
     const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      const { svc, reservations } = makeConfirm({ freeze: async () => { throw new Error('rates down'); } });
+      const { svc, reservations } = makeConfirm({
+        freeze: async () => {
+          throw new Error('rates down');
+        },
+      });
       const res = await svc.confirm('5', [priced as never], undefined);
       expect(res.created).toEqual([{ id: 1 }]);
       expect(reservations.createWithCostInTx).toHaveBeenCalledWith('5', expect.anything(), undefined);

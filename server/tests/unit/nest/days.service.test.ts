@@ -11,6 +11,49 @@
  * DAY-SVC-091 through DAY-SVC-097 and DAY-SVC-099 cover the dated append.
  * Uses a real in-memory SQLite DB so SQL logic is exercised faithfully.
  */
+import { db as testDb } from '../../../src/db/database';
+import { AssignmentParticipants } from '../../../src/db/entities/AssignmentParticipants.entity';
+import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
+import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
+import { Days } from '../../../src/db/entities/Days.entity';
+import { Places } from '../../../src/db/entities/Places.entity';
+import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../../src/db/entities/Reservations.entity';
+import { RoadtripDayBoundaries } from '../../../src/db/entities/RoadtripDayBoundaries.entity';
+import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
+import { Tags } from '../../../src/db/entities/Tags.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
+import { DaysModule } from '../../../src/nest/days/days.module';
+import {
+  DaysService,
+  DayReorderError,
+  DayAppendError,
+  NO_DATES_MESSAGE,
+  addDays,
+} from '../../../src/nest/days/days.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import type { Day } from '../../../src/types';
+import { makeAccommodationsService } from '../../helpers/accommodations-service';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createDayAssignment,
+  createDayAccommodation,
+  createDayNote,
+  createTag,
+  createReservation,
+} from '../../helpers/factories';
+import { tagPlace } from '../../helpers/factories/places';
+import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestModule, type TestModule, type TestOverride } from '../../helpers/test-module';
+import { sharedTestOrm } from '../../helpers/test-uow';
+import { createTour } from '../../helpers/tours-repos';
+import type { EntityData, RequiredEntityData } from '@mikro-orm/core';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -22,26 +65,6 @@ vi.mock('../../../src/db/database', async () => {
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
 
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment, createDayAccommodation, createDayNote, createTag, createReservation } from '../../helpers/factories';
-import { createTour } from '../../helpers/tours-repos';
-import type { EntityData, RequiredEntityData } from '@mikro-orm/core';
-import { sharedTestOrm } from '../../helpers/test-uow';
-import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
-import { tagPlace } from '../../helpers/factories/places';
-import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
-import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
-import { AssignmentParticipants } from '../../../src/db/entities/AssignmentParticipants.entity';
-import { Days } from '../../../src/db/entities/Days.entity';
-import { Places } from '../../../src/db/entities/Places.entity';
-import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
-import { Reservations } from '../../../src/db/entities/Reservations.entity';
-import { RoadtripDayBoundaries } from '../../../src/db/entities/RoadtripDayBoundaries.entity';
-import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
-import { Tags } from '../../../src/db/entities/Tags.entity';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-
 const orm = () => sharedTestOrm(testDb);
 
 async function setDay(id: number, data: { date?: string | null; day_number?: number }): Promise<void> {
@@ -50,7 +73,11 @@ async function setDay(id: number, data: { date?: string | null; day_number?: num
 
 /** A booking with exactly the given columns; returns its id. */
 async function addReservation(tripId: number, columns: EntityData<Reservations>): Promise<number> {
-  return insertRow(await orm(), Reservations, { trip: tripId, title: 'Booking', ...columns } as RequiredEntityData<Reservations>);
+  return insertRow(await orm(), Reservations, {
+    trip: tripId,
+    title: 'Booking',
+    ...columns,
+  } as RequiredEntityData<Reservations>);
 }
 
 /** The stored booking; fails the case when it is gone. */
@@ -75,17 +102,11 @@ async function dayRows(tripId: number) {
     date: d.date ?? null,
   }));
 }
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { DaysService, DayReorderError, DayAppendError, NO_DATES_MESSAGE, addDays } from '../../../src/nest/days/days.service';
+
 // Was days.bridge, deleted with the other three that had no consumer outside the
 // container. The assertions stayed; they point at the service now.
 const bridgeGetDay = async (id: string | number, tripId: string | number) => await svc.getDay(id, tripId);
 const bridgeListDays = async (tripId: string | number) => await svc.list(tripId);
-import { makeAccommodationsService } from '../../helpers/accommodations-service';
-import { DaysModule } from '../../../src/nest/days/days.module';
-import { createTestModule, type TestModule, type TestOverride } from '../../helpers/test-module';
-import type { Day } from '../../../src/types';
-import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
 
 // The service comes out of DaysModule, so a dependency it gains reaches this
 // suite through the module rather than through a constructor call here.
@@ -122,7 +143,7 @@ describe('verifyTripAccess', () => {
   it('DAY-SVC-001 — returns trip row for owner', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const result = await svc.verifyTripAccess(trip.id, user.id) as any;
+    const result = (await svc.verifyTripAccess(trip.id, user.id)) as any;
     expect(result).toBeDefined();
     expect(result.id).toBe(trip.id);
   });
@@ -144,7 +165,10 @@ describe('getAssignmentsForDay', () => {
     const day = createDay(testDb, trip.id);
     const tour = createPlace(testDb, trip.id, { name: 'Hike', lat: 48.1, lng: 11.1 });
     const track = createPlace(testDb, trip.id, { name: 'Legacy track', lat: 48.2, lng: 11.2 });
-    const geometry = JSON.stringify([[48.1, 11.1], [48.3, 11.3]]);
+    const geometry = JSON.stringify([
+      [48.1, 11.1],
+      [48.3, 11.3],
+    ]);
     await updateRows(await orm(), Places, { id: { $in: [tour.id, track.id] } }, { route_geometry: geometry });
     createTour(testDb, tour.id);
     createDayAssignment(testDb, day.id, tour.id, { order_index: 0 });
@@ -247,8 +271,8 @@ describe('create (service)', () => {
   it('DAY-SVC-009 — creates a day with auto-incremented day_number', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const d1 = await svc.create(trip.id) as any;
-    const d2 = await svc.create(trip.id) as any;
+    const d1 = (await svc.create(trip.id)) as any;
+    const d2 = (await svc.create(trip.id)) as any;
     expect(d1.day_number).toBe(1);
     expect(d2.day_number).toBe(2);
   });
@@ -258,15 +282,16 @@ describe('create (service)', () => {
     const trip = createTrip(testDb, user.id);
     // Without the transaction both read the same MAX and both became day 1.
     await Promise.all([svc.create(trip.id), svc.create(trip.id), svc.create(trip.id)]);
-    const numbers = (await findRows(await orm(), Days, { trip: trip.id }, { day_number: 'asc' }))
-      .map((d) => d.day_number);
+    const numbers = (await findRows(await orm(), Days, { trip: trip.id }, { day_number: 'asc' })).map(
+      (d) => d.day_number,
+    );
     expect(numbers).toEqual([1, 2, 3]);
   });
 
   it('DAY-SVC-010 — returns day with empty assignments array', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const day = await svc.create(trip.id) as any;
+    const day = (await svc.create(trip.id)) as any;
     expect(Array.isArray(day.assignments)).toBe(true);
     expect(day.assignments).toHaveLength(0);
   });
@@ -279,7 +304,7 @@ describe('getDay', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id) as any;
-    const found = await svc.getDay(day.id, trip.id) as any;
+    const found = (await svc.getDay(day.id, trip.id)) as any;
     expect(found).toBeDefined();
     expect(found.id).toBe(day.id);
   });
@@ -322,7 +347,12 @@ describe('getTripForViewer', () => {
     await updateRows(await orm(), Trips, { id: trip.id }, { feed_token: 'secret-feed' });
 
     expect(await svc.getTripForViewer(trip.id, user.id)).toMatchObject({
-      id: trip.id, end_date: '2026-06-02', day_count: 2, place_count: 0, is_owner: 1, feed_token: null,
+      id: trip.id,
+      end_date: '2026-06-02',
+      day_count: 2,
+      place_count: 0,
+      is_owner: 1,
+      feed_token: null,
     });
     expect(await svc.getTripForViewer(trip.id, member.id)).toMatchObject({ id: trip.id, is_owner: 0 });
     expect(await svc.getTripForViewer(99999, user.id)).toBeUndefined();
@@ -369,17 +399,13 @@ describe('DaysService — the surface the deleted bridge exposed', () => {
     expect(addDays('2026-06-07', -7)).toBe('2026-05-31');
   });
 
-  it('DAY-SVC-031 — restampReservationDates re-stamps a booking onto its day\'s new date', async () => {
+  it("DAY-SVC-031 — restampReservationDates re-stamps a booking onto its day's new date", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id, { date: '2026-01-01' });
     await addReservation(trip.id, { day: day.id, title: 'Dinner', reservation_time: '2026-01-01T19:00' });
 
-    await svc.restampReservationDates(
-      trip.id,
-      new Map([[day.id, '2026-01-01']]),
-      new Map([[day.id, '2026-01-05']]),
-    );
+    await svc.restampReservationDates(trip.id, new Map([[day.id, '2026-01-01']]), new Map([[day.id, '2026-01-05']]));
 
     const row = await findRow(await orm(), Reservations, { trip: trip.id });
     expect(row?.reservation_time).toBe('2026-01-05T19:00');
@@ -400,7 +426,13 @@ describe('DaysService — the surface the deleted bridge exposed', () => {
     await setDay(d2.id, { date: '2026-01-01' });
     await setDay(d2.id, { day_number: 0 });
 
-    await svc.resyncAccommodationDays(trip.id, new Map([[d1.id, '2026-01-01'], [d2.id, '2026-01-02']]));
+    await svc.resyncAccommodationDays(
+      trip.id,
+      new Map([
+        [d1.id, '2026-01-01'],
+        [d2.id, '2026-01-02'],
+      ]),
+    );
 
     const row = await staySpan(accom.id);
     expect(row.start_day_id).toBe(d2.id);
@@ -456,9 +488,13 @@ describe('quirk fixes', () => {
     const place = createPlace(testDb, trip.id, { name: 'Hotel' });
     testDb.exec("CREATE TRIGGER boom BEFORE INSERT ON reservations BEGIN SELECT RAISE(ABORT, 'boom'); END");
     try {
-      await expect(accommodations.createAccommodation(trip.id, {
-        place_id: place.id, start_day_id: day.id, end_day_id: day.id,
-      })).rejects.toThrow();
+      await expect(
+        accommodations.createAccommodation(trip.id, {
+          place_id: place.id,
+          start_day_id: day.id,
+          end_day_id: day.id,
+        }),
+      ).rejects.toThrow();
       expect(await countRows(await orm(), DayAccommodations, { trip: trip.id })).toBe(0);
     } finally {
       testDb.exec('DROP TRIGGER boom');
@@ -506,14 +542,16 @@ describe('restampReservationDates', () => {
 
     await svc.restampReservationDates(
       trip.id,
-      new Map([[stayer.id, '2026-01-01'], [halfMapped.id, '2026-01-03']]),
+      new Map([
+        [stayer.id, '2026-01-01'],
+        [halfMapped.id, '2026-01-03'],
+      ]),
       // stayer keeps its date, unmapped is in neither map, halfMapped only in the old one.
       new Map([[stayer.id, '2026-01-01']]),
     );
 
     const times = Object.fromEntries(
-      (await findRows(await orm(), Reservations, { trip: trip.id }))
-        .map(r => [r.id, r.reservation_time])
+      (await findRows(await orm(), Reservations, { trip: trip.id })).map((r) => [r.id, r.reservation_time]),
     );
     expect(times).toEqual({
       [unplaced]: '2026-01-01T09:00',
@@ -524,14 +562,34 @@ describe('restampReservationDates', () => {
     });
   });
 
-  it('DAY-SVC-038 — shifts every transport leg by the booking\'s day delta and skips a leg with no date', async () => {
+  it("DAY-SVC-038 — shifts every transport leg by the booking's day delta and skips a leg with no date", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id, { date: '2026-01-01' });
-    const flight = await addReservation(trip.id, { day: day.id, title: 'HEL-NRT', type: 'flight', reservation_time: '2026-01-01T08:00' });
+    const flight = await addReservation(trip.id, {
+      day: day.id,
+      title: 'HEL-NRT',
+      type: 'flight',
+      reservation_time: '2026-01-01T08:00',
+    });
 
-    const endpoint = async (role: string, sequence: number, name: string, lat: number, lng: number, localDate: string | null) =>
-      insertRow(await orm(), ReservationEndpoints, { reservation: flight, role, sequence, name, lat, lng, local_date: localDate });
+    const endpoint = async (
+      role: string,
+      sequence: number,
+      name: string,
+      lat: number,
+      lng: number,
+      localDate: string | null,
+    ) =>
+      insertRow(await orm(), ReservationEndpoints, {
+        reservation: flight,
+        role,
+        sequence,
+        name,
+        lat,
+        lng,
+        local_date: localDate,
+      });
     const departure = await endpoint('from', 0, 'HEL', 60.31, 24.96, '2026-01-01');
     // The arrival sits a day after departure; the legs must keep that distance,
     // otherwise a moved overnight flight lands before it took off.
@@ -541,8 +599,7 @@ describe('restampReservationDates', () => {
     await svc.restampReservationDates(trip.id, new Map([[day.id, '2026-01-01']]), new Map([[day.id, '2026-01-04']]));
 
     const legs = Object.fromEntries(
-      (await findRows(await orm(), ReservationEndpoints, { reservation: flight }))
-        .map(l => [l.id, l.local_date])
+      (await findRows(await orm(), ReservationEndpoints, { reservation: flight })).map((l) => [l.id, l.local_date]),
     );
     expect(legs).toEqual({ [departure]: '2026-01-04', [arrival]: '2026-01-05', [undated]: null });
   });
@@ -554,16 +611,30 @@ describe('restampReservationDates', () => {
     const end = createDay(testDb, trip.id, { date: '2026-01-03' });
 
     const spanning = await addReservation(trip.id, {
-      day: start.id, endDay: end.id, title: 'Sleeper train', reservation_time: '2026-01-01T15:00', reservation_end_time: '2026-01-03',
+      day: start.id,
+      endDay: end.id,
+      title: 'Sleeper train',
+      reservation_time: '2026-01-01T15:00',
+      reservation_end_time: '2026-01-03',
     });
     const openEnded = await addReservation(trip.id, {
-      day: null, endDay: end.id, title: 'Open ended', reservation_time: null, reservation_end_time: null,
+      day: null,
+      endDay: end.id,
+      title: 'Open ended',
+      reservation_time: null,
+      reservation_end_time: null,
     });
 
     await svc.restampReservationDates(
       trip.id,
-      new Map([[start.id, '2026-01-01'], [end.id, '2026-01-03']]),
-      new Map([[start.id, '2026-01-02'], [end.id, '2026-01-05']]),
+      new Map([
+        [start.id, '2026-01-01'],
+        [end.id, '2026-01-03'],
+      ]),
+      new Map([
+        [start.id, '2026-01-02'],
+        [end.id, '2026-01-05'],
+      ]),
     );
 
     const moved = await reservationRow(spanning);
@@ -577,7 +648,13 @@ describe('restampReservationDates', () => {
 describe('resyncAccommodationDays', () => {
   /** The hotel reservation accommodations/ auto-creates next to a stay. */
   const linkHotel = (tripId: number, accId: number, dayId: number | null, time: string | null) =>
-    addReservation(tripId, { day: dayId, title: 'Hotel', type: 'hotel', accommodation_id: legacyBoundIntegerText(accId), reservation_time: time });
+    addReservation(tripId, {
+      day: dayId,
+      title: 'Hotel',
+      type: 'hotel',
+      accommodation_id: legacyBoundIntegerText(accId),
+      reservation_time: time,
+    });
 
   it('DAY-SVC-040 — returns before touching a hotel booking when the trip has no stays', async () => {
     const { user } = createUser(testDb);
@@ -602,12 +679,10 @@ describe('resyncAccommodationDays', () => {
 
     await svc.resyncAccommodationDays(trip.id, new Map());
 
-    expect(await staySpan(stay.id))
-      .toMatchObject({ start_day_id: d1.id, end_day_id: d2.id });
+    expect(await staySpan(stay.id)).toMatchObject({ start_day_id: d1.id, end_day_id: d2.id });
     // The linked booking still gets pulled back onto the stay's start day: its
     // reservation_time is a stale snapshot of that day's date, check-in time kept.
-    expect(await reservationRow(res))
-      .toMatchObject({ day_id: d1.id, reservation_time: '2026-05-01T14:00' });
+    expect(await reservationRow(res)).toMatchObject({ day_id: d1.id, reservation_time: '2026-05-01T14:00' });
   });
 
   it('DAY-SVC-042 — does not rewrite a stay whose days already hold their old dates', async () => {
@@ -619,13 +694,17 @@ describe('resyncAccommodationDays', () => {
     const stay = createDayAccommodation(testDb, trip.id, place.id, d1.id, d2.id);
     const res = await linkHotel(trip.id, stay.id, d1.id, null);
 
-    await svc.resyncAccommodationDays(trip.id, new Map([[d1.id, '2026-05-01'], [d2.id, '2026-05-02']]));
+    await svc.resyncAccommodationDays(
+      trip.id,
+      new Map([
+        [d1.id, '2026-05-01'],
+        [d2.id, '2026-05-02'],
+      ]),
+    );
 
-    expect(await staySpan(stay.id))
-      .toMatchObject({ start_day_id: d1.id, end_day_id: d2.id });
+    expect(await staySpan(stay.id)).toMatchObject({ start_day_id: d1.id, end_day_id: d2.id });
     // A booking with no time at all takes the bare date, not date + empty suffix.
-    expect(await reservationRow(res))
-      .toMatchObject({ reservation_time: '2026-05-01' });
+    expect(await reservationRow(res)).toMatchObject({ reservation_time: '2026-05-01' });
   });
 
   it('DAY-SVC-043 — refuses to re-anchor a stay onto an inverted day pair', async () => {
@@ -641,10 +720,15 @@ describe('resyncAccommodationDays', () => {
     await setDay(d1.id, { date: '2026-05-02' });
     await setDay(d2.id, { date: '2026-05-01' });
 
-    await svc.resyncAccommodationDays(trip.id, new Map([[d1.id, '2026-05-01'], [d2.id, '2026-05-02']]));
+    await svc.resyncAccommodationDays(
+      trip.id,
+      new Map([
+        [d1.id, '2026-05-01'],
+        [d2.id, '2026-05-02'],
+      ]),
+    );
 
-    expect(await staySpan(stay.id))
-      .toMatchObject({ start_day_id: d1.id, end_day_id: d2.id });
+    expect(await staySpan(stay.id)).toMatchObject({ start_day_id: d1.id, end_day_id: d2.id });
   });
 
   it('DAY-SVC-044 — leaves a stay alone when one of its old dates is outside the new range', async () => {
@@ -661,13 +745,15 @@ describe('resyncAccommodationDays', () => {
 
     await svc.resyncAccommodationDays(
       trip.id,
-      new Map([[d1.id, '2026-05-01'], [d2.id, '2026-04-29'], [d3.id, '2026-05-03']]),
+      new Map([
+        [d1.id, '2026-05-01'],
+        [d2.id, '2026-04-29'],
+        [d3.id, '2026-05-03'],
+      ]),
     );
 
-    expect(await staySpan(endGone.id))
-      .toMatchObject({ start_day_id: d1.id, end_day_id: d2.id });
-    expect(await staySpan(startGone.id))
-      .toMatchObject({ start_day_id: d2.id, end_day_id: d3.id });
+    expect(await staySpan(endGone.id)).toMatchObject({ start_day_id: d1.id, end_day_id: d2.id });
+    expect(await staySpan(startGone.id)).toMatchObject({ start_day_id: d2.id, end_day_id: d3.id });
   });
 
   it('DAY-SVC-045 — skips the linked-booking restamp when the start day has no date', async () => {
@@ -682,8 +768,7 @@ describe('resyncAccommodationDays', () => {
 
     // On a dateless trip there is no date to stamp; writing one would invent a
     // calendar the trip does not have.
-    expect(await reservationRow(res))
-      .toMatchObject({ day_id: null, reservation_time: null });
+    expect(await reservationRow(res)).toMatchObject({ day_id: null, reservation_time: null });
   });
 
   // The stop a booking wrote goes along when the stay is carried to another day row.
@@ -694,9 +779,18 @@ describe('resyncAccommodationDays', () => {
       accommodation_id: a.accommodation_id ?? null,
     }));
   const addVia = async (dayId: number, afterOrderIndex: number) =>
-    insertRow(await orm(), RoadtripVias, { day: dayId, after_order_index: afterOrderIndex, sequence: 0, lat: 48.1, lng: 11.5 });
+    insertRow(await orm(), RoadtripVias, {
+      day: dayId,
+      after_order_index: afterOrderIndex,
+      sequence: 0,
+      lat: 48.1,
+      lng: 11.5,
+    });
   const viasOn = async (dayId: number) =>
-    (await findRows(await orm(), RoadtripVias, { day: dayId }, { id: 'asc' })).map((v) => ({ id: v.id, after_order_index: v.after_order_index }));
+    (await findRows(await orm(), RoadtripVias, { day: dayId }, { id: 'asc' })).map((v) => ({
+      id: v.id,
+      after_order_index: v.after_order_index,
+    }));
 
   it('DAY-SVC-056: the carried stop is seated by its check-in on its new day, and both days keep their roads in place', async () => {
     // The trip gained a day at the front: d1 now holds the day before, d2 the stay's
@@ -706,20 +800,33 @@ describe('resyncAccommodationDays', () => {
     const trip = createTrip(testDb, user.id);
     const d1 = createDay(testDb, trip.id, { date: '2026-05-01' });
     const d2 = createDay(testDb, trip.id, { date: '2026-05-02' });
-    const [hotel, a, b, c, d] = ['Rostock', 'Aral', 'Hafen', 'Museum', 'Markt'].map(name => createPlace(testDb, trip.id, { name }));
-    const { accommodation } = await accommodations.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: d1.id, end_day_id: d1.id, check_in: '10:00' }) as any;
+    const [hotel, a, b, c, d] = ['Rostock', 'Aral', 'Hafen', 'Museum', 'Markt'].map((name) =>
+      createPlace(testDb, trip.id, { name }),
+    );
+    const { accommodation } = (await accommodations.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: d1.id,
+      end_day_id: d1.id,
+      check_in: '10:00',
+    })) as any;
     createDayAssignment(testDb, d1.id, a.id);
     createDayAssignment(testDb, d1.id, b.id);
     createDayAssignment(testDb, d2.id, c.id);
     createDayAssignment(testDb, d2.id, d.id);
-    expect((await stopsOn(d1.id)).map(s => s.place_id)).toEqual([hotel.id, a.id, b.id]);
+    expect((await stopsOn(d1.id)).map((s) => s.place_id)).toEqual([hotel.id, a.id, b.id]);
     const outOfHotel = await addVia(d1.id, 0);
     const outOfA = await addVia(d1.id, 1);
     const outOfC = await addVia(d2.id, 0);
     await setDay(d1.id, { date: '2026-04-30' });
     await setDay(d2.id, { date: '2026-05-01' });
 
-    await svc.resyncAccommodationDays(trip.id, new Map([[d1.id, '2026-05-01'], [d2.id, '2026-05-02']]));
+    await svc.resyncAccommodationDays(
+      trip.id,
+      new Map([
+        [d1.id, '2026-05-01'],
+        [d2.id, '2026-05-02'],
+      ]),
+    );
 
     expect(await staySpan(accommodation.id)).toMatchObject({ start_day_id: d2.id });
     expect(await stopsOn(d2.id)).toEqual([
@@ -727,11 +834,14 @@ describe('resyncAccommodationDays', () => {
       { place_id: c.id, order_index: 1, accommodation_id: null },
       { place_id: d.id, order_index: 2, accommodation_id: null },
     ]);
-    expect((await stopsOn(d1.id)).map(s => [s.place_id, s.order_index])).toEqual([[a.id, 0], [b.id, 1]]);
+    expect((await stopsOn(d1.id)).map((s) => [s.place_id, s.order_index])).toEqual([
+      [a.id, 0],
+      [b.id, 1],
+    ]);
     // The hotel's road on d1 had no stop ahead to fall back on and goes; A's follows A
     // to leg zero. On d2 the road out of C is one number further on, behind C.
     expect(await viasOn(d1.id)).toEqual([{ id: outOfA, after_order_index: 0 }]);
-    expect((await viasOn(d1.id)).map(v => v.id)).not.toContain(outOfHotel);
+    expect((await viasOn(d1.id)).map((v) => v.id)).not.toContain(outOfHotel);
     expect(await viasOn(d2.id)).toEqual([{ id: outOfC, after_order_index: 1 }]);
   });
 
@@ -741,16 +851,28 @@ describe('resyncAccommodationDays', () => {
     const d1 = createDay(testDb, trip.id, { date: '2026-05-01' });
     const d2 = createDay(testDb, trip.id, { date: '2026-05-02' });
     const hotel = createPlace(testDb, trip.id, { name: 'Rostock' });
-    const { accommodation } = await accommodations.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: d1.id, end_day_id: d1.id }) as any;
+    const { accommodation } = (await accommodations.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: d1.id,
+      end_day_id: d1.id,
+    })) as any;
     const own = createDayAssignment(testDb, d2.id, hotel.id);
     await setDay(d1.id, { date: '2026-04-30' });
     await setDay(d2.id, { date: '2026-05-01' });
 
-    await svc.resyncAccommodationDays(trip.id, new Map([[d1.id, '2026-05-01'], [d2.id, '2026-05-02']]));
+    await svc.resyncAccommodationDays(
+      trip.id,
+      new Map([
+        [d1.id, '2026-05-01'],
+        [d2.id, '2026-05-02'],
+      ]),
+    );
 
     expect(await staySpan(accommodation.id)).toMatchObject({ start_day_id: d2.id });
     expect(await stopsOn(d1.id)).toEqual([]);
-    expect(await stopsOn(d2.id)).toEqual([{ place_id: hotel.id, order_index: own.order_index, accommodation_id: null }]);
+    expect(await stopsOn(d2.id)).toEqual([
+      { place_id: hotel.id, order_index: own.order_index, accommodation_id: null },
+    ]);
   });
 
   it('DAY-SVC-058: a stay whose end alone moves leaves its stop where it is', async () => {
@@ -759,17 +881,31 @@ describe('resyncAccommodationDays', () => {
     const d1 = createDay(testDb, trip.id, { date: '2026-05-01' });
     const d2 = createDay(testDb, trip.id, { date: '2026-05-02' });
     const d3 = createDay(testDb, trip.id, { date: '2026-05-03' });
-    const [hotel, a] = ['Rostock', 'Aral'].map(name => createPlace(testDb, trip.id, { name }));
-    const { accommodation } = await accommodations.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: d1.id, end_day_id: d2.id, check_in: '10:00' }) as any;
+    const [hotel, a] = ['Rostock', 'Aral'].map((name) => createPlace(testDb, trip.id, { name }));
+    const { accommodation } = (await accommodations.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: d1.id,
+      end_day_id: d2.id,
+      check_in: '10:00',
+    })) as any;
     createDayAssignment(testDb, d1.id, a.id);
     await setDay(d2.id, { date: '2026-05-03' });
     await setDay(d3.id, { date: '2026-05-02' });
 
-    await svc.resyncAccommodationDays(trip.id, new Map([[d1.id, '2026-05-01'], [d2.id, '2026-05-02'], [d3.id, '2026-05-03']]));
+    await svc.resyncAccommodationDays(
+      trip.id,
+      new Map([
+        [d1.id, '2026-05-01'],
+        [d2.id, '2026-05-02'],
+        [d3.id, '2026-05-03'],
+      ]),
+    );
 
-    expect(await staySpan(accommodation.id))
-      .toMatchObject({ start_day_id: d1.id, end_day_id: d3.id });
-    expect((await stopsOn(d1.id)).map(s => [s.place_id, s.order_index])).toEqual([[hotel.id, 0], [a.id, 1]]);
+    expect(await staySpan(accommodation.id)).toMatchObject({ start_day_id: d1.id, end_day_id: d3.id });
+    expect((await stopsOn(d1.id)).map((s) => [s.place_id, s.order_index])).toEqual([
+      [hotel.id, 0],
+      [a.id, 1],
+    ]);
   });
 });
 
@@ -786,7 +922,7 @@ describe('reorder', () => {
     // it — without it the renumber would leave one day orphaned at a negative
     // day_number and drop another out of the itinerary.
     await expect(svc.reorder(trip.id, [d1.id, 999999])).rejects.toThrow(DayReorderError);
-    expect((await orderedDays(trip.id)).map(d => d.day_number)).toEqual([1, 2]);
+    expect((await orderedDays(trip.id)).map((d) => d.day_number)).toEqual([1, 2]);
   });
 
   it('DAY-SVC-047 — renumbers a dateless trip without inventing dates or touching bookings', async () => {
@@ -799,8 +935,8 @@ describe('reorder', () => {
 
     const result = await svc.reorder(trip.id, [d3.id, d1.id, d2.id]);
 
-    expect(result.days.map(d => d.id)).toEqual([d3.id, d1.id, d2.id]);
-    expect((await orderedDays(trip.id)).map(d => d.date)).toEqual([null, null, null]);
+    expect(result.days.map((d) => d.id)).toEqual([d3.id, d1.id, d2.id]);
+    expect((await orderedDays(trip.id)).map((d) => d.date)).toEqual([null, null, null]);
     // A trip without dates has no slots to re-pin, so the re-stamp pass is
     // skipped entirely — a booking keeps whatever time it was given by hand.
     expect(await reservationRow(res)).toMatchObject({ reservation_time: '2026-02-02T19:00' });
@@ -834,7 +970,7 @@ describe('reorder', () => {
     // Stretching the stay over a third slot is legal — the guard only rejects
     // an end that lands before its start.
     await svc.reorder(trip.id, [d1.id, d3.id, d2.id]);
-    expect((await orderedDays(trip.id)).map(d => d.id)).toEqual([d1.id, d3.id, d2.id]);
+    expect((await orderedDays(trip.id)).map((d) => d.id)).toEqual([d1.id, d3.id, d2.id]);
 
     await expect(svc.reorder(trip.id, [d2.id, d3.id, d1.id])).rejects.toThrow(DayReorderError);
     // The guard runs inside the transaction, so the rejected move leaves the
@@ -915,14 +1051,14 @@ describe('day shaping', () => {
 
     const { days } = await svc.list(trip.id);
 
-    expect(days[0].assignments.map(a => a.place.name)).toEqual(['Louvre', 'Pont Neuf']);
-    expect(days[0].assignments[0].place.tags.map(t => t.name)).toEqual(['Museum']);
-    expect(days[0].assignments[0].participants.map(p => p.user_id)).toEqual([user.id]);
+    expect(days[0].assignments.map((a) => a.place.name)).toEqual(['Louvre', 'Pont Neuf']);
+    expect(days[0].assignments[0].place.tags.map((t) => t.name)).toEqual(['Museum']);
+    expect(days[0].assignments[0].participants.map((p) => p.user_id)).toEqual([user.id]);
     // The batch loaders return nothing for the untagged place and the assignment
     // nobody joined; both have to fall back to [] rather than undefined.
     expect(days[0].assignments[1].place.tags).toEqual([]);
     expect(days[0].assignments[1].participants).toEqual([]);
-    expect(days[0].notes_items.map(n => n.text)).toEqual(['Breakfast', 'Dinner']);
+    expect(days[0].notes_items.map((n) => n.text)).toEqual(['Breakfast', 'Dinner']);
     // A day nobody planned anything on still ships both collections.
     expect(days[1]).toMatchObject({ id: empty.id, assignments: [], notes_items: [] });
   });
@@ -937,7 +1073,10 @@ describe('day shaping', () => {
     // The MCP update_day tool clears a title by sending null, which must reach
     // the column instead of being treated as "key absent, keep the old title".
     const titled = await svc.update(day.id, day as never, { title: 'Crossing' });
-    expect(await svc.update(day.id, titled as never, { title: null })).toMatchObject({ title: null, notes: 'Ferry to the island' });
+    expect(await svc.update(day.id, titled as never, { title: null })).toMatchObject({
+      title: null,
+      notes: 'Ferry to the island',
+    });
   });
 });
 
@@ -992,10 +1131,23 @@ describe('DaysService.appendDated', () => {
 
     const result = await svc.appendDated(trip.id, user.id, 'Late checkout');
 
-    expect(result.day).toMatchObject({ trip_id: trip.id, day_number: 4, date: '2026-10-13', notes: 'Late checkout', assignments: [], notes_items: [] });
+    expect(result.day).toMatchObject({
+      trip_id: trip.id,
+      day_number: 4,
+      date: '2026-10-13',
+      notes: 'Late checkout',
+      assignments: [],
+      notes_items: [],
+    });
     expect(result.endDate).toBe('2026-10-13');
     expect(result.boundaries).toBeNull();
-    expect(result.trip).toMatchObject({ id: trip.id, end_date: '2026-10-13', day_count: 4, is_owner: 1, feed_token: null });
+    expect(result.trip).toMatchObject({
+      id: trip.id,
+      end_date: '2026-10-13',
+      day_count: 4,
+      is_owner: 1,
+      feed_token: null,
+    });
     expect(await rows(trip.id)).toEqual([...before, { id: result.day.id, day_number: 4, date: '2026-10-13' }]);
     expect(await endDate(trip.id)).toBe('2026-10-13');
   });
@@ -1012,7 +1164,8 @@ describe('DaysService.appendDated', () => {
     const { day } = await svc.appendDated(trip.id, user.id);
 
     expect(await rows(trip.id)).toEqual([
-      d1, d2,
+      d1,
+      d2,
       { id: day.id, day_number: 3, date: '2026-10-12' },
       { id: spare.id, day_number: 4, date: null },
       { id: other.id, day_number: 5, date: null },
@@ -1052,11 +1205,18 @@ describe('DaysService.appendDated', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     // A full-length range without its 999 rows: the limit reads the range, not the rows.
-    await updateRows(await orm(), Trips, { id: trip.id }, { start_date: '2026-01-01', end_date: addDays('2026-01-01', 998) });
+    await updateRows(
+      await orm(),
+      Trips,
+      { id: trip.id },
+      { start_date: '2026-01-01', end_date: addDays('2026-01-01', 998) },
+    );
     createDay(testDb, trip.id, { date: '2026-01-01' });
     const before = await rows(trip.id);
 
-    await expect(svc.appendDated(trip.id, user.id)).rejects.toThrow(new DayAppendError('A trip can span at most 999 days'));
+    await expect(svc.appendDated(trip.id, user.id)).rejects.toThrow(
+      new DayAppendError('A trip can span at most 999 days'),
+    );
     expect(await rows(trip.id)).toEqual(before);
     expect(await endDate(trip.id)).toBe(addDays('2026-01-01', 998));
   });
@@ -1068,7 +1228,7 @@ describe('DaysService.appendDated', () => {
     const spareA = createDay(testDb, trip.id);
     const spareB = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
-    const stops = [d1, spareA, spareB].map(d => createDayAssignment(testDb, d.id, place.id));
+    const stops = [d1, spareA, spareB].map((d) => createDayAssignment(testDb, d.id, place.id));
     const boundary = async (dayNumber: number, fromAssignmentId: number) =>
       insertRow(await orm(), RoadtripDayBoundaries, {
         trip: trip.id,
@@ -1089,7 +1249,9 @@ describe('DaysService.appendDated', () => {
       { day_number: 5, from_assignment_id: stops[2].id },
     ];
     expect(await boundaries(trip.id)).toEqual(moved);
-    expect(result.boundaries?.map(b => ({ day_number: b.day_number, from_assignment_id: b.from_assignment_id }))).toEqual(moved);
+    expect(
+      result.boundaries?.map((b) => ({ day_number: b.day_number, from_assignment_id: b.from_assignment_id })),
+    ).toEqual(moved);
   });
 
   it('DAY-SVC-097 moves no booking, while insert() still dates the days without one', async () => {
@@ -1102,12 +1264,15 @@ describe('DaysService.appendDated', () => {
 
     await svc.appendDated(trip.id, user.id);
     const kept = await reservationRow(reservation.id);
-    expect({ day_id: kept.day_id, reservation_time: kept.reservation_time }).toEqual({ day_id: d2.id, reservation_time: '2026-10-11T19:30' });
-    expect((await rows(trip.id)).find(r => r.id === spare.id)).toMatchObject({ day_number: 4, date: null });
+    expect({ day_id: kept.day_id, reservation_time: kept.reservation_time }).toEqual({
+      day_id: d2.id,
+      reservation_time: '2026-10-11T19:30',
+    });
+    expect((await rows(trip.id)).find((r) => r.id === spare.id)).toMatchObject({ day_number: 4, date: null });
 
     // The older path is untouched: an insert re-dates every row, the spare day included.
     const inserted = await svc.insert(trip.id);
-    expect((await rows(trip.id)).find(r => r.id === spare.id)).toMatchObject({ date: '2026-10-13' });
+    expect((await rows(trip.id)).find((r) => r.id === spare.id)).toMatchObject({ date: '2026-10-13' });
     expect(inserted).toMatchObject({ day_number: 5, date: '2026-10-14' });
   });
 

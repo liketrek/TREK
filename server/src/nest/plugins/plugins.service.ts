@@ -1,32 +1,39 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Plugins } from '../../db/entities/Plugins.entity';
-import type { PluginsRepository } from '../../db/repositories/Plugins.repository';
-import { PluginErrorLog } from '../../db/entities/PluginErrorLog.entity';
-import type { PluginErrorLogRepository } from '../../db/repositories/PluginErrorLog.repository';
-import { PluginEgressHosts } from '../../db/entities/PluginEgressHosts.entity';
-import type { PluginEgressHostsRepository } from '../../db/repositories/PluginEgressHosts.repository';
-import { PluginSettingsFields } from '../../db/entities/PluginSettingsFields.entity';
-import type { PluginSettingsFieldsRepository } from '../../db/repositories/PluginSettingsFields.repository';
 import { PluginActions } from '../../db/entities/PluginActions.entity';
-import type { PluginActionsRepository } from '../../db/repositories/PluginActions.repository';
-import { PluginUserConfig } from '../../db/entities/PluginUserConfig.entity';
-import type { PluginUserConfigRepository } from '../../db/repositories/PluginUserConfig.repository';
 import { PluginCapabilityAudit } from '../../db/entities/PluginCapabilityAudit.entity';
+import { PluginEgressHosts } from '../../db/entities/PluginEgressHosts.entity';
+import { PluginErrorLog } from '../../db/entities/PluginErrorLog.entity';
+import { PluginSettingsFields } from '../../db/entities/PluginSettingsFields.entity';
+import { PluginUserConfig } from '../../db/entities/PluginUserConfig.entity';
+import { Plugins } from '../../db/entities/Plugins.entity';
+import type { PluginActionsRepository } from '../../db/repositories/PluginActions.repository';
 import type { PluginCapabilityAuditRepository } from '../../db/repositories/PluginCapabilityAudit.repository';
-import { pluginsEnabled } from './kill-switch';
-import { devLinkEnabled } from './dev-link';
-import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { readAudit } from './host/plugin-audit';
-import { keyFingerprint } from './signature-status';
-import { pluginBudgetUsage } from './host/plugin-host-state';
-import { safeParseConfig as safeParse } from './plugin-config-parse';
-import { isFilled, parseDefaultValue, settingDefaults } from './settings-defaults';
+import type { PluginEgressHostsRepository } from '../../db/repositories/PluginEgressHosts.repository';
+import type { PluginErrorLogRepository } from '../../db/repositories/PluginErrorLog.repository';
+import type { PluginSettingsFieldsRepository } from '../../db/repositories/PluginSettingsFields.repository';
+import type { PluginUserConfigRepository } from '../../db/repositories/PluginUserConfig.repository';
+import type { PluginsRepository } from '../../db/repositories/Plugins.repository';
 import { AddonsService } from '../addons/addons.service';
-import { parseDependencies, disabledRequiredAddons, resolveDependencyState, type PluginDepRow, type PluginDependencies, type VersionMismatch } from './dependencies';
+import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import {
+  parseDependencies,
+  disabledRequiredAddons,
+  resolveDependencyState,
+  type PluginDepRow,
+  type PluginDependencies,
+  type VersionMismatch,
+} from './dependencies';
+import { devLinkEnabled } from './dev-link';
+import { readAudit } from './host/plugin-audit';
+import { pluginBudgetUsage } from './host/plugin-host-state';
 import { bypassedRange, hostSatisfies, hostVersion, trekRangeBypassed } from './install/host-compat';
 import type { TrekRangeBypass } from './install/host-compat';
 import type { PluginDependency } from './install/manifest';
+import { pluginsEnabled } from './kill-switch';
+import { safeParseConfig as safeParse } from './plugin-config-parse';
+import { isFilled, parseDefaultValue, settingDefaults } from './settings-defaults';
+import { keyFingerprint } from './signature-status';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import type { PluginSettingsField } from '@trek/shared';
 
 const SECRET_MASK = '••••••••';
@@ -194,13 +201,14 @@ export class PluginsService {
       // Mirrors the order of assertActivatable's gate, so the card explains the same
       // blocker the activate call would hit rather than a second, lesser one.
       const trekBypass = bypassedRange(r.trek_range);
-      const dependencyStatus: PluginDependencyStatus = !hostSatisfies(r.trek_range) && !trekBypass
-        ? 'hostIncompatible'
-        : disabledAddons.length
-          ? 'addonDisabled'
-          : state.missing.length || state.versionMismatch.length
-            ? 'missingPlugin'
-            : 'ok';
+      const dependencyStatus: PluginDependencyStatus =
+        !hostSatisfies(r.trek_range) && !trekBypass
+          ? 'hostIncompatible'
+          : disabledAddons.length
+            ? 'addonDisabled'
+            : state.missing.length || state.versionMismatch.length
+              ? 'missingPlugin'
+              : 'ok';
       const {
         dependencies: _raw,
         operator_egress: _oe,
@@ -293,7 +301,10 @@ export class PluginsService {
       secret: row.secret === 1,
       default: parseDefaultValue(row.default_value),
       // Stored as manifest-validated JSON ({value,label} pairs) — parse, don't re-check.
-      options: typeof row.options === 'string' && row.options ? (safeArray(row.options) as PluginSettingsField['options']) : undefined,
+      options:
+        typeof row.options === 'string' && row.options
+          ? (safeArray(row.options) as PluginSettingsField['options'])
+          : undefined,
     }));
   }
 
@@ -375,7 +386,11 @@ export class PluginsService {
    * stored secret (non-empty ciphertext) counts as filled. A `checkbox` is exempt — required
    * would demand `true`, which is a consent flow, not a settings field.
    */
-  private async assertRequiredFilled(id: string, scope: 'instance' | 'user', config: Record<string, unknown>): Promise<void> {
+  private async assertRequiredFilled(
+    id: string,
+    scope: 'instance' | 'user',
+    config: Record<string, unknown>,
+  ): Promise<void> {
     const required = await this.pluginSettingsFields.listRequiredFieldKeys(id, scope);
     const defaults = await settingDefaults(this.pluginSettingsFields, id, scope);
     for (const fieldKey of required) {

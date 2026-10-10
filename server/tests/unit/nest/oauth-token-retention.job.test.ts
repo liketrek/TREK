@@ -1,15 +1,18 @@
+import type { OauthTokensRepository } from '../../../src/db/repositories/OauthTokens.repository';
+import { OauthTokenRetentionJob, OAUTH_TOKEN_RETENTION_DAYS } from '../../../src/nest/oauth/oauth-token-retention.job';
+import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+
 import { describe, expect, it, vi } from 'vitest';
 
 const logMock = vi.hoisted(() => ({ logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
 
-import { OauthTokenRetentionJob, OAUTH_TOKEN_RETENTION_DAYS } from '../../../src/nest/oauth/oauth-token-retention.job';
-import type { OauthTokensRepository } from '../../../src/db/repositories/OauthTokens.repository';
-import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
-
 function make(deleteExpiredBefore: (cutoff: string) => Promise<number>, enabled = true) {
   const registrar = { isEnabled: vi.fn(() => enabled), register: vi.fn() };
-  const job = new OauthTokenRetentionJob({ deleteExpiredBefore } as unknown as OauthTokensRepository, registrar as unknown as CronRegistrarService);
+  const job = new OauthTokenRetentionJob(
+    { deleteExpiredBefore } as unknown as OauthTokensRepository,
+    registrar as unknown as CronRegistrarService,
+  );
   return { job, registrar };
 }
 

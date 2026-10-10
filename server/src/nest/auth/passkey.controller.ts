@@ -1,17 +1,37 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { RateLimitService } from '../common/rate-limit.service';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { PasskeyEnabledGuard } from './passkey-enabled.guard';
-import { CurrentUser } from '../auth-core/current-user.decorator';
-import { setAuthCookie } from '../common/cookie';
-import { getClientIp } from '../audit/client-ip';
-import { AuditService } from '../audit/audit.service';
-import { PasskeyService } from './passkey.service';
-import { PasskeyRegisterOptionsDto, PasskeyRegisterVerifyDto, PasskeyLoginVerifyDto, PasskeyRenameDto, PasskeyDeleteDto } from './auth.dto';
 import type { User } from '../../types';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { MfaExempt } from '../auth-core/mfa-policy.guard';
+import { setAuthCookie } from '../common/cookie';
+import { RateLimitService } from '../common/rate-limit.service';
 import { sessionClientFrom } from '../sessions/sessions.service';
+import {
+  PasskeyRegisterOptionsDto,
+  PasskeyRegisterVerifyDto,
+  PasskeyLoginVerifyDto,
+  PasskeyRenameDto,
+  PasskeyDeleteDto,
+} from './auth.dto';
+import { PasskeyEnabledGuard } from './passkey-enabled.guard';
+import { PasskeyService } from './passkey.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpException,
+  Param,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 const WINDOW = 15 * 60 * 1000;
 const LOGIN_MIN_LATENCY_MS = 350;
@@ -81,19 +101,32 @@ export class PasskeyController {
   @MfaExempt('unauthenticated passkey login ceremony')
   @HttpCode(200)
   @UseGuards(PasskeyEnabledGuard)
-  async loginVerify(@Body() body: PasskeyLoginVerifyDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async loginVerify(
+    @Body() body: PasskeyLoginVerifyDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.limit('login', req, 10);
     const started = Date.now();
     const result = await this.passkeys.passkeyLoginVerify(body, sessionClientFrom(req));
     if (result.auditAction) {
-      await this.audit.writeAudit({ userId: result.auditUserId ?? null, action: result.auditAction, ip: getClientIp(req) });
+      await this.audit.writeAudit({
+        userId: result.auditUserId ?? null,
+        action: result.auditAction,
+        ip: getClientIp(req),
+      });
     }
     // Pad to the same floor as password login so timing can't distinguish a
     // known credential from an unknown one.
     const elapsed = Date.now() - started;
     if (elapsed < LOGIN_MIN_LATENCY_MS) await delay(LOGIN_MIN_LATENCY_MS - elapsed);
     if (result.error) throw new HttpException({ error: result.error }, result.status!);
-    await this.audit.writeAudit({ userId: result.auditUserId!, action: 'user.login', ip: getClientIp(req), details: { method: 'passkey' } });
+    await this.audit.writeAudit({
+      userId: result.auditUserId!,
+      action: 'user.login',
+      ip: getClientIp(req),
+      details: { method: 'passkey' },
+    });
     setAuthCookie(res, result.token!, req);
     return { token: result.token, user: result.user };
   }
@@ -115,10 +148,20 @@ export class PasskeyController {
 
   @Delete('credentials/:id')
   @UseGuards(JwtAuthGuard)
-  async remove(@CurrentUser() user: User, @Param('id') id: string, @Body() body: PasskeyDeleteDto, @Req() req: Request) {
+  async remove(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: PasskeyDeleteDto,
+    @Req() req: Request,
+  ) {
     await this.limit('login', req, 5);
     await this.passkeys.deletePasskey(user.id, id, body?.password);
-    await this.audit.writeAudit({ userId: user.id, action: 'user.passkey_delete', resource: String(id), ip: getClientIp(req) });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'user.passkey_delete',
+      resource: String(id),
+      ip: getClientIp(req),
+    });
     return { success: true };
   }
 }

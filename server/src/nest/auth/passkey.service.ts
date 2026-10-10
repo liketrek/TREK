@@ -1,7 +1,20 @@
+import { Users } from '../../db/entities/Users.entity';
+import { WebauthnChallenges } from '../../db/entities/WebauthnChallenges.entity';
+import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
+import type { UsersRepository, UserRow } from '../../db/repositories/Users.repository';
+import type { WebauthnChallengesRepository } from '../../db/repositories/WebauthnChallenges.repository';
+import type { WebauthnCredentialsRepository } from '../../db/repositories/WebauthnCredentials.repository';
+import type { User } from '../../types';
+import { avatarUrl } from '../common/avatarUrl';
 import { DomainError } from '../common/domain-error';
-import { Injectable, Logger } from '@nestjs/common';
+import { toRowId } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
+import type { SessionClient } from '../sessions/sessions.service';
+import { stripUserForClient } from './auth.helpers';
+import { AuthService } from './auth.service';
+import { WebauthnConfigService, originWithinRpScope, type WebauthnConfig } from './webauthn-config.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import bcrypt from 'bcryptjs';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -9,20 +22,8 @@ import {
   verifyAuthenticationResponse,
   type AuthenticatorTransportFuture,
 } from '@simplewebauthn/server';
-import { WebauthnConfigService, originWithinRpScope, type WebauthnConfig } from './webauthn-config.service';
-import { avatarUrl } from '../common/avatarUrl';
-import { stripUserForClient } from './auth.helpers';
-import { AuthService } from './auth.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
-import type { WebauthnCredentialsRepository } from '../../db/repositories/WebauthnCredentials.repository';
-import { WebauthnChallenges } from '../../db/entities/WebauthnChallenges.entity';
-import type { WebauthnChallengesRepository } from '../../db/repositories/WebauthnChallenges.repository';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository, UserRow } from '../../db/repositories/Users.repository';
-import type { User } from '../../types';
-import { toRowId } from '../common/row-id';
-import type { SessionClient } from '../sessions/sessions.service';
+
+import bcrypt from 'bcryptjs';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -150,8 +151,18 @@ export class PasskeyService {
     await this.webauthnChallenges.purgeExpired(now);
   }
 
-  private async storeChallenge(challenge: string, userId: number | null, type: 'registration' | 'authentication', now: number): Promise<void> {
-    await this.webauthnChallenges.insertChallenge({ challenge, user_id: userId, type, expires_at: now + CHALLENGE_TTL_MS });
+  private async storeChallenge(
+    challenge: string,
+    userId: number | null,
+    type: 'registration' | 'authentication',
+    now: number,
+  ): Promise<void> {
+    await this.webauthnChallenges.insertChallenge({
+      challenge,
+      user_id: userId,
+      type,
+      expires_at: now + CHALLENGE_TTL_MS,
+    });
   }
 
   /**
@@ -160,7 +171,11 @@ export class PasskeyService {
    * concurrent double-submit of the same assertion can never spend one challenge
    * twice (the replay window a SELECT→await→DELETE ordering would open).
    */
-  private async claimChallenge(challenge: string, type: 'registration' | 'authentication', now: number): Promise<{ user_id: number | null } | null> {
+  private async claimChallenge(
+    challenge: string,
+    type: 'registration' | 'authentication',
+    now: number,
+  ): Promise<{ user_id: number | null } | null> {
     return this.webauthnChallenges.claimChallenge(challenge, type, now);
   }
 
@@ -367,7 +382,10 @@ export class PasskeyService {
     return { options };
   }
 
-  async passkeyLoginVerify(body: { assertionResponse?: unknown }, client?: SessionClient): Promise<{
+  async passkeyLoginVerify(
+    body: { assertionResponse?: unknown },
+    client?: SessionClient,
+  ): Promise<{
     error?: string;
     status?: number;
     token?: string;
@@ -475,11 +493,7 @@ export class PasskeyService {
     return { success: true };
   }
 
-  async deletePasskey(
-    userId: number,
-    id: string,
-    password: string | undefined,
-  ): Promise<{ success?: boolean }> {
+  async deletePasskey(userId: number, id: string, password: string | undefined): Promise<{ success?: boolean }> {
     // Re-auth before removing a credential (a hijacked session must not be able to
     // strip the victim's passkeys). Deleting is always allowed because every
     // account keeps a usable password as recovery fallback — losing all passkeys

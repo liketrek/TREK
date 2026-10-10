@@ -1,11 +1,17 @@
+import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT, TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
   ok,
 } from '../../nest-mcp';
+import { RateLimitService } from '../common/rate-limit.service';
+import { DaysService } from '../days/days.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { idSchema } from '@trek/shared';
+import { ReservationsService } from '../reservations/reservations.service';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 import {
   buildTransitReservationParts,
   cleanTransitItineraryNames,
@@ -14,13 +20,11 @@ import {
   transitItinerarySchema,
   transitPlaceSchema,
 } from './transit-itinerary.helpers';
-import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { RateLimitService } from '../common/rate-limit.service';
-import { DaysService } from '../days/days.service';
-import { ReservationsService } from '../reservations/reservations.service';
 import { SCHEDULED_TRANSIT_MODES, type TransitItinerary } from './transit.helpers';
 import { TransitService } from './transit.service';
-import { TripAccessService } from '../trip-membership/trip-access.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 const TRANSIT_RATE_WINDOW = 15 * 60 * 1000;
 
@@ -123,7 +127,14 @@ export class TransitMcp {
     access: { group: 'geo', mode: 'read' },
   })
   async searchTransitRoutes(
-    { from, to, time, arriveBy, modes, maxTransfers }: {
+    {
+      from,
+      to,
+      time,
+      arriveBy,
+      modes,
+      maxTransfers,
+    }: {
       from: z.infer<typeof transitPlaceSchema>;
       to: z.infer<typeof transitPlaceSchema>;
       time?: string;
@@ -136,22 +147,24 @@ export class TransitMcp {
     const limited = await rateLimit(this.rl, ctx.userId, 'mcp_transit_plan', 60);
     if (limited) return limited;
     try {
-      const result = await this.transit.plan({
-        from: `${from.lat},${from.lng}`,
-        to: `${to.lat},${to.lng}`,
-        time,
-        arriveBy,
-        modes: modes?.join(','),
-        maxTransfers,
-      }, undefined, ctx.userId);
+      const result = await this.transit.plan(
+        {
+          from: `${from.lat},${from.lng}`,
+          to: `${to.lat},${to.lng}`,
+          time,
+          arriveBy,
+          modes: modes?.join(','),
+          maxTransfers,
+        },
+        undefined,
+        ctx.userId,
+      );
       const itineraries = result.itineraries.flatMap((itinerary) => {
         const parsed = transitItinerarySchema.safeParse(cleanTransitItineraryNames(itinerary, from.name, to.name));
         if (!parsed.success) return [];
         const firstStop = parsed.data.legs[0].from;
         const lastStop = parsed.data.legs[parsed.data.legs.length - 1].to;
-        return transitCoordinatesMatch(from, firstStop) && transitCoordinatesMatch(to, lastStop)
-          ? [parsed.data]
-          : [];
+        return transitCoordinatesMatch(from, firstStop) && transitCoordinatesMatch(to, lastStop) ? [parsed.data] : [];
       });
       // A rejected itinerary is provider data we could not vouch for, but dropping it
       // silently is indistinguishable from "no routes exist" — report the count so the
@@ -178,7 +191,14 @@ export class TransitMcp {
     access: { group: 'reservations', mode: 'write' },
   })
   async createTransitJourney(
-    { tripId, dayId, from, to, itinerary, notes }: {
+    {
+      tripId,
+      dayId,
+      from,
+      to,
+      itinerary,
+      notes,
+    }: {
       tripId: number;
       dayId: number;
       from: z.infer<typeof transitPlaceSchema>;

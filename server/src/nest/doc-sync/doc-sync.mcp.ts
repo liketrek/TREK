@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { idSchema } from '@trek/shared';
+import { ADDON_IDS } from '../../addons';
+import { noAccess } from '../../mcp/tools/_shared';
 import {
   McpController,
   Tool,
@@ -9,14 +9,15 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
-import { ADDON_IDS } from '../../addons';
-import { noAccess } from '../../mcp/tools/_shared';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { FilesService } from '../files/files.service';
 import { DocSyncConfigService } from './doc-sync-config.service';
-import { DocSyncService } from './doc-sync.service';
 import { PROVIDER_DISABLED } from './doc-sync.constants';
+import { DocSyncService } from './doc-sync.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 const documentsAddonOn = addonGate(ADDON_IDS.DOCUMENTS);
 
@@ -44,7 +45,7 @@ export class DocSyncMcp {
   @Tool({
     name: 'get_trip_document_sync',
     description:
-      'Show whether this trip\'s documents are synced with an external document store (Paperless-ngx, Papra, Nextcloud, OpenCloud or a Synology NAS), which folder or tag they are bound to, when the last run happened, and how many documents are waiting, in conflict or missing at the provider. Use this before telling someone where their documents live.',
+      "Show whether this trip's documents are synced with an external document store (Paperless-ngx, Papra, Nextcloud, OpenCloud or a Synology NAS), which folder or tag they are bound to, when the last run happened, and how many documents are waiting, in conflict or missing at the provider. Use this before telling someone where their documents live.",
     inputSchema: {
       tripId: idSchema,
     },
@@ -95,7 +96,9 @@ export class DocSyncMcp {
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     const links = await this.config.listLinks(tripId);
     if (links.length === 0) {
-      return errorResult('This trip is not connected to a document store. Connect one in the trip\'s file manager first.');
+      return errorResult(
+        "This trip is not connected to a document store. Connect one in the trip's file manager first.",
+      );
     }
     const results = [];
     for (const link of links) {
@@ -109,7 +112,7 @@ export class DocSyncMcp {
       // Refused as the REST route refuses it, before the shelved rows below are
       // touched: a binding an admin switched off stays exactly as it was, so it
       // resumes where it stopped once the provider is back on.
-      if ((await this.sync.isSwitchedOff(link))) {
+      if (await this.sync.isSwitchedOff(link)) {
         results.push({ linkId: link.id, provider: link.provider_id, state: 'disabled', errorCode: PROVIDER_DISABLED });
         continue;
       }
@@ -118,7 +121,11 @@ export class DocSyncMcp {
       // same thing before its run; a tool that skipped it would answer "in
       // sync" while leaving them shelved.
       await this.sync.retryShelvedItems(link.id);
-      results.push({ linkId: link.id, provider: link.provider_id, ...(await this.sync.syncLink(link, { full: full === true })) });
+      results.push({
+        linkId: link.id,
+        provider: link.provider_id,
+        ...(await this.sync.syncLink(link, { full: full === true })),
+      });
     }
     if (results.every((r) => r.errorCode === PROVIDER_DISABLED)) {
       return errorResult(

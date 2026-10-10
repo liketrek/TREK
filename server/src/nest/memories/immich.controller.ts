@@ -1,11 +1,12 @@
-import { Body, Controller, Get, Headers, HttpCode, Param, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
-import type { Request, Response } from 'express';
 import type { User } from '../../types';
-import { MemoriesService } from './memories.service';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { CurrentUser } from '../auth-core/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ImmichSearchDto, ImmichSettingsDto, ImmichTestDto } from './memories.dto';
+import { MemoriesService } from './memories.service';
+import { Body, Controller, Get, Headers, HttpCode, Param, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 /**
  * /api/integrations/memories/immich — Immich connection, browse/search, asset
@@ -40,7 +41,14 @@ export class ImmichMemoriesController {
     // client cannot clear it by saving. auto_upload is written with the
     // connection in one transaction, and only when it is a boolean.
     const autoUpload = typeof auto_upload === 'boolean' ? auto_upload : undefined;
-    const result = await this.memories.immichSaveSettings(user.id, immich_url, immich_api_key, getClientIp(req), allow_insecure_tls, autoUpload);
+    const result = await this.memories.immichSaveSettings(
+      user.id,
+      immich_url,
+      immich_api_key,
+      getClientIp(req),
+      allow_insecure_tls,
+      autoUpload,
+    );
     if (!result.success) {
       res.status(400).json({ error: result.error });
       return;

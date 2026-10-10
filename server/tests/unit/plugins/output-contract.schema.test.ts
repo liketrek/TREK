@@ -14,14 +14,20 @@
  *   are the withheld credentials. A new key a read model starts carrying fails here
  *   the same way a new column does.
  */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createPluginRpcHostParts } from '../../helpers/plugin-host';
-import { sharedTestOrm } from '../../helpers/test-uow';
-import { updateRows } from '../../helpers/factories/rows';
-import { readTripDays } from '../../helpers/factories/trips';
-import { tagPlace } from '../../helpers/factories/places';
 import { Trips } from '../../../src/db/entities/Trips.entity';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import type { PluginRpcContext } from '../../../src/nest-rpc/rpc-kit/types';
+import type { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
+import { KNOWN_PERMISSIONS, type RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
+import {
+  PLUGIN_ENTITY_CONTRACT,
+  PLUGIN_ENTITY_NESTED,
+  PLUGIN_METHOD_OUTPUT,
+  shapePluginOutput,
+  type PluginEntityContract,
+  type PluginEntityName,
+} from '../../../src/nest/plugins/protocol/output-contract';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
 import {
   addTripMember,
   createBudgetItem,
@@ -40,18 +46,13 @@ import {
   createUser,
   linkTripToJourney,
 } from '../../helpers/factories';
-import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
-import type { PluginRpcContext } from '../../../src/nest-rpc/rpc-kit/types';
-import type { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { KNOWN_PERMISSIONS, type RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
-import {
-  PLUGIN_ENTITY_CONTRACT,
-  PLUGIN_ENTITY_NESTED,
-  PLUGIN_METHOD_OUTPUT,
-  shapePluginOutput,
-  type PluginEntityContract,
-  type PluginEntityName,
-} from '../../../src/nest/plugins/protocol/output-contract';
+import { tagPlace } from '../../helpers/factories/places';
+import { updateRows } from '../../helpers/factories/rows';
+import { readTripDays } from '../../helpers/factories/trips';
+import { createPluginRpcHostParts } from '../../helpers/plugin-host';
+import { sharedTestOrm } from '../../helpers/test-uow';
+
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 afterAll(() => testDb.close());
@@ -181,7 +182,9 @@ describe('the output contract drops only the withheld fields', () => {
       const entry = listing.find((e) => e.name === method);
       const instance = parts.controllers.find((c) => c.constructor.name === entry?.className);
       if (!entry || !instance) throw new Error(`no handler for ${method}`);
-      const handler = (instance as Record<string, (p: Record<string, unknown>, c: PluginRpcContext) => unknown>)[entry.methodName];
+      const handler = (instance as Record<string, (p: Record<string, unknown>, c: PluginRpcContext) => unknown>)[
+        entry.methodName
+      ];
       return await handler.call(instance, params, ctx);
     };
   });
@@ -196,7 +199,9 @@ describe('the output contract drops only the withheld fields', () => {
       expect(Array.isArray(raw), method).toBe(true);
       const rawRows = raw as unknown[];
       expect(rawRows.length, method).toBeGreaterThan(0);
-      rawRows.forEach((item, i) => expectOnlyWithheldDropped(output.entity, item, (shaped as unknown[])[i], `${method}[${i}]`));
+      rawRows.forEach((item, i) =>
+        expectOnlyWithheldDropped(output.entity, item, (shaped as unknown[])[i], `${method}[${i}]`),
+      );
     } else {
       expect(raw, method).toBeTruthy();
       expectOnlyWithheldDropped(output.entity, raw, shaped, method);
@@ -237,32 +242,50 @@ describe('the output contract drops only the withheld fields', () => {
         input: { place_id: placeId, start_day_id: dayIds[1], end_day_id: dayIds[2] },
       }),
     );
-    await callAndCheck('accommodations.update', { tripId, accommodationId: accommodation, input: { notes: 'Late check-in' } });
+    await callAndCheck('accommodations.update', {
+      tripId,
+      accommodationId: accommodation,
+      input: { notes: 'Late check-in' },
+    });
     const bag = idOf(await callAndCheck('packing.createBag', { tripId, input: { name: 'Backpack' } }));
     await callAndCheck('packing.updateBag', { tripId, bagId: bag, input: { name: 'Big backpack' } });
     const item = idOf(await callAndCheck('packing.create', { tripId, input: { name: 'Socks' } }));
     await callAndCheck('packing.update', { tripId, itemId: item, input: { name: 'Wool socks' } });
     const content = Buffer.from('boarding pass').toString('base64');
     const file = idOf(
-      await callAndCheck('files.create', { tripId, input: { name: 'pass.txt', content_base64: content, mimetype: 'text/plain' } }),
+      await callAndCheck('files.create', {
+        tripId,
+        input: { name: 'pass.txt', content_base64: content, mimetype: 'text/plain' },
+      }),
     );
     await callAndCheck('files.update', { tripId, fileId: file, input: { description: 'Boarding pass' } });
     await callAndCheck('files.createLink', { tripId, fileId: file, opts: { reservation_id: reservation } });
     const cost = idOf(await callAndCheck('costs.create', { tripId, input: { name: 'Dinner', total_price: 10 } }));
     await callAndCheck('costs.update', { tripId, itemId: cost, input: { name: 'Lunch' } });
-    const note = idOf(await callAndCheck('daynotes.create', { tripId, dayId: dayIds[0], input: { text: 'Breakfast' } }));
-    await callAndCheck('daynotes.update', { tripId, dayId: dayIds[0], noteId: note, input: { text: 'Late breakfast' } });
+    const note = idOf(
+      await callAndCheck('daynotes.create', { tripId, dayId: dayIds[0], input: { text: 'Breakfast' } }),
+    );
+    await callAndCheck('daynotes.update', {
+      tripId,
+      dayId: dayIds[0],
+      noteId: note,
+      input: { text: 'Late breakfast' },
+    });
     const todo = idOf(await callAndCheck('todos.create', { tripId, input: { name: 'Book train' } }));
     await callAndCheck('todos.update', { tripId, todoId: todo, input: { name: 'Book the train' } });
     const tag = idOf(await callAndCheck('tags.create', { input: { name: 'Food' } }));
     await callAndCheck('tags.update', { tagId: tag, input: { name: 'Good food' } });
     await callAndCheck('collab.createNote', { tripId, input: { title: 'Ideas' } });
-    const poll = idOf(await callAndCheck('collab.createPoll', { tripId, input: { question: 'Where?', options: ['Rome', 'Milan'] } }));
+    const poll = idOf(
+      await callAndCheck('collab.createPoll', { tripId, input: { question: 'Where?', options: ['Rome', 'Milan'] } }),
+    );
     await callAndCheck('collab.votePoll', { tripId, pollId: poll, optionIndex: 0 });
     const message = idOf(await callAndCheck('collab.createMessage', { tripId, text: 'Hello' }));
     await callAndCheck('collab.createMessage', { tripId, text: 'Reply', replyTo: message });
     await callAndCheck('journal.createJourney', { input: { title: 'Italy' } });
-    const entry = idOf(await callAndCheck('journal.createEntry', { journeyId, input: { title: 'Day one', entry_date: '2026-05-01' } }));
+    const entry = idOf(
+      await callAndCheck('journal.createEntry', { journeyId, input: { title: 'Day one', entry_date: '2026-05-01' } }),
+    );
     await callAndCheck('journal.updateEntry', { entryId: entry, input: { story: 'We arrived.' } });
     await callAndCheck('atlas.createBucketItem', { input: { name: 'Lisbon' } });
     const collection = idOf(await callAndCheck('collections.create', { input: { name: 'Rome' } }));
@@ -304,7 +327,10 @@ describe('the output contract drops only the withheld fields', () => {
   });
 
   it('OUTCONTRACT-004 the nested child rows are exercised, not vacuous', async () => {
-    const days = (await callHandler('trips.getDays', { tripId })) as Array<{ notes_items: unknown[]; assignments: unknown[] }>;
+    const days = (await callHandler('trips.getDays', { tripId })) as Array<{
+      notes_items: unknown[];
+      assignments: unknown[];
+    }>;
     expect(days.some((d) => d.notes_items.length > 0)).toBe(true);
     expect(days.some((d) => d.assignments.length > 0)).toBe(true);
     const reservations = (await callHandler('trips.getReservations', { tripId })) as Array<{ endpoints: unknown[] }>;

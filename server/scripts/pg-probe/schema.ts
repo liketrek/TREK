@@ -19,7 +19,6 @@
  *
  * Unique and partial unique indexes stay, because `ON CONFLICT` needs them.
  */
-
 import { pgTimestampText, PG_UTC_NOW } from '../../src/db/dialect/platform';
 
 /** SQLite's timestamp text on Postgres, for a column default. */
@@ -31,9 +30,13 @@ export const NOCASE_COLLATION_SQL =
 
 /** The Postgres spelling of a column default the entities carry in SQLite's. */
 export function portableDefault(raw: string): string {
-  const text = raw.trim().replace(/^\((.*)\)$/s, '$1').trim();
+  const text = raw
+    .trim()
+    .replace(/^\((.*)\)$/s, '$1')
+    .trim();
   if (/^current_timestamp$/i.test(text) || /^datetime\(\s*'now'\s*\)$/i.test(text)) return PG_NOW_TEXT_DEFAULT;
-  if (/^strftime\(\s*'%s'\s*,\s*'now'\s*\)$/i.test(text)) return 'CAST(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) AS bigint)';
+  if (/^strftime\(\s*'%s'\s*,\s*'now'\s*\)$/i.test(text))
+    return 'CAST(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) AS bigint)';
   return raw;
 }
 

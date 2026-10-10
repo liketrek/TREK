@@ -1,9 +1,9 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { BucketList } from '../../../src/db/entities/BucketList.entity';
 import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
 import { VisitedRegions } from '../../../src/db/entities/VisitedRegions.entity';
 import type { FactoryOrm } from './context';
 import { createRow, insertRowIgnoringConflict } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type BucketListRow = EntityDTO<BucketList>;
 

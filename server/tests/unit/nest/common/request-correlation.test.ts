@@ -3,7 +3,6 @@
  * ids are adopted, how a unit of work nests inside another, and how the tag
  * reads in a log line.
  */
-import { describe, it, expect } from 'vitest';
 import {
   acceptRequestId,
   childCorrelation,
@@ -13,9 +12,16 @@ import {
   runWithCorrelation,
 } from '../../../../src/nest/common/request-correlation';
 
+import { describe, it, expect } from 'vitest';
+
 describe('acceptRequestId', () => {
   it('CORR-001: adopts the ids proxies and tracers send', () => {
-    for (const id of ['abc123', '7f9c2ba4-e88f-11ec-8ea0-0242ac120002', 'Root=1-5759e988-bd862e3fe1be46a994272793', 'a.b_c:d']) {
+    for (const id of [
+      'abc123',
+      '7f9c2ba4-e88f-11ec-8ea0-0242ac120002',
+      'Root=1-5759e988-bd862e3fe1be46a994272793',
+      'a.b_c:d',
+    ]) {
       expect(acceptRequestId(id)).toBe(id);
     }
   });

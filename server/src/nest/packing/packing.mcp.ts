@@ -1,15 +1,22 @@
-import {
-  McpController, Tool, ResourceTemplate, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  errorResult, ok,
-} from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied, adminRequired } from '../../mcp/tools/_shared';
-import { PackingService } from './packing.service';
+import {
+  McpController,
+  Tool,
+  ResourceTemplate,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { PackingWritesService } from './packing-writes.service';
+import { PackingService } from './packing.service';
 import {
   packingCreateBagRequestSchema,
   packingCreateItemRequestSchema,
@@ -19,8 +26,8 @@ import {
   type PackingVisibility,
   idSchema,
 } from '@trek/shared';
-import { addonGate } from '../addons/addon-gate';
-import { AddonsService } from '../addons/addons.service';
+
+import { z } from 'zod';
 
 /** Legacy registrar gate: the whole packing surface rides the packing addon. */
 const packingAddonOn = addonGate(ADDON_IDS.PACKING);
@@ -59,39 +66,76 @@ export class PackingMcp {
 
   @Tool({
     name: 'create_packing_item',
-    description: 'Add an item to the packing checklist for a trip. It lands on the common list everyone shares unless visibility says otherwise; use set_packing_item_sharing to move an existing item between those tiers.',
+    description:
+      'Add an item to the packing checklist for a trip. It lands on the common list everyone shares unless visibility says otherwise; use set_packing_item_sharing to move an existing item between those tiers.',
     inputSchema: {
       tripId: idSchema,
       name: packingCreateItemRequestSchema.shape.name.max(200),
       category: z.string().max(100).optional().describe('Packing category (e.g. Clothes, Electronics)'),
-      bag_id: packingCreateItemRequestSchema.shape.bag_id.describe('Bag to pack the item into (ids come from list_packing_bags)'),
+      bag_id: packingCreateItemRequestSchema.shape.bag_id.describe(
+        'Bag to pack the item into (ids come from list_packing_bags)',
+      ),
       quantity: packingCreateItemRequestSchema.shape.quantity.describe('How many to pack, clamped to 1-999'),
-      weight_grams: packingCreateItemRequestSchema.shape.weight_grams.describe('Weight in grams, which feeds the bag fill bar'),
+      weight_grams: packingCreateItemRequestSchema.shape.weight_grams.describe(
+        'Weight in grams, which feeds the bag fill bar',
+      ),
       checked: packingCreateItemRequestSchema.shape.checked.describe('Create the item already ticked off'),
-      is_private: packingCreateItemRequestSchema.shape.is_private.describe('Keep the item to yourself; visibility says the same thing with more nuance'),
-      visibility: packingCreateItemRequestSchema.shape.visibility.describe("Which list the item belongs to: 'common' (the group pool, the default), 'personal' (yours alone), or 'shared' (yours plus recipient_ids)"),
-      recipient_ids: packingCreateItemRequestSchema.shape.recipient_ids.describe("For visibility 'shared': the trip members the item is brought for. Ignored otherwise, and ids outside the trip roster are dropped"),
+      is_private: packingCreateItemRequestSchema.shape.is_private.describe(
+        'Keep the item to yourself; visibility says the same thing with more nuance',
+      ),
+      visibility: packingCreateItemRequestSchema.shape.visibility.describe(
+        "Which list the item belongs to: 'common' (the group pool, the default), 'personal' (yours alone), or 'shared' (yours plus recipient_ids)",
+      ),
+      recipient_ids: packingCreateItemRequestSchema.shape.recipient_ids.describe(
+        "For visibility 'shared': the trip members the item is brought for. Ignored otherwise, and ids outside the trip roster are dropped",
+      ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
   async createPackingItem(
-    { tripId, name, category, bag_id, quantity, weight_grams, checked, is_private, visibility, recipient_ids }: { tripId: number; name: string; category?: string; bag_id?: number | null; quantity?: number; weight_grams?: number | null; checked?: boolean | number; is_private?: boolean; visibility?: PackingVisibility; recipient_ids?: number[] },
-    ctx: McpContext,
-  ) {
-    const item = await this.writes.createItem(tripId, {
+    {
+      tripId,
       name,
-      category: category || 'General',
+      category,
       bag_id,
       quantity,
       weight_grams,
-      // checked takes a boolean or the legacy 0/1, exactly as the REST body does.
-      checked: checked === undefined ? undefined : !!checked,
+      checked,
       is_private,
       visibility,
       recipient_ids,
-    }, await this.guards.tripWriter(tripId, ctx.userId));
+    }: {
+      tripId: number;
+      name: string;
+      category?: string;
+      bag_id?: number | null;
+      quantity?: number;
+      weight_grams?: number | null;
+      checked?: boolean | number;
+      is_private?: boolean;
+      visibility?: PackingVisibility;
+      recipient_ids?: number[];
+    },
+    ctx: McpContext,
+  ) {
+    const item = await this.writes.createItem(
+      tripId,
+      {
+        name,
+        category: category || 'General',
+        bag_id,
+        quantity,
+        weight_grams,
+        // checked takes a boolean or the legacy 0/1, exactly as the REST body does.
+        checked: checked === undefined ? undefined : !!checked,
+        is_private,
+        visibility,
+        recipient_ids,
+      },
+      await this.guards.tripWriter(tripId, ctx.userId),
+    );
     return ok({ item });
   }
 
@@ -107,10 +151,19 @@ export class PackingMcp {
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async togglePackingItem({ tripId, itemId, checked }: { tripId: number; itemId: number; checked: boolean }, ctx: McpContext) {
+  async togglePackingItem(
+    { tripId, itemId, checked }: { tripId: number; itemId: number; checked: boolean },
+    ctx: McpContext,
+  ) {
     // The update use case: a toggle never changes the privacy, so this is its
     // plain update to whoever may see the item (#858, #1976).
-    const item = await this.writes.updateItem(tripId, itemId, { checked: checked ? 1 : 0 }, ['checked'], await this.guards.tripWriter(tripId, ctx.userId));
+    const item = await this.writes.updateItem(
+      tripId,
+      itemId,
+      { checked: checked ? 1 : 0 },
+      ['checked'],
+      await this.guards.tripWriter(tripId, ctx.userId),
+    );
     return ok({ item });
   }
 
@@ -134,49 +187,94 @@ export class PackingMcp {
 
   @Tool({
     name: 'update_packing_item',
-    description: 'Change a packing item: rename it, recategorise it, move it into a bag, set how many are needed, count how many are already packed, record its weight, or flip it between the common list and your own. Ticking it off is toggle_packing_item; choosing who a private item is shared with is set_packing_item_sharing.',
+    description:
+      'Change a packing item: rename it, recategorise it, move it into a bag, set how many are needed, count how many are already packed, record its weight, or flip it between the common list and your own. Ticking it off is toggle_packing_item; choosing who a private item is shared with is set_packing_item_sharing.',
     inputSchema: {
       tripId: idSchema,
       itemId: idSchema,
       name: packingCreateItemRequestSchema.shape.name.max(200).optional(),
       category: z.string().max(100).optional(),
-      bag_id: packingUpdateItemRequestSchema.shape.bag_id.describe('Bag to pack the item into (ids come from list_packing_bags); null takes it out of its bag'),
+      bag_id: packingUpdateItemRequestSchema.shape.bag_id.describe(
+        'Bag to pack the item into (ids come from list_packing_bags); null takes it out of its bag',
+      ),
       quantity: packingUpdateItemRequestSchema.shape.quantity.describe('How many to pack, clamped to 1-999'),
-      packed_quantity: packingUpdateItemRequestSchema.shape.packed_quantity.describe('How many of the quantity are already packed; reaching the quantity ticks the item off, 0 or null clears the count'),
-      weight_grams: packingUpdateItemRequestSchema.shape.weight_grams.describe('Weight in grams, which feeds the bag fill bar; null clears it'),
-      is_private: packingUpdateItemRequestSchema.shape.is_private.describe('true takes the item off the common list and onto the caller\'s own'),
+      packed_quantity: packingUpdateItemRequestSchema.shape.packed_quantity.describe(
+        'How many of the quantity are already packed; reaching the quantity ticks the item off, 0 or null clears the count',
+      ),
+      weight_grams: packingUpdateItemRequestSchema.shape.weight_grams.describe(
+        'Weight in grams, which feeds the bag fill bar; null clears it',
+      ),
+      is_private: packingUpdateItemRequestSchema.shape.is_private.describe(
+        "true takes the item off the common list and onto the caller's own",
+      ),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
   async updatePackingItem(
-    { tripId, itemId, name, category, bag_id, quantity, packed_quantity, weight_grams, is_private }: { tripId: number; itemId: number; name?: string; category?: string; bag_id?: number | null; quantity?: number; packed_quantity?: number | null; weight_grams?: number | null; is_private?: boolean },
+    {
+      tripId,
+      itemId,
+      name,
+      category,
+      bag_id,
+      quantity,
+      packed_quantity,
+      weight_grams,
+      is_private,
+    }: {
+      tripId: number;
+      itemId: number;
+      name?: string;
+      category?: string;
+      bag_id?: number | null;
+      quantity?: number;
+      packed_quantity?: number | null;
+      weight_grams?: number | null;
+      is_private?: boolean;
+    },
     ctx: McpContext,
   ) {
     const fields = { name, category, bag_id, quantity, packed_quantity, weight_grams, is_private };
     // The service reads presence from bodyKeys, so a field has to be named there
     // for an explicit null to clear it rather than read as "leave it alone".
-    const bodyKeys = Object.keys(fields).filter(k => fields[k as keyof typeof fields] !== undefined);
-    const item = await this.writes.updateItem(tripId, itemId, fields, bodyKeys, await this.guards.tripWriter(tripId, ctx.userId));
+    const bodyKeys = Object.keys(fields).filter((k) => fields[k as keyof typeof fields] !== undefined);
+    const item = await this.writes.updateItem(
+      tripId,
+      itemId,
+      fields,
+      bodyKeys,
+      await this.guards.tripWriter(tripId, ctx.userId),
+    );
     return ok({ item });
   }
 
   @Tool({
     name: 'set_packing_item_sharing',
-    description: 'Move an existing packing item between the three sharing tiers: the common list the whole trip pools into, the owner\'s own list, or shared with named trip members. Only the item\'s owner may change this. Everything else about an item is update_packing_item.',
+    description:
+      "Move an existing packing item between the three sharing tiers: the common list the whole trip pools into, the owner's own list, or shared with named trip members. Only the item's owner may change this. Everything else about an item is update_packing_item.",
     inputSchema: {
       tripId: idSchema,
       itemId: idSchema,
-      visibility: packingSetSharingRequestSchema.shape.visibility.describe("'common' puts the item in the group pool, 'personal' keeps it to the owner, 'shared' covers the people in recipient_ids"),
-      recipient_ids: packingSetSharingRequestSchema.shape.recipient_ids.describe("For 'shared': the trip members the item is brought for. Ids outside the trip roster are dropped, and any previous recipients are replaced"),
+      visibility: packingSetSharingRequestSchema.shape.visibility.describe(
+        "'common' puts the item in the group pool, 'personal' keeps it to the owner, 'shared' covers the people in recipient_ids",
+      ),
+      recipient_ids: packingSetSharingRequestSchema.shape.recipient_ids.describe(
+        "For 'shared': the trip members the item is brought for. Ids outside the trip roster are dropped, and any previous recipients are replaced",
+      ),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
   async setPackingItemSharing(
-    { tripId, itemId, visibility, recipient_ids }: { tripId: number; itemId: number; visibility: PackingVisibility; recipient_ids?: number[] },
+    {
+      tripId,
+      itemId,
+      visibility,
+      recipient_ids,
+    }: { tripId: number; itemId: number; visibility: PackingVisibility; recipient_ids?: number[] },
     ctx: McpContext,
   ) {
     if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
@@ -236,55 +334,102 @@ export class PackingMcp {
       tripId: idSchema,
       name: packingCreateBagRequestSchema.shape.name.max(100),
       color: packingCreateBagRequestSchema.shape.color,
-      weight_limit_grams: packingCreateBagRequestSchema.shape.weight_limit_grams.describe('Allowance in grams the bag is measured against (the fill bar)'),
+      weight_limit_grams: packingCreateBagRequestSchema.shape.weight_limit_grams.describe(
+        'Allowance in grams the bag is measured against (the fill bar)',
+      ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async createPackingBag({ tripId, name, color, weight_limit_grams }: { tripId: number; name: string; color?: string; weight_limit_grams?: number | null }, ctx: McpContext) {
+  async createPackingBag(
+    {
+      tripId,
+      name,
+      color,
+      weight_limit_grams,
+    }: { tripId: number; name: string; color?: string; weight_limit_grams?: number | null },
+    ctx: McpContext,
+  ) {
     if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     // createBag returns a bare row; hydrate with the empty members array that
     // listBags and the schema always carry, so the client/AI consumer matches.
-    const bag = { ...(await this.packing.createBag(tripId, { name, color, weight_limit_grams }) as object), members: [] };
+    const bag = {
+      ...((await this.packing.createBag(tripId, { name, color, weight_limit_grams })) as object),
+      members: [],
+    };
     this.guards.safeBroadcast(tripId, 'packing:bag-created', { bag });
     return ok({ bag });
   }
 
   @Tool({
     name: 'update_packing_bag',
-    description: 'Rename or recolor a packing bag, give it a weight limit, or hand it to one traveller. Who else packs into it is set_bag_members.',
+    description:
+      'Rename or recolor a packing bag, give it a weight limit, or hand it to one traveller. Who else packs into it is set_bag_members.',
     inputSchema: {
       tripId: idSchema,
       bagId: idSchema,
       name: packingUpdateBagRequestSchema.shape.name,
       color: packingUpdateBagRequestSchema.shape.color,
-      weight_limit_grams: packingUpdateBagRequestSchema.shape.weight_limit_grams.describe('Allowance in grams the bag is measured against (the fill bar); null lifts the limit'),
-      user_id: packingUpdateBagRequestSchema.shape.user_id.describe('Trip member the bag belongs to; null leaves it unassigned, and an id outside the trip roster unassigns it too'),
+      weight_limit_grams: packingUpdateBagRequestSchema.shape.weight_limit_grams.describe(
+        'Allowance in grams the bag is measured against (the fill bar); null lifts the limit',
+      ),
+      user_id: packingUpdateBagRequestSchema.shape.user_id.describe(
+        'Trip member the bag belongs to; null leaves it unassigned, and an id outside the trip roster unassigns it too',
+      ),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
   async updatePackingBag(
-    { tripId, bagId, name, color, weight_limit_grams, user_id }: { tripId: number; bagId: number; name?: string; color?: string; weight_limit_grams?: number | null; user_id?: number | null },
+    {
+      tripId,
+      bagId,
+      name,
+      color,
+      weight_limit_grams,
+      user_id,
+    }: {
+      tripId: number;
+      bagId: number;
+      name?: string;
+      color?: string;
+      weight_limit_grams?: number | null;
+      user_id?: number | null;
+    },
     ctx: McpContext,
   ) {
     if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     const fields: { name?: string; color?: string; weight_limit_grams?: number | null; user_id?: number | null } = {};
     const bodyKeys: string[] = [];
-    if (name !== undefined) { fields.name = name; bodyKeys.push('name'); }
-    if (color !== undefined) { fields.color = color; bodyKeys.push('color'); }
+    if (name !== undefined) {
+      fields.name = name;
+      bodyKeys.push('name');
+    }
+    if (color !== undefined) {
+      fields.color = color;
+      bodyKeys.push('color');
+    }
     // Both follow the presence protocol: an omitted key leaves the value alone,
     // an explicit null clears it.
-    if (weight_limit_grams !== undefined) { fields.weight_limit_grams = weight_limit_grams; bodyKeys.push('weight_limit_grams'); }
-    if (user_id !== undefined) { fields.user_id = user_id; bodyKeys.push('user_id'); }
+    if (weight_limit_grams !== undefined) {
+      fields.weight_limit_grams = weight_limit_grams;
+      bodyKeys.push('weight_limit_grams');
+    }
+    if (user_id !== undefined) {
+      fields.user_id = user_id;
+      bodyKeys.push('user_id');
+    }
     const updated = await this.packing.updateBag(tripId, bagId, fields, bodyKeys);
     if (!updated) return errorResult('Bag not found.');
     // Hydrate with the members array (matches create_packing_bag, listBags, and the schema).
-    const bag = (await this.packing.listBags(tripId)).find(b => b.id === (updated as { id: number }).id) ?? { ...(updated as object), members: [] };
+    const bag = (await this.packing.listBags(tripId)).find((b) => b.id === (updated as { id: number }).id) ?? {
+      ...(updated as object),
+      members: [],
+    };
     this.guards.safeBroadcast(tripId, 'packing:bag-updated', { bag });
     return ok({ bag });
   }
@@ -325,7 +470,10 @@ export class PackingMcp {
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async setBagMembers({ tripId, bagId, userIds }: { tripId: number; bagId: number; userIds: number[] }, ctx: McpContext) {
+  async setBagMembers(
+    { tripId, bagId, userIds }: { tripId: number; bagId: number; userIds: number[] },
+    ctx: McpContext,
+  ) {
     if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     const members = await this.packing.setBagMembers(tripId, bagId, userIds);
@@ -362,7 +510,10 @@ export class PackingMcp {
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async setPackingCategoryAssignees({ tripId, categoryName, userIds }: { tripId: number; categoryName: string; userIds: number[] }, ctx: McpContext) {
+  async setPackingCategoryAssignees(
+    { tripId, categoryName, userIds }: { tripId: number; categoryName: string; userIds: number[] },
+    ctx: McpContext,
+  ) {
     if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     const assignees = await this.packing.updateCategoryAssignees(tripId, categoryName, userIds);
@@ -393,7 +544,8 @@ export class PackingMcp {
 
   @Tool({
     name: 'list_packing_templates',
-    description: 'List the reusable packing templates (id, name, item count) so one can be applied with apply_packing_template.',
+    description:
+      'List the reusable packing templates (id, name, item count) so one can be applied with apply_packing_template.',
     inputSchema: {
       tripId: idSchema,
     },
@@ -408,7 +560,8 @@ export class PackingMcp {
 
   @Tool({
     name: 'save_packing_template',
-    description: 'Save the current packing list as a reusable template. Returns the new template (id, name, category/item counts). Admin only.',
+    description:
+      'Save the current packing list as a reusable template. Returns the new template (id, name, category/item counts). Admin only.',
     inputSchema: {
       tripId: idSchema,
       templateName: z.string().min(1).max(100),
@@ -446,24 +599,46 @@ export class PackingMcp {
 
   @Tool({
     name: 'bulk_import_packing',
-    description: 'Import multiple packing items at once from a list. Optionally assign each to a bag (by name — created if missing), set its weight, or pre-check it.',
+    description:
+      'Import multiple packing items at once from a list. Optionally assign each to a bag (by name — created if missing), set its weight, or pre-check it.',
     inputSchema: {
       tripId: idSchema,
-      items: z.array(z.strictObject({
-        name: z.string().min(1).max(200),
-        category: z.string().optional(),
-        quantity: idSchema.optional(),
-        bag: z.string().max(100).optional().describe('Bag name to assign the item to; created if it does not exist'),
-        weight_grams: z.number().nonnegative().optional(),
-        checked: z.boolean().optional(),
-      })).min(1),
+      items: z
+        .array(
+          z.strictObject({
+            name: z.string().min(1).max(200),
+            category: z.string().optional(),
+            quantity: idSchema.optional(),
+            bag: z
+              .string()
+              .max(100)
+              .optional()
+              .describe('Bag name to assign the item to; created if it does not exist'),
+            weight_grams: z.number().nonnegative().optional(),
+            checked: z.boolean().optional(),
+          }),
+        )
+        .min(1),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
   async bulkImportPacking(
-    { tripId, items }: { tripId: number; items: { name: string; category?: string; quantity?: number; bag?: string; weight_grams?: number; checked?: boolean }[] },
+    {
+      tripId,
+      items,
+    }: {
+      tripId: number;
+      items: {
+        name: string;
+        category?: string;
+        quantity?: number;
+        bag?: string;
+        weight_grams?: number;
+        checked?: boolean;
+      }[];
+    },
     ctx: McpContext,
   ) {
     if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
@@ -490,21 +665,25 @@ export class PackingMcp {
     const id = parseId(tripId);
     if (id === null || !(await this.packing.verifyTripAccess(id, ctx.userId))) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
     // Hide other members' private items (#858) from the requesting user.
     const items = await this.packing.listItems(id, ctx.userId);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(items, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(items, null, 2),
+        },
+      ],
     };
   }
 
@@ -520,20 +699,24 @@ export class PackingMcp {
     const id = parseId(tripId);
     if (id === null || !(await this.packing.verifyTripAccess(id, ctx.userId))) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
     const bags = await this.packing.listBags(id);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(bags, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(bags, null, 2),
+        },
+      ],
     };
   }
 

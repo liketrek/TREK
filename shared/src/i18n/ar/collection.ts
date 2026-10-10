@@ -246,7 +246,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'الإضافة إلى قائمة',
   'collections.file.targetExistingHint': 'إلى قائمة لديك بالفعل',
   'collections.file.searchLists': 'البحث في القوائم',
-  'collections.file.intoHint': 'الأماكن الموجودة في القائمة تبقى كما هي، وكذلك اسمها ولونها. وتُضاف التسميات القادمة من الملف.',
+  'collections.file.intoHint':
+    'الأماكن الموجودة في القائمة تبقى كما هي، وكذلك اسمها ولونها. وتُضاف التسميات القادمة من الملف.',
   'collections.file.confirmInto': 'إضافة إلى القائمة',
   'collections.file.doneInto': 'تمت إضافة {count} مكان إلى {name}',
   'collections.file.doneInto.zero': 'لم تتم إضافة أي مكان إلى {name}',

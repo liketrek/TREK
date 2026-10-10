@@ -23,9 +23,9 @@
  * Land here first (Task 2); Tasks 3 (packing), 4 (todo) and 5 (collab) copy
  * this shape rather than re-deriving their own CASE WHEN translation.
  */
-export function presenceSet<T extends Record<string, unknown>>(
-  fields: { [K in keyof T]?: readonly [present: boolean, value: T[K]] },
-): Partial<T> {
+export function presenceSet<T extends Record<string, unknown>>(fields: {
+  [K in keyof T]?: readonly [present: boolean, value: T[K]];
+}): Partial<T> {
   const out: Partial<T> = {};
   for (const key of Object.keys(fields) as (keyof T)[]) {
     const entry = fields[key];

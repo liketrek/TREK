@@ -1,25 +1,24 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
-
-vi.mock('../../../../src/db/database', async () => {
-
-  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
-  const db = createSnapshotTestDb();
-    return { db, closeDb: () => {}, reinitialize: () => {} };
-});
-
 import { db as testDb } from '../../../../src/db/database';
+import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
+import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
+import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
+import { StatsBusyError, StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
+import { StorageService } from '../../../../src/nest/storage/storage.service';
+import { deleteRows } from '../../../helpers/factories/rows';
+import { readAppSetting, setAppSetting } from '../../../helpers/factories/settings';
+import { createTestUnitOfWork, createTestAppSettingsRepo, sharedTestOrm } from '../../../helpers/test-uow';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
-import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
-import { StorageService } from '../../../../src/nest/storage/storage.service';
-import { StatsBusyError, StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, sharedTestOrm } from '../../../helpers/test-uow';
-import { deleteRows } from '../../../helpers/factories/rows';
-import { readAppSetting, setAppSetting } from '../../../helpers/factories/settings';
-import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+
+vi.mock('../../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
+  const db = createSnapshotTestDb();
+  return { db, closeDb: () => {}, reinitialize: () => {} };
+});
 
 const tmpDirs: string[] = [];
 function makeTmpDir(): string {

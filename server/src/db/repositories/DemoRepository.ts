@@ -1,16 +1,24 @@
-import type { EntityManager } from '@mikro-orm/core';
-import type { SqlEntityManager } from '@mikro-orm/sql';
-import { Users } from '../entities/Users.entity';
-import type { NewAdminUserRow } from './Users.repository';
+import { currentTimestampKysely } from '../dialect/kysely-functions';
 import { AppSettings } from '../entities/AppSettings.entity';
 import { Trips } from '../entities/Trips.entity';
-import { currentTimestampKysely } from '../dialect/kysely-functions';
+import { Users } from '../entities/Users.entity';
 import type { DB } from '../kysely/db';
+import type { NewAdminUserRow } from './Users.repository';
+import type { EntityManager } from '@mikro-orm/core';
+import type { SqlEntityManager } from '@mikro-orm/sql';
 
 /** The tables the example-trip seed writes through Kysely. */
 type DemoSeedKyselyDB = Pick<
   DB,
-  'trip_members' | 'trips' | 'days' | 'places' | 'day_assignments' | 'packing_items' | 'budget_items' | 'reservations' | 'day_notes'
+  | 'trip_members'
+  | 'trips'
+  | 'days'
+  | 'places'
+  | 'day_assignments'
+  | 'packing_items'
+  | 'budget_items'
+  | 'reservations'
+  | 'day_notes'
 >;
 
 /** DMR1's projection (`resetDemoUser`'s pre-close credential read). */
@@ -165,7 +173,14 @@ export class DemoRepository {
   }
 
   /** DMS7 — `INSERT INTO trips (user_id, title, description, start_date, end_date, currency) VALUES (?, ?, ?, ?, ?, ?)`. Returns the generated trip id. */
-  async insertTrip(userId: number, title: string, description: string, startDate: string, endDate: string, currency: string): Promise<number> {
+  async insertTrip(
+    userId: number,
+    title: string,
+    description: string,
+    startDate: string,
+    endDate: string,
+    currency: string,
+  ): Promise<number> {
     const inserted = await this.kysely()
       .insertInto('trips')
       .values({ user_id: userId, title, description, start_date: startDate, end_date: endDate, currency })
@@ -186,11 +201,37 @@ export class DemoRepository {
 
   /** DMS9 — the 13-column `places` insert (see {@link NewDemoPlaceRow}). Returns the generated place id. */
   async insertPlace(row: NewDemoPlaceRow): Promise<number> {
-    const [trip_id, name, lat, lng, address, category_id, place_time, duration_minutes, notes, image_url, google_place_id, website, phone] = row;
+    const [
+      trip_id,
+      name,
+      lat,
+      lng,
+      address,
+      category_id,
+      place_time,
+      duration_minutes,
+      notes,
+      image_url,
+      google_place_id,
+      website,
+      phone,
+    ] = row;
     const inserted = await this.kysely()
       .insertInto('places')
       .values({
-        trip_id, name, lat, lng, address, category_id, place_time, duration_minutes, notes, image_url, google_place_id, website, phone,
+        trip_id,
+        name,
+        lat,
+        lng,
+        address,
+        category_id,
+        place_time,
+        duration_minutes,
+        notes,
+        image_url,
+        google_place_id,
+        website,
+        phone,
       })
       .returning('id')
       .executeTakeFirstOrThrow();
@@ -199,20 +240,43 @@ export class DemoRepository {
 
   /** DMS10 — `INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (?, ?, ?)`. */
   async insertDayAssignment(dayId: number, placeId: number, orderIndex: number): Promise<void> {
-    await this.kysely().insertInto('day_assignments').values({ day_id: dayId, place_id: placeId, order_index: orderIndex }).execute();
+    await this.kysely()
+      .insertInto('day_assignments')
+      .values({ day_id: dayId, place_id: placeId, order_index: orderIndex })
+      .execute();
   }
 
   /** DMS11 — `INSERT INTO packing_items (trip_id, name, checked, category, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`. */
-  async insertPackingItem(tripId: number, name: string, checked: number, category: string, sortOrder: number): Promise<void> {
+  async insertPackingItem(
+    tripId: number,
+    name: string,
+    checked: number,
+    category: string,
+    sortOrder: number,
+  ): Promise<void> {
     const platform = this.em.getPlatform();
     await this.kysely()
       .insertInto('packing_items')
-      .values({ trip_id: tripId, name, checked, category, sort_order: sortOrder, updated_at: currentTimestampKysely(platform) })
+      .values({
+        trip_id: tripId,
+        name,
+        checked,
+        category,
+        sort_order: sortOrder,
+        updated_at: currentTimestampKysely(platform),
+      })
       .execute();
   }
 
   /** DMS12 — `INSERT INTO budget_items (trip_id, category, name, total_price, persons, note) VALUES (?, ?, ?, ?, ?, ?)`. */
-  async insertBudgetItem(tripId: number, category: string, name: string, totalPrice: number, persons: number, note: string | null): Promise<void> {
+  async insertBudgetItem(
+    tripId: number,
+    category: string,
+    name: string,
+    totalPrice: number,
+    persons: number,
+    note: string | null,
+  ): Promise<void> {
     await this.kysely()
       .insertInto('budget_items')
       .values({ trip_id: tripId, category, name, total_price: totalPrice, persons, note })
@@ -238,13 +302,27 @@ export class DemoRepository {
     await this.kysely()
       .insertInto('reservations')
       .values({
-        trip_id: tripId, day_id: dayId, title, reservation_time: reservationTime, confirmation_number: confirmationNumber, status, type, location,
+        trip_id: tripId,
+        day_id: dayId,
+        title,
+        reservation_time: reservationTime,
+        confirmation_number: confirmationNumber,
+        status,
+        type,
+        location,
       })
       .execute();
   }
 
   /** DMS14 — `INSERT INTO day_notes (day_id, trip_id, text, time, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?)`. */
-  async insertDayNote(dayId: number, tripId: number, text: string, time: string, icon: string, sortOrder: number): Promise<void> {
+  async insertDayNote(
+    dayId: number,
+    tripId: number,
+    text: string,
+    time: string,
+    icon: string,
+    sortOrder: number,
+  ): Promise<void> {
     await this.kysely()
       .insertInto('day_notes')
       .values({ day_id: dayId, trip_id: tripId, text, time, icon, sort_order: sortOrder })
@@ -265,7 +343,10 @@ export class DemoRepository {
   async getAdminCredentials(email: string): Promise<DemoAdminCredentialsRow | null> {
     const row = await this.em
       .getRepository(Users)
-      .findOne({ email }, { fields: ['password_hash', 'maps_api_key', 'openweather_api_key', 'unsplash_api_key', 'avatar'] });
+      .findOne(
+        { email },
+        { fields: ['password_hash', 'maps_api_key', 'openweather_api_key', 'unsplash_api_key', 'avatar'] },
+      );
     return row
       ? {
           password_hash: row.password_hash,

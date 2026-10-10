@@ -7,8 +7,6 @@
  * own transaction calls do nothing, and statements land on the method that
  * sent them.
  */
-import { Kysely, PostgresDialect, type PostgresPool } from 'kysely';
-import { describe, expect, it } from 'vitest';
 import {
   errorLine,
   isTransactionControl,
@@ -16,6 +14,9 @@ import {
   sqlState,
   StatementRecorder,
 } from '../../../../scripts/pg-probe/recorder';
+
+import { Kysely, PostgresDialect, type PostgresPool } from 'kysely';
+import { describe, expect, it } from 'vitest';
 
 interface ProbeDB {
   t: { v: number };
@@ -62,7 +63,10 @@ describe('pg-probe recorder', () => {
   it('PGPROBE-022: a refused statement is recorded with its SQLSTATE and answered as an empty table', async () => {
     const { db, log, recorder } = fakeDatabase();
     const rows = await recorder.run('A.b', async () => {
-      const first = await db.selectFrom('t').select('boom' as 'v').execute();
+      const first = await db
+        .selectFrom('t')
+        .select('boom' as 'v')
+        .execute();
       await db.selectFrom('t').select('v').execute();
       return first;
     });
@@ -83,7 +87,7 @@ describe('pg-probe recorder', () => {
     ]);
   });
 
-  it('PGPROBE-023: the caller\'s own transaction and savepoints never reach the database', async () => {
+  it("PGPROBE-023: the caller's own transaction and savepoints never reach the database", async () => {
     const { db, log, recorder } = fakeDatabase();
     await recorder.run('A.b', () =>
       db.transaction().execute(async (trx) => {
@@ -113,12 +117,23 @@ describe('pg-probe recorder', () => {
       }),
     ]);
     expect(recorder.statementsOf('A.one')).toHaveLength(1);
-    expect(recorder.statementsOf('B.two').map((s) => s.sql)).toEqual(['select "v" from "t"', 'select "v" from "t" where "v" = $1']);
+    expect(recorder.statementsOf('B.two').map((s) => s.sql)).toEqual([
+      'select "v" from "t"',
+      'select "v" from "t" where "v" = $1',
+    ]);
     expect(recorder.current()).toBeNull();
   });
 
   it('PGPROBE-025: classifies transaction control and reads driver errors', () => {
-    for (const sql of ['begin', 'COMMIT', 'rollback', 'start transaction isolation level serializable', 'savepoint "trx1"', 'release savepoint "trx1"', 'rollback to savepoint "trx1"']) {
+    for (const sql of [
+      'begin',
+      'COMMIT',
+      'rollback',
+      'start transaction isolation level serializable',
+      'savepoint "trx1"',
+      'release savepoint "trx1"',
+      'rollback to savepoint "trx1"',
+    ]) {
       expect(isTransactionControl(sql)).toBe(true);
     }
     for (const sql of ['select 1', 'insert into "begin_log" values (1)', 'update "t" set "v" = 1']) {

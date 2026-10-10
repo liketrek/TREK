@@ -1,8 +1,8 @@
-import type { Days } from '../entities/Days.entity';
 import { columnRef } from '../dialect/sql-functions';
+import type { Days } from '../entities/Days.entity';
+import type { DB } from '../kysely/db';
 import { toRow, type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /** A `days` row as the API emits it. */
 export interface DayRow {
@@ -317,10 +317,12 @@ export class DaysRepository extends TrekRepository<Days> {
       .selectFrom('days as d')
       .select(['d.id', 'd.day_number', 'd.date'])
       .select((eb) =>
-        eb.or([
-          eb.exists(eb.selectFrom('day_assignments as da').select('da.id').whereRef('da.day_id', '=', 'd.id')),
-          eb.exists(eb.selectFrom('day_notes as dn').select('dn.id').whereRef('dn.day_id', '=', 'd.id')),
-        ]).as('has_plan_items'),
+        eb
+          .or([
+            eb.exists(eb.selectFrom('day_assignments as da').select('da.id').whereRef('da.day_id', '=', 'd.id')),
+            eb.exists(eb.selectFrom('day_notes as dn').select('dn.id').whereRef('dn.day_id', '=', 'd.id')),
+          ])
+          .as('has_plan_items'),
       )
       .where('d.trip_id', '=', trip_id)
       .orderBy('d.day_number', 'asc')

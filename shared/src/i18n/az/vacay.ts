@@ -1,9 +1,11 @@
 import type { TranslationStrings } from '../types';
 
 const vacay: TranslationStrings = {
-  'schoolCatalog.refreshError': 'Dəyişiklik yadda saxlanıldı, lakin siyahını yeniləmək mümkün olmadı. Siyahını yenidən yükləyin.',
+  'schoolCatalog.refreshError':
+    'Dəyişiklik yadda saxlanıldı, lakin siyahını yeniləmək mümkün olmadı. Siyahını yenidən yükləyin.',
   'schoolCatalog.title': 'Məktəb tətilləri',
-  'schoolCatalog.hint': 'Paylaşılan məktəb tətili regionlarını idarə edin. Hər kəs onları məzuniyyət tənzimləmələrində seçə bilər.',
+  'schoolCatalog.hint':
+    'Paylaşılan məktəb tətili regionlarını idarə edin. Hər kəs onları məzuniyyət tənzimləmələrində seçə bilər.',
   'schoolCatalog.periodHint': 'Başlanğıc və bitmə tarixləri daxildir. Hər tədris ili üçün tətil dövrləri əlavə edin.',
   'schoolCatalog.region': 'Region və ya məktəb dairəsi',
   'schoolCatalog.name': 'Tətilin adı',
@@ -20,7 +22,8 @@ const vacay: TranslationStrings = {
   'schoolCatalog.empty': 'Hələ region yoxdur.',
   'schoolCatalog.addRegion': 'Region əlavə et',
   'schoolCatalog.offline': 'Məktəb tətillərini idarə etmək üçün internetə qoşulun.',
-  'schoolCatalog.loadError': 'Məktəb tətili regionlarını yükləmək mümkün olmadı. Yenidən sınamaq üçün tənzimləmələri təkrar açın.',
+  'schoolCatalog.loadError':
+    'Məktəb tətili regionlarını yükləmək mümkün olmadı. Yenidən sınamaq üçün tənzimləmələri təkrar açın.',
   'schoolCatalog.retry': 'Yenidən cəhd et',
   'vacay.subtitle': 'Məzuniyyət günlərini planlaşdırın və idarə edin',
   'vacay.settings': 'Tənzimləmələr',
@@ -91,7 +94,8 @@ const vacay: TranslationStrings = {
   'vacay.compUsedCount': '{count} kompensasiya / çevik gün',
   'vacay.compUsedCount.one': '{count} kompensasiya / çevik gün',
   'vacay.yearType': 'Məzuniyyət ili',
-  'vacay.yearTypeHint': 'Məzuniyyət ilinin nə vaxt başladığını seçin — limit, istifadə və növbəti dövrə keçirmə buna əsaslanır',
+  'vacay.yearTypeHint':
+    'Məzuniyyət ilinin nə vaxt başladığını seçin — limit, istifadə və növbəti dövrə keçirmə buna əsaslanır',
   'vacay.yearTypeCalendar': 'Təqvim ili',
   'vacay.yearTypeFiscal': 'Maliyyə ili',
   'vacay.yearTypeAnniversary': 'İşə qəbul tarixi',
@@ -134,7 +138,8 @@ const vacay: TranslationStrings = {
   'vacay.fuseInfo5': 'Birləşdirmə istənilən vaxt tərəflərdən biri tərəfindən ləğv edilə bilər. Qeydləriniz qorunacaq.',
   'vacay.sharedCalendars': 'Paylaşılan təqvimlər',
   'vacay.shareCalendar': 'Təqvimi paylaş',
-  'vacay.shareCalendarHint': 'Başqa TREK istifadəçisinə məzuniyyət təqviminizi görməyə icazə verin. Yalnız baxış — birləşdirmə və redaktə yoxdur.',
+  'vacay.shareCalendarHint':
+    'Başqa TREK istifadəçisinə məzuniyyət təqviminizi görməyə icazə verin. Yalnız baxış — birləşdirmə və redaktə yoxdur.',
   'vacay.sharedWithYou': 'Sizinlə paylaşılan',
   'vacay.youShareWith': 'Paylaşdığınız şəxslər',
   'vacay.viewOnly': 'yalnız baxış',

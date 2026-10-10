@@ -1,13 +1,14 @@
-import { createHash, randomUUID } from 'crypto';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { Request } from 'express';
-import jwt from 'jsonwebtoken';
-import type { UserSession } from '@trek/shared';
 import { JWT_SECRET, SESSION_DURATION_SECONDS, SESSION_DURATION_REMEMBER_SECONDS } from '../../config';
 import { UserSessions } from '../../db/entities/UserSessions.entity';
 import type { UserSessionsRepository } from '../../db/repositories/UserSessions.repository';
 import { dbNow } from '../../db/types';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { UserSession } from '@trek/shared';
+
+import { createHash, randomUUID } from 'crypto';
+import type { Request } from 'express';
+import jwt from 'jsonwebtoken';
 
 /** The longest User-Agent kept, the same cap a Web Push device's gets. */
 export const USER_AGENT_MAX_LENGTH = 256;
@@ -205,11 +206,11 @@ export class SessionsService {
     // "Remember me" extends the JWT lifetime to match the persistent cookie
     // maxAge; the cookie service decides session-vs-persistent off the same flag.
     const expiresIn = remember === true ? SESSION_DURATION_REMEMBER_SECONDS : SESSION_DURATION_SECONDS;
-    return jwt.sign(
-      { id: user.id, pv: user.pv, ...(typeof remember === 'boolean' ? { remember } : {}) },
-      JWT_SECRET,
-      { expiresIn, algorithm: 'HS256', jwtid: jti },
-    );
+    return jwt.sign({ id: user.id, pv: user.pv, ...(typeof remember === 'boolean' ? { remember } : {}) }, JWT_SECRET, {
+      expiresIn,
+      algorithm: 'HS256',
+      jwtid: jti,
+    });
   }
 
   /** `iat` and `exp` of a token this service just signed. */

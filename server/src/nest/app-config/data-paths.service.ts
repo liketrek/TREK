@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
 import { resolveDataPaths, type DataPaths } from '../../app-config/data-paths';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The data layout for Nest classes: the data directory, uploads, backups,

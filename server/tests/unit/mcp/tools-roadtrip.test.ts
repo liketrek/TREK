@@ -8,27 +8,27 @@
  * day-belongs-to-this-trip check, the `day_edit` permission, and the cross-trip
  * track check on the batch tool.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { ADDON_IDS } from '../../../src/addons';
 import { db as testDb } from '../../../src/db/database';
+import { Places } from '../../../src/db/entities/Places.entity';
+import { RoadtripPreferences } from '../../../src/db/entities/RoadtripPreferences.entity';
+import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
+import { DEMO_EMAIL_PRIMARY } from '../../../src/nest/common/demo';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { createUser, createTrip, createDay, createPlace } from '../../helpers/factories';
+import { addTripMember } from '../../helpers/factories';
+import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { createTestUnitOfWork, createTestAppSettingsRepo } from '../../helpers/test-uow';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { ADDON_IDS } from '../../../src/addons';
-import { addTripMember } from '../../helpers/factories';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { DEMO_EMAIL_PRIMARY } from '../../../src/nest/common/demo';
-import { createTestUnitOfWork, createTestAppSettingsRepo } from '../../helpers/test-uow';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
-import { Places } from '../../../src/db/entities/Places.entity';
-import { RoadtripPreferences } from '../../../src/db/entities/RoadtripPreferences.entity';
-import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
 
 let orm: TestOrm;
 
@@ -37,7 +37,10 @@ let orm: TestOrm;
 let savePermissions: PermissionsService['savePermissions'];
 beforeAll(async () => {
   orm = await createTestOrm(testDb);
-  const permissionsService = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
+  const permissionsService = new PermissionsService(
+    await createTestAppSettingsRepo(testDb),
+    await createTestUnitOfWork(testDb),
+  );
   savePermissions = permissionsService.savePermissions.bind(permissionsService);
 });
 
@@ -55,7 +58,11 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false, scopes: null });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 /** A trip with one day, plus a place carrying a route geometry to use as a track. */
@@ -74,8 +81,14 @@ describe('road-trip MCP tools', () => {
     setAddonEnabled(testDb, ADDON_IDS.ROADTRIP, false);
 
     await withHarness(user.id, async (h) => {
-      const names = (await h.client.listTools()).tools.map(t => t.name);
-      for (const tool of ['list_route_vias', 'add_route_via', 'add_route_vias', 'reanchor_route_vias', 'remove_route_via']) {
+      const names = (await h.client.listTools()).tools.map((t) => t.name);
+      for (const tool of [
+        'list_route_vias',
+        'add_route_via',
+        'add_route_vias',
+        'reanchor_route_vias',
+        'remove_route_via',
+      ]) {
         expect(names, tool).not.toContain(tool);
       }
     });
@@ -84,8 +97,14 @@ describe('road-trip MCP tools', () => {
   it('MCP-ROADTRIP-002: and there while it is on', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const names = (await h.client.listTools()).tools.map(t => t.name);
-      for (const tool of ['list_route_vias', 'add_route_via', 'add_route_vias', 'reanchor_route_vias', 'remove_route_via']) {
+      const names = (await h.client.listTools()).tools.map((t) => t.name);
+      for (const tool of [
+        'list_route_vias',
+        'add_route_via',
+        'add_route_vias',
+        'reanchor_route_vias',
+        'remove_route_via',
+      ]) {
         expect(names, tool).toContain(tool);
       }
     });
@@ -102,18 +121,22 @@ describe('road-trip MCP tools', () => {
       expect(added.isError).toBeFalsy();
       expect((parseToolResult(added) as { via: { day_id: number } }).via).toMatchObject({ day_id: day.id, lat: 53 });
 
-      const forDay = parseToolResult(await h.client.callTool({
-        name: 'list_route_vias',
-        arguments: { tripId: trip.id, dayId: day.id },
-      })) as { vias: unknown[] };
+      const forDay = parseToolResult(
+        await h.client.callTool({
+          name: 'list_route_vias',
+          arguments: { tripId: trip.id, dayId: day.id },
+        }),
+      ) as { vias: unknown[] };
       expect(forDay.vias).toHaveLength(1);
 
       // Without a day, the answer covers the whole trip and carries the tracks
       // alongside, which is the shape the client reads on every load.
-      const forTrip = parseToolResult(await h.client.callTool({
-        name: 'list_route_vias',
-        arguments: { tripId: trip.id },
-      })) as { vias: unknown[]; tracks: unknown[] };
+      const forTrip = parseToolResult(
+        await h.client.callTool({
+          name: 'list_route_vias',
+          arguments: { tripId: trip.id },
+        }),
+      ) as { vias: unknown[]; tracks: unknown[] };
       expect(forTrip.vias).toHaveLength(1);
       expect(forTrip.tracks).toEqual([]);
     });
@@ -166,17 +189,22 @@ describe('road-trip MCP tools', () => {
         arguments: {
           tripId: trip.id,
           dayId: day.id,
-          vias: [{ after_order_index: 0, lat: 53, lng: 10 }, { after_order_index: 0, lat: 53.5, lng: 10.5 }],
+          vias: [
+            { after_order_index: 0, lat: 53, lng: 10 },
+            { after_order_index: 0, lat: 53.5, lng: 10.5 },
+          ],
           track: { place_id: track.id, stray_km: 1.5 },
         },
       });
       expect(res.isError).toBeFalsy();
       expect((parseToolResult(res) as { vias: unknown[] }).vias).toHaveLength(2);
 
-      const all = parseToolResult(await h.client.callTool({
-        name: 'list_route_vias',
-        arguments: { tripId: trip.id },
-      })) as { tracks: { day_id: number; place_id: number; stray_km: number }[] };
+      const all = parseToolResult(
+        await h.client.callTool({
+          name: 'list_route_vias',
+          arguments: { tripId: trip.id },
+        }),
+      ) as { tracks: { day_id: number; place_id: number; stray_km: number }[] };
       expect(all.tracks).toEqual([{ day_id: day.id, place_id: track.id, stray_km: 1.5 }]);
     });
   });
@@ -207,24 +235,30 @@ describe('road-trip MCP tools', () => {
     const { user, trip, day } = await scenario();
 
     await withHarness(user.id, async (h) => {
-      const first = parseToolResult(await h.client.callTool({
-        name: 'add_route_via',
-        arguments: { tripId: trip.id, dayId: day.id, after_order_index: 0, lat: 53, lng: 10 },
-      })) as { via: { id: number } };
-      const second = parseToolResult(await h.client.callTool({
-        name: 'add_route_via',
-        arguments: { tripId: trip.id, dayId: day.id, after_order_index: 1, lat: 54, lng: 11 },
-      })) as { via: { id: number } };
+      const first = parseToolResult(
+        await h.client.callTool({
+          name: 'add_route_via',
+          arguments: { tripId: trip.id, dayId: day.id, after_order_index: 0, lat: 53, lng: 10 },
+        }),
+      ) as { via: { id: number } };
+      const second = parseToolResult(
+        await h.client.callTool({
+          name: 'add_route_via',
+          arguments: { tripId: trip.id, dayId: day.id, after_order_index: 1, lat: 54, lng: 11 },
+        }),
+      ) as { via: { id: number } };
 
-      const res = parseToolResult(await h.client.callTool({
-        name: 'reanchor_route_vias',
-        arguments: {
-          tripId: trip.id,
-          dayId: day.id,
-          vias: [{ id: second.via.id, after_order_index: 0 }],
-          remove: [first.via.id],
-        },
-      })) as { vias: { id: number; after_order_index: number }[] };
+      const res = parseToolResult(
+        await h.client.callTool({
+          name: 'reanchor_route_vias',
+          arguments: {
+            tripId: trip.id,
+            dayId: day.id,
+            vias: [{ id: second.via.id, after_order_index: 0 }],
+            remove: [first.via.id],
+          },
+        }),
+      ) as { vias: { id: number; after_order_index: number }[] };
 
       expect(res.vias).toHaveLength(1);
       expect(res.vias[0]).toMatchObject({ id: second.via.id, after_order_index: 0 });
@@ -307,7 +341,9 @@ describe('road-trip MCP tools', () => {
     };
 
     await withHarness(user.id, async (h) => {
-      const before = parseToolResult(await h.client.callTool({ name: 'get_roadtrip_settings', arguments: { tripId: trip.id } })) as {
+      const before = parseToolResult(
+        await h.client.callTool({ name: 'get_roadtrip_settings', arguments: { tripId: trip.id } }),
+      ) as {
         settings: Record<string, unknown>;
       };
       // Missing means off: nothing is written for a trip that never touched it.
@@ -319,7 +355,9 @@ describe('road-trip MCP tools', () => {
         arguments: { tripId: trip.id, settings: { roadtrip_hotel_bookends: true } },
       });
       expect(saved.isError).toBeFalsy();
-      const after = parseToolResult(await h.client.callTool({ name: 'get_roadtrip_settings', arguments: { tripId: trip.id } })) as {
+      const after = parseToolResult(
+        await h.client.callTool({ name: 'get_roadtrip_settings', arguments: { tripId: trip.id } }),
+      ) as {
         settings: Record<string, unknown>;
       };
       expect(after.settings.roadtrip_hotel_bookends).toBe(true);
@@ -349,7 +387,7 @@ describe('road-trip MCP tools', () => {
     await withHarness(user.id, async (h) => {
       const tools = (await h.client.listTools()).tools;
       for (const name of ['add_route_via', 'add_route_vias']) {
-        const description = tools.find(t => t.name === name)?.description ?? '';
+        const description = tools.find((t) => t.name === name)?.description ?? '';
         expect(description, name).toContain('roadtrip_hotel_bookends');
         expect(description, name).toContain('kept but not used');
       }

@@ -1,7 +1,7 @@
-import type { ShareTokens } from '../entities/ShareTokens.entity';
 import { currentTimestampKysely } from '../dialect/kysely-functions';
-import { TrekRepository } from './_shared/trek-repository';
+import type { ShareTokens } from '../entities/ShareTokens.entity';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /**
  * `share_tokens` — public trip-share links (Plan 3h Task 6). `trip_id` and
@@ -42,7 +42,11 @@ export class ShareTokensRepository extends TrekRepository<ShareTokens> {
    * trip_id = ?`.
    */
   async findTokenByTrip(trip_id: number | string): Promise<{ token: string } | undefined> {
-    return await this.db_().selectFrom('share_tokens').select('token').where('trip_id', '=', trip_id as number).executeTakeFirst();
+    return await this.db_()
+      .selectFrom('share_tokens')
+      .select('token')
+      .where('trip_id', '=', trip_id as number)
+      .executeTakeFirst();
   }
 
   /**
@@ -51,16 +55,19 @@ export class ShareTokensRepository extends TrekRepository<ShareTokens> {
    * share_collab=?, share_travel_only=?, share_hide_images=?, expires_at=?
    * WHERE trip_id=?`.
    */
-  async updateFlagsByTrip(trip_id: number | string, data: {
-    share_map: number;
-    share_bookings: number;
-    share_packing: number;
-    share_budget: number;
-    share_collab: number;
-    share_travel_only: number;
-    share_hide_images: number;
-    expires_at: string;
-  }): Promise<void> {
+  async updateFlagsByTrip(
+    trip_id: number | string,
+    data: {
+      share_map: number;
+      share_bookings: number;
+      share_packing: number;
+      share_budget: number;
+      share_collab: number;
+      share_travel_only: number;
+      share_hide_images: number;
+      expires_at: string;
+    },
+  ): Promise<void> {
     await this.nativeUpdate({ trip: trip_id as number }, data);
   }
 
@@ -102,7 +109,11 @@ export class ShareTokensRepository extends TrekRepository<ShareTokens> {
 
   /** SH4 (`get`) — `SELECT * FROM share_tokens WHERE trip_id = ?`. */
   async findRawByTrip(trip_id: number | string): Promise<ShareTokenRow | undefined> {
-    return await this.db_().selectFrom('share_tokens').selectAll().where('trip_id', '=', trip_id as number).executeTakeFirst();
+    return await this.db_()
+      .selectFrom('share_tokens')
+      .selectAll()
+      .where('trip_id', '=', trip_id as number)
+      .executeTakeFirst();
   }
 
   /**
@@ -143,7 +154,9 @@ export class ShareTokensRepository extends TrekRepository<ShareTokens> {
    * SH17 (`getSharedPlacePhotoKey`) — `trip_id, share_map,
    * share_hide_images` only, SAME valid-token predicate as SH6/R1.
    */
-  async findTripAndShareMapByToken(token: string): Promise<{ trip_id: number; share_map: number | null; share_hide_images: number } | undefined> {
+  async findTripAndShareMapByToken(
+    token: string,
+  ): Promise<{ trip_id: number; share_map: number | null; share_hide_images: number } | undefined> {
     return await this.validTokenQuery(token).select(['trip_id', 'share_map', 'share_hide_images']).executeTakeFirst();
   }
 

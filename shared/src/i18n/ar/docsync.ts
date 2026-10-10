@@ -174,7 +174,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'لم يتم النقل.',
 
   'docsync.error.unknown_provider': 'هذا المزوّد غير متاح على هذا الخادم.',
-  'docsync.error.provider_disabled': 'متوقفة مؤقتاً: أوقف مسؤول الخادم هذا المزوّد. ستُستأنف المزامنة عند إعادة تشغيله.',
+  'docsync.error.provider_disabled':
+    'متوقفة مؤقتاً: أوقف مسؤول الخادم هذا المزوّد. ستُستأنف المزامنة عند إعادة تشغيله.',
   'docsync.binding.reconnect': 'إعادة الاتصال',
 };
 

@@ -1,3 +1,23 @@
+import type { User } from '../../types';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { toRowId } from '../common/row-id';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { PackingWritesService } from './packing-writes.service';
+import {
+  PackingApplyTemplateDto,
+  PackingBagMembersDto,
+  PackingCategoryAssigneesDto,
+  PackingCreateBagDto,
+  PackingCreateItemDto,
+  PackingImportDto,
+  PackingReorderDto,
+  PackingSaveTemplateDto,
+  PackingSetSharingDto,
+  PackingUpdateBagDto,
+  PackingUpdateItemDto,
+} from './packing.dto';
+import { PackingService } from './packing.service';
 import {
   Body,
   Controller,
@@ -12,29 +32,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import type { User } from '../../types';
-import { PackingService } from './packing.service';
-import { PackingWritesService } from './packing-writes.service';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { CurrentUser } from '../auth-core/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { toRowId } from '../common/row-id';
-import {
-  PackingApplyTemplateDto,
-  PackingBagMembersDto,
-  PackingCategoryAssigneesDto,
-  PackingCreateBagDto,
-  PackingCreateItemDto,
-  PackingImportDto,
-  PackingReorderDto,
-  PackingSaveTemplateDto,
-  PackingSetSharingDto,
-  PackingUpdateBagDto,
-  PackingUpdateItemDto,
-} from './packing.dto';
 
 /** A packing item row carrying the privacy fields (#858) used to scope broadcasts. */
-type PackingItemRow = { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[]; [key: string]: unknown };
+type PackingItemRow = {
+  is_private?: number;
+  owner_id?: number | null;
+  recipients?: { user_id: number }[];
+  [key: string]: unknown;
+};
 
 /**
  * /api/trips/:tripId/packing — trip-scoped packing list (items, bags, templates,
@@ -65,7 +70,6 @@ export class PackingController {
   ) {}
 
   /** Loads the trip or throws the legacy 404; returns it for the permission check. */
-
 
   @Get()
   async list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
@@ -104,7 +108,21 @@ export class PackingController {
     // checked arrives as boolean or legacy 0/1 — the service coerces by truthiness.
     // A bag the body names must exist on this trip (#2154); the use case answers
     // that 400, the 404 'Bag not found' stays with the path routes.
-    const item = await this.writes.createItem(tripId, { name: body.name, category: body.category, checked: body.checked === undefined ? undefined : !!body.checked, weight_grams: body.weight_grams, bag_id: body.bag_id, quantity: body.quantity, is_private: body.is_private, visibility: body.visibility, recipient_ids: body.recipient_ids }, this.writes.restWriter(tripId, user, socketId));
+    const item = await this.writes.createItem(
+      tripId,
+      {
+        name: body.name,
+        category: body.category,
+        checked: body.checked === undefined ? undefined : !!body.checked,
+        weight_grams: body.weight_grams,
+        bag_id: body.bag_id,
+        quantity: body.quantity,
+        is_private: body.is_private,
+        visibility: body.visibility,
+        recipient_ids: body.recipient_ids,
+      },
+      this.writes.restWriter(tripId, user, socketId),
+    );
     return { item };
   }
 
@@ -145,7 +163,23 @@ export class PackingController {
     // sentinel protocol); the parsed body only ever holds known schema keys.
     // checked arrives as boolean or legacy 0/1 — normalize to the 0/1 the SQL binds.
     // The use case answers 404, the 409 conflict (#1135) and the 400 bag (#2154).
-    const updated = await this.writes.updateItem(tripId, itemId, { name, checked: checked === undefined ? undefined : checked ? 1 : 0, category, weight_grams, bag_id, quantity, packed_quantity, is_private }, Object.keys(body), this.writes.restWriter(tripId, user, socketId), ifMatch);
+    const updated = await this.writes.updateItem(
+      tripId,
+      itemId,
+      {
+        name,
+        checked: checked === undefined ? undefined : checked ? 1 : 0,
+        category,
+        weight_grams,
+        bag_id,
+        quantity,
+        packed_quantity,
+        is_private,
+      },
+      Object.keys(body),
+      this.writes.restWriter(tripId, user, socketId),
+      ifMatch,
+    );
     return { item: updated };
   }
 
@@ -180,7 +214,13 @@ export class PackingController {
     if (itemId === null) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
-    const updated = await this.packing.setItemSharing(tripId, itemId, user.id, body.visibility, Array.isArray(body.recipient_ids) ? body.recipient_ids : []);
+    const updated = await this.packing.setItemSharing(
+      tripId,
+      itemId,
+      user.id,
+      body.visibility,
+      Array.isArray(body.recipient_ids) ? body.recipient_ids : [],
+    );
     if (!updated) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
@@ -291,7 +331,11 @@ export class PackingController {
     if (!body.name.trim()) {
       throw new HttpException({ error: 'Name is required' }, 400);
     }
-    const bag = await this.packing.createBag(tripId, { name: body.name, color: body.color, weight_limit_grams: body.weight_limit_grams });
+    const bag = await this.packing.createBag(tripId, {
+      name: body.name,
+      color: body.color,
+      weight_limit_grams: body.weight_limit_grams,
+    });
     this.packing.broadcast(tripId, 'packing:bag-created', { bag }, socketId);
     return { bag };
   }
@@ -316,7 +360,12 @@ export class PackingController {
     const { name, color, weight_limit_grams, user_id } = body;
     // bodyKeys carries which keys the request actually provided (the presence-
     // sentinel protocol); the parsed body only ever holds known schema keys.
-    const updated = await this.packing.updateBag(tripId, bagIdNum, { name, color, weight_limit_grams, user_id }, Object.keys(body));
+    const updated = await this.packing.updateBag(
+      tripId,
+      bagIdNum,
+      { name, color, weight_limit_grams, user_id },
+      Object.keys(body),
+    );
     if (!updated) {
       throw new HttpException({ error: 'Bag not found' }, 404);
     }

@@ -11,6 +11,58 @@
  * mutation takes when a row is missing or a name is unusable. Same in-memory
  * SQLite harness, so the SQL is exercised for real.
  */
+import { db as testDb } from '../../../src/db/database';
+import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
+import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
+import type { TripMembersRepository } from '../../../src/db/repositories/TripMembers.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { NotFoundError, ValidationError } from '../../../src/nest/common/domain-errors';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
+import type { User } from '../../../src/types';
+import { budgetRepoArgs } from '../../helpers/budget-repos';
+import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
+import { createUser, createTrip, addTripMember } from '../../helpers/factories';
+import { makePlugin, setPluginUserConfig } from '../../helpers/factories/plugins';
+import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { readUser } from '../../helpers/factories/users';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
+import {
+  createTestJourneysRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyContributorsRepo,
+} from '../../helpers/journey-repos';
+import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
+import { notificationsStub } from '../../helpers/notifications';
+import {
+  createTestShareTokensRepo,
+  createTestPluginsRepo,
+  createTestPluginUserErasureQueueRepo,
+} from '../../helpers/share-repos';
+// notifyInvite reaches the bridge through a dynamic import — keep the send in scope
+// but out of the transports.
+
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestUsersRepo,
+  createTestTripsRepo,
+  createTestTripMembersRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+import type { EntityManager } from '@mikro-orm/core';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -26,32 +78,6 @@ vi.mock('../../../src/db/database', async () => {
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
 
-import { db as testDb } from '../../../src/db/database';
-// notifyInvite reaches the bridge through a dynamic import — keep the send in scope
-// but out of the transports.
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember } from '../../helpers/factories';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
-import { NotFoundError, ValidationError } from '../../../src/nest/common/domain-errors';
-import type { User } from '../../../src/types';
-import { notificationsStub } from '../../helpers/notifications';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestUsersRepo, createTestTripsRepo, createTestTripMembersRepo, sharedTestOrm } from '../../helpers/test-uow';
-import { budgetRepoArgs } from '../../helpers/budget-repos';
-import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
-import { readUser } from '../../helpers/factories/users';
-import { makePlugin, setPluginUserConfig } from '../../helpers/factories/plugins';
-import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
-import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
-import { Plugins } from '../../../src/db/entities/Plugins.entity';
-import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-
 const orm = () => sharedTestOrm(testDb);
 
 /** The trip_members row for the pair, or null. */
@@ -63,17 +89,6 @@ async function memberRow(tripId: number, userId: number) {
 async function ownerOf(tripId: number): Promise<number | undefined> {
   return (await findRow(await orm(), Trips, { id: tripId }))?.user_id;
 }
-import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import { createTestJourneysRepo, createTestJourneyEntriesRepo, createTestJourneyContributorsRepo } from '../../helpers/journey-repos';
-import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
-import { createTestShareTokensRepo, createTestPluginsRepo, createTestPluginUserErasureQueueRepo } from '../../helpers/share-repos';
-import type { EntityManager } from '@mikro-orm/core';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import type { TripMembersRepository } from '../../../src/db/repositories/TripMembers.repository';
-import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
-import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcast = realtime.broadcastMock;
@@ -100,13 +115,38 @@ beforeAll(async () => {
   tripsRepo = await createTestTripsRepo(testDb);
   usersRepo = await createTestUsersRepo(testDb);
   tripMembersRepo = await createTestTripMembersRepo(testDb);
-  budgetSvc = new BudgetService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new ExchangeRatesService(), realtime, await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb)));
+  budgetSvc = new BudgetService(
+    new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
+    new ExchangeRatesService(),
+    realtime,
+    await createTestUnitOfWork(testDb),
+    ...(await budgetRepoArgs(testDb)),
+  );
   roster = new TripMembersService(
     budgetSvc,
-    new UserCleanupService(new MaintenanceRepository(dbsEm!), budgetSvc, await createTestUnitOfWork(testDb), usersRepo, await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb)),
+    new UserCleanupService(
+      new MaintenanceRepository(dbsEm!),
+      budgetSvc,
+      await createTestUnitOfWork(testDb),
+      usersRepo,
+      await createTestTripMembersRepo(testDb),
+      await createTestBudgetItemsRepo(testDb),
+      await createTestBudgetSettlementsRepo(testDb),
+      await createTestJourneyShareTokensRepo(testDb),
+      await createTestJourneysRepo(testDb),
+      await createTestJourneyEntriesRepo(testDb),
+      await createTestJourneyContributorsRepo(testDb),
+      await createTestShareTokensRepo(testDb),
+      await createTestPluginsRepo(testDb),
+      await createTestPluginUserErasureQueueRepo(testDb),
+    ),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
-    realtime, notificationsStub(notifySend), await createTestUnitOfWork(testDb),
-    tripsRepo, tripMembersRepo, usersRepo,
+    realtime,
+    notificationsStub(notifySend),
+    await createTestUnitOfWork(testDb),
+    tripsRepo,
+    tripMembersRepo,
+    usersRepo,
   );
 });
 
@@ -168,9 +208,15 @@ describe('TripMembersService delegation', () => {
     // The handover broadcast hands the raw :id route param straight in, so the
     // named-parameter query has to keep matching a string id against the INTEGER
     // column — and the payload the clients re-read must carry their own is_owner.
-    const asOwner = await roster.getTripForViewer(String(trip.id), owner.id) as unknown as Record<string, unknown>;
-    expect(asOwner).toMatchObject({ id: trip.id, title: 'Handover', is_owner: 1, owner_username: owner.username, shared_count: 1 });
-    const asMember = await roster.getTripForViewer(trip.id, member.id) as unknown as Record<string, unknown>;
+    const asOwner = (await roster.getTripForViewer(String(trip.id), owner.id)) as unknown as Record<string, unknown>;
+    expect(asOwner).toMatchObject({
+      id: trip.id,
+      title: 'Handover',
+      is_owner: 1,
+      owner_username: owner.username,
+      shared_count: 1,
+    });
+    const asMember = (await roster.getTripForViewer(trip.id, member.id)) as unknown as Record<string, unknown>;
     expect(asMember.is_owner).toBe(0);
     expect(await roster.getTripForViewer(999999, owner.id)).toBeUndefined();
   });
@@ -299,7 +345,9 @@ describe('guest name validation', () => {
 
     await expect(roster.createGuest(trip.id, undefined as never, owner.id)).rejects.toThrow(ValidationError);
     await expect(roster.createGuest(trip.id, '   ', owner.id)).rejects.toThrow('Guest name is required');
-    await expect(roster.createGuest(trip.id, 'x'.repeat(51), owner.id)).rejects.toThrow('Guest name must be 50 characters or fewer');
+    await expect(roster.createGuest(trip.id, 'x'.repeat(51), owner.id)).rejects.toThrow(
+      'Guest name must be 50 characters or fewer',
+    );
 
     // The guards run ahead of the transaction, so a rejected name can never leave
     // a credential-less users row behind with no trip to belong to.
@@ -317,7 +365,9 @@ describe('guest name validation', () => {
 
     await expect(roster.renameGuest(trip.id, guest.id, undefined as never)).rejects.toThrow(ValidationError);
     await expect(roster.renameGuest(trip.id, guest.id, '  ')).rejects.toThrow('Guest name is required');
-    await expect(roster.renameGuest(trip.id, guest.id, 'x'.repeat(51))).rejects.toThrow('Guest name must be 50 characters or fewer');
+    await expect(roster.renameGuest(trip.id, guest.id, 'x'.repeat(51))).rejects.toThrow(
+      'Guest name must be 50 characters or fewer',
+    );
 
     // Order matters for the status code: an unusable name throws (400) even for an
     // id that is not a guest of this trip, where the scope check returns false (404).
@@ -363,7 +413,7 @@ describe('listMembers shaping', () => {
     const { owner: ownerRow, members } = await roster.listMembers(trip.id, owner.id);
     // added_at has second resolution, so rows created in one test are tied — index
     // by id rather than asserting the ORDER BY.
-    const byId = new Map(members.map(m => [m.id, m]));
+    const byId = new Map(members.map((m) => [m.id, m]));
 
     // An uploaded file name becomes a /uploads/avatars path; an OIDC picture claim
     // (#1399) is an absolute URL and must pass through untouched; a member without
@@ -396,7 +446,7 @@ describe('listMembers shaping', () => {
 // identical shape one method over; this copies it.
 
 describe('Task 6 review items — rollback and concurrency', () => {
-  it('MEMBERS-SVC-016 (mutation-proved): transferOwnership rolls back when the final INSERT rejects — the owner pointer and the new owner\'s membership both survive', async () => {
+  it("MEMBERS-SVC-016 (mutation-proved): transferOwnership rolls back when the final INSERT rejects — the owner pointer and the new owner's membership both survive", async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);

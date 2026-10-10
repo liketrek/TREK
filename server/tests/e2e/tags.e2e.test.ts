@@ -6,27 +6,27 @@
  * raw SQL; tags are user-scoped (no admin gate), so a normal authenticated
  * user can do everything.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { Tags } from '../../src/db/entities/Tags.entity';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { TagsModule } from '../../src/nest/tags/tags.module';
+import { makeTag } from '../helpers/factories/places';
+import { deleteRows, findRow } from '../helpers/factories/rows';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db } from '../../src/db/database';
-import { Tags } from '../../src/db/entities/Tags.entity';
-import { TagsModule } from '../../src/nest/tags/tags.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeUser } from '../helpers/factories/users';
-import { makeTag } from '../helpers/factories/places';
-import { deleteRows, findRow } from '../helpers/factories/rows';
 
 let orm: TestOrm;
 
@@ -39,7 +39,9 @@ describe('Tags e2e (real auth guard + migrated temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), TagsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), TagsModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -81,7 +83,10 @@ describe('Tags e2e (real auth guard + migrated temp SQLite)', () => {
   });
 
   it('201 on create, echoing the provided color', async () => {
-    const res = await request(server).post('/api/tags').set('Cookie', sessionCookie(1)).send({ name: 'Beach', color: '#ff0000' });
+    const res = await request(server)
+      .post('/api/tags')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Beach', color: '#ff0000' });
     expect(res.status).toBe(201);
     expect(res.body.tag).toMatchObject({ user_id: 1, name: 'Beach', color: '#ff0000' });
     expect(typeof res.body.tag.id).toBe('number');

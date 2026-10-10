@@ -2,8 +2,20 @@
  * Unit tests for the MCP help and addons tools:
  * list_help_topics, get_help_page, search_help, list_addons.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { ADDON_IDS } from '../../../src/addons';
 import { db as testDb } from '../../../src/db/database';
+import { Addons } from '../../../src/db/entities/Addons.entity';
+import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
+import { createUser } from '../../helpers/factories';
+import { findRow, updateRows } from '../../helpers/factories/rows';
+import { setAppSetting } from '../../helpers/factories/settings';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -31,18 +43,6 @@ const { wiki } = vi.hoisted(() => {
   };
 });
 vi.mock('../../../src/nest/help/wiki', () => wiki);
-
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createUser } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { ADDON_IDS } from '../../../src/addons';
-import { findRow, updateRows } from '../../helpers/factories/rows';
-import { setAppSetting } from '../../helpers/factories/settings';
-import { Addons } from '../../../src/db/entities/Addons.entity';
-import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -139,13 +139,13 @@ afterAll(async () => {
   testDb.close();
 });
 
-async function withHarness(
-  userId: number,
-  fn: (h: McpHarness) => Promise<void>,
-  scopes?: string[] | null,
-) {
+async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes?: string[] | null) {
   const h = await createMcpHarness({ realtime, userId, withResources: false, scopes: scopes ?? null });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -176,13 +176,17 @@ describe('Tool: list_help_topics', () => {
 
   it('stays registered for a token holding an unrelated scope', async () => {
     const { user } = createUser(testDb);
-    await withHarness(user.id, async (h) => {
-      const names = (await h.client.listTools()).tools.map((t) => t.name);
-      expect(names).toContain('list_help_topics');
-      expect(names).toContain('get_help_page');
-      const result = await h.client.callTool({ name: 'list_help_topics', arguments: {} });
-      expect(result.isError).toBeFalsy();
-    }, ['weather:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const names = (await h.client.listTools()).tools.map((t) => t.name);
+        expect(names).toContain('list_help_topics');
+        expect(names).toContain('get_help_page');
+        const result = await h.client.callTool({ name: 'list_help_topics', arguments: {} });
+        expect(result.isError).toBeFalsy();
+      },
+      ['weather:read'],
+    );
   });
 });
 
@@ -333,10 +337,14 @@ describe('Tool: search_help', () => {
 
   it('stays registered for a token holding an unrelated scope', async () => {
     const { user } = createUser(testDb);
-    await withHarness(user.id, async (h) => {
-      const names = (await h.client.listTools()).tools.map((t) => t.name);
-      expect(names).toContain('search_help');
-    }, ['weather:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const names = (await h.client.listTools()).tools.map((t) => t.name);
+        expect(names).toContain('search_help');
+      },
+      ['weather:read'],
+    );
   });
 });
 
@@ -405,16 +413,12 @@ describe('Tool: list_addons', () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
       await addonsService.updateCollabFeatures({ polls: false });
-      const off = parseToolResult(
-        await h.client.callTool({ name: 'list_addons', arguments: {} }),
-      ) as AddonsPayload;
+      const off = parseToolResult(await h.client.callTool({ name: 'list_addons', arguments: {} })) as AddonsPayload;
       expect(off.collabFeatures.polls).toBe(false);
       expect(off.collabFeatures.chat).toBe(true);
 
       await addonsService.updateCollabFeatures({ polls: true });
-      const on = parseToolResult(
-        await h.client.callTool({ name: 'list_addons', arguments: {} }),
-      ) as AddonsPayload;
+      const on = parseToolResult(await h.client.callTool({ name: 'list_addons', arguments: {} })) as AddonsPayload;
       expect(on.collabFeatures.polls).toBe(true);
     });
   });
@@ -431,12 +435,16 @@ describe('Tool: list_addons', () => {
 
   it('stays registered for a token holding an unrelated scope', async () => {
     const { user } = createUser(testDb);
-    await withHarness(user.id, async (h) => {
-      const names = (await h.client.listTools()).tools.map((t) => t.name);
-      expect(names).toContain('list_addons');
-      const result = await h.client.callTool({ name: 'list_addons', arguments: {} });
-      expect(result.isError).toBeFalsy();
-    }, ['weather:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const names = (await h.client.listTools()).tools.map((t) => t.name);
+        expect(names).toContain('list_addons');
+        const result = await h.client.callTool({ name: 'list_addons', arguments: {} });
+        expect(result.isError).toBeFalsy();
+      },
+      ['weather:read'],
+    );
   });
 
   it('serves a demo account, the way the authenticated REST route does', async () => {

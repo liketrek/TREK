@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { AppModule } from '../../../src/nest/app.module';
+import { AdminGuard } from '../../../src/nest/auth-core/admin.guard';
+import { FeaturesController } from '../../../src/nest/health/features.controller';
 import { HttpException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { AppModule } from '../../../src/nest/app.module';
-import { FeaturesController } from '../../../src/nest/health/features.controller';
-import { AdminGuard } from '../../../src/nest/auth-core/admin.guard';
+
+import { describe, it, expect } from 'vitest';
 
 function ctx(user: unknown) {
   return { switchToHttp: () => ({ getRequest: () => ({ user }) }) } as never;
@@ -16,13 +17,20 @@ describe('AppModule wiring', () => {
     const imports = Reflect.getMetadata('imports', AppModule) as unknown[];
     const names = imports
       .filter((entry): entry is { name: string } => typeof entry === 'function')
-      .map(entry => entry.name);
+      .map((entry) => entry.name);
     expect(new Set(names).size).toBe(names.length);
-    expect(names).toEqual(expect.arrayContaining([
-      'GoogleQuotaModule', 'ReceiptScanModule', 'SchoolHolidaysModule', 'DocSyncModule',
-      'DawarichModule', 'NotificationsModule', 'ToursModule',
-    ]));
-    expect(names.filter(name => name === 'ToursModule')).toHaveLength(1);
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'GoogleQuotaModule',
+        'ReceiptScanModule',
+        'SchoolHolidaysModule',
+        'DocSyncModule',
+        'DawarichModule',
+        'NotificationsModule',
+        'ToursModule',
+      ]),
+    );
+    expect(names.filter((name) => name === 'ToursModule')).toHaveLength(1);
   });
 
   it('compiles with the global filter + DB provider and resolves the controller', async () => {

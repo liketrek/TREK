@@ -4,13 +4,14 @@
  * `place_id` is a TEXT key — pseudo-ids like `coords:lat:lng` are legal
  * values, exercised below alongside real Google place ids.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { GooglePlacePhotoMeta } from '../../../../src/db/entities/GooglePlacePhotoMeta.entity';
 import type { GooglePlacePhotoMetaRepository } from '../../../../src/db/repositories/GooglePlacePhotoMeta.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { countRows, findRow, insertRow } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -20,15 +21,26 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   meta = t.repo(GooglePlacePhotoMeta);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function storedRow(placeId: string) {
   return findRow(t, GooglePlacePhotoMeta, { place_id: placeId });
 }
 
 function seedMeta(placeId: string, attribution: string | null, fetchedAt: number, errorAt: number | null) {
-  return insertRow(t, GooglePlacePhotoMeta, { place_id: placeId, attribution, fetched_at: fetchedAt, error_at: errorAt });
+  return insertRow(t, GooglePlacePhotoMeta, {
+    place_id: placeId,
+    attribution,
+    fetched_at: fetchedAt,
+    error_at: errorAt,
+  });
 }
 
 describe('GooglePlacePhotoMetaRepository.findLive / findErrored', () => {
@@ -78,12 +90,22 @@ describe('GooglePlacePhotoMetaRepository.deleteByPlaceId', () => {
 describe('GooglePlacePhotoMetaRepository.upsertError / upsertPhoto — INSERT OR REPLACE parity', () => {
   it('GPPMREPO-009: upsertError writes NULL attribution and matching fetched_at/error_at on a fresh row', async () => {
     await meta.upsertError('p1', 12345);
-    expect(await storedRow('p1')).toMatchObject({ place_id: 'p1', attribution: null, fetched_at: 12345, error_at: 12345 });
+    expect(await storedRow('p1')).toMatchObject({
+      place_id: 'p1',
+      attribution: null,
+      fetched_at: 12345,
+      error_at: 12345,
+    });
   });
 
   it('GPPMREPO-010: upsertPhoto writes the attribution with a NULL error_at on a fresh row', async () => {
     await meta.upsertPhoto('p1', 'Some Author · CC BY 2.0', 999);
-    expect(await storedRow('p1')).toMatchObject({ place_id: 'p1', attribution: 'Some Author · CC BY 2.0', fetched_at: 999, error_at: null });
+    expect(await storedRow('p1')).toMatchObject({
+      place_id: 'p1',
+      attribution: 'Some Author · CC BY 2.0',
+      fetched_at: 999,
+      error_at: null,
+    });
   });
 
   // PP4 forces attribution NULL; PP5 forces error_at NULL — same PK, mirror

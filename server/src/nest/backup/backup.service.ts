@@ -1,8 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
-import type { Response } from 'express';
-import { StorageService } from '../storage/storage.service';
 import { DATABASE_BACKUP, type DatabaseBackupStrategy } from '../database/database-backup.interface';
+import { StorageService } from '../storage/storage.service';
 import * as svc from './backup.impl';
+import { Inject, Injectable } from '@nestjs/common';
+
+import type { Response } from 'express';
 
 /**
  * The backup domain's injectable face.
@@ -26,16 +27,36 @@ export class BackupService {
     this.deps = { storage, database };
   }
 
-  listBackups() { return svc.listBackups(this.storage); }
-  createBackup(prefix?: 'backup' | 'auto-backup') { return svc.createBackup(this.deps, prefix); }
-  restoreFromZip(zipPath: string) { return svc.restoreFromZip(this.deps, zipPath); }
-  restoreBackup(filename: string) { return svc.restoreBackup(this.deps, filename); }
-  deleteBackup(filename: string) { return svc.deleteBackup(this.storage, filename); }
+  listBackups() {
+    return svc.listBackups(this.storage);
+  }
+  createBackup(prefix?: 'backup' | 'auto-backup') {
+    return svc.createBackup(this.deps, prefix);
+  }
+  restoreFromZip(zipPath: string) {
+    return svc.restoreFromZip(this.deps, zipPath);
+  }
+  restoreBackup(filename: string) {
+    return svc.restoreBackup(this.deps, filename);
+  }
+  deleteBackup(filename: string) {
+    return svc.deleteBackup(this.storage, filename);
+  }
 
-  isValidBackupFilename(filename: string) { return svc.isValidBackupFilename(filename); }
-  backupFileExists(filename: string) { return svc.backupFileExists(this.storage, filename); }
-  sendBackupToResponse(filename: string, res: Response) { return svc.sendBackupToResponse(this.storage, filename, res); }
-  checkRateLimit(key: string, maxAttempts: number, windowMs: number) { return svc.checkRateLimit(key, maxAttempts, windowMs); }
+  isValidBackupFilename(filename: string) {
+    return svc.isValidBackupFilename(filename);
+  }
+  backupFileExists(filename: string) {
+    return svc.backupFileExists(this.storage, filename);
+  }
+  sendBackupToResponse(filename: string, res: Response) {
+    return svc.sendBackupToResponse(this.storage, filename, res);
+  }
+  checkRateLimit(key: string, maxAttempts: number, windowMs: number) {
+    return svc.checkRateLimit(key, maxAttempts, windowMs);
+  }
 
-  get rateWindow() { return svc.BACKUP_RATE_WINDOW; }
+  get rateWindow() {
+    return svc.BACKUP_RATE_WINDOW;
+  }
 }

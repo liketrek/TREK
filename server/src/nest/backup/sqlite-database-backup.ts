@@ -1,15 +1,16 @@
-import fs from 'fs';
-import path from 'path';
-import { Injectable } from '@nestjs/common';
 import { MaintenanceRepository } from '../../db/repositories/MaintenanceRepository';
-import { DatabaseLifecycle } from '../database/database-lifecycle.service';
+import { logInfo, logWarn } from '../audit/audit-log.logger';
 import {
   DatabaseConnectionLostError,
   type DatabaseBackupRefusal,
   type DatabaseBackupStrategy,
 } from '../database/database-backup.interface';
-import { logInfo, logWarn } from '../audit/audit-log.logger';
+import { DatabaseLifecycle } from '../database/database-lifecycle.service';
 import { checkBackupDatabase } from './backup-archive';
+import { Injectable } from '@nestjs/common';
+
+import fs from 'fs';
+import path from 'path';
 
 const describeError = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 

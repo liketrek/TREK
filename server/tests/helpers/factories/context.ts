@@ -1,5 +1,5 @@
-import type { EntityManager } from '@mikro-orm/core';
 import { withRequestContext } from '../../../src/nest/database/request-context';
+import type { EntityManager } from '@mikro-orm/core';
 
 /**
  * Anything carrying the ORM's global EntityManager: `app.get(MikroORM)` in a

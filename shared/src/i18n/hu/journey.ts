@@ -206,10 +206,12 @@ const journey: TranslationStrings = {
   'journey.settings.status': 'Állapot',
   'journey.settings.statusAuto': 'Automatikus',
   'journey.settings.statusAutoHint': 'A kapcsolt utak dátumait követi. Út nélkül a napló piszkozat marad.',
-  'journey.settings.statusManualHint': 'Kézzel beállítva. Az út dátumai nem változtatják meg, amíg vissza nem váltasz automatikusra.',
+  'journey.settings.statusManualHint':
+    'Kézzel beállítva. Az út dátumai nem változtatják meg, amíg vissza nem váltasz automatikusra.',
   'journey.settings.photosSection': 'Fotók',
   'journey.settings.photoLocation': 'Bejegyzések helye a fotóik alapján',
-  'journey.settings.photoLocationHint': 'A hely nélküli bejegyzés az első GPS-es fotója készítési helyét kapja. A kézzel megadott helyek sosem mozdulnak.',
+  'journey.settings.photoLocationHint':
+    'A hely nélküli bejegyzés az első GPS-es fotója készítési helyét kapja. A kézzel megadott helyek sosem mozdulnak.',
   'journey.settings.endJourney': 'Út archiválása',
   'journey.settings.reopenJourney': 'Út visszaállítása',
   'journey.settings.archived': 'Út archiválva',
@@ -307,12 +309,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Oldalpár letöltése',
-  'journey.studio.downloadSpreadHint': 'Fájlba menti az oldalpár elrendezését, a fényképek nélkül, megosztáshoz vagy újrafelhasználáshoz',
+  'journey.studio.downloadSpreadHint':
+    'Fájlba menti az oldalpár elrendezését, a fényképek nélkül, megosztáshoz vagy újrafelhasználáshoz',
   'journey.studio.importSpread': 'Importálás',
   'journey.studio.importSpreadHint': 'Oldalpár hozzáadása letöltött elrendezésfájlból',
   'journey.studio.importSpreadFailed': 'Ez a fájl nem TREK Studio oldalpár',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Egy könyv tördeléséhez hely kell, ezért a Studio csak asztali gépen érhető el, és a PDF is. Az utazás minden más része itt a megszokott módon működik.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Egy könyv tördeléséhez hely kell, ezért a Studio csak asztali gépen érhető el, és a PDF is. Az utazás minden más része itt a megszokott módon működik.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -376,7 +380,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -457,7 +462,8 @@ const journey: TranslationStrings = {
   'journey.studio.paste': 'Beillesztés (Ctrl+V)',
   'journey.studio.pasteEmpty': 'Előbb másoljon ki valamit, aztán illessze be bármelyik oldalra',
   'journey.studio.myLayouts': 'Saját elrendezéseim',
-  'journey.studio.myLayoutsEmpty': 'Mentsen el egy elrendezett oldalt, és rendezzen el más oldalakat is ugyanígy. Azok fotói és szövegei megmaradnak.',
+  'journey.studio.myLayoutsEmpty':
+    'Mentsen el egy elrendezett oldalt, és rendezzen el más oldalakat is ugyanígy. Azok fotói és szövegei megmaradnak.',
   'journey.studio.saveLayout': 'Oldal mentése elrendezésként',
   'journey.studio.saveLayoutHint': 'Megtartja az elrendezést fotók nélkül, a könyv minden szerkesztője számára',
   'journey.studio.saveLayoutFull': 'Ez a könyv legfeljebb 24 elrendezést tárol. Töröljön egyet, hogy újat menthessen.',
@@ -579,7 +585,8 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Kérje le újra',
   'journey.studio.roadsClear': 'Törlés',
   'journey.studio.roadsBusy': 'Lekérés',
-  'journey.studio.roadsHint': 'Megkérdezi egy útvonaltervező szolgáltatástól, merre vezet az egyes szakaszok útja. A hosszú szakaszok változatlanok maradnak.',
+  'journey.studio.roadsHint':
+    'Megkérdezi egy útvonaltervező szolgáltatástól, merre vezet az egyes szakaszok útja. A hosszú szakaszok változatlanok maradnak.',
   'journey.studio.roadsHave': 'Az utak ebben a könyvben vannak elmentve, így offline is ugyanaz a vonal nyomtatódik.',
   'journey.studio.routeStyle': 'Megjelenés',
   'journey.studio.routePlain': 'Sima',
@@ -593,8 +600,10 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Fotók',
   'journey.studio.pinPhotoNone': 'Ezeken az állomásokon még nincs fénykép, ezért pontként jelennek meg.',
   'journey.studio.mapSourceSatellite': 'Műhold',
-  'journey.studio.mapSourceSatelliteHint': 'Felhőmentes Sentinel-2, forrásmegjelöléssel szabadon nyomtatható. Utcaszintig éles.',
-  'journey.studio.mapSourceReliefHint': 'NASA árnyékolt domborzat, szabadon nyomtatható. Országhoz vagy kontinenshez ideális, egyetlen városhoz túl durva.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Felhőmentes Sentinel-2, forrásmegjelöléssel szabadon nyomtatható. Utcaszintig éles.',
+  'journey.studio.mapSourceReliefHint':
+    'NASA árnyékolt domborzat, szabadon nyomtatható. Országhoz vagy kontinenshez ideális, egyetlen városhoz túl durva.',
   'journey.studio.mapPrintDpi': 'Nyomtatásban körülbelül',
   'journey.studio.mapPrintDpiLow': 'ebben a méretben életlen, próbáljon tágabb nézetet vagy másik forrást',
   'journey.studio.mapPerTrip': 'Egyszerre egy út',
@@ -662,8 +671,10 @@ const journey: TranslationStrings = {
   'journey.entry.offRoute': 'Útvonalon kívül',
   'journey.entry.draft': 'Piszkozat',
   'journey.editor.draft': 'Piszkozat',
-  'journey.editor.draftHint': 'Ezt a bejegyzést csak Ön és a többi közreműködő látja. A megosztott útinapló kihagyja, amíg ki nem kapcsolja ezt.',
-  'journey.editor.tripSuggestionHint': 'Ez a nap ebbe az utazásba esik. Kapcsolja össze, és a helyei bekerülnek ebbe az útinaplóba.',
+  'journey.editor.draftHint':
+    'Ezt a bejegyzést csak Ön és a többi közreműködő látja. A megosztott útinapló kihagyja, amíg ki nem kapcsolja ezt.',
+  'journey.editor.tripSuggestionHint':
+    'Ez a nap ebbe az utazásba esik. Kapcsolja össze, és a helyei bekerülnek ebbe az útinaplóba.',
   'journey.editor.tripSuggestionLater': 'Most nem',
   'journey.suggestions.dismiss': 'Javaslat elvetése',
   'journey.suggestions.dismissed': 'Javaslat elvetve',
@@ -677,7 +688,8 @@ const journey: TranslationStrings = {
   'journey.detail.searchPlaceholder': 'Keresés ebben az útinaplóban',
   'journey.detail.searchEmpty': 'Egyetlen bejegyzés sem illik erre: „{query}”',
   'journey.settings.entryFields': 'A bejegyzés mezői',
-  'journey.settings.entryFieldsHint': 'Kapcsold ki, amit ez az útinapló nem használ. A már megírtakból semmi sem vész el.',
+  'journey.settings.entryFieldsHint':
+    'Kapcsold ki, amit ez az útinapló nem használ. A már megírtakból semmi sem vész el.',
   'journey.settings.showVerdict': 'Előnyök és hátrányok',
   'journey.settings.showMood': 'Hangulat',
   'journey.settings.showWeather': 'Időjárás',

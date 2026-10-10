@@ -4,9 +4,10 @@
  * here is that the maps do not grow forever, because the keys come from
  * proxy headers and are therefore attacker-influenced.
  */
-import { describe, it, expect } from 'vitest';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { InMemoryRateLimitStore } from '../../../src/nest/common/rate-limit.store';
+
+import { describe, it, expect } from 'vitest';
 
 const WINDOW = 15 * 60 * 1000;
 

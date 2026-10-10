@@ -1,7 +1,8 @@
-import { normalizePlaceWebsite } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
-import { stripHtmlTags } from '../common/stripHtmlTags';
 import { haversineMetres } from '../common/geo';
+import { stripHtmlTags } from '../common/stripHtmlTags';
+import { normalizePlaceWebsite } from '@trek/shared';
+
 import { z } from 'zod';
 
 /**
@@ -128,9 +129,7 @@ export function mergeSearchResults(
     if (haversineMetres(aLat as number, aLng as number, bLat as number, bLng as number) >= 60) {
       return false;
     }
-    return (
-      typeof a.name === 'string' && typeof b.name === 'string' && namesOverlap(a.name, b.name)
-    );
+    return typeof a.name === 'string' && typeof b.name === 'string' && namesOverlap(a.name, b.name);
   };
 
   const extra = fromOsm.filter((o) => !fromIndex.some((i) => sameThing(i, o)));
@@ -176,8 +175,7 @@ export function namesOverlap(a: string, b: string): boolean {
    * on (ﾀﾜｰ against タワー), which NFD, used for the Latin path above, does not.
    */
   if (left.length === 0 && right.length === 0) {
-    const strict = (value: string): string =>
-      value.normalize('NFKC').toLowerCase().replace(/\s+/gu, '');
+    const strict = (value: string): string => value.normalize('NFKC').toLowerCase().replace(/\s+/gu, '');
     const [sa, sb] = [strict(a), strict(b)];
     return sa.length > 0 && sa === sb;
   }
@@ -297,8 +295,16 @@ export interface ChargingInfo {
  * carries keys that are not a socket family at all.
  */
 const SOCKET_FAMILIES = [
-  'type2', 'type2_combo', 'type2_cable', 'ccs', 'chademo', 'type1', 'type1_combo',
-  'schuko', 'tesla_supercharger', 'tesla_destination',
+  'type2',
+  'type2_combo',
+  'type2_cable',
+  'ccs',
+  'chademo',
+  'type1',
+  'type1_combo',
+  'schuko',
+  'tesla_supercharger',
+  'tesla_destination',
 ] as const;
 
 /** Leading number out of a free-text value like "22 kW" or "50kw". */
@@ -402,12 +408,16 @@ export function clampPoiBbox(bbox: PoiBbox): { bbox: PoiBbox; clamped: boolean }
  * search_plugin_pois for the plugin ones. One definition, so both accept the same box
  * and describe the same window it is narrowed to.
  */
-export const POI_BBOX_TOOL_INPUT = z.strictObject({
-  south: z.number().min(-90).max(90).describe('Southern edge, latitude'),
-  west: z.number().min(-180).max(180).describe('Western edge, longitude'),
-  north: z.number().min(-90).max(90).describe('Northern edge, latitude'),
-  east: z.number().min(-180).max(180).describe('Eastern edge, longitude'),
-}).describe(`The rectangle to search. Anything wider than ${MAX_POI_BBOX_SPAN_DEG} degrees is narrowed to a centred window so the query stays fast; the answer reports that as \`clamped\``);
+export const POI_BBOX_TOOL_INPUT = z
+  .strictObject({
+    south: z.number().min(-90).max(90).describe('Southern edge, latitude'),
+    west: z.number().min(-180).max(180).describe('Western edge, longitude'),
+    north: z.number().min(-90).max(90).describe('Northern edge, latitude'),
+    east: z.number().min(-180).max(180).describe('Eastern edge, longitude'),
+  })
+  .describe(
+    `The rectangle to search. Anything wider than ${MAX_POI_BBOX_SPAN_DEG} degrees is narrowed to a centred window so the query stays fast; the answer reports that as \`clamped\``,
+  );
 
 /** How many categories one POI query may carry, so a caller can't fan out the mirrors. */
 export const MAX_POI_CATEGORIES = 8;
@@ -737,10 +747,7 @@ export function buildOsmDetails(tags: Record<string, string>, osmType: string, o
  */
 export function stripWikiMarkup(value: string | undefined | null): string | null {
   if (!value) return null;
-  const text = stripHtmlTags(value, ' ')
-    .replaceAll('&nbsp;', ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const text = stripHtmlTags(value, ' ').replaceAll('&nbsp;', ' ').replace(/\s+/g, ' ').trim();
   return text || null;
 }
 
@@ -825,19 +832,21 @@ const NOT_A_PHOTO_OF_THE_PLACE =
  * `- 17` / `(2)` suffixes press sets use.
  */
 function seriesStem(title: string): string {
-  return title
-    .replace(/^File:/i, '')
-    .replace(/\.[a-z0-9]+$/i, '')
-    .toLowerCase()
-    // 20260614 100717648 HDR — a camera dump, all from the same minute
-    .replace(/\b\d{8}[ _-]\d{6,9}\b/g, ' ')
-    .replace(/\b(19|20)\d{2}\b/g, ' ')
-    // The character in front of the suffix is matched and put straight back:
-    // /[ _-]+…$/ on its own restarts at every space of a title that has no such
-    // suffix, and re-reads the rest of the run each time.
-    .replace(/([^ _-]|^)[ _-]+\(?\d{1,4}\)?$/g, '$1')
-    .replace(/[^a-z]+/g, ' ')
-    .trim();
+  return (
+    title
+      .replace(/^File:/i, '')
+      .replace(/\.[a-z0-9]+$/i, '')
+      .toLowerCase()
+      // 20260614 100717648 HDR — a camera dump, all from the same minute
+      .replace(/\b\d{8}[ _-]\d{6,9}\b/g, ' ')
+      .replace(/\b(19|20)\d{2}\b/g, ' ')
+      // The character in front of the suffix is matched and put straight back:
+      // /[ _-]+…$/ on its own restarts at every space of a title that has no such
+      // suffix, and re-reads the rest of the run each time.
+      .replace(/([^ _-]|^)[ _-]+\(?\d{1,4}\)?$/g, '$1')
+      .replace(/[^a-z]+/g, ' ')
+      .trim()
+  );
 }
 
 /**

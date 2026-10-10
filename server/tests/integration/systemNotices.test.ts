@@ -2,10 +2,27 @@
  * System Notices API integration tests.
  * Covers GET /api/system-notices/active and POST /api/system-notices/:id/dismiss.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { ADDON_IDS } from '../../src/addons';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { Addons } from '../../src/db/entities/Addons.entity';
+import { UserNoticeDismissals } from '../../src/db/entities/UserNoticeDismissals.entity';
+import { Users } from '../../src/db/entities/Users.entity';
+import { SYSTEM_NOTICES } from '../../src/systemNotices/registry';
+import { getCurrentAppVersion } from '../../src/systemNotices/service';
+import type { SystemNotice } from '../../src/systemNotices/types';
+import { authCookie } from '../helpers/auth';
+import { createUser, createAdmin } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { insertRow, updateRows } from '../helpers/factories/rows';
+import { setAppSetting } from '../helpers/factories/settings';
+import { resetTestDb } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bare in-memory DB — schema applied in beforeAll after mocks register
@@ -14,23 +31,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { MikroORM } from '@mikro-orm/core';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb } from '../helpers/test-db';
-import type { FactoryOrm } from '../helpers/factories/context';
-import { createUser, createAdmin } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { insertRow, updateRows } from '../helpers/factories/rows';
-import { setAppSetting } from '../helpers/factories/settings';
-import { Addons } from '../../src/db/entities/Addons.entity';
-import { UserNoticeDismissals } from '../../src/db/entities/UserNoticeDismissals.entity';
-import { Users } from '../../src/db/entities/Users.entity';
-import { SYSTEM_NOTICES } from '../../src/systemNotices/registry';
-import { getCurrentAppVersion } from '../../src/systemNotices/service';
-import type { SystemNotice } from '../../src/systemNotices/types';
-import { ADDON_IDS } from '../../src/addons';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -98,13 +98,9 @@ describe('GET /api/system-notices/active', () => {
     // Read the set out of the registry rather than naming them, or this ages out again.
     await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.0' });
     const alwaysOn = new Set(
-      SYSTEM_NOTICES
-        .filter(n => (n.conditions ?? []).every(c => c.kind === 'managed'))
-        .map(n => n.id),
+      SYSTEM_NOTICES.filter((n) => (n.conditions ?? []).every((c) => c.kind === 'managed')).map((n) => n.id),
     );
-    const res = await request(app)
-      .get('/api/system-notices/active')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.filter((n: { id: string }) => !alwaysOn.has(n.id))).toEqual([]);
   });
@@ -116,9 +112,7 @@ describe('GET /api/system-notices/active', () => {
       // Set login_count to 1 (first login)
       await updateRows(orm, Users, { id: user.id }, { login_count: 1 });
 
-      const res = await request(app)
-        .get('/api/system-notices/active')
-        .set('Cookie', authCookie(user.id));
+      const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
       // The always-on thank-you notice may also be present, so just assert TEST_NOTICE is there
       const testNotice = res.body.find((n: { id: string }) => n.id === TEST_NOTICE.id);
@@ -140,17 +134,13 @@ describe('GET /api/system-notices/active', () => {
       const { user } = createUser(testDb);
       await updateRows(orm, Addons, { id: ADDON_IDS.JOURNEY }, { enabled: false });
 
-      const off = await request(app)
-        .get('/api/system-notices/active')
-        .set('Cookie', authCookie(user.id));
+      const off = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
       expect(off.status).toBe(200);
       expect(off.body.find((n: { id: string }) => n.id === TEST_NOTICE_ADDON.id)).toBeUndefined();
 
       await updateRows(orm, Addons, { id: ADDON_IDS.JOURNEY }, { enabled: true });
 
-      const on = await request(app)
-        .get('/api/system-notices/active')
-        .set('Cookie', authCookie(user.id));
+      const on = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
       expect(on.status).toBe(200);
       expect(on.body.find((n: { id: string }) => n.id === TEST_NOTICE_ADDON.id)).toBeDefined();
     } finally {
@@ -165,9 +155,7 @@ describe('GET /api/system-notices/active', () => {
       const { user } = createUser(testDb);
       await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.0' });
 
-      const res = await request(app)
-        .get('/api/system-notices/active')
-        .set('Cookie', authCookie(user.id));
+      const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
       expect(res.body.find((n: { id: string }) => n.id === TEST_NOTICE.id)).toBeUndefined();
     } finally {
@@ -183,11 +171,13 @@ describe('GET /api/system-notices/active', () => {
       await updateRows(orm, Users, { id: user.id }, { login_count: 1 });
 
       // Dismiss the notice directly in DB
-      await insertRow(orm, UserNoticeDismissals, { user: user.id, notice_id: TEST_NOTICE.id, dismissed_at: Date.now() });
+      await insertRow(orm, UserNoticeDismissals, {
+        user: user.id,
+        notice_id: TEST_NOTICE.id,
+        dismissed_at: Date.now(),
+      });
 
-      const res = await request(app)
-        .get('/api/system-notices/active')
-        .set('Cookie', authCookie(user.id));
+      const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
       // TEST_NOTICE should be filtered out; the thank-you notice may still appear
       const found = res.body.find((n: { id: string }) => n.id === TEST_NOTICE.id);
@@ -220,9 +210,7 @@ describe('GET /api/system-notices/active', () => {
       await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.0' });
 
       const shows = async () => {
-        const res = await request(app)
-          .get('/api/system-notices/active')
-          .set('Cookie', authCookie(user.id));
+        const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
         expect(res.status).toBe(200);
         return res.body.some((n: { id: string }) => n.id === RECURRING.id);
       };
@@ -232,12 +220,20 @@ describe('GET /api/system-notices/active', () => {
 
       // Dismissed at an old version → it returns once the running version is newer.
       await insertRow(orm, UserNoticeDismissals, {
-        user: user.id, notice_id: RECURRING.id, dismissed_at: Date.now(), dismissed_app_version: '0.0.1',
+        user: user.id,
+        notice_id: RECURRING.id,
+        dismissed_at: Date.now(),
+        dismissed_app_version: '0.0.1',
       });
       expect(await shows()).toBe(true);
 
       // Dismissed at a version >= the running one → stays hidden until the next upgrade.
-      await updateRows(orm, UserNoticeDismissals, { user: user.id, notice_id: RECURRING.id }, { dismissed_app_version: '99.0.0' });
+      await updateRows(
+        orm,
+        UserNoticeDismissals,
+        { user: user.id, notice_id: RECURRING.id },
+        { dismissed_app_version: '99.0.0' },
+      );
       expect(await shows()).toBe(false);
     } finally {
       const idx = SYSTEM_NOTICES.indexOf(RECURRING);
@@ -279,7 +275,12 @@ describe('GET /api/system-notices/active', () => {
     expect(await shows()).toBe(false);
 
     // The next update brings it back, although it was closed before...
-    await updateRows(orm, UserNoticeDismissals, { user: user.id, notice_id: 'release-notes' }, { dismissed_app_version: '4.0.0' });
+    await updateRows(
+      orm,
+      UserNoticeDismissals,
+      { user: user.id, notice_id: 'release-notes' },
+      { dismissed_app_version: '4.0.0' },
+    );
     expect(await shows()).toBe(true);
     expect(await shows()).toBe(true);
 
@@ -297,10 +298,8 @@ describe('GET /api/system-notices/active', () => {
     const { user } = createUser(testDb);
     await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.0' });
 
-    const fetchActive = (query: Record<string, string>) => request(app)
-      .get('/api/system-notices/active')
-      .query(query)
-      .set('Cookie', authCookie(user.id));
+    const fetchActive = (query: Record<string, string>) =>
+      request(app).get('/api/system-notices/active').query(query).set('Cookie', authCookie(user.id));
 
     const without = await fetchActive({});
     expect(without.status).toBe(200);
@@ -378,20 +377,14 @@ describe('POST /api/system-notices/:id/dismiss', () => {
       await updateRows(orm, Users, { id: user.id }, { login_count: 1 });
 
       // Confirm TEST_NOTICE is visible before dismiss
-      const before = await request(app)
-        .get('/api/system-notices/active')
-        .set('Cookie', authCookie(user.id));
+      const before = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
       expect(before.body.find((n: { id: string }) => n.id === TEST_NOTICE.id)).toBeDefined();
 
       // Dismiss it
-      await request(app)
-        .post(`/api/system-notices/${TEST_NOTICE.id}/dismiss`)
-        .set('Cookie', authCookie(user.id));
+      await request(app).post(`/api/system-notices/${TEST_NOTICE.id}/dismiss`).set('Cookie', authCookie(user.id));
 
       // Confirm TEST_NOTICE is gone; other notices (e.g. welcome-v1) may still appear
-      const after = await request(app)
-        .get('/api/system-notices/active')
-        .set('Cookie', authCookie(user.id));
+      const after = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
       expect(after.status).toBe(200);
       expect(after.body.find((n: { id: string }) => n.id === TEST_NOTICE.id)).toBeUndefined();
     } finally {
@@ -436,9 +429,7 @@ describe('v3014-whitespace-collision notice', () => {
     const user = await setupCollisionAdmin();
     await setAppSetting(orm, 'whitespace_migration_collision', 'true');
 
-    const res = await request(app)
-      .get('/api/system-notices/active')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.find((n: { id: string }) => n.id === NOTICE_ID)).toBeDefined();
@@ -447,9 +438,7 @@ describe('v3014-whitespace-collision notice', () => {
   it('SN-COLLISION-2 — hidden when collision flag is absent', async () => {
     const user = await setupCollisionAdmin();
 
-    const res = await request(app)
-      .get('/api/system-notices/active')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.find((n: { id: string }) => n.id === NOTICE_ID)).toBeUndefined();
@@ -459,9 +448,7 @@ describe('v3014-whitespace-collision notice', () => {
     const user = await setupCollisionAdmin();
     await setAppSetting(orm, 'whitespace_migration_collision', 'false');
 
-    const res = await request(app)
-      .get('/api/system-notices/active')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.find((n: { id: string }) => n.id === NOTICE_ID)).toBeUndefined();
@@ -472,9 +459,7 @@ describe('v3014-whitespace-collision notice', () => {
     await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.0' });
     await setAppSetting(orm, 'whitespace_migration_collision', 'true');
 
-    const res = await request(app)
-      .get('/api/system-notices/active')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.find((n: { id: string }) => n.id === NOTICE_ID)).toBeUndefined();
@@ -485,9 +470,7 @@ describe('v3014-whitespace-collision notice', () => {
     await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.14' });
     await setAppSetting(orm, 'whitespace_migration_collision', 'true');
 
-    const res = await request(app)
-      .get('/api/system-notices/active')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.find((n: { id: string }) => n.id === NOTICE_ID)).toBeUndefined();
@@ -498,9 +481,7 @@ describe('v3014-whitespace-collision notice', () => {
     const user = await setupCollisionAdmin();
     await setAppSetting(orm, 'whitespace_migration_collision', 'true');
 
-    const res = await request(app)
-      .get('/api/system-notices/active')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.find((n: { id: string }) => n.id === NOTICE_ID)).toBeUndefined();
@@ -510,9 +491,7 @@ describe('v3014-whitespace-collision notice', () => {
     const user = await setupCollisionAdmin();
     await setAppSetting(orm, 'whitespace_migration_collision', 'true');
 
-    const before = await request(app)
-      .get('/api/system-notices/active')
-      .set('Cookie', authCookie(user.id));
+    const before = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
     expect(before.body.find((n: { id: string }) => n.id === NOTICE_ID)).toBeDefined();
 
     const dismiss = await request(app)
@@ -520,9 +499,7 @@ describe('v3014-whitespace-collision notice', () => {
       .set('Cookie', authCookie(user.id));
     expect(dismiss.status).toBe(204);
 
-    const after = await request(app)
-      .get('/api/system-notices/active')
-      .set('Cookie', authCookie(user.id));
+    const after = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
     expect(after.body.find((n: { id: string }) => n.id === NOTICE_ID)).toBeUndefined();
   });
 });

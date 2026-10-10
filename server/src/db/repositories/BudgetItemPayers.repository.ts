@@ -1,7 +1,7 @@
 import type { BudgetItemPayers } from '../entities/BudgetItemPayers.entity';
+import type { DB } from '../kysely/db';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /** A bare `budget_item_payers` row — every scalar column, incl. the two `persist(false)` relation mirrors. */
 export interface BudgetItemPayerRow {
@@ -38,7 +38,12 @@ export class BudgetItemPayersRepository extends TrekRepository<BudgetItemPayers>
     return await this.kysely<BudgetItemPayersKyselyDB>()
       .selectFrom('budget_item_payers as bp')
       .innerJoin('users as u', 'u.id', 'bp.user_id')
-      .select(['bp.user_id', 'bp.amount', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'), 'u.avatar'])
+      .select([
+        'bp.user_id',
+        'bp.amount',
+        (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'),
+        'u.avatar',
+      ])
       .where('bp.budget_item_id', '=', budget_item_id)
       .execute();
   }
@@ -49,7 +54,13 @@ export class BudgetItemPayersRepository extends TrekRepository<BudgetItemPayers>
     return await this.kysely<BudgetItemPayersKyselyDB>()
       .selectFrom('budget_item_payers as bp')
       .innerJoin('users as u', 'u.id', 'bp.user_id')
-      .select(['bp.budget_item_id', 'bp.user_id', 'bp.amount', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'), 'u.avatar'])
+      .select([
+        'bp.budget_item_id',
+        'bp.user_id',
+        'bp.amount',
+        (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'),
+        'u.avatar',
+      ])
       .where('bp.budget_item_id', 'in', budget_item_ids)
       .execute();
   }
@@ -65,19 +76,30 @@ export class BudgetItemPayersRepository extends TrekRepository<BudgetItemPayers>
   }
 
   /** BG74 (`calculateSettlement`'s payer read) — the `budget_item_id IN (SELECT id FROM budget_items WHERE trip_id = ?)` subquery, re-expressed as a join (rule 23) — same result set. */
-  async listForTripWithUsers(trip_id: number | string): Promise<(BudgetItemPayerWithUserRow & { budget_item_id: number })[]> {
+  async listForTripWithUsers(
+    trip_id: number | string,
+  ): Promise<(BudgetItemPayerWithUserRow & { budget_item_id: number })[]> {
     return await this.kysely<BudgetItemPayersKyselyDB & Pick<DB, 'budget_items'>>()
       .selectFrom('budget_item_payers as bp')
       .innerJoin('budget_items as b', 'b.id', 'bp.budget_item_id')
       .innerJoin('users as u', 'u.id', 'bp.user_id')
-      .select(['bp.budget_item_id', 'bp.user_id', 'bp.amount', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'), 'u.avatar'])
+      .select([
+        'bp.budget_item_id',
+        'bp.user_id',
+        'bp.amount',
+        (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'),
+        'u.avatar',
+      ])
       .where('b.trip_id', '=', trip_id as number)
       .execute();
   }
 
   /** BG4 — `DELETE FROM budget_item_payers WHERE budget_item_id = ?` (replace-all before a re-insert). */
   async deleteForItem(budget_item_id: number): Promise<void> {
-    await this.kysely<BudgetItemPayersKyselyDB>().deleteFrom('budget_item_payers').where('budget_item_id', '=', budget_item_id).execute();
+    await this.kysely<BudgetItemPayersKyselyDB>()
+      .deleteFrom('budget_item_payers')
+      .where('budget_item_id', '=', budget_item_id)
+      .execute();
   }
 
   /** BG5/TP65 — `INSERT OR IGNORE INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?,?,?)`, one row per call (the legacy `prepare(...).run(...)` loop). */

@@ -1,18 +1,22 @@
+import { ALL_ENTITIES } from '../../../src/db/entities';
+import { TrekRepository } from '../../../src/db/repositories/_shared/trek-repository';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { EntitySchema, type EntityRepository } from '@mikro-orm/core';
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ALL_ENTITIES } from '../../../src/db/entities';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { TrekRepository } from '../../../src/db/repositories/_shared/trek-repository';
 
 const ENTITIES_DIR = path.join(__dirname, '../../../src/db/entities');
 const REPOSITORIES_DIR = path.join(__dirname, '../../../src/db/repositories');
 
 describe('ALL_ENTITIES', () => {
   it('ENT-001: lists exactly one schema per *.entity.ts file', () => {
-    const files = fs.readdirSync(ENTITIES_DIR).filter((f) => f.endsWith('.entity.ts')).sort();
+    const files = fs
+      .readdirSync(ENTITIES_DIR)
+      .filter((f) => f.endsWith('.entity.ts'))
+      .sort();
     const names = ALL_ENTITIES.map((s) => s.name).sort();
     const expected = files.map((f) => f.replace(/\.entity\.ts$/, '')).sort();
     expect(names).toEqual(expected);
@@ -75,7 +79,9 @@ describe('ALL_ENTITIES', () => {
           failures.push(`${className}: no src/db/repositories/${className}.repository.ts file`);
           continue;
         }
-        const mod: Record<string, unknown> = await import(/* @vite-ignore */ `../../../src/db/repositories/${className}.repository`);
+        const mod: Record<string, unknown> = await import(
+          /* @vite-ignore */ `../../../src/db/repositories/${className}.repository`
+        );
         const RepoClass = mod[`${className}Repository`];
         if (typeof RepoClass !== 'function') {
           failures.push(`${className}: repository module has no exported ${className}Repository class`);

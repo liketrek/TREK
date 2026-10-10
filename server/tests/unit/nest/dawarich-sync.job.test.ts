@@ -31,15 +31,21 @@
  *    of it in the job would freeze that decision at bootstrap, and the bug
  *    would look like "the toggle needs a restart", not like a failure.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-const logMock = vi.hoisted(() => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
-vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
-
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import { DawarichSyncJob } from '../../../src/nest/integrations/dawarich-sync.job';
 import type { DawarichSyncService } from '../../../src/nest/integrations/dawarich-sync.service';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const logMock = vi.hoisted(() => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+  logDebug: vi.fn(),
+}));
+vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
 
 const SETTING_KEY = 'dawarich_poll_interval_minutes';
 
@@ -62,7 +68,9 @@ function makeJob(intervalSetting?: string, enabled = true) {
     // through CronRegistrarService.runOnBoot instead of directly inline —
     // this double just runs fn immediately, reproducing the pre-fix
     // behaviour exactly, so every existing assertion below is unaffected.
-    runOnBoot: vi.fn(async (_name: string, fn: () => void | Promise<void>) => { await fn(); }),
+    runOnBoot: vi.fn(async (_name: string, fn: () => void | Promise<void>) => {
+      await fn();
+    }),
   };
   // Shaped like the real `AppSettingsRepository#getValue(key)` rather than a
   // bare `vi.fn()` so the stub cannot quietly drift from the signature the
@@ -161,7 +169,9 @@ describe('DawarichSyncJob bootstrap', () => {
 
   it('DAWARICH-JOB-013: the boot-time interval read goes through CronRegistrarService.runOnBoot (task-6-review-parity.md C1 — the boot-sweep choke point), and registers at the default cadence if it declines to run fn', async () => {
     const { job, registrar, db } = makeJob('30');
-    registrar.runOnBoot.mockImplementationOnce(async () => { /* simulates no ORM available — fn never runs */ });
+    registrar.runOnBoot.mockImplementationOnce(async () => {
+      /* simulates no ORM available — fn never runs */
+    });
     await job.onApplicationBootstrap();
     expect(registrar.runOnBoot).toHaveBeenCalledWith('dawarich-sync-boot', expect.any(Function));
     expect(db.getValue).not.toHaveBeenCalled();

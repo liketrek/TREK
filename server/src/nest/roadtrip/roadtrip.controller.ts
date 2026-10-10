@@ -1,12 +1,29 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
-import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared';
-import { RoadtripService } from './roadtrip.service';
-import { RoadtripViaBatchDto, RoadtripViaCreateDto, RoadtripViaReanchorDto, RoadtripViaUpdateDto } from './roadtrip.dto';
+import { ADDON_IDS } from '../../addons';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { RequireAddon } from '../addons/require-addon.decorator';
-import { AddonGuard } from '../addons/addon.guard';
-import { ADDON_IDS } from '../../addons';
+import {
+  RoadtripViaBatchDto,
+  RoadtripViaCreateDto,
+  RoadtripViaReanchorDto,
+  RoadtripViaUpdateDto,
+} from './roadtrip.dto';
+import { RoadtripService } from './roadtrip.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  HttpCode,
+  HttpException,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
+import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared';
 
 /**
  * /api/trips/:tripId/roadtrip — the points a drive is routed through (#1797).
@@ -86,10 +103,15 @@ export class RoadtripController {
     // A batch is how a day starts following a recorded track, so the track it now follows
     // is news in its own right: the rail draws a badge for it and the map a line.
     const tracks = await this.roadtrip.tracksForTrip(tripId);
-    this.roadtrip.broadcast(tripId, 'roadtripTrack:changed', {
-      dayId,
-      track: tracks.find(t => String(t.day_id) === String(dayId)) ?? null,
-    }, socketId);
+    this.roadtrip.broadcast(
+      tripId,
+      'roadtripTrack:changed',
+      {
+        dayId,
+        track: tracks.find((t) => String(t.day_id) === String(dayId)) ?? null,
+      },
+      socketId,
+    );
     return { vias };
   }
 
@@ -157,10 +179,15 @@ export class RoadtripController {
    * excluded, so the person dragging does not get their own point handed back mid-drag.
    */
   private async announce(tripId: string, dayId: string, socketId: string | undefined): Promise<void> {
-    this.roadtrip.broadcast(tripId, 'roadtripVia:changed', {
-      dayId,
-      vias: await this.roadtrip.listForDay(dayId),
-    }, socketId);
+    this.roadtrip.broadcast(
+      tripId,
+      'roadtripVia:changed',
+      {
+        dayId,
+        vias: await this.roadtrip.listForDay(dayId),
+      },
+      socketId,
+    );
   }
 
   /**

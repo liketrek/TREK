@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
-
-import { formatAssignmentWithPlace, ratingAggregate } from '../../../../src/nest/common/rowShape';
 import type { AssignmentWithPlaceRow } from '../../../../src/db/repositories/DayAssignments.repository';
+import { formatAssignmentWithPlace, ratingAggregate } from '../../../../src/nest/common/rowShape';
 import type { Tag, Participant } from '../../../../src/types';
+
+import { describe, it, expect } from 'vitest';
 
 /**
  * Plan 3c Task 2 review (task-2-review.md, "For Task 3" §6.3): `formatAssignmentWithPlace`
@@ -60,13 +60,9 @@ function makeRow(overrides: Partial<AssignmentWithPlaceRow> = {}): AssignmentWit
   };
 }
 
-const sampleTags: Partial<Tag>[] = [
-  { id: 1, name: 'Must-see', color: '#ef4444' },
-];
+const sampleTags: Partial<Tag>[] = [{ id: 1, name: 'Must-see', color: '#ef4444' }];
 
-const sampleParticipants: Participant[] = [
-  { user_id: 42, username: 'alice', avatar: null },
-];
+const sampleParticipants: Participant[] = [{ user_id: 42, username: 'alice', avatar: null }];
 
 describe('formatAssignmentWithPlace', () => {
   it('nests place fields correctly from flat row', () => {
@@ -113,7 +109,10 @@ describe('formatAssignmentWithPlace', () => {
   });
 
   it('keeps the Tour facet fields at the assignment level, null for an ordinary place', () => {
-    expect(formatAssignmentWithPlace(makeRow(), [], [])).toMatchObject({ tour_place_id: null, tour_route_geometry: null });
+    expect(formatAssignmentWithPlace(makeRow(), [], [])).toMatchObject({
+      tour_place_id: null,
+      tour_route_geometry: null,
+    });
     const geometry = '[[48.1,11.5],[48.2,11.6]]';
     const tour = formatAssignmentWithPlace(makeRow({ tour_place_id: 100, tour_route_geometry: geometry }), [], []);
     expect(tour).toMatchObject({ tour_place_id: 100, tour_route_geometry: geometry });

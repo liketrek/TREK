@@ -1,5 +1,10 @@
+import {
+  adminDefaultUserSettingsRequestSchema,
+  settingUpsertRequestSchema,
+  settingsBulkRequestSchema,
+} from '@trek/shared';
+
 import { createZodDto } from 'nestjs-zod';
-import { adminDefaultUserSettingsRequestSchema, settingUpsertRequestSchema, settingsBulkRequestSchema } from '@trek/shared';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared settings contracts.

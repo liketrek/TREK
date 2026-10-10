@@ -1,7 +1,7 @@
-import type { ReservationDayPositions } from '../entities/ReservationDayPositions.entity';
 import { columnRef } from '../dialect/sql-functions';
-import { TrekRepository } from './_shared/trek-repository';
+import type { ReservationDayPositions } from '../entities/ReservationDayPositions.entity';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** `reservation_day_positions`/`reservations`/`days`'s shape for RS31's Kysely upsert. */
 type ReservationDayPositionsKyselyDB = Pick<DB, 'reservation_day_positions' | 'reservations' | 'days'>;
@@ -23,7 +23,11 @@ export class ReservationDayPositionsRepository extends TrekRepository<Reservatio
     // entity instead); `columnRef` selects the literal physical column.
     return this.qb('rdp')
       .join('rdp.reservation', 'r')
-      .select([columnRef(platform, 'rdp.reservation_id').as('reservation_id'), columnRef(platform, 'rdp.day_id').as('day_id'), 'rdp.position'])
+      .select([
+        columnRef(platform, 'rdp.reservation_id').as('reservation_id'),
+        columnRef(platform, 'rdp.day_id').as('day_id'),
+        'rdp.position',
+      ])
       .where({ 'r.trip': trip_id })
       .execute<{ reservation_id: number; day_id: number; position: number }[]>('all', false);
   }
@@ -42,7 +46,12 @@ export class ReservationDayPositionsRepository extends TrekRepository<Reservatio
    * insert, never a foreign-key error) — preserved exactly, not hoisted
    * into a pre-check.
    */
-  async upsertScoped(trip_id: number | string, reservation_id: number, day_id: number, position: number): Promise<void> {
+  async upsertScoped(
+    trip_id: number | string,
+    reservation_id: number,
+    day_id: number,
+    position: number,
+  ): Promise<void> {
     await this.kysely<ReservationDayPositionsKyselyDB>()
       .insertInto('reservation_day_positions')
       .orReplace()

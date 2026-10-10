@@ -1,15 +1,18 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
+import type { AirtrailLinkService } from '../../../src/nest/integrations/airtrail-link.service';
 import { ReservationsController } from '../../../src/nest/reservations/reservations.controller';
 import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import type { AirtrailLinkService } from '../../../src/nest/integrations/airtrail-link.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 const trip = { id: 5, user_id: 1 };
 
 // Fire-and-forget write-back trigger, injected since airtrail.bridge died.
-const airtrailLink = { pushReservationToAirtrail: vi.fn().mockResolvedValue(undefined) } as unknown as AirtrailLinkService;
+const airtrailLink = {
+  pushReservationToAirtrail: vi.fn().mockResolvedValue(undefined),
+} as unknown as AirtrailLinkService;
 
 function makeService(overrides: Partial<ReservationsService> = {}): ReservationsService {
   return {
@@ -27,7 +30,9 @@ function makeService(overrides: Partial<ReservationsService> = {}): Reservations
 }
 
 async function thrown(fn: () => unknown): Promise<{ status: number; body: unknown }> {
-  try { await fn(); } catch (err) {
+  try {
+    await fn();
+  } catch (err) {
     expect(err).toBeInstanceOf(HttpException);
     const e = err as HttpException;
     return { status: e.getStatus(), body: e.getResponse() };
@@ -36,27 +41,38 @@ async function thrown(fn: () => unknown): Promise<{ status: number; body: unknow
 }
 
 describe('ReservationsController (parity with the legacy /api/trips/:tripId/reservations route)', () => {
-
   it('GET / returns reservations', async () => {
     const svc = makeService({ list: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<ReservationsService>);
     expect(await new ReservationsController(svc, airtrailLink).list(user, '5')).toEqual({ reservations: [{ id: 1 }] });
   });
 
   describe('POST /', () => {
-
     // The bespoke 'Title is required' 400 moved to the global ZodValidationPipe
     // (ReservationCreateDto) — covered by the e2e suite.
 
     it('creates the booking and its cost in one write, broadcasts accommodation, cost and reservation in order, notifies', async () => {
       const costEvents = [{ event: 'budget:created', payload: { item: { id: 3 } } }];
-      const createWithCost = vi.fn().mockReturnValue({ reservation: { id: 9 }, accommodationCreated: true, costEvents });
+      const createWithCost = vi
+        .fn()
+        .mockReturnValue({ reservation: { id: 9 }, accommodationCreated: true, costEvents });
       const order: string[] = [];
-      const broadcast = vi.fn((_tripId: string, event: string) => { order.push(event); });
-      const announceCost = vi.fn(() => { order.push('cost'); });
+      const broadcast = vi.fn((_tripId: string, event: string) => {
+        order.push(event);
+      });
+      const announceCost = vi.fn(() => {
+        order.push('cost');
+      });
       const notifyBookingChange = vi.fn();
-      const svc = makeService({ createWithCost, broadcast, announceCost, notifyBookingChange } as Partial<ReservationsService>);
+      const svc = makeService({
+        createWithCost,
+        broadcast,
+        announceCost,
+        notifyBookingChange,
+      } as Partial<ReservationsService>);
       const body = { title: 'Hotel', type: 'lodging', create_budget_entry: { total_price: 200 } };
-      expect(await new ReservationsController(svc, airtrailLink).create(user, '5', body, 'sock')).toEqual({ reservation: { id: 9 } });
+      expect(await new ReservationsController(svc, airtrailLink).create(user, '5', body, 'sock')).toEqual({
+        reservation: { id: 9 },
+      });
       expect(createWithCost).toHaveBeenCalledWith('5', body, { total_price: 200 });
       expect(announceCost).toHaveBeenCalledWith('5', costEvents, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'accommodation:created', {}, 'sock');
@@ -72,8 +88,10 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
         referencesOutsideTrip: vi.fn().mockReturnValue(['accommodation_id']),
       } as Partial<ReservationsService>);
       const body = { title: 'Hotel', accommodation_id: 4711 };
-      expect(await thrown(() => new ReservationsController(svc, airtrailLink).create(user, '5', body)))
-        .toEqual({ status: 400, body: { error: 'Not part of this trip: accommodation_id' } });
+      expect(await thrown(() => new ReservationsController(svc, airtrailLink).create(user, '5', body))).toEqual({
+        status: 400,
+        body: { error: 'Not part of this trip: accommodation_id' },
+      });
       expect(createWithCost).not.toHaveBeenCalled();
     });
 
@@ -86,8 +104,10 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
       const body = { title: 'Hotel', place_id: 4711 };
       // Not 'Not part of this trip': an id that is part of nothing would send
       // the caller looking for it on another trip.
-      expect(await thrown(() => new ReservationsController(svc, airtrailLink).create(user, '5', body)))
-        .toEqual({ status: 400, body: { error: 'Unknown reference: place_id' } });
+      expect(await thrown(() => new ReservationsController(svc, airtrailLink).create(user, '5', body))).toEqual({
+        status: 400,
+        body: { error: 'Unknown reference: place_id' },
+      });
       expect(createWithCost).not.toHaveBeenCalled();
     });
 
@@ -97,23 +117,36 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
         referencesOutsideTrip: vi.fn().mockReturnValue(['place_id']),
         unresolvedReferences: vi.fn().mockReturnValue(['place_id']),
       } as Partial<ReservationsService>);
-      expect(await thrown(() => new ReservationsController(svc, airtrailLink).create(user, '5', { title: 'Hotel', place_id: 4711 })))
-        .toEqual({ status: 400, body: { error: 'Not part of this trip: place_id' } });
+      expect(
+        await thrown(() =>
+          new ReservationsController(svc, airtrailLink).create(user, '5', { title: 'Hotel', place_id: 4711 }),
+        ),
+      ).toEqual({ status: 400, body: { error: 'Not part of this trip: place_id' } });
     });
 
     // #2525: an imported booking quoted in dollars. The price has to reach the linked
     // cost in dollars, at a rate frozen before anything is written.
     it('hands the write the entry with its currency and frozen rate', async () => {
-      const createWithCost = vi.fn().mockReturnValue({ reservation: { id: 9 }, accommodationCreated: false, costEvents: [] });
+      const createWithCost = vi
+        .fn()
+        .mockReturnValue({ reservation: { id: 9 }, accommodationCreated: false, costEvents: [] });
       const withFrozenRate = vi.fn(async () => {
         expect(createWithCost).not.toHaveBeenCalled();
         return { total_price: 801.76, currency: 'USD', exchange_rate: 1.17 };
       });
       const svc = makeService({ createWithCost, withFrozenRate } as Partial<ReservationsService>);
-      const body = { title: 'Aparthotel Silver', type: 'hotel', create_budget_entry: { total_price: 801.76, currency: 'usd' } };
+      const body = {
+        title: 'Aparthotel Silver',
+        type: 'hotel',
+        create_budget_entry: { total_price: 801.76, currency: 'usd' },
+      };
       await new ReservationsController(svc, airtrailLink).create(user, '5', body, 'sock');
       expect(withFrozenRate).toHaveBeenCalledWith('5', { total_price: 801.76, currency: 'usd' });
-      expect(createWithCost).toHaveBeenCalledWith('5', body, { total_price: 801.76, currency: 'USD', exchange_rate: 1.17 });
+      expect(createWithCost).toHaveBeenCalledWith('5', body, {
+        total_price: 801.76,
+        currency: 'USD',
+        exchange_rate: 1.17,
+      });
     });
   });
 
@@ -122,10 +155,18 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
     // ZodValidationPipe (ReservationPositionsDto).
 
     it('updates positions and broadcasts', async () => {
-      const updatePositions = vi.fn(); const broadcast = vi.fn();
+      const updatePositions = vi.fn();
+      const broadcast = vi.fn();
       const svc = makeService({ updatePositions, broadcast } as Partial<ReservationsService>);
       const positions = [{ id: 1, day_plan_position: 0 }];
-      expect(await new ReservationsController(svc, airtrailLink).updatePositions(user, '5', { positions, day_id: 3 }, 'sock')).toEqual({ success: true });
+      expect(
+        await new ReservationsController(svc, airtrailLink).updatePositions(
+          user,
+          '5',
+          { positions, day_id: 3 },
+          'sock',
+        ),
+      ).toEqual({ success: true });
       expect(updatePositions).toHaveBeenCalledWith('5', positions, 3);
       expect(broadcast).toHaveBeenCalledWith('5', 'reservation:positions', { positions, day_id: 3 }, 'sock');
     });
@@ -134,16 +175,28 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
   describe('PUT /:id', () => {
     it('404 when the reservation is missing', async () => {
       const svc = makeService({ getReservation: vi.fn().mockReturnValue(undefined) } as Partial<ReservationsService>);
-      expect(await thrown(() => new ReservationsController(svc, airtrailLink).update(user, '5', '9', { title: 'X' }))).toEqual({ status: 404, body: { error: 'Reservation not found' } });
+      expect(
+        await thrown(() => new ReservationsController(svc, airtrailLink).update(user, '5', '9', { title: 'X' })),
+      ).toEqual({ status: 404, body: { error: 'Reservation not found' } });
     });
 
     it('updates the booking and its cost in one write, broadcasts + notifies with current fallbacks', async () => {
       const current = { title: 'Old', type: 'lodging' };
       const getReservation = vi.fn().mockReturnValue(current);
       const costEvents = [{ event: 'budget:updated', payload: { item: { id: 3 } } }];
-      const updateWithCost = vi.fn().mockReturnValue({ reservation: { id: 9 }, accommodationChanged: true, costEvents });
-      const broadcast = vi.fn(); const announceCost = vi.fn(); const notifyBookingChange = vi.fn();
-      const svc = makeService({ getReservation, updateWithCost, broadcast, announceCost, notifyBookingChange } as Partial<ReservationsService>);
+      const updateWithCost = vi
+        .fn()
+        .mockReturnValue({ reservation: { id: 9 }, accommodationChanged: true, costEvents });
+      const broadcast = vi.fn();
+      const announceCost = vi.fn();
+      const notifyBookingChange = vi.fn();
+      const svc = makeService({
+        getReservation,
+        updateWithCost,
+        broadcast,
+        announceCost,
+        notifyBookingChange,
+      } as Partial<ReservationsService>);
       const body = { create_budget_entry: { total_price: 50 } };
       await new ReservationsController(svc, airtrailLink).update(user, '5', '9', body, 'sock');
       expect(updateWithCost).toHaveBeenCalledWith('9', '5', body, current, { total_price: 50 });
@@ -159,8 +212,11 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
         updateWithCost: update,
         referencesOutsideTrip: vi.fn().mockReturnValue(['day_id', 'place_id']),
       } as Partial<ReservationsService>);
-      expect(await thrown(() => new ReservationsController(svc, airtrailLink).update(user, '5', '9', { day_id: 1, place_id: 2 })))
-        .toEqual({ status: 400, body: { error: 'Not part of this trip: day_id, place_id' } });
+      expect(
+        await thrown(() =>
+          new ReservationsController(svc, airtrailLink).update(user, '5', '9', { day_id: 1, place_id: 2 }),
+        ),
+      ).toEqual({ status: 400, body: { error: 'Not part of this trip: day_id, place_id' } });
       expect(update).not.toHaveBeenCalled();
     });
 
@@ -173,8 +229,11 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
       } as Partial<ReservationsService>);
       // The reporter's request: a foreign-key error used to reach the caller as
       // a bare 500 here.
-      expect(await thrown(() => new ReservationsController(svc, airtrailLink).update(user, '5', '9', { day_id: 1, place_id: 2 })))
-        .toEqual({ status: 400, body: { error: 'Unknown reference: day_id, place_id' } });
+      expect(
+        await thrown(() =>
+          new ReservationsController(svc, airtrailLink).update(user, '5', '9', { day_id: 1, place_id: 2 }),
+        ),
+      ).toEqual({ status: 400, body: { error: 'Unknown reference: day_id, place_id' } });
       expect(update).not.toHaveBeenCalled();
     });
   });
@@ -185,7 +244,11 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
 
     it('404 when the reservation is off-trip / missing', async () => {
       const svc = makeService({ setTravelers: vi.fn().mockReturnValue(null) } as Partial<ReservationsService>);
-      expect(await thrown(() => new ReservationsController(svc, airtrailLink).updateTravelers(user, '5', '9', { user_ids: [1] }))).toEqual({ status: 404, body: { error: 'Reservation not found' } });
+      expect(
+        await thrown(() =>
+          new ReservationsController(svc, airtrailLink).updateTravelers(user, '5', '9', { user_ids: [1] }),
+        ),
+      ).toEqual({ status: 404, body: { error: 'Reservation not found' } });
     });
 
     it('assigns travelers, broadcasts, and returns { travelers, reservation }', async () => {
@@ -194,9 +257,16 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
       const setTravelers = vi.fn().mockReturnValue({ travelers, reservation });
       const broadcast = vi.fn();
       const svc = makeService({ setTravelers, broadcast } as Partial<ReservationsService>);
-      expect(await new ReservationsController(svc, airtrailLink).updateTravelers(user, '5', '9', { user_ids: [2] }, 'sock')).toEqual({ travelers, reservation });
+      expect(
+        await new ReservationsController(svc, airtrailLink).updateTravelers(user, '5', '9', { user_ids: [2] }, 'sock'),
+      ).toEqual({ travelers, reservation });
       expect(setTravelers).toHaveBeenCalledWith('9', '5', [2]);
-      expect(broadcast).toHaveBeenCalledWith('5', 'reservation:travelers-updated', { reservationId: 9, travelers }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith(
+        '5',
+        'reservation:travelers-updated',
+        { reservationId: 9, travelers },
+        'sock',
+      );
     });
   });
 
@@ -204,18 +274,34 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
     it('404 when nothing deleted', async () => {
       const broadcast = vi.fn();
       const svc = makeService({
-        remove: vi.fn().mockReturnValue({ deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] }),
+        remove: vi.fn().mockReturnValue({
+          deleted: undefined,
+          accommodationDeleted: false,
+          deletedBudgetItemId: null,
+          deletedBudgetItemIds: [],
+        }),
         broadcast,
       } as Partial<ReservationsService>);
-      expect(await thrown(() => new ReservationsController(svc, airtrailLink).remove(user, '5', '9'))).toEqual({ status: 404, body: { error: 'Reservation not found' } });
+      expect(await thrown(() => new ReservationsController(svc, airtrailLink).remove(user, '5', '9'))).toEqual({
+        status: 404,
+        body: { error: 'Reservation not found' },
+      });
       expect(broadcast).not.toHaveBeenCalled();
     });
 
     it('broadcasts the accommodation + budget cascade then reservation:deleted', async () => {
-      const remove = vi.fn().mockReturnValue({ deleted: { id: 9, title: 'Hotel', type: 'lodging', accommodation_id: 3 }, accommodationDeleted: true, deletedBudgetItemId: 7, deletedBudgetItemIds: [7] });
-      const broadcast = vi.fn(); const notifyBookingChange = vi.fn();
+      const remove = vi.fn().mockReturnValue({
+        deleted: { id: 9, title: 'Hotel', type: 'lodging', accommodation_id: 3 },
+        accommodationDeleted: true,
+        deletedBudgetItemId: 7,
+        deletedBudgetItemIds: [7],
+      });
+      const broadcast = vi.fn();
+      const notifyBookingChange = vi.fn();
       const svc = makeService({ remove, broadcast, notifyBookingChange } as Partial<ReservationsService>);
-      expect(await new ReservationsController(svc, airtrailLink).remove(user, '5', '9', 'sock')).toEqual({ success: true });
+      expect(await new ReservationsController(svc, airtrailLink).remove(user, '5', '9', 'sock')).toEqual({
+        success: true,
+      });
       expect(broadcast).toHaveBeenCalledWith('5', 'accommodation:deleted', { accommodationId: 3 }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'budget:deleted', { itemId: 7 }, 'sock');
       expect(broadcast).toHaveBeenCalledWith('5', 'reservation:deleted', { reservationId: 9 }, 'sock');
@@ -223,7 +309,12 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
     });
 
     it('announces every expense the booking took with it, before the booking itself (#2084)', async () => {
-      const remove = vi.fn().mockReturnValue({ deleted: { id: 9, title: 'Flight', type: 'flight', accommodation_id: null }, accommodationDeleted: false, deletedBudgetItemId: 7, deletedBudgetItemIds: [7, 8] });
+      const remove = vi.fn().mockReturnValue({
+        deleted: { id: 9, title: 'Flight', type: 'flight', accommodation_id: null },
+        accommodationDeleted: false,
+        deletedBudgetItemId: 7,
+        deletedBudgetItemIds: [7, 8],
+      });
       const broadcast = vi.fn();
       const svc = makeService({ remove, broadcast } as Partial<ReservationsService>);
       await new ReservationsController(svc, airtrailLink).remove(user, '5', '9', 'sock');
@@ -235,7 +326,12 @@ describe('ReservationsController (parity with the legacy /api/trips/:tripId/rese
     });
 
     it('announces no expense when the booking carried none', async () => {
-      const remove = vi.fn().mockReturnValue({ deleted: { id: 9, title: 'Museum', type: 'activity', accommodation_id: null }, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [] });
+      const remove = vi.fn().mockReturnValue({
+        deleted: { id: 9, title: 'Museum', type: 'activity', accommodation_id: null },
+        accommodationDeleted: false,
+        deletedBudgetItemId: null,
+        deletedBudgetItemIds: [],
+      });
       const broadcast = vi.fn();
       const svc = makeService({ remove, broadcast } as Partial<ReservationsService>);
       await new ReservationsController(svc, airtrailLink).remove(user, '5', '9', 'sock');

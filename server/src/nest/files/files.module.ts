@@ -1,36 +1,37 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { FilesController } from './files.controller';
-import { FilesDownloadController } from './files-download.controller';
-import { FilesService } from './files.service';
-import { FilesRpc } from './files.rpc';
-import { FilesMcp } from './files.mcp';
-import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { BudgetItems } from '../../db/entities/BudgetItems.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { FileLinks } from '../../db/entities/FileLinks.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { TripFiles } from '../../db/entities/TripFiles.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
 import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
-import { RealtimeModule } from '../realtime/realtime.module';
-import { PermissionsModule } from '../permissions/permissions.module';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { EphemeralTokenModule } from '../auth-core/ephemeral-token.module';
-import { MulterModule } from '@nestjs/platform-express';
-import { AllowedFileTypesModule } from './allowed-file-types.module';
-import { AllowedFileTypesService } from './allowed-file-types.service';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { RealtimeModule } from '../realtime/realtime.module';
+import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
-import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
-import { filesUploadFileFilter } from './files.controller';
-import { MAX_FILE_SIZE, MAX_VIDEO_SIZE } from './files.constants';
-import { TripFiles } from '../../db/entities/TripFiles.entity';
-import { FileLinks } from '../../db/entities/FileLinks.entity';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import { Places } from '../../db/entities/Places.entity';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import { BudgetItems } from '../../db/entities/BudgetItems.entity';
-import { Users } from '../../db/entities/Users.entity';
-import { Trips } from '../../db/entities/Trips.entity';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { AllowedFileTypesModule } from './allowed-file-types.module';
+import { AllowedFileTypesService } from './allowed-file-types.service';
+import { FilesDownloadController } from './files-download.controller';
+import { MAX_FILE_SIZE, MAX_VIDEO_SIZE } from './files.constants';
+import { FilesController } from './files.controller';
+import { filesUploadFileFilter } from './files.controller';
+import { FilesMcp } from './files.mcp';
+import { FilesRpc } from './files.rpc';
+import { FilesService } from './files.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
-  imports: [TripMembershipModule, 
+  imports: [
+    TripMembershipModule,
     MulterModule.registerAsync({
       imports: [StorageModule, AllowedFileTypesModule],
       inject: [StorageService, AllowedFileTypesService],
@@ -54,9 +55,15 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
     // precedent).
     MikroOrmModule.forFeature([TripFiles, FileLinks, Reservations, Places, DayAssignments, BudgetItems, Users, Trips]),
     // McpSharedModule feeds FilesMcp's RBAC guards; it is not @Global.
-    EphemeralTokenModule, PermissionsModule, AppConfigModule, RealtimeModule, PluginGuardsModule, McpSharedModule,
+    EphemeralTokenModule,
+    PermissionsModule,
+    AppConfigModule,
+    RealtimeModule,
+    PluginGuardsModule,
+    McpSharedModule,
     // FilesMcp's upload tool checks the same extension list as the multipart filter.
-    AllowedFileTypesModule],
+    AllowedFileTypesModule,
+  ],
   controllers: [FilesController, FilesDownloadController],
   providers: [FilesService, FilesRpc, FilesMcp],
   exports: [FilesService],

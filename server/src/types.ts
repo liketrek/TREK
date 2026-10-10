@@ -1,6 +1,6 @@
-import type { Selectable } from 'kysely';
-
 import type { TripsTable } from './db/kysely/Trips.table';
+
+import type { Selectable } from 'kysely';
 
 export interface User {
   id: number;

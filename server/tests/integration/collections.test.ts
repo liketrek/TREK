@@ -6,29 +6,29 @@
  * 500 quirk (shared with the trip cover config) and the place-image filter's
  * statusCode-400 contract.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { Addons } from '../../src/db/entities/Addons.entity';
+import { CollectionPlaces } from '../../src/db/entities/CollectionPlaces.entity';
+import { Collections } from '../../src/db/entities/Collections.entity';
+import { authCookie } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { insertRow, upsertRow } from '../helpers/factories/rows';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
-import path from 'path';
+
+import type { Application } from 'express';
 import fs from 'fs';
+import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { MikroORM } from '@mikro-orm/core';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import type { FactoryOrm } from '../helpers/factories/context';
-import { createUser } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { insertRow, upsertRow } from '../helpers/factories/rows';
-import { Addons } from '../../src/db/entities/Addons.entity';
-import { Collections } from '../../src/db/entities/Collections.entity';
-import { CollectionPlaces } from '../../src/db/entities/CollectionPlaces.entity';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -56,7 +56,13 @@ beforeEach(async () => {
   await resetRateLimits(nestApp);
   // Enable the collections addon (the controller sits behind AddonGuard).
   await upsertRow(orm, Addons, {
-    id: 'collections', name: 'Collections', description: 'Saved places', type: 'global', icon: 'Bookmark', enabled: true, sort_order: 40,
+    id: 'collections',
+    name: 'Collections',
+    description: 'Saved places',
+    type: 'global',
+    icon: 'Bookmark',
+    enabled: true,
+    sort_order: 40,
   });
 });
 

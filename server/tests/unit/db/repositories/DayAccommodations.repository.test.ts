@@ -5,16 +5,23 @@
  * `accommodations.service.test.ts`/`reservations.service.test.ts`). ONE
  * seeded world, one `toEqual(<legacy raw>)` test per read method.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { DayAccommodations } from '../../../../src/db/entities/DayAccommodations.entity';
+import { Reservations } from '../../../../src/db/entities/Reservations.entity';
+import type { DayAccommodationsRepository } from '../../../../src/db/repositories/DayAccommodations.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import {
+  createDayAccommodation,
+  createPlace,
+  createReservation,
+  createTrip,
+  createUser,
+} from '../../../helpers/factories';
 import { updateRows } from '../../../helpers/factories/rows';
 import { readTripDays } from '../../../helpers/factories/trips';
-import { Reservations } from '../../../../src/db/entities/Reservations.entity';
-import { createDayAccommodation, createPlace, createReservation, createTrip, createUser } from '../../../helpers/factories';
-import { DayAccommodations } from '../../../../src/db/entities/DayAccommodations.entity';
-import type { DayAccommodationsRepository } from '../../../../src/db/repositories/DayAccommodations.repository';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -24,8 +31,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(DayAccommodations);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('DayAccommodationsRepository — fully seeded world', () => {
   // One seeded world for every test below: a trip with two stays —
@@ -37,7 +50,11 @@ describe('DayAccommodationsRepository — fully seeded world', () => {
     const otherTrip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-02' });
     const days = await readTripDays(t, trip.id);
     const place = createPlace(testDb, trip.id, { name: 'The Plaza', description: 'Fancy' });
-    const named = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id, { check_in: '15:00', check_out: '11:00', confirmation: 'CONF-1' });
+    const named = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id, {
+      check_in: '15:00',
+      check_out: '11:00',
+      confirmation: 'CONF-1',
+    });
     const booking = createReservation(testDb, trip.id, { title: 'Plaza Stay', type: 'hotel' });
     await updateRows(t, Reservations, { id: booking.id }, { accommodation_id: `${named.id}.0` });
     const bare = createDayAccommodation(testDb, trip.id, place.id, days[2].id, days[3].id);
@@ -78,7 +95,9 @@ describe('DayAccommodationsRepository — fully seeded world', () => {
   it('AC34 findInTrip — matches the legacy statement, scoped by trip (a foreign-trip id misses)', async () => {
     const { trip, named, otherStay } = await seed();
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb.prepare('SELECT * FROM day_accommodations WHERE id = ? AND trip_id = ?').get(named.id, trip.id);
+    const legacy = testDb
+      .prepare('SELECT * FROM day_accommodations WHERE id = ? AND trip_id = ?')
+      .get(named.id, trip.id);
     expect(await repo.findInTrip(named.id, trip.id)).toEqual(legacy);
     expect(await repo.findInTrip(otherStay.id, trip.id)).toBeUndefined();
   });
@@ -95,9 +114,13 @@ describe('DayAccommodationsRepository — fully seeded world', () => {
   it('DY19 listStartEndDayNumbers — matches the legacy joined day_number statement', async () => {
     const { trip, named, bare } = await seed();
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT a.id, s.day_number as start_no, e.day_number as end_no FROM day_accommodations a
-      JOIN days s ON s.id = a.start_day_id JOIN days e ON e.id = a.end_day_id WHERE a.trip_id = ?`).all(trip.id);
+      JOIN days s ON s.id = a.start_day_id JOIN days e ON e.id = a.end_day_id WHERE a.trip_id = ?`,
+      )
+      .all(trip.id);
     const typed = await repo.listStartEndDayNumbers(trip.id);
     expect(typed).toEqual(legacy);
     expect(typed.map((r) => r.id).sort()).toEqual([named.id, bare.id].sort());
@@ -106,18 +129,29 @@ describe('DayAccommodationsRepository — fully seeded world', () => {
   it('DY20 listForResync — matches the legacy statement, both persist(false) mirror columns present', async () => {
     const { trip, named } = await seed();
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb.prepare('SELECT id, start_day_id, end_day_id, check_in FROM day_accommodations WHERE trip_id = ?').all(trip.id);
+    const legacy = testDb
+      .prepare('SELECT id, start_day_id, end_day_id, check_in FROM day_accommodations WHERE trip_id = ?')
+      .all(trip.id);
     const typed = await repo.listForResync(trip.id);
     expect(typed).toEqual(legacy);
-    expect(typed.find((r) => r.id === named.id)).toMatchObject({ start_day_id: named.start_day_id, end_day_id: named.end_day_id, check_in: '15:00' });
+    expect(typed.find((r) => r.id === named.id)).toMatchObject({
+      start_day_id: named.start_day_id,
+      end_day_id: named.end_day_id,
+      check_in: '15:00',
+    });
   });
 
   it('DY41 listIdsCheckingInOrOutOn — matches the legacy statement: check-in day, check-out day, not a day only run across', async () => {
     const { trip, days, named, bare } = await seed();
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacy = (dayId: number) => (testDb.prepare(
-      'SELECT id FROM day_accommodations WHERE trip_id = ? AND (start_day_id = ? OR end_day_id = ?) ORDER BY id',
-    ).all(trip.id, dayId, dayId) as { id: number }[]).map((r) => r.id);
+    const legacy = (dayId: number) =>
+      (
+        testDb
+          .prepare(
+            'SELECT id FROM day_accommodations WHERE trip_id = ? AND (start_day_id = ? OR end_day_id = ?) ORDER BY id',
+          )
+          .all(trip.id, dayId, dayId) as { id: number }[]
+      ).map((r) => r.id);
     for (const day of days) expect(await repo.listIdsCheckingInOrOutOn(trip.id, day.id)).toEqual(legacy(day.id));
     expect(await repo.listIdsCheckingInOrOutOn(trip.id, days[0].id)).toEqual([named.id]);
     expect(await repo.listIdsCheckingInOrOutOn(trip.id, days[1].id)).toEqual([named.id]);
@@ -125,7 +159,7 @@ describe('DayAccommodationsRepository — fully seeded world', () => {
     expect(await repo.listIdsCheckingInOrOutOn(trip.id, days[4].id)).toEqual([]);
   });
 
-  it('DY41 listIdsCheckingInOrOutOn — scoped by trip (another trip\'s day matches nothing here)', async () => {
+  it("DY41 listIdsCheckingInOrOutOn — scoped by trip (another trip's day matches nothing here)", async () => {
     const { trip, otherStay } = await seed();
     expect(await repo.listIdsCheckingInOrOutOn(trip.id, otherStay.start_day_id)).toEqual([]);
   });
@@ -133,11 +167,15 @@ describe('DayAccommodationsRepository — fully seeded world', () => {
   it('RPL3 listRoadtripStays — matches the legacy LEFT JOIN places + MIN(reservation) statement, id order', async () => {
     const { trip, named, bare, booking } = await seed();
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT a.id, a.place_id, a.start_day_id, a.end_day_id, a.check_in, a.check_out,
         p.name AS place_name, p.lat AS place_lat, p.lng AS place_lng,
         (SELECT MIN(r.id) FROM reservations r WHERE r.accommodation_id = a.id) AS reservation_id
-      FROM day_accommodations a LEFT JOIN places p ON p.id = a.place_id WHERE a.trip_id = ? ORDER BY a.id`).all(trip.id);
+      FROM day_accommodations a LEFT JOIN places p ON p.id = a.place_id WHERE a.trip_id = ? ORDER BY a.id`,
+      )
+      .all(trip.id);
     const typed = await repo.listRoadtripStays(trip.id);
     expect(typed).toEqual(legacy);
     expect(typed.map((r) => r.id)).toEqual([named.id, bare.id]);
@@ -148,7 +186,9 @@ describe('DayAccommodationsRepository — fully seeded world', () => {
   it('PL16 listForPlace — matches the legacy statement, scoped by trip AND place', async () => {
     const { trip, place, named, bare } = await seed();
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb.prepare('SELECT id FROM day_accommodations WHERE trip_id = ? AND place_id = ?').all(trip.id, place.id);
+    const legacy = testDb
+      .prepare('SELECT id FROM day_accommodations WHERE trip_id = ? AND place_id = ?')
+      .all(trip.id, place.id);
     const typed = await repo.listForPlace(trip.id, place.id);
     expect(typed).toEqual(legacy);
     expect(typed.map((r) => r.id).sort()).toEqual([named.id, bare.id].sort());

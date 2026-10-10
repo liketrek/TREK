@@ -1,15 +1,16 @@
-import { hostname } from 'node:os';
-import { randomUUID } from 'node:crypto';
-import { Injectable, Optional, type OnApplicationShutdown } from '@nestjs/common';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { CronJob } from 'cron';
-import { MikroORM } from '@mikro-orm/core';
 import { readEnv } from '../../app-config';
+import { SchedulerLeases } from '../../db/entities/SchedulerLeases.entity';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { withRequestContext } from '../database/request-context';
 import { logError } from '../audit/audit-log.logger';
 import { traceEntry, wasTraced } from '../audit/entry-trace.logger';
-import { SchedulerLeases } from '../../db/entities/SchedulerLeases.entity';
+import { withRequestContext } from '../database/request-context';
+import { MikroORM } from '@mikro-orm/core';
+import { Injectable, Optional, type OnApplicationShutdown } from '@nestjs/common';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
+import { CronJob } from 'cron';
+import { randomUUID } from 'node:crypto';
+import { hostname } from 'node:os';
 
 /**
  * Who holds a lease: this process. Every registrar in one process shares it,

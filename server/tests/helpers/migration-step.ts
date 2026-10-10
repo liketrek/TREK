@@ -11,11 +11,12 @@
  * to open the same file, so raw SQL runs over the ORM's own connection
  * (`rawExec`/`rawQuery` below) instead of a probe `Database` handle.
  */
+import type { Configuration } from '@mikro-orm/core';
 import type { Migration } from '@mikro-orm/migrations';
 import { Migrator } from '@mikro-orm/migrations';
-import { MikroORM } from '@mikro-orm/sqlite';
 import type { AbstractSqlDriver } from '@mikro-orm/sql';
-import type { Configuration } from '@mikro-orm/core';
+import { MikroORM } from '@mikro-orm/sqlite';
+
 import path from 'node:path';
 
 const MIGRATIONS = path.join(__dirname, '../../src/db/migrations');
@@ -60,7 +61,10 @@ export async function rawQuery<T = unknown>(orm: MikroORM, sql: string, params: 
  * replay-safety guards) without the Migrator's own "already applied, skip"
  * short-circuit getting in the way.
  */
-export async function runMigrationDirect(orm: MikroORM, MigrationClass: new (driver: AbstractSqlDriver, config: Configuration) => Migration): Promise<void> {
+export async function runMigrationDirect(
+  orm: MikroORM,
+  MigrationClass: new (driver: AbstractSqlDriver, config: Configuration) => Migration,
+): Promise<void> {
   const migration = new MigrationClass(orm.em.getDriver(), orm.config);
   await migration.up();
 }

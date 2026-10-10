@@ -129,7 +129,9 @@ describe('test-sql-ratchet.mjs', () => {
   it('TSQL-005c: the cover ends with the statement, after the first call, and REACH lines down', () => {
     const marker = '// test-sql-allow: reason\n';
     // The statement below the marker ends on its first line; the next one is not covered.
-    const ended = run(serverRoot({ 'tests/a.test.ts': `${marker}const a = 1;\nconst b = testDb\n  ${CALL}'x').get();\n` }));
+    const ended = run(
+      serverRoot({ 'tests/a.test.ts': `${marker}const a = 1;\nconst b = testDb\n  ${CALL}'x').get();\n` }),
+    );
     expect(ended.out).toContain('tests/a.test.ts: 1 raw statement(s)');
     // Only the first call of the statement is covered.
     const two = `${marker}const rows = [\n  testDb${CALL}'a').get(),\n  testDb${CALL}'b').get(),\n];\n`;
@@ -154,13 +156,17 @@ describe('test-sql-ratchet.mjs', () => {
 
     const gone = run(serverRoot({ 'tests/a.test.ts': '' }, { exempt, counts: {} }));
     expect(gone.status).toBe(1);
-    expect(gone.out).toContain('FAIL  tests/unit/db/dialect.test.ts is exempt in scripts/test-sql-baseline.json, but the file is gone');
+    expect(gone.out).toContain(
+      'FAIL  tests/unit/db/dialect.test.ts is exempt in scripts/test-sql-baseline.json, but the file is gone',
+    );
   });
 
   it('TSQL-008: fails an entry above its file, or for a file with none left, until --update lowers it', () => {
     const shrunk = run(serverRoot({ 'tests/a.test.ts': stmt(1) }, { exempt: {}, counts: { 'tests/a.test.ts': 3 } }));
     expect(shrunk.status).toBe(1);
-    expect(shrunk.out).toContain('FAIL  tests/a.test.ts is held at 3 in scripts/test-sql-baseline.json, but it has 1 now.');
+    expect(shrunk.out).toContain(
+      'FAIL  tests/a.test.ts is held at 3 in scripts/test-sql-baseline.json, but it has 1 now.',
+    );
     expect(shrunk.out).toContain('npm run lint:test-sql -- --update');
 
     const converted = run(serverRoot({ 'tests/a.test.ts': '' }, { exempt: {}, counts: { 'tests/a.test.ts': 3 } }));
@@ -180,7 +186,12 @@ describe('test-sql-ratchet.mjs', () => {
       },
       {
         exempt,
-        counts: { 'tests/shrunk.test.ts': 5, 'tests/converted.test.ts': 2, 'tests/grown.test.ts': 6, 'tests/gone.test.ts': 1 },
+        counts: {
+          'tests/shrunk.test.ts': 5,
+          'tests/converted.test.ts': 2,
+          'tests/grown.test.ts': 6,
+          'tests/gone.test.ts': 1,
+        },
       },
     );
     const { status } = run(dir, '--update');

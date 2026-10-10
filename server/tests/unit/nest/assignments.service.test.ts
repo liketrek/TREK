@@ -9,50 +9,70 @@
  * bridge-delegation case died with assignments.bridge). Uses a real in-memory SQLite DB so SQL
  * logic is exercised faithfully.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { db as testDb } from '../../../src/db/database';
+import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
+import { Days } from '../../../src/db/entities/Days.entity';
+import { Places } from '../../../src/db/entities/Places.entity';
+import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { type TripAccess } from '../../../src/db/repositories/Trips.repository';
+import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
+import {
+  createUser,
+  createTrip,
+  addTripMember,
+  createDay,
+  createPlace,
+  createDayAssignment,
+  createTag,
+} from '../../helpers/factories';
+import { makeDayAccommodation } from '../../helpers/factories/itinerary';
+import { tagPlace } from '../../helpers/factories/places';
+import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import {
+  createTestJourneysRepo,
+  createTestJourneyContributorsRepo,
+  createTestJourneyTripsRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyPhotosRepo,
+  createTestJourneyEntryPhotosRepo,
+} from '../../helpers/journey-repos';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestTagsRepo,
+  createTestPlaceRatingsRepo,
+  createTestAssignmentParticipantsRepo,
+  createTestDayAssignmentsRepo,
+  createTestDaysRepo,
+  createTestPlacesRepo,
+  createTestTripMembersRepo,
+  createTestRoadtripViasRepo,
+  sharedTestOrm,
+  createTestTripsRepo,
+} from '../../helpers/test-uow';
+import { createTestToursRepo, createTour } from '../../helpers/tours-repos';
 import { ConflictException } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   // Trip access reads through TripsRepository now; the module only hands out the handle.
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember, createDay, createPlace, createDayAssignment, createTag } from '../../helpers/factories';
-import { type TripAccess } from '../../../src/db/repositories/Trips.repository';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import {
-  createTestUnitOfWork, createTestAppSettingsRepo, createTestTagsRepo, createTestPlaceRatingsRepo,
-  createTestAssignmentParticipantsRepo, createTestDayAssignmentsRepo, createTestDaysRepo, createTestPlacesRepo,
-  createTestTripMembersRepo, createTestRoadtripViasRepo, sharedTestOrm, createTestTripsRepo,
-} from '../../helpers/test-uow';
-import {
-  createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
-import { createTestToursRepo, createTour } from '../../helpers/tours-repos';
-import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
-import { tagPlace } from '../../helpers/factories/places';
-import { makeDayAccommodation } from '../../helpers/factories/itinerary';
-import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
-import { Days } from '../../../src/db/entities/Days.entity';
-import { Places } from '../../../src/db/entities/Places.entity';
-import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 let svc: AssignmentsService;
 beforeAll(async () => {
@@ -63,15 +83,30 @@ beforeAll(async () => {
     new TripAccessService(await createTestTripsRepo(testDb)),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     realtime,
-    new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
+    new QueryHelpersService(
+      await createTestTagsRepo(testDb),
+      await createTestPlaceRatingsRepo(testDb),
+      await createTestAssignmentParticipantsRepo(testDb),
+    ),
     // Real collaborator rather than a stub: reconcile() runs after every mutation
     // and needs the same connection to see the rows these cases write.
     new JourneyDomainService(
-      realtime, new TrekPhotoRegistrationService((await sharedTestOrm(testDb)).repo(TrekPhotos), (await sharedTestOrm(testDb)).repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)), await createTestUnitOfWork(testDb),
-      await createTestJourneysRepo(testDb), await createTestJourneyContributorsRepo(testDb),
-      await createTestJourneyTripsRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestTripsRepo(testDb),
+      realtime,
+      new TrekPhotoRegistrationService(
+        (await sharedTestOrm(testDb)).repo(TrekPhotos),
+        (await sharedTestOrm(testDb)).repo(TripPhotos),
+        await createTestJourneyPhotosRepo(testDb),
+      ),
+      await createTestUnitOfWork(testDb),
+      await createTestJourneysRepo(testDb),
+      await createTestJourneyContributorsRepo(testDb),
+      await createTestJourneyTripsRepo(testDb),
+      await createTestJourneyEntriesRepo(testDb),
+      await createTestTripsRepo(testDb),
       // Plan 3g Task 2 constructor-ripple: JourneyPhotosRepository/JourneyEntryPhotosRepository/PlacesRepository.
-      await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
+      await createTestJourneyPhotosRepo(testDb),
+      await createTestJourneyEntryPhotosRepo(testDb),
+      await createTestPlacesRepo(testDb),
     ),
     await createTestUnitOfWork(testDb),
     await createTestDayAssignmentsRepo(testDb),
@@ -119,7 +154,10 @@ async function assignmentRow(id: number) {
   return row;
 }
 
-async function setAssignment(id: number, data: { assignment_time?: string; assignment_end_time?: string; place?: number; accommodation_id?: number }) {
+async function setAssignment(
+  id: number,
+  data: { assignment_time?: string; assignment_end_time?: string; place?: number; accommodation_id?: number },
+) {
   await updateRows(await orm(), DayAssignments, { id }, data);
 }
 
@@ -278,7 +316,9 @@ describe('createAssignment', () => {
     });
     // The same compact tag projection as listDayAssignments — id/name/color/
     // created_at only, no user_id — so both read paths share one wire shape.
-    expect((await a!).place.tags).toEqual([{ id: tag.id, name: 'museum', color: '#10b981', created_at: (tag as { created_at?: string }).created_at }]);
+    expect((await a!).place.tags).toEqual([
+      { id: tag.id, name: 'museum', color: '#10b981', created_at: (tag as { created_at?: string }).created_at },
+    ]);
     void trip;
   });
 
@@ -310,7 +350,7 @@ describe('createAssignment', () => {
       svc.createAssignment(day.id, place.id),
     ]);
 
-    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
     const rejected = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
     expect(rejected).toHaveLength(1);
     expect(rejected[0].reason).toBeInstanceOf(ConflictException);
@@ -330,7 +370,7 @@ describe('createAssignment', () => {
     expect(ordinary).toMatchObject({ tour_place_id: null, tour_route_geometry: null });
 
     const list = await svc.listDayAssignments(day.id);
-    expect(list.map(a => [a.tour_place_id, a.tour_route_geometry])).toEqual([
+    expect(list.map((a) => [a.tour_place_id, a.tour_route_geometry])).toEqual([
       [tourPlace.id, '[[47,11],[47.5,11.5]]'],
       [null, null],
     ]);
@@ -350,9 +390,11 @@ describe('listDayAssignments', () => {
     await svc.setParticipants(a1.id, [user.id], trip.id);
 
     const list = await svc.listDayAssignments(day.id);
-    expect(list.map(a => a.id)).toEqual([a2.id, a1.id]);
+    expect(list.map((a) => a.id)).toEqual([a2.id, a1.id]);
     // Compact tag projection (id/name/color/created_at only — no user_id key).
-    expect(list[1].place.tags).toEqual([{ id: tag.id, name: 'art', color: '#10b981', created_at: (tag as { created_at?: string }).created_at }]);
+    expect(list[1].place.tags).toEqual([
+      { id: tag.id, name: 'art', color: '#10b981', created_at: (tag as { created_at?: string }).created_at },
+    ]);
     expect(list[1].participants).toEqual([{ user_id: user.id, username: user.username, avatar: null }]);
     expect(list[0].participants).toEqual([]);
     expect(list[0].place.tags).toEqual([]);
@@ -525,9 +567,9 @@ describe('getParticipants / setParticipants', () => {
     addTripMember(testDb, trip.id, member.id);
     const a = createDayAssignment(testDb, day.id, place.id);
 
-    const rows = await svc.setParticipants(a.id, [user.id, stranger.id, member.id], trip.id) as { user_id: number }[];
+    const rows = (await svc.setParticipants(a.id, [user.id, stranger.id, member.id], trip.id)) as { user_id: number }[];
 
-    expect(rows.map(r => r.user_id).sort()).toEqual([user.id, member.id].sort());
+    expect(rows.map((r) => r.user_id).sort()).toEqual([user.id, member.id].sort());
     expect(JSON.stringify(rows)).not.toContain(stranger.username);
   });
 });
@@ -538,7 +580,9 @@ describe('updateTime', () => {
   const order = async (id: number) => (await assignmentRow(id)).order_index;
   /** The day the way every reader lists it: by order_index, then insertion. */
   const dayOrder = async (dayId: number) =>
-    (await findRows(await orm(), DayAssignments, { day: dayId }, { order_index: 'asc', created_at: 'asc', id: 'asc' })).map(r => r.id);
+    (
+      await findRows(await orm(), DayAssignments, { day: dayId }, { order_index: 'asc', created_at: 'asc', id: 'asc' })
+    ).map((r) => r.id);
 
   /**
    * A day of stops at the given order_index keys, each with its own start (null for
@@ -556,7 +600,13 @@ describe('updateTime', () => {
   }
 
   async function addVia(dayId: number, afterOrderIndex: number, sequence = 0): Promise<number> {
-    return insertRow(await orm(), RoadtripVias, { day: dayId, after_order_index: afterOrderIndex, sequence, lat: 48.1, lng: 11.5 });
+    return insertRow(await orm(), RoadtripVias, {
+      day: dayId,
+      after_order_index: afterOrderIndex,
+      sequence,
+      lat: 48.1,
+      lng: 11.5,
+    });
   }
   const viaAnchors = async (dayId: number) =>
     (await findRows(await orm(), RoadtripVias, { day: dayId }, { id: 'asc' })).map((v) => ({
@@ -575,17 +625,31 @@ describe('updateTime', () => {
   it('ASG-SVC-022: a start sorts the timed stops and leaves every untimed stop behind the one it followed', async () => {
     // The tester's day: two stops without a time, then a start on the last one. It
     // used to jump to the top, because every untimed stop was appended after it.
-    const untimedHead = await dayOf([[null, 0], [null, 1], [null, 2]]);
+    const untimedHead = await dayOf([
+      [null, 0],
+      [null, 1],
+      [null, 2],
+    ]);
     await svc.updateTime(untimedHead.ids[2], '14:00', null);
     expect(await dayOrder(untimedHead.day.id)).toEqual(untimedHead.ids);
 
-    const between = await dayOf([['09:00', 0], [null, 1], [null, 2]]);
+    const between = await dayOf([
+      ['09:00', 0],
+      [null, 1],
+      [null, 2],
+    ]);
     await svc.updateTime(between.ids[2], '14:00', null);
     expect(await dayOrder(between.day.id)).toEqual(between.ids);
 
     // Timed stops still keep time order among themselves. A has nothing timed in
     // front of it and stays first.
-    const [a, b, c] = (await dayOf([[null, 0], ['15:00', 1], [null, 2]])).ids;
+    const [a, b, c] = (
+      await dayOf([
+        [null, 0],
+        ['15:00', 1],
+        [null, 2],
+      ])
+    ).ids;
     await svc.updateTime(c, '10:00', null);
     expect(await Promise.all([order(a), order(c), order(b)])).toEqual([0, 1, 2]);
   });
@@ -607,7 +671,14 @@ describe('updateTime', () => {
   });
 
   it('ASG-SVC-023: clearing with null persists but skips the auto-sort (falsy gate)', async () => {
-    const { day, ids: [a, b, c] } = await dayOf([['09:00', 0], [null, 1], ['12:00', 2]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = await dayOf([
+      ['09:00', 0],
+      [null, 1],
+      ['12:00', 2],
+    ]);
     await svc.updateTime(b, '06:00', null); // sorts b first
     expect(await dayOrder(day.id)).toEqual([b, a, c]);
     // Dragged back out of time order on purpose: a sort now would put b first again,
@@ -620,7 +691,14 @@ describe('updateTime', () => {
   });
 
   it('ASG-SVC-027: an empty-string time clears the override like null (and skips the auto-sort)', async () => {
-    const { day, ids: [a, b, c] } = await dayOf([['09:00', 0], [null, 1], ['12:00', 2]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = await dayOf([
+      ['09:00', 0],
+      [null, 1],
+      ['12:00', 2],
+    ]);
     await svc.updateTime(b, '06:00', '07:00'); // sorts b first
     expect(await dayOrder(day.id)).toEqual([b, a, c]);
     await svc.reorderAssignments(day.id, [a, b, c]);
@@ -645,7 +723,14 @@ describe('updateTime', () => {
   it('ASG-SVC-033: writes nothing but the time when the day is already in order', async () => {
     // Keys with gaps, as a deleted stop leaves them. A day the start leaves in order
     // keeps them: nothing about it changed.
-    const { day, ids: [a, b, c] } = await dayOf([['09:00', 0], [null, 5], [null, 9]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = await dayOf([
+      ['09:00', 0],
+      [null, 5],
+      [null, 9],
+    ]);
     const via = await addVia(day.id, 0);
     // test-sql-allow: total_changes() counts the writes on the connection itself, which no entity maps.
     const changes = () => (testDb.prepare('SELECT total_changes() AS n').get() as { n: number }).n;
@@ -664,7 +749,14 @@ describe('updateTime', () => {
     // A gap, as a deleted stop leaves it. Kept, the writer would read 0, 4, 7 back and
     // everyone else would apply 0, 1, 2, and a note at 3 would sit behind a different
     // stop for each of them.
-    const { day, ids: [a, b, c] } = await dayOf([[null, 0], ['15:00', 4], [null, 7]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = await dayOf([
+      [null, 0],
+      ['15:00', 4],
+      [null, 7],
+    ]);
     // test-sql-allow: total_changes() counts the writes on the connection itself, which no entity maps.
     const changes = () => (testDb.prepare('SELECT total_changes() AS n').get() as { n: number }).n;
     const before = changes();
@@ -679,7 +771,14 @@ describe('updateTime', () => {
 
   it('ASG-SVC-035: numbers a day with colliding keys from 0 again, since a shared key cannot hold an order', async () => {
     // A move drops a stop in at order_index 0 next to the one already there.
-    const { day, ids: [a, b, c] } = await dayOf([[null, 0], ['15:00', 0], [null, 0]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = await dayOf([
+      [null, 0],
+      ['15:00', 0],
+      [null, 0],
+    ]);
 
     await svc.updateTime(c, '10:00', null);
 
@@ -689,7 +788,17 @@ describe('updateTime', () => {
 
   it('ASG-SVC-036: keeps each drawn road behind the stop it was drawn after, counting located stops only', async () => {
     // X has no coordinates, so the router never sees it and the vias do not count it.
-    const { trip, day, ids: [a, x, b, c, d] } = await dayOf([[null, 0], [null, 1], ['15:00', 2], [null, 3], [null, 4]]);
+    const {
+      trip,
+      day,
+      ids: [a, x, b, c, d],
+    } = await dayOf([
+      [null, 0],
+      [null, 1],
+      ['15:00', 2],
+      [null, 3],
+      [null, 4],
+    ]);
     const unmapped = createPlace(testDb, trip.id, { name: 'Somewhere unmapped' });
     await setPlace(unmapped.id, { lat: null, lng: null });
     await setAssignment(x, { place: unmapped.id });
@@ -711,11 +820,22 @@ describe('updateTime', () => {
     ]);
     expect(update.reordered).toEqual({ dayId: day.id, orderedIds: [a, x, d, b, c] });
     expect(update.vias?.dayId).toBe(day.id);
-    expect(update.vias?.vias.map(v => [v.id, v.after_order_index])).toEqual([[afterA, 0], [afterB, 2], [afterBToo, 2]]);
+    expect(update.vias?.vias.map((v) => [v.id, v.after_order_index])).toEqual([
+      [afterA, 0],
+      [afterB, 2],
+      [afterBToo, 2],
+    ]);
   });
 
   it('ASG-SVC-037: reports no vias when the reorder leaves every one on its stop', async () => {
-    const { day, ids: [a, b, c] } = await dayOf([[null, 0], ['15:00', 1], [null, 2]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = await dayOf([
+      [null, 0],
+      ['15:00', 1],
+      [null, 2],
+    ]);
     const via = await addVia(day.id, 0);
 
     const update = await svc.updateTime(c, '10:00', null);
@@ -727,7 +847,15 @@ describe('updateTime', () => {
 
   it('ASG-SVC-038: leaves every via alone when the sort moves only stops without coordinates', async () => {
     // X has no coordinates. It goes between A and B, and the located stops stay A, B.
-    const { trip, day, ids: [a, b, x] } = await dayOf([['09:00', 0], ['12:00', 1], [null, 2]]);
+    const {
+      trip,
+      day,
+      ids: [a, b, x],
+    } = await dayOf([
+      ['09:00', 0],
+      ['12:00', 1],
+      [null, 2],
+    ]);
     const unmapped = createPlace(testDb, trip.id, { name: 'Somewhere unmapped' });
     await setPlace(unmapped.id, { lat: null, lng: null });
     await setAssignment(x, { place: unmapped.id });
@@ -748,7 +876,15 @@ describe('updateTime', () => {
   });
 
   it('ASG-SVC-039: keeps the via behind the last stop when that stop is still last', async () => {
-    const { day, ids: [a, b, c, d] } = await dayOf([[null, 0], ['15:00', 1], [null, 2], ['18:00', 3]]);
+    const {
+      day,
+      ids: [a, b, c, d],
+    } = await dayOf([
+      [null, 0],
+      ['15:00', 1],
+      [null, 2],
+      ['18:00', 3],
+    ]);
     const afterB = await addVia(day.id, 1);
     const intoTomorrow = await addVia(day.id, 3);
 
@@ -760,7 +896,10 @@ describe('updateTime', () => {
       { id: afterB, after_order_index: 2, sequence: 0 },
       { id: intoTomorrow, after_order_index: 3, sequence: 0 },
     ]);
-    expect(update.vias?.vias.map(v => [v.id, v.after_order_index])).toEqual([[afterB, 2], [intoTomorrow, 3]]);
+    expect(update.vias?.vias.map((v) => [v.id, v.after_order_index])).toEqual([
+      [afterB, 2],
+      [intoTomorrow, 3],
+    ]);
   });
 
   it('ASG-SVC-047: a sort that moves the last stop up the day takes the drive behind it along, never leaving it on no stop', async () => {
@@ -768,7 +907,14 @@ describe('updateTime', () => {
     // there only while that stop is last. Once another stop is, it goes: it lies on the
     // road to tomorrow, and read as the leg its stop leaves by now it would bend the
     // drive from C to A through a point on that road.
-    const { day, ids: [a, b, c] } = await dayOf([['09:00', 0], ['12:00', 1], ['18:00', 2]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = await dayOf([
+      ['09:00', 0],
+      ['12:00', 1],
+      ['18:00', 2],
+    ]);
     const afterA = await addVia(day.id, 0);
     const intoTomorrow = await addVia(day.id, 2);
 
@@ -776,13 +922,20 @@ describe('updateTime', () => {
 
     expect(await dayOrder(day.id)).toEqual([c, a, b]);
     expect(await viaAnchors(day.id)).toEqual([{ id: afterA, after_order_index: 1, sequence: 0 }]);
-    expect((await viaAnchors(day.id)).map(via => via.id)).not.toContain(intoTomorrow);
+    expect((await viaAnchors(day.id)).map((via) => via.id)).not.toContain(intoTomorrow);
     expect(update.vias?.dayId).toBe(day.id);
   });
 
   it('ASG-SVC-040: an End saved with the start as it stood leaves a day dragged out of time order alone', async () => {
     // B belongs first by time, and the traveller put it second on purpose.
-    const { day, ids: [a, b, c] } = await dayOf([['14:00', 0], ['10:00', 1], ['16:00', 2]]);
+    const {
+      day,
+      ids: [a, b, c],
+    } = await dayOf([
+      ['14:00', 0],
+      ['10:00', 1],
+      ['16:00', 2],
+    ]);
     await setAssignment(b, { assignment_end_time: '11:00' });
     const afterA = await addVia(day.id, 0);
 
@@ -805,7 +958,14 @@ describe('updateTime', () => {
 
   it('ASG-SVC-041: a visit given the start its place already had does not sort either', async () => {
     // The place form fills Start from the place when the visit has none of its own.
-    const { trip, day, ids: [a, b] } = await dayOf([['14:00', 0], [null, 1]]);
+    const {
+      trip,
+      day,
+      ids: [a, b],
+    } = await dayOf([
+      ['14:00', 0],
+      [null, 1],
+    ]);
     const timedPlace = createPlace(testDb, trip.id, { name: 'Opens at ten' });
     await setPlace(timedPlace.id, { place_time: '10:00' });
     await setAssignment(b, { place: timedPlace.id });

@@ -1,10 +1,10 @@
+import type { User } from '../../types';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { TagCreateDto, TagUpdateDto } from './tags.dto';
+import { TagsService } from './tags.service';
 import { Body, Controller, Delete, Get, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 import type { Tag, TagListResponse } from '@trek/shared';
-import type { User } from '../../types';
-import { TagsService } from './tags.service';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { CurrentUser } from '../auth-core/current-user.decorator';
-import { TagCreateDto, TagUpdateDto } from './tags.dto';
 
 /**
  * /api/tags — per-user place-tag CRUD.
@@ -38,11 +38,7 @@ export class TagsController {
   }
 
   @Put(':id')
-  async update(
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() body: TagUpdateDto,
-  ): Promise<{ tag: Tag }> {
+  async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TagUpdateDto): Promise<{ tag: Tag }> {
     const { name, color } = body as { name?: string; color?: string };
     if (!(await this.tags.getByIdAndUser(id, user.id))) {
       throw new HttpException({ error: 'Tag not found' }, 404);

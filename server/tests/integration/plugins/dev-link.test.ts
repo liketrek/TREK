@@ -5,10 +5,8 @@
  * built artifact, native binaries, don't-clobber-a-real-plugin, reload only a link),
  * and a full link -> activate -> reload loop through a real isolated child.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
 // Plan 3j Task 3: `discoverPlugins` (called from `runtime.link`) is repository-backed
 // now (DI1–DI8) — a native `em.insert()` writes every `Opt`-defaulted entity column
 // (`sort_order`, `installed_at`, `crash_count`, `update_hold`, …), not only the ones
@@ -18,13 +16,15 @@ import path from 'node:path';
 // (`createSnapshotTestDb` + `createTestOrm`) replaces the old hand-rolled table set,
 // same fix `registry.test.ts` needed.
 import { createSnapshotTestDb } from '../../helpers/db-mock';
-
-import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { makePlugin } from '../../helpers/factories/plugins';
+import { findRow } from '../../helpers/factories/rows';
 import { createPluginRuntime } from '../../helpers/plugin-host';
 import { sharedTestOrm } from '../../helpers/test-uow';
-import { findRow } from '../../helpers/factories/rows';
-import { makePlugin } from '../../helpers/factories/plugins';
-import { Plugins } from '../../../src/db/entities/Plugins.entity';
+
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 const dbConn = testDb;
@@ -37,12 +37,25 @@ let runtime: PluginRuntimeService;
 const ROUTE = (v: string) =>
   `module.exports = { routes: [{ method: 'GET', path: '/v', auth: false, async handler() { return { status: 200, body: JSON.stringify({ v: ${v} }) }; } }] };`;
 
-function writeSource(id: string, opts: { index?: string; native?: boolean; noBuild?: boolean; trek?: string } = {}): string {
+function writeSource(
+  id: string,
+  opts: { index?: string; native?: boolean; noBuild?: boolean; trek?: string } = {},
+): string {
   const dir = path.join(srcRoot, id);
   fs.mkdirSync(path.join(dir, 'server'), { recursive: true });
   // dev-link requires a `trek` range like any other install front door; `opts.trek`
   // overrides it to exercise the gate.
-  fs.writeFileSync(path.join(dir, 'trek-plugin.json'), JSON.stringify({ id, name: id, version: '1.0.0', type: 'integration', permissions: [], trek: opts.trek ?? '>=3.0.0' }));
+  fs.writeFileSync(
+    path.join(dir, 'trek-plugin.json'),
+    JSON.stringify({
+      id,
+      name: id,
+      version: '1.0.0',
+      type: 'integration',
+      permissions: [],
+      trek: opts.trek ?? '>=3.0.0',
+    }),
+  );
   if (!opts.noBuild) fs.writeFileSync(path.join(dir, 'server', 'index.js'), opts.index ?? 'module.exports = {};');
   if (opts.native) fs.writeFileSync(path.join(dir, 'server', 'addon.node'), '\0');
   return dir;
@@ -103,10 +116,12 @@ describe('PluginRuntimeService dev-link', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       await expect(runtime.link(writeSource('oldplug-bypass', { trek: '>=2.0.0 <3.0.0' }))).resolves.toMatchObject({
-        id: 'oldplug-bypass', trekRangeBypassed: { trekRange: '>=2.0.0 <3.0.0', hostVersion: '3.3.0' },
+        id: 'oldplug-bypass',
+        trekRangeBypassed: { trekRange: '>=2.0.0 <3.0.0', hostVersion: '3.3.0' },
       });
       await expect(runtime.link(writeSource('rangeless-bypass', { trek: '' }))).resolves.toMatchObject({
-        id: 'rangeless-bypass', trekRangeBypassed: { trekRange: null, hostVersion: '3.3.0' },
+        id: 'rangeless-bypass',
+        trekRangeBypassed: { trekRange: null, hostVersion: '3.3.0' },
       });
       // A dir that fits is a plain link — no marker to alarm anyone with.
       await expect(runtime.link(writeSource('fits-bypass'))).resolves.toMatchObject({ trekRangeBypassed: null });
@@ -134,7 +149,11 @@ describe('PluginRuntimeService dev-link', () => {
 
   it('refuses to clobber a real (non-linked) installed plugin of the same id', async () => {
     await makePlugin(await sharedTestOrm(dbConn), 'installed', {
-      name: 'X', type: 'integration', version: '1.0.0', status: 'inactive', source_repo: 'local:upload',
+      name: 'X',
+      type: 'integration',
+      version: '1.0.0',
+      status: 'inactive',
+      source_repo: 'local:upload',
     });
     await expect(runtime.link(writeSource('installed'))).rejects.toThrow(/already installed/);
   });

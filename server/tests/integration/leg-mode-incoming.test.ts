@@ -3,10 +3,20 @@
  * read-path parity: the field must survive both the single-assignment
  * projection and the day-LIST projection.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb2 } from '../../src/db/database';
+import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, createDay, createPlace } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { findRow, updateRows } from '../helpers/factories/rows';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Read-path parity (day-LIST endpoint) — mirrors the harness in
@@ -17,16 +27,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb2 } from '../../src/db/database';
-import { MikroORM } from '@mikro-orm/core';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import type { FactoryOrm } from '../helpers/factories/context';
-import { createUser, createTrip, createDay, createPlace } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { findRow, updateRows } from '../helpers/factories/rows';
-import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
 
 describe('incoming_leg_transport_mode read-path parity', () => {
   let nestApp: INestApplication;
@@ -64,9 +64,7 @@ describe('incoming_leg_transport_mode read-path parity', () => {
 
     await updateRows(orm, DayAssignments, { id: assignmentId }, { incoming_leg_transport_mode: 'transit' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/days`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     const foundDay = res.body.days.find((d: any) => d.id === day.id);
     const a = foundDay.assignments.find((x: any) => x.id === assignmentId);
@@ -170,9 +168,7 @@ describe('incoming_leg_transport_mode read-path parity', () => {
       expect(row?.leg_transport_mode).toBe('cycling');
       expect(row?.incoming_leg_transport_mode).toBe('transit');
 
-      const res = await request(app)
-        .get(`/api/trips/${trip.id}/days`)
-        .set('Cookie', authCookie(user.id));
+      const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
       const foundDay = res.body.days.find((d: any) => d.id === day.id);
       const a = foundDay.assignments.find((x: any) => x.id === assignmentId);

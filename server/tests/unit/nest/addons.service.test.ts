@@ -21,26 +21,27 @@
  * filter itself (the disabled row is excluded) alongside the boolean coercion
  * of the enabled row that remains.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { deleteRows, findRow, insertRow, updateRows, upsertRow } from '../../helpers/factories/rows';
+import { Addons } from '../../../src/db/entities/Addons.entity';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
+import { PlaceShadowPicks } from '../../../src/db/entities/PlaceShadowPicks.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { AddonsRepository } from '../../../src/db/repositories/Addons.repository';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { PhotoProviderFieldsRepository } from '../../../src/db/repositories/PhotoProviderFields.repository';
+import type { PhotoProvidersRepository } from '../../../src/db/repositories/PhotoProviders.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { PlaceShadowService } from '../../../src/nest/place-shadow/place-shadow.service';
-import { Addons } from '../../../src/db/entities/Addons.entity';
-import type { AddonsRepository } from '../../../src/db/repositories/Addons.repository';
-import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
-import type { PhotoProvidersRepository } from '../../../src/db/repositories/PhotoProviders.repository';
-import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
-import type { PhotoProviderFieldsRepository } from '../../../src/db/repositories/PhotoProviderFields.repository';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { PlaceShadowPicks } from '../../../src/db/entities/PlaceShadowPicks.entity';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
+import { deleteRows, findRow, insertRow, updateRows, upsertRow } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
 const { getPhotoProviderConfig } = vi.hoisted(() => ({ getPhotoProviderConfig: vi.fn(() => ({})) }));
 vi.mock('../../../src/nest/common/photo-provider-config', () => ({ getPhotoProviderConfig }));
@@ -78,10 +79,22 @@ function providerFields(addon: ListAddon): PhotoProviderField[] {
   return (addon as ListAddon & { fields: PhotoProviderField[] }).fields;
 }
 
-async function insertAddon(row: { id: string; name: string; type?: string; icon?: string | null; enabled: 0 | 1; sort_order?: number }): Promise<void> {
+async function insertAddon(row: {
+  id: string;
+  name: string;
+  type?: string;
+  icon?: string | null;
+  enabled: 0 | 1;
+  sort_order?: number;
+}): Promise<void> {
   await insertRow(t, Addons, {
-    id: row.id, name: row.name, description: null, type: row.type ?? 'global', icon: row.icon ?? null,
-    enabled: row.enabled === 1, sort_order: row.sort_order ?? 0,
+    id: row.id,
+    name: row.name,
+    description: null,
+    type: row.type ?? 'global',
+    icon: row.icon ?? null,
+    enabled: row.enabled === 1,
+    sort_order: row.sort_order ?? 0,
   });
 }
 
@@ -102,9 +115,20 @@ function stubJourneyEnabled(): ReturnType<typeof vi.spyOn> {
   return vi.spyOn(addonsRepo, 'isEnabled').mockImplementation(async (id: string) => id === 'journey');
 }
 
-async function insertProvider(row: { id: string; name: string; icon?: string | null; enabled: 0 | 1; sort_order?: number }): Promise<void> {
+async function insertProvider(row: {
+  id: string;
+  name: string;
+  icon?: string | null;
+  enabled: 0 | 1;
+  sort_order?: number;
+}): Promise<void> {
   await insertRow(t, PhotoProviders, {
-    id: row.id, name: row.name, description: null, icon: row.icon ?? null, enabled: row.enabled, sort_order: row.sort_order ?? 0,
+    id: row.id,
+    name: row.name,
+    description: null,
+    icon: row.icon ?? null,
+    enabled: row.enabled,
+    sort_order: row.sort_order ?? 0,
   });
 }
 
@@ -165,7 +189,14 @@ beforeEach(() => {
   t.clear();
   getPhotoProviderConfig.mockReset();
   getPhotoProviderConfig.mockReturnValue({});
-  svc = new AddonsService(addonsRepo, photoProvidersRepo, photoProviderFieldsRepo, appSettingsRepo, usersRepo, new UnitOfWork(t.em));
+  svc = new AddonsService(
+    addonsRepo,
+    photoProvidersRepo,
+    photoProviderFieldsRepo,
+    appSettingsRepo,
+    usersRepo,
+    new UnitOfWork(t.em),
+  );
 });
 
 afterEach(() => {
@@ -383,7 +414,13 @@ describe('AddonsService addon/feature flags', () => {
     await setAppSetting('collab_chat_enabled', 'false');
     await setAppSetting('collab_polls_enabled', 'true');
 
-    expect(await svc.getCollabFeatures()).toEqual({ chat: false, notes: true, links: true, polls: true, whatsnext: true });
+    expect(await svc.getCollabFeatures()).toEqual({
+      chat: false,
+      notes: true,
+      links: true,
+      polls: true,
+      whatsnext: true,
+    });
   });
 
   it('updateCollabFeatures writes only the provided flags and reports changed (#1414, ADMIN-SVC-070)', async () => {
@@ -414,14 +451,21 @@ describe('AddonsService addon/feature flags', () => {
 
   it('updateCollabFeatures saves the flags together: a failing second write keeps the first one off disk', async () => {
     const setValue = appSettingsRepo.setValue.bind(appSettingsRepo);
-    const setValueSpy = vi.spyOn(appSettingsRepo, 'setValue')
+    const setValueSpy = vi
+      .spyOn(appSettingsRepo, 'setValue')
       .mockImplementationOnce(setValue)
       .mockRejectedValueOnce(new Error('disk full'));
 
     await expect(svc.updateCollabFeatures({ chat: false, notes: false })).rejects.toThrow('disk full');
 
     expect((await storedAppSetting('collab_chat_enabled'))?.value).not.toBe('false');
-    expect(await svc.getCollabFeatures()).toEqual({ chat: true, notes: true, links: true, polls: true, whatsnext: true });
+    expect(await svc.getCollabFeatures()).toEqual({
+      chat: true,
+      notes: true,
+      links: true,
+      polls: true,
+      whatsnext: true,
+    });
     setValueSpy.mockRestore();
   });
 });

@@ -3,13 +3,25 @@
  * through the real JwtAuthGuard, the Zod pipe and the real providers on a temp
  * SQLite db. Only the outbound POST (safeFetchFollow) is replaced.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { PushSubscriptions } from '../../src/db/entities/PushSubscriptions.entity';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { deleteRows, findRows } from '../helpers/factories/rows';
+import { readAppSetting, setAppSetting } from '../helpers/factories/settings';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
 import { createECDH } from 'node:crypto';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 // The migrated snapshot (users for the guard, app_settings and the
 // push_subscriptions table from legacy step 245), opened inside the factory;
@@ -25,18 +37,6 @@ vi.mock('../../src/utils/ssrfGuard', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/utils/ssrfGuard')>()),
   safeFetchFollow,
 }));
-
-import { db } from '../../src/db/database';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { deleteRows, findRows } from '../helpers/factories/rows';
-import { readAppSetting, setAppSetting } from '../helpers/factories/settings';
-import { makeUser } from '../helpers/factories/users';
-import { PushSubscriptions } from '../../src/db/entities/PushSubscriptions.entity';
 
 const ENDPOINT = 'https://fcm.googleapis.com/fcm/send/e2e-device';
 
@@ -74,7 +74,12 @@ describe('Web Push e2e (real auth guard + temp SQLite)', () => {
 
   async function build() {
     const moduleRef = await Test.createTestingModule({
-      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, NotificationsModule],
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        NotificationsModule,
+      ],
     }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -87,8 +92,20 @@ describe('Web Push e2e (real auth guard + temp SQLite)', () => {
   beforeAll(async () => {
     // The two users the session cookies are signed for, pinned to ids 1 and 2.
     orm = await createTestOrm(db);
-    await makeUser(orm, { id: 1, username: 'e2e-user-1', email: 'one@example.test', role: 'user', password_version: 0 });
-    await makeUser(orm, { id: 2, username: 'e2e-user-2', email: 'two@example.test', role: 'user', password_version: 0 });
+    await makeUser(orm, {
+      id: 1,
+      username: 'e2e-user-1',
+      email: 'one@example.test',
+      role: 'user',
+      password_version: 0,
+    });
+    await makeUser(orm, {
+      id: 2,
+      username: 'e2e-user-2',
+      email: 'two@example.test',
+      role: 'user',
+      password_version: 0,
+    });
     app = await build();
     server = app.getHttpServer();
   });

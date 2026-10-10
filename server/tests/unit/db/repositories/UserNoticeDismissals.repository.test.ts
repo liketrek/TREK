@@ -1,11 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser, type TestUser } from '../../../helpers/factories';
 import { UserNoticeDismissals } from '../../../../src/db/entities/UserNoticeDismissals.entity';
 import type { UserNoticeDismissalsRepository } from '../../../../src/db/repositories/UserNoticeDismissals.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser, type TestUser } from '../../../helpers/factories';
 import { countRows, findRow, insertRow } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -28,8 +29,18 @@ afterAll(async () => {
   testDb.close();
 });
 
-async function insertDismissal(userId: number, noticeId: string, dismissedAt: number, dismissedAppVersion: string | null): Promise<void> {
-  await insertRow(t, UserNoticeDismissals, { user: userId, notice_id: noticeId, dismissed_at: dismissedAt, dismissed_app_version: dismissedAppVersion });
+async function insertDismissal(
+  userId: number,
+  noticeId: string,
+  dismissedAt: number,
+  dismissedAppVersion: string | null,
+): Promise<void> {
+  await insertRow(t, UserNoticeDismissals, {
+    user: userId,
+    notice_id: noticeId,
+    dismissed_at: dismissedAt,
+    dismissed_app_version: dismissedAppVersion,
+  });
 }
 
 /** The dismissal's stored columns, or undefined when there is none. */
@@ -42,13 +53,21 @@ describe('user_notice_dismissals — the (user_id, notice_id) composite PK the O
   it("UNDREPO-SCHEMA-001: PRAGMA table_info('user_notice_dismissals') reports a 2-column PRIMARY KEY over exactly (user_id, notice_id), matching the migration DDL", () => {
     // test-sql-allow: the primary key comes from PRAGMA table_info, which no entity or repository maps.
     const cols = testDb.prepare("PRAGMA table_info('user_notice_dismissals')").all() as { name: string; pk: number }[];
-    const pkCols = cols.filter((c) => c.pk > 0).sort((a, b) => a.pk - b.pk).map((c) => c.name);
+    const pkCols = cols
+      .filter((c) => c.pk > 0)
+      .sort((a, b) => a.pk - b.pk)
+      .map((c) => c.name);
     expect(pkCols).toEqual(['user_id', 'notice_id']);
   });
 
   it('UNDREPO-SCHEMA-002: the entity metadata declares the same 2-property composite PK, naming the RELATION property, not its persist(false) twin', () => {
     const meta = t.orm.getMetadata(UserNoticeDismissals);
-    expect(meta.getPrimaryProps().map((p) => p.name).sort()).toEqual(['notice_id', 'user'].sort());
+    expect(
+      meta
+        .getPrimaryProps()
+        .map((p) => p.name)
+        .sort(),
+    ).toEqual(['notice_id', 'user'].sort());
   });
 });
 
@@ -60,8 +79,11 @@ describe('UserNoticeDismissalsRepository — reads (SN4 parity)', () => {
     await insertDismissal(otherUser.id, 'welcome-v1', 1_700_000_003_000, '4.3.0'); // a different user's row — must not leak in
 
     // test-sql-allow: the legacy statement is the parity oracle the repository is compared against.
-    const legacy = (testDb.prepare('SELECT notice_id, dismissed_app_version FROM user_notice_dismissals WHERE user_id = ?').all(user.id) as { notice_id: string; dismissed_app_version: string | null }[])
-      .sort((a, b) => a.notice_id.localeCompare(b.notice_id));
+    const legacy = (
+      testDb
+        .prepare('SELECT notice_id, dismissed_app_version FROM user_notice_dismissals WHERE user_id = ?')
+        .all(user.id) as { notice_id: string; dismissed_app_version: string | null }[]
+    ).sort((a, b) => a.notice_id.localeCompare(b.notice_id));
     const converted = (await repo.listForUser(user.id))
       .map((r) => ({ notice_id: r.notice_id, dismissed_app_version: r.dismissed_app_version }))
       .sort((a, b) => a.notice_id.localeCompare(b.notice_id));
@@ -78,36 +100,41 @@ describe('UserNoticeDismissalsRepository — reads (SN4 parity)', () => {
 });
 
 describe('UserNoticeDismissalsRepository — writes (SN5, R5)', () => {
-  it(
-    "UNDREPO-UPSERT-SQL: em.upsert renders `insert into \"user_notice_dismissals\" ... on conflict (`user_id`, `notice_id`) do update set ...` — the composite-PK conflict target Task 0's R5 worked example pinned (re-checked against Task 3's `NotificationChannelPreferences.repository.test.ts` NCPREPO-UPSERT-SQL pin, not re-derived), checked directly against the rendered SQL, not assumed from onConflictFields alone",
-    async () => {
-      const connection = t.orm.em.getConnection();
-      const spy = vi.spyOn(connection, 'execute');
-      try {
-        // Insert branch: no existing row.
-        await repo.upsertDismissal(user.id, 'release-notes', 1_700_000_000_000, '4.2.1');
-        expect(await storedDismissal(user.id, 'release-notes'))
-          .toEqual({ dismissed_at: 1_700_000_000_000, dismissed_app_version: '4.2.1' });
+  it('UNDREPO-UPSERT-SQL: em.upsert renders `insert into "user_notice_dismissals" ... on conflict (`user_id`, `notice_id`) do update set ...` — the composite-PK conflict target Task 0\'s R5 worked example pinned (re-checked against Task 3\'s `NotificationChannelPreferences.repository.test.ts` NCPREPO-UPSERT-SQL pin, not re-derived), checked directly against the rendered SQL, not assumed from onConflictFields alone', async () => {
+    const connection = t.orm.em.getConnection();
+    const spy = vi.spyOn(connection, 'execute');
+    try {
+      // Insert branch: no existing row.
+      await repo.upsertDismissal(user.id, 'release-notes', 1_700_000_000_000, '4.2.1');
+      expect(await storedDismissal(user.id, 'release-notes')).toEqual({
+        dismissed_at: 1_700_000_000_000,
+        dismissed_app_version: '4.2.1',
+      });
 
-        const insertSql = spy.mock.calls.map(([sql]) => sql).find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
-        expect(insertSql).toContain('on conflict (`user_id`, `notice_id`)');
-        spy.mockClear();
+      const insertSql = spy.mock.calls
+        .map(([sql]) => sql)
+        .find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
+      expect(insertSql).toContain('on conflict (`user_id`, `notice_id`)');
+      spy.mockClear();
 
-        // Merge branch: re-dismissing after a version bump — SAME conflict target, updates
-        // the existing row in place rather than inserting a second one (the composite PK
-        // is what makes this an UPDATE, not an INSERT, on the second call).
-        await repo.upsertDismissal(user.id, 'release-notes', 1_700_000_050_000, '4.3.0');
-        expect(await storedDismissal(user.id, 'release-notes'))
-          .toEqual({ dismissed_at: 1_700_000_050_000, dismissed_app_version: '4.3.0' });
-        expect(await countRows(t, UserNoticeDismissals, { user: user.id, notice_id: 'release-notes' })).toBe(1);
+      // Merge branch: re-dismissing after a version bump — SAME conflict target, updates
+      // the existing row in place rather than inserting a second one (the composite PK
+      // is what makes this an UPDATE, not an INSERT, on the second call).
+      await repo.upsertDismissal(user.id, 'release-notes', 1_700_000_050_000, '4.3.0');
+      expect(await storedDismissal(user.id, 'release-notes')).toEqual({
+        dismissed_at: 1_700_000_050_000,
+        dismissed_app_version: '4.3.0',
+      });
+      expect(await countRows(t, UserNoticeDismissals, { user: user.id, notice_id: 'release-notes' })).toBe(1);
 
-        const mergeSql = spy.mock.calls.map(([sql]) => sql).find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
-        expect(mergeSql).toContain('on conflict (`user_id`, `notice_id`)');
-      } finally {
-        spy.mockRestore();
-      }
-    },
-  );
+      const mergeSql = spy.mock.calls
+        .map(([sql]) => sql)
+        .find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
+      expect(mergeSql).toContain('on conflict (`user_id`, `notice_id`)');
+    } finally {
+      spy.mockRestore();
+    }
+  });
 
   it('UNDREPO-003 — upsertDismissal scopes to exactly (user, notice) — a different user or a different notice for the same user is untouched', async () => {
     await repo.upsertDismissal(user.id, 'release-notes', 1_700_000_000_000, '4.2.1');

@@ -12,17 +12,18 @@
  * (`existsById` ignored) from the review's mutation table, none of which any other
  * suite killed.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
 import { Days } from '../../../src/db/entities/Days.entity';
 import { PluginEntityMetadata } from '../../../src/db/entities/PluginEntityMetadata.entity';
 import { PluginScheduledTasks } from '../../../src/db/entities/PluginScheduledTasks.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -131,12 +132,16 @@ describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
     const repo = t.repo(Days);
     for (const trip of [1, 2, 3, 99]) {
       // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-      const legacy = (testDb.prepare('SELECT id FROM days WHERE trip_id = ?').all(trip) as Array<{ id: number }>).map((r) => r.id);
+      const legacy = (testDb.prepare('SELECT id FROM days WHERE trip_id = ?').all(trip) as Array<{ id: number }>).map(
+        (r) => r.id,
+      );
       expect(await repo.listIdsByTrip(trip)).toEqual(legacy);
     }
     for (const id of [11, 12, 99]) {
       // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-      const legacy = (testDb.prepare('SELECT trip_id FROM days WHERE id = ?').get(id) as { trip_id: number } | undefined)?.trip_id;
+      const legacy = (
+        testDb.prepare('SELECT trip_id FROM days WHERE id = ?').get(id) as { trip_id: number } | undefined
+      )?.trip_id;
       expect(await repo.findTripId(id)).toEqual(legacy);
     }
   });
@@ -160,7 +165,11 @@ describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
     expect(await repo.countForEntity('p', 'trip', 1)).toBe(2); // MR3
     expect(await repo.listForEntity('p', 'trip', 1)).toEqual(
       // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-      testDb.prepare("SELECT key, value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? ORDER BY key").all('p', 'trip', 1),
+      testDb
+        .prepare(
+          'SELECT key, value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? ORDER BY key',
+        )
+        .all('p', 'trip', 1),
     ); // MR5, ORDER BY key
     expect(await repo.deleteValue('p', 'trip', 1, 'a')).toBe(true); // MR6
     expect(await repo.deleteValue('p', 'trip', 1, 'a')).toBe(false); // MR6, already gone
@@ -181,9 +190,7 @@ describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
         payload,
         every_ms,
       })),
-    ).toEqual([
-      { id: id1, plugin_id: 'p', name: 'n', due_at: 9, payload: '2', every_ms: 60000 },
-    ]); // HR7: same id, replaced fields — an upsert, not a delete+insert
+    ).toEqual([{ id: id1, plugin_id: 'p', name: 'n', due_at: 9, payload: '2', every_ms: 60000 }]); // HR7: same id, replaced fields — an upsert, not a delete+insert
     expect(await repo.existsForPluginAndName('p', 'n')).toBeTruthy(); // HR5
     expect(await repo.existsForPluginAndName('p', 'x')).toBeFalsy(); // HR5 miss
     expect(await repo.countForPlugin('p')).toBe(1); // HR6
@@ -228,7 +235,12 @@ describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
     const repo = t.repo(PluginScheduledTasks);
     const due = Date.now() + 60_000;
     const results = await Promise.all(
-      Array.from({ length: 130 }, (_, i) => repo.upsertTaskCapped({ plugin_id: 'schedbomb', name: `t${i}`, due_at: due, payload: '1', every_ms: null }, 100)),
+      Array.from({ length: 130 }, (_, i) =>
+        repo.upsertTaskCapped(
+          { plugin_id: 'schedbomb', name: `t${i}`, due_at: due, payload: '1', every_ms: null },
+          100,
+        ),
+      ),
     );
     expect(results.filter(Boolean).length).toBe(100); // exactly 100 writes accepted
     expect(await repo.countForPlugin('schedbomb')).toBe(100); // never more than 100 rows

@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { ValidationError } from '@mikro-orm/core';
-import { UnitOfWork } from '../database/unit-of-work';
-import { logError } from '../audit/audit-log.logger';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { PERMISSION_ACTIONS, evaluatePermission, type PermissionAction, type PermissionLevel } from '@trek/shared';
+import { logError } from '../audit/audit-log.logger';
+import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsCacheStore, permissionsCacheSlot } from './permissions-cache';
+import { ValidationError } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { PERMISSION_ACTIONS, evaluatePermission, type PermissionAction, type PermissionLevel } from '@trek/shared';
 
 // The catalog (keys, levels, defaults) and the decision rule live in
 // @trek/shared, so the admin screen and the client read the same table the
@@ -14,13 +14,12 @@ import { PermissionsCacheStore, permissionsCacheSlot } from './permissions-cache
 export { PERMISSION_ACTIONS };
 export type { PermissionAction, PermissionLevel };
 
-const ACTIONS_MAP = new Map<string, PermissionAction>(PERMISSION_ACTIONS.map(a => [a.key, a]));
+const ACTIONS_MAP = new Map<string, PermissionAction>(PERMISSION_ACTIONS.map((a) => [a.key, a]));
 
 // The cache is a PermissionsCacheStore (./permissions-cache), injected so a
 // store shared between processes can be plugged in later. A hand-built
 // service takes the store installed in permissionsCacheSlot, the one the
 // backup restore path (backup.impl.ts, plain functions, no DI) flushes too.
-
 
 @Injectable()
 export class PermissionsService {
@@ -143,7 +142,7 @@ export class PermissionsService {
     userRole: string,
     tripUserId: number | null,
     userId: number,
-    isMember: boolean
+    isMember: boolean,
   ): Promise<boolean> {
     // Admins always pass, without reading the configured level.
     if (userRole === 'admin') return true;

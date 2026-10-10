@@ -1,8 +1,8 @@
-import { entityCode } from './airtrail.mapper';
-import { flightPassengers, ownPassenger } from './airtrail.client';
-import type { AirtrailFlightRaw, AirtrailPassengerWrite, AirtrailSavePayload } from './airtrail.client';
 import { RESERVATION_METADATA } from '../../db/json-columns';
 import { decodeJson } from '../../utils/json-column';
+import { flightPassengers, ownPassenger } from './airtrail.client';
+import type { AirtrailFlightRaw, AirtrailPassengerWrite, AirtrailSavePayload } from './airtrail.client';
+import { entityCode } from './airtrail.mapper';
 
 /**
  * The pure half of the AirTrail push: turning a TREK reservation plus the flight
@@ -67,10 +67,7 @@ export function buildSavePayload(reservation: any, existing: AirtrailFlightRaw):
   // Resolve it once from whichever place this instance kept it, then write it to
   // both — the version that does not know a key drops it.
   const reason =
-    (meta.flight_reason as string | undefined) ??
-    existing.flightReason ??
-    ownPassenger(existing)?.flightReason ??
-    null;
+    (meta.flight_reason as string | undefined) ?? existing.flightReason ?? ownPassenger(existing)?.flightReason ?? null;
   if (ownSeat) ownSeat.flightReason = reason;
 
   // Spread the existing flight first to preserve every AirTrail-owned field, then

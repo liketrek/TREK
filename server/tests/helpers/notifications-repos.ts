@@ -1,11 +1,12 @@
-import type Database from 'better-sqlite3';
-import { sharedTestOrm } from './test-uow';
-import { Notifications } from '../../src/db/entities/Notifications.entity';
-import type { NotificationsRepository } from '../../src/db/repositories/Notifications.repository';
 import { NotificationChannelPreferences } from '../../src/db/entities/NotificationChannelPreferences.entity';
-import type { NotificationChannelPreferencesRepository } from '../../src/db/repositories/NotificationChannelPreferences.repository';
+import { Notifications } from '../../src/db/entities/Notifications.entity';
 import { PushSubscriptions } from '../../src/db/entities/PushSubscriptions.entity';
+import type { NotificationChannelPreferencesRepository } from '../../src/db/repositories/NotificationChannelPreferences.repository';
+import type { NotificationsRepository } from '../../src/db/repositories/Notifications.repository';
 import type { PushSubscriptionsRepository } from '../../src/db/repositories/PushSubscriptions.repository';
+import { sharedTestOrm } from './test-uow';
+
+import type Database from 'better-sqlite3';
 
 /**
  * Plan 3f Task 3 (`NotificationsService`/`NotificationPreferencesService`)
@@ -23,7 +24,9 @@ export function createTestNotificationsRepo(db: Database.Database): Promise<Noti
   return sharedTestOrm(db).then((t) => t.repo(Notifications));
 }
 
-export function createTestNotificationChannelPreferencesRepo(db: Database.Database): Promise<NotificationChannelPreferencesRepository> {
+export function createTestNotificationChannelPreferencesRepo(
+  db: Database.Database,
+): Promise<NotificationChannelPreferencesRepository> {
   return sharedTestOrm(db).then((t) => t.repo(NotificationChannelPreferences));
 }
 

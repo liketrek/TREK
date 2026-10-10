@@ -1,9 +1,9 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { VacayEntries } from '../../../src/db/entities/VacayEntries.entity';
 import { VacayPlanMembers } from '../../../src/db/entities/VacayPlanMembers.entity';
 import { VacayPlans } from '../../../src/db/entities/VacayPlans.entity';
 import type { FactoryOrm } from './context';
 import { createRow } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type VacayPlanRow = EntityDTO<VacayPlans>;
 

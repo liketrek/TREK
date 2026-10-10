@@ -32,7 +32,7 @@ const dashboard: TranslationStrings = {
   'dashboard.sharedBy': 'แบ่งปันโดย {name}',
   'dashboard.days': 'วัน',
   'dashboard.places': 'สถานที่',
-  'dashboard.pass.places': "สถานที่",
+  'dashboard.pass.places': 'สถานที่',
   'dashboard.members': 'เพื่อน',
   'dashboard.card.buddies': 'เพื่อน',
   'dashboard.archive': 'เก็บถาวร',
@@ -120,13 +120,15 @@ const dashboard: TranslationStrings = {
   'dashboard.shrinkIntro': 'การบันทึกวันที่ใหม่จะลบวันเหล่านี้:',
   'dashboard.shrinkMoreDays': '+อีก {count}',
   'dashboard.shrinkLastDays': 'วันสุดท้ายจะถูกลบ ไม่ใช่วันแรก',
-  'dashboard.shrinkLastDaysHint': 'แผนรายวันจะย้ายตามวันที่ใหม่ ดังนั้นวันท้ายๆ ของแผนจะถูกลบเสมอ แม้ว่าวันเริ่มต้นจะเปลี่ยนไปก็ตาม',
+  'dashboard.shrinkLastDaysHint':
+    'แผนรายวันจะย้ายตามวันที่ใหม่ ดังนั้นวันท้ายๆ ของแผนจะถูกลบเสมอ แม้ว่าวันเริ่มต้นจะเปลี่ยนไปก็ตาม',
   'dashboard.shrinkBookingsHint': 'ยังคงอยู่ในส่วนการจอง รายการที่วันที่ยังอยู่ในช่วงการเดินทางจะกลับไปอยู่ในวันนั้น',
   'dashboard.shrinkBookingsShiftHint': 'ยังคงอยู่ในส่วนการจอง โดยไม่ผูกกับวันใด',
   'dashboard.shrinkStayHint': 'เช็คอินหรือเช็คเอาท์ในวันที่ถูกลบ จึงลบการพักทั้งหมด',
   'dashboard.shrinkStayBookedHint':
     'เช็คอินหรือเช็คเอาท์ในวันที่ถูกลบ จึงลบการพักทั้งหมด การจอง “{booking}” และค่าใช้จ่ายของการพักนี้ยังคงอยู่ในส่วนการจอง',
-  'dashboard.shrinkStayBookingHint': 'เช็คอินหรือเช็คเอาท์ในวันที่ถูกลบ จึงลบการพักทั้งหมด การจอง “{booking}” ยังคงอยู่ในส่วนการจอง',
+  'dashboard.shrinkStayBookingHint':
+    'เช็คอินหรือเช็คเอาท์ในวันที่ถูกลบ จึงลบการพักทั้งหมด การจอง “{booking}” ยังคงอยู่ในส่วนการจอง',
   'dashboard.shrinkConfirm': 'ลบวันและบันทึก',
   'dashboard.shrinkUnknown':
     'ไม่สามารถตรวจสอบวันของการเดินทางนี้ได้ หากวันที่ใหม่มีจำนวนวันน้อยลง การบันทึกจะลบวันท้ายๆ และทุกอย่างที่วางแผนไว้ในวันเหล่านั้น',

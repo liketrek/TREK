@@ -1,13 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common';
-import type {
-  PlaceShadowExportResult,
-  PlaceShadowPickResult,
-  PlaceShadowSummaryResult,
-} from '@trek/shared';
 import { AdminGuard } from '../auth-core/admin.guard';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { PlaceShadowPickDto } from './place-shadow.dto';
 import { PlaceShadowService } from './place-shadow.service';
+import { Body, Controller, Delete, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common';
+import type { PlaceShadowExportResult, PlaceShadowPickResult, PlaceShadowSummaryResult } from '@trek/shared';
 
 /**
  * /api/place-shadow — the local corpus of "what was searched, what was picked".

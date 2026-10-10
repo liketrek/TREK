@@ -1,7 +1,8 @@
-import type { Platform } from '@mikro-orm/core';
-import type { ExpressionBuilder, ExpressionWrapper, ReferenceExpression, SqlBool } from 'kysely';
 import { coalesceParam } from '../../dialect/sql-functions';
 import type { DB } from '../../kysely/db';
+import type { Platform } from '@mikro-orm/core';
+
+import type { ExpressionBuilder, ExpressionWrapper, ReferenceExpression, SqlBool } from 'kysely';
 
 /**
  * The visibility predicate an anonymous viewer's reads are filtered

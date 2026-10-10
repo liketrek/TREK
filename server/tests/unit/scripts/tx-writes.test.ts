@@ -200,7 +200,9 @@ export class BarRepository {
 
 describe('tx-writes.mjs: the baseline', () => {
   const TWO = service('  async twoWrites() { await this.foos.insertFoo(); await this.foos.deleteFoo(); }');
-  const LOOP = service('  async twoWrites(ids: number[]) { for (const id of ids) { await this.foos.insertFoo(); await this.foos.deleteFoo(); } }');
+  const LOOP = service(
+    '  async twoWrites(ids: number[]) { for (const id of ids) { await this.foos.insertFoo(); await this.foos.deleteFoo(); } }',
+  );
 
   it('TXW-010: a method not in the baseline fails, naming the fix', () => {
     const { status, out } = run(serverRoot({ [SERVICE_FILE]: TWO }));
@@ -218,7 +220,11 @@ describe('tx-writes.mjs: the baseline', () => {
 
   it('TXW-012: an entry for a fixed method, or one above its count, fails until --update lowers it', () => {
     const fixed = serverRoot(
-      { [SERVICE_FILE]: service('  async twoWrites() { await this.uow.transactional(async () => { await this.foos.insertFoo(); await this.foos.deleteFoo(); }); }') },
+      {
+        [SERVICE_FILE]: service(
+          '  async twoWrites() { await this.uow.transactional(async () => { await this.foos.insertFoo(); await this.foos.deleteFoo(); }); }',
+        ),
+      },
       { [KEY('twoWrites')]: 2 },
     );
     const stale = run(fixed);
@@ -231,7 +237,9 @@ describe('tx-writes.mjs: the baseline', () => {
     expect(run(fixed, '--update').status).toBe(0);
     expect(JSON.parse(readFileSync(path.join(fixed, 'scripts/tx-writes-baseline.json'), 'utf8'))).toEqual({});
     expect(run(lower, '--update').status).toBe(0);
-    expect(JSON.parse(readFileSync(path.join(lower, 'scripts/tx-writes-baseline.json'), 'utf8'))).toEqual({ [KEY('twoWrites')]: 2 });
+    expect(JSON.parse(readFileSync(path.join(lower, 'scripts/tx-writes-baseline.json'), 'utf8'))).toEqual({
+      [KEY('twoWrites')]: 2,
+    });
   });
 
   it('TXW-013: --update never adds an entry', () => {
@@ -241,7 +249,9 @@ describe('tx-writes.mjs: the baseline', () => {
   });
 
   it('TXW-014: a missing or malformed baseline, or a tree without src/, refuses to run', () => {
-    expect(run(serverRoot({ [SERVICE_FILE]: TWO }, null)).out).toContain('scripts/tx-writes-baseline.json cannot be read');
+    expect(run(serverRoot({ [SERVICE_FILE]: TWO }, null)).out).toContain(
+      'scripts/tx-writes-baseline.json cannot be read',
+    );
     expect(run(serverRoot({}, '[]')).out).toContain('must be an object of methods to write counts');
     expect(run(serverRoot({}, { [KEY('x')]: 1 })).out).toContain('expected an integer of at least 2');
     const empty = mkdtempSync(path.join(tmpdir(), 'trek-tx-writes-'));

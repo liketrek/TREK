@@ -7,11 +7,7 @@
  * no business knowing), and a mutation additionally needs its own permission. They
  * moved out of days.controller.test.ts with the check itself.
  */
-import { describe, it, expect, expectTypeOf, vi } from 'vitest';
-import type { PermissionKey } from '@trek/shared';
-import { HttpException } from '@nestjs/common';
-import { ROUTE_ARGS_METADATA } from '@nestjs/common/constants';
-import { Reflector } from '@nestjs/core';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import {
   RequirePermission,
   TRIP_PERMISSION_KEY,
@@ -19,9 +15,14 @@ import {
   TripAccessGuard,
 } from '../../../src/nest/permissions/trip-access.guard';
 import { Trip } from '../../../src/nest/permissions/trip.decorator';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import type { User } from '../../../src/types';
 import type { EntityManager } from '@mikro-orm/core';
+import { HttpException } from '@nestjs/common';
+import { ROUTE_ARGS_METADATA } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
+import type { PermissionKey } from '@trek/shared';
+
+import { describe, it, expect, expectTypeOf, vi } from 'vitest';
 
 const owner = { id: 42, role: 'user' } as User;
 const member = { id: 7, role: 'user' } as User;
@@ -81,15 +82,24 @@ describe('TripAccessGuard', () => {
   it('TRIPGUARD-002 a trip the user cannot reach is 404 "Trip not found", never 403', async () => {
     const { guard } = makeGuard();
     const stranger = { user: { id: 99, role: 'user' }, params: { tripId: '5' } };
-    expect(await thrown(() => guard.canActivate(ctx(stranger)))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+    expect(await thrown(() => guard.canActivate(ctx(stranger)))).toEqual({
+      status: 404,
+      body: { error: 'Trip not found' },
+    });
     const missing = { user: owner, params: { tripId: '404' } };
-    expect(await thrown(() => guard.canActivate(ctx(missing)))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+    expect(await thrown(() => guard.canActivate(ctx(missing)))).toEqual({
+      status: 404,
+      body: { error: 'Trip not found' },
+    });
   });
 
   it('TRIPGUARD-003 a non-numeric tripId is refused without touching the database', async () => {
     const { guard, canAccessTrip } = makeGuard();
     const request = { user: owner, params: { tripId: 'not-a-number' } };
-    expect(await thrown(() => guard.canActivate(ctx(request)))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+    expect(await thrown(() => guard.canActivate(ctx(request)))).toEqual({
+      status: 404,
+      body: { error: 'Trip not found' },
+    });
     expect(canAccessTrip).not.toHaveBeenCalled();
   });
 
@@ -141,7 +151,9 @@ describe('TripAccessGuard', () => {
     });
     // A stranger gets the 404 rather than the 403: access is checked before rights, so
     // the permission answer never leaks that the trip exists.
-    expect(await thrown(() => guard.canActivate(ctx({ user: { id: 99, role: 'user' }, params: { tripId: '5' } })))).toEqual({
+    expect(
+      await thrown(() => guard.canActivate(ctx({ user: { id: 99, role: 'user' }, params: { tripId: '5' } }))),
+    ).toEqual({
       status: 404,
       body: { error: 'Trip not found' },
     });
@@ -150,7 +162,10 @@ describe('TripAccessGuard', () => {
   it('TRIPGUARD-009 the metadata is read from the handler first, then the class', async () => {
     const { guard, reflector } = makeGuard({ action: 'day_edit' });
     await guard.canActivate(ctx({ user: owner, params: { tripId: '5' } }));
-    expect(reflector.getAllAndOverride).toHaveBeenCalledWith(TRIP_PERMISSION_KEY, [expect.any(Function), expect.any(Function)]);
+    expect(reflector.getAllAndOverride).toHaveBeenCalledWith(TRIP_PERMISSION_KEY, [
+      expect.any(Function),
+      expect.any(Function),
+    ]);
   });
 
   it('TRIPGUARD-010 @RequirePermission writes the action under the key the guard reads', () => {

@@ -1,6 +1,6 @@
+import { reseatBookedNights } from '../reseat-booked-nights';
 import { Migration } from '@mikro-orm/migrations';
 import type { SqliteConnection } from '@mikro-orm/sqlite';
-import { reseatBookedNights } from '../reseat-booked-nights';
 
 /**
  * Legacy migration step 242 (`db/migrations.ts`).

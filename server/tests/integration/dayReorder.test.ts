@@ -4,24 +4,36 @@
  * to slots while content rides along by id, booking-date re-stamp, permutation
  * validation, the accommodation-inversion guard, and insert (dated + dateless).
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
 import { db as testDb } from '../../src/db/database';
-import { resetTestDb } from '../helpers/test-db';
-import { createUser, createTrip, createPlace, createDay, createDayAssignment, createReservation, createDayAccommodation } from '../helpers/factories';
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
+import { Reservations } from '../../src/db/entities/Reservations.entity';
+import { Trips } from '../../src/db/entities/Trips.entity';
 import { DaysService, DayReorderError } from '../../src/nest/days/days.service';
-import { RealtimeService } from '../../src/nest/realtime/realtime.service';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { QueryHelpersService } from '../../src/nest/query-helpers/query-helpers.service';
+import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 import {
-  createTestUnitOfWork, createTestAppSettingsRepo,
-  createTestDaysRepo, createTestDayAssignmentsRepo, createTestDayNotesRepo, createTestTripsRepo,
-  createTestTagsRepo, createTestPlaceRatingsRepo, createTestAssignmentParticipantsRepo,
+  createUser,
+  createTrip,
+  createPlace,
+  createDay,
+  createDayAssignment,
+  createReservation,
+  createDayAccommodation,
+} from '../helpers/factories';
+import { findRow, findRows, updateRows } from '../helpers/factories/rows';
+import { readTripDays } from '../helpers/factories/trips';
+import { resetTestDb } from '../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestDaysRepo,
+  createTestDayAssignmentsRepo,
+  createTestDayNotesRepo,
+  createTestTripsRepo,
+  createTestTagsRepo,
+  createTestPlaceRatingsRepo,
+  createTestAssignmentParticipantsRepo,
   createTestReservationsRepo,
   createTestReservationEndpointsRepo,
   createTestDayAccommodationsRepo,
@@ -29,18 +41,24 @@ import {
   createTestRoadtripDayBoundariesRepo,
   sharedTestOrm,
 } from '../helpers/test-uow';
-import { findRow, findRows, updateRows } from '../helpers/factories/rows';
-import { readTripDays } from '../helpers/factories/trips';
-import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
-import { Reservations } from '../../src/db/entities/Reservations.entity';
-import { Trips } from '../../src/db/entities/Trips.entity';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 let svc: DaysService;
 beforeAll(async () => {
   svc = new DaysService(
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     new RealtimeService(),
-    new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
+    new QueryHelpersService(
+      await createTestTagsRepo(testDb),
+      await createTestPlaceRatingsRepo(testDb),
+      await createTestAssignmentParticipantsRepo(testDb),
+    ),
     await createTestUnitOfWork(testDb),
     await createTestDaysRepo(testDb),
     await createTestDayAssignmentsRepo(testDb),
@@ -78,19 +96,24 @@ describe('reorderDays', () => {
     await reorderDays(trip.id, [d2.id, d1.id, d3.id]);
 
     const after = await orderedDays(trip.id);
-    expect(after.map(d => d.id)).toEqual([d2.id, d1.id, d3.id]);
+    expect(after.map((d) => d.id)).toEqual([d2.id, d1.id, d3.id]);
     // Dates stay pinned to their calendar slots
-    expect(after.map(d => d.date)).toEqual(['2026-03-01', '2026-03-02', '2026-03-03']);
+    expect(after.map((d) => d.date)).toEqual(['2026-03-01', '2026-03-02', '2026-03-03']);
     // The place rides along with its day row (still attached to d2.id, now at slot 1)
     const onD2 = await findRows(await sharedTestOrm(testDb), DayAssignments, { day: d2.id });
     expect(onD2).toHaveLength(1);
   });
 
-  it('re-stamps a booking\'s date onto its day\'s new date, keeping the time', async () => {
+  it("re-stamps a booking's date onto its day's new date, keeping the time", async () => {
     const trip = createTrip(testDb, userId, { start_date: '2026-03-01', end_date: '2026-03-03' });
     const [d1, d2, d3] = await orderedDays(trip.id);
     const res = createReservation(testDb, trip.id, { day_id: d2.id, type: 'restaurant' });
-    await updateRows(await sharedTestOrm(testDb), Reservations, { id: res.id }, { reservation_time: '2026-03-02T19:00' });
+    await updateRows(
+      await sharedTestOrm(testDb),
+      Reservations,
+      { id: res.id },
+      { reservation_time: '2026-03-02T19:00' },
+    );
 
     await reorderDays(trip.id, [d2.id, d1.id, d3.id]); // d2 moves to the 2026-03-01 slot
 
@@ -114,7 +137,7 @@ describe('reorderDays', () => {
     await expect(reorderDays(trip.id, [d2.id, d3.id, d1.id])).rejects.toThrow(DayReorderError);
 
     // Transaction rolled back: original order intact
-    expect((await orderedDays(trip.id)).map(d => d.id)).toEqual([d1.id, d2.id, d3.id]);
+    expect((await orderedDays(trip.id)).map((d) => d.id)).toEqual([d1.id, d2.id, d3.id]);
   });
 });
 
@@ -131,7 +154,7 @@ describe('insertDay', () => {
     expect(after).toHaveLength(4);
     expect(after[0].id).toBe(created.id);
     expect(after[0].date).toBeNull();
-    expect(after.slice(1).map(d => d.id)).toEqual([d1.id, d2.id, d3.id]);
+    expect(after.slice(1).map((d) => d.id)).toEqual([d1.id, d2.id, d3.id]);
   });
 
   it('inserts at the front of a dated trip: dates stay contiguous and the trip extends', async () => {
@@ -143,9 +166,9 @@ describe('insertDay', () => {
     const after = await orderedDays(trip.id);
     expect(after).toHaveLength(4);
     expect(after[0].id).toBe(created.id);
-    expect(after.map(d => d.date)).toEqual(['2026-03-01', '2026-03-02', '2026-03-03', '2026-03-04']);
+    expect(after.map((d) => d.date)).toEqual(['2026-03-01', '2026-03-02', '2026-03-03', '2026-03-04']);
     // Old content shifted down a slot
-    expect(after.slice(1).map(d => d.id)).toEqual([d1.id, d2.id, d3.id]);
+    expect(after.slice(1).map((d) => d.id)).toEqual([d1.id, d2.id, d3.id]);
     // Trip range extended by one day
     const stored = await findRow(await sharedTestOrm(testDb), Trips, { id: trip.id });
     expect(stored?.end_date).toBe('2026-03-04');

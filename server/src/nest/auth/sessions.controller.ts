@@ -1,5 +1,15 @@
+import { readEnv } from '../../app-config';
+import type { User } from '../../types';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { currentSessionId } from '../auth-core/jwt-verify';
+import { clearAuthCookie } from '../common/cookie';
+import { isDemoEmail } from '../common/demo';
+import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { SessionsService } from '../sessions/sessions.service';
 import { Controller, Delete, Get, HttpCode, HttpException, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
-import type { Request, Response } from 'express';
 import {
   userSessionRevokeParamsSchema,
   type UserSessionListResponse,
@@ -7,17 +17,8 @@ import {
   type UserSessionRevokeParams,
   type UserSessionRevokeResponse,
 } from '@trek/shared';
-import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { clearAuthCookie } from '../common/cookie';
-import { getClientIp } from '../audit/client-ip';
-import { AuditService } from '../audit/audit.service';
-import { SessionsService } from '../sessions/sessions.service';
-import { isDemoEmail } from '../common/demo';
-import { readEnv } from '../../app-config';
-import type { User } from '../../types';
-import { CurrentUser } from '../auth-core/current-user.decorator';
-import { currentSessionId } from '../auth-core/jwt-verify';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+
+import type { Request, Response } from 'express';
 
 /**
  * The signed-in user's own sessions: where they are signed in, and signing
@@ -61,7 +62,12 @@ export class SessionsController {
   async revokeOthers(@CurrentUser() user: User, @Req() req: Request): Promise<UserSessionRevokeOthersResponse> {
     refuseForSharedDemoAccount(user);
     const revoked = await this.sessions.revokeAll(user.id, currentSessionId(req));
-    await this.audit.writeAudit({ userId: user.id, action: 'user.sessions_revoke_others', ip: getClientIp(req), details: { revoked } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'user.sessions_revoke_others',
+      ip: getClientIp(req),
+      details: { revoked },
+    });
     return { success: true, revoked };
   }
 
@@ -78,7 +84,12 @@ export class SessionsController {
     }
     // Ending the session this request came with is a logout: the cookie goes too.
     if (params.id === currentSessionId(req)) clearAuthCookie(res, req);
-    await this.audit.writeAudit({ userId: user.id, action: 'user.session_revoke', ip: getClientIp(req), resource: params.id });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'user.session_revoke',
+      ip: getClientIp(req),
+      resource: params.id,
+    });
     return { success: true };
   }
 }

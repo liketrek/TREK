@@ -180,7 +180,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Az átvitel nem sikerült.',
 
   'docsync.error.unknown_provider': 'Ez a szolgáltató nem érhető el ezen a példányon.',
-  'docsync.error.provider_disabled': 'Szüneteltetve: egy rendszergazda kikapcsolta ezt a szolgáltatót. A szinkronizálás folytatódik, amint újra bekapcsolják.',
+  'docsync.error.provider_disabled':
+    'Szüneteltetve: egy rendszergazda kikapcsolta ezt a szolgáltatót. A szinkronizálás folytatódik, amint újra bekapcsolják.',
   'docsync.binding.reconnect': 'Újracsatlakozás',
 };
 

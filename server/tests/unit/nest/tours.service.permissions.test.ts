@@ -5,8 +5,18 @@
  * the read-back and the broadcasts run after it. Rollback against a real
  * SQLite database is covered by tours.service.test.ts.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
+import type { TourTypesRepository } from '../../../src/db/repositories/TourTypes.repository';
+import type { TourWaypointsRepository } from '../../../src/db/repositories/TourWaypoints.repository';
+import type { ToursRepository } from '../../../src/db/repositories/Tours.repository';
+import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import type { PlacesService } from '../../../src/nest/places/places.service';
+import { ToursService } from '../../../src/nest/tours/tours.service';
+import { buildPlaceImportService } from '../../helpers/place-import';
 import { NotFoundException } from '@nestjs/common';
+import { tourCreateRequestSchema, type TourCreateRequest } from '@trek/shared';
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { legacyDatabaseAccess } = vi.hoisted(() => ({
   legacyDatabaseAccess: vi.fn((property: string | symbol): never => {
@@ -15,26 +25,23 @@ const { legacyDatabaseAccess } = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../src/db/database', () => ({
-  db: new Proxy({}, {
-    get: (_target, property: string | symbol) => legacyDatabaseAccess(property),
-  }),
+  db: new Proxy(
+    {},
+    {
+      get: (_target, property: string | symbol) => legacyDatabaseAccess(property),
+    },
+  ),
 }));
 vi.mock('../../../src/nest/places/places.service', () => ({ PlacesService: class {} }));
-
-import { ToursService } from '../../../src/nest/tours/tours.service';
-import { buildPlaceImportService } from '../../helpers/place-import';
-import { tourCreateRequestSchema, type TourCreateRequest } from '@trek/shared';
-import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
-import type { PlacesService } from '../../../src/nest/places/places.service';
-import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
-import type { TourTypesRepository } from '../../../src/db/repositories/TourTypes.repository';
-import type { ToursRepository } from '../../../src/db/repositories/Tours.repository';
-import type { TourWaypointsRepository } from '../../../src/db/repositories/TourWaypoints.repository';
 
 const request: TourCreateRequest = {
   name: 'Ridge walk',
   tour_type: 'hike',
-  route_geometry: [[48, 11, 600], [48.01, 11.02, 650], [48.02, 11.04, 630]],
+  route_geometry: [
+    [48, 11, 600],
+    [48.01, 11.02, 650],
+    [48.02, 11.04, 630],
+  ],
   waypoints: [
     { lat: 48, lng: 11, role: 'start', sequence: 0 },
     { lat: 48.02, lng: 11.04, role: 'end', sequence: 1 },
@@ -45,20 +52,37 @@ const request: TourCreateRequest = {
 
 function makeService() {
   const row = {
-    place_id: 42, name: request.name, tour_type: 'hike', distance: 3,
-    elevation_gain: 50, elevation_loss: 20, duration: 60, difficulty: null,
-    wanderer_ref: null, match_confidence: 1,
-    max_hiking_difficulty: 2, planned: 0, has_waypoints: 1,
+    place_id: 42,
+    name: request.name,
+    tour_type: 'hike',
+    distance: 3,
+    elevation_gain: 50,
+    elevation_loss: 20,
+    duration: 60,
+    difficulty: null,
+    wanderer_ref: null,
+    match_confidence: 1,
+    max_hiking_difficulty: 2,
+    planned: 0,
+    has_waypoints: 1,
   };
   const place = { id: 42, trip_id: 7 };
   let inTransaction = false;
   /** Records whether each write ran inside the transaction. */
-  const inTx = <T>(value: T) => vi.fn(async (..._args: unknown[]) => { expect(inTransaction).toBe(true); return value; });
+  const inTx = <T>(value: T) =>
+    vi.fn(async (..._args: unknown[]) => {
+      expect(inTransaction).toBe(true);
+      return value;
+    });
 
   const uow = {
     transactional: vi.fn(async <T>(fn: () => Promise<T>): Promise<T> => {
       inTransaction = true;
-      try { return await fn(); } finally { inTransaction = false; }
+      try {
+        return await fn();
+      } finally {
+        inTransaction = false;
+      }
     }),
   };
   const toursRepo = {
@@ -80,7 +104,11 @@ function makeService() {
       return place;
     }),
   };
-  const places = { broadcast: vi.fn(() => { expect(inTransaction).toBe(false); }) };
+  const places = {
+    broadcast: vi.fn(() => {
+      expect(inTransaction).toBe(false);
+    }),
+  };
   const service = new ToursService(
     uow as unknown as UnitOfWork,
     places as unknown as PlacesService,
@@ -95,7 +123,9 @@ function makeService() {
 
 describe('ToursService planner contracts (mock-only; SQLite rollback semantics are covered in tours.service.test.ts)', () => {
   let setup: ReturnType<typeof makeService>;
-  beforeEach(() => { setup = makeService(); });
+  beforeEach(() => {
+    setup = makeService();
+  });
 
   it('does not access the legacy global database initializer', () => {
     expect(legacyDatabaseAccess).not.toHaveBeenCalled();
@@ -106,11 +136,21 @@ describe('ToursService planner contracts (mock-only; SQLite rollback semantics a
 
     expect(setup.uow.transactional).toHaveBeenCalledOnce();
     expect(setup.placesRepo.insertTourPlace).toHaveBeenCalledExactlyOnceWith({
-      trip_id: 7, name: request.name, lat: 48, lng: 11, route_geometry: JSON.stringify(request.route_geometry),
+      trip_id: 7,
+      name: request.name,
+      lat: 48,
+      lng: 11,
+      route_geometry: JSON.stringify(request.route_geometry),
     });
     expect(setup.toursRepo.insertTour).toHaveBeenCalledExactlyOnceWith({
-      place_id: 42, tour_type: 'hike', distance: expect.any(Number), elevation_gain: 50, elevation_loss: 20,
-      duration: 60, match_confidence: 1, max_hiking_difficulty: 2,
+      place_id: 42,
+      tour_type: 'hike',
+      distance: expect.any(Number),
+      elevation_gain: 50,
+      elevation_loss: 20,
+      duration: 60,
+      match_confidence: 1,
+      max_hiking_difficulty: 2,
     });
     expect((setup.toursRepo.insertTour.mock.calls[0][0] as { distance: number }).distance).toBeGreaterThan(0);
     expect(setup.waypointsRepo.insertForPlace).toHaveBeenCalledExactlyOnceWith(42, request.waypoints);
@@ -159,9 +199,14 @@ describe('ToursService planner contracts (mock-only; SQLite rollback semantics a
       { lat: 48.02, lng: 11.04, role: 'end', sequence: 1 },
     ]);
     for (const method of [
-      setup.uow.transactional, setup.placesRepo.insertTourPlace, setup.placesRepo.updateTourRoute,
-      setup.toursRepo.insertTour, setup.toursRepo.updateInTrip,
-      setup.waypointsRepo.insertForPlace, setup.waypointsRepo.deleteForPlace, setup.places.broadcast,
+      setup.uow.transactional,
+      setup.placesRepo.insertTourPlace,
+      setup.placesRepo.updateTourRoute,
+      setup.toursRepo.insertTour,
+      setup.toursRepo.updateInTrip,
+      setup.waypointsRepo.insertForPlace,
+      setup.waypointsRepo.deleteForPlace,
+      setup.places.broadcast,
     ]) {
       expect(method).not.toHaveBeenCalled();
     }
@@ -171,7 +216,10 @@ describe('ToursService planner contracts (mock-only; SQLite rollback semantics a
     const update: TourCreateRequest = {
       ...request,
       name: 'Updated ridge walk',
-      route_geometry: [[49, 12, 700], [49.02, 12.04, 760]],
+      route_geometry: [
+        [49, 12, 700],
+        [49.02, 12.04, 760],
+      ],
       waypoints: [
         { lat: 49, lng: 12, role: 'start', sequence: 0 },
         { lat: 49.01, lng: 12.02, role: 'via', sequence: 1 },
@@ -184,16 +232,25 @@ describe('ToursService planner contracts (mock-only; SQLite rollback semantics a
 
     expect(setup.uow.transactional).toHaveBeenCalledOnce();
     expect(setup.placesRepo.updateTourRoute).toHaveBeenCalledExactlyOnceWith(42, 7, {
-      name: update.name, lat: 49, lng: 12, route_geometry: JSON.stringify(update.route_geometry),
+      name: update.name,
+      lat: 49,
+      lng: 12,
+      route_geometry: JSON.stringify(update.route_geometry),
     });
     expect(setup.toursRepo.updateInTrip).toHaveBeenCalledExactlyOnceWith(7, 42, {
-      tour_type: 'hike', distance: expect.any(Number), elevation_gain: 60, elevation_loss: 0,
-      duration: 45, match_confidence: 1, max_hiking_difficulty: 2,
+      tour_type: 'hike',
+      distance: expect.any(Number),
+      elevation_gain: 60,
+      elevation_loss: 0,
+      duration: 45,
+      match_confidence: 1,
+      max_hiking_difficulty: 2,
     });
     expect(setup.waypointsRepo.deleteForPlace).toHaveBeenCalledExactlyOnceWith(42);
     expect(setup.waypointsRepo.insertForPlace).toHaveBeenCalledExactlyOnceWith(42, update.waypoints);
-    expect(setup.waypointsRepo.deleteForPlace.mock.invocationCallOrder[0])
-      .toBeLessThan(setup.waypointsRepo.insertForPlace.mock.invocationCallOrder[0]);
+    expect(setup.waypointsRepo.deleteForPlace.mock.invocationCallOrder[0]).toBeLessThan(
+      setup.waypointsRepo.insertForPlace.mock.invocationCallOrder[0],
+    );
     expect(setup.places.broadcast).toHaveBeenCalledWith('7', 'place:updated', { place: setup.place }, 'socket-2');
   });
 

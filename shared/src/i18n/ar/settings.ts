@@ -24,7 +24,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'اختر قالبًا...',
   'settings.mapDefaultHint': 'اتركه فارغًا لاستخدام OpenStreetMap افتراضيًا',
   'settings.routingBase': 'محرك مسارات خاص',
-  'settings.routingBaseHint': 'خادم OSRM خاص بك. اتركه فارغًا لاستخدام الخوادم العامة التي تسمح بطلب واحد تقريبًا في الثانية — يكفي ليوم واحد، وضيّق لرحلة برية. يسري بعد إعادة تشغيل الخادم.',
+  'settings.routingBaseHint':
+    'خادم OSRM خاص بك. اتركه فارغًا لاستخدام الخوادم العامة التي تسمح بطلب واحد تقريبًا في الثانية — يكفي ليوم واحد، وضيّق لرحلة برية. يسري بعد إعادة تشغيل الخادم.',
   'settings.valhallaBase': 'خادم Valhalla خاص بك',
   'settings.valhallaBaseHint':
     'يستخدم TREK خدمة Valhalla العامة من FOSSGIS افتراضيًا لتجنب الطرق ذات الرسوم والطرق السريعة والعبّارات. أدخل رابط خادم Valhalla الخاص بك هنا لاستخدامه بدلًا منها. إذا تم إعداد خادم توجيه خاص فقط، فلن تُستخدم خدمة Valhalla العامة. بعد إدخال رابط خاص، أعد تشغيل الخادم وحمّل الصفحة مجددًا.',
@@ -339,7 +340,8 @@ const settings: TranslationStrings = {
   'settings.currencyTrip': 'عملة الرحلة',
   'settings.placeLanguage': 'أسماء الأماكن',
   'settings.placeLanguageApp': 'مثل لغة التطبيق',
-  'settings.placeLanguageHint': 'اللغة التي يجيب بها البحث عن الأماكن والاقتراحات والعناوين. إذا لم يكن للمكان اسم بهذه اللغة، يُعرض اسمه المحلي.',
+  'settings.placeLanguageHint':
+    'اللغة التي يجيب بها البحث عن الأماكن والاقتراحات والعناوين. إذا لم يكن للمكان اسم بهذه اللغة، يُعرض اسمه المحلي.',
   'settings.passkey.title': 'مفاتيح المرور',
   'settings.passkey.description':
     'سجّل الدخول بشكل أسرع وأكثر مقاومة للتصيّد باستخدام مفتاح مرور — ببصمة إصبعك أو وجهك أو رمز PIN أو مفتاح أمان مادي. تبقى كلمة المرور كنسخة احتياطية.',
@@ -490,7 +492,8 @@ const settings: TranslationStrings = {
   'settings.general.startup': 'البدء',
   'settings.dayDateFirst': 'التاريخ أولًا في عناوين الأيام',
   'settings.compactUnplanned': 'علامات مصغّرة للأماكن غير المخطط لها',
-  'settings.compactUnplannedHint': 'تظهر الأماكن غير المخطط لها في أي يوم كعلامات صغيرة بلا صورة، لتبرز المحطات المخطط لها.',
+  'settings.compactUnplannedHint':
+    'تظهر الأماكن غير المخطط لها في أي يوم كعلامات صغيرة بلا صورة، لتبرز المحطات المخطط لها.',
   'settings.dayDateFirstHint': 'ابدأ كل يوم بتاريخه في التقويم، واعرض "اليوم 1" أو عنوان اليوم الخاص بجانبه.',
   'settings.startPage': 'صفحة البدء',
   'settings.startPageDashboard': 'لوحة التحكم',
@@ -538,7 +541,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'لا يوجد اتصال. اتصل بالإنترنت لحفظ الرحلات للاستخدام دون اتصال.',
   'settings.offline.notice.signedOut': 'انتهت جلستك. سجّل الدخول مرة أخرى للمزامنة.',
   'settings.offline.notice.failed': 'تعذّر إكمال التنزيل. تحقّق من اتصالك ثم حاول مرة أخرى.',
-  'settings.offline.notice.loadFailed': 'تعذّرت قراءة التخزين غير المتصل على هذا الجهاز. عادةً ما يُصلِح مسح الذاكرة المؤقتة المشكلة.',
+  'settings.offline.notice.loadFailed':
+    'تعذّرت قراءة التخزين غير المتصل على هذا الجهاز. عادةً ما يُصلِح مسح الذاكرة المؤقتة المشكلة.',
   'settings.offline.clear': 'مسح ذاكرة التخزين المؤقت',
   'settings.offline.clearConfirm':
     'هل تريد مسح جميع بيانات الرحلة المخزّنة دون اتصال؟ يمكنك إعادة المزامنة في أي وقت أثناء الاتصال.',
@@ -625,7 +629,8 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'قائمة الأمنيات',
   'settings.apiScopes.stats': 'الإجماليات',
   'settings.apiKeys.title': 'مفاتيح API',
-  'settings.apiKeys.description': 'مفاتيح لواجهة API العامة، حتى تتمكن برامج أخرى من قراءة رحلاتك. للقراءة فقط: لا يمكن للمفتاح تغيير أي شيء أو حذفه.',
+  'settings.apiKeys.description':
+    'مفاتيح لواجهة API العامة، حتى تتمكن برامج أخرى من قراءة رحلاتك. للقراءة فقط: لا يمكن للمفتاح تغيير أي شيء أو حذفه.',
   'settings.apiKeys.create': 'إنشاء مفتاح',
   'settings.apiKeys.empty': 'لا توجد مفاتيح بعد. أنشئ مفتاحًا لربط برامج أخرى.',
   'settings.apiKeys.createdAt': 'أُنشئ',

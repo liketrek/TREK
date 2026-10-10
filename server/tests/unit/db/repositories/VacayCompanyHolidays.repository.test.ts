@@ -3,15 +3,16 @@
  * L6 carry): "the company-holidays list" (VC29/VC67) had no
  * repository-level `toEqual(<legacy raw>)` parity test.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { VacayCompanyHolidays } from '../../../../src/db/entities/VacayCompanyHolidays.entity';
+import type { VacayCompanyHolidaysRepository } from '../../../../src/db/repositories/VacayCompanyHolidays.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { createUser } from '../../../helpers/factories';
 import { insertRows } from '../../../helpers/factories/rows';
 import { makeVacayPlan } from '../../../helpers/factories/vacay';
-import { VacayCompanyHolidays } from '../../../../src/db/entities/VacayCompanyHolidays.entity';
-import type { VacayCompanyHolidaysRepository } from '../../../../src/db/repositories/VacayCompanyHolidays.repository';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -21,8 +22,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(VacayCompanyHolidays);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 async function insertPlan(ownerId: number): Promise<number> {
   return (await makeVacayPlan(t, ownerId)).id;
@@ -40,7 +47,9 @@ describe('VacayCompanyHolidaysRepository.listForPlan (VC29/67)', () => {
     ]);
 
     // test-sql-allow: the raw SELECT is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb.prepare('SELECT date, note, fraction FROM vacay_company_holidays WHERE plan_id = ?').all(planId);
+    const legacy = testDb
+      .prepare('SELECT date, note, fraction FROM vacay_company_holidays WHERE plan_id = ?')
+      .all(planId);
     const rows = await repo.listForPlan(planId);
 
     expect(rows).toEqual(legacy);

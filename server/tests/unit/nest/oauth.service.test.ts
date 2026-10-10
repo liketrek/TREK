@@ -8,11 +8,40 @@
  * it; mcpEnabled/mcpSafeUrl, the module metadata and the bridge seam are
  * pinned at the bottom.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { ADDON_IDS } from '../../../src/addons';
+import { getMcpSafeUrl } from '../../../src/app-config';
+import { db as testDb } from '../../../src/db/database';
+import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
+import { OauthClients } from '../../../src/db/entities/OauthClients.entity';
+import { OauthConsents } from '../../../src/db/entities/OauthConsents.entity';
+import { OauthTokens } from '../../../src/db/entities/OauthTokens.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { AuditLogRepository } from '../../../src/db/repositories/AuditLog.repository';
+import type { OauthClientsRepository } from '../../../src/db/repositories/OauthClients.repository';
+import type { OauthConsentsRepository } from '../../../src/db/repositories/OauthConsents.repository';
+import type { OauthTokensRepository } from '../../../src/db/repositories/OauthTokens.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { dbNow } from '../../../src/db/types';
+import { revokeUserSessionsForClient } from '../../../src/mcp/sessionManager';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import {
+  MAX_PENDING_CODES,
+  PendingCodeStore,
+  processPendingCodes,
+  sweepPendingCodes,
+} from '../../../src/nest/oauth/oauth.pending-codes';
+import { OauthService } from '../../../src/nest/oauth/oauth.service';
+import { createUser } from '../../helpers/factories';
+import { findRow, insertRow, updateRows } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import crypto from 'crypto';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -21,7 +50,7 @@ vi.mock('../../../src/db/database', async () => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
   };
-    return mock;
+  return mock;
 });
 
 vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
@@ -29,47 +58,22 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: (v: string) => v,
   maybe_encrypt_api_key: (v: string) => v,
 }));
-vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn(), sessions: new Map() }));
-import { db as testDb } from '../../../src/db/database';
-import { revokeUserSessionsForClient } from '../../../src/mcp/sessionManager';
+vi.mock('../../../src/mcp/sessionManager', () => ({
+  revokeUserSessions: vi.fn(),
+  revokeUserSessionsForClient: vi.fn(),
+  sessions: new Map(),
+}));
+
 vi.mock('../../../src/demo/demo-reset', () => ({ saveBaseline: vi.fn() }));
 
 const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn().mockReturnValue(true) }));
 
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
 // PKCE helper — generates a valid code_verifier + code_challenge pair (RFC 7636)
 function makePkce() {
-  const verifier = crypto.randomBytes(32).toString('base64url');   // 43 chars
+  const verifier = crypto.randomBytes(32).toString('base64url'); // 43 chars
   const challenge = crypto.createHash('sha256').update(verifier).digest('base64url'); // 43 chars
   return { verifier, challenge };
 }
-
-import { OauthService } from '../../../src/nest/oauth/oauth.service';
-import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { getMcpSafeUrl } from '../../../src/app-config';
-import { ADDON_IDS } from '../../../src/addons';
-import {
-  MAX_PENDING_CODES,
-  PendingCodeStore,
-  processPendingCodes,
-  sweepPendingCodes,
-} from '../../../src/nest/oauth/oauth.pending-codes';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { findRow, insertRow, updateRows } from '../../helpers/factories/rows';
-import { dbNow } from '../../../src/db/types';
-import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
-import type { AuditLogRepository } from '../../../src/db/repositories/AuditLog.repository';
-import { Users } from '../../../src/db/entities/Users.entity';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import { OauthClients } from '../../../src/db/entities/OauthClients.entity';
-import type { OauthClientsRepository } from '../../../src/db/repositories/OauthClients.repository';
-import { OauthTokens } from '../../../src/db/entities/OauthTokens.entity';
-import type { OauthTokensRepository } from '../../../src/db/repositories/OauthTokens.repository';
-import { OauthConsents } from '../../../src/db/entities/OauthConsents.entity';
-import type { OauthConsentsRepository } from '../../../src/db/repositories/OauthConsents.repository';
 
 // Stubbed rather than real: every case drives the MCP gate through this one
 // flag, exactly as the addons.bridge mock did before the fold.
@@ -89,21 +93,25 @@ let t: TestOrm;
 const createOAuthClient = (...args: Parameters<OauthService['createOAuthClient']>) => svc.createOAuthClient(...args);
 const listOAuthClients = (...args: Parameters<OauthService['listOAuthClients']>) => svc.listOAuthClients(...args);
 const deleteOAuthClient = (...args: Parameters<OauthService['deleteOAuthClient']>) => svc.deleteOAuthClient(...args);
-const rotateOAuthClientSecret = (...args: Parameters<OauthService['rotateOAuthClientSecret']>) => svc.rotateOAuthClientSecret(...args);
+const rotateOAuthClientSecret = (...args: Parameters<OauthService['rotateOAuthClientSecret']>) =>
+  svc.rotateOAuthClientSecret(...args);
 const createAuthCode = (...args: Parameters<OauthService['createAuthCode']>) => svc.createAuthCode(...args);
 const consumeAuthCode = (...args: Parameters<OauthService['consumeAuthCode']>) => svc.consumeAuthCode(...args);
 const issueTokens = (...args: Parameters<OauthService['issueTokens']>) => svc.issueTokens(...args);
-const getUserByAccessToken = (...args: Parameters<OauthService['getUserByAccessToken']>) => svc.getUserByAccessToken(...args);
+const getUserByAccessToken = (...args: Parameters<OauthService['getUserByAccessToken']>) =>
+  svc.getUserByAccessToken(...args);
 const refreshTokens = (...args: Parameters<OauthService['refreshTokens']>) => svc.refreshTokens(...args);
 const revokeToken = (...args: Parameters<OauthService['revokeToken']>) => svc.revokeToken(...args);
 const listOAuthSessions = (...args: Parameters<OauthService['listOAuthSessions']>) => svc.listOAuthSessions(...args);
 const revokeSession = (...args: Parameters<OauthService['revokeSession']>) => svc.revokeSession(...args);
-const validateAuthorizeRequest = (...args: Parameters<OauthService['validateAuthorizeRequest']>) => svc.validateAuthorizeRequest(...args);
+const validateAuthorizeRequest = (...args: Parameters<OauthService['validateAuthorizeRequest']>) =>
+  svc.validateAuthorizeRequest(...args);
 const verifyPKCE = (...args: Parameters<OauthService['verifyPKCE']>) => svc.verifyPKCE(...args);
 const authenticateClient = (...args: Parameters<OauthService['authenticateClient']>) => svc.authenticateClient(...args);
 const saveConsent = (...args: Parameters<OauthService['saveConsent']>) => svc.saveConsent(...args);
 const getConsent = (...args: Parameters<OauthService['getConsent']>) => svc.getConsent(...args);
-const isConsentSufficient = (...args: Parameters<OauthService['isConsentSufficient']>) => svc.isConsentSufficient(...args);
+const isConsentSufficient = (...args: Parameters<OauthService['isConsentSufficient']>) =>
+  svc.isConsentSufficient(...args);
 
 beforeAll(async () => {
   t = await createTestOrm(testDb);
@@ -112,7 +120,14 @@ beforeAll(async () => {
   clientsRepo = t.repo(OauthClients);
   tokensRepo = t.repo(OauthTokens);
   consentsRepo = t.repo(OauthConsents);
-  svc = new OauthService(clientsRepo, tokensRepo, consentsRepo, addonsStub, new AuditService(auditLogRepo, usersRepo), new UnitOfWork(t.em));
+  svc = new OauthService(
+    clientsRepo,
+    tokensRepo,
+    consentsRepo,
+    addonsStub,
+    new AuditService(auditLogRepo, usersRepo),
+    new UnitOfWork(t.em),
+  );
 });
 
 beforeEach(() => {
@@ -135,7 +150,7 @@ afterAll(async () => {
 
 async function makeClient(
   userId: number,
-  overrides: Partial<{ name: string; redirectUris: string[]; scopes: string[] }> = {}
+  overrides: Partial<{ name: string; redirectUris: string[]; scopes: string[] }> = {},
 ) {
   return await createOAuthClient(
     userId,
@@ -162,9 +177,7 @@ describe('createOAuthClient', () => {
   it('client_id is a UUID', async () => {
     const { user } = createUser(testDb);
     const result = await makeClient(user.id);
-    expect(result.client!.client_id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-    );
+    expect(result.client!.client_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
   });
 
   it('returns 400 error if name is empty', async () => {
@@ -298,7 +311,11 @@ describe('listOAuthClients', () => {
 
   it('returns created clients with redirect_uris and allowed_scopes as arrays', async () => {
     const { user } = createUser(testDb);
-    await makeClient(user.id, { name: 'Client A', redirectUris: ['https://a.com/cb'], scopes: ['trips:read', 'budget:read'] });
+    await makeClient(user.id, {
+      name: 'Client A',
+      redirectUris: ['https://a.com/cb'],
+      scopes: ['trips:read', 'budget:read'],
+    });
     const clients = await listOAuthClients(user.id);
     expect(clients).toHaveLength(1);
     expect(clients[0].name).toBe('Client A');
@@ -616,7 +633,12 @@ describe('listOAuthSessions + revokeSession', () => {
     const created = await makeClient(user.id);
     const clientId = created.client?.client_id as string;
     await issueTokens(clientId, user.id, ['trips:read']);
-    await updateRows(t, OauthTokens, { user: user.id }, { access_token_expires_at: '2999-01-02T03:04:05.678Z', refresh_token_expires_at: '2999-01-02T03:04:05.678Z' });
+    await updateRows(
+      t,
+      OauthTokens,
+      { user: user.id },
+      { access_token_expires_at: '2999-01-02T03:04:05.678Z', refresh_token_expires_at: '2999-01-02T03:04:05.678Z' },
+    );
 
     const [session] = await listOAuthSessions(user.id);
     expect(session.access_token_expires_at).toBe('2999-01-02T03:04:05.678Z');
@@ -662,14 +684,16 @@ describe('validateAuthorizeRequest', () => {
   // Use a proper 43-char S256 code_challenge to pass H1 format validation
   const { challenge: VALID_CHALLENGE } = makePkce();
 
-  function makeParams(overrides: Partial<{
-    response_type: string;
-    client_id: string;
-    redirect_uri: string;
-    scope: string;
-    code_challenge: string;
-    code_challenge_method: string;
-  }> = {}) {
+  function makeParams(
+    overrides: Partial<{
+      response_type: string;
+      client_id: string;
+      redirect_uri: string;
+      scope: string;
+      code_challenge: string;
+      code_challenge_method: string;
+    }> = {},
+  ) {
     return {
       response_type: 'code',
       client_id: '',
@@ -697,7 +721,10 @@ describe('validateAuthorizeRequest', () => {
 
   it('requires PKCE with S256', async () => {
     const { user } = createUser(testDb);
-    const result = await validateAuthorizeRequest(makeParams({ client_id: 'x', code_challenge_method: 'plain' }), user.id);
+    const result = await validateAuthorizeRequest(
+      makeParams({ client_id: 'x', code_challenge_method: 'plain' }),
+      user.id,
+    );
     expect(result.valid).toBe(false);
     expect(result.error).toBe('invalid_request');
   });
@@ -716,7 +743,7 @@ describe('validateAuthorizeRequest', () => {
 
     const result = await validateAuthorizeRequest(
       makeParams({ client_id: clientId, redirect_uri: 'https://evil.com/callback' }),
-      user.id
+      user.id,
     );
     expect(result.valid).toBe(false);
     expect(result.error).toBe('invalid_redirect_uri');
@@ -729,7 +756,7 @@ describe('validateAuthorizeRequest', () => {
 
     const result = await validateAuthorizeRequest(
       makeParams({ client_id: clientId, redirect_uri: 'http://[::1]:54321/oauth/callback' }),
-      user.id
+      user.id,
     );
     expect(result.valid).toBe(true);
   });
@@ -741,7 +768,7 @@ describe('validateAuthorizeRequest', () => {
 
     const result = await validateAuthorizeRequest(
       makeParams({ client_id: clientId, redirect_uri: 'http://127.0.0.1:54321/stolen' }),
-      user.id
+      user.id,
     );
     expect(result.valid).toBe(false);
     expect(result.error).toBe('invalid_redirect_uri');
@@ -752,10 +779,7 @@ describe('validateAuthorizeRequest', () => {
     const created = await makeClient(user.id, { scopes: ['trips:read'] });
     const clientId = created.client!.client_id as string;
 
-    const result = await validateAuthorizeRequest(
-      makeParams({ client_id: clientId, scope: 'budget:write' }),
-      user.id
-    );
+    const result = await validateAuthorizeRequest(makeParams({ client_id: clientId, scope: 'budget:write' }), user.id);
     expect(result.valid).toBe(false);
     expect(result.error).toBe('invalid_scope');
   });
@@ -1135,14 +1159,17 @@ describe('validateAuthorizeRequest — PKCE format (H1)', () => {
     const created = await makeClient(user.id);
     const clientId = created.client!.client_id as string;
 
-    const result = await validateAuthorizeRequest({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: 'https://example.com/callback',
-      scope: 'trips:read',
-      code_challenge: 'tooshort',
-      code_challenge_method: 'S256',
-    }, user.id);
+    const result = await validateAuthorizeRequest(
+      {
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: 'https://example.com/callback',
+        scope: 'trips:read',
+        code_challenge: 'tooshort',
+        code_challenge_method: 'S256',
+      },
+      user.id,
+    );
     expect(result.valid).toBe(false);
     expect(result.error).toBe('invalid_request');
   });
@@ -1154,14 +1181,17 @@ describe('validateAuthorizeRequest — PKCE format (H1)', () => {
 
     // 43 chars but includes '=' which is not base64url
     const badChallenge = '='.repeat(43);
-    const result = await validateAuthorizeRequest({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: 'https://example.com/callback',
-      scope: 'trips:read',
-      code_challenge: badChallenge,
-      code_challenge_method: 'S256',
-    }, user.id);
+    const result = await validateAuthorizeRequest(
+      {
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: 'https://example.com/callback',
+        scope: 'trips:read',
+        code_challenge: badChallenge,
+        code_challenge_method: 'S256',
+      },
+      user.id,
+    );
     expect(result.valid).toBe(false);
     expect(result.error).toBe('invalid_request');
   });
@@ -1178,14 +1208,17 @@ describe('validateAuthorizeRequest — unauthenticated strips client info (H3)',
     const clientId = created.client!.client_id as string;
     const { challenge } = makePkce();
 
-    const result = await validateAuthorizeRequest({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: 'https://example.com/callback',
-      scope: 'trips:read',
-      code_challenge: challenge,
-      code_challenge_method: 'S256',
-    }, null /* unauthenticated */);
+    const result = await validateAuthorizeRequest(
+      {
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: 'https://example.com/callback',
+        scope: 'trips:read',
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+      },
+      null /* unauthenticated */,
+    );
 
     expect(result.valid).toBe(true);
     expect(result.loginRequired).toBe(true);
@@ -1278,16 +1311,24 @@ describe('branches the legacy suite could not reach', () => {
     const tokens = await issueTokens(client.client_id, user.id, ['trips:read']);
     await updateRows(t, OauthTokens, {}, { refresh_token_expires_at: dbNow(new Date(Date.now() - 60_000)) });
 
-    expect(await refreshTokens(tokens.refresh_token, client.client_id, client.client_secret)).toEqual({ error: 'invalid_grant', status: 400 });
+    expect(await refreshTokens(tokens.refresh_token, client.client_id, client.client_secret)).toEqual({
+      error: 'invalid_grant',
+      status: 400,
+    });
   });
 
   it('refreshTokens rejects an unknown client before touching the token', async () => {
-    expect(await refreshTokens('trekrf_whatever', 'no-such-client', 'secret')).toEqual({ error: 'invalid_client', status: 401 });
+    expect(await refreshTokens('trekrf_whatever', 'no-such-client', 'secret')).toEqual({
+      error: 'invalid_client',
+      status: 401,
+    });
   });
 
   it('refreshTokens skips the secret check for a public client', async () => {
     const { user } = createUser(testDb);
-    const created = await createOAuthClient(user.id, 'Public', ['https://example.com/callback'], ['trips:read'], null, { isPublic: true });
+    const created = await createOAuthClient(user.id, 'Public', ['https://example.com/callback'], ['trips:read'], null, {
+      isPublic: true,
+    });
     const clientId = (created.client as { client_id: string }).client_id;
     const tokens = await issueTokens(clientId, user.id, ['trips:read']);
 
@@ -1299,7 +1340,9 @@ describe('branches the legacy suite could not reach', () => {
 
   it('authenticateClient identifies a public client by id alone and rejects a missing secret otherwise', async () => {
     const { user } = createUser(testDb);
-    const pub = await createOAuthClient(user.id, 'Public', ['https://example.com/callback'], ['trips:read'], null, { isPublic: true });
+    const pub = await createOAuthClient(user.id, 'Public', ['https://example.com/callback'], ['trips:read'], null, {
+      isPublic: true,
+    });
     const pubId = (pub.client as { client_id: string }).client_id;
     const conf = await makeClient(user.id, { name: 'Confidential' });
     const confId = (conf.client as { client_id: string }).client_id;
@@ -1314,17 +1357,24 @@ describe('branches the legacy suite could not reach', () => {
     const clientId = (created.client as { client_id: string }).client_id;
     const { challenge } = makePkce();
 
-    const result = await validateAuthorizeRequest({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: 'https://example.com/callback',
-      scope: 'trips:read',
-      code_challenge: challenge,
-      code_challenge_method: 'S256',
-      resource: 'https://evil.example.org/mcp',
-    }, user.id);
+    const result = await validateAuthorizeRequest(
+      {
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: 'https://example.com/callback',
+        scope: 'trips:read',
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+        resource: 'https://evil.example.org/mcp',
+      },
+      user.id,
+    );
 
-    expect(result).toEqual({ valid: false, error: 'invalid_target', error_description: 'Requested resource must be the TREK MCP endpoint' });
+    expect(result).toEqual({
+      valid: false,
+      error: 'invalid_target',
+      error_description: 'Requested resource must be the TREK MCP endpoint',
+    });
   });
 
   it('validateAuthorizeRequest accepts the MCP endpoint passed explicitly, trailing slash and all', async () => {
@@ -1334,15 +1384,18 @@ describe('branches the legacy suite could not reach', () => {
     const { challenge } = makePkce();
     const mcpResource = getMcpSafeUrl().replace(/\/+$/, '') + '/mcp';
 
-    const result = await validateAuthorizeRequest({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: 'https://example.com/callback',
-      scope: 'trips:read',
-      code_challenge: challenge,
-      code_challenge_method: 'S256',
-      resource: mcpResource + '/',
-    }, user.id);
+    const result = await validateAuthorizeRequest(
+      {
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: 'https://example.com/callback',
+        scope: 'trips:read',
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+        resource: mcpResource + '/',
+      },
+      user.id,
+    );
 
     expect(result.valid).toBe(true);
     expect(result.resource).toBe(mcpResource);
@@ -1365,7 +1418,14 @@ describe('module-scoped OAuth state', () => {
       codeChallengeMethod: 'S256',
     }))!;
 
-    const secondInstance = new OauthService(clientsRepo, tokensRepo, consentsRepo, addonsStub, new AuditService(auditLogRepo, usersRepo), new UnitOfWork(t.em));
+    const secondInstance = new OauthService(
+      clientsRepo,
+      tokensRepo,
+      consentsRepo,
+      addonsStub,
+      new AuditService(auditLogRepo, usersRepo),
+      new UnitOfWork(t.em),
+    );
     expect((await secondInstance.consumeAuthCode(code))?.userId).toBe(42);
   });
 });
@@ -1406,8 +1466,13 @@ describe('admin OAuth sessions', () => {
     const { user } = createUser(testDb);
     await insertRow(t, OauthClients, { client_id: 'c1', client_secret_hash: 'hash', name: 'Client' });
     await insertRow(t, OauthTokens, {
-      client: 'c1', user: user.id, access_token_hash: 'ahash', refresh_token_hash: 'rhash', scopes: 'not-json{',
-      access_token_expires_at: dbNow(new Date(Date.now() + 3600_000)), refresh_token_expires_at: dbNow(new Date(Date.now() + 86_400_000)),
+      client: 'c1',
+      user: user.id,
+      access_token_hash: 'ahash',
+      refresh_token_hash: 'rhash',
+      scopes: 'not-json{',
+      access_token_expires_at: dbNow(new Date(Date.now() + 3600_000)),
+      refresh_token_expires_at: dbNow(new Date(Date.now() + 86_400_000)),
     });
 
     const sessions = (await svc.listAllOAuthSessions()) as any[];

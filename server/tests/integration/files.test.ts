@@ -7,26 +7,26 @@
  * - File uploads create real files in uploads/files/ — tests clean up after themselves where possible
  * - FILE-009 (ephemeral token download) is covered via the /api/auth/resource-token endpoint
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { authCookie, generateToken } from '../helpers/auth';
+import { createUser, createTrip, createReservation, createPlace, addTripMember } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { setAppSetting } from '../helpers/factories/settings';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
-import path from 'path';
+
+import type { Application } from 'express';
 import fs from 'fs';
+import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { MikroORM } from '@mikro-orm/core';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import type { FactoryOrm } from '../helpers/factories/context';
-import { createUser, createTrip, createReservation, createPlace, addTripMember } from '../helpers/factories';
-import { authCookie, generateToken } from '../helpers/auth';
-import { setAppSetting } from '../helpers/factories/settings';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -130,7 +130,11 @@ describe('Upload file', () => {
     const bigFilesIn = (dir: string) =>
       fs.existsSync(dir)
         ? fs.readdirSync(dir).filter((f) => {
-            try { return fs.statSync(path.join(dir, f)).size === BIG; } catch { return false; }
+            try {
+              return fs.statSync(path.join(dir, f)).size === BIG;
+            } catch {
+              return false;
+            }
           })
         : [];
     const res = await request(app)
@@ -179,9 +183,7 @@ describe('List files', () => {
     await uploadFile(trip.id, user.id, FIXTURE_PDF);
     await uploadFile(trip.id, user.id, FIXTURE_IMG);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/files`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/files`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.files.length).toBeGreaterThanOrEqual(2);
   });
@@ -193,13 +195,9 @@ describe('List files', () => {
     const fileId = upload.body.file.id;
 
     // Soft-delete it
-    await request(app)
-      .delete(`/api/trips/${trip.id}/files/${fileId}`)
-      .set('Cookie', authCookie(user.id));
+    await request(app).delete(`/api/trips/${trip.id}/files/${fileId}`).set('Cookie', authCookie(user.id));
 
-    const trash = await request(app)
-      .get(`/api/trips/${trip.id}/files?trash=true`)
-      .set('Cookie', authCookie(user.id));
+    const trash = await request(app).get(`/api/trips/${trip.id}/files?trash=true`).set('Cookie', authCookie(user.id));
     expect(trash.status).toBe(200);
     const trashIds = (trash.body.files as any[]).map((f: any) => f.id);
     expect(trashIds).toContain(fileId);
@@ -242,16 +240,12 @@ describe('Soft delete, restore, permanent delete', () => {
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
-    const del = await request(app)
-      .delete(`/api/trips/${trip.id}/files/${fileId}`)
-      .set('Cookie', authCookie(user.id));
+    const del = await request(app).delete(`/api/trips/${trip.id}/files/${fileId}`).set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
     // Should not appear in normal list
-    const list = await request(app)
-      .get(`/api/trips/${trip.id}/files`)
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get(`/api/trips/${trip.id}/files`).set('Cookie', authCookie(user.id));
     const ids = (list.body.files as any[]).map((f: any) => f.id);
     expect(ids).not.toContain(fileId);
   });
@@ -262,9 +256,7 @@ describe('Soft delete, restore, permanent delete', () => {
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
-    await request(app)
-      .delete(`/api/trips/${trip.id}/files/${fileId}`)
-      .set('Cookie', authCookie(user.id));
+    await request(app).delete(`/api/trips/${trip.id}/files/${fileId}`).set('Cookie', authCookie(user.id));
 
     const restore = await request(app)
       .post(`/api/trips/${trip.id}/files/${fileId}/restore`)
@@ -279,9 +271,7 @@ describe('Soft delete, restore, permanent delete', () => {
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
-    await request(app)
-      .delete(`/api/trips/${trip.id}/files/${fileId}`)
-      .set('Cookie', authCookie(user.id));
+    await request(app).delete(`/api/trips/${trip.id}/files/${fileId}`).set('Cookie', authCookie(user.id));
 
     const perm = await request(app)
       .delete(`/api/trips/${trip.id}/files/${fileId}/permanent`)
@@ -317,9 +307,7 @@ describe('Soft delete, restore, permanent delete', () => {
       .set('Cookie', authCookie(user.id));
     expect(empty.status).toBe(200);
 
-    const trash = await request(app)
-      .get(`/api/trips/${trip.id}/files?trash=true`)
-      .set('Cookie', authCookie(user.id));
+    const trash = await request(app).get(`/api/trips/${trip.id}/files?trash=true`).set('Cookie', authCookie(user.id));
     expect(trash.body.files).toHaveLength(0);
   });
 });
@@ -396,7 +384,10 @@ describe('Cross-trip link isolation', () => {
     const { user: victim } = createUser(testDb);
     const attackerTrip = createTrip(testDb, attacker.id, { title: 'Attacker Trip' });
     const victimTrip = createTrip(testDb, victim.id, { title: 'Victim Trip' });
-    const victimReservation = createReservation(testDb, victimTrip.id, { title: 'Victim Secret Flight', type: 'flight' });
+    const victimReservation = createReservation(testDb, victimTrip.id, {
+      title: 'Victim Secret Flight',
+      type: 'flight',
+    });
     const upload = await uploadFile(attackerTrip.id, attacker.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -420,7 +411,10 @@ describe('Cross-trip link isolation', () => {
     const { user: victim } = createUser(testDb);
     const attackerTrip = createTrip(testDb, attacker.id);
     const victimTrip = createTrip(testDb, victim.id);
-    const victimReservation = createReservation(testDb, victimTrip.id, { title: 'Victim Secret Flight', type: 'flight' });
+    const victimReservation = createReservation(testDb, victimTrip.id, {
+      title: 'Victim Secret Flight',
+      type: 'flight',
+    });
 
     const res = await request(app)
       .post(`/api/trips/${attackerTrip.id}/files`)
@@ -436,7 +430,10 @@ describe('Cross-trip link isolation', () => {
     const { user: victim } = createUser(testDb);
     const attackerTrip = createTrip(testDb, attacker.id);
     const victimTrip = createTrip(testDb, victim.id);
-    const victimReservation = createReservation(testDb, victimTrip.id, { title: 'Victim Secret Flight', type: 'flight' });
+    const victimReservation = createReservation(testDb, victimTrip.id, {
+      title: 'Victim Secret Flight',
+      type: 'flight',
+    });
     const upload = await uploadFile(attackerTrip.id, attacker.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -503,8 +500,7 @@ describe('File download', () => {
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/files/${fileId}/download`);
+    const res = await request(app).get(`/api/trips/${trip.id}/files/${fileId}/download`);
     expect(res.status).toBe(401);
   });
 

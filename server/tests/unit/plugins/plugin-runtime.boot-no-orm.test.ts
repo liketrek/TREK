@@ -8,36 +8,42 @@
  * defensible: dropping the `logError` call, or falling through to `activate`
  * anyway, would ship green with no test failing. This file pins it directly.
  */
+import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
+import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
+import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
+import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
+import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
+import { PluginEntityMetadata } from '../../../src/db/entities/PluginEntityMetadata.entity';
+import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
+import { PluginMetaMigrations } from '../../../src/db/entities/PluginMetaMigrations.entity';
+import { PluginOauthState } from '../../../src/db/entities/PluginOauthState.entity';
+import { PluginOauthTokens } from '../../../src/db/entities/PluginOauthTokens.entity';
+import { PluginScheduledTasks } from '../../../src/db/entities/PluginScheduledTasks.entity';
+import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
+import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
+import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import { Settings } from '../../../src/db/entities/Settings.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { makePlugin } from '../../helpers/factories/plugins';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 
-const logMock = vi.hoisted(() => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
+const logMock = vi.hoisted(() => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+  logDebug: vi.fn(),
+}));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
-
-import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
-import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { makePlugin } from '../../helpers/factories/plugins';
-import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { Plugins } from '../../../src/db/entities/Plugins.entity';
-import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
-import { PluginScheduledTasks } from '../../../src/db/entities/PluginScheduledTasks.entity';
-import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
-import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
-import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
-import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
-import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
-import { PluginEntityMetadata } from '../../../src/db/entities/PluginEntityMetadata.entity';
-import { PluginOauthTokens } from '../../../src/db/entities/PluginOauthTokens.entity';
-import { PluginOauthState } from '../../../src/db/entities/PluginOauthState.entity';
-import { PluginMetaMigrations } from '../../../src/db/entities/PluginMetaMigrations.entity';
-import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
-import { Settings } from '../../../src/db/entities/Settings.entity';
-import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -48,7 +54,10 @@ beforeAll(async () => {
   // the same reasoning airports.service.test.ts and BOOT-REG-002 use.
   t = await createTestOrm(testDb, { allowGlobalContext: false });
 });
-afterAll(async () => { await t.close(); testDb.close(); });
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 beforeEach(() => vi.clearAllMocks());
 
 /** installedDepRows() reads the `plugins` table directly — no discovery needed. */

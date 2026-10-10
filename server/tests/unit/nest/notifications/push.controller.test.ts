@@ -2,19 +2,20 @@
  * PushController parity (PUSHCTL-*): status codes, bodies and the bespoke 400
  * strings of /api/notifications/push, over stubbed providers.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import { HTTP_CODE_METADATA } from '@nestjs/common/constants';
-import { createECDH } from 'node:crypto';
-import { PushController } from '../../../../src/nest/notifications/push/push.controller';
 import { PUSH_SUBSCRIPTION_ERRORS } from '../../../../src/nest/notifications/push/push-subscription.helpers';
 import type { PushSubscriptionsService } from '../../../../src/nest/notifications/push/push-subscriptions.service';
+import { PushController } from '../../../../src/nest/notifications/push/push.controller';
 import {
   PUSH_UNAVAILABLE_ERROR,
   PushUnavailableError,
   type VapidKeysService,
 } from '../../../../src/nest/notifications/push/vapid-keys.service';
 import type { User } from '../../../../src/types';
+import { HttpException } from '@nestjs/common';
+import { HTTP_CODE_METADATA } from '@nestjs/common/constants';
+
+import { createECDH } from 'node:crypto';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const keys = { getPublicKey: vi.fn(async (): Promise<string> => 'server-public-key') };
 const subscriptions = { upsert: vi.fn(async () => 2), removeForUser: vi.fn(async () => true) };
@@ -54,7 +55,10 @@ describe('PushController', () => {
 
   it('PUSHCTL-002: POST subscriptions stores the checked subscription against the current key and answers 200', async () => {
     const sub = subscription();
-    expect(await controller.subscribe(user, { subscription: sub }, 'Firefox/130')).toEqual({ success: true, devices: 2 });
+    expect(await controller.subscribe(user, { subscription: sub }, 'Firefox/130')).toEqual({
+      success: true,
+      devices: 2,
+    });
     expect(subscriptions.upsert).toHaveBeenCalledWith(
       5,
       { endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth },
@@ -65,7 +69,9 @@ describe('PushController', () => {
   });
 
   it('PUSHCTL-003: POST subscriptions answers the bespoke 400 and stores nothing', async () => {
-    const err = await thrown(() => controller.subscribe(user, { subscription: subscription('https://example.com/collect') }));
+    const err = await thrown(() =>
+      controller.subscribe(user, { subscription: subscription('https://example.com/collect') }),
+    );
     expect(err).toBeInstanceOf(HttpException);
     expect(err.getStatus()).toBe(400);
     expect(err.getResponse()).toEqual({ error: PUSH_SUBSCRIPTION_ERRORS.service });

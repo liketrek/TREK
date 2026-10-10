@@ -1,25 +1,22 @@
-import { DomainError } from '../common/domain-error';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { randomBytes, createHash } from 'crypto';
-import {
-  PUBLIC_API_SCOPES,
-  type PublicApiGrant,
-  type PublicApiScope,
-} from '@trek/shared';
 import { McpTokens } from '../../db/entities/McpTokens.entity';
-import type { McpTokensRepository, McpTokenBasicRow } from '../../db/repositories/McpTokens.repository';
 import { Users } from '../../db/entities/Users.entity';
+import { MCP_TOKEN_API_SCOPES } from '../../db/json-columns';
+import type { McpTokensRepository, McpTokenBasicRow } from '../../db/repositories/McpTokens.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
-import { toRowId } from '../common/row-id';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
 // every consumer of this module — a nest→mcp→nest module cycle.
 import { revokeUserSessions } from '../../mcp/sessionManager';
 import { User } from '../../types';
-import { MCP_TOKEN_API_SCOPES } from '../../db/json-columns';
 import { decodeJson } from '../../utils/json-column';
+import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
+import { DomainError } from '../common/domain-error';
+import { toRowId } from '../common/row-id';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { PUBLIC_API_SCOPES, type PublicApiGrant, type PublicApiScope } from '@trek/shared';
+
+import { randomBytes, createHash } from 'crypto';
 
 /**
  * What a token is allowed to drive. Stored on the row so each surface can accept
@@ -109,7 +106,12 @@ export class TokenService {
     return await this.createToken(userId, rawName, 'api', scopes);
   }
 
-  private async createToken(userId: number, rawName: unknown, kind: TokenKind, scopes?: readonly string[]): Promise<{ token?: Record<string, unknown> }> {
+  private async createToken(
+    userId: number,
+    rawName: unknown,
+    kind: TokenKind,
+    scopes?: readonly string[],
+  ): Promise<{ token?: Record<string, unknown> }> {
     const name = rawName as string | undefined;
     if (!name?.trim()) throw new DomainError(400, 'Token name is required');
     if (name.trim().length > 100) throw new DomainError(400, 'Token name must be 100 characters or less');
@@ -144,9 +146,8 @@ export class TokenService {
     const basic = (await this.tokens.findBasic(inserted.id)) as McpTokenBasicRow;
     const { user_id: _userId, ...token } = basic;
 
-    const grant = kind === 'api'
-      ? { scope_mode: narrowed ? 'limited' : 'all', scopes: narrowed ?? [...PUBLIC_API_SCOPES] }
-      : {};
+    const grant =
+      kind === 'api' ? { scope_mode: narrowed ? 'limited' : 'all', scopes: narrowed ?? [...PUBLIC_API_SCOPES] } : {};
     return { token: { ...token, ...grant, raw_token: rawToken } };
   }
 
@@ -177,7 +178,11 @@ export class TokenService {
     await this.tokens.deleteById(id);
     // Best-effort, like the changePassword/resetPassword revocations: a session
     // sweep failure must not turn a successful token delete into a 500.
-    try { revokeUserSessions?.(userId); } catch { /* best-effort */ }
+    try {
+      revokeUserSessions?.(userId);
+    } catch {
+      /* best-effort */
+    }
     return { success: true };
   }
 

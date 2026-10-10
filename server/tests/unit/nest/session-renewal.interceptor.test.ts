@@ -6,13 +6,13 @@
  * unauthenticated request, purpose token, id mismatch, malformed claims,
  * headers already sent, non-http context.
  */
-import { describe, it, expect, vi } from 'vitest';
-import type { CallHandler, ExecutionContext } from '@nestjs/common';
-import { of, lastValueFrom } from 'rxjs';
-import jwt from 'jsonwebtoken';
-
 import { SessionRenewalInterceptor } from '../../../src/nest/auth/session-renewal.interceptor';
 import type { SessionsService } from '../../../src/nest/sessions/sessions.service';
+import type { CallHandler, ExecutionContext } from '@nestjs/common';
+
+import jwt from 'jsonwebtoken';
+import { of, lastValueFrom } from 'rxjs';
+import { describe, it, expect, vi } from 'vitest';
 
 const SECRET = 'test-jwt-secret-for-trek-testing-only';
 
@@ -27,7 +27,12 @@ function makeRes(headersSent = false) {
   return { headersSent, cookie: vi.fn() };
 }
 
-type ReqShape = { cookies?: Record<string, string>; user?: { id: number }; headers?: Record<string, string>; secure?: boolean };
+type ReqShape = {
+  cookies?: Record<string, string>;
+  user?: { id: number };
+  headers?: Record<string, string>;
+  secure?: boolean;
+};
 
 function ctx(req: ReqShape, res: ReturnType<typeof makeRes>, type = 'http'): ExecutionContext {
   return {
@@ -47,7 +52,12 @@ function makeInterceptor(renewed: string | null = 'renewed.jwt') {
   return { interceptor, renew };
 }
 
-async function run(interceptor: SessionRenewalInterceptor, req: ReqShape, res: ReturnType<typeof makeRes>, type = 'http') {
+async function run(
+  interceptor: SessionRenewalInterceptor,
+  req: ReqShape,
+  res: ReturnType<typeof makeRes>,
+  type = 'http',
+) {
   const h = handler();
   const out = await lastValueFrom(await interceptor.intercept(ctx(req, res, type), h));
   expect(out).toBe('ok');
@@ -69,8 +79,15 @@ describe('SessionRenewalInterceptor', () => {
     const res = makeRes();
     const t = token({ id: 1, pv: 3 }, 86400, 60000); // ~70% consumed
     await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 } }, res);
-    expect(renew).toHaveBeenCalledWith({ id: 1, pv: 3, remember: undefined, jti: undefined, token: t }, { userAgent: null });
-    expect(res.cookie).toHaveBeenCalledWith('trek_session', 'renewed.jwt', expect.objectContaining({ maxAge: 86400000, httpOnly: true }));
+    expect(renew).toHaveBeenCalledWith(
+      { id: 1, pv: 3, remember: undefined, jti: undefined, token: t },
+      { userAgent: null },
+    );
+    expect(res.cookie).toHaveBeenCalledWith(
+      'trek_session',
+      'renewed.jwt',
+      expect.objectContaining({ maxAge: 86400000, httpOnly: true }),
+    );
   });
 
   it('SES-RENEW-003: a remember:true claim renews with the long persistent cookie', async () => {
@@ -79,7 +96,11 @@ describe('SessionRenewalInterceptor', () => {
     const t = token({ id: 1, pv: 0, remember: true }, 2592000, 1600000); // ~62% consumed
     await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 } }, res);
     expect(renew).toHaveBeenCalledWith({ id: 1, pv: 0, remember: true, jti: undefined, token: t }, { userAgent: null });
-    expect(res.cookie).toHaveBeenCalledWith('trek_session', 'renewed.jwt', expect.objectContaining({ maxAge: 2592000000 }));
+    expect(res.cookie).toHaveBeenCalledWith(
+      'trek_session',
+      'renewed.jwt',
+      expect.objectContaining({ maxAge: 2592000000 }),
+    );
   });
 
   it('SES-RENEW-004: a remember:false claim renews as a browser-session cookie (no maxAge)', async () => {
@@ -87,7 +108,10 @@ describe('SessionRenewalInterceptor', () => {
     const res = makeRes();
     const t = token({ id: 1, pv: 0, remember: false }, 86400, 60000);
     await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 } }, res);
-    expect(renew).toHaveBeenCalledWith({ id: 1, pv: 0, remember: false, jti: undefined, token: t }, { userAgent: null });
+    expect(renew).toHaveBeenCalledWith(
+      { id: 1, pv: 0, remember: false, jti: undefined, token: t },
+      { userAgent: null },
+    );
     const options = res.cookie.mock.calls[0][2];
     expect(options).not.toHaveProperty('maxAge');
   });
@@ -97,8 +121,15 @@ describe('SessionRenewalInterceptor', () => {
     const res = makeRes();
     const t = token({ id: 1, pv: 0 }, 86400, 60000);
     await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 } }, res);
-    expect(renew).toHaveBeenCalledWith({ id: 1, pv: 0, remember: undefined, jti: undefined, token: t }, { userAgent: null });
-    expect(res.cookie).toHaveBeenCalledWith('trek_session', 'renewed.jwt', expect.objectContaining({ maxAge: 86400000 }));
+    expect(renew).toHaveBeenCalledWith(
+      { id: 1, pv: 0, remember: undefined, jti: undefined, token: t },
+      { userAgent: null },
+    );
+    expect(res.cookie).toHaveBeenCalledWith(
+      'trek_session',
+      'renewed.jwt',
+      expect.objectContaining({ maxAge: 86400000 }),
+    );
   });
 
   it('SES-RENEW-006: never renews a Bearer-only request (no session cookie)', async () => {
@@ -166,10 +197,25 @@ describe('SessionRenewalInterceptor', () => {
   it('SES-RENEW-012: a tracked token renews under its own session id, with the device', async () => {
     const { interceptor, renew } = makeInterceptor();
     const res = makeRes();
-    const t = jwt.sign({ id: 1, pv: 0, iat: Math.floor(Date.now() / 1000) - 60000 }, SECRET, { expiresIn: 86400, algorithm: 'HS256', jwtid: 'sid-1' });
-    await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 }, headers: { 'user-agent': 'Firefox/130' } }, res);
-    expect(renew).toHaveBeenCalledWith({ id: 1, pv: 0, remember: undefined, jti: 'sid-1', token: t }, { userAgent: 'Firefox/130' });
-    expect(res.cookie).toHaveBeenCalledWith('trek_session', 'renewed.jwt', expect.objectContaining({ maxAge: 86400000 }));
+    const t = jwt.sign({ id: 1, pv: 0, iat: Math.floor(Date.now() / 1000) - 60000 }, SECRET, {
+      expiresIn: 86400,
+      algorithm: 'HS256',
+      jwtid: 'sid-1',
+    });
+    await run(
+      interceptor,
+      { cookies: { trek_session: t }, user: { id: 1 }, headers: { 'user-agent': 'Firefox/130' } },
+      res,
+    );
+    expect(renew).toHaveBeenCalledWith(
+      { id: 1, pv: 0, remember: undefined, jti: 'sid-1', token: t },
+      { userAgent: 'Firefox/130' },
+    );
+    expect(res.cookie).toHaveBeenCalledWith(
+      'trek_session',
+      'renewed.jwt',
+      expect.objectContaining({ maxAge: 86400000 }),
+    );
   });
 
   it('SES-RENEW-013: sets no cookie when the session ended before it could be renewed', async () => {

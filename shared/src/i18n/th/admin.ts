@@ -50,7 +50,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNotificationsHint':
     'กำหนดค่าช่องทางที่จะส่งการแจ้งเตือนเฉพาะผู้ดูแลระบบเท่านั้น (เช่น การแจ้งเตือนเวอร์ชัน)',
   'admin.notificationDefaults.title': 'ค่าเริ่มต้นสำหรับผู้ใช้',
-  'admin.notificationDefaults.hint': 'สถานะเริ่มต้นของการแจ้งเตือนของผู้ใช้แต่ละคน "ปิด" ผู้ใช้ยังเปิดเองได้ "บล็อก" จะปิดสำหรับทุกคนและแสดงเป็นล็อกในการตั้งค่าของพวกเขา ใช้กับทุกคนที่ยังไม่ได้เปลี่ยนช่องนั้นเอง',
+  'admin.notificationDefaults.hint':
+    'สถานะเริ่มต้นของการแจ้งเตือนของผู้ใช้แต่ละคน "ปิด" ผู้ใช้ยังเปิดเองได้ "บล็อก" จะปิดสำหรับทุกคนและแสดงเป็นล็อกในการตั้งค่าของพวกเขา ใช้กับทุกคนที่ยังไม่ได้เปลี่ยนช่องนั้นเอง',
   'admin.notificationDefaults.on': 'เปิด',
   'admin.notificationDefaults.off': 'ปิด',
   'admin.notificationDefaults.blocked': 'บล็อก',
@@ -183,7 +184,8 @@ const admin: TranslationStrings = {
   'admin.placesGoogleOnly.otherProvider':
     'ต้องใช้ Google เป็นผู้ให้บริการสถานที่ หากเลือก Amap หรือ OpenStreetMap การค้นหาจะไม่ส่งไปที่ Google ไม่ว่าสวิตช์นี้จะตั้งไว้อย่างไร',
   'admin.googleQuota.title': 'ขีดจำกัดการเรียก Google ต่อวัน',
-  'admin.googleQuota.subtitle': 'เมื่อถึงขีดจำกัด TREK จะหยุดเรียก Google จนถึงวันถัดไป (UTC) และค้นหาด้วย OpenStreetMap แทน เว้นว่างไว้หากไม่จำกัด',
+  'admin.googleQuota.subtitle':
+    'เมื่อถึงขีดจำกัด TREK จะหยุดเรียก Google จนถึงวันถัดไป (UTC) และค้นหาด้วย OpenStreetMap แทน เว้นว่างไว้หากไม่จำกัด',
   'admin.googleQuota.placeholder': 'ไม่จำกัด',
   'admin.googleQuota.usedToday': 'วันนี้: {used}',
   'admin.googleQuota.usedOfLimit': 'วันนี้: {used} จาก {limit}',

@@ -1,15 +1,16 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../../helpers/db-mock';
-import { resetTestDb } from '../../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
-import { createReservation, createTrip, createUser } from '../../../../helpers/factories';
-import { addReservationTraveler } from '../../../../helpers/factories/reservations';
 import { Reservations } from '../../../../../src/db/entities/Reservations.entity';
 import {
   travelerOwnsCondition,
   travelerOwnsExpr,
   type ReservationTravelersOwnsKyselyDB,
 } from '../../../../../src/db/repositories/_shared/reservation-travelers-owns';
+import { createSnapshotTestDb } from '../../../../helpers/db-mock';
+import { createReservation, createTrip, createUser } from '../../../../helpers/factories';
+import { addReservationTraveler } from '../../../../helpers/factories/reservations';
+import { resetTestDb } from '../../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * The legacy fragment this harness proves parity against
@@ -29,9 +30,17 @@ const TRAVELER_OWNS = `(
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
 
-beforeAll(async () => { t = await createTestOrm(testDb); });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 async function addTraveler(reservationId: number, userId: number): Promise<void> {
   await addReservationTraveler(t, reservationId, userId);
@@ -88,7 +97,7 @@ describe('reservation-travelers-owns parity (TRAVELER_OWNS: the two cases that m
     }
   });
 
-  it('TRAVOWNS-002: a reservation WITH assignments narrows to the caller\'s own — an assigned traveler sees it, a non-traveler does not', async () => {
+  it("TRAVOWNS-002: a reservation WITH assignments narrows to the caller's own — an assigned traveler sees it, a non-traveler does not", async () => {
     const { user: traveler } = createUser(testDb);
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, traveler.id);

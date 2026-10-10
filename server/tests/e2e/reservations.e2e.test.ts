@@ -6,14 +6,41 @@
  * SQL (the injected DaysService is DI-native too); the budget service and the
  * permission check stay mocked.
  */
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { ReservationsModule } from '../../src/nest/reservations/reservations.module';
+// The budget-sync seam runs the real injected BudgetService (BudgetModule is
+// imported by ReservationsModule since the budget fold) over the same temp db.
+import { db } from '../../src/db/database';
+import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
+import { DayAccommodations } from '../../src/db/entities/DayAccommodations.entity';
+import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
+import { Places } from '../../src/db/entities/Places.entity';
+import { ReservationDayPositions } from '../../src/db/entities/ReservationDayPositions.entity';
+import { Reservations } from '../../src/db/entities/Reservations.entity';
+import { Trips } from '../../src/db/entities/Trips.entity';
+import { Users } from '../../src/db/entities/Users.entity';
 // Accommodations left reservations/ for a domain of their own; this container has
 // to assemble both or the /accommodations cases below 404 while production serves them.
 import { AccommodationsModule } from '../../src/nest/accommodations/accommodations.module';
-import { sessionCookie } from './harness';
+import { ExchangeRatesService } from '../../src/nest/budget/exchange-rates.service';
+import { legacyBoundIntegerText } from '../../src/nest/common/row-id';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { NotificationsService } from '../../src/nest/notifications/notifications.service';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { ReservationsModule } from '../../src/nest/reservations/reservations.module';
+import {
+  countRows,
+  deleteRows,
+  findRow,
+  findRows,
+  insertRow,
+  insertRowIgnoringConflict,
+} from '../helpers/factories/rows';
+import { makeTrip, makeDay } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
 import { Test } from '@nestjs/testing';
 
 import cookieParser from 'cookie-parser';
@@ -37,40 +64,27 @@ vi.mock('../../src/db/database', async () => {
   };
 });
 const { notificationSend } = vi.hoisted(() => ({ notificationSend: vi.fn().mockResolvedValue(undefined) }));
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
 let checkPermission: MockInstance;
-
-// The budget-sync seam runs the real injected BudgetService (BudgetModule is
-// imported by ReservationsModule since the budget fold) over the same temp db.
-
-import { db } from '../../src/db/database';
-import { NotificationsService } from '../../src/nest/notifications/notifications.service';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeUser } from '../helpers/factories/users';
-import { makeTrip, makeDay } from '../helpers/factories/trips';
-import { countRows, deleteRows, findRow, findRows, insertRow, insertRowIgnoringConflict } from '../helpers/factories/rows';
-import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
-import { DayAccommodations } from '../../src/db/entities/DayAccommodations.entity';
-import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
-import { Places } from '../../src/db/entities/Places.entity';
-import { ReservationDayPositions } from '../../src/db/entities/ReservationDayPositions.entity';
-import { Reservations } from '../../src/db/entities/Reservations.entity';
-import { Trips } from '../../src/db/entities/Trips.entity';
-import { Users } from '../../src/db/entities/Users.entity';
 
 let orm: TestOrm;
 
 /** The expense booked with the reservation, as total, currency and frozen rate. */
 async function bookedExpense(reservationId: number) {
   const item = await findRow(orm, BudgetItems, { reservation: reservationId });
-  return item ? { total_price: item.total_price, currency: item.currency, exchange_rate: item.exchange_rate } : undefined;
+  return item
+    ? { total_price: item.total_price, currency: item.currency, exchange_rate: item.exchange_rate }
+    : undefined;
 }
 
-function seedReservation(tripId: number, title: string, type: string, extra: { reservation_time?: string; accommodation_id?: string } = {}) {
+function seedReservation(
+  tripId: number,
+  title: string,
+  type: string,
+  extra: { reservation_time?: string; accommodation_id?: string } = {},
+) {
   return insertRow(orm, Reservations, { trip: tripId, title, type, ...extra });
 }
 
@@ -81,8 +95,6 @@ function seedPlace(tripId: number, name: string) {
 async function seedDay(tripId: number, dayNumber: number, date: string) {
   return (await makeDay(orm, tripId, { day_number: dayNumber, date })).id;
 }
-import { ExchangeRatesService } from '../../src/nest/budget/exchange-rates.service';
-import { legacyBoundIntegerText } from '../../src/nest/common/row-id';
 
 describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real reservation SQL)', () => {
   let server: Server;
@@ -90,7 +102,15 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, ReservationsModule, AccommodationsModule] })
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        ReservationsModule,
+        AccommodationsModule,
+      ],
+    })
       .overrideProvider(NotificationsService)
       .useValue({ send: notificationSend })
       // A price quoted in a foreign currency freezes the rate of the day; this is that
@@ -174,7 +194,8 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
       .post(`/api/trips/${tripId}/reservations`)
       .set('Cookie', sessionCookie(1))
       .send({
-        title: 'Aparthotel Silver', type: 'hotel',
+        title: 'Aparthotel Silver',
+        type: 'hotel',
         metadata: { price: '801.76', priceCurrency: 'USD' },
         create_budget_entry: { total_price: 801.76, category: 'accommodation', currency: 'USD' },
       });
@@ -206,7 +227,10 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
     await vi.waitFor(() => expect(notificationSend).toHaveBeenCalled());
     expect(notificationSend).toHaveBeenCalledWith(expect.objectContaining({ event: 'booking_change', actorId: 1 }));
 
-    const bad = await request(server).post(`/api/trips/${tripId}/reservations`).set('Cookie', sessionCookie(1)).send({});
+    const bad = await request(server)
+      .post(`/api/trips/${tripId}/reservations`)
+      .set('Cookie', sessionCookie(1))
+      .send({});
     expect(bad.status).toBe(400);
     expect(bad.body.error).toContain('title');
   });
@@ -235,7 +259,11 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
     const res = await request(server)
       .post(`/api/trips/${tripId}/reservations`)
       .set('Cookie', sessionCookie(1))
-      .send({ title: 'Stay', type: 'hotel', create_accommodation: { place_id: placeId, start_day_id: dayId, end_day_id: 999999 } });
+      .send({
+        title: 'Stay',
+        type: 'hotel',
+        create_accommodation: { place_id: placeId, start_day_id: dayId, end_day_id: 999999 },
+      });
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Unknown reference: create_accommodation.end_day_id' });
@@ -255,8 +283,10 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
 
     expect(res.status).toBe(200);
     const stay = (await findRow(orm, Reservations, { id: rid }))!;
-    expect({ title: stay.title, accommodation_id: stay.accommodation_id })
-      .toEqual({ title: 'Stay, renamed', accommodation_id: null });
+    expect({ title: stay.title, accommodation_id: stay.accommodation_id }).toEqual({
+      title: 'Stay, renamed',
+      accommodation_id: null,
+    });
   });
 
   it('200 list accommodations + 201 create (real insert + auto hotel reservation), 404 on bad refs', async () => {
@@ -267,9 +297,16 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
       .set('Cookie', sessionCookie(1))
       .send({ place_id: placeId, start_day_id: dayId, end_day_id: dayId, check_in: '15:00' });
     expect(create.status).toBe(201);
-    expect(create.body.accommodation).toMatchObject({ place_id: placeId, start_day_id: dayId, end_day_id: dayId, place_name: 'Grand Hotel' });
+    expect(create.body.accommodation).toMatchObject({
+      place_id: placeId,
+      start_day_id: dayId,
+      end_day_id: dayId,
+      place_name: 'Grand Hotel',
+    });
     // The partner hotel reservation is auto-created by the real DaysService SQL.
-    const linked = await findRow(orm, Reservations, { accommodation_id: legacyBoundIntegerText(create.body.accommodation.id) });
+    const linked = await findRow(orm, Reservations, {
+      accommodation_id: legacyBoundIntegerText(create.body.accommodation.id),
+    });
     expect(linked).toMatchObject({ type: 'hotel', status: 'confirmed' });
     const list = await request(server).get(`/api/trips/${tripId}/accommodations`).set('Cookie', sessionCookie(1));
     expect(list.status).toBe(200);
@@ -345,7 +382,12 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
 
     beforeEach(async () => {
       await insertRowIgnoringConflict(orm, Users, {
-        id: 2, username: 'victim', email: 'victim@example.test', password_hash: 'x', role: 'user', password_version: 0,
+        id: 2,
+        username: 'victim',
+        email: 'victim@example.test',
+        password_hash: 'x',
+        role: 'user',
+        password_version: 0,
       });
       foreignTripId = (await makeTrip(orm, 2, { title: 'Someone else' })).id;
       foreignReservationId = await seedReservation(foreignTripId, 'Secret', 'other');

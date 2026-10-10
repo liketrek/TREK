@@ -48,15 +48,16 @@
  * even returning null/creating a fresh row) versus throwing, hanging, or
  * silently targeting a stale/closed handle.
  */
-import { afterEach, describe, expect, it } from 'vitest';
-import type { INestApplication } from '@nestjs/common';
-import { MikroORM } from '@mikro-orm/core';
-import { getRepositoryToken } from '@mikro-orm/nestjs';
 import { buildApp } from '../../src/bootstrap';
-import { withRequestContext } from '../../src/nest/database/request-context';
 import { closeDb, reinitialize } from '../../src/db/database';
 import { Users } from '../../src/db/entities/Users.entity';
 import type { UsersRepository } from '../../src/db/repositories/Users.repository';
+import { withRequestContext } from '../../src/nest/database/request-context';
+import { MikroORM } from '@mikro-orm/core';
+import { getRepositoryToken } from '@mikro-orm/nestjs';
+import type { INestApplication } from '@nestjs/common';
+
+import { afterEach, describe, expect, it } from 'vitest';
 
 type Outcome = { ok: true; value: unknown } | { ok: false; error: string };
 
@@ -76,7 +77,7 @@ describe('Plan 3i Task 0 spike: demo-reset connection swap', () => {
     app = undefined;
   });
 
-  it('SPIKE-001: a repository read AND a repository write, issued through the pre-swap EntityManager fork after closeDb()+reinitialize(), inside the SAME withRequestContext call demo-reset.job.ts\'s wrappedTick uses', async () => {
+  it("SPIKE-001: a repository read AND a repository write, issued through the pre-swap EntityManager fork after closeDb()+reinitialize(), inside the SAME withRequestContext call demo-reset.job.ts's wrappedTick uses", async () => {
     app = await buildApp();
     const orm = app.get(MikroORM);
     const users = app.get<UsersRepository>(getRepositoryToken(Users));
@@ -147,7 +148,7 @@ describe('Plan 3i Task 0 spike: demo-reset connection swap', () => {
     expect(writeVisibleOnNewConnection).toBe(true);
   });
 
-  it('SPIKE-002: a FRESH withRequestContext opened AFTER reinitialize() resolves works correctly for a post-swap write (R3\'s fallback-shape requirement)', async () => {
+  it("SPIKE-002: a FRESH withRequestContext opened AFTER reinitialize() resolves works correctly for a post-swap write (R3's fallback-shape requirement)", async () => {
     app = await buildApp();
     const orm = app.get(MikroORM);
     const users = app.get<UsersRepository>(getRepositoryToken(Users));

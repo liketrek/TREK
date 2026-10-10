@@ -1,6 +1,6 @@
 import type { CollectionPlaceRatings } from '../entities/CollectionPlaceRatings.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /**
  * `collection_place_ratings` (Plan 3h Task 2, part B — #1435's per-voter

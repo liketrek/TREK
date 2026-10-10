@@ -3,7 +3,6 @@
  * the wire vocabulary, and that the router applies it to entity methods only. The
  * schema and real-service side is output-contract.schema.test.ts.
  */
-import { describe, expect, it } from 'vitest';
 import { PluginController, PluginMethod } from '../../../src/nest-rpc/rpc-kit/decorators';
 import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
 import type { PluginRpcContext } from '../../../src/nest-rpc/rpc-kit/types';
@@ -20,6 +19,8 @@ import {
   type PluginEntityName,
 } from '../../../src/nest/plugins/protocol/output-contract';
 import { makeDeps } from '../../helpers/rpc-host-deps';
+
+import { describe, expect, it } from 'vitest';
 
 const ENTITIES = Object.keys(PLUGIN_ENTITY_CONTRACT) as PluginEntityName[];
 const contractOf = (entity: PluginEntityName): PluginEntityContract => PLUGIN_ENTITY_CONTRACT[entity];
@@ -118,7 +119,12 @@ describe('shapePluginOutput', () => {
 
   it('OUTCONTRACT-UNIT-014 a child row is cut down however deep it sits', () => {
     const shaped = shapePluginOutput('vacay.mine', {
-      plan: { id: 1, owner_id: 2, plan_new_column: 1, holiday_calendars: [{ id: 3, label: 'DE', calendar_new_column: 1 }] },
+      plan: {
+        id: 1,
+        owner_id: 2,
+        plan_new_column: 1,
+        holiday_calendars: [{ id: 3, label: 'DE', calendar_new_column: 1 }],
+      },
       users: [{ id: 2, username: 'ana', color: '#fff' }],
       isOwner: true,
       envelope_new_key: 1,
@@ -131,15 +137,22 @@ describe('shapePluginOutput', () => {
   });
 
   it('OUTCONTRACT-UNIT-015 a single child row is shaped and a missing one keeps its form', () => {
-    expect(shapePluginOutput('collections.get', { collection: { id: 1, name: 'Rome', new_column: 1 }, places: [] })).toEqual({
+    expect(
+      shapePluginOutput('collections.get', { collection: { id: 1, name: 'Rome', new_column: 1 }, places: [] }),
+    ).toEqual({
       collection: { id: 1, name: 'Rome' },
       places: [],
     });
-    expect(shapePluginOutput('collections.get', { collection: null, places: [] })).toEqual({ collection: null, places: [] });
-    expect(shapePluginOutput('trips.getReservations', [{ id: 1, endpoints: null }])).toEqual([{ id: 1, endpoints: null }]);
-    expect(shapePluginOutput('trips.getReservations', [{ id: 1, endpoints: [{ id: 2, code: 'FRA', secret: 1 }, 7] }])).toEqual([
-      { id: 1, endpoints: [{ id: 2, code: 'FRA' }, 7] },
+    expect(shapePluginOutput('collections.get', { collection: null, places: [] })).toEqual({
+      collection: null,
+      places: [],
+    });
+    expect(shapePluginOutput('trips.getReservations', [{ id: 1, endpoints: null }])).toEqual([
+      { id: 1, endpoints: null },
     ]);
+    expect(
+      shapePluginOutput('trips.getReservations', [{ id: 1, endpoints: [{ id: 2, code: 'FRA', secret: 1 }, 7] }]),
+    ).toEqual([{ id: 1, endpoints: [{ id: 2, code: 'FRA' }, 7] }]);
   });
 
   it('OUTCONTRACT-UNIT-008 a missing row keeps its wire form', () => {

@@ -16,27 +16,27 @@
  * tests/unit/nest/places.controller.test.ts for the unit-level ordering test
  * that stubs a macrotask hop and does catch a detached hook today.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { Addons } from '../../src/db/entities/Addons.entity';
+import { JourneyEntries } from '../../src/db/entities/JourneyEntries.entity';
+import { Places } from '../../src/db/entities/Places.entity';
+import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, createPlace, createJourney, linkTripToJourney } from '../helpers/factories';
+import { findRow, insertRow, upsertRow } from '../helpers/factories/rows';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createPlace, createJourney, linkTripToJourney } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
-import { MikroORM } from '@mikro-orm/core';
-import { findRow, insertRow, upsertRow } from '../helpers/factories/rows';
-import { Addons } from '../../src/db/entities/Addons.entity';
-import { JourneyEntries } from '../../src/db/entities/JourneyEntries.entity';
-import { Places } from '../../src/db/entities/Places.entity';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -53,7 +53,13 @@ beforeEach(async () => {
   await invalidatePermissionsCache();
   // Enable the journey addon.
   await upsertRow(orm, Addons, {
-    id: 'journey', name: 'Journey', description: 'Travel journal', type: 'global', icon: 'Compass', enabled: true, sort_order: 35,
+    id: 'journey',
+    name: 'Journey',
+    description: 'Travel journal',
+    type: 'global',
+    icon: 'Compass',
+    enabled: true,
+    sort_order: 35,
   });
 });
 afterAll(async () => {
@@ -75,8 +81,18 @@ describe('deleting a place detaches its journey entry ahead of the FK cascade', 
     // skeletons) or left dangling with a stale source_place_id.
     const now = Date.now();
     const entryId = await insertRow(orm, JourneyEntries, {
-      journey: journey.id, sourceTrip: trip.id, sourcePlace: place.id, author: user.id, type: 'entry', title: 'A café',
-      story: 'Lovely coffee.', entry_date: '2026-01-15', visibility: 'private', sort_order: 0, created_at: now, updated_at: now,
+      journey: journey.id,
+      sourceTrip: trip.id,
+      sourcePlace: place.id,
+      author: user.id,
+      type: 'entry',
+      title: 'A café',
+      story: 'Lovely coffee.',
+      entry_date: '2026-01-15',
+      visibility: 'private',
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
     });
 
     const res = await request(app)
@@ -107,8 +123,17 @@ describe('deleting a place detaches its journey entry ahead of the FK cascade', 
 
     const now = Date.now();
     const entryId = await insertRow(orm, JourneyEntries, {
-      journey: journey.id, sourceTrip: trip.id, sourcePlace: place.id, author: user.id, type: 'skeleton', title: place.name,
-      entry_date: '2026-01-16', visibility: 'private', sort_order: 0, created_at: now, updated_at: now,
+      journey: journey.id,
+      sourceTrip: trip.id,
+      sourcePlace: place.id,
+      author: user.id,
+      type: 'skeleton',
+      title: place.name,
+      entry_date: '2026-01-16',
+      visibility: 'private',
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
     });
 
     const res = await request(app)

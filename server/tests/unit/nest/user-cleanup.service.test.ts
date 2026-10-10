@@ -9,6 +9,65 @@
  * account-deletion transaction (reference cleanup + budget re-split + the
  * users row, all or nothing).
  */
+import { db as testDb } from '../../../src/db/database';
+import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
+import { BudgetSettlements } from '../../../src/db/entities/BudgetSettlements.entity';
+import { JourneyContributors } from '../../../src/db/entities/JourneyContributors.entity';
+import { JourneyEntries } from '../../../src/db/entities/JourneyEntries.entity';
+import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
+import { JourneyShareTokens } from '../../../src/db/entities/JourneyShareTokens.entity';
+import { Journeys } from '../../../src/db/entities/Journeys.entity';
+import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
+import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { BudgetItemsRepository } from '../../../src/db/repositories/BudgetItems.repository';
+import type { BudgetSettlementsRepository } from '../../../src/db/repositories/BudgetSettlements.repository';
+import type { JourneyContributorsRepository } from '../../../src/db/repositories/JourneyContributors.repository';
+import type { JourneyEntriesRepository } from '../../../src/db/repositories/JourneyEntries.repository';
+import type { JourneyShareTokensRepository } from '../../../src/db/repositories/JourneyShareTokens.repository';
+import type { JourneysRepository } from '../../../src/db/repositories/Journeys.repository';
+import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
+import type { TripMembersRepository } from '../../../src/db/repositories/TripMembers.repository';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { budgetRepoArgs } from '../../helpers/budget-repos';
+import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
+import { createUser, createTrip } from '../../helpers/factories';
+import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { makeShareToken } from '../../helpers/factories/trips';
+import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
+import {
+  createTestJourneysRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyContributorsRepo,
+} from '../../helpers/journey-repos';
+import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
+import {
+  createTestShareTokensRepo,
+  createTestPluginsRepo,
+  createTestPluginUserErasureQueueRepo,
+} from '../../helpers/share-repos';
+import { resetTestDb } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestUsersRepo,
+  createTestTripMembersRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+import type { EntityManager } from '@mikro-orm/core';
+
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { dataRootRef } = vi.hoisted(() => ({
@@ -31,51 +90,6 @@ vi.mock('../../../src/db/database', async () => {
 });
 vi.mock('../../../src/nest/plugins/paths', () => ({ pluginsDataRoot: () => dataRootRef.value }));
 
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import type { EntityManager } from '@mikro-orm/core';
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import type { BudgetItemsRepository } from '../../../src/db/repositories/BudgetItems.repository';
-import type { BudgetSettlementsRepository } from '../../../src/db/repositories/BudgetSettlements.repository';
-import type { JourneyShareTokensRepository } from '../../../src/db/repositories/JourneyShareTokens.repository';
-import type { JourneysRepository } from '../../../src/db/repositories/Journeys.repository';
-import type { JourneyEntriesRepository } from '../../../src/db/repositories/JourneyEntries.repository';
-import type { JourneyContributorsRepository } from '../../../src/db/repositories/JourneyContributors.repository';
-import type { TripMembersRepository } from '../../../src/db/repositories/TripMembers.repository';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestUsersRepo, createTestTripMembersRepo, sharedTestOrm } from '../../helpers/test-uow';
-import { budgetRepoArgs } from '../../helpers/budget-repos';
-import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import { createTestJourneysRepo, createTestJourneyEntriesRepo, createTestJourneyContributorsRepo } from '../../helpers/journey-repos';
-import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
-import { createTestShareTokensRepo, createTestPluginsRepo, createTestPluginUserErasureQueueRepo } from '../../helpers/share-repos';
-import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
-import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
-import type { TestOrm } from '../../helpers/test-orm';
-import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
-import { makeShareToken } from '../../helpers/factories/trips';
-import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
-import { BudgetSettlements } from '../../../src/db/entities/BudgetSettlements.entity';
-import { JourneyContributors } from '../../../src/db/entities/JourneyContributors.entity';
-import { JourneyEntries } from '../../../src/db/entities/JourneyEntries.entity';
-import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
-import { JourneyShareTokens } from '../../../src/db/entities/JourneyShareTokens.entity';
-import { Journeys } from '../../../src/db/entities/Journeys.entity';
-import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
-import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
-import { Plugins } from '../../../src/db/entities/Plugins.entity';
-import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-
 let em: EntityManager;
 let budget: BudgetService;
 let svc: UserCleanupService;
@@ -85,15 +99,27 @@ beforeAll(async () => {
   // over the test ORM's EntityManager, as MaintenanceModule's factory does).
   orm = await sharedTestOrm(testDb);
   em = orm.em;
-  budget = new BudgetService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new ExchangeRatesService(), new RealtimeService(), await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb)));
+  budget = new BudgetService(
+    new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
+    new ExchangeRatesService(),
+    new RealtimeService(),
+    await createTestUnitOfWork(testDb),
+    ...(await budgetRepoArgs(testDb)),
+  );
   svc = new UserCleanupService(
-    new MaintenanceRepository(em), budget, await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb),
+    new MaintenanceRepository(em),
+    budget,
+    await createTestUnitOfWork(testDb),
+    await createTestUsersRepo(testDb),
     // Plan 4 Task 1 constructor-ripple: UC4's repository.
     await createTestTripMembersRepo(testDb),
-    await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb),
+    await createTestBudgetItemsRepo(testDb),
+    await createTestBudgetSettlementsRepo(testDb),
     // Plan 3g Task 4 constructor-ripple: UC7-10's repositories.
-    await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb),
-    await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb),
+    await createTestJourneyShareTokensRepo(testDb),
+    await createTestJourneysRepo(testDb),
+    await createTestJourneyEntriesRepo(testDb),
+    await createTestJourneyContributorsRepo(testDb),
     // Plan 3h Task 6 constructor-ripple: UC6's repository.
     await createTestShareTokensRepo(testDb),
     // Plan 4 Task 8a constructor-ripple: UC2/UC3's repositories.
@@ -105,19 +131,30 @@ beforeAll(async () => {
 let orm: TestOrm;
 
 const installPlugin = async (id: string, permissions: string[] | null) => {
-  await insertRow(orm, Plugins, { id, name: id, version: '1.0.0', permissions: permissions === null ? null : JSON.stringify(permissions) });
+  await insertRow(orm, Plugins, {
+    id,
+    name: id,
+    version: '1.0.0',
+    permissions: permissions === null ? null : JSON.stringify(permissions),
+  });
 };
 
 const createJourney = (userId: number, title: string): Promise<number> =>
   insertRow(orm, Journeys, { user: userId, title, status: 'draft', created_at: 0, updated_at: 0 });
 
 const queuedFor = async (userId: number): Promise<string[]> =>
-  (await findRows(orm, PluginUserErasureQueue, { user_id: userId }, { plugin_id: 'asc' })).map(r => r.plugin_id);
+  (await findRows(orm, PluginUserErasureQueue, { user_id: userId }, { plugin_id: 'asc' })).map((r) => r.plugin_id);
 
 /** A journey entry by the author, as the journal writes it. */
 const addEntry = (journeyId: number, authorId: number, type: string, title: string, entryDate: string) =>
   insertRow(orm, JourneyEntries, {
-    journey: journeyId, author: authorId, type, title, entry_date: entryDate, created_at: 0, updated_at: 0,
+    journey: journeyId,
+    author: authorId,
+    type,
+    title,
+    entry_date: entryDate,
+    created_at: 0,
+    updated_at: 0,
   });
 
 beforeEach(async () => {
@@ -145,7 +182,7 @@ describe('erasePluginUserData', () => {
     await svc.erasePluginUserData(user.id);
 
     const rows = await findRows(orm, PluginUserConfig);
-    expect(rows.map(r => r.user_id)).toEqual([other.id]);
+    expect(rows.map((r) => r.user_id)).toEqual([other.id]);
   });
 
   it('USER-CLEANUP-002: enqueues an erasure only for plugins holding hook:user-data', async () => {
@@ -202,10 +239,17 @@ describe('erasePluginUserData', () => {
     // journey repositories (UC7-10) still never reach their tables from this
     // call — stubs are enough for those.
     const slimSvc = new UserCleanupService(
-      new MaintenanceRepository((await sharedTestOrm(slim)).em), budget, await createTestUnitOfWork(slim), await createTestUsersRepo(slim),
-      {} as unknown as TripMembersRepository, {} as unknown as BudgetItemsRepository, {} as unknown as BudgetSettlementsRepository,
-      {} as unknown as JourneyShareTokensRepository, {} as unknown as JourneysRepository,
-      {} as unknown as JourneyEntriesRepository, {} as unknown as JourneyContributorsRepository,
+      new MaintenanceRepository((await sharedTestOrm(slim)).em),
+      budget,
+      await createTestUnitOfWork(slim),
+      await createTestUsersRepo(slim),
+      {} as unknown as TripMembersRepository,
+      {} as unknown as BudgetItemsRepository,
+      {} as unknown as BudgetSettlementsRepository,
+      {} as unknown as JourneyShareTokensRepository,
+      {} as unknown as JourneysRepository,
+      {} as unknown as JourneyEntriesRepository,
+      {} as unknown as JourneyContributorsRepository,
       // Plan 3h Task 6: a real repository (never a stub cast — `erasePluginUserData`
       // never touches it, but MikroORM's entity metadata does not require the
       // physical table to exist to construct the repository object itself).
@@ -246,7 +290,11 @@ describe('deleteUserCompletely', () => {
     const { user: recorder } = createUser(testDb, { username: 'recorder' });
     const trip = createTrip(testDb, owner.id);
     await insertRow(orm, BudgetSettlements, {
-      trip: trip.id, fromUser: payer.id, toUser: owner.id, amount: 12.5, createdByUser: recorder.id,
+      trip: trip.id,
+      fromUser: payer.id,
+      toUser: owner.id,
+      amount: 12.5,
+      createdByUser: recorder.id,
     });
 
     await svc.deleteUserCompletely(recorder.id);
@@ -254,10 +302,11 @@ describe('deleteUserCompletely', () => {
     expect(await findRow(orm, Users, { id: recorder.id })).toBeNull();
     const settlement = await findRow(orm, BudgetSettlements, {});
     expect({
-      from_user_id: settlement?.from_user_id, to_user_id: settlement?.to_user_id,
-      amount: settlement?.amount, created_by_user_id: settlement?.created_by_user_id,
-    })
-      .toEqual({ from_user_id: payer.id, to_user_id: owner.id, amount: 12.5, created_by_user_id: null });
+      from_user_id: settlement?.from_user_id,
+      to_user_id: settlement?.to_user_id,
+      amount: settlement?.amount,
+      created_by_user_id: settlement?.created_by_user_id,
+    }).toEqual({ from_user_id: payer.id, to_user_id: owner.id, amount: 12.5, created_by_user_id: null });
   });
 
   it('USER-CLEANUP-007: deletes their journeys and the entries they authored elsewhere', async () => {
@@ -338,7 +387,11 @@ describe('deleteUserCompletely', () => {
     const { user: victim } = createUser(testDb, { username: 'victim' });
     const trip = createTrip(testDb, owner.id);
     await insertRow(orm, TripMembers, { trip: trip.id, user: victim.id });
-    const item = await budget.createBudgetItem(trip.id, { name: 'Dinner', total_price: 80, member_ids: [owner.id, victim.id] });
+    const item = await budget.createBudgetItem(trip.id, {
+      name: 'Dinner',
+      total_price: 80,
+      member_ids: [owner.id, victim.id],
+    });
     await updateRows(orm, BudgetItems, { id: item.id }, { paidByUser: victim.id });
 
     await svc.deleteUserCompletely(victim.id);
@@ -362,15 +415,24 @@ describe('deleteUserCompletely', () => {
     const usersRepo = await createTestUsersRepo(testDb);
     const deleteByIdSpy = vi.spyOn(usersRepo, 'deleteById').mockRejectedValue(new Error('boom'));
     try {
-      await expect(new UserCleanupService(
-        new MaintenanceRepository(em), budget, await createTestUnitOfWork(testDb), usersRepo,
-        await createTestTripMembersRepo(testDb),
-        await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb),
-        await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb),
-        await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb),
-        await createTestShareTokensRepo(testDb),
-        await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb),
-      ).deleteUserCompletely(victim.id)).rejects.toThrow('boom');
+      await expect(
+        new UserCleanupService(
+          new MaintenanceRepository(em),
+          budget,
+          await createTestUnitOfWork(testDb),
+          usersRepo,
+          await createTestTripMembersRepo(testDb),
+          await createTestBudgetItemsRepo(testDb),
+          await createTestBudgetSettlementsRepo(testDb),
+          await createTestJourneyShareTokensRepo(testDb),
+          await createTestJourneysRepo(testDb),
+          await createTestJourneyEntriesRepo(testDb),
+          await createTestJourneyContributorsRepo(testDb),
+          await createTestShareTokensRepo(testDb),
+          await createTestPluginsRepo(testDb),
+          await createTestPluginUserErasureQueueRepo(testDb),
+        ).deleteUserCompletely(victim.id),
+      ).rejects.toThrow('boom');
 
       expect(await findRow(orm, Users, { id: victim.id })).not.toBeNull();
       expect((await findRow(orm, TripMembers, { user: owner.id }))?.invited_by).toBe(victim.id);

@@ -7,29 +7,29 @@
  * error the client would log forever, and that the pipe rejects a malformed
  * body before the service ever sees it.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { PlaceShadowPicks } from '../../src/db/entities/PlaceShadowPicks.entity';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { PlaceShadowModule } from '../../src/nest/place-shadow/place-shadow.module';
+import { countRows, deleteRows } from '../helpers/factories/rows';
+import { setAppSetting } from '../helpers/factories/settings';
+import { makeAdmin, makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { APP_PIPE } from '@nestjs/core';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { APP_PIPE } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db } from '../../src/db/database';
-import { PlaceShadowPicks } from '../../src/db/entities/PlaceShadowPicks.entity';
-import { PlaceShadowModule } from '../../src/nest/place-shadow/place-shadow.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeAdmin, makeUser } from '../helpers/factories/users';
-import { countRows, deleteRows } from '../helpers/factories/rows';
-import { setAppSetting } from '../helpers/factories/settings';
 
 let orm: TestOrm;
 
@@ -125,7 +125,11 @@ describe('/api/place-shadow e2e (real guards + migrated temp SQLite)', () => {
   });
 
   describe('reading is admin only', () => {
-    for (const [method, path] of [['get', '/api/place-shadow/summary'], ['get', '/api/place-shadow/export'], ['delete', '/api/place-shadow']] as const) {
+    for (const [method, path] of [
+      ['get', '/api/place-shadow/summary'],
+      ['get', '/api/place-shadow/export'],
+      ['delete', '/api/place-shadow'],
+    ] as const) {
       it(`403 for a non-admin on ${method.toUpperCase()} ${path}`, async () => {
         expect((await request(server)[method](path).set('Cookie', sessionCookie(USER))).status).toBe(403);
       });
@@ -137,7 +141,10 @@ describe('/api/place-shadow e2e (real guards + migrated temp SQLite)', () => {
 
     it('an admin gets the summary', async () => {
       await request(server).post('/api/place-shadow/pick').set('Cookie', sessionCookie(USER)).send(PICK);
-      await request(server).post('/api/place-shadow/pick').set('Cookie', sessionCookie(USER)).send({ ...PICK, liveRank: 0 });
+      await request(server)
+        .post('/api/place-shadow/pick')
+        .set('Cookie', sessionCookie(USER))
+        .send({ ...PICK, liveRank: 0 });
       const res = await request(server).get('/api/place-shadow/summary').set('Cookie', sessionCookie(ADMIN));
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({

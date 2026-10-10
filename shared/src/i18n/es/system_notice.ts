@@ -57,15 +57,19 @@ const system_notice: TranslationStrings = {
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Actualización instalada',
   'system_notice.release_notes.headline': 'Cuatro cosas que TREK ahora hace por sí mismo.',
-  'system_notice.release_notes.intro': 'Su propia API de lugares, viajes por carretera planificados de principio a fin, tu historial de ubicaciones en tus manos, y tus documentos sincronizados.',
+  'system_notice.release_notes.intro':
+    'Su propia API de lugares, viajes por carretera planificados de principio a fin, tu historial de ubicaciones en tus manos, y tus documentos sincronizados.',
   'system_notice.release_notes.features_label': 'Los protagonistas',
   'system_notice.release_notes.features_aside': 'Y eso no es todo',
   'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': 'El primer planificador de viajes de código abierto con su propia API de lugares. 73,6 millones de lugares, sin clave, sin cuota.',
+  'system_notice.release_notes.feature_places_body':
+    'El primer planificador de viajes de código abierto con su propia API de lugares. 73,6 millones de lugares, sin clave, sin cuota.',
   'system_notice.release_notes.feature_roadtrip_title': 'Addon Roadtrip',
-  'system_notice.release_notes.feature_roadtrip_body': 'Planifica el trayecto por sí solo: ruta, distancia, horas y paradas. Apagado hasta que un admin lo active.',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Planifica el trayecto por sí solo: ruta, distancia, horas y paradas. Apagado hasta que un admin lo active.',
   'system_notice.release_notes.feature_dawarich_title': 'Integración con Dawarich',
-  'system_notice.release_notes.feature_dawarich_body': 'La alternativa autoalojada a Google Timeline, ahora legible desde TREK. TREK lee, y solo lee.',
+  'system_notice.release_notes.feature_dawarich_body':
+    'La alternativa autoalojada a Google Timeline, ahora legible desde TREK. TREK lee, y solo lee.',
   'system_notice.release_notes.footnote': 'Y una larga lista de cambios más pequeños en el resto de TREK.',
   'system_notice.release_notes.notes_label': 'Notas de versión',
   'system_notice.release_notes.note_eyebrow': 'Una nota del desarrollador',
@@ -86,6 +90,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Apóyame en Ko-fi',
   'system_notice.release_notes.feature_docsync_title': 'Sincronización de documentos',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud y Synology Drive. Los documentos de un viaje fluyen en ambos sentidos con el almacén que ya usas.',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx, Papra, Nextcloud, OpenCloud y Synology Drive. Los documentos de un viaje fluyen en ambos sentidos con el almacén que ya usas.',
 };
 export default system_notice;

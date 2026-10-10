@@ -1,6 +1,6 @@
-import { normalizePlaceWebsite } from '@trek/shared';
 import type { HookSearchRequest } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { normalizePlaceWebsite } from '@trek/shared';
 
 /**
  * Turning what a `searchProvider` plugin answers into rows TREK can show (#2221).
@@ -151,7 +151,9 @@ export function searchRequestFrom(
   limit: number,
   minLength = 1,
 ): HookSearchRequest | null {
-  const query = String(q ?? '').trim().slice(0, MAX_QUERY);
+  const query = String(q ?? '')
+    .trim()
+    .slice(0, MAX_QUERY);
   if (query.length < minLength) return null;
   return { query, limit, lang: lang ? String(lang).slice(0, 20) : undefined, near: nearFrom(lat, lng) };
 }
@@ -170,7 +172,7 @@ export function limitFrom(raw: unknown): number {
 export function interleave(results: SearchHit[][]): SearchHit[] {
   const out: SearchHit[] = [];
   for (let i = 0; ; i += 1) {
-    const row = results.filter(r => r.length > i);
+    const row = results.filter((r) => r.length > i);
     if (row.length === 0) return out;
     for (const r of row) out.push(r[i]);
   }

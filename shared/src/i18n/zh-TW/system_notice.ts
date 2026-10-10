@@ -56,15 +56,18 @@ const system_notice: TranslationStrings = {
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': '更新已安裝',
   'system_notice.release_notes.headline': 'TREK 現在能自己完成的四件事。',
-  'system_notice.release_notes.intro': '自有的地點 API、從頭到尾規劃的公路旅行、掌握在你手中的位置記錄，以及保持同步的文件。',
+  'system_notice.release_notes.intro':
+    '自有的地點 API、從頭到尾規劃的公路旅行、掌握在你手中的位置記錄，以及保持同步的文件。',
   'system_notice.release_notes.features_label': '本次重頭戲',
   'system_notice.release_notes.features_aside': '遠不止這些',
   'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': '首個擁有自有地點 API 的開源旅行規劃器。7360 萬個地點，無需金鑰，沒有配額。',
+  'system_notice.release_notes.feature_places_body':
+    '首個擁有自有地點 API 的開源旅行規劃器。7360 萬個地點，無需金鑰，沒有配額。',
   'system_notice.release_notes.feature_roadtrip_title': '公路旅行擴充套件',
   'system_notice.release_notes.feature_roadtrip_body': '自動規劃行車：路線、距離、時長和停靠點。管理員開啟前預設關閉。',
   'system_notice.release_notes.feature_dawarich_title': 'Dawarich 整合',
-  'system_notice.release_notes.feature_dawarich_body': 'Google Timeline 的自架替代方案，現在可以直接在 TREK 裡檢視。TREK 只讀取，也僅止於讀取。',
+  'system_notice.release_notes.feature_dawarich_body':
+    'Google Timeline 的自架替代方案，現在可以直接在 TREK 裡檢視。TREK 只讀取，也僅止於讀取。',
   'system_notice.release_notes.footnote': '除此之外，TREK 的其他部分還有一長串小改動。',
   'system_notice.release_notes.notes_label': '版本說明',
   'system_notice.release_notes.note_eyebrow': '來自維護者的話',
@@ -84,6 +87,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': '在 Ko-fi 上支持我',
   'system_notice.release_notes.feature_docsync_title': '文件同步',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx、Papra、Nextcloud、OpenCloud 和 Synology Drive。行程的文件與你已在運行的儲存雙向流動。',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx、Papra、Nextcloud、OpenCloud 和 Synology Drive。行程的文件與你已在運行的儲存雙向流動。',
 };
 export default system_notice;

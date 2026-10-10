@@ -6,41 +6,44 @@
  * than an edge one, and the failure mode of getting it wrong is somebody's
  * afternoon disappearing with no error anywhere.
  */
+import { db as testDb } from '../../../src/db/database';
+import { db as dbConn } from '../../../src/db/database';
+import { JourneyBooks } from '../../../src/db/entities/JourneyBooks.entity';
+import { Journeys } from '../../../src/db/entities/Journeys.entity';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { JourneyBookService } from '../../../src/nest/journey/journey-book.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { createUser, createJourney, addJourneyContributor } from '../../helpers/factories';
+import { countRows, deleteRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
+import {
+  createTestJourneysRepo,
+  createTestJourneyContributorsRepo,
+  createTestJourneyTripsRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyPhotosRepo,
+  createTestJourneyEntryPhotosRepo,
+} from '../../helpers/journey-repos';
+import { createTestJourneyBooksRepo } from '../../helpers/journey-share-repos';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestUnitOfWork, sharedTestOrm, createTestTripsRepo, createTestPlacesRepo } from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
-    return {
-      db,
-      closeDb: () => {},
-      reinitialize: () => {},
-      getPlaceWithTags: () => null,
-      canAccessTrip: () => null,
-      isOwner: () => false,
-    };
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => null,
+    isOwner: () => false,
+  };
 });
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createJourney, addJourneyContributor } from '../../helpers/factories';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { JourneyBookService } from '../../../src/nest/journey/journey-book.service';
-import { db as dbConn } from '../../../src/db/database';
-import { createTestUnitOfWork, sharedTestOrm, createTestTripsRepo, createTestPlacesRepo } from '../../helpers/test-uow';
-import {
-  createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
-import { createTestJourneyBooksRepo } from '../../helpers/journey-share-repos';
-import { countRows, deleteRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
-import { JourneyBooks } from '../../../src/db/entities/JourneyBooks.entity';
-import { Journeys } from '../../../src/db/entities/Journeys.entity';
 
 let domain: JourneyDomainService;
 let books: JourneyBookService;
@@ -59,11 +62,18 @@ beforeAll(async () => {
   const uow = await createTestUnitOfWork(testDb);
   const t = await sharedTestOrm(testDb);
   domain = new JourneyDomainService(
-    new RealtimeService(), new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)), uow,
-    await createTestJourneysRepo(testDb), await createTestJourneyContributorsRepo(testDb),
-    await createTestJourneyTripsRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestTripsRepo(testDb),
+    new RealtimeService(),
+    new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)),
+    uow,
+    await createTestJourneysRepo(testDb),
+    await createTestJourneyContributorsRepo(testDb),
+    await createTestJourneyTripsRepo(testDb),
+    await createTestJourneyEntriesRepo(testDb),
+    await createTestTripsRepo(testDb),
     // Plan 3g Task 2 constructor-ripple: JourneyPhotosRepository/JourneyEntryPhotosRepository/PlacesRepository.
-    await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
+    await createTestJourneyPhotosRepo(testDb),
+    await createTestJourneyEntryPhotosRepo(testDb),
+    await createTestPlacesRepo(testDb),
   );
   // Plan 3g Task 3: JourneyBooksRepository (JB1-JB7), not `dbs` any more.
   // task-5-fix-brief constructor-ripple (M1): `UnitOfWork`, so `saveBook`'s
@@ -185,7 +195,12 @@ describe('creating and reading', () => {
   it('opens a book whose stored JSON is broken, rather than throwing', async () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
-    await insertRow(await sharedTestOrm(testDb), JourneyBooks, { journey: journey.id, title: 'T', document: '{not json', version: 1 });
+    await insertRow(await sharedTestOrm(testDb), JourneyBooks, {
+      journey: journey.id,
+      title: 'T',
+      document: '{not json',
+      version: 1,
+    });
 
     const read = await books.getBook(journey.id, user.id);
     expect(read).not.toBeNull();
@@ -330,11 +345,16 @@ describe('concurrency', () => {
     const orm = await sharedTestOrm(testDb);
     const row = await findRow(orm, JourneyBooks, { journey: journey.id });
     if (!row) throw new Error('the save above should have left a book');
-    await updateRows(orm, JourneyBooks, { id: row.id }, {
-      title: 'Clobbered',
-      document: JSON.stringify(doc('clobbered')),
-      version: row.version + 1,
-    });
+    await updateRows(
+      orm,
+      JourneyBooks,
+      { id: row.id },
+      {
+        title: 'Clobbered',
+        document: JSON.stringify(doc('clobbered')),
+        version: row.version + 1,
+      },
+    );
     const afterMutation = await findRow(orm, JourneyBooks, { id: row.id });
     expect(afterMutation?.title).toBe('Clobbered');
   });
@@ -383,12 +403,7 @@ describe('broadcastSaved', () => {
     const spy = vi.spyOn(domain, 'broadcastJourneyEvent').mockImplementation(async () => {});
     await books.broadcastSaved(journey.id, user.id, record!, 'socket-7');
 
-    expect(spy).toHaveBeenCalledWith(
-      journey.id,
-      'journey:book:saved',
-      { version: 1, savedBy: user.id },
-      'socket-7',
-    );
+    expect(spy).toHaveBeenCalledWith(journey.id, 'journey:book:saved', { version: 1, savedBy: user.id }, 'socket-7');
     spy.mockRestore();
   });
 });

@@ -1,6 +1,32 @@
-import { createHash } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { PlaceDetailsCache } from '../../db/entities/PlaceDetailsCache.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { PlaceDetailsCacheRepository } from '../../db/repositories/PlaceDetailsCache.repository';
+import { safeFetchFollow } from '../../utils/ssrfGuard';
+import { readAppSetting } from '../common/app-settings.registry';
+import {
+  buildOsmDetails,
+  isGooglePlaceId,
+  parseWikipediaTag,
+  rankCommonsCandidates,
+  toWikiLang,
+} from '../maps/maps.helpers';
+import {
+  MapsService,
+  isGoogleMapsHost,
+  readBrandIdentity,
+  readWikiIdentity,
+  withPhotoFetchSlot,
+  type CommonsCandidate,
+  type WikiIdentity,
+} from '../maps/maps.service';
+import { GooglePlacesClient } from '../maps/providers/google-places.provider';
+import { OsmClient } from '../maps/providers/osm.client';
+import { WikimediaClient } from '../maps/providers/wikimedia.client';
+import { trekPlacesById } from '../maps/trek-places.client';
+import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import { placeWebsiteSchema } from '@trek/shared';
 import type {
   MapsPlaceEnrichmentRequest,
@@ -11,27 +37,8 @@ import type {
   PlacePhotoCandidate,
   PlaceRating,
 } from '@trek/shared';
-import { safeFetchFollow } from '../../utils/ssrfGuard';
-import { PlaceDetailsCache } from '../../db/entities/PlaceDetailsCache.entity';
-import type { PlaceDetailsCacheRepository } from '../../db/repositories/PlaceDetailsCache.repository';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import {
-  MapsService,
-  isGoogleMapsHost,
-  readBrandIdentity,
-  readWikiIdentity,
-  withPhotoFetchSlot,
-  type CommonsCandidate,
-  type WikiIdentity,
-} from '../maps/maps.service';
-import { buildOsmDetails, isGooglePlaceId, parseWikipediaTag, rankCommonsCandidates, toWikiLang } from '../maps/maps.helpers';
-import { trekPlacesById } from '../maps/trek-places.client';
-import { GooglePlacesClient } from '../maps/providers/google-places.provider';
-import { OsmClient } from '../maps/providers/osm.client';
-import { WikimediaClient } from '../maps/providers/wikimedia.client';
-import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
-import { readAppSetting } from '../common/app-settings.registry';
+
+import { createHash } from 'node:crypto';
 
 /**
  * How many pictures each source may contribute.
@@ -169,10 +176,32 @@ interface CachePayload extends CachedEnrichment {
  * TREK index, the amenity/shop tag from OpenStreetMap, a Google type.
  */
 const NEARBY_MISLEADS = [
-  'restaurant', 'cafe', 'coffee', 'bar', 'pub', 'bakery', 'fast_food', 'food',
-  'eatery', 'biergarten', 'ice_cream', 'shop', 'store', 'supermarket', 'retail',
-  'pharmacy', 'hairdresser', 'kiosk', 'convenience', 'butcher', 'greengrocer',
-  'clothing', 'florist', 'bank', 'atm', 'nightclub',
+  'restaurant',
+  'cafe',
+  'coffee',
+  'bar',
+  'pub',
+  'bakery',
+  'fast_food',
+  'food',
+  'eatery',
+  'biergarten',
+  'ice_cream',
+  'shop',
+  'store',
+  'supermarket',
+  'retail',
+  'pharmacy',
+  'hairdresser',
+  'kiosk',
+  'convenience',
+  'butcher',
+  'greengrocer',
+  'clothing',
+  'florist',
+  'bank',
+  'atm',
+  'nightclub',
 ];
 
 /**
@@ -189,7 +218,7 @@ export function nearbyWouldMislead(details: Record<string, unknown> | null): boo
     .join(' ')
     .toLowerCase();
   if (!haystack) return false;
-  return NEARBY_MISLEADS.some(word => haystack.includes(word));
+  return NEARBY_MISLEADS.some((word) => haystack.includes(word));
 }
 
 /** OSM yes/no tags; anything else (limited, only, designated) is shown verbatim. */
@@ -243,7 +272,15 @@ export function collectFacts(details: Record<string, unknown> | null): PlaceFact
 
   const cuisine = typeof details.cuisine === 'string' ? details.cuisine : null;
   // OSM writes several cuisines semicolon-separated and underscored.
-  if (cuisine) push('cuisine', cuisine.split(';').map((c) => c.replaceAll('_', ' ').trim()).filter(Boolean).join(', '));
+  if (cuisine)
+    push(
+      'cuisine',
+      cuisine
+        .split(';')
+        .map((c) => c.replaceAll('_', ' ').trim())
+        .filter(Boolean)
+        .join(', '),
+    );
 
   // `menu_url` is a community-editable OSM tag that becomes an href on the
   // client, so it goes through the same allow-list as a place's website —
@@ -395,8 +432,8 @@ export class PlaceEnrichmentService {
     // the map's: fine to answer them with, not to serve to everyone else. The
     // row simply is not written, and the next request computes its own answer.
     // A summary or a link the lookup here fetched itself is the map's and keeps.
-    const fromCaller = req.details != null
-      && (description?.source === 'osm' || ownFacts.some((fact) => fact.url != null));
+    const fromCaller =
+      req.details != null && (description?.source === 'osm' || ownFacts.some((fact) => fact.url != null));
     if (!fromCaller) await this.writeCache(placeId, lang, result);
     return result;
   }
@@ -650,8 +687,9 @@ export class PlaceEnrichmentService {
     // Off means nothing leaves for the index, a saved place included.
     if (!this.maps.trekPlacesEnabled()) return null;
     try {
-      const got = (await trekPlacesById(placeId.slice(5)) as { description?: { text?: string; sourceUrl?: string } } | null)
-        ?.description;
+      const got = (
+        (await trekPlacesById(placeId.slice(5))) as { description?: { text?: string; sourceUrl?: string } } | null
+      )?.description;
       const text = typeof got?.text === 'string' ? got.text.trim() : '';
       if (!text) return null;
       // Through the same allow-list a place's website goes through: this

@@ -1,11 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser, type TestUser } from '../../../helpers/factories';
 import { Settings } from '../../../../src/db/entities/Settings.entity';
 import type { SettingsRepository } from '../../../../src/db/repositories/Settings.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser, type TestUser } from '../../../helpers/factories';
 import { countRows, findRow, insertRow } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -37,21 +38,18 @@ async function insertSetting(userId: number, key: string, value: string | null):
 }
 
 describe('settings table — the (user_id, key) unique index the ON CONFLICT target relies on', () => {
-  it(
-    "UNIQUE-SCHEMA-001: PRAGMA index_list('settings') reports a unique index over exactly (user_id, key), the migrated schema's inline UNIQUE(user_id, key)",
-    () => {
-      // test-sql-allow: the index list comes from PRAGMA index_list, which no entity or repository maps.
-      const indexes = testDb.prepare("PRAGMA index_list('settings')").all() as { name: string; unique: number }[];
-      const uniqueIndexes = indexes.filter((idx) => idx.unique);
-      expect(uniqueIndexes.length).toBeGreaterThan(0);
-      const columnSets = uniqueIndexes.map((idx) => {
-        // test-sql-allow: the index columns come from PRAGMA index_info, which no entity or repository maps.
-        const cols = testDb.prepare(`PRAGMA index_info('${idx.name}')`).all() as { seqno: number; name: string }[];
-        return [...cols].sort((a, b) => a.seqno - b.seqno).map((c) => c.name);
-      });
-      expect(columnSets).toContainEqual(['user_id', 'key']);
-    },
-  );
+  it("UNIQUE-SCHEMA-001: PRAGMA index_list('settings') reports a unique index over exactly (user_id, key), the migrated schema's inline UNIQUE(user_id, key)", () => {
+    // test-sql-allow: the index list comes from PRAGMA index_list, which no entity or repository maps.
+    const indexes = testDb.prepare("PRAGMA index_list('settings')").all() as { name: string; unique: number }[];
+    const uniqueIndexes = indexes.filter((idx) => idx.unique);
+    expect(uniqueIndexes.length).toBeGreaterThan(0);
+    const columnSets = uniqueIndexes.map((idx) => {
+      // test-sql-allow: the index columns come from PRAGMA index_info, which no entity or repository maps.
+      const cols = testDb.prepare(`PRAGMA index_info('${idx.name}')`).all() as { seqno: number; name: string }[];
+      return [...cols].sort((a, b) => a.seqno - b.seqno).map((c) => c.name);
+    });
+    expect(columnSets).toContainEqual(['user_id', 'key']);
+  });
 
   it('UNIQUE-SCHEMA-002: the Settings entity metadata declares the same (user, key) unique constraint, naming the RELATION property, not its persist(false) twin (fix(db): generator maps an FK twin column to its relation property name)', () => {
     const meta = t.orm.getMetadata(Settings);
@@ -92,17 +90,27 @@ describe('SettingsRepository', () => {
 
   it('SETTINGSREPO-006: upsertForUser inserts a new row exactly as the legacy INSERT would', async () => {
     await settings.upsertForUser(user.id, 'dark_mode', 'true');
-    expect(await storedRow(user.id, 'dark_mode')).toStrictEqual({ id: expect.any(Number), user_id: user.id, key: 'dark_mode', value: 'true' });
+    expect(await storedRow(user.id, 'dark_mode')).toStrictEqual({
+      id: expect.any(Number),
+      user_id: user.id,
+      key: 'dark_mode',
+      value: 'true',
+    });
   });
 
   it('SETTINGSREPO-007: upsertForUser on an existing (user, key) replaces the value only — no duplicate row, matching ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value', async () => {
     await insertSetting(user.id, 'dark_mode', 'false');
     await settings.upsertForUser(user.id, 'dark_mode', 'true');
-    expect(await storedRow(user.id, 'dark_mode')).toStrictEqual({ id: expect.any(Number), user_id: user.id, key: 'dark_mode', value: 'true' });
+    expect(await storedRow(user.id, 'dark_mode')).toStrictEqual({
+      id: expect.any(Number),
+      user_id: user.id,
+      key: 'dark_mode',
+      value: 'true',
+    });
     expect(await countRows(t, Settings, { user: user.id, key: 'dark_mode' })).toBe(1);
   });
 
-  it("SETTINGSREPO-008: upsertForUser scopes by user — the same key for two different users stores two separate rows, not a collision (the conflict target is (user, key), not key alone)", async () => {
+  it('SETTINGSREPO-008: upsertForUser scopes by user — the same key for two different users stores two separate rows, not a collision (the conflict target is (user, key), not key alone)', async () => {
     await settings.upsertForUser(user.id, 'dark_mode', 'true');
     await settings.upsertForUser(otherUser.id, 'dark_mode', 'false');
     expect(await storedRow(user.id, 'dark_mode')).toMatchObject({ value: 'true' });
@@ -115,18 +123,32 @@ describe('SettingsRepository', () => {
     try {
       // Insert branch: no existing row, onConflictFields omitted entirely.
       await t.em.upsert(Settings, { user: user.id, key: 'dark_mode', value: 'true' }, { onConflictAction: 'merge' });
-      expect(await storedRow(user.id, 'dark_mode')).toStrictEqual({ id: expect.any(Number), user_id: user.id, key: 'dark_mode', value: 'true' });
+      expect(await storedRow(user.id, 'dark_mode')).toStrictEqual({
+        id: expect.any(Number),
+        user_id: user.id,
+        key: 'dark_mode',
+        value: 'true',
+      });
 
       // Merge branch: an existing row, same call shape — proves the SAME
       // inferred target both creates and merges, not just happens to insert once.
-      const insertSql = spy.mock.calls.map(([sql]) => sql).find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
+      const insertSql = spy.mock.calls
+        .map(([sql]) => sql)
+        .find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
       expect(insertSql).toContain('on conflict (`user_id`, `key`)');
       spy.mockClear();
 
       await t.em.upsert(Settings, { user: user.id, key: 'dark_mode', value: 'false' }, { onConflictAction: 'merge' });
-      expect(await storedRow(user.id, 'dark_mode')).toStrictEqual({ id: expect.any(Number), user_id: user.id, key: 'dark_mode', value: 'false' });
+      expect(await storedRow(user.id, 'dark_mode')).toStrictEqual({
+        id: expect.any(Number),
+        user_id: user.id,
+        key: 'dark_mode',
+        value: 'false',
+      });
       expect(await countRows(t, Settings, { user: user.id, key: 'dark_mode' })).toBe(1);
-      const mergeSql = spy.mock.calls.map(([sql]) => sql).find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
+      const mergeSql = spy.mock.calls
+        .map(([sql]) => sql)
+        .find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
       expect(mergeSql).toContain('on conflict (`user_id`, `key`)');
     } finally {
       spy.mockRestore();

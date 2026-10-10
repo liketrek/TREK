@@ -1,3 +1,13 @@
+import { db } from '../../../../src/db/database';
+import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
+import { Users } from '../../../../src/db/entities/Users.entity';
+import { UserAirtrailRepository } from '../../../../src/db/repositories/UserAirtrail.repository';
+import { AuditService } from '../../../../src/nest/audit/audit.service';
+import type { AirtrailClient } from '../../../../src/nest/integrations/airtrail.client';
+import { AirtrailService } from '../../../../src/nest/integrations/airtrail.service';
+import { createUser } from '../../../helpers/factories';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // Avoid any real DNS/network from the SSRF guard during saveSettings and the probe.
@@ -5,16 +15,6 @@ vi.mock('../../../../src/utils/ssrfGuard', () => ({
   checkSsrf: vi.fn(async () => ({ allowed: true, isPrivate: false })),
   safeFetch: vi.fn(),
 }));
-
-import { db } from '../../../../src/db/database';
-import { createUser } from '../../../helpers/factories';
-import { AirtrailService } from '../../../../src/nest/integrations/airtrail.service';
-import type { AirtrailClient } from '../../../../src/nest/integrations/airtrail.client';
-import { AuditService } from '../../../../src/nest/audit/audit.service';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
-import { Users } from '../../../../src/db/entities/Users.entity';
-import { UserAirtrailRepository } from '../../../../src/db/repositories/UserAirtrail.repository';
 
 // The probe is the only call that would leave the process, so the client is a
 // stub; the credential handling around it runs against the real row.
@@ -24,11 +24,9 @@ let t: TestOrm;
 
 beforeAll(async () => {
   t = await createTestOrm(db);
-  svc = new AirtrailService(
-    new UserAirtrailRepository(t.orm.em),
-    new AuditService(t.repo(AuditLog), t.repo(Users)),
-    { listFlights } as unknown as AirtrailClient,
-  );
+  svc = new AirtrailService(new UserAirtrailRepository(t.orm.em), new AuditService(t.repo(AuditLog), t.repo(Users)), {
+    listFlights,
+  } as unknown as AirtrailClient);
 });
 
 afterAll(async () => {
@@ -76,7 +74,11 @@ describe('airtrail test connection keeps the stored key with its host', () => {
     const out = await svc.testConnection(user.id, 'https://at.example/', undefined, false);
 
     expect(out.connected).toBe(true);
-    expect(listFlights).toHaveBeenCalledWith({ baseUrl: 'https://at.example/', apiKey: 'stored-key', allowInsecureTls: false });
+    expect(listFlights).toHaveBeenCalledWith({
+      baseUrl: 'https://at.example/',
+      apiKey: 'stored-key',
+      allowInsecureTls: false,
+    });
   });
 
   it('uses a key typed for the new host as typed, so moving an instance and testing it first still works', async () => {
@@ -86,6 +88,10 @@ describe('airtrail test connection keeps the stored key with its host', () => {
     const out = await svc.testConnection(user.id, 'https://new.example', 'minted-for-new', false);
 
     expect(out.connected).toBe(true);
-    expect(listFlights).toHaveBeenCalledWith({ baseUrl: 'https://new.example', apiKey: 'minted-for-new', allowInsecureTls: false });
+    expect(listFlights).toHaveBeenCalledWith({
+      baseUrl: 'https://new.example',
+      apiKey: 'minted-for-new',
+      allowInsecureTls: false,
+    });
   });
 });

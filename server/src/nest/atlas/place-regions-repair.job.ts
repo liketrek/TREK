@@ -1,10 +1,10 @@
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { logInfo, logError } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { AtlasService } from './atlas.service';
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /** The app_settings row that says the pass below has been through every cached region. */
 export const PLACE_REGIONS_REPAIR_DONE_KEY = 'place_regions_repair_2527';

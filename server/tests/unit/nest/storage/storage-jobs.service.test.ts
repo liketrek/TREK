@@ -1,22 +1,7 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
-
-vi.mock('../../../../src/db/database', async () => {
-
-  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
-  const db = createSnapshotTestDb();
-    return { db, closeDb: () => {}, reinitialize: () => {} };
-});
-
 import { db as testDb } from '../../../../src/db/database';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { Readable } from 'node:stream';
-import { Logger } from '@nestjs/common';
+import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
 import { MirrorDriver } from '../../../../src/nest/storage/drivers/mirror.driver';
 import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
-import { CATEGORIES_KEY, StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
-import { StorageService } from '../../../../src/nest/storage/storage.service';
 import {
   BackfillBusyError,
   BackfillTargetError,
@@ -24,10 +9,24 @@ import {
   MigrationTargetError,
   StorageJobsService,
 } from '../../../../src/nest/storage/storage-jobs.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, sharedTestOrm } from '../../../helpers/test-uow';
+import { CATEGORIES_KEY, StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
+import { StorageService } from '../../../../src/nest/storage/storage.service';
 import { deleteRows } from '../../../helpers/factories/rows';
 import { readAppSetting, setAppSetting } from '../../../helpers/factories/settings';
-import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
+import { createTestUnitOfWork, createTestAppSettingsRepo, sharedTestOrm } from '../../../helpers/test-uow';
+import { Logger } from '@nestjs/common';
+
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { Readable } from 'node:stream';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+
+vi.mock('../../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
+  const db = createSnapshotTestDb();
+  return { db, closeDb: () => {}, reinitialize: () => {} };
+});
 
 const tmpDirs: string[] = [];
 function makeTmpDir(): string {
@@ -241,7 +240,9 @@ describe('StorageJobsService', () => {
 
   it('JOBS-006 an Error rejection from driver.backfill lands the job on "error" with its message, and is logged', async () => {
     const { jobs } = await makeWorld();
-    const backfillSpy = vi.spyOn(MirrorDriver.prototype, 'backfill').mockRejectedValueOnce(new Error('replica offline'));
+    const backfillSpy = vi
+      .spyOn(MirrorDriver.prototype, 'backfill')
+      .mockRejectedValueOnce(new Error('replica offline'));
     const errorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     jobs.startBackfill('m');
     await waitFor(() => jobs.statuses().some((s) => s.backend === 'm' && s.status === 'error'));
@@ -293,11 +294,7 @@ describe('StorageJobsService migrations', () => {
     await jobs.startMigration('files', 'dest-local');
     // Enumeration done — write the raced third object before the copy phase settles.
     // Tight poll interval: the window between "total > 0" and job completion is narrow.
-    await waitFor(
-      () => jobs.migrationStatuses().some((m) => m.category === 'files' && m.total > 0),
-      5000,
-      1,
-    );
+    await waitFor(() => jobs.migrationStatuses().some((m) => m.category === 'files' && m.total > 0), 5000, 1);
     fs.writeFileSync(path.join(uploadsRoot, 'files', 'c.txt'), 'ccc');
 
     const final = await waitTerminal(jobs, 'files');
@@ -468,17 +465,13 @@ describe('StorageJobsService migrations', () => {
     expect((await registryCategoriesRow())['photos-google']).toBe('dest-local');
   });
 
-  it('MIG-010 the delta sweep rewrites a raced object\'s destination key too', async () => {
+  it("MIG-010 the delta sweep rewrites a raced object's destination key too", async () => {
     const { storage, jobs, placePhotoRoot, destRoot } = await makePhotosGoogleMigrationWorld();
     const big = 'x'.repeat(2_000_000);
     await storage.put('photos-google', 'a.jpg', Readable.from(big));
 
     await jobs.startMigration('photos-google', 'dest-local');
-    await waitFor(
-      () => jobs.migrationStatuses().some((m) => m.category === 'photos-google' && m.total > 0),
-      5000,
-      1,
-    );
+    await waitFor(() => jobs.migrationStatuses().some((m) => m.category === 'photos-google' && m.total > 0), 5000, 1);
     // Race a second bare-keyed object in after enumeration but before the copy
     // phase settles — the delta sweep must pick it up and rewrite its key too.
     fs.writeFileSync(path.join(placePhotoRoot, 'raced.jpg'), 'raced-bytes');
@@ -543,12 +536,12 @@ describe('StorageJobsService.cancelJobsForMissingBackends', () => {
     await setSetting('storage.categories', JSON.stringify({ files: 'nas' }));
     const env = { placePhotoDir: undefined };
     const registry = new StorageRegistryService(
-    await createTestAppSettingsRepo(testDb),
-    env,
-    new StorageEventsService(),
-    await createTestUnitOfWork(testDb),
-    (await sharedTestOrm(testDb)).orm,
-  );
+      await createTestAppSettingsRepo(testDb),
+      env,
+      new StorageEventsService(),
+      await createTestUnitOfWork(testDb),
+      (await sharedTestOrm(testDb)).orm,
+    );
     await registry.onModuleInit();
     const storage = new StorageService(registry);
     const jobs = new StorageJobsService(registry);

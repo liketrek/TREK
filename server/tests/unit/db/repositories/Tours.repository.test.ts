@@ -3,16 +3,17 @@
  * places and assignments ask (TO3/TO4/TO5), the trip copy read and write
  * (TO6/TO8), and the create/edit writes (TO7/TO9).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { TourWaypoints } from '../../../../src/db/entities/TourWaypoints.entity';
+import { Tours } from '../../../../src/db/entities/Tours.entity';
+import type { ToursRepository } from '../../../../src/db/repositories/Tours.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createDay, createDayAssignment, createPlace, createTrip, createUser } from '../../../helpers/factories';
+import { insertRow, updateRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createDay, createDayAssignment, createPlace, createTrip, createUser } from '../../../helpers/factories';
 import { createTour } from '../../../helpers/tours-repos';
-import { Tours } from '../../../../src/db/entities/Tours.entity';
-import { TourWaypoints } from '../../../../src/db/entities/TourWaypoints.entity';
-import { insertRow, updateRows } from '../../../helpers/factories/rows';
-import type { ToursRepository } from '../../../../src/db/repositories/Tours.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -22,8 +23,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(Tours);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function fixture() {
   const { user } = createUser(testDb);
@@ -61,14 +68,34 @@ describe('ToursRepository reads', () => {
 
     expect(await repo.listForTrip(trip.id)).toEqual([
       {
-        place_id: newer.id, name: 'Newer', tour_type: 'hike', distance: null, elevation_gain: null, elevation_loss: null,
-        duration: null, difficulty: null, wanderer_ref: null, match_confidence: null,
-        max_hiking_difficulty: 5, planned: 0, has_waypoints: 1,
+        place_id: newer.id,
+        name: 'Newer',
+        tour_type: 'hike',
+        distance: null,
+        elevation_gain: null,
+        elevation_loss: null,
+        duration: null,
+        difficulty: null,
+        wanderer_ref: null,
+        match_confidence: null,
+        max_hiking_difficulty: 5,
+        planned: 0,
+        has_waypoints: 1,
       },
       {
-        place_id: older.id, name: 'Older', tour_type: 'hike', distance: 5, elevation_gain: null, elevation_loss: null,
-        duration: null, difficulty: null, wanderer_ref: null, match_confidence: 0.3,
-        max_hiking_difficulty: 2, planned: 1, has_waypoints: 0,
+        place_id: older.id,
+        name: 'Older',
+        tour_type: 'hike',
+        distance: 5,
+        elevation_gain: null,
+        elevation_loss: null,
+        duration: null,
+        difficulty: null,
+        wanderer_ref: null,
+        match_confidence: 0.3,
+        max_hiking_difficulty: 2,
+        planned: 1,
+        has_waypoints: 0,
       },
     ]);
     expect((await repo.listForTrip(trip.id)).map((r) => r.place_id)).not.toContain(plain.id);
@@ -89,7 +116,12 @@ describe('ToursRepository reads', () => {
     const plain = createPlace(testDb, trip.id);
     createTour(testDb, tour.id);
 
-    expect(await repo.findInTrip(trip.id, tour.id)).toMatchObject({ place_id: tour.id, name: 'Ridge', planned: 0, has_waypoints: 0 });
+    expect(await repo.findInTrip(trip.id, tour.id)).toMatchObject({
+      place_id: tour.id,
+      name: 'Ridge',
+      planned: 0,
+      has_waypoints: 0,
+    });
     expect(await repo.findInTrip(other.id, tour.id)).toBeUndefined();
     expect(await repo.findInTrip(trip.id, plain.id)).toBeUndefined();
   });
@@ -130,8 +162,13 @@ describe('ToursRepository writes', () => {
     await repo.insertTour({ place_id: place.id, ...METRICS });
 
     expect(await repo.findInTrip(trip.id, place.id)).toEqual({
-      place_id: place.id, name: 'Drawn', ...METRICS, difficulty: null, wanderer_ref: null,
-      planned: 0, has_waypoints: 0,
+      place_id: place.id,
+      name: 'Drawn',
+      ...METRICS,
+      difficulty: null,
+      wanderer_ref: null,
+      planned: 0,
+      has_waypoints: 0,
     });
   });
 
@@ -154,11 +191,21 @@ describe('ToursRepository writes', () => {
     await updateRows(t, Tours, { place: source.id }, { difficulty: 'T3', wanderer_ref: 'w-1' });
 
     const rows = await repo.listRowsForTrip(trip.id);
-    expect(rows).toEqual([{
-      place_id: source.id, tour_type: 'hike', distance: 3.5, elevation_gain: null, elevation_loss: null, duration: null,
-      difficulty: 'T3', wanderer_ref: 'w-1', match_confidence: null, created_at: '2026-03-04 05:06:07',
-      max_hiking_difficulty: 4,
-    }]);
+    expect(rows).toEqual([
+      {
+        place_id: source.id,
+        tour_type: 'hike',
+        distance: 3.5,
+        elevation_gain: null,
+        elevation_loss: null,
+        duration: null,
+        difficulty: 'T3',
+        wanderer_ref: 'w-1',
+        match_confidence: null,
+        created_at: '2026-03-04 05:06:07',
+        max_hiking_difficulty: 4,
+      },
+    ]);
     expect(await repo.listRowsForTrip(other.id)).toEqual([]);
 
     const copy = createPlace(testDb, other.id);

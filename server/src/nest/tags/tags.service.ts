@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { Tag } from '@trek/shared';
 import { Tags } from '../../db/entities/Tags.entity';
 import type { TagsRepository } from '../../db/repositories/Tags.repository';
 import { toRowId } from '../common/row-id';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { Tag } from '@trek/shared';
 
 /**
  * Tags domain service — owns the tag business rules (moved off

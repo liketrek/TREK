@@ -1,8 +1,9 @@
-import crypto from 'crypto';
-import path from 'path';
 import { BLOCKED_EXTENSIONS } from '../files/files.constants';
 import { MASS_DELETE_MIN_ITEMS, MASS_DELETE_RATIO } from './doc-sync.constants';
 import type { RemoteDocument } from './document-provider';
+
+import crypto from 'crypto';
+import path from 'path';
 
 /**
  * The pure half of the sync core.
@@ -251,7 +252,10 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
   const blocked = new Set<number>();
   for (const it of input.items) {
     if (it.state !== 'error') continue;
-    if (it.attempts >= maxAttempts) { blocked.add(it.id); continue; }
+    if (it.attempts >= maxAttempts) {
+      blocked.add(it.id);
+      continue;
+    }
     if (it.nextAttemptAt !== null && it.nextAttemptAt > now) blocked.add(it.id);
   }
 
@@ -282,7 +286,9 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
     // Only the two answers that name a winner act; anything else (`manual`, a
     // value from a future version, a column somebody edited by hand) parks the
     // row. Overwriting one side is the destructive move, so it needs a yes.
-    const park = (): void => { add({ kind: 'conflict', itemId: it.id, remote: r, local: l }); };
+    const park = (): void => {
+      add({ kind: 'conflict', itemId: it.id, remote: r, local: l });
+    };
     if (conflictPolicy === 'provider_wins' && direction !== 'push') {
       return add({ kind: 'pull_update', remote: r, itemId: it.id });
     }
@@ -354,13 +360,21 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
 
     const owner = (r: RemoteDocument): SyncItemState | null => {
       const fits = gone.filter((o) => sameCopy(o, r));
-      return soleMatch(fits, (o) => keptName(o, r))
-        ?? soleMatch(fits.filter((o) => o.remoteTrashedAt === null), (o) => keptName(o, r));
+      return (
+        soleMatch(fits, (o) => keptName(o, r)) ??
+        soleMatch(
+          fits.filter((o) => o.remoteTrashedAt === null),
+          (o) => keptName(o, r),
+        )
+      );
     };
 
     const moved = new Map<number, RemoteDocument>();
     for (const it of gone) {
-      const r = soleMatch(fresh.filter((d) => sameCopy(it, d)), (d) => keptName(it, d));
+      const r = soleMatch(
+        fresh.filter((d) => sameCopy(it, d)),
+        (d) => keptName(it, d),
+      );
       if (!r || owner(r) !== it) continue;
       // Counted above so a shelved row still makes a tie a tie, but not moved:
       // `add` would drop the action while the plan went on with the new id.
@@ -482,9 +496,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
   const known = items.filter((i) => i.remoteId && i.state === 'synced');
   const vanished = known.filter((i) => !remoteById.has(i.remoteId as string));
   const guardTripped =
-    !remoteTruncated &&
-    known.length >= MASS_DELETE_MIN_ITEMS &&
-    vanished.length / known.length > MASS_DELETE_RATIO;
+    !remoteTruncated && known.length >= MASS_DELETE_MIN_ITEMS && vanished.length / known.length > MASS_DELETE_RATIO;
 
   // ── Pairs that exist on both sides ────────────────────────────────────────
   for (const it of items) {
@@ -499,10 +511,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
     // what was pushed, so this compares content, never timestamps: a time
     // window would misfire on every clock skew.
     const isEcho =
-      remoteChanged &&
-      r.contentHash !== null &&
-      it.pushedSha256 !== null &&
-      r.contentHash === it.pushedSha256;
+      remoteChanged && r.contentHash !== null && it.pushedSha256 !== null && r.contentHash === it.pushedSha256;
     // The same reading for bytes both sides agreed on: a version marker moves
     // on a tag, a correspondent or a title as much as on a new revision, and
     // where the listing carries a hash it says which. Downloading the same
@@ -555,8 +564,7 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
      * document upstream changes, which the `remoteChanged` branch below picks
      * up on its own.
      */
-    if (!l && it.fileId === null && direction !== 'push'
-        && it.state !== 'rejected_type' && it.state !== 'too_large') {
+    if (!l && it.fileId === null && direction !== 'push' && it.state !== 'rejected_type' && it.state !== 'too_large') {
       add({ kind: 'pull_update', remote: r, itemId: it.id });
       continue;
     }
@@ -566,12 +574,18 @@ export function planReconcile(input: ReconcileInput): ReconcilePlan {
       continue;
     }
     if (remoteBytesChanged) {
-      if (direction === 'push') { add({ kind: 'touch', itemId: it.id, remote: r }); continue; }
+      if (direction === 'push') {
+        add({ kind: 'touch', itemId: it.id, remote: r });
+        continue;
+      }
       add({ kind: 'pull_update', remote: r, itemId: it.id });
       continue;
     }
     if (localChanged && l) {
-      if (direction === 'pull') { add({ kind: 'touch', itemId: it.id, remote: r }); continue; }
+      if (direction === 'pull') {
+        add({ kind: 'touch', itemId: it.id, remote: r });
+        continue;
+      }
       add({ kind: 'push_update', local: l, itemId: it.id, remoteId: it.remoteId });
       continue;
     }
@@ -710,8 +724,12 @@ function isBackFromTrash(it: SyncItemState, localById: ReadonlyMap<number, Local
  */
 function sameCopy(it: SyncItemState, r: RemoteDocument): boolean {
   if (r.contentHash !== null && it.contentSha256 !== null) return r.contentHash === it.contentSha256;
-  return r.size !== null && r.remoteModifiedAt !== null
-    && r.size === it.remoteSize && r.remoteModifiedAt === it.remoteModifiedAt;
+  return (
+    r.size !== null &&
+    r.remoteModifiedAt !== null &&
+    r.size === it.remoteSize &&
+    r.remoteModifiedAt === it.remoteModifiedAt
+  );
 }
 
 /** The copy is listed under the name both sides last agreed on: moved, not renamed. */

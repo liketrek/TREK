@@ -11,11 +11,11 @@
  * operator runs it, against a throwaway file holding only the columns it
  * touches.
  */
+import Database from 'better-sqlite3';
 import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const SERVER_ROOT = path.resolve(__dirname, '../../..');
@@ -88,12 +88,14 @@ function read<T>(sql: string): T[] {
 }
 
 describe('reset-admin.js and user_sessions', () => {
-  it('RESETADMIN-SESS-001: ends every live session of the account it resets, and nobody else\'s', () => {
+  it("RESETADMIN-SESS-001: ends every live session of the account it resets, and nobody else's", () => {
     seed(true);
 
     resetAdmin('Boss@Example.com');
 
-    const sessions = read<{ id: string; revoked_at: string | null }>('SELECT id, revoked_at FROM user_sessions ORDER BY id');
+    const sessions = read<{ id: string; revoked_at: string | null }>(
+      'SELECT id, revoked_at FROM user_sessions ORDER BY id',
+    );
     const byId = Object.fromEntries(sessions.map((s) => [s.id, s.revoked_at]));
     expect(byId['boss-laptop']).not.toBeNull();
     expect(byId['boss-phone']).not.toBeNull();

@@ -24,11 +24,17 @@ async function ormBeforeTarget(): Promise<MikroORM> {
 }
 
 async function addUser(db: MikroORM, id: number, email: string): Promise<void> {
-  await rawExec(db, 'INSERT INTO users (id, username, email, password_hash) VALUES (?, ?, ?, ?)', [id, `user${id}`, email, 'x']);
+  await rawExec(db, 'INSERT INTO users (id, username, email, password_hash) VALUES (?, ?, ?, ?)', [
+    id,
+    `user${id}`,
+    email,
+    'x',
+  ]);
 }
 
 const hasIndex = async (db: MikroORM) =>
-  (await rawQuery(db, `SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_users_email_lower'`)).length === 1;
+  (await rawQuery(db, `SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_users_email_lower'`))
+    .length === 1;
 const pendingFlag = async (db: MikroORM) =>
   rawQuery<{ value: string }>(db, `SELECT value FROM app_settings WHERE key = 'email_case_index_pending'`);
 

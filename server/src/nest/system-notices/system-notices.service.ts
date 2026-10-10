@@ -1,21 +1,22 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import semver from 'semver';
-import type { SystemNoticeDto } from '@trek/shared';
-import { SYSTEM_NOTICES } from '../../systemNotices/registry';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { UserNoticeDismissals } from '../../db/entities/UserNoticeDismissals.entity';
+import { Users } from '../../db/entities/Users.entity';
+import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { TripsRepository } from '../../db/repositories/Trips.repository';
+import { UserNoticeDismissalsRepository } from '../../db/repositories/UserNoticeDismissals.repository';
+import { UsersRepository } from '../../db/repositories/Users.repository';
 import { evaluate } from '../../systemNotices/conditions';
+import { SYSTEM_NOTICES } from '../../systemNotices/registry';
 import { getCurrentAppVersion, isNoticeVersionActive, severityWeight } from '../../systemNotices/service';
 import type { SystemNotice } from '../../systemNotices/types';
 import { AddonsService } from '../addons/addons.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { Users } from '../../db/entities/Users.entity';
-import { UsersRepository } from '../../db/repositories/Users.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import { TripsRepository } from '../../db/repositories/Trips.repository';
-import { UserNoticeDismissals } from '../../db/entities/UserNoticeDismissals.entity';
-import { UserNoticeDismissalsRepository } from '../../db/repositories/UserNoticeDismissals.repository';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { SystemNoticeDto } from '@trek/shared';
+
+import semver from 'semver';
 
 /**
  * The setting key(s) any registered `case 'custom'` predicate reads today
@@ -65,11 +66,13 @@ export class SystemNoticesService {
    * neither loses only the notice it could not read anyway. Nothing is spent by
    * holding it back: a notice is used up by a dismissal and by nothing else.
    */
-  async getActiveFor(userId: number, supports: ReadonlySet<string> = new Set(), uiVersion?: string): Promise<SystemNoticeDto[]> {
+  async getActiveFor(
+    userId: number,
+    supports: ReadonlySet<string> = new Set(),
+    uiVersion?: string,
+  ): Promise<SystemNoticeDto[]> {
     const notices = await this.getActiveNoticesFor(userId);
-    return supports.has('release') && this.bundleMatchesServer(uiVersion)
-      ? notices
-      : notices.filter(n => !n.release);
+    return supports.has('release') && this.bundleMatchesServer(uiVersion) ? notices : notices.filter((n) => !n.release);
   }
 
   /** Whether the bundle asking was built for the version this server runs. */
@@ -80,7 +83,7 @@ export class SystemNoticesService {
   }
 
   async dismiss(userId: number, noticeId: string): Promise<boolean> {
-    const exists = SYSTEM_NOTICES.some(n => n.id === noticeId);
+    const exists = SYSTEM_NOTICES.some((n) => n.id === noticeId);
     if (!exists) return false;
     // Record the app version at dismissal so per-version notices can re-appear on the
     // next upgrade. Upsert (not INSERT OR IGNORE) so re-dismissing after a bump
@@ -104,7 +107,7 @@ export class SystemNoticesService {
 
     // Dismissals mapped to the app version they were dismissed at (used by per-version notices).
     const dismissalRows = await this.dismissals.listForUser(userId);
-    const dismissals = new Map<string, string | null>(dismissalRows.map(r => [r.notice_id, r.dismissed_app_version]));
+    const dismissals = new Map<string, string | null>(dismissalRows.map((r) => [r.notice_id, r.dismissed_app_version]));
 
     const now = new Date();
     const currentAppVersion = getCurrentAppVersion();
@@ -114,7 +117,7 @@ export class SystemNoticesService {
     // a lookup. The ids come from the notices themselves, so every question the
     // conditions can ask has an answer here.
     const addonFlags = new Map<string, boolean>();
-    for (const condition of SYSTEM_NOTICES.flatMap(n => n.conditions)) {
+    for (const condition of SYSTEM_NOTICES.flatMap((n) => n.conditions)) {
       if (condition.kind === 'addonEnabled' && !addonFlags.has(condition.addonId)) {
         addonFlags.set(condition.addonId, await this.addons.isAddonEnabled(condition.addonId));
       }
@@ -128,7 +131,12 @@ export class SystemNoticesService {
     }
 
     const ctx = {
-      user: { login_count: user.login_count, first_seen_version: user.first_seen_version, role: user.role, noTrips: tripCount },
+      user: {
+        login_count: user.login_count,
+        first_seen_version: user.first_seen_version,
+        role: user.role,
+        noTrips: tripCount,
+      },
       currentAppVersion,
       now,
       addonEnabled: (addonId: string) => addonFlags.get(addonId) ?? false,
@@ -148,12 +156,11 @@ export class SystemNoticesService {
       return true; // default: permanent one-time dismissal
     };
 
-    return SYSTEM_NOTICES
-      .filter(n => {
-        if (isStillDismissed(n)) return false;
-        if (!isNoticeVersionActive(n, currentAppVersion)) return false;
-        return evaluate(n, ctx);
-      })
+    return SYSTEM_NOTICES.filter((n) => {
+      if (isStillDismissed(n)) return false;
+      if (!isNoticeVersionActive(n, currentAppVersion)) return false;
+      return evaluate(n, ctx);
+    })
       .sort((a, b) => {
         const pw = (b.priority ?? 0) - (a.priority ?? 0);
         if (pw !== 0) return pw;
@@ -161,6 +168,16 @@ export class SystemNoticesService {
         if (sw !== 0) return sw;
         return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
       })
-      .map(({ conditions: _c, publishedAt: _p, minVersion: _mn, maxVersion: _mx, priority: _pr, recurring: _rc, ...dto }) => dto) as SystemNoticeDto[];
+      .map(
+        ({
+          conditions: _c,
+          publishedAt: _p,
+          minVersion: _mn,
+          maxVersion: _mx,
+          priority: _pr,
+          recurring: _rc,
+          ...dto
+        }) => dto,
+      ) as SystemNoticeDto[];
   }
 }

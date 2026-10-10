@@ -198,7 +198,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.foundFiltered': '{count} of {total} on the way',
   'roadtrip.poi.foundFiltered.one': '{count} of {total} on the way',
   'roadtrip.poi.truncated': '{count} stretches had more than fits in one answer. Narrow the corridor to see the rest.',
-  'roadtrip.poi.truncated.one': '{count} stretch had more than fits in one answer. Narrow the corridor to see the rest.',
+  'roadtrip.poi.truncated.one':
+    '{count} stretch had more than fits in one answer. Narrow the corridor to see the rest.',
   'roadtrip.poi.search': 'Search',
   'roadtrip.poi.searching': 'Searching {done} of {total}',
   'roadtrip.poi.capped': 'The route is long — only the first stretch was searched.',
@@ -293,7 +294,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.summary.partial': 'Still working out the rest of the drive',
   'roadtrip.stay.releaseTitle': 'Drop the overnight stay?',
   'roadtrip.stay.releaseBody': 'The night at “{name}” will be removed. The stop stays on the drive as a pause.',
-  'roadtrip.stay.releaseBookedBody': 'The night at “{name}” will be removed together with the booking “{booking}” and any expense linked to it. The stop stays on the drive as a pause.',
+  'roadtrip.stay.releaseBookedBody':
+    'The night at “{name}” will be removed together with the booking “{booking}” and any expense linked to it. The stop stays on the drive as a pause.',
   'roadtrip.stay.releaseAction': 'Make it a pause',
   'roadtrip.ride.departure': 'Departure {time}',
   'roadtrip.ride.arrival': 'Arrival {time}',

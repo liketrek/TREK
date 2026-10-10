@@ -1,7 +1,8 @@
+import { readEnv } from '../../app-config';
 import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
 import { cleanupOpenApiDoc } from 'nestjs-zod';
-import { readEnv } from '../../app-config';
 
 /**
  * Swagger UI + OpenAPI spec for the REST API (#1412), gated behind
@@ -21,15 +22,15 @@ export function setupApiDocs(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('TREK API')
     .setDescription(
-      'The REST API the TREK web app itself runs on. Authenticate with a session JWT — '
-      + 'either the `trek_session` cookie (same browser) or an `Authorization: Bearer <jwt>` header.\n\n'
-      + 'Every session can be ended before it expires: `POST /api/auth/logout` ends the one it is called with, '
-      + '`GET /api/auth/sessions` lists the signed-in sessions, `DELETE /api/auth/sessions/{id}` ends one and '
-      + '`POST /api/auth/sessions/revoke-others` ends all but the current one.\n\n'
-      + '**Deprecated:** the `token` field in the bodies of `POST /api/auth/login`, `/register`, `/demo-login`, '
-      + '`/mfa/verify-login`, `/passkey/login/verify` and `GET /api/auth/oidc/exchange`. It is still sent, for '
-      + 'clients that read it, but will be removed in a future major version. Use the `trek_session` cookie the '
-      + 'same response sets; the SSO exchange also answers `success: true`.',
+      'The REST API the TREK web app itself runs on. Authenticate with a session JWT — ' +
+        'either the `trek_session` cookie (same browser) or an `Authorization: Bearer <jwt>` header.\n\n' +
+        'Every session can be ended before it expires: `POST /api/auth/logout` ends the one it is called with, ' +
+        '`GET /api/auth/sessions` lists the signed-in sessions, `DELETE /api/auth/sessions/{id}` ends one and ' +
+        '`POST /api/auth/sessions/revoke-others` ends all but the current one.\n\n' +
+        '**Deprecated:** the `token` field in the bodies of `POST /api/auth/login`, `/register`, `/demo-login`, ' +
+        '`/mfa/verify-login`, `/passkey/login/verify` and `GET /api/auth/oidc/exchange`. It is still sent, for ' +
+        'clients that read it, but will be removed in a future major version. Use the `trek_session` cookie the ' +
+        'same response sets; the SSO exchange also answers `success: true`.',
     )
     .setVersion(version)
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'session')

@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Seleccionar plantilla...',
   'settings.mapDefaultHint': 'Déjalo vacío para OpenStreetMap (por defecto)',
   'settings.routingBase': 'Motor de rutas propio',
-  'settings.routingBaseHint': 'Una instancia propia de OSRM. Vacío usa los servidores públicos, que permiten cerca de una petición por segundo: suficiente para un día, justo para una ruta larga. Surte efecto tras reiniciar el servidor.',
+  'settings.routingBaseHint':
+    'Una instancia propia de OSRM. Vacío usa los servidores públicos, que permiten cerca de una petición por segundo: suficiente para un día, justo para una ruta larga. Surte efecto tras reiniciar el servidor.',
   'settings.valhallaBase': 'Instancia de Valhalla propia',
   'settings.valhallaBaseHint':
     'TREK usa por defecto la Valhalla pública de FOSSGIS para evitar peajes, autopistas y ferris. Introduce aquí la URL de tu propia Valhalla para usarla en su lugar. Si solo se configura una instancia de rutas propia, no se utiliza la Valhalla pública. Tras introducir una URL propia, reinicia el servidor y recarga la página.',
@@ -82,7 +83,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Primer día de la semana en todos los selectores de fecha. Vacay tiene su propio ajuste.',
   'settings.preferredNavApp': 'Abrir lugares en',
   'settings.preferredNavAppAsk': 'Preguntar siempre',
-  'settings.preferredNavAppHint': 'Con una app elegida, el botón de navegación la abre directamente en lugar de ofrecer todas las apps de mapas.',
+  'settings.preferredNavAppHint':
+    'Con una app elegida, el botón de navegación la abre directamente en lugar de ofrecer todas las apps de mapas.',
   'settings.blurBookingCodes': 'Difuminar códigos de reserva',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -417,7 +419,8 @@ const settings: TranslationStrings = {
   'settings.aiParsing.apiKey': 'Clave de API',
   'settings.aiParsing.apiKeyHint': 'Se almacena cifrada. Déjalo en blanco para mantener la clave actual.',
   'settings.aiParsing.multimodal': 'El modelo lee imágenes',
-  'settings.aiParsing.multimodalHint': 'Actívalo para un modelo que lee imágenes, así se puede importar o escanear una foto.',
+  'settings.aiParsing.multimodalHint':
+    'Actívalo para un modelo que lee imágenes, así se puede importar o escanear una foto.',
   'settings.aiParsing.toast.saved': 'Ajustes de IA guardados',
   'settings.aiParsing.toast.saveError': 'No se han podido guardar los ajustes de IA',
   'settings.tabs.appearance': 'Appearance',
@@ -550,7 +553,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'Sin conexión. Conéctate para guardar viajes sin conexión.',
   'settings.offline.notice.signedOut': 'Tu sesión ha caducado. Vuelve a iniciar sesión para sincronizar.',
   'settings.offline.notice.failed': 'La descarga no se pudo completar. Comprueba tu conexión e inténtalo de nuevo.',
-  'settings.offline.notice.loadFailed': 'No se pudo leer el almacenamiento sin conexión de este dispositivo. Normalmente se soluciona vaciando la caché.',
+  'settings.offline.notice.loadFailed':
+    'No se pudo leer el almacenamiento sin conexión de este dispositivo. Normalmente se soluciona vaciando la caché.',
   'settings.offline.clear': 'Vaciar caché',
   'settings.offline.clearConfirm':
     '¿Vaciar todos los datos de viaje offline? Puedes volver a sincronizar en cualquier momento con conexión.',
@@ -618,13 +622,15 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Lista de deseos',
   'settings.apiScopes.stats': 'Totales',
   'settings.apiKeys.title': 'Claves API',
-  'settings.apiKeys.description': 'Claves para la API pública, para que otro software pueda leer tus viajes. Solo lectura: una clave no puede cambiar ni borrar nada.',
+  'settings.apiKeys.description':
+    'Claves para la API pública, para que otro software pueda leer tus viajes. Solo lectura: una clave no puede cambiar ni borrar nada.',
   'settings.apiKeys.create': 'Crear clave',
   'settings.apiKeys.empty': 'Todavía no hay claves. Crea una para conectar otro software.',
   'settings.apiKeys.createdAt': 'creada',
   'settings.apiKeys.usedAt': 'último uso',
   'settings.apiKeys.deleteTitle': 'Eliminar clave',
-  'settings.apiKeys.deleteMessage': 'Todo lo que use esta clave dejará de funcionar de inmediato. Esto no se puede deshacer.',
+  'settings.apiKeys.deleteMessage':
+    'Todo lo que use esta clave dejará de funcionar de inmediato. Esto no se puede deshacer.',
   'settings.apiKeys.deleted': 'Clave eliminada',
   'settings.apiKeys.deleteFailed': 'No se pudo eliminar la clave',
   'settings.apiKeys.createFailed': 'No se pudo crear la clave',
@@ -645,7 +651,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Creando...',
   'settings.apiKeys.modal.create': 'Crear',
   'settings.apiKeys.modal.createdTitle': 'Clave API creada',
-  'settings.apiKeys.modal.createdWarning': 'Copia la clave ahora. Se muestra una sola vez y no se puede recuperar después.',
+  'settings.apiKeys.modal.createdWarning':
+    'Copia la clave ahora. Se muestra una sola vez y no se puede recuperar después.',
   'settings.apiKeys.modal.done': 'Listo',
 };
 

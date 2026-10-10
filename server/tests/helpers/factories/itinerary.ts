@@ -1,9 +1,9 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
 import { DayNotes } from '../../../src/db/entities/DayNotes.entity';
 import { inContext, type FactoryOrm } from './context';
 import { createRow } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type DayAssignmentRow = EntityDTO<DayAssignments>;
 export type DayNoteRow = EntityDTO<DayNotes>;

@@ -1,5 +1,5 @@
-import type { ReservationTravelers } from '../entities/ReservationTravelers.entity';
 import { coalesce, columnRef } from '../dialect/sql-functions';
+import type { ReservationTravelers } from '../entities/ReservationTravelers.entity';
 import { TrekRepository } from './_shared/trek-repository';
 
 /** A traveler row as RS6/RR3 project it (before `toTraveler()`'s `avatar_url` add). */
@@ -30,7 +30,13 @@ export class ReservationTravelersRepository extends TrekRepository<ReservationTr
     return this.qb('rt')
       .join('rt.reservation', 'r')
       .join('rt.user', 'u')
-      .select([columnRef(platform, 'rt.reservation_id').as('reservation_id'), columnRef(platform, 'rt.user_id').as('user_id'), coalesce(platform, 'u.display_name', 'u.username').as('username'), 'u.avatar', 'u.is_guest'])
+      .select([
+        columnRef(platform, 'rt.reservation_id').as('reservation_id'),
+        columnRef(platform, 'rt.user_id').as('user_id'),
+        coalesce(platform, 'u.display_name', 'u.username').as('username'),
+        'u.avatar',
+        'u.is_guest',
+      ])
       .where({ 'r.trip': trip_id })
       .orderBy({ 'rt.reservation': 'asc' })
       .execute<TravelerJoinRow[]>('all', false);
@@ -47,7 +53,12 @@ export class ReservationTravelersRepository extends TrekRepository<ReservationTr
     const platform = this.getEntityManager().getPlatform();
     return this.qb('rt')
       .join('rt.user', 'u')
-      .select([columnRef(platform, 'rt.user_id').as('user_id'), coalesce(platform, 'u.display_name', 'u.username').as('username'), 'u.avatar', 'u.is_guest'])
+      .select([
+        columnRef(platform, 'rt.user_id').as('user_id'),
+        coalesce(platform, 'u.display_name', 'u.username').as('username'),
+        'u.avatar',
+        'u.is_guest',
+      ])
       .where({ reservation: reservation_id })
       .execute<Omit<TravelerJoinRow, 'reservation_id'>[]>('all', false);
   }

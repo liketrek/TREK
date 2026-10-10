@@ -1,14 +1,9 @@
-import {
-  externalIdsOf,
-  normalizePlaceName,
-  placeMatchStrategies,
-  type PlaceMatchCandidate,
-} from '@trek/shared';
-import type { Place } from '../../types';
 import type { PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
+import type { Place } from '../../types';
+import { haversineMetres } from '../common/geo';
 import type { KmlImportSummary } from '../place-import/place-import.types';
 import type { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
-import { haversineMetres } from '../common/geo';
+import { externalIdsOf, normalizePlaceName, placeMatchStrategies, type PlaceMatchCandidate } from '@trek/shared';
 
 /**
  * Pure helpers and module-scope constants of the places domain, moved verbatim
@@ -68,13 +63,27 @@ export interface ListImportResult {
 // Reclaim a deleted place's cached marker photo if nothing else references it.
 // The cache key is the Google place_id, or — for coordinate-only places — the
 // pseudo-id embedded in the stored proxy URL (/api/maps/place-photo/{id}/bytes).
-export async function reclaimPhotoCache(cache: PlacePhotoCacheService, googlePlaceId: string | null, imageUrl: string | null): Promise<void> {
+export async function reclaimPhotoCache(
+  cache: PlacePhotoCacheService,
+  googlePlaceId: string | null,
+  imageUrl: string | null,
+): Promise<void> {
   const candidates = new Set<string>();
   if (googlePlaceId) candidates.add(googlePlaceId);
   const m = imageUrl?.match(/^\/api\/maps\/place-photo\/(.+)\/bytes$/);
-  if (m) { try { candidates.add(decodeURIComponent(m[1])); } catch { /* malformed url */ } }
+  if (m) {
+    try {
+      candidates.add(decodeURIComponent(m[1]));
+    } catch {
+      /* malformed url */
+    }
+  }
   for (const id of candidates) {
-    try { await cache.removeIfUnreferenced(id); } catch { /* best-effort */ }
+    try {
+      await cache.removeIfUnreferenced(id);
+    } catch {
+      /* best-effort */
+    }
   }
 }
 
@@ -111,8 +120,7 @@ export function isPlaceDuplicate(candidate: PlaceMatchCandidate, dedup: DedupSet
     } else if (
       dedup.coords.some(
         (c) =>
-          Math.abs(c.lat - strategy.lat) <= strategy.tolerance &&
-          Math.abs(c.lng - strategy.lng) <= strategy.tolerance,
+          Math.abs(c.lat - strategy.lat) <= strategy.tolerance && Math.abs(c.lng - strategy.lng) <= strategy.tolerance,
       )
     ) {
       return true;
@@ -163,7 +171,6 @@ export const ENRICH_CONCURRENCY = 3;
 // a backfill and starts being bulk geocoding, which Nominatim's usage policy asks
 // people not to do — so it stops rather than queueing for an hour.
 export const ADDRESS_BACKFILL_MAX_PLACES = 250;
-
 
 /**
  * Pick the search result that is the same place as the import: it must be a

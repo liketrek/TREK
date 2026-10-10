@@ -180,7 +180,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Transfer się nie powiódł.',
 
   'docsync.error.unknown_provider': 'Ten dostawca nie jest dostępny na tej instancji.',
-  'docsync.error.provider_disabled': 'Wstrzymane: administrator wyłączył tego dostawcę. Synchronizacja zostanie wznowiona, gdy znów go włączy.',
+  'docsync.error.provider_disabled':
+    'Wstrzymane: administrator wyłączył tego dostawcę. Synchronizacja zostanie wznowiona, gdy znów go włączy.',
   'docsync.binding.reconnect': 'Połącz ponownie',
 };
 

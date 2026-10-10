@@ -1,9 +1,14 @@
-import { trekDemoToolGate, trekMcpAccessPolicy, trekMcpErrorMapper, trekMcpValidateAccess } from '../mcp/nest-mcp-policy';
-import mikroOrmConfig from '../mikro-orm.config';
 import { AppSettings } from '../db/entities/AppSettings.entity';
+import { IdempotencyKeys } from '../db/entities/IdempotencyKeys.entity';
 import { Users } from '../db/entities/Users.entity';
 import { WebauthnCredentials } from '../db/entities/WebauthnCredentials.entity';
-import { IdempotencyKeys } from '../db/entities/IdempotencyKeys.entity';
+import {
+  trekDemoToolGate,
+  trekMcpAccessPolicy,
+  trekMcpErrorMapper,
+  trekMcpValidateAccess,
+} from '../mcp/nest-mcp-policy';
+import mikroOrmConfig from '../mikro-orm.config';
 import { McpModule } from '../nest-mcp';
 import { AccommodationsModule } from './accommodations/accommodations.module';
 import { AddonsModule } from './addons/addons.module';
@@ -13,9 +18,9 @@ import { AppConfigModule } from './app-config/app-config.module';
 import { AssignmentsModule } from './assignments/assignments.module';
 import { AtlasModule } from './atlas/atlas.module';
 import { AuditModule } from './audit/audit.module';
-import { AuthModule } from './auth/auth.module';
 import { GlobalAuthGuard } from './auth-core/global-auth.guard';
 import { MfaPolicyGuard } from './auth-core/mfa-policy.guard';
+import { AuthModule } from './auth/auth.module';
 import { SessionRenewalInterceptor } from './auth/session-renewal.interceptor';
 import { BackupModule } from './backup/backup.module';
 import { BookingImportModule } from './booking-import/booking-import.module';
@@ -31,8 +36,8 @@ import { ManagedGuard } from './common/managed.guard';
 import { TrekExceptionFilter } from './common/trek-exception.filter';
 import { ZodValidationPipe } from './common/zod-validation.pipe';
 import { ConfigModule } from './config/config.module';
-import { OrmModule } from './database/orm.module';
 import { DatabaseLifecycleModule } from './database/database-lifecycle.module';
+import { OrmModule } from './database/orm.module';
 import { DayNotesModule } from './day-notes/day-notes.module';
 import { DaysModule } from './days/days.module';
 import { DocSyncModule } from './doc-sync/doc-sync.module';
@@ -44,11 +49,11 @@ import { HealthModule } from './health/health.module';
 import { HelpModule } from './help/help.module';
 import { AirtrailModule } from './integrations/airtrail.module';
 import { DawarichModule } from './integrations/dawarich.module';
+import { JourneyAccessModule } from './journey/journey-access.module';
 import { JourneyModule } from './journey/journey.module';
 import { LlmParseModule } from './llm-parse/llm-parse.module';
 import { ManagedExtModule } from './managed/managed-ext.module';
 import { MapsModule } from './maps/maps.module';
-import { PlaceImportModule } from './place-import/place-import.module';
 import { McpTransportModule } from './mcp-transport/mcp-transport.module';
 import { MemoriesModule } from './memories/memories.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -58,6 +63,7 @@ import { PackingModule } from './packing/packing.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { PhotosModule } from './photos/photos.module';
 import { PlaceEnrichmentModule } from './place-enrichment/place-enrichment.module';
+import { PlaceImportModule } from './place-import/place-import.module';
 import { PlaceShadowModule } from './place-shadow/place-shadow.module';
 import { PlacesModule } from './places/places.module';
 import { PlatformModule } from './platform/platform.module';
@@ -65,7 +71,6 @@ import { SpaFallbackFilter } from './platform/spa-fallback.filter';
 import { PluginsModule } from './plugins/plugins.module';
 import { PublicApiModule } from './public-api/public-api.module';
 import { RealtimeGatewayModule } from './realtime/realtime-gateway.module';
-import { JourneyAccessModule } from './journey/journey-access.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { ReceiptScanModule } from './receipt-scan/receipt-scan.module';
 import { ReservationImportModule } from './reservation-import/reservation-import.module';
@@ -107,7 +112,10 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     McpModule.forRoot({
       accessPolicy: trekMcpAccessPolicy,
       validateAccess: trekMcpValidateAccess,
-      toolGate: { inject: [DemoService], useFactory: (demo: DemoService) => trekDemoToolGate((id) => demo.isDemoUserId(id)) },
+      toolGate: {
+        inject: [DemoService],
+        useFactory: (demo: DemoService) => trekDemoToolGate((id) => demo.isDemoUserId(id)),
+      },
       errorMapper: trekMcpErrorMapper,
     }),
     HealthModule,

@@ -2,26 +2,26 @@
  * Day Assignments integration tests.
  * Covers ASSIGN-001 to ASSIGN-009.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
+import { Places } from '../../src/db/entities/Places.entity';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, createDay, createPlace, addTripMember, createTag } from '../helpers/factories';
+import { tagPlace } from '../helpers/factories/places';
+import { countRows, findRows, updateRows } from '../helpers/factories/rows';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, addTripMember, createTag } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { MikroORM } from '@mikro-orm/core';
-import { countRows, findRows, updateRows } from '../helpers/factories/rows';
-import { tagPlace } from '../helpers/factories/places';
-import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
-import { Places } from '../../src/db/entities/Places.entity';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -59,8 +59,10 @@ describe('Create assignment', () => {
   it('sets a day end for one visit, preserves its times, and clears it again', async () => {
     const { user } = createUser(testDb);
     const { trip, day, place } = setupAssignmentFixtures(user.id);
-    const created = await request(app).post(`/api/trips/${trip.id}/days/${day.id}/assignments`)
-      .set('Cookie', authCookie(user.id)).send({ place_id: place.id });
+    const created = await request(app)
+      .post(`/api/trips/${trip.id}/days/${day.id}/assignments`)
+      .set('Cookie', authCookie(user.id))
+      .send({ place_id: place.id });
     const id = created.body.assignment.id;
     const url = `/api/trips/${trip.id}/assignments/${id}/end-day`;
     await updateRows(orm, DayAssignments, { id }, { assignment_time: '07:00' });
@@ -69,13 +71,19 @@ describe('Create assignment', () => {
     const listed = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id)).expect(200);
     expect(listed.body.days[0].assignments[0].end_day).toBe(true);
     const repeatedDay = createDay(testDb, trip.id, { day_number: 2 });
-    const repeated = await request(app).post(`/api/trips/${trip.id}/days/${repeatedDay.id}/assignments`)
-      .set('Cookie', authCookie(user.id)).send({ place_id: place.id }).expect(201);
+    const repeated = await request(app)
+      .post(`/api/trips/${trip.id}/days/${repeatedDay.id}/assignments`)
+      .set('Cookie', authCookie(user.id))
+      .send({ place_id: place.id })
+      .expect(201);
     expect(repeated.body.assignment.end_day).toBe(false);
     await request(app).put(url).set('Cookie', authCookie(user.id)).send({ end_day: 'true' }).expect(400);
     const foreign = createTrip(testDb, user.id);
-    await request(app).put(`/api/trips/${foreign.id}/assignments/${id}/end-day`).set('Cookie', authCookie(user.id))
-      .send({ end_day: true }).expect(404);
+    await request(app)
+      .put(`/api/trips/${foreign.id}/assignments/${id}/end-day`)
+      .set('Cookie', authCookie(user.id))
+      .send({ end_day: true })
+      .expect(404);
     const cleared = await request(app).put(url).set('Cookie', authCookie(user.id)).send({ end_day: false }).expect(200);
     expect(cleared.body.assignment).toMatchObject({ end_day: false, assignment_time: '07:00' });
     await request(app).put(url).send({ end_day: true }).expect(401);
@@ -206,9 +214,7 @@ describe('List assignments', () => {
     expect(res.body.assignments[0].place.osm_id).toBe('node:42');
 
     // Also surfaced through the full trip-days bundle (the actual day-plan source).
-    const daysRes = await request(app)
-      .get(`/api/trips/${trip.id}/days`)
-      .set('Cookie', authCookie(user.id));
+    const daysRes = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id));
     const embedded = daysRes.body.days.find((d: { id: number }) => d.id === day.id).assignments[0].place;
     expect(embedded.osm_id).toBe('node:42');
   });

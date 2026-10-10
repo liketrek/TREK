@@ -1,6 +1,6 @@
 import type { VisitedCountries } from '../entities/VisitedCountries.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** `visited_countries` — every scalar column, `AT10`'s own read shape. */
 export interface VisitedCountryRow {
@@ -59,7 +59,11 @@ export class VisitedCountriesRepository extends TrekRepository<VisitedCountries>
    * ever reads `.country_code` off the legacy row shape.
    */
   async listCodesForUser(userId: number): Promise<string[]> {
-    const rows = await this.writeDb().selectFrom('visited_countries').select('country_code').where('user_id', '=', userId).execute();
+    const rows = await this.writeDb()
+      .selectFrom('visited_countries')
+      .select('country_code')
+      .where('user_id', '=', userId)
+      .execute();
     return rows.map((r) => r.country_code);
   }
 
@@ -90,7 +94,11 @@ export class VisitedCountriesRepository extends TrekRepository<VisitedCountries>
 
   /** AT14 (`unmarkCountry`, inside its transaction) — `DELETE FROM visited_countries WHERE user_id = ? AND country_code = ?`. */
   async unmark(userId: number, countryCode: string): Promise<void> {
-    await this.writeDb().deleteFrom('visited_countries').where('user_id', '=', userId).where('country_code', '=', countryCode).execute();
+    await this.writeDb()
+      .deleteFrom('visited_countries')
+      .where('user_id', '=', userId)
+      .where('country_code', '=', countryCode)
+      .execute();
   }
 
   /**

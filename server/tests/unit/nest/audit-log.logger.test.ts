@@ -6,18 +6,42 @@
  * replaced here by a recorder; its own disk behaviour (batching, rotation,
  * failures) is pinned in log-file.test.ts.
  */
+import { resolveDataPaths } from '../../../src/app-config/data-paths';
+import {
+  logInfo,
+  logDebug,
+  logError,
+  logWarn,
+  flushLogFile,
+  flushLogFileSync,
+  LOG_LEVEL,
+} from '../../../src/nest/audit/audit-log.logger';
+
+import path from 'node:path';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const sink = vi.hoisted(() => ({
   lines: [] as string[],
-  options: [] as Array<{ dir: string; file?: string; maxBytes?: number; maxFiles?: number; onError: (message: string) => void }>,
+  options: [] as Array<{
+    dir: string;
+    file?: string;
+    maxBytes?: number;
+    maxFiles?: number;
+    onError: (message: string) => void;
+  }>,
   flush: vi.fn(async () => {}),
   flushSync: vi.fn(),
 }));
 
 vi.mock('../../../src/nest/audit/log-file', () => ({
   BufferedLogFile: class {
-    constructor(options: { dir: string; file?: string; maxBytes?: number; maxFiles?: number; onError: (message: string) => void }) {
+    constructor(options: {
+      dir: string;
+      file?: string;
+      maxBytes?: number;
+      maxFiles?: number;
+      onError: (message: string) => void;
+    }) {
       sink.options.push(options);
     }
     write(line: string): void {
@@ -31,18 +55,6 @@ vi.mock('../../../src/nest/audit/log-file', () => ({
     }
   },
 }));
-
-import path from 'node:path';
-import {
-  logInfo,
-  logDebug,
-  logError,
-  logWarn,
-  flushLogFile,
-  flushLogFileSync,
-  LOG_LEVEL,
-} from '../../../src/nest/audit/audit-log.logger';
-import { resolveDataPaths } from '../../../src/app-config/data-paths';
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -90,7 +102,10 @@ describe('severity threshold (frozen at import)', () => {
       fresh.logDebug('d');
       fresh.logWarn('w');
       fresh.logError('e');
-      expect(log.mock.calls.map((c) => String(c[0]).includes('[INFO]') || String(c[0]).includes('[DEBUG]'))).toEqual([true, true]);
+      expect(log.mock.calls.map((c) => String(c[0]).includes('[INFO]') || String(c[0]).includes('[DEBUG]'))).toEqual([
+        true,
+        true,
+      ]);
       expect(String(warn.mock.calls[0][0])).toContain('[WARN]');
       expect(String(err.mock.calls[0][0])).toContain('[ERROR]');
       expect(sink.lines.map((line) => line.split(' ')[0])).toEqual(['[INFO]', '[DEBUG]', '[WARN]', '[ERROR]']);

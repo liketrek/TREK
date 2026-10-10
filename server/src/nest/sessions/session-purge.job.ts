@@ -1,7 +1,7 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { logError, logInfo } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { SessionsService } from './sessions.service';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * Nightly removal of the expired `user_sessions` rows. Every sign-in writes a

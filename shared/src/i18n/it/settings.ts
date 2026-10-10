@@ -83,7 +83,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Primo giorno della settimana in ogni selettore di date. Vacay ha una sua impostazione.',
   'settings.preferredNavApp': 'Apri i luoghi in',
   'settings.preferredNavAppAsk': 'Chiedi ogni volta',
-  'settings.preferredNavAppHint': "Con un'app scelta, il pulsante di navigazione la apre subito invece di proporre tutte le app di mappe.",
+  'settings.preferredNavAppHint':
+    "Con un'app scelta, il pulsante di navigazione la apre subito invece di proporre tutte le app di mappe.",
   'settings.blurBookingCodes': 'Nascondi codici di prenotazione',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',

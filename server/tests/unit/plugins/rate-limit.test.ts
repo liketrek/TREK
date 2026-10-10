@@ -2,8 +2,9 @@
  * Per-plugin RPC rate limiter (#plugins hardening): a token bucket + an in-flight
  * gauge, clock injected so it tests without timers.
  */
-import { describe, it, expect } from 'vitest';
 import { TokenBucket, RpcRateLimiter } from '../../../src/nest/plugins/host/rate-limit';
+
+import { describe, it, expect } from 'vitest';
 
 describe('TokenBucket', () => {
   it('allows a burst up to capacity, then throttles until it refills', () => {
@@ -39,13 +40,14 @@ describe('RpcRateLimiter', () => {
     expect(l.tryAcquire(0)).toBe(true); // in-flight 1
     expect(l.tryAcquire(0)).toBe(true); // in-flight 2
     expect(l.tryAcquire(0)).toBe(false); // concurrency cap hit despite tokens left
-    l.release();                         // in-flight 1
-    expect(l.tryAcquire(0)).toBe(true);  // slot freed
+    l.release(); // in-flight 1
+    expect(l.tryAcquire(0)).toBe(true); // slot freed
   });
 
   it('release never underflows below zero', () => {
     const l = new RpcRateLimiter({ burst: 1, perSec: 1, maxInFlight: 1 }, 0);
-    l.release(); l.release(); // no-op when nothing is in flight
+    l.release();
+    l.release(); // no-op when nothing is in flight
     expect(l.tryAcquire(0)).toBe(true);
   });
 });

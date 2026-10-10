@@ -66,9 +66,11 @@ describe('the counters', () => {
   });
 
   it('ENV-RATCHET-001b: counts a z. call Prettier broke across lines', () => {
-    expect(countInlineZod(`const s = z
+    expect(
+      countInlineZod(`const s = z
   .object({ a: idSchema })
-  .strict();`)).toBe(1);
+  .strict();`),
+    ).toBe(1);
   });
 
   it('ENV-RATCHET-002: counts the result envelope and HTTP in a service, not a 2xx status', () => {

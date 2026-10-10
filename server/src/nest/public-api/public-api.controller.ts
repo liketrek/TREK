@@ -1,5 +1,14 @@
+import { RateLimitService } from '../common/rate-limit.service';
+import { ApiTokenGuard } from './api-token.guard';
+import {
+  enforcePublicApiRateLimit,
+  grantedScopes,
+  narrowToGrant,
+  requireScope,
+  requireUserId,
+} from './public-api-request';
+import { PublicApiService } from './public-api.service';
 import { Controller, Get, HttpException, Param, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
 import {
   PUBLIC_API_INCLUDES,
   publicApiIncludeQuerySchema,
@@ -8,16 +17,8 @@ import {
   type PublicApiTrip,
   type PublicApiTripList,
 } from '@trek/shared';
-import { ApiTokenGuard } from './api-token.guard';
-import { PublicApiService } from './public-api.service';
-import {
-  enforcePublicApiRateLimit,
-  grantedScopes,
-  narrowToGrant,
-  requireScope,
-  requireUserId,
-} from './public-api-request';
-import { RateLimitService } from '../common/rate-limit.service';
+
+import type { Request } from 'express';
 
 /**
  * `/api/v1` — the versioned, read-only surface for third-party integrations.

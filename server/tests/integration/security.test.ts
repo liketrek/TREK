@@ -7,30 +7,30 @@
  * - SEC-015 (MFA backup codes) is covered in auth.test.ts
  * - These tests focus on HTTP-level security: headers, auth, injection protection, etc.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { AuditLog } from '../../src/db/entities/AuditLog.entity';
+import { TripFiles } from '../../src/db/entities/TripFiles.entity';
+import { authCookie, authHeader, generateToken } from '../helpers/auth';
+import { createUser, createTrip } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { findRows, updateRows } from '../helpers/factories/rows';
+import { setAppSetting } from '../helpers/factories/settings';
+import { readUser } from '../helpers/factories/users';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
-import path from 'path';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
 import fs from 'fs';
+import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip } from '../helpers/factories';
-import { authCookie, authHeader, generateToken } from '../helpers/auth';
-import { findRows, updateRows } from '../helpers/factories/rows';
-import { readUser } from '../helpers/factories/users';
-import { setAppSetting } from '../helpers/factories/settings';
-import type { FactoryOrm } from '../helpers/factories/context';
-import { AuditLog } from '../../src/db/entities/AuditLog.entity';
-import { TripFiles } from '../../src/db/entities/TripFiles.entity';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -66,9 +66,7 @@ describe('Authentication security', () => {
     // The file download endpoint accepts bearer auth
     // Other endpoints use cookie auth — but /api/auth/me works with cookie auth
     // Test that a forged/invalid JWT is rejected
-    const res = await request(app)
-      .get('/api/auth/me')
-      .set('Authorization', 'Bearer invalid.token.here');
+    const res = await request(app).get('/api/auth/me').set('Authorization', 'Bearer invalid.token.here');
     // Should return 401 (auth fails)
     expect(res.status).toBe(401);
   });
@@ -79,9 +77,7 @@ describe('Authentication security', () => {
   });
 
   it('expired/invalid JWT cookie returns 401', async () => {
-    const res = await request(app)
-      .get('/api/trips')
-      .set('Cookie', 'trek_session=invalid.jwt.token');
+    const res = await request(app).get('/api/trips').set('Cookie', 'trek_session=invalid.jwt.token');
     expect(res.status).toBe(401);
   });
 });
@@ -144,9 +140,7 @@ describe('API key encryption', () => {
       .set('Cookie', authCookie(user.id))
       .send({ openweather_api_key: 'secret-key' });
 
-    const me = await request(app)
-      .get('/api/auth/me')
-      .set('Cookie', authCookie(user.id));
+    const me = await request(app).get('/api/auth/me').set('Cookie', authCookie(user.id));
     expect(me.body.user.openweather_api_key).not.toBe('secret-key');
   });
 });
@@ -155,9 +149,7 @@ describe('MFA secret protection', () => {
   it('SEC-009 — GET /api/auth/me does not expose mfa_secret', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/auth/me')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/auth/me').set('Cookie', authCookie(user.id));
     expect(res.body.user.mfa_secret).toBeUndefined();
     expect(res.body.user.password_hash).toBeUndefined();
   });
@@ -168,9 +160,7 @@ describe('Request body size limit', () => {
     // Send a large body (2MB+) to exceed the default limit
     const bigData = { data: 'x'.repeat(2 * 1024 * 1024) };
 
-    const res = await request(app)
-      .post('/api/auth/login')
-      .send(bigData);
+    const res = await request(app).post('/api/auth/login').send(bigData);
     // body-parser rejects oversized payloads with 413
     expect(res.status).toBe(413);
   });
@@ -190,9 +180,7 @@ describe('File download path traversal', () => {
 
     await updateRows(orm(), TripFiles, { id: fileId }, { filename: '../../etc/passwd' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/files/${fileId}/download`)
-      .set(authHeader(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/files/${fileId}/download`).set(authHeader(user.id));
     // path.basename() strips traversal in the download controller; the normalized
     // name does not exist in uploads, so the answer is the same 404 a missing file
     // gets. Pinned exactly: a 500 from a thrown guard would also be "not 200".

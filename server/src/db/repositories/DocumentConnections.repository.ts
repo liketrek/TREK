@@ -1,8 +1,8 @@
 import { currentTimestamp, coalesceOverride } from '../dialect/sql-functions';
 import type { DocumentConnections } from '../entities/DocumentConnections.entity';
+import type { DB } from '../kysely/db';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /**
  * A bare `document_connections` row. `secrets` is opaque encrypted TEXT here
@@ -72,7 +72,13 @@ export class DocumentConnectionsRepository extends TrekRepository<DocumentConnec
    */
   async updateConnection(
     id: number,
-    data: { base_url: string; secrets: string | null; settings: string; allow_insecure_tls: number; owner_user_id: number },
+    data: {
+      base_url: string;
+      secrets: string | null;
+      settings: string;
+      allow_insecure_tls: number;
+      owner_user_id: number;
+    },
   ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate(
@@ -156,15 +162,12 @@ export class DocumentConnectionsRepository extends TrekRepository<DocumentConnec
       .selectFrom('document_connections as c')
       .select('c.id')
       .where((eb) =>
-        eb(
-          'c.owner_user_id',
-          'not in',
-          (qb) =>
-            qb
-              .selectFrom('trip_members as tm')
-              .select('tm.user_id')
-              .whereRef('tm.trip_id', '=', 'c.trip_id')
-              .union(qb.selectFrom('trips as t').select('t.user_id').whereRef('t.id', '=', 'c.trip_id')),
+        eb('c.owner_user_id', 'not in', (qb) =>
+          qb
+            .selectFrom('trip_members as tm')
+            .select('tm.user_id')
+            .whereRef('tm.trip_id', '=', 'c.trip_id')
+            .union(qb.selectFrom('trips as t').select('t.user_id').whereRef('t.id', '=', 'c.trip_id')),
         ),
       )
       .execute();

@@ -1,9 +1,9 @@
-import type { CollabNotes } from '../entities/CollabNotes.entity';
 import { currentTimestamp } from '../dialect/sql-functions';
+import type { CollabNotes } from '../entities/CollabNotes.entity';
+import type { DB } from '../kysely/db';
 import type { TripFileRow } from './TripFiles.repository';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /** A bare `collab_notes` row — every scalar column of the entity, incl. the two `persist(false)` relation mirrors (`trip_id`, `user_id`). */
 export interface CollabNoteRow {
@@ -98,12 +98,21 @@ export class CollabNotesRepository extends TrekRepository<CollabNotes> {
    * this query at all.
    */
   async listForTrip(trip_id: number): Promise<CollabNoteJoinRow[]> {
-    return await this.joinedQuery().where('n.trip_id', '=', trip_id).orderBy('n.pinned', 'desc').orderBy('n.updated_at', 'desc').execute();
+    return await this.joinedQuery()
+      .where('n.trip_id', '=', trip_id)
+      .orderBy('n.pinned', 'desc')
+      .orderBy('n.updated_at', 'desc')
+      .execute();
   }
 
   /** CB10/CB13/CB17 (`updateNote`/`deleteNote`/`addNoteFile`'s shared trip-scoping guard) — `SELECT * FROM collab_notes WHERE id = ? AND trip_id = ?`, same text at all three call sites. */
   async findInTrip(id: number, trip_id: number): Promise<CollabNoteRow | undefined> {
-    return await this.kysely<CollabNotesKyselyDB>().selectFrom('collab_notes').selectAll().where('id', '=', id).where('trip_id', '=', trip_id).executeTakeFirst();
+    return await this.kysely<CollabNotesKyselyDB>()
+      .selectFrom('collab_notes')
+      .selectAll()
+      .where('id', '=', id)
+      .where('trip_id', '=', trip_id)
+      .executeTakeFirst();
   }
 
   /** CB9/CB12 (`createNote`'s post-insert re-select, `updateNote`'s post-write re-select) — `SELECT n.*, u.username, u.avatar FROM collab_notes n JOIN users u ON n.user_id = u.id WHERE n.id = ?`, no trip filter (the caller already knows `id` is in-scope, having just written it). */
@@ -117,7 +126,16 @@ export class CollabNotesRepository extends TrekRepository<CollabNotes> {
   }
 
   /** CB8 (`createNote`) — `INSERT INTO collab_notes (trip_id, user_id, title, content, category, color, website, pinned) VALUES (?×8)`. The service resolves the `|| null`/`|| 'General'`/`|| '#6366f1'` defaults before calling (D2's split). Returns the new row's id. */
-  async insertNote(row: { trip_id: number | string; user_id: number; title: string; content: string | null; category: string; color: string; website: string | null; pinned: number }): Promise<number> {
+  async insertNote(row: {
+    trip_id: number | string;
+    user_id: number;
+    title: string;
+    content: string | null;
+    category: string;
+    color: string;
+    website: string | null;
+    pinned: number;
+  }): Promise<number> {
     return await this.insert({
       trip: row.trip_id,
       user: row.user_id,
@@ -150,17 +168,30 @@ export class CollabNotesRepository extends TrekRepository<CollabNotes> {
    * `CASE` helper, and this class docstring records that choice for
    * whichever task reads it next.
    */
-  async update(id: number, write: { title: string; content: string | null; category: string | null; color: string | null; pinned: number | null; website: string | null }): Promise<void> {
+  async update(
+    id: number,
+    write: {
+      title: string;
+      content: string | null;
+      category: string | null;
+      color: string | null;
+      pinned: number | null;
+      website: string | null;
+    },
+  ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
-    await this.nativeUpdate({ id }, {
-      title: write.title,
-      content: write.content,
-      category: write.category,
-      color: write.color,
-      pinned: write.pinned,
-      website: write.website,
-      updated_at: currentTimestamp(platform),
-    });
+    await this.nativeUpdate(
+      { id },
+      {
+        title: write.title,
+        content: write.content,
+        category: write.category,
+        color: write.color,
+        pinned: write.pinned,
+        website: write.website,
+        updated_at: currentTimestamp(platform),
+      },
+    );
   }
 
   /** CB16 (`deleteNote`, inside its transaction, after CB15's attachment sweep) — `DELETE FROM collab_notes WHERE id = ?`. */
@@ -191,7 +222,11 @@ export class CollabNotesRepository extends TrekRepository<CollabNotes> {
 
   /** CB14 (`deleteNote`'s pre-tx storage-cleanup list) — `SELECT id, filename FROM trip_files WHERE note_id = ?`, run BEFORE the transaction (the legacy ordering: the storage deletes happen outside/before the DB transaction). */
   async listFilenamesForNote(note_id: number): Promise<{ id: number; filename: string }[]> {
-    return await this.kysely<NoteAttachmentsKyselyDB>().selectFrom('trip_files').select(['id', 'filename']).where('note_id', '=', note_id).execute();
+    return await this.kysely<NoteAttachmentsKyselyDB>()
+      .selectFrom('trip_files')
+      .select(['id', 'filename'])
+      .where('note_id', '=', note_id)
+      .execute();
   }
 
   /** CB15 (`deleteNote`, inside its transaction, before CB16) — `DELETE FROM trip_files WHERE note_id = ?`. */
@@ -206,10 +241,24 @@ export class CollabNotesRepository extends TrekRepository<CollabNotes> {
    * supported engine answers, unlike `InsertResult.insertId`) for CB19's
    * re-select.
    */
-  async insertAttachmentForNote(row: { trip_id: number | string; note_id: number | string; filename: string; original_name: string; file_size: number; mime_type: string }): Promise<number> {
+  async insertAttachmentForNote(row: {
+    trip_id: number | string;
+    note_id: number | string;
+    filename: string;
+    original_name: string;
+    file_size: number;
+    mime_type: string;
+  }): Promise<number> {
     const inserted = await this.kysely<NoteAttachmentInsertKyselyDB>()
       .insertInto('trip_files')
-      .values({ trip_id: row.trip_id as number, note_id: row.note_id as number, filename: row.filename, original_name: row.original_name, file_size: row.file_size, mime_type: row.mime_type })
+      .values({
+        trip_id: row.trip_id as number,
+        note_id: row.note_id as number,
+        filename: row.filename,
+        original_name: row.original_name,
+        file_size: row.file_size,
+        mime_type: row.mime_type,
+      })
       .returning('id')
       .executeTakeFirstOrThrow();
     return inserted.id;
@@ -217,7 +266,11 @@ export class CollabNotesRepository extends TrekRepository<CollabNotes> {
 
   /** CB19 (`addNoteFile`'s re-select, immediately after {@link insertAttachmentForNote}) — `SELECT * FROM trip_files WHERE id = ?`, unscoped (the caller just wrote this exact id). */
   async findAttachmentById(id: number): Promise<TripFileRow | undefined> {
-    return await this.kysely<NoteAttachmentsKyselyDB>().selectFrom('trip_files').selectAll().where('id', '=', id).executeTakeFirst();
+    return await this.kysely<NoteAttachmentsKyselyDB>()
+      .selectFrom('trip_files')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
   }
 
   /**

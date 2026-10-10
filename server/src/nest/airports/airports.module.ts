@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { AirportsController } from './airports.controller';
-import { AirportsService } from './airports.service';
-import { SchedulingModule } from '../scheduling/scheduling.module';
-import { AirportsMcp } from './airports.mcp';
-import { Reservations } from '../../db/entities/Reservations.entity';
 import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { SchedulingModule } from '../scheduling/scheduling.module';
+import { AirportsController } from './airports.controller';
+import { AirportsMcp } from './airports.mcp';
+import { AirportsService } from './airports.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /** Airports domain (L2 leaf module). Registered in AppModule.
  *  MikroOrmModule.forFeature([Reservations, ReservationEndpoints]) (Plan 3h

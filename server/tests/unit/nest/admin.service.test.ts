@@ -9,15 +9,92 @@
  * integration tests don't exercise. VCJOB-001 pins the version-check cron path
  * (it replaced ADMIN-BR-001 when the old admin bridge died with the cron move).
  */
-import { asLegacyResult } from '../../helpers/domain-error';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import { ADDON_IDS, MCP_GATED_ADDON_IDS } from '../../../src/addons';
+import { db as testDb } from '../../../src/db/database';
+import { Addons } from '../../../src/db/entities/Addons.entity';
+import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
+import { DocumentProviders } from '../../../src/db/entities/DocumentProviders.entity';
+import { McpTokens } from '../../../src/db/entities/McpTokens.entity';
+import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
+import { PushSubscriptions } from '../../../src/db/entities/PushSubscriptions.entity';
+import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
+import { UserSessions } from '../../../src/db/entities/UserSessions.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { AuditLogRepository } from '../../../src/db/repositories/AuditLog.repository';
+import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
+import type { McpTokensRepository } from '../../../src/db/repositories/McpTokens.repository';
+import { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpers';
+import { AdminService } from '../../../src/nest/admin/admin.service';
+import { VersionCheckJob } from '../../../src/nest/admin/version-check.job';
+import { DataPathsService } from '../../../src/nest/app-config/data-paths.service';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
+import { AuthService } from '../../../src/nest/auth/auth.service';
+import { PasskeyService } from '../../../src/nest/auth/passkey.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import type { DatabaseBackupStrategy } from '../../../src/nest/database/database-backup.interface';
+import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { PackingService } from '../../../src/nest/packing/packing.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+import { SettingsService } from '../../../src/nest/settings/settings.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+import { budgetRepoArgs } from '../../helpers/budget-repos';
+import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
+import { asLegacyResult } from '../../helpers/domain-error';
+import { createUser, createUserWithMfa, createAdmin, createInviteToken } from '../../helpers/factories';
+import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { readAppSetting } from '../../helpers/factories/settings';
+import { readUser } from '../../helpers/factories/users';
+import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
+import {
+  createTestJourneysRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyContributorsRepo,
+} from '../../helpers/journey-repos';
+import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
+import { createTestPushSubscriptionsRepo } from '../../helpers/notifications-repos';
+import { createTestSessionsService } from '../../helpers/sessions';
+import {
+  createTestShareTokensRepo,
+  createTestPluginsRepo,
+  createTestPluginUserErasureQueueRepo,
+} from '../../helpers/share-repos';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { resetTestDb } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestUsersRepo,
+  createTestWebauthnCredentialsRepo,
+  createTestWebauthnChallengesRepo,
+  createTestInviteTokensRepo,
+  createTestMcpTokensRepo,
+  createTestOauthTokensRepo,
+  createTestPasswordResetTokensRepo,
+  createTestTripsRepo,
+  createTestTripMembersRepo,
+  createTestSettingsRepo,
+  createTestPlacesRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -28,7 +105,7 @@ vi.mock('../../../src/db/database', async () => {
     canAccessTrip: () => null,
     isOwner: () => false,
   };
-    return mock;
+  return mock;
 });
 
 vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
@@ -47,76 +124,6 @@ vi.mock('../../../src/mcp/sessionManager', () => ({
 vi.mock('../../../src/demo/demo-reset', () => ({
   saveBaseline: vi.fn(),
 }));
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createUserWithMfa, createAdmin, createInviteToken } from '../../helpers/factories';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { SettingsService } from '../../../src/nest/settings/settings.service';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
-import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
-import { AuthService } from '../../../src/nest/auth/auth.service';
-import { PasskeyService } from '../../../src/nest/auth/passkey.service';
-import { PackingService } from '../../../src/nest/packing/packing.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
-import { AdminService } from '../../../src/nest/admin/admin.service';
-import { DataPathsService } from '../../../src/nest/app-config/data-paths.service';
-import { VersionCheckJob } from '../../../src/nest/admin/version-check.job';
-import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpers';
-import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
-import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
-import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
-import {
-  createTestUnitOfWork,
-  createTestAppSettingsRepo,
-  createTestUsersRepo,
-  createTestWebauthnCredentialsRepo,
-  createTestWebauthnChallengesRepo,
-  createTestInviteTokensRepo,
-  createTestMcpTokensRepo,
-  createTestOauthTokensRepo,
-  createTestPasswordResetTokensRepo,
-  createTestTripsRepo,
-  createTestTripMembersRepo,
-  createTestSettingsRepo,
-  createTestPlacesRepo,
-  sharedTestOrm,
-} from '../../helpers/test-uow';
-import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
-import type { AuditLogRepository } from '../../../src/db/repositories/AuditLog.repository';
-import { Addons } from '../../../src/db/entities/Addons.entity';
-import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
-import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
-import { DocumentProviders } from '../../../src/db/entities/DocumentProviders.entity';
-import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
-import { PushSubscriptions } from '../../../src/db/entities/PushSubscriptions.entity';
-import type { McpTokensRepository } from '../../../src/db/repositories/McpTokens.repository';
-import { budgetRepoArgs } from '../../helpers/budget-repos';
-import { createTestShareTokensRepo, createTestPluginsRepo, createTestPluginUserErasureQueueRepo } from '../../helpers/share-repos';
-import type { TestOrm } from '../../helpers/test-orm';
-import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
-import { readAppSetting } from '../../helpers/factories/settings';
-import { readUser } from '../../helpers/factories/users';
-import { McpTokens } from '../../../src/db/entities/McpTokens.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { UserSessions } from '../../../src/db/entities/UserSessions.entity';
-import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import { createTestJourneysRepo, createTestJourneyEntriesRepo, createTestJourneyContributorsRepo } from '../../helpers/journey-repos';
-import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
-import { createTestPushSubscriptionsRepo } from '../../helpers/notifications-repos';
-import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
-import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
-import type { DatabaseBackupStrategy } from '../../../src/nest/database/database-backup.interface';
-import { createTestSessionsService } from '../../helpers/sessions';
 
 const realtime = new RealtimeService();
 
@@ -145,11 +152,48 @@ const databaseBackupStub = {
 beforeAll(async () => {
   webauthn = new WebauthnConfigService(await createTestAppSettingsRepo(testDb));
   permissions = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
-  userCleanup = new UserCleanupService(new MaintenanceRepository((await sharedTestOrm(testDb)).em), new BudgetService(permissions, new ExchangeRatesService(), realtime, await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb))), await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb));
+  userCleanup = new UserCleanupService(
+    new MaintenanceRepository((await sharedTestOrm(testDb)).em),
+    new BudgetService(
+      permissions,
+      new ExchangeRatesService(),
+      realtime,
+      await createTestUnitOfWork(testDb),
+      ...(await budgetRepoArgs(testDb)),
+    ),
+    await createTestUnitOfWork(testDb),
+    await createTestUsersRepo(testDb),
+    await createTestTripMembersRepo(testDb),
+    await createTestBudgetItemsRepo(testDb),
+    await createTestBudgetSettlementsRepo(testDb),
+    await createTestJourneyShareTokensRepo(testDb),
+    await createTestJourneysRepo(testDb),
+    await createTestJourneyEntriesRepo(testDb),
+    await createTestJourneyContributorsRepo(testDb),
+    await createTestShareTokensRepo(testDb),
+    await createTestPluginsRepo(testDb),
+    await createTestPluginUserErasureQueueRepo(testDb),
+  );
   auth = new AuthService(
-    permissions, new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)), webauthn, userCleanup, new MailerService(await createTestUsersRepo(testDb), await createTestSettingsRepo(testDb), await createTestAppSettingsRepo(testDb)), new EphemeralTokenService(), new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)), await createTestUnitOfWork(testDb),
-    await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestInviteTokensRepo(testDb), await createTestMcpTokensRepo(testDb),
-    await createTestOauthTokensRepo(testDb), await createTestWebauthnCredentialsRepo(testDb), await createTestPasswordResetTokensRepo(testDb),
+    permissions,
+    new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)),
+    webauthn,
+    userCleanup,
+    new MailerService(
+      await createTestUsersRepo(testDb),
+      await createTestSettingsRepo(testDb),
+      await createTestAppSettingsRepo(testDb),
+    ),
+    new EphemeralTokenService(),
+    new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)),
+    await createTestUnitOfWork(testDb),
+    await createTestAppSettingsRepo(testDb),
+    await createTestUsersRepo(testDb),
+    await createTestInviteTokensRepo(testDb),
+    await createTestMcpTokensRepo(testDb),
+    await createTestOauthTokensRepo(testDb),
+    await createTestWebauthnCredentialsRepo(testDb),
+    await createTestPasswordResetTokensRepo(testDb),
     await createTestPushSubscriptionsRepo(testDb),
     await createTestSessionsService(testDb),
   );
@@ -158,31 +202,38 @@ beforeAll(async () => {
   mcpTokensRepo = await createTestMcpTokensRepo(testDb);
   auditLogRepo = t.repo(AuditLog);
   svc = new AdminService(
-  await createTestUsersRepo(testDb),
-  auditLogRepo,
-  await createTestAppSettingsRepo(testDb),
-  t.repo(Addons),
-  t.repo(PhotoProviders),
-  t.repo(PhotoProviderFields),
-  t.repo(DocumentProviders),
-  mcpTokensRepo,
-  await createTestOauthTokensRepo(testDb),
-  await createTestTripsRepo(testDb),
-  await createTestPlacesRepo(testDb),
-  t.repo(TripFiles),
-  t.repo(PushSubscriptions),
-  await createTestAddonsService(testDb),
-  new PasskeyService(auth, webauthn, await createTestUnitOfWork(testDb), await createTestWebauthnCredentialsRepo(testDb), await createTestWebauthnChallengesRepo(testDb), await createTestUsersRepo(testDb)),
-  auth,
-  permissions,
-  await makeNotificationsService(testDb, realtime),
-  userCleanup,
-  realtime,
-  await createTestUnitOfWork(testDb),
-  databaseBackupStub,
-  new DataPathsService(),
-  await createTestSessionsService(testDb),
-);
+    await createTestUsersRepo(testDb),
+    auditLogRepo,
+    await createTestAppSettingsRepo(testDb),
+    t.repo(Addons),
+    t.repo(PhotoProviders),
+    t.repo(PhotoProviderFields),
+    t.repo(DocumentProviders),
+    mcpTokensRepo,
+    await createTestOauthTokensRepo(testDb),
+    await createTestTripsRepo(testDb),
+    await createTestPlacesRepo(testDb),
+    t.repo(TripFiles),
+    t.repo(PushSubscriptions),
+    await createTestAddonsService(testDb),
+    new PasskeyService(
+      auth,
+      webauthn,
+      await createTestUnitOfWork(testDb),
+      await createTestWebauthnCredentialsRepo(testDb),
+      await createTestWebauthnChallengesRepo(testDb),
+      await createTestUsersRepo(testDb),
+    ),
+    auth,
+    permissions,
+    await makeNotificationsService(testDb, realtime),
+    userCleanup,
+    realtime,
+    await createTestUnitOfWork(testDb),
+    databaseBackupStub,
+    new DataPathsService(),
+    await createTestSessionsService(testDb),
+  );
 });
 
 // Legacy free-function names bound to the service, so the moved cases below read
@@ -199,7 +250,8 @@ const saveDemoBaseline = () => asLegacyResult(svc.saveDemoBaseline());
 const getGithubReleases = (perPage?: string, page?: string) => svc.getGithubReleases(perPage, page);
 const checkVersion = () => svc.checkVersion();
 const listAddons = () => svc.listAddons();
-const updateAddon = (id: string, d: Parameters<AdminService['updateAddon']>[1]) => asLegacyResult(svc.updateAddon(id, d));
+const updateAddon = (id: string, d: Parameters<AdminService['updateAddon']>[1]) =>
+  asLegacyResult(svc.updateAddon(id, d));
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -229,7 +281,11 @@ describe('listUsers', () => {
 
 describe('createUser (service)', () => {
   it('ADMIN-SVC-002 — creates a user successfully', async () => {
-    const result = (await svcCreateUser({ username: 'newuser', email: 'new@test.com', password: 'ValidPass1!' })) as any;
+    const result = (await svcCreateUser({
+      username: 'newuser',
+      email: 'new@test.com',
+      password: 'ValidPass1!',
+    })) as any;
     expect(result.user).toBeDefined();
     expect(result.user.email).toBe('new@test.com');
   });
@@ -240,7 +296,12 @@ describe('createUser (service)', () => {
   });
 
   it('ADMIN-SVC-004 — returns 400 for invalid role', async () => {
-    const result = (await svcCreateUser({ username: 'u1', email: 'u1@test.com', password: 'ValidPass1!', role: 'superuser' })) as any;
+    const result = (await svcCreateUser({
+      username: 'u1',
+      email: 'u1@test.com',
+      password: 'ValidPass1!',
+      role: 'superuser',
+    })) as any;
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/invalid role/i);
   });
@@ -248,7 +309,11 @@ describe('createUser (service)', () => {
   it('ADMIN-SVC-005 — returns 409 for duplicate username', async () => {
     createUser(testDb);
     const { user } = createUser(testDb);
-    const result = (await svcCreateUser({ username: user.username, email: 'unique@test.com', password: 'ValidPass1!' })) as any;
+    const result = (await svcCreateUser({
+      username: user.username,
+      email: 'unique@test.com',
+      password: 'ValidPass1!',
+    })) as any;
     expect(result.status).toBe(409);
   });
 
@@ -259,7 +324,11 @@ describe('createUser (service)', () => {
   });
 
   it('ADMIN-SVC-007 — returns 400 for weak password', async () => {
-    const result = (await svcCreateUser({ username: 'weakpwuser', email: 'weakpw@test.com', password: 'short' })) as any;
+    const result = (await svcCreateUser({
+      username: 'weakpwuser',
+      email: 'weakpw@test.com',
+      password: 'short',
+    })) as any;
     expect(result.status).toBe(400);
   });
 });
@@ -319,19 +388,19 @@ describe('deleteUser', () => {
   it('ADMIN-SVC-015 — deletes user successfully', async () => {
     const { user: admin } = createAdmin(testDb);
     const { user } = createUser(testDb);
-    const result = await deleteUser(String(user.id), admin.id) as any;
+    const result = (await deleteUser(String(user.id), admin.id)) as any;
     expect(result.email).toBe(user.email);
   });
 
   it('ADMIN-SVC-016 — returns 400 when deleting own account', async () => {
     const { user: admin } = createAdmin(testDb);
-    const result = await deleteUser(String(admin.id), admin.id) as any;
+    const result = (await deleteUser(String(admin.id), admin.id)) as any;
     expect(result.status).toBe(400);
   });
 
   it('ADMIN-SVC-017 — returns 404 for non-existent user', async () => {
     const { user: admin } = createAdmin(testDb);
-    const result = await deleteUser('99999', admin.id) as any;
+    const result = (await deleteUser('99999', admin.id)) as any;
     expect(result.status).toBe(404);
   });
 });
@@ -352,14 +421,14 @@ describe('getStats', () => {
 
 describe('Permissions', () => {
   it('ADMIN-SVC-019 — getPermissions returns an array of actions', async () => {
-    const result = await getPermissions() as any;
+    const result = (await getPermissions()) as any;
     expect(Array.isArray(result.permissions)).toBe(true);
     expect(result.permissions.length).toBeGreaterThan(0);
   });
 
   it('ADMIN-SVC-020 — savePermissions persists a permission change', async () => {
     await savePermissions({ trip_create: 'admin' });
-    const result = await getPermissions() as any;
+    const result = (await getPermissions()) as any;
     const perm = result.permissions.find((p: any) => p.key === 'trip_create');
     expect(perm.level).toBe('admin');
   });
@@ -482,11 +551,14 @@ describe('getGithubReleases', () => {
       { id: 1, tag_name: 'v3.0.0', name: 'Release 3.0.0', html_url: 'https://github.com/example/releases/tag/v3.0.0' },
       { id: 2, tag_name: 'v2.9.9', name: 'Release 2.9.9', html_url: 'https://github.com/example/releases/tag/v2.9.9' },
     ];
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => JSON.stringify(mockReleases),
-      json: async () => mockReleases,
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => JSON.stringify(mockReleases),
+        json: async () => mockReleases,
+      }),
+    );
     const result = await getGithubReleases();
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(2);
@@ -498,14 +570,10 @@ describe('getGithubReleases', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await getGithubReleases('9999', '0');
-    expect(fetchMock.mock.calls[0][0]).toBe(
-      'https://api.github.com/repos/liketrek/TREK/releases?per_page=100&page=1',
-    );
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.github.com/repos/liketrek/TREK/releases?per_page=100&page=1');
 
     await getGithubReleases('10&per_page=999', 'abc');
-    expect(fetchMock.mock.calls[1][0]).toBe(
-      'https://api.github.com/repos/liketrek/TREK/releases?per_page=10&page=1',
-    );
+    expect(fetchMock.mock.calls[1][0]).toBe('https://api.github.com/repos/liketrek/TREK/releases?per_page=10&page=1');
   });
 
   it('ADMIN-SVC-053b — round-trips the paging the admin UI actually sends', async () => {
@@ -513,9 +581,7 @@ describe('getGithubReleases', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await getGithubReleases('20', '2');
-    expect(fetchMock.mock.calls[0][0]).toBe(
-      'https://api.github.com/repos/liketrek/TREK/releases?per_page=20&page=2',
-    );
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.github.com/repos/liketrek/TREK/releases?per_page=20&page=2');
   });
 });
 
@@ -528,23 +594,29 @@ describe('checkVersion', () => {
 
   // Since the 2026-08 quirk fix, failures cache too (on a 60s TTL), so each case
   // clears the module-scoped cache rather than reading the previous one's result.
-  beforeEach(() => { __clearVersionCacheForTests(); });
+  beforeEach(() => {
+    __clearVersionCacheForTests();
+  });
 
   it('ADMIN-SVC-054 — returns update_available:false when fetch fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
-    const result = await checkVersion() as any;
+    const result = (await checkVersion()) as any;
     expect(result.update_available).toBe(false);
     expect(result.current).toBeDefined();
     expect(result.latest).toBeDefined();
   });
 
   it('ADMIN-SVC-055 — returns update_available:true when latest version is greater than current', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => JSON.stringify({ tag_name: 'v999.0.0', html_url: 'https://github.com/example/releases/tag/v999.0.0' }),
-      json: async () => ({ tag_name: 'v999.0.0', html_url: 'https://github.com/example/releases/tag/v999.0.0' }),
-    }));
-    const result = await checkVersion() as any;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () =>
+          JSON.stringify({ tag_name: 'v999.0.0', html_url: 'https://github.com/example/releases/tag/v999.0.0' }),
+        json: async () => ({ tag_name: 'v999.0.0', html_url: 'https://github.com/example/releases/tag/v999.0.0' }),
+      }),
+    );
+    const result = (await checkVersion()) as any;
     expect(result.update_available).toBe(true);
     expect(result.latest).toBe('999.0.0');
     expect(result.release_url).toBe('https://github.com/example/releases/tag/v999.0.0');
@@ -603,16 +675,16 @@ describe('listAddons', () => {
 
 describe('updateAddon', () => {
   it('ADMIN-SVC-066 — updateAddon enables and disables a seeded addon', async () => {
-    const disabled = await updateAddon('mcp', { enabled: false }) as any;
+    const disabled = (await updateAddon('mcp', { enabled: false })) as any;
     expect(disabled.addon).toBeDefined();
     expect(disabled.addon.enabled).toBe(false);
 
-    const enabled = await updateAddon('mcp', { enabled: true }) as any;
+    const enabled = (await updateAddon('mcp', { enabled: true })) as any;
     expect(enabled.addon.enabled).toBe(true);
   });
 
   it('ADMIN-SVC-067 — updateAddon returns 404 for unknown addon id', async () => {
-    const result = await updateAddon('nonexistent-addon-xyz', { enabled: true }) as any;
+    const result = (await updateAddon('nonexistent-addon-xyz', { enabled: true })) as any;
     expect(result.status).toBe(404);
     expect(result.error).toBeDefined();
   });
@@ -620,24 +692,24 @@ describe('updateAddon', () => {
   it('ADMIN-SVC-069 — mcpAffected only fires on a real enabled-flip of an MCP-relevant addon (#1414)', async () => {
     await updateAddon('packing', { enabled: true });
     // no-op save (enabled already true) → sessions survive
-    expect((await updateAddon('packing', { enabled: true }) as any).mcpAffected).toBe(false);
+    expect(((await updateAddon('packing', { enabled: true })) as any).mcpAffected).toBe(false);
     // config-only save → sessions survive
-    expect((await updateAddon('packing', { config: { foo: 'bar' } }) as any).mcpAffected).toBe(false);
+    expect(((await updateAddon('packing', { config: { foo: 'bar' } })) as any).mcpAffected).toBe(false);
     // real flip of an MCP-relevant addon → invalidate
-    expect((await updateAddon('packing', { enabled: false }) as any).mcpAffected).toBe(true);
-    expect((await updateAddon('packing', { enabled: true }) as any).mcpAffected).toBe(true);
+    expect(((await updateAddon('packing', { enabled: false })) as any).mcpAffected).toBe(true);
+    expect(((await updateAddon('packing', { enabled: true })) as any).mcpAffected).toBe(true);
     // real flip of an addon with no MCP surface → sessions survive. Taken from
     // the list rather than named, because an addon that grows MCP tools joins it
     // and would otherwise turn this assertion false without changing anything
     // it is actually about (documents did, when document sync landed).
-    const noMcp = Object.values(ADDON_IDS).find(id => !MCP_GATED_ADDON_IDS.includes(id));
+    const noMcp = Object.values(ADDON_IDS).find((id) => !MCP_GATED_ADDON_IDS.includes(id));
     if (noMcp) {
-      const flip = await updateAddon(noMcp, { enabled: false }) as any;
+      const flip = (await updateAddon(noMcp, { enabled: false })) as any;
       if (!flip.error) expect(flip.mcpAffected).toBe(false);
     }
 
     // and the one this change put on the list carries the opposite verdict
-    const docsFlip = await updateAddon('documents', { enabled: false }) as any;
+    const docsFlip = (await updateAddon('documents', { enabled: false })) as any;
     if (!docsFlip.error) expect(docsFlip.mcpAffected).toBe(true);
   });
 
@@ -645,19 +717,19 @@ describe('updateAddon', () => {
     await setJourney(false);
     await updateRows(orm, PhotoProviders, { id: 'immich' }, { enabled: 0 });
 
-    const result = await updateAddon('immich', { enabled: true }) as any;
+    const result = (await updateAddon('immich', { enabled: true })) as any;
     expect(result).toEqual({ error: 'Enable the Journey addon first', status: 409 });
     expect((await findRow(orm, PhotoProviders, { id: 'immich' }))?.enabled).toBe(0);
   });
 
   it('ADMIN-SVC-088 — enables a provider under an enabled journey; disabling never needs journey', async () => {
     await setJourney(true);
-    const enabled = await updateAddon('immich', { enabled: true }) as any;
+    const enabled = (await updateAddon('immich', { enabled: true })) as any;
     expect(enabled.addon).toMatchObject({ id: 'immich', type: 'photo_provider', enabled: true });
 
     // Switching a provider OFF stays possible with journey off — cleanup must not dead-end.
     await setJourney(false);
-    const disabled = await updateAddon('immich', { enabled: false }) as any;
+    const disabled = (await updateAddon('immich', { enabled: false })) as any;
     expect(disabled.addon.enabled).toBe(false);
   });
 
@@ -665,7 +737,7 @@ describe('updateAddon', () => {
     await setJourney(true);
     await updateRows(orm, PhotoProviders, {}, { enabled: 1 });
 
-    const result = await updateAddon('journey', { enabled: false }) as any;
+    const result = (await updateAddon('journey', { enabled: false })) as any;
     expect(result.addon.enabled).toBe(false);
     const rows = await findRows(orm, PhotoProviders);
     expect(rows.length).toBeGreaterThan(0);
@@ -676,7 +748,11 @@ describe('updateAddon', () => {
 // ── version-check cron ────────────────────────────────────────────────────────
 
 describe('version-check job', () => {
-  const registrarStub = { isEnabled: () => true, register: vi.fn(() => true), unregister: vi.fn() } as unknown as CronRegistrarService;
+  const registrarStub = {
+    isEnabled: () => true,
+    register: vi.fn(() => true),
+    unregister: vi.fn(),
+  } as unknown as CronRegistrarService;
   const envStub = { isManaged: () => false } as unknown as RuntimeEnvService;
 
   it('VCJOB-001 — the cron tick notifies and shares the module-scoped version cache with the route', async () => {
@@ -705,16 +781,20 @@ describe('version-check job', () => {
 // ── Quirk fixes landed after the 2026-08 fold ─────────────────────────────────
 
 describe('admin quirk fixes (post-fold)', () => {
-
   it('ADMIN-SVC-072 — updateUser rejects an empty username/email instead of silently no-opping', async () => {
     const { user } = createUser(testDb);
-    expect((await updateUser(String(user.id), { username: '' })) as any).toMatchObject({ status: 400, error: 'Username cannot be empty' });
-    expect((await updateUser(String(user.id), { email: '  ' })) as any).toMatchObject({ status: 400, error: 'Email cannot be empty' });
+    expect((await updateUser(String(user.id), { username: '' })) as any).toMatchObject({
+      status: 400,
+      error: 'Username cannot be empty',
+    });
+    expect((await updateUser(String(user.id), { email: '  ' })) as any).toMatchObject({
+      status: 400,
+      error: 'Email cannot be empty',
+    });
     // The row is untouched.
     const row = await readUser(orm, user.id);
     expect(row.username).toBe(user.username);
   });
-
 });
 
 // ── What an admin password reset ends, and what an ordinary edit must not ─────
@@ -823,7 +903,9 @@ describe('resetUserMfa', () => {
     await auth.generateToken({ id: user.id });
     await auth.generateToken({ id: admin.user.id });
 
-    expect((await asLegacyResult(svc.resetUserMfa(String(user.id), admin.user.id))) as { success?: boolean }).toMatchObject({ success: true });
+    expect(
+      (await asLegacyResult(svc.resetUserMfa(String(user.id), admin.user.id))) as { success?: boolean },
+    ).toMatchObject({ success: true });
     expect(await liveSessions(user.id)).toBe(0);
     expect(await liveSessions(admin.user.id)).toBe(1);
   });
@@ -835,7 +917,10 @@ describe('resetUserMfa', () => {
     const admin = createAdmin(testDb);
     const { user } = createUserWithMfa(testDb);
 
-    const result = (await asLegacyResult(svc.resetUserMfa(String(user.id), admin.user.id))) as { success?: boolean; email?: string };
+    const result = (await asLegacyResult(svc.resetUserMfa(String(user.id), admin.user.id))) as {
+      success?: boolean;
+      email?: string;
+    };
 
     expect(result.success).toBe(true);
     expect(result.email).toBe(user.email);
@@ -851,7 +936,10 @@ describe('resetUserMfa', () => {
     // self-service path in Settings asks for the current password.
     const admin = createAdmin(testDb);
 
-    const result = (await asLegacyResult(svc.resetUserMfa(String(admin.user.id), admin.user.id))) as { error?: string; status?: number };
+    const result = (await asLegacyResult(svc.resetUserMfa(String(admin.user.id), admin.user.id))) as {
+      error?: string;
+      status?: number;
+    };
 
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/your own/i);
@@ -860,7 +948,9 @@ describe('resetUserMfa', () => {
   it('ADMIN-SVC-085 — 404 for a user that is not there', async () => {
     const admin = createAdmin(testDb);
 
-    expect((await asLegacyResult(svc.resetUserMfa('99999', admin.user.id))) as { status?: number }).toMatchObject({ status: 404 });
+    expect((await asLegacyResult(svc.resetUserMfa('99999', admin.user.id))) as { status?: number }).toMatchObject({
+      status: 404,
+    });
   });
 });
 
@@ -905,7 +995,10 @@ describe('updateUser — last-admin guard (AD9/AD10, R4)', () => {
     createAdmin(testDb);
     const { user: secondAdmin } = createAdmin(testDb);
 
-    const result = (await updateUser(String(secondAdmin.id), { role: 'user' })) as { user?: { role: string }; error?: string };
+    const result = (await updateUser(String(secondAdmin.id), { role: 'user' })) as {
+      user?: { role: string };
+      error?: string;
+    };
 
     expect(result.error).toBeUndefined();
     const row = await readUser(orm, secondAdmin.id);
@@ -914,12 +1007,24 @@ describe('updateUser — last-admin guard (AD9/AD10, R4)', () => {
 });
 
 describe('getAuditLog — AD22 parity through the service (LEFT JOIN survives a deleted user, rule 16)', () => {
-  it('ADMIN-SVC-092 — a deleted user\'s audit row keeps its row (not dropped) with username/user_email both null, matching the legacy raw LEFT JOIN', async () => {
+  it("ADMIN-SVC-092 — a deleted user's audit row keeps its row (not dropped) with username/user_email both null, matching the legacy raw LEFT JOIN", async () => {
     const { user: liveUser } = createUser(testDb);
     const { user: doomedUser } = createUser(testDb);
 
-    await insertRow(orm, AuditLog, { user: liveUser.id, action: 'live_user_action', resource: 'trip', details: null, ip: '127.0.0.1' });
-    await insertRow(orm, AuditLog, { user: doomedUser.id, action: 'about_to_be_deleted_action', resource: 'trip', details: null, ip: '127.0.0.1' });
+    await insertRow(orm, AuditLog, {
+      user: liveUser.id,
+      action: 'live_user_action',
+      resource: 'trip',
+      details: null,
+      ip: '127.0.0.1',
+    });
+    await insertRow(orm, AuditLog, {
+      user: doomedUser.id,
+      action: 'about_to_be_deleted_action',
+      resource: 'trip',
+      details: null,
+      ip: '127.0.0.1',
+    });
 
     // audit_log.user_id is ON DELETE SET NULL (Task 0's report) — deleting the
     // user directly (not through the service) makes the row's user_id
@@ -937,9 +1042,16 @@ describe('getAuditLog — AD22 parity through the service (LEFT JOIN survives a 
          LIMIT ? OFFSET ?`,
       )
       .all(500, 0) as Array<{
-        id: number; created_at: string; user_id: number | null; username: string | null;
-        user_email: string | null; action: string; resource: string | null; details: string | null; ip: string | null;
-      }>;
+      id: number;
+      created_at: string;
+      user_id: number | null;
+      username: string | null;
+      user_email: string | null;
+      action: string;
+      resource: string | null;
+      details: string | null;
+      ip: string | null;
+    }>;
 
     const result = (await getAuditLog({ limit: '500', offset: '0' })) as {
       entries: Array<{ user_id: number | null; username: string | null; user_email: string | null; action: string }>;
@@ -972,7 +1084,9 @@ describe('updateUser — password-reset transaction boundary (AD11/12/13)', () =
     const { user } = createUser(testDb);
     const before = await readUser(orm, user.id);
 
-    const spy = vi.spyOn(mcpTokensRepo, 'deleteAllForUser').mockRejectedValueOnce(new Error('simulated mcp_tokens failure'));
+    const spy = vi
+      .spyOn(mcpTokensRepo, 'deleteAllForUser')
+      .mockRejectedValueOnce(new Error('simulated mcp_tokens failure'));
 
     await expect(
       updateUser(String(user.id), { username: 'should-roll-back', password: 'ANewStrongPass123!' }),
@@ -1021,10 +1135,13 @@ describe('createUser: the uniqueness-check TOCTOU window (AD2-4)', () => {
     const { user: existing } = createUser(testDb, { email: 'Case@Test.example.com' });
     const { user: other } = createUser(testDb, { email: 'other-case@test.example.com' });
 
-    await expect(svcCreateUser({ username: 'caseuser', email: 'case@test.example.com', password: 'ValidPass1!' }))
-      .resolves.toEqual({ error: 'Email already taken', status: 409 });
-    await expect(updateUser(String(other.id), { email: 'CASE@TEST.EXAMPLE.COM' }))
-      .resolves.toEqual({ error: 'Email already taken', status: 409 });
+    await expect(
+      svcCreateUser({ username: 'caseuser', email: 'case@test.example.com', password: 'ValidPass1!' }),
+    ).resolves.toEqual({ error: 'Email already taken', status: 409 });
+    await expect(updateUser(String(other.id), { email: 'CASE@TEST.EXAMPLE.COM' })).resolves.toEqual({
+      error: 'Email already taken',
+      status: 409,
+    });
     expect(existing.id).toBeGreaterThan(0);
   });
 });
@@ -1048,7 +1165,10 @@ describe('a create or edit that loses the race for an email or username', () => 
     createUser(testDb, { username: 'anna', email: 'anna@example.com' });
     const { user } = createUser(testDb, { username: 'carl', email: 'carl@example.com' });
     vi.spyOn(UsersRepository.prototype, 'findIdByEmailCI').mockResolvedValue(null);
-    expect(await updateUser(String(user.id), { email: 'Anna@Example.com' })).toEqual({ error: 'Email already taken', status: 409 });
+    expect(await updateUser(String(user.id), { email: 'Anna@Example.com' })).toEqual({
+      error: 'Email already taken',
+      status: 409,
+    });
     expect((await readUser(orm, user.id)).email).toBe('carl@example.com');
   });
 });

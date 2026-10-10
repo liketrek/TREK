@@ -19,21 +19,30 @@
  * which trips the all-trips feed pulled in without seeding the full
  * trip/day/reservation schema.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { Trips } from '../../src/db/entities/Trips.entity';
+import { AppConfigModule } from '../../src/nest/app-config/app-config.module';
+import { CalendarService } from '../../src/nest/calendar/calendar.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { FeedsModule } from '../../src/nest/feeds/feeds.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { createUser, createTrip, addTripMember } from '../helpers/factories';
+import { findRow, updateRows } from '../helpers/factories/rows';
+import { resetTestDb } from '../helpers/test-db';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db } from '../../src/db/database';
-import { resetTestDb } from '../helpers/test-db';
-import { createUser, createTrip, addTripMember } from '../helpers/factories';
-import { sessionCookie } from './harness';
 
 // Own the calendar parts so we control the events and can assert which trips were pulled.
 const SAMPLE_EVENT =
@@ -48,16 +57,6 @@ const sampleCalendar = () => ({
 // FeedsService injects CalendarService — the mock is a spy on the container
 // singleton (created in beforeAll, after build()).
 const buildTripCalendar = vi.fn();
-
-import { FeedsModule } from '../../src/nest/feeds/feeds.module';
-import { CalendarService } from '../../src/nest/calendar/calendar.service';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { AppConfigModule } from '../../src/nest/app-config/app-config.module';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { findRow, updateRows } from '../helpers/factories/rows';
-import { Trips } from '../../src/db/entities/Trips.entity';
 
 let orm: TestOrm;
 
@@ -130,7 +129,9 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     expect(first.status).toBe(201);
     expect(first.body.feed_url).toMatch(new RegExp(`^${BASE}/api/feed/trip/[0-9a-f-]+\\.ics$`));
 
-    const second = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
+    const second = await request(server)
+      .post(`/api/trips/${trip.id}/feed/token`)
+      .set('Cookie', sessionCookie(owner.id));
     expect(second.body.feed_url).toBe(first.body.feed_url); // same token, not a new one
   });
 
@@ -180,7 +181,9 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     const { user: owner } = createUser(db);
     const { user: outsider } = createUser(db);
     const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
-    const res = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(outsider.id));
+    const res = await request(server)
+      .post(`/api/trips/${trip.id}/feed/token`)
+      .set('Cookie', sessionCookie(outsider.id));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
   });
@@ -233,7 +236,9 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     addTripMember(db, trip.id, member.id);
 
     // The member may no longer manage it, but existing subscriptions must not break.
-    expect((await request(server).delete(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(member.id))).status).toBe(403);
+    expect(
+      (await request(server).delete(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(member.id))).status,
+    ).toBe(403);
     expect((await request(server).get(`/api/feed/trip/${token}.ics`)).status).toBe(200);
   });
 

@@ -2,25 +2,36 @@
  * Unit tests for MCP reservation tools: create_reservation, update_reservation,
  * delete_reservation, link_hotel_accommodation.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createReservation, createBudgetItem, createDayAssignment, createDayAccommodation, createCategory, addTripMember } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { ReservationTravelers } from '../../../src/db/entities/ReservationTravelers.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createReservation,
+  createBudgetItem,
+  createDayAssignment,
+  createDayAccommodation,
+  createCategory,
+  addTripMember,
+} from '../../helpers/factories';
+import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -53,7 +64,11 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -155,7 +170,10 @@ describe('Tool: create_reservation', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'create_reservation', arguments: { tripId: trip.id, title: 'Bus', type: 'other' } });
+      await h.client.callTool({
+        name: 'create_reservation',
+        arguments: { tripId: trip.id, title: 'Bus', type: 'other' },
+      });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'reservation:created', expect.any(Object));
     });
   });
@@ -169,7 +187,14 @@ describe('Tool: create_reservation', () => {
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'create_reservation',
-        arguments: { tripId: trip.id, title: 'Hotel', type: 'hotel', place_id: hotel.id, start_day_id: day1.id, end_day_id: day2.id },
+        arguments: {
+          tripId: trip.id,
+          title: 'Hotel',
+          type: 'hotel',
+          place_id: hotel.id,
+          start_day_id: day1.id,
+          end_day_id: day2.id,
+        },
       });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'accommodation:created', expect.any(Object));
     });
@@ -180,7 +205,10 @@ describe('Tool: create_reservation', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_reservation', arguments: { tripId: trip.id, title: 'X', type: 'flight' } });
+      const result = await h.client.callTool({
+        name: 'create_reservation',
+        arguments: { tripId: trip.id, title: 'X', type: 'flight' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -225,7 +253,10 @@ describe('Tool: update_reservation', () => {
     const trip = createTrip(testDb, user.id);
     const reservation = createReservation(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'update_reservation', arguments: { tripId: trip.id, reservationId: reservation.id, title: 'Updated' } });
+      await h.client.callTool({
+        name: 'update_reservation',
+        arguments: { tripId: trip.id, reservationId: reservation.id, title: 'Updated' },
+      });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'reservation:updated', expect.any(Object));
     });
   });
@@ -238,15 +269,27 @@ describe('Tool: update_reservation', () => {
     const picked = createBudgetItem(testDb, trip.id, { name: 'Taxi', category: 'transport' });
     await updateRows(orm, BudgetItems, { id: { $in: [auto.id, picked.id] } }, { reservation: reservation.id });
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_reservation', arguments: { tripId: trip.id, reservationId: reservation.id, type: 'activity' } });
+      const result = await h.client.callTool({
+        name: 'update_reservation',
+        arguments: { tripId: trip.id, reservationId: reservation.id, type: 'activity' },
+      });
       expect((parseToolResult(result) as { reservation: { type: string } }).reservation.type).toBe('activity');
     });
     // restaurant -> activity moves the auto-derived category; the hand-picked one stays.
-    expect((await findRows(orm, BudgetItems, { trip: trip.id }, { id: 'asc' })).map(r => ({ id: r.id, category: r.category })))
-      .toEqual([{ id: auto.id, category: 'activities' }, { id: picked.id, category: 'transport' }]);
-    const updated = broadcastMock.mock.calls.filter(c => c[1] === 'budget:updated').map(c => (c[2] as { item: { id: number } }).item.id);
+    expect(
+      (await findRows(orm, BudgetItems, { trip: trip.id }, { id: 'asc' })).map((r) => ({
+        id: r.id,
+        category: r.category,
+      })),
+    ).toEqual([
+      { id: auto.id, category: 'activities' },
+      { id: picked.id, category: 'transport' },
+    ]);
+    const updated = broadcastMock.mock.calls
+      .filter((c) => c[1] === 'budget:updated')
+      .map((c) => (c[2] as { item: { id: number } }).item.id);
     expect(updated).toEqual([auto.id]);
-    const events = broadcastMock.mock.calls.map(c => c[1]);
+    const events = broadcastMock.mock.calls.map((c) => c[1]);
     expect(events.indexOf('budget:updated')).toBeLessThan(events.indexOf('reservation:updated'));
   });
 
@@ -254,7 +297,10 @@ describe('Tool: update_reservation', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_reservation', arguments: { tripId: trip.id, reservationId: 99999, title: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_reservation',
+        arguments: { tripId: trip.id, reservationId: 99999, title: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -280,7 +326,10 @@ describe('Tool: update_reservation', () => {
     const trip = createTrip(testDb, other.id);
     const reservation = createReservation(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_reservation', arguments: { tripId: trip.id, reservationId: reservation.id, title: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_reservation',
+        arguments: { tripId: trip.id, reservationId: reservation.id, title: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -296,7 +345,10 @@ describe('Tool: delete_reservation', () => {
     const trip = createTrip(testDb, user.id);
     const reservation = createReservation(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_reservation', arguments: { tripId: trip.id, reservationId: reservation.id } });
+      const result = await h.client.callTool({
+        name: 'delete_reservation',
+        arguments: { tripId: trip.id, reservationId: reservation.id },
+      });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
       expect(await findRow(orm, Reservations, { id: reservation.id })).toBeNull();
@@ -314,7 +366,14 @@ describe('Tool: delete_reservation', () => {
     await withHarness(user.id, async (h) => {
       const r = await h.client.callTool({
         name: 'create_reservation',
-        arguments: { tripId: trip.id, title: 'Hotel', type: 'hotel', place_id: hotel.id, start_day_id: day1.id, end_day_id: day2.id },
+        arguments: {
+          tripId: trip.id,
+          title: 'Hotel',
+          type: 'hotel',
+          place_id: hotel.id,
+          start_day_id: day1.id,
+          end_day_id: day2.id,
+        },
       });
       reservationId = (parseToolResult(r) as any).reservation.id;
     });
@@ -334,10 +393,13 @@ describe('Tool: delete_reservation', () => {
     const trip = createTrip(testDb, user.id);
     const reservation = createReservation(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'delete_reservation', arguments: { tripId: trip.id, reservationId: reservation.id } });
+      await h.client.callTool({
+        name: 'delete_reservation',
+        arguments: { tripId: trip.id, reservationId: reservation.id },
+      });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'reservation:deleted', expect.any(Object));
       // Nothing was linked, so no expense is announced gone.
-      expect(broadcastMock.mock.calls.some(c => c[1] === 'budget:deleted')).toBe(false);
+      expect(broadcastMock.mock.calls.some((c) => c[1] === 'budget:deleted')).toBe(false);
     });
   });
 
@@ -350,14 +412,21 @@ describe('Tool: delete_reservation', () => {
     const unrelated = createBudgetItem(testDb, trip.id, { name: 'Coffee' });
     await updateRows(orm, BudgetItems, { id: { $in: [fare.id, luggage.id] } }, { reservation: reservation.id });
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_reservation', arguments: { tripId: trip.id, reservationId: reservation.id } });
+      const result = await h.client.callTool({
+        name: 'delete_reservation',
+        arguments: { tripId: trip.id, reservationId: reservation.id },
+      });
       expect(parseToolResult(result)).toEqual({ success: true });
     });
-    expect((await findRows(orm, BudgetItems, { trip: trip.id }, { id: 'asc' })).map(r => ({ id: r.id }))).toEqual([{ id: unrelated.id }]);
-    const deleted = broadcastMock.mock.calls.filter(c => c[1] === 'budget:deleted').map(c => (c[2] as { itemId: number }).itemId);
+    expect((await findRows(orm, BudgetItems, { trip: trip.id }, { id: 'asc' })).map((r) => ({ id: r.id }))).toEqual([
+      { id: unrelated.id },
+    ]);
+    const deleted = broadcastMock.mock.calls
+      .filter((c) => c[1] === 'budget:deleted')
+      .map((c) => (c[2] as { itemId: number }).itemId);
     expect(deleted).toEqual([fare.id, luggage.id]);
     // The expenses go out before the booking, so no client is left holding a link to nothing.
-    const events = broadcastMock.mock.calls.map(c => c[1]);
+    const events = broadcastMock.mock.calls.map((c) => c[1]);
     expect(events.lastIndexOf('budget:deleted')).toBeLessThan(events.indexOf('reservation:deleted'));
   });
 
@@ -365,7 +434,10 @@ describe('Tool: delete_reservation', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_reservation', arguments: { tripId: trip.id, reservationId: 99999 } });
+      const result = await h.client.callTool({
+        name: 'delete_reservation',
+        arguments: { tripId: trip.id, reservationId: 99999 },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -376,7 +448,10 @@ describe('Tool: delete_reservation', () => {
     const trip = createTrip(testDb, other.id);
     const reservation = createReservation(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_reservation', arguments: { tripId: trip.id, reservationId: reservation.id } });
+      const result = await h.client.callTool({
+        name: 'delete_reservation',
+        arguments: { tripId: trip.id, reservationId: reservation.id },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -398,7 +473,15 @@ describe('Tool: link_hotel_accommodation', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'link_hotel_accommodation',
-        arguments: { tripId: trip.id, reservationId: reservation.id, place_id: hotel.id, start_day_id: day1.id, end_day_id: day2.id, check_in: '14:00', check_out: '12:00' },
+        arguments: {
+          tripId: trip.id,
+          reservationId: reservation.id,
+          place_id: hotel.id,
+          start_day_id: day1.id,
+          end_day_id: day2.id,
+          check_in: '14:00',
+          check_out: '12:00',
+        },
       });
       const data = parseToolResult(result) as any;
       expect(data.reservation.accommodation_id).not.toBeNull();
@@ -425,7 +508,13 @@ describe('Tool: link_hotel_accommodation', () => {
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'link_hotel_accommodation',
-        arguments: { tripId: trip.id, reservationId: reservation.id, place_id: hotel.id, start_day_id: day1.id, end_day_id: day2.id },
+        arguments: {
+          tripId: trip.id,
+          reservationId: reservation.id,
+          place_id: hotel.id,
+          start_day_id: day1.id,
+          end_day_id: day2.id,
+        },
       });
     });
 
@@ -433,7 +522,13 @@ describe('Tool: link_hotel_accommodation', () => {
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'link_hotel_accommodation',
-        arguments: { tripId: trip.id, reservationId: reservation.id, place_id: hotel2.id, start_day_id: day2.id, end_day_id: day3.id },
+        arguments: {
+          tripId: trip.id,
+          reservationId: reservation.id,
+          place_id: hotel2.id,
+          start_day_id: day2.id,
+          end_day_id: day3.id,
+        },
       });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'accommodation:updated', expect.any(Object));
     });
@@ -449,7 +544,13 @@ describe('Tool: link_hotel_accommodation', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'link_hotel_accommodation',
-        arguments: { tripId: trip.id, reservationId: reservation.id, place_id: place.id, start_day_id: day1.id, end_day_id: day2.id },
+        arguments: {
+          tripId: trip.id,
+          reservationId: reservation.id,
+          place_id: place.id,
+          start_day_id: day1.id,
+          end_day_id: day2.id,
+        },
       });
       expect(result.isError).toBe(true);
     });
@@ -466,7 +567,13 @@ describe('Tool: link_hotel_accommodation', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'link_hotel_accommodation',
-        arguments: { tripId: trip1.id, reservationId: reservation.id, place_id: placeFromTrip2.id, start_day_id: day1.id, end_day_id: day2.id },
+        arguments: {
+          tripId: trip1.id,
+          reservationId: reservation.id,
+          place_id: placeFromTrip2.id,
+          start_day_id: day1.id,
+          end_day_id: day2.id,
+        },
       });
       expect(result.isError).toBe(true);
     });
@@ -483,7 +590,13 @@ describe('Tool: link_hotel_accommodation', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'link_hotel_accommodation',
-        arguments: { tripId: trip.id, reservationId: reservation.id, place_id: place.id, start_day_id: day1.id, end_day_id: day2.id },
+        arguments: {
+          tripId: trip.id,
+          reservationId: reservation.id,
+          place_id: place.id,
+          start_day_id: day1.id,
+          end_day_id: day2.id,
+        },
       });
       expect(result.isError).toBe(true);
     });
@@ -688,7 +801,9 @@ describe('Tool: set_reservation_travelers', () => {
     const { user: outsider } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
     let reservationId = 0;
-    await withHarness(owner.id, async (h) => { reservationId = await makeBooking(h, trip.id); });
+    await withHarness(owner.id, async (h) => {
+      reservationId = await makeBooking(h, trip.id);
+    });
     await withHarness(outsider.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_reservation_travelers',
@@ -728,7 +843,9 @@ describe('Reservation tools: url and reservation_end_time', () => {
       const result = await h.client.callTool({
         name: 'create_reservation',
         arguments: {
-          tripId: trip.id, type: 'restaurant', title: 'Dinner',
+          tripId: trip.id,
+          type: 'restaurant',
+          title: 'Dinner',
           url: 'https://example.com/booking/abc123',
         },
       });
@@ -746,8 +863,11 @@ describe('Reservation tools: url and reservation_end_time', () => {
       const result = await h.client.callTool({
         name: 'create_reservation',
         arguments: {
-          tripId: trip.id, type: 'restaurant', title: 'Dinner',
-          reservation_time: '2025-06-01T19:00:00', reservation_end_time: '2025-06-01T21:30:00',
+          tripId: trip.id,
+          type: 'restaurant',
+          title: 'Dinner',
+          reservation_time: '2025-06-01T19:00:00',
+          reservation_end_time: '2025-06-01T21:30:00',
         },
       });
       const data = parseToolResult(result) as any;
@@ -770,8 +890,10 @@ describe('Reservation tools: url and reservation_end_time', () => {
       await h.client.callTool({
         name: 'update_reservation',
         arguments: {
-          tripId: trip.id, reservationId: reservation.id,
-          url: 'https://tours.example/booking/9', reservation_end_time: '2025-06-02T16:00:00',
+          tripId: trip.id,
+          reservationId: reservation.id,
+          url: 'https://tours.example/booking/9',
+          reservation_end_time: '2025-06-02T16:00:00',
         },
       });
       const row = await reservationRow(reservation.id);
@@ -812,7 +934,9 @@ describe('Reservation tools: url and reservation_end_time', () => {
       const created = await h.client.callTool({
         name: 'create_transport',
         arguments: {
-          tripId: trip.id, type: 'bus', title: 'Zurich → Milan',
+          tripId: trip.id,
+          type: 'bus',
+          title: 'Zurich → Milan',
           url: 'https://flix.example/booking/8891',
         },
       });
@@ -852,14 +976,20 @@ describe('Tool: list_upcoming_reservations', () => {
     extra: Partial<{ type: string; status: string }> = {},
   ): Promise<number> {
     return insertRow(orm, Reservations, {
-      trip: tripId, title, type: extra.type ?? 'restaurant', status: extra.status ?? 'pending', reservation_time: time,
+      trip: tripId,
+      title,
+      type: extra.type ?? 'restaurant',
+      status: extra.status ?? 'pending',
+      reservation_time: time,
     });
   }
 
   async function upcoming(userId: number, args: Record<string, unknown> = {}) {
     let out: { title: string; type: string; trip_id: number }[] = [];
     await withHarness(userId, async (h) => {
-      const data = parseToolResult(await h.client.callTool({ name: 'list_upcoming_reservations', arguments: args })) as {
+      const data = parseToolResult(
+        await h.client.callTool({ name: 'list_upcoming_reservations', arguments: args }),
+      ) as {
         reservations: { title: string; type: string; trip_id: number }[];
       };
       out = data.reservations;
@@ -890,7 +1020,10 @@ describe('Tool: list_upcoming_reservations', () => {
     const arrival = createDay(testDb, trip.id, { date: dateInDays(3) });
     const departure = createDay(testDb, trip.id, { date: dateInDays(6) });
     const hotel = createPlace(testDb, trip.id, { name: 'Hotel Astoria' });
-    createDayAccommodation(testDb, trip.id, hotel.id, arrival.id, departure.id, { check_in: '15:00', check_out: '11:00' });
+    createDayAccommodation(testDb, trip.id, hotel.id, arrival.id, departure.id, {
+      check_in: '15:00',
+      check_out: '11:00',
+    });
 
     const rows = await upcoming(user.id);
     expect(rows.map((r) => [r.type, r.title])).toEqual([
@@ -919,7 +1052,12 @@ describe('Tool: list_upcoming_reservations', () => {
     for (let i = 1; i <= 8; i++) await seedBooking(trip.id, `Booking ${i}`, `${dateInDays(i)}T09:00:00`);
 
     expect((await upcoming(user.id)).map((r) => r.title)).toEqual([
-      'Booking 1', 'Booking 2', 'Booking 3', 'Booking 4', 'Booking 5', 'Booking 6',
+      'Booking 1',
+      'Booking 2',
+      'Booking 3',
+      'Booking 4',
+      'Booking 5',
+      'Booking 6',
     ]);
     expect((await upcoming(user.id, { limit: 2 })).map((r) => r.title)).toEqual(['Booking 1', 'Booking 2']);
   });

@@ -1,15 +1,15 @@
+import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
+import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { RealtimeService } from '../realtime/realtime.service';
+import { ReservationsService } from './reservations.service';
 import {
   reservationCreateRequestSchema,
   reservationEndpointsInputSchema,
   reservationUpdateRequestSchema,
 } from '@trek/shared';
-import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
-import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
-import { num, schemaMessage } from '../../nest-rpc/rpc-params';
-import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { RealtimeService } from '../realtime/realtime.service';
-import { ReservationsService } from './reservations.service';
 
 const RESERVATION_EDIT_ACTION = 'reservation_edit';
 
@@ -42,7 +42,11 @@ export class ReservationsRpc {
     const i = input as { title?: string; type?: string; create_budget_entry?: unknown };
     // Same as the REST route: the price keeps its currency, at a rate frozen now (#2525).
     const budgetEntry = await this.reservations.withFrozenRate(tripId, i.create_budget_entry as never);
-    const { reservation, accommodationCreated, costEvents } = await this.reservations.createWithCost(String(tripId), input as never, budgetEntry);
+    const { reservation, accommodationCreated, costEvents } = await this.reservations.createWithCost(
+      String(tripId),
+      input as never,
+      budgetEntry,
+    );
     if (accommodationCreated) this.realtime.broadcast(tripId, 'accommodation:created', {}, undefined);
     this.reservations.announceCost(tripId, costEvents, undefined);
     this.realtime.broadcast(tripId, 'reservation:created', { reservation }, undefined);
@@ -64,7 +68,13 @@ export class ReservationsRpc {
     if (!current) throw new ForbiddenResource(`no reservation ${reservationId} on trip ${tripId}`);
     await this.requireOwnReferences(tripId, input);
     const i = input as { title?: string; type?: string; create_budget_entry?: unknown };
-    const { reservation, accommodationChanged, costEvents } = await this.reservations.updateWithCost(String(reservationId), String(tripId), input as never, current, i.create_budget_entry as never);
+    const { reservation, accommodationChanged, costEvents } = await this.reservations.updateWithCost(
+      String(reservationId),
+      String(tripId),
+      input as never,
+      current,
+      i.create_budget_entry as never,
+    );
     if (accommodationChanged) this.realtime.broadcast(tripId, 'accommodation:updated', {}, undefined);
     const cur = current as { title: string; type?: string };
     this.reservations.announceCost(tripId, costEvents, undefined);
@@ -79,9 +89,18 @@ export class ReservationsRpc {
     const reservationId = num(params.reservationId, 'reservationId');
     const actor = this.guards.requireActor(ctx, 'reservation');
     await this.guards.requireTripEdit(tripId, actor, RESERVATION_EDIT_ACTION);
-    const { deleted, accommodationDeleted, deletedBudgetItemIds } = await this.reservations.remove(String(reservationId), String(tripId));
+    const { deleted, accommodationDeleted, deletedBudgetItemIds } = await this.reservations.remove(
+      String(reservationId),
+      String(tripId),
+    );
     if (!deleted) throw new ForbiddenResource(`no reservation ${reservationId} on trip ${tripId}`);
-    if (accommodationDeleted) this.realtime.broadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id }, undefined);
+    if (accommodationDeleted)
+      this.realtime.broadcast(
+        tripId,
+        'accommodation:deleted',
+        { accommodationId: deleted.accommodation_id },
+        undefined,
+      );
     for (const itemId of deletedBudgetItemIds) this.realtime.broadcast(tripId, 'budget:deleted', { itemId }, undefined);
     this.realtime.broadcast(tripId, 'reservation:deleted', { reservationId }, undefined);
     await this.notifyBooking(actor, tripId, deleted.title, deleted.type || '');

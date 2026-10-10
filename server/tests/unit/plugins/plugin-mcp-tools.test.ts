@@ -6,8 +6,11 @@
  * in mcp-tool-schema.test.ts; this file covers the intersection, the gates, the
  * caps and the result envelope.
  */
-import { PluginMcpToolsService, toMcpTextResult } from '../../../src/nest/plugins/contributions/plugin-mcp-tools.service';
 import type { McpContext } from '../../../src/nest-mcp';
+import {
+  PluginMcpToolsService,
+  toMcpTextResult,
+} from '../../../src/nest/plugins/contributions/plugin-mcp-tools.service';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -102,8 +105,12 @@ describe('the advertised surface', () => {
     const { svc } = makeService({
       providers: ['broken', 'weather'],
       declared: {
-        get weather() { return [weatherTool]; },
-        get broken(): never { throw new Error('bad row'); },
+        get weather() {
+          return [weatherTool];
+        },
+        get broken(): never {
+          throw new Error('bad row');
+        },
       } as never,
       implemented: { weather: ['forecast'], broken: ['x'] },
     });
@@ -177,7 +184,11 @@ describe('invoking a tool', () => {
   });
 
   it('MCPTOOLS-013: maps a throwing plugin to a tool error, not a protocol fault', async () => {
-    const { svc } = makeService({ callTool: vi.fn(async () => { throw new Error('upstream 503'); }) });
+    const { svc } = makeService({
+      callTool: vi.fn(async () => {
+        throw new Error('upstream 503');
+      }),
+    });
     const res = await invoke(svc);
     expect(res.isError).toBe(true);
     expect(res.content[0].text).toContain('upstream 503');

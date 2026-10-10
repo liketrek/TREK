@@ -1,3 +1,29 @@
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { logError } from '../../../src/nest/audit/audit-log.logger';
+import type { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
+import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { hostVersion } from '../../../src/nest/plugins/install/host-compat';
+import { RealtimeGateway } from '../../../src/nest/realtime/realtime.gateway';
+import {
+  bookPeers,
+  broadcast,
+  broadcastToBook,
+  joinBook,
+  leaveBook,
+  broadcastToUser,
+  getOnlineUserIds,
+  joinRoom,
+  registerSocket,
+  setServer,
+  userOf,
+  type TrekWebSocket,
+} from '../../../src/nest/realtime/ws-state';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
+import { emitPluginEvent } from '../../../src/plugin-event-sink';
+import type { User } from '../../../src/types';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -19,32 +45,6 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
   logWarn: vi.fn(),
 }));
 
-import { RealtimeGateway } from '../../../src/nest/realtime/realtime.gateway';
-import { hostVersion } from '../../../src/nest/plugins/install/host-compat';
-import { logError } from '../../../src/nest/audit/audit-log.logger';
-import {
-  bookPeers,
-  broadcast,
-  broadcastToBook,
-  joinBook,
-  leaveBook,
-  broadcastToUser,
-  getOnlineUserIds,
-  joinRoom,
-  registerSocket,
-  setServer,
-  userOf,
-  type TrekWebSocket,
-} from '../../../src/nest/realtime/ws-state';
-import { emitPluginEvent } from '../../../src/plugin-event-sink';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
-import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { User } from '../../../src/types';
-import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
-
 interface FakeSocket extends TrekWebSocket {
   sent: string[];
   closedWith: [number, string] | null;
@@ -57,8 +57,12 @@ function socket(): FakeSocket {
     isAlive: false,
     sent,
     closedWith: null as [number, string] | null,
-    send: (raw: string) => { sent.push(raw); },
-    close: (code: number, reason: string) => { s.closedWith = [code, reason]; },
+    send: (raw: string) => {
+      sent.push(raw);
+    },
+    close: (code: number, reason: string) => {
+      s.closedWith = [code, reason];
+    },
     on: vi.fn(),
     terminate: vi.fn(),
     ping: vi.fn(),
@@ -197,7 +201,9 @@ describe('RealtimeGateway handshake', () => {
     // must still answer the callback rather than escape as an uncaught
     // exception (recipe R1.5's catch site).
     const throwingUsers = {
-      findForWsHandshake: () => { throw new Error('db exploded'); },
+      findForWsHandshake: () => {
+        throw new Error('db exploded');
+      },
     } as unknown as UsersRepository;
     const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, throwingUsers, appSettings);
     const ws = socket();
@@ -210,7 +216,9 @@ describe('RealtimeGateway handshake', () => {
 
   it('WSGW-009b: a non-Error thrown during the handshake is stringified rather than crashing the catch itself', async () => {
     const throwingUsers = {
-      findForWsHandshake: () => { throw 'db string'; }, // non-Error throw, pinning the ternary's String(err) fallback
+      findForWsHandshake: () => {
+        throw 'db string';
+      }, // non-Error throw, pinning the ternary's String(err) fallback
     } as unknown as UsersRepository;
     const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, throwingUsers, appSettings);
     const ws = socket();
@@ -285,8 +293,9 @@ describe('RealtimeGateway heartbeat', () => {
 
   it('WSGW-022: a pong marks the socket live again', async () => {
     const { ws } = await connect('/ws?token=x');
-    const pong = (ws.on as unknown as { mock: { calls: [string, () => void][] } }).mock.calls
-      .find(([event]) => event === 'pong');
+    const pong = (ws.on as unknown as { mock: { calls: [string, () => void][] } }).mock.calls.find(
+      ([event]) => event === 'pong',
+    );
     expect(pong).toBeDefined();
     ws.isAlive = false;
     pong![1]();
@@ -390,7 +399,7 @@ describe('book rooms', () => {
     const j = nextJourney++;
     const { reply } = await joined(j);
     expect(reply).toEqual({ type: 'book:joined', journeyId: j });
-    expect(bookPeers(j).map(p => p.userId)).toEqual([3]);
+    expect(bookPeers(j).map((p) => p.userId)).toEqual([3]);
   });
 
   /* Same shape as the trip room's refusal, and for the same reason. */
@@ -409,7 +418,7 @@ describe('book rooms', () => {
     first.sent.length = 0;
     await joined(j);
 
-    const peers = first.sent.map(raw => JSON.parse(raw)).filter(m => m.type === 'journey:book:peers');
+    const peers = first.sent.map((raw) => JSON.parse(raw)).filter((m) => m.type === 'journey:book:peers');
     expect(peers).toHaveLength(1);
     expect(peers[0].peers).toHaveLength(2);
     expect(peers[0].journeyId).toBe(j);
@@ -436,7 +445,7 @@ describe('book rooms', () => {
     gw.handleDisconnect(ws);
 
     expect(bookPeers(j)).toHaveLength(1);
-    const peers = other.ws.sent.map(raw => JSON.parse(raw)).filter(m => m.type === 'journey:book:peers');
+    const peers = other.ws.sent.map((raw) => JSON.parse(raw)).filter((m) => m.type === 'journey:book:peers');
     expect(peers[peers.length - 1].peers).toHaveLength(1);
   });
 });
@@ -459,7 +468,7 @@ describe('book pointers', () => {
   }
 
   const cursorsIn = (ws: FakeSocket) =>
-    ws.sent.map(raw => JSON.parse(raw)).filter(m => m.type === 'journey:book:cursor');
+    ws.sent.map((raw) => JSON.parse(raw)).filter((m) => m.type === 'journey:book:cursor');
 
   it('WSGW-CUR-001: forwards a pointer to the others, not back to the sender', async () => {
     const { gw, mine, theirs, journeyId } = await pair();
@@ -533,8 +542,10 @@ describe('book messages that are refused', () => {
     const ws = socket();
     registerSocket(ws, { id: 3, username: 'm' } as User);
 
-    expect(await gw.handleBookJoin({ journeyId: 'not-a-journey' }, ws))
-      .toEqual({ type: 'error', message: 'Access denied' });
+    expect(await gw.handleBookJoin({ journeyId: 'not-a-journey' }, ws)).toEqual({
+      type: 'error',
+      message: 'Access denied',
+    });
   });
 
   it('WSGW-BOOK-009: a leave without a journey id is ignored', () => {
@@ -607,7 +618,7 @@ describe('book rooms with unusable sockets in them', () => {
     joinBook(dead, j);
     (dead as { readyState: number }).readyState = 3;
 
-    expect(bookPeers(j).map(p => p.userId)).toEqual([3]);
+    expect(bookPeers(j).map((p) => p.userId)).toEqual([3]);
   });
 
   it('WSST-BOOK-002: a socket that was never registered is not a peer', () => {
@@ -617,7 +628,7 @@ describe('book rooms with unusable sockets in them', () => {
     joinBook(known, j);
     joinBook(socket(), j);
 
-    expect(bookPeers(j).map(p => p.userId)).toEqual([3]);
+    expect(bookPeers(j).map((p) => p.userId)).toEqual([3]);
   });
 
   it('WSST-BOOK-003: a broadcast skips a closed socket instead of writing to it', () => {
@@ -656,7 +667,7 @@ describe('book rooms with unusable sockets in them', () => {
     leaveBook(ws, a);
 
     expect(bookPeers(a)).toEqual([]);
-    expect(bookPeers(b).map(p => p.userId)).toEqual([3]);
+    expect(bookPeers(b).map((p) => p.userId)).toEqual([3]);
   });
 
   it('WSST-BOOK-006: leaving a book that does not exist is not an error', () => {

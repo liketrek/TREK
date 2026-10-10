@@ -1,6 +1,6 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { McpAttachOptions, McpRegistry } from '../nest-mcp';
 import { getPluginMcpToolSource } from '../plugin-mcp-tools';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
 /**
  * Attaches the MCP surface to a session's server.
@@ -18,6 +18,21 @@ import { getPluginMcpToolSource } from '../plugin-mcp-tools';
  * exist and an app built without the plugins runtime resolves it to undefined.
  * Tests pass it explicitly instead of reaching for the global.
  */
-export async function registerTools(registry: McpRegistry | null, server: McpServer, userId: number, scopes: string[] | null, isStaticToken = false, getDeprecationNotice: () => string | null = () => null, onInvoke?: McpAttachOptions['onInvoke'], dynamicTools: McpAttachOptions['dynamicTools'] = getPluginMcpToolSource() ?? undefined, around?: McpAttachOptions['around']): Promise<void> {
-  if (registry) await registry.attach(server, { userId, scopes, isStaticToken, getDeprecationNotice }, { onInvoke, dynamicTools, around });
+export async function registerTools(
+  registry: McpRegistry | null,
+  server: McpServer,
+  userId: number,
+  scopes: string[] | null,
+  isStaticToken = false,
+  getDeprecationNotice: () => string | null = () => null,
+  onInvoke?: McpAttachOptions['onInvoke'],
+  dynamicTools: McpAttachOptions['dynamicTools'] = getPluginMcpToolSource() ?? undefined,
+  around?: McpAttachOptions['around'],
+): Promise<void> {
+  if (registry)
+    await registry.attach(
+      server,
+      { userId, scopes, isStaticToken, getDeprecationNotice },
+      { onInvoke, dynamicTools, around },
+    );
 }

@@ -1,6 +1,7 @@
-import semver from 'semver';
 import { readEnv } from '../app-config';
 import type { SystemNotice } from './types.js';
+
+import semver from 'semver';
 
 export function getCurrentAppVersion(): string {
   const fromEnv = semver.valid(readEnv().app.appVersion ?? '');
@@ -17,12 +18,18 @@ export function isNoticeVersionActive(n: SystemNotice, currentAppVersion: string
   const appVersion = semver.coerce(currentAppVersion)?.version ?? '0.0.0';
   if (n.minVersion !== undefined) {
     const min = semver.valid(n.minVersion);
-    if (!min) { console.warn(`[systemNotices] "${n.id}" invalid minVersion "${n.minVersion}" — skipping`); return false; }
+    if (!min) {
+      console.warn(`[systemNotices] "${n.id}" invalid minVersion "${n.minVersion}" — skipping`);
+      return false;
+    }
     if (semver.lt(appVersion, min)) return false;
   }
   if (n.maxVersion !== undefined) {
     const max = semver.valid(n.maxVersion);
-    if (!max) { console.warn(`[systemNotices] "${n.id}" invalid maxVersion "${n.maxVersion}" — skipping`); return false; }
+    if (!max) {
+      console.warn(`[systemNotices] "${n.id}" invalid maxVersion "${n.maxVersion}" — skipping`);
+      return false;
+    }
     if (semver.gte(appVersion, max)) return false;
   }
   return true;

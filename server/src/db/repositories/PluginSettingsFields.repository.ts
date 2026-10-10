@@ -62,7 +62,17 @@ export class PluginSettingsFieldsRepository extends TrekRepository<PluginSetting
     const rows = await this.find(
       { plugin_id: pluginId, scope },
       {
-        fields: ['field_key', 'label', 'input_type', 'placeholder', 'hint', 'required', 'secret', 'options', 'default_value'],
+        fields: [
+          'field_key',
+          'label',
+          'input_type',
+          'placeholder',
+          'hint',
+          'required',
+          'secret',
+          'options',
+          'default_value',
+        ],
         orderBy: [{ sort_order: 'asc' }, { id: 'asc' }],
       },
     );
@@ -111,7 +121,10 @@ export class PluginSettingsFieldsRepository extends TrekRepository<PluginSetting
    * this repository's own established convention on every other `scope`-taking
    * method here).
    */
-  async listFieldKeysWithSecretFlag(pluginId: string, scope: 'instance' | 'user'): Promise<Array<{ field_key: string; secret: number }>> {
+  async listFieldKeysWithSecretFlag(
+    pluginId: string,
+    scope: 'instance' | 'user',
+  ): Promise<Array<{ field_key: string; secret: number }>> {
     const rows = await this.find({ plugin_id: pluginId, scope }, { fields: ['field_key', 'secret'] });
     return rows.map((r) => ({ field_key: r.field_key, secret: r.secret }));
   }
@@ -153,7 +166,10 @@ export class PluginSettingsFieldsRepository extends TrekRepository<PluginSetting
    * manifest parse drops it before it ever reaches a row) — the `secret = 0` filter is
    * belt-and-braces, kept exactly as the legacy statement had it.
    */
-  async listDefaults(pluginId: string, scope: 'instance' | 'user'): Promise<Array<{ field_key: string; default_value: string }>> {
+  async listDefaults(
+    pluginId: string,
+    scope: 'instance' | 'user',
+  ): Promise<Array<{ field_key: string; default_value: string }>> {
     const rows = await this.find(
       { plugin_id: pluginId, scope, secret: 0, default_value: { $ne: null } },
       { fields: ['field_key', 'default_value'] },

@@ -6,12 +6,27 @@
  * mocked. Focuses on auth, the inline admin gate on /test-smtp, routing (the
  * /in-app/all ordering trap) and status/body shapes.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { Notifications } from '../../src/db/entities/Notifications.entity';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
+import { NotificationPreferencesService } from '../../src/nest/notifications/notification-preferences.service';
+import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
+import { NtfyService } from '../../src/nest/notifications/transports/ntfy.service';
+import { WebhookService } from '../../src/nest/notifications/transports/webhook.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { makeNotification } from '../helpers/factories/notifications';
+import { deleteRows, findRows } from '../helpers/factories/rows';
+import { makeAdmin, makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -23,25 +38,15 @@ vi.mock('../../src/db/database', async () => {
 // in-app store is real SQL.
 const { prefs, mailer, webhook, ntfy } = vi.hoisted(() => ({
   prefs: { getPreferencesMatrix: vi.fn(), setPreferences: vi.fn() },
-  mailer: { testSmtp: vi.fn(), isSmtpConfigured: vi.fn(() => true), getUserEmail: vi.fn(), getUserLanguage: vi.fn(() => 'en') },
+  mailer: {
+    testSmtp: vi.fn(),
+    isSmtpConfigured: vi.fn(() => true),
+    getUserEmail: vi.fn(),
+    getUserLanguage: vi.fn(() => 'en'),
+  },
   webhook: { testWebhook: vi.fn(), getUserWebhookUrl: vi.fn(), getAdminWebhookUrl: vi.fn() },
   ntfy: { testNtfy: vi.fn(), getUserNtfyConfig: vi.fn(), getAdminNtfyConfig: vi.fn() },
 }));
-
-import { db } from '../../src/db/database';
-import { Notifications } from '../../src/db/entities/Notifications.entity';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { NotificationsModule } from '../../src/nest/notifications/notifications.module';
-import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
-import { NotificationPreferencesService } from '../../src/nest/notifications/notification-preferences.service';
-import { NtfyService } from '../../src/nest/notifications/transports/ntfy.service';
-import { WebhookService } from '../../src/nest/notifications/transports/webhook.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeAdmin, makeUser } from '../helpers/factories/users';
-import { makeNotification } from '../helpers/factories/notifications';
-import { deleteRows, findRows } from '../helpers/factories/rows';
 
 let orm: TestOrm;
 
@@ -60,12 +65,21 @@ describe('Notifications e2e (real auth guard + migrated temp SQLite)', () => {
 
   async function build() {
     const moduleRef = await Test.createTestingModule({
-      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, NotificationsModule],
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        NotificationsModule,
+      ],
     })
-      .overrideProvider(NotificationPreferencesService).useValue(prefs)
-      .overrideProvider(MailerService).useValue(mailer)
-      .overrideProvider(WebhookService).useValue(webhook)
-      .overrideProvider(NtfyService).useValue(ntfy)
+      .overrideProvider(NotificationPreferencesService)
+      .useValue(prefs)
+      .overrideProvider(MailerService)
+      .useValue(mailer)
+      .overrideProvider(WebhookService)
+      .useValue(webhook)
+      .overrideProvider(NtfyService)
+      .useValue(ntfy)
       .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -81,7 +95,12 @@ describe('Notifications e2e (real auth guard + migrated temp SQLite)', () => {
     await makeUser(orm, { id: 2, email: 'user@example.test' });
     app = await build();
     server = app.getHttpServer();
-    prefs.getPreferencesMatrix.mockReturnValue({ preferences: {}, available_channels: {}, event_types: [], implemented_combos: {} });
+    prefs.getPreferencesMatrix.mockReturnValue({
+      preferences: {},
+      available_channels: {},
+      event_types: [],
+      implemented_combos: {},
+    });
     mailer.testSmtp.mockResolvedValue({ success: true });
   });
 
@@ -109,7 +128,10 @@ describe('Notifications e2e (real auth guard + migrated temp SQLite)', () => {
   });
 
   it('200 test-smtp for an admin (stays 200, not 201)', async () => {
-    const res = await request(server).post('/api/notifications/test-smtp').set('Cookie', sessionCookie(1)).send({ email: 'x@y.z' });
+    const res = await request(server)
+      .post('/api/notifications/test-smtp')
+      .set('Cookie', sessionCookie(1))
+      .send({ email: 'x@y.z' });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true });
   });
@@ -134,7 +156,7 @@ describe('Notifications e2e (real auth guard + migrated temp SQLite)', () => {
     // Only user 2's rows are gone — the static route deleted per-recipient, it
     // did not fall through to the /:id param handler (which would 400 on 'all').
     const rows = await findRows(orm, Notifications);
-    expect(rows.map(r => r.id)).toEqual([other]);
+    expect(rows.map((r) => r.id)).toEqual([other]);
   });
 
   it('400 on a non-numeric in-app id', async () => {

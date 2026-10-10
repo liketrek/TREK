@@ -1,14 +1,15 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { OauthClients } from '../../../../src/db/entities/OauthClients.entity';
+import { OauthConsents } from '../../../../src/db/entities/OauthConsents.entity';
+import type { OauthConsentsRepository } from '../../../../src/db/repositories/OauthConsents.repository';
+import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
-import { OauthConsents } from '../../../../src/db/entities/OauthConsents.entity';
-import { OauthClients } from '../../../../src/db/entities/OauthClients.entity';
-import { findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
-import type { OauthConsentsRepository } from '../../../../src/db/repositories/OauthConsents.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
-import { withRequestContext } from '../../../../src/nest/database/request-context';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -20,8 +21,16 @@ beforeAll(async () => {
   consents = t.repo(OauthConsents);
   uow = new UnitOfWork(t.em);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); testDb.exec('DELETE FROM oauth_consents'); testDb.exec('DELETE FROM oauth_clients'); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+  testDb.exec('DELETE FROM oauth_consents');
+  testDb.exec('DELETE FROM oauth_clients');
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 async function seedClient(userId: number, clientId: string): Promise<void> {
   await insertRow(t, OauthClients, {
@@ -114,7 +123,7 @@ describe('OauthConsentsRepository', () => {
   // diff), and a raw write to the same row on the transaction's own
   // connection, made afterward, is never fought by the closing flush.
   describe('findScopes does not dirty the entity it reads', () => {
-    it('OAUTHCONSENTREPO-007: findScopes then a raw write on the same transaction connection — the raw write survives the transaction\'s closing flush', async () => {
+    it("OAUTHCONSENTREPO-007: findScopes then a raw write on the same transaction connection — the raw write survives the transaction's closing flush", async () => {
       const { user } = createUser(testDb);
       await seedClient(user.id, 'proto-7');
       await insertRow(t, OauthConsents, { client: 'proto-7', user: user.id, scopes: '["a"]' });
@@ -130,7 +139,9 @@ describe('OauthConsentsRepository', () => {
           // connection the open transaction holds (D3/D6) — the shape any
           // nativeUpdate write from elsewhere in the same request takes.
           // test-sql-allow: the write has to run on the connection the open transaction holds, past the ORM.
-          testDb.prepare('UPDATE oauth_consents SET scopes = ? WHERE client_id = ? AND user_id = ?').run('["a","b"]', 'proto-7', user.id);
+          testDb
+            .prepare('UPDATE oauth_consents SET scopes = ? WHERE client_id = ? AND user_id = ?')
+            .run('["a","b"]', 'proto-7', user.id);
         });
       });
 

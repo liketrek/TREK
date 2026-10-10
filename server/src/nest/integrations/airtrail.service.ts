@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import type { AirtrailFlight } from '@trek/shared';
 import { UserAirtrailRepository } from '../../db/repositories/UserAirtrail.repository';
+import { checkSsrf } from '../../utils/ssrfGuard';
 import { AuditService } from '../audit/audit.service';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { checkSsrf } from '../../utils/ssrfGuard';
 import { AirtrailAuthError, AirtrailRequestError, type AirtrailCreds } from './airtrail.client';
 import { AirtrailClient } from './airtrail.client';
 import { normalizeFlight } from './airtrail.mapper';
+import { Injectable } from '@nestjs/common';
+import type { AirtrailFlight } from '@trek/shared';
 
 const KEY_MASK = '••••••••';
 
@@ -120,9 +120,20 @@ export class AirtrailService {
     const newKey = provided && provided !== KEY_MASK ? maybe_encrypt_api_key(provided) : undefined;
 
     if (newKey !== undefined) {
-      await this.airtrailRepo.setAirtrailSettingsWithKey(userId, trimmedUrl || null, newKey, allowInsecureTls ? 1 : 0, writeEnabled ? 1 : 0);
+      await this.airtrailRepo.setAirtrailSettingsWithKey(
+        userId,
+        trimmedUrl || null,
+        newKey,
+        allowInsecureTls ? 1 : 0,
+        writeEnabled ? 1 : 0,
+      );
     } else {
-      await this.airtrailRepo.setAirtrailSettings(userId, trimmedUrl || null, allowInsecureTls ? 1 : 0, writeEnabled ? 1 : 0);
+      await this.airtrailRepo.setAirtrailSettings(
+        userId,
+        trimmedUrl || null,
+        allowInsecureTls ? 1 : 0,
+        writeEnabled ? 1 : 0,
+      );
       // Clearing the URL with no key left makes the connection meaningless — drop the key too.
       if (!trimmedUrl) {
         await this.airtrailRepo.clearAirtrailApiKey(userId);
@@ -143,9 +154,7 @@ export class AirtrailService {
   }
 
   /** Live check using the stored connection. */
-  async getConnectionStatus(
-    userId: number,
-  ): Promise<{ connected: boolean; flightCount?: number; error?: string }> {
+  async getConnectionStatus(userId: number): Promise<{ connected: boolean; flightCount?: number; error?: string }> {
     const creds = await this.getAirtrailCredentials(userId);
     if (!creds) return { connected: false, error: 'Not configured' };
     return this.probe(creds);

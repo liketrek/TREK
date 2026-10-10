@@ -7,12 +7,30 @@
  * countries/geo serves the real bundled admin-0 gz. Seeded data stays
  * coordinate-free so the background place_regions geocode never fires.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { BucketList } from '../../src/db/entities/BucketList.entity';
+import { HiddenCountries } from '../../src/db/entities/HiddenCountries.entity';
+import { PlaceRegions } from '../../src/db/entities/PlaceRegions.entity';
+import { VisitedCountries } from '../../src/db/entities/VisitedCountries.entity';
+import { VisitedRegions } from '../../src/db/entities/VisitedRegions.entity';
+import { AtlasModule } from '../../src/nest/atlas/atlas.module';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { createUser, createTrip } from '../helpers/factories';
+import { markCountryVisited } from '../helpers/factories/atlas';
+import { makePlace } from '../helpers/factories/places';
+import { makeReservation, makeReservationEndpoint } from '../helpers/factories/reservations';
+import { countRows, deleteRows, findRow, upsertRow } from '../helpers/factories/rows';
+import { makeMcpToken } from '../helpers/factories/tokens';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb } = await import('../helpers/db-mock');
@@ -27,24 +45,6 @@ vi.mock('../../src/db/database', async () => {
   };
 });
 
-import { db } from '../../src/db/database';
-import { createUser, createTrip } from '../helpers/factories';
-import { AtlasModule } from '../../src/nest/atlas/atlas.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { countRows, deleteRows, findRow, upsertRow } from '../helpers/factories/rows';
-import { markCountryVisited } from '../helpers/factories/atlas';
-import { makePlace } from '../helpers/factories/places';
-import { makeReservation, makeReservationEndpoint } from '../helpers/factories/reservations';
-import { makeMcpToken } from '../helpers/factories/tokens';
-import { BucketList } from '../../src/db/entities/BucketList.entity';
-import { HiddenCountries } from '../../src/db/entities/HiddenCountries.entity';
-import { PlaceRegions } from '../../src/db/entities/PlaceRegions.entity';
-import { VisitedCountries } from '../../src/db/entities/VisitedCountries.entity';
-import { VisitedRegions } from '../../src/db/entities/VisitedRegions.entity';
-
 describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
@@ -52,7 +52,9 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
   let orm: TestOrm;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), AtlasModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), AtlasModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -115,7 +117,10 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
   });
 
   it('400 on region mark without country_code (ZodValidationPipe envelope)', async () => {
-    const res = await request(server).post('/api/addons/atlas/region/by/mark').set('Cookie', sessionCookie(userId)).send({ name: 'Bavaria' });
+    const res = await request(server)
+      .post('/api/addons/atlas/region/by/mark')
+      .set('Cookie', sessionCookie(userId))
+      .send({ name: 'Bavaria' });
     expect(res.status).toBe(400);
     // The legacy hand-rolled 'name and country_code are required' body became
     // the pipe's `field: message` envelope with the atlas DTO ratchet.
@@ -124,7 +129,10 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
   });
 
   it("400 'Name is required' on whitespace-only bucket name (legacy trim guard survives the DTO)", async () => {
-    const res = await request(server).post('/api/addons/atlas/bucket-list').set('Cookie', sessionCookie(userId)).send({ name: '   ' });
+    const res = await request(server)
+      .post('/api/addons/atlas/bucket-list')
+      .set('Cookie', sessionCookie(userId))
+      .send({ name: '   ' });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Name is required' });
   });
@@ -144,7 +152,10 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
   });
 
   it('201 on bucket-list create, row persisted', async () => {
-    const res = await request(server).post('/api/addons/atlas/bucket-list').set('Cookie', sessionCookie(userId)).send({ name: 'Kyoto' });
+    const res = await request(server)
+      .post('/api/addons/atlas/bucket-list')
+      .set('Cookie', sessionCookie(userId))
+      .send({ name: 'Kyoto' });
     expect(res.status).toBe(201);
     expect(res.body.item.name).toBe('Kyoto');
     const row = await findRow(orm, BucketList, { id: res.body.item.id });
@@ -152,11 +163,15 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
   });
 
   it('keeps a wished-for region, and refuses one outside the item country (#1901)', async () => {
-    const ok = await request(server).post('/api/addons/atlas/bucket-list').set('Cookie', sessionCookie(userId))
+    const ok = await request(server)
+      .post('/api/addons/atlas/bucket-list')
+      .set('Cookie', sessionCookie(userId))
       .send({ name: 'Bayern', country_code: 'DE', region_code: 'DE-BY' });
     expect(ok.status).toBe(201);
     expect(ok.body.item.region_code).toBe('DE-BY');
-    const bad = await request(server).post('/api/addons/atlas/bucket-list').set('Cookie', sessionCookie(userId))
+    const bad = await request(server)
+      .post('/api/addons/atlas/bucket-list')
+      .set('Cookie', sessionCookie(userId))
       .send({ name: 'Berlin', country_code: 'FR', region_code: 'DE-BE' });
     expect(bad.status).toBe(400);
   });
@@ -171,11 +186,20 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
   // trip must still reach the client (so the map can draw it) without counting as a
   // visit. Runs on its own user so the trip-less pin above stays trip-less.
   it('200 stats keeps a future trip out of the visited count but still ships it as planned', async () => {
-    const plannerId = createUser(db as never, { username: 'atlas-planner', email: 'atlas-planner@test.example' }).user.id;
+    const plannerId = createUser(db as never, { username: 'atlas-planner', email: 'atlas-planner@test.example' }).user
+      .id;
     // Offsets from today, not literal dates — a hardcoded future date expires.
     const iso = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
-    const past = createTrip(db as never, plannerId, { title: 'Rome, last month', start_date: iso(-40), end_date: iso(-30) });
-    const future = createTrip(db as never, plannerId, { title: 'Tokyo, next month', start_date: iso(30), end_date: iso(40) });
+    const past = createTrip(db as never, plannerId, {
+      title: 'Rome, last month',
+      start_date: iso(-40),
+      end_date: iso(-30),
+    });
+    const future = createTrip(db as never, plannerId, {
+      title: 'Tokyo, next month',
+      start_date: iso(30),
+      end_date: iso(40),
+    });
     // Address-only (no lat/lng), keeping the file's no-background-geocode property.
     const unplaced = { lat: null, lng: null, category: null };
     await makePlace(orm, past.id, { ...unplaced, name: 'Colosseum', address: 'Piazza del Colosseo, Rome, Italy' });
@@ -223,7 +247,16 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
       localDate: string,
       localTime: string,
     ) =>
-      makeReservationEndpoint(orm, reservationId, { role, sequence, name, lat, lng, code, local_date: localDate, local_time: localTime });
+      makeReservationEndpoint(orm, reservationId, {
+        role,
+        sequence,
+        name,
+        lat,
+        lng,
+        code,
+        local_date: localDate,
+        local_time: localTime,
+      });
     const inbound = await insertFlight('BRU-HEL');
     await insertEndpoint(inbound, 'from', 0, 'Brussels', 50.9014, 4.4844, 'BRU', day, '07:00');
     await insertEndpoint(inbound, 'to', 1, 'Helsinki', 60.3172, 24.9633, 'HEL', day, '09:30');
@@ -315,8 +348,20 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
       const recent = createTrip(db as never, user.id, { title: 'Recent', start_date: iso(-40), end_date: iso(-30) });
       createTrip(db as never, user.id, { title: 'Booked', start_date: iso(30), end_date: iso(40) });
       // In the first category, with no coordinates of its own.
-      const placeId = (await makePlace(orm, recent.id, { name: 'Trevi', address: 'Piazza di Trevi, 00187, Roma, Italy', lat: null, lng: null })).id;
-      await upsertRow(orm, PlaceRegions, { place: placeId, country_code: 'IT', region_code: 'IT-62', region_name: 'Lazio' });
+      const placeId = (
+        await makePlace(orm, recent.id, {
+          name: 'Trevi',
+          address: 'Piazza di Trevi, 00187, Roma, Italy',
+          lat: null,
+          lng: null,
+        })
+      ).id;
+      await upsertRow(orm, PlaceRegions, {
+        place: placeId,
+        country_code: 'IT',
+        region_code: 'IT-62',
+        region_name: 'Lazio',
+      });
 
       const res = await request(server).get('/api/v1/stats').set('Authorization', `Bearer ${key}`);
       expect(res.status).toBe(200);
@@ -325,10 +370,24 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
         total_countries: 1,
         total_places: 1,
         last_trip: { title: 'Recent', country: 'IT', countries: ['IT'] },
-        next_trip: { title: 'Booked', start_date: iso(30), end_date: iso(40), days_until: 30, country: null, countries: [] },
+        next_trip: {
+          title: 'Booked',
+          start_date: iso(30),
+          end_date: iso(40),
+          days_until: 30,
+          country: null,
+          countries: [],
+        },
       });
       // Scalars all the way — a widget maps fields, it cannot aggregate a list.
-      for (const k of ['total_trips', 'total_countries', 'total_cities', 'total_places', 'total_days', 'total_distance_km']) {
+      for (const k of [
+        'total_trips',
+        'total_countries',
+        'total_cities',
+        'total_places',
+        'total_days',
+        'total_distance_km',
+      ]) {
         expect(typeof res.body[k]).toBe('number');
       }
 
@@ -337,12 +396,14 @@ describe('Atlas e2e (real auth guard + real service + temp SQLite)', () => {
     });
 
     it('counts only the caller own trips', async () => {
-      const { user: stranger } = createUser(db as never, { username: 'stats-other', email: 'stats-other@test.example' });
+      const { user: stranger } = createUser(db as never, {
+        username: 'stats-other',
+        email: 'stats-other@test.example',
+      });
       const key = await mintApiKey(stranger.id);
       const res = await request(server).get('/api/v1/stats').set('X-API-Key', key);
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ total_trips: 0, total_countries: 0, last_trip: null, next_trip: null });
     });
   });
-
 });

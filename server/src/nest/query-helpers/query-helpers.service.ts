@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Tags } from '../../db/entities/Tags.entity';
-import type { TagsRepository, TagForPlaceRow } from '../../db/repositories/Tags.repository';
-import { PlaceRatings } from '../../db/entities/PlaceRatings.entity';
-import type { PlaceRatingsRepository } from '../../db/repositories/PlaceRatings.repository';
 import { AssignmentParticipants } from '../../db/entities/AssignmentParticipants.entity';
+import { PlaceRatings } from '../../db/entities/PlaceRatings.entity';
+import { Tags } from '../../db/entities/Tags.entity';
 import type { AssignmentParticipantsRepository } from '../../db/repositories/AssignmentParticipants.repository';
+import type { PlaceRatingsRepository } from '../../db/repositories/PlaceRatings.repository';
+import type { TagsRepository, TagForPlaceRow } from '../../db/repositories/Tags.repository';
 import type { Tag, Participant } from '../../types';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 export interface PlaceRatingRow {
   user_id: number;
@@ -36,7 +36,10 @@ export class QueryHelpersService {
   ) {}
 
   /** Batch-load tags for multiple places in a single query, indexed by place ID. */
-  async loadTagsByPlaceIds(placeIds: number[], { compact }: { compact?: boolean } = {}): Promise<Record<number, Partial<Tag>[]>> {
+  async loadTagsByPlaceIds(
+    placeIds: number[],
+    { compact }: { compact?: boolean } = {},
+  ): Promise<Record<number, Partial<Tag>[]>> {
     const tagsByPlaceId: Record<number, Partial<Tag>[]> = {};
     const rows = await this.tags.listForPlaces(placeIds, { compact });
     for (const tag of rows as TagForPlaceRow[]) {

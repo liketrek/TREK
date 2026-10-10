@@ -1,5 +1,5 @@
-import { HttpException } from '@nestjs/common';
 import { errorResult, type McpTextResult } from '../../nest-mcp';
+import { HttpException } from '@nestjs/common';
 
 /**
  * Run a tool body and answer a refusal from the service with its reason.
@@ -16,7 +16,9 @@ import { errorResult, type McpTextResult } from '../../nest-mcp';
  */
 export function answeringRefusals<T extends McpTextResult>(work: () => Promise<T>): Promise<T | McpTextResult>;
 export function answeringRefusals<T extends McpTextResult>(work: () => T): T | McpTextResult;
-export function answeringRefusals<T extends McpTextResult>(work: () => T | Promise<T>): T | McpTextResult | Promise<T | McpTextResult> {
+export function answeringRefusals<T extends McpTextResult>(
+  work: () => T | Promise<T>,
+): T | McpTextResult | Promise<T | McpTextResult> {
   try {
     const result = work();
     return isPending(result) ? result.catch(refusal) : result;

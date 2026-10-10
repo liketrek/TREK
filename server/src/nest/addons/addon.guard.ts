@@ -1,7 +1,7 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { AddonsService } from './addons.service';
 import { REQUIRE_ADDON, type RequireAddonMeta } from './require-addon.decorator';
+import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 
 /**
  * Enforces @RequireAddon. Replaces the three hand-written addon guards

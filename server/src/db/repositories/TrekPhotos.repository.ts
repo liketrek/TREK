@@ -1,6 +1,6 @@
 import type { TrekPhoto } from '../../types';
-import type { TrekPhotos } from '../entities/TrekPhotos.entity';
 import { coalesceParam } from '../dialect/sql-functions';
+import type { TrekPhotos } from '../entities/TrekPhotos.entity';
 import { toRow, type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -93,11 +93,14 @@ export class TrekPhotosRepository extends TrekRepository<TrekPhotos> {
    */
   async patchThumbnail(id: number, thumbnail_path: string, width: number, height: number): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
-    await this.nativeUpdate({ id }, {
-      thumbnail_path,
-      width: coalesceParam(platform, 'width', width),
-      height: coalesceParam(platform, 'height', height),
-    });
+    await this.nativeUpdate(
+      { id },
+      {
+        thumbnail_path,
+        width: coalesceParam(platform, 'width', width),
+        height: coalesceParam(platform, 'height', height),
+      },
+    );
   }
 
   /**
@@ -116,18 +119,26 @@ export class TrekPhotosRepository extends TrekRepository<TrekPhotos> {
    * built as an `$or` over just the columns that bring a value; with none of
    * them there is nothing to learn and no statement is issued.
    */
-  async patchCaptureMetadata(id: number, taken_at: string | null, lat: number | null, lng: number | null): Promise<boolean> {
+  async patchCaptureMetadata(
+    id: number,
+    taken_at: string | null,
+    lat: number | null,
+    lng: number | null,
+  ): Promise<boolean> {
     const learns: Array<{ taken_at: null } | { lat: null } | { lng: null }> = [];
     if (taken_at != null) learns.push({ taken_at: null });
     if (lat != null) learns.push({ lat: null });
     if (lng != null) learns.push({ lng: null });
     if (learns.length === 0) return false;
     const platform = this.getEntityManager().getPlatform();
-    const changed = await this.nativeUpdate({ id, $or: learns }, {
-      taken_at: coalesceParam(platform, 'taken_at', taken_at),
-      lat: coalesceParam(platform, 'lat', lat),
-      lng: coalesceParam(platform, 'lng', lng),
-    });
+    const changed = await this.nativeUpdate(
+      { id, $or: learns },
+      {
+        taken_at: coalesceParam(platform, 'taken_at', taken_at),
+        lat: coalesceParam(platform, 'lat', lat),
+        lng: coalesceParam(platform, 'lng', lng),
+      },
+    );
     return changed > 0;
   }
 

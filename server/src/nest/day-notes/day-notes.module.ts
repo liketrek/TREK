@@ -1,17 +1,17 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { DayNotesController } from './day-notes.controller';
-import { DayNotesService } from './day-notes.service';
-import { DayNotesMcp } from './day-notes.mcp';
-import { DayNotesRpc } from './day-notes.rpc';
-import { PermissionsModule } from '../permissions/permissions.module';
-import { RealtimeModule } from '../realtime/realtime.module';
-import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
-import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { DayNotes } from '../../db/entities/DayNotes.entity';
 import { Days } from '../../db/entities/Days.entity';
 import { Trips } from '../../db/entities/Trips.entity';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { DayNotesController } from './day-notes.controller';
+import { DayNotesMcp } from './day-notes.mcp';
+import { DayNotesRpc } from './day-notes.rpc';
+import { DayNotesService } from './day-notes.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Day notes. Its own domain rather than a second file set inside days/, which
@@ -29,7 +29,14 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
 @Module({
   // DayNotes/Days: Plan 4 Task 1 — DayNotesService's own DayNotesRepository/
   // DaysRepository.existsInTrip, replacing its raw `this.dbs.all/get/run`.
-  imports: [TripMembershipModule, McpSharedModule, PermissionsModule, RealtimeModule, PluginGuardsModule, MikroOrmModule.forFeature([DayNotes, Days, Trips])],
+  imports: [
+    TripMembershipModule,
+    McpSharedModule,
+    PermissionsModule,
+    RealtimeModule,
+    PluginGuardsModule,
+    MikroOrmModule.forFeature([DayNotes, Days, Trips]),
+  ],
   controllers: [DayNotesController],
   providers: [DayNotesService, DayNotesMcp, DayNotesRpc],
   exports: [DayNotesService],

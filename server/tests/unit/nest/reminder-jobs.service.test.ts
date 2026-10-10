@@ -6,34 +6,52 @@
  * tick is contained to a log line, and the claim before each send: a second
  * process skips a claimed reminder, a failed send gives the claim back.
  */
+import { db as testDb } from '../../../src/db/database';
+import { TodoItems } from '../../../src/db/entities/TodoItems.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { TodoItemsRepository } from '../../../src/db/repositories/TodoItems.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { ReminderJobsService } from '../../../src/nest/notifications/reminder-jobs.service';
+import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+import {
+  createUser,
+  createTrip,
+  createTodoItem,
+  setAppSetting,
+  setNotificationChannels,
+} from '../../helpers/factories';
+import { findRow, updateRows } from '../../helpers/factories/rows';
+import { notificationsStub } from '../../helpers/notifications';
+import { createTestAppSettingsRepo, createTestTripsRepo } from '../../helpers/test-uow';
+import { sharedTestOrm } from '../../helpers/test-uow';
+import { createTestTodoItemsRepo } from '../../helpers/todo-repos';
+
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
-    return { db, closeDb: () => {}, reinitialize: () => {}, getPlaceWithTags: () => null, canAccessTrip: () => undefined, isOwner: () => false };
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => undefined,
+    isOwner: () => false,
+  };
 });
 
-const logMock = vi.hoisted(() => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
+const logMock = vi.hoisted(() => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+  logDebug: vi.fn(),
+}));
 
 vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
-
-import { db as testDb } from '../../../src/db/database';
-import { createUser, createTrip, createTodoItem, setAppSetting, setNotificationChannels } from '../../helpers/factories';
-import { ReminderJobsService } from '../../../src/nest/notifications/reminder-jobs.service';
-import { notificationsStub } from '../../helpers/notifications';
-import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
-import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
-import { createTestAppSettingsRepo, createTestTripsRepo } from '../../helpers/test-uow';
-import { createTestTodoItemsRepo } from '../../helpers/todo-repos';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { TodoItemsRepository } from '../../../src/db/repositories/TodoItems.repository';
-import { sharedTestOrm } from '../../helpers/test-uow';
-import { findRow, updateRows } from '../../helpers/factories/rows';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { TodoItems } from '../../../src/db/entities/TodoItems.entity';
 
 /** The stored reminded_at of a to-do; fails the case when the item is gone. */
 async function remindedAtOf(id: number): Promise<string | null | undefined> {
@@ -65,7 +83,9 @@ function makeJobs(overrides: { notifications?: NotificationsService } = {}) {
     // CronRegistrarService.runOnBoot instead of directly inline — this
     // double just runs fn immediately, reproducing the pre-fix behaviour
     // exactly, so every existing assertion below is unaffected.
-    runOnBoot: vi.fn(async (_name: string, fn: () => void | Promise<void>) => { await fn(); }),
+    runOnBoot: vi.fn(async (_name: string, fn: () => void | Promise<void>) => {
+      await fn();
+    }),
   };
   const send = vi.fn().mockResolvedValue({ attempted: 1, delivered: 1 });
   const svc = new ReminderJobsService(
@@ -119,7 +139,7 @@ describe('ReminderJobsService bootstrap', () => {
   it('RJOB-001 — registers both 9 AM crons under their names', async () => {
     const { svc, registered } = makeJobs();
     await svc.onApplicationBootstrap();
-    expect(registered.map(r => [r.name, r.expr])).toEqual([
+    expect(registered.map((r) => [r.name, r.expr])).toEqual([
       ['trip-reminders', '0 9 * * *'],
       ['todo-reminders', '0 9 * * *'],
     ]);
@@ -160,7 +180,9 @@ describe('ReminderJobsService bootstrap', () => {
     await tripWithReminder(user.id, 5);
     const { svc } = makeJobs();
     await svc.onApplicationBootstrap();
-    expect(logMock.logInfo).toHaveBeenCalledWith('Trip reminders: enabled via [email], 1 trip(s) with active reminders');
+    expect(logMock.logInfo).toHaveBeenCalledWith(
+      'Trip reminders: enabled via [email], 1 trip(s) with active reminders',
+    );
   });
 });
 
@@ -179,7 +201,14 @@ describe('trip reminder tick', () => {
     const targets = send.mock.calls.map(([p]) => p.targetId);
     expect(targets).toContain(tripId);
     expect(targets).not.toContain(off.id);
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({ event: 'trip_reminder', scope: 'trip', targetId: tripId, params: expect.objectContaining({ trip: 'Lisbon', tripId: String(tripId) }) }));
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'trip_reminder',
+        scope: 'trip',
+        targetId: tripId,
+        params: expect.objectContaining({ trip: 'Lisbon', tripId: String(tripId) }),
+      }),
+    );
     expect(logMock.logInfo).toHaveBeenCalledWith(expect.stringMatching(/^Trip reminders sent for 2 trip\(s\): /));
   });
 
@@ -217,7 +246,9 @@ describe('trip reminder tick', () => {
 
   it('RJOB-007 — a failing tick is contained to the check-failed log line', async () => {
     const broken = { send: vi.fn() } as unknown as NotificationsService;
-    const throwGone = () => { throw new Error('db gone'); };
+    const throwGone = () => {
+      throw new Error('db gone');
+    };
     const svc = new ReminderJobsService(
       { getValue: throwGone } as unknown as AppSettingsRepository,
       { listReminderCandidates: throwGone, countActiveWithReminders: throwGone } as unknown as TripsRepository,
@@ -248,7 +279,9 @@ describe('trip reminder claims', () => {
     await svc.tripTick();
     expect(await sentFor(tripId)).toBeNull();
     expect(logMock.logError).toHaveBeenCalledWith(expect.stringContaining('db gone mid-send'));
-    expect(logMock.logWarn).toHaveBeenCalledWith('Trip reminder for "Lisbon" was not delivered; the next run tries again');
+    expect(logMock.logWarn).toHaveBeenCalledWith(
+      'Trip reminder for "Lisbon" was not delivered; the next run tries again',
+    );
     expect(logMock.logInfo).not.toHaveBeenCalledWith(expect.stringMatching(/^Trip reminders sent/));
 
     await svc.tripTick();
@@ -297,7 +330,14 @@ describe('todo reminder tick', () => {
     await svc.todoTick();
 
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({ event: 'todo_due', scope: 'trip', targetId: trip.id, params: expect.objectContaining({ todo: 'Pack bags', trip: 'Lisbon' }) }));
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'todo_due',
+        scope: 'trip',
+        targetId: trip.id,
+        params: expect.objectContaining({ todo: 'Pack bags', trip: 'Lisbon' }),
+      }),
+    );
     expect(logMock.logInfo).toHaveBeenCalledWith('Todo reminders sent for 1 item(s)');
     expect(await remindedAtOf(todo.id)).not.toBeNull();
 
@@ -316,7 +356,9 @@ describe('todo reminder tick', () => {
 
     const { svc, send } = makeJobs();
     await svc.todoTick();
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({ event: 'todo_due', scope: 'user', targetId: assignee.id }));
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'todo_due', scope: 'user', targetId: assignee.id }),
+    );
   });
 
   it('RJOB-010 — checked, far-future and past-due todos are not selected', async () => {
@@ -365,7 +407,9 @@ describe('todo reminder claims', () => {
 
     await svc.todoTick();
     expect(await remindedAt(todoId)).toBeNull();
-    expect(logMock.logWarn).toHaveBeenCalledWith('Todo reminder for "Pack bags" was not delivered; the next run tries again');
+    expect(logMock.logWarn).toHaveBeenCalledWith(
+      'Todo reminder for "Pack bags" was not delivered; the next run tries again',
+    );
     expect(logMock.logInfo).not.toHaveBeenCalledWith(expect.stringMatching(/^Todo reminders sent/));
 
     await svc.todoTick();

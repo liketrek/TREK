@@ -3,9 +3,38 @@
  * service answer does to the table, and the payload the worker receives
  * (WPUSH-PAY-*). safeFetchFollow is the boundary; the database is real.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { db as testDb } from '../../../../src/db/database';
+import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
+import { PushSubscriptions } from '../../../../src/db/entities/PushSubscriptions.entity';
+import { ALL_EVENT_TYPES, type ChannelMessage } from '../../../../src/nest/notifications/notification-events';
+import { checkPushSubscription } from '../../../../src/nest/notifications/push/push-subscription.helpers';
+import type { PushSubscriptionsService } from '../../../../src/nest/notifications/push/push-subscriptions.service';
+import { PushController } from '../../../../src/nest/notifications/push/push.controller';
+import {
+  PUSH_UNAVAILABLE_ERROR,
+  VAPID_PRIVATE_KEY_SETTING,
+  VAPID_PUBLIC_KEY_SETTING,
+  type VapidKeysService,
+} from '../../../../src/nest/notifications/push/vapid-keys.service';
+import { generateVapidKeyPair } from '../../../../src/nest/notifications/push/web-push-crypto';
+import {
+  FORBIDDEN_FAILURES_BEFORE_REMOVAL,
+  MAX_PUSH_PAYLOAD_BYTES,
+  WebPushService,
+  buildPushPayload,
+  samePagePath,
+} from '../../../../src/nest/notifications/transports/web-push.service';
+import { SsrfBlockedError } from '../../../../src/utils/ssrfGuard';
+import { createUser } from '../../../helpers/factories';
+import { findRows, updateRows } from '../../../helpers/factories/rows';
+import { readAppSetting } from '../../../helpers/factories/settings';
+import { makePushSubscriptionsService, makeVapidKeysService } from '../../../helpers/notifications';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { HttpException } from '@nestjs/common';
+
 import { createDecipheriv, createECDH, hkdfSync, type ECDH } from 'node:crypto';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // One snapshot connection per file, created inside the factory so nothing has
 // to be hoisted above the imports; the tests reach it through the mocked module.
@@ -42,35 +71,6 @@ vi.mock('../../../../src/utils/ssrfGuard', () => {
   }
   return { SsrfBlockedError, safeFetchFollow };
 });
-
-import { db as testDb } from '../../../../src/db/database';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createUser } from '../../../helpers/factories';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { findRows, updateRows } from '../../../helpers/factories/rows';
-import { readAppSetting } from '../../../helpers/factories/settings';
-import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
-import { PushSubscriptions } from '../../../../src/db/entities/PushSubscriptions.entity';
-import { makePushSubscriptionsService, makeVapidKeysService } from '../../../helpers/notifications';
-import { SsrfBlockedError } from '../../../../src/utils/ssrfGuard';
-import type { PushSubscriptionsService } from '../../../../src/nest/notifications/push/push-subscriptions.service';
-import {
-  PUSH_UNAVAILABLE_ERROR,
-  VAPID_PRIVATE_KEY_SETTING,
-  VAPID_PUBLIC_KEY_SETTING,
-  type VapidKeysService,
-} from '../../../../src/nest/notifications/push/vapid-keys.service';
-import { PushController } from '../../../../src/nest/notifications/push/push.controller';
-import { checkPushSubscription } from '../../../../src/nest/notifications/push/push-subscription.helpers';
-import { generateVapidKeyPair } from '../../../../src/nest/notifications/push/web-push-crypto';
-import {
-  FORBIDDEN_FAILURES_BEFORE_REMOVAL,
-  MAX_PUSH_PAYLOAD_BYTES,
-  WebPushService,
-  buildPushPayload,
-  samePagePath,
-} from '../../../../src/nest/notifications/transports/web-push.service';
-import { ALL_EVENT_TYPES, type ChannelMessage } from '../../../../src/nest/notifications/notification-events';
 
 // Built in beforeAll: both providers take repositories and a UnitOfWork,
 // which are async to resolve on this file's handle.
@@ -316,7 +316,12 @@ describe('WebPushService delivery', () => {
     const { user } = createUser(testDb);
     await subscribe(user.id, 'https://fcm.googleapis.com/fcm/send/x');
     await subscribe(user.id, 'https://fcm.googleapis.com/fcm/send/y');
-    await updateRows(orm, PushSubscriptions, { endpoint: { $like: '%/x' } }, { endpoint: 'https://attacker.example.test/collect' });
+    await updateRows(
+      orm,
+      PushSubscriptions,
+      { endpoint: { $like: '%/x' } },
+      { endpoint: 'https://attacker.example.test/collect' },
+    );
     await updateRows(orm, PushSubscriptions, { endpoint: { $like: '%/y' } }, { endpoint: 'not a url' });
     await expect(push.sendToUser(user.id, MSG)).resolves.toBe(false);
     expect(safeFetchFollow).not.toHaveBeenCalled();

@@ -1,10 +1,10 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { McpToolGuardsService } from './mcp-tool-guards.service';
-import { PermissionsModule } from '../permissions/permissions.module';
-import { RealtimeModule } from '../realtime/realtime.module';
 import { Trips } from '../../db/entities/Trips.entity';
 import { Users } from '../../db/entities/Users.entity';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { RealtimeModule } from '../realtime/realtime.module';
+import { McpToolGuardsService } from './mcp-tool-guards.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Shared guards for the @McpController domain classes. Deliberately NOT

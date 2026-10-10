@@ -223,10 +223,12 @@ const journey: TranslationStrings = {
   'journey.settings.status': 'Stav',
   'journey.settings.statusAuto': 'Automaticky',
   'journey.settings.statusAutoHint': 'Riadi sa dátumami prepojených výletov. Bez výletu zostane denník konceptom.',
-  'journey.settings.statusManualHint': 'Nastavené ručne. Dátumy výletu ho nezmenia, kým neprepnete späť na automaticky.',
+  'journey.settings.statusManualHint':
+    'Nastavené ručne. Dátumy výletu ho nezmenia, kým neprepnete späť na automaticky.',
   'journey.settings.photosSection': 'Fotky',
   'journey.settings.photoLocation': 'Umiestniť záznamy podľa ich fotiek',
-  'journey.settings.photoLocationHint': 'Záznam bez miesta prevezme miesto, kde vznikla jeho prvá fotka s GPS. Ručne nastavené miesta sa nikdy nepresunú.',
+  'journey.settings.photoLocationHint':
+    'Záznam bez miesta prevezme miesto, kde vznikla jeho prvá fotka s GPS. Ručne nastavené miesta sa nikdy nepresunú.',
   'journey.settings.endJourney': 'Archivovať cestu',
   'journey.settings.reopenJourney': 'Obnoviť cestu',
   'journey.settings.archived': 'Cesta archivovaná',

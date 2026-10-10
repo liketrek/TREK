@@ -206,7 +206,8 @@ const journey: TranslationStrings = {
   'journey.settings.statusManualHint': '手動で設定されています。自動に戻すまで旅行の日付では変わりません。',
   'journey.settings.photosSection': '写真',
   'journey.settings.photoLocation': '写真から記録の場所を設定',
-  'journey.settings.photoLocationHint': '場所のない記録は、GPS付きの最初の写真が撮られた地点になります。自分で設定した場所は変更されません。',
+  'journey.settings.photoLocationHint':
+    '場所のない記録は、GPS付きの最初の写真が撮られた地点になります。自分で設定した場所は変更されません。',
   'journey.settings.endJourney': '日記をアーカイブ',
   'journey.settings.reopenJourney': '日記を復元',
   'journey.settings.archived': '日記をアーカイブしました',
@@ -299,12 +300,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'この見開きをダウンロード',
-  'journey.studio.downloadSpreadHint': 'この見開きのデザインを、写真を除いてファイルに保存します。共有や再利用に使えます',
+  'journey.studio.downloadSpreadHint':
+    'この見開きのデザインを、写真を除いてファイルに保存します。共有や再利用に使えます',
   'journey.studio.importSpread': '読み込む',
   'journey.studio.importSpreadHint': 'ダウンロードしたデザインファイルから見開きを追加します',
   'journey.studio.importSpreadFailed': 'このファイルは TREK Studio の見開きではありません',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': '本づくりには広さが要るので、Studio はデスクトップ専用です。PDF の作成も同じです。旅の記録のほかの機能は、ここでもこれまでどおり使えます。', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    '本づくりには広さが要るので、Studio はデスクトップ専用です。PDF の作成も同じです。旅の記録のほかの機能は、ここでもこれまでどおり使えます。', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -368,7 +371,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -390,7 +394,8 @@ const journey: TranslationStrings = {
   'journey.studio.travel': '旅',
   'journey.studio.travelEmpty': 'この旅の数値はまだ準備できていません。',
   'journey.studio.grids': 'グリッド',
-  'journey.studio.gridHint': 'グリッドは空のフレームをまとめて配置します。「コンテンツ」から写真をドラッグしてください。',
+  'journey.studio.gridHint':
+    'グリッドは空のフレームをまとめて配置します。「コンテンツ」から写真をドラッグしてください。',
   'journey.studio.lines': '線',
   'journey.studio.frameStyles': 'フレームのスタイル',
   'journey.studio.frameShapes': 'フレームの形',
@@ -449,10 +454,12 @@ const journey: TranslationStrings = {
   'journey.studio.paste': '貼り付け (Ctrl+V)',
   'journey.studio.pasteEmpty': 'まず何かをコピーしてから、任意のページに貼り付けてください',
   'journey.studio.myLayouts': 'マイレイアウト',
-  'journey.studio.myLayoutsEmpty': '配置したページを保存して、他のページも同じ配置にできます。写真と文章はそのまま残ります。',
+  'journey.studio.myLayoutsEmpty':
+    '配置したページを保存して、他のページも同じ配置にできます。写真と文章はそのまま残ります。',
   'journey.studio.saveLayout': 'このページをレイアウトとして保存',
   'journey.studio.saveLayoutHint': '写真を除いた配置を、このブックのすべての編集者向けに保存します',
-  'journey.studio.saveLayoutFull': 'このブックに保存できるレイアウトは24件までです。新しく保存するには1件削除してください。',
+  'journey.studio.saveLayoutFull':
+    'このブックに保存できるレイアウトは24件までです。新しく保存するには1件削除してください。',
   'journey.studio.deleteLayout': 'レイアウトを削除',
   'journey.studio.layoutName': 'レイアウト',
   'journey.studio.builtInLayouts': '標準',
@@ -561,7 +568,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': '輪郭',
   'journey.studio.mapSourceRelief': '陰影起伏',
   'journey.studio.mapSourceSatellite': '衛星写真',
-  'journey.studio.mapSourceSatelliteHint': '雲のない Sentinel-2。出典を付ければ無料で印刷できます。街の通りまで鮮明です。',
+  'journey.studio.mapSourceSatelliteHint':
+    '雲のない Sentinel-2。出典を付ければ無料で印刷できます。街の通りまで鮮明です。',
   'journey.studio.routeLook': 'ルートの線',
   'journey.studio.routeStyle': '描き方',
   'journey.studio.routePlain': '一本線',
@@ -586,7 +594,8 @@ const journey: TranslationStrings = {
   'journey.studio.roadsBusy': '取得中',
   'journey.studio.roadsHint': 'ルート検索サービスに各区間の走行経路を問い合わせます。長い区間はそのままです。',
   'journey.studio.roadsHave': '道路はこの本に保存されるので、オフラインでも同じ線で印刷されます。',
-  'journey.studio.mapSourceReliefHint': 'NASA の陰影起伏図。ライセンス不要で印刷できます。国や大陸には最適ですが、都市単位には粗すぎます。',
+  'journey.studio.mapSourceReliefHint':
+    'NASA の陰影起伏図。ライセンス不要で印刷できます。国や大陸には最適ですが、都市単位には粗すぎます。',
   'journey.studio.mapPrintDpi': '印刷解像度は約',
   'journey.studio.mapPrintDpiLow': 'このサイズではぼやけます。範囲を広げるか別のソースをお試しください',
   'journey.studio.mapPerTrip': '旅行ごと',
@@ -652,7 +661,8 @@ const journey: TranslationStrings = {
   'journey.entry.offRoute': 'ルート外',
   'journey.entry.draft': '下書き',
   'journey.editor.draft': '下書き',
-  'journey.editor.draftHint': 'この記録はあなたと他の参加者にのみ表示されます。オフにするまで、共有された日記には含まれません。',
+  'journey.editor.draftHint':
+    'この記録はあなたと他の参加者にのみ表示されます。オフにするまで、共有された日記には含まれません。',
   'journey.editor.tripSuggestionHint': 'この日はこの旅行の期間内です。リンクすると、旅行の場所がこの日記に加わります。',
   'journey.editor.tripSuggestionLater': '今はしない',
   'journey.suggestions.dismiss': 'この提案を見送る',

@@ -9,6 +9,35 @@
  * field with such a name reported as configured for a user who had configured nothing —
  * which for a notification channel meant being dispatched to everyone with no credentials.
  */
+import { db as testDb } from '../../../src/db/database';
+import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
+import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
+import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
+import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
+import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
+import { PluginEntityMetadata } from '../../../src/db/entities/PluginEntityMetadata.entity';
+import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
+import { PluginMetaMigrations } from '../../../src/db/entities/PluginMetaMigrations.entity';
+import { PluginOauthState } from '../../../src/db/entities/PluginOauthState.entity';
+import { PluginOauthTokens } from '../../../src/db/entities/PluginOauthTokens.entity';
+import { PluginScheduledTasks } from '../../../src/db/entities/PluginScheduledTasks.entity';
+import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
+import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
+import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import { Settings } from '../../../src/db/entities/Settings.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import { parseManifest, ManifestError } from '../../../src/nest/plugins/install/manifest';
+import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import { createUser } from '../../helpers/factories';
+import { makePluginSettingsField, setPluginUserConfig } from '../../helpers/factories/plugins';
+import { deleteRows, insertRow, upsertRow } from '../../helpers/factories/rows';
+import { readUserSetting } from '../../helpers/factories/settings';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
@@ -16,35 +45,7 @@ vi.mock('../../../src/db/database', async () => {
   const db = createSnapshotTestDb();
   return { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: async () => null };
 });
-import { db as testDb } from '../../../src/db/database';
-import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import { createTestAddonsService } from '../../helpers/test-addons';
 
-import { createUser } from '../../helpers/factories';
-import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
-import { parseManifest, ManifestError } from '../../../src/nest/plugins/install/manifest';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { deleteRows, insertRow, upsertRow } from '../../helpers/factories/rows';
-import { makePluginSettingsField, setPluginUserConfig } from '../../helpers/factories/plugins';
-import { readUserSetting } from '../../helpers/factories/settings';
-import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { Plugins } from '../../../src/db/entities/Plugins.entity';
-import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
-import { PluginScheduledTasks } from '../../../src/db/entities/PluginScheduledTasks.entity';
-import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
-import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
-import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
-import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
-import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
-import { PluginEntityMetadata } from '../../../src/db/entities/PluginEntityMetadata.entity';
-import { PluginOauthTokens } from '../../../src/db/entities/PluginOauthTokens.entity';
-import { PluginOauthState } from '../../../src/db/entities/PluginOauthState.entity';
-import { PluginMetaMigrations } from '../../../src/db/entities/PluginMetaMigrations.entity';
-import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
-import { Settings } from '../../../src/db/entities/Settings.entity';
-import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
 /**
  * The host-side settings reads, over the same connection the test seeded. `t` is
  * initialized in `beforeAll` (below) before any test runs — this reaches for
@@ -66,7 +67,12 @@ const orm = () => t as TestOrm;
 
 async function declareField(pluginId: string, key: string, opts: { required?: boolean; secret?: boolean } = {}) {
   await makePluginSettingsField(orm(), pluginId, key, {
-    label: key, input_type: 'text', required: opts.required ? 1 : 0, secret: opts.secret ? 1 : 0, scope: 'user', sort_order: 0,
+    label: key,
+    input_type: 'text',
+    required: opts.required ? 1 : 0,
+    secret: opts.secret ? 1 : 0,
+    scope: 'user',
+    sort_order: 0,
   });
 }
 async function setUserConfig(pluginId: string, config: Record<string, unknown>) {
@@ -136,12 +142,23 @@ describe('settings keys cannot resolve off the prototype chain', () => {
   });
 
   it('PSET-006 — the manifest rejects such a key at install', () => {
-    const base = { id: 'evil', name: 'Evil', version: '1.0.0', apiVersion: 1, type: 'integration', nativeModules: false, permissions: [] };
+    const base = {
+      id: 'evil',
+      name: 'Evil',
+      version: '1.0.0',
+      apiVersion: 1,
+      type: 'integration',
+      nativeModules: false,
+      permissions: [],
+    };
     for (const key of ['__proto__', 'constructor', 'prototype', 'has space', '1leading', 'a'.repeat(65)]) {
       expect(() => parseManifest({ ...base, settings: [{ key, scope: 'user' }] })).toThrow(ManifestError);
     }
     // …and still accepts an ordinary one.
-    expect(parseManifest({ ...base, settings: [{ key: 'appToken', scope: 'user', secret: true, required: true }] }).settings[0].key).toBe('appToken');
+    expect(
+      parseManifest({ ...base, settings: [{ key: 'appToken', scope: 'user', secret: true, required: true }] })
+        .settings[0].key,
+    ).toBe('appToken');
   });
 });
 
@@ -156,8 +173,15 @@ describe('a plugin channel label is bounded by the host', () => {
     process.env.TREK_PLUGINS_ENABLED = 'true';
 
     await upsertRow(orm(), Plugins, {
-      id: 'loud', name: 'Loud', status: 'active', enabled: 1, version: '1.0.0', permissions: '[]', granted_permissions: '[]',
-      capabilities: JSON.stringify({ notificationChannel: { title: '🎉'.repeat(5) + 'A'.repeat(500) } }), config: '{}',
+      id: 'loud',
+      name: 'Loud',
+      status: 'active',
+      enabled: 1,
+      version: '1.0.0',
+      permissions: '[]',
+      granted_permissions: '[]',
+      capabilities: JSON.stringify({ notificationChannel: { title: '🎉'.repeat(5) + 'A'.repeat(500) } }),
+      config: '{}',
     });
 
     const rt = new PluginRuntimeService(
@@ -184,7 +208,10 @@ describe('a plugin channel label is bounded by the host', () => {
     );
     // Stand the plugin up as a granted, active notificationChannel provider.
     (rt as unknown as { supervisor: { running: Map<string, unknown> } }).supervisor.running.set('loud', {
-      id: 'loud', status: 'active', hooks: ['notificationChannel'], granted: new Set(['hook:notification-channel']),
+      id: 'loud',
+      status: 'active',
+      hooks: ['notificationChannel'],
+      granted: new Set(['hook:notification-channel']),
     });
 
     const [channel] = await rt.notificationChannels();

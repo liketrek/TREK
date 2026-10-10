@@ -1,7 +1,7 @@
-import type { CollectionLabels } from '../entities/CollectionLabels.entity';
 import { lower, lowerParam } from '../dialect/sql-functions';
-import { TrekRepository } from './_shared/trek-repository';
+import type { CollectionLabels } from '../entities/CollectionLabels.entity';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** `collection_labels` — `loadLabelsByCollection`'s (CL7) shape. */
 export interface CollectionLabelRow {
@@ -61,7 +61,11 @@ export class CollectionLabelsRepository extends TrekRepository<CollectionLabels>
 
   /** CL20 (`insertImportedLabel`) — `INSERT INTO collection_labels (collection_id, name, color, sort_order) VALUES (?,?,?,?)`. Returns the new row's id. Dup text also `createLabel` (Task 2's own call site). */
   async insertLabel(row: { collection_id: number; name: string; color: string; sort_order: number }): Promise<number> {
-    const inserted = await this.kysely<CollectionLabelsInsertKyselyDB>().insertInto('collection_labels').values(row).returning('id').executeTakeFirstOrThrow();
+    const inserted = await this.kysely<CollectionLabelsInsertKyselyDB>()
+      .insertInto('collection_labels')
+      .values(row)
+      .returning('id')
+      .executeTakeFirstOrThrow();
     return inserted.id;
   }
 
@@ -78,7 +82,11 @@ export class CollectionLabelsRepository extends TrekRepository<CollectionLabels>
    * applies here exactly as it does to a bare `.select([...])`.
    */
   async collectionIdOf(labelId: number): Promise<number | undefined> {
-    const row = await this.db_().selectFrom('collection_labels').select('collection_id').where('id', '=', labelId).executeTakeFirst();
+    const row = await this.db_()
+      .selectFrom('collection_labels')
+      .select('collection_id')
+      .where('id', '=', labelId)
+      .executeTakeFirst();
     return row?.collection_id;
   }
 
@@ -122,7 +130,10 @@ export class CollectionLabelsRepository extends TrekRepository<CollectionLabels>
   }
 
   /** CL76 (`updateLabel`) — the allow-listed dynamic `UPDATE collection_labels SET ... WHERE id=?`. No `updated_at` stamp — the table has no such column, and the legacy statement never wrote one. */
-  async updateFields(labelId: number, write: Partial<{ name: string; color: string; sort_order: number }>): Promise<void> {
+  async updateFields(
+    labelId: number,
+    write: Partial<{ name: string; color: string; sort_order: number }>,
+  ): Promise<void> {
     if (Object.keys(write).length === 0) return;
     await this.nativeUpdate({ id: labelId }, write);
   }

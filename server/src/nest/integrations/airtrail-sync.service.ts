@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { Reservations } from '../../db/entities/Reservations.entity';
 import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import { ReservationsService } from '../reservations/reservations.service';
 import { logError, logInfo } from '../audit/audit-log.logger';
+import { ReservationsService } from '../reservations/reservations.service';
+import { AirtrailLinkService } from './airtrail-link.service';
 import { AirtrailAuthError, type AirtrailFlightRaw } from './airtrail.client';
 import { AirtrailClient } from './airtrail.client';
-import { AirtrailService } from './airtrail.service';
-import { AirtrailLinkService } from './airtrail-link.service';
 import { canonicalHash, mapFlightToReservation } from './airtrail.mapper';
+import { AirtrailService } from './airtrail.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 export { buildSavePayload } from './airtrail-sync.helpers';
 

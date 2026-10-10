@@ -8,32 +8,35 @@
  * database leaves empty reaches the wire as an explicit `null` rather than a
  * missing key, so a consumer can rely on the field being there.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { PublicApiService } from '../../../src/nest/public-api/public-api.service';
-import type { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { ReservationsRepository } from '../../../src/db/repositories/Reservations.repository';
+import type { BucketListRepository } from '../../../src/db/repositories/BucketList.repository';
+import type { DayNotesRepository } from '../../../src/db/repositories/DayNotes.repository';
 import type { DaysRepository } from '../../../src/db/repositories/Days.repository';
 import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
-import type { DayNotesRepository } from '../../../src/db/repositories/DayNotes.repository';
-import type { BucketListRepository } from '../../../src/db/repositories/BucketList.repository';
+import type { ReservationsRepository } from '../../../src/db/repositories/Reservations.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import { PublicApiService } from '../../../src/nest/public-api/public-api.service';
+import type { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+
+import { describe, it, expect, vi } from 'vitest';
 
 /** A trip row as the summary query returns it when nothing optional was filled in. */
 const BARE_TRIP = { id: 7, title: 'Somewhere', is_archived: 0 };
 
-function makeService(overrides: {
-  accessibleIds?: number[];
-  accessible?: boolean;
-  summary?: unknown;
-  days?: unknown[];
-  assignedPlaces?: unknown[];
-  dayNotes?: unknown[];
-  scheduledReservations?: unknown[];
-  unscheduledReservations?: unknown[];
-  unplannedPlaces?: unknown[];
-  accommodations?: unknown[];
-  bucketList?: unknown[];
-} = {}) {
+function makeService(
+  overrides: {
+    accessibleIds?: number[];
+    accessible?: boolean;
+    summary?: unknown;
+    days?: unknown[];
+    assignedPlaces?: unknown[];
+    dayNotes?: unknown[];
+    scheduledReservations?: unknown[];
+    unscheduledReservations?: unknown[];
+    unplannedPlaces?: unknown[];
+    accommodations?: unknown[];
+    bucketList?: unknown[];
+  } = {},
+) {
   const membership = { listAccessibleTripIds: vi.fn().mockResolvedValue(overrides.accessibleIds ?? []) };
   const trips = {
     listSummariesByIds: vi.fn().mockResolvedValue([BARE_TRIP]),

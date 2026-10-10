@@ -1,6 +1,6 @@
 import type { PlaceRatings } from '../entities/PlaceRatings.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** One rated place, from `QueryHelpersService.loadRatingsByPlaceIds` (QH2). */
 export interface PlaceRatingForPlaceRow {
@@ -107,6 +107,9 @@ export class PlaceRatingsRepository extends TrekRepository<PlaceRatings> {
    * unique {@link upsertRating} documents.
    */
   async insertIgnore(place_id: number, user_id: number, rating: number): Promise<void> {
-    await this.upsert({ place: place_id, user: user_id, rating }, { onConflictFields: ['place', 'user'], onConflictAction: 'ignore' });
+    await this.upsert(
+      { place: place_id, user: user_id, rating },
+      { onConflictFields: ['place', 'user'], onConflictAction: 'ignore' },
+    );
   }
 }

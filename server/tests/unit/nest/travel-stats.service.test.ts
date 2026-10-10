@@ -1,3 +1,30 @@
+import { db as testDb } from '../../../src/db/database';
+import { PlaceRegions } from '../../../src/db/entities/PlaceRegions.entity';
+import { Places } from '../../../src/db/entities/Places.entity';
+import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
+import { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import {
+  createTestBucketListRepo,
+  createTestHiddenCountriesRepo,
+  createTestHiddenRegionsRepo,
+  createTestVisitedCountriesRepo,
+  createTestVisitedRegionsRepo,
+  createTestPlaceRegionsRepo,
+} from '../../helpers/atlas-repos';
+import { createUser, createTrip, createPlace, createReservation, addTripMember } from '../../helpers/factories';
+import { addReservationTraveler, makeReservationEndpoint } from '../../helpers/factories/reservations';
+import { insertRow, upsertRow } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestTripsRepo,
+  createTestPlacesRepo,
+  createTestReservationEndpointsRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
 /**
  * travel-stats.service.test.ts
  *
@@ -12,34 +39,11 @@
  */
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => undefined, isOwner: () => false };
-    return mock;
+  return mock;
 });
-
-
-
-import { db as testDb } from '../../../src/db/database';
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createPlace, createReservation, addTripMember } from '../../helpers/factories';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
-import { createTestUnitOfWork, createTestTripsRepo, createTestPlacesRepo, createTestReservationEndpointsRepo, sharedTestOrm } from '../../helpers/test-uow';
-import { insertRow, upsertRow } from '../../helpers/factories/rows';
-import { addReservationTraveler, makeReservationEndpoint } from '../../helpers/factories/reservations';
-import { PlaceRegions } from '../../../src/db/entities/PlaceRegions.entity';
-import { Places } from '../../../src/db/entities/Places.entity';
-import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
-import {
-  createTestBucketListRepo,
-  createTestHiddenCountriesRepo,
-  createTestHiddenRegionsRepo,
-  createTestVisitedCountriesRepo,
-  createTestVisitedRegionsRepo,
-  createTestPlaceRegionsRepo,
-} from '../../helpers/atlas-repos';
 
 let atlas: AtlasService;
 
@@ -58,8 +62,13 @@ beforeAll(async () => {
     (await sharedTestOrm(testDb)).orm,
   );
 });
-beforeEach(() => { resetTestDb(testDb); vi.clearAllMocks(); });
-afterAll(() => { testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  vi.clearAllMocks();
+});
+afterAll(() => {
+  testDb.close();
+});
 
 // ---------------------------------------------------------------------------
 // getTravelStats — moved here from auth.service.test.ts together with the
@@ -76,10 +85,17 @@ describe('getTravelStats', () => {
     lng: number,
     code: string | null = null,
     localDate: string | null = null,
-    localTime: string | null = null
+    localTime: string | null = null,
   ) {
     await makeReservationEndpoint(await sharedTestOrm(testDb), reservationId, {
-      role, sequence, name: `Endpoint ${sequence}`, lat, lng, code, local_date: localDate, local_time: localTime,
+      role,
+      sequence,
+      name: `Endpoint ${sequence}`,
+      lat,
+      lng,
+      code,
+      local_date: localDate,
+      local_time: localTime,
     });
   }
 
@@ -93,8 +109,8 @@ describe('getTravelStats', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip', start_date: PAST_START, end_date: PAST_END });
     const res = createReservation(testDb, trip.id, { type: 'flight' });
-    await endpoint(res.id, 'from', 0, 50.9014, 4.4844);   // Brussels
-    await endpoint(res.id, 'to', 1, 35.6762, 139.6503);   // Tokyo
+    await endpoint(res.id, 'from', 0, 50.9014, 4.4844); // Brussels
+    await endpoint(res.id, 'to', 1, 35.6762, 139.6503); // Tokyo
 
     const stats = await atlas.getTravelStats(user.id);
     expect(stats.countries).toContain('BE');
@@ -107,9 +123,9 @@ describe('getTravelStats', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Connection Trip', start_date: PAST_START, end_date: PAST_END });
     const res = createReservation(testDb, trip.id, { type: 'flight' });
-    await endpoint(res.id, 'from', 0, 50.9014, 4.4844);     // Brussels
-    await endpoint(res.id, 'stop', 1, 35.6762, 139.6503);   // Tokyo — never leaves the airport
-    await endpoint(res.id, 'to', 2, -33.8688, 151.2093);    // Sydney
+    await endpoint(res.id, 'from', 0, 50.9014, 4.4844); // Brussels
+    await endpoint(res.id, 'stop', 1, 35.6762, 139.6503); // Tokyo — never leaves the airport
+    await endpoint(res.id, 'to', 2, -33.8688, 151.2093); // Sydney
 
     const stats = await atlas.getTravelStats(user.id);
     expect(stats.countries).toContain('BE');
@@ -140,7 +156,10 @@ describe('getTravelStats', () => {
   async function placeInRegion(tripId: number, countryCode: string, regionCode: string) {
     const place = createPlace(testDb, tripId, { name: `Place in ${countryCode}` });
     await upsertRow(await sharedTestOrm(testDb), PlaceRegions, {
-      place: place.id, country_code: countryCode, region_code: regionCode, region_name: regionCode,
+      place: place.id,
+      country_code: countryCode,
+      region_code: regionCode,
+      region_name: regionCode,
     });
   }
 
@@ -173,8 +192,8 @@ describe('getTravelStats', () => {
     const { user } = createUser(testDb);
     const future = createTrip(testDb, user.id, { title: 'Tokyo, next month', start_date: iso(30), end_date: iso(40) });
     const res = createReservation(testDb, future.id, { type: 'flight' });
-    await endpoint(res.id, 'from', 0, 50.9014, 4.4844);   // Brussels
-    await endpoint(res.id, 'to', 1, 35.6762, 139.6503);   // Tokyo
+    await endpoint(res.id, 'from', 0, 50.9014, 4.4844); // Brussels
+    await endpoint(res.id, 'to', 1, 35.6762, 139.6503); // Tokyo
 
     const stats = await atlas.getTravelStats(user.id);
 
@@ -198,7 +217,11 @@ describe('getTravelStats', () => {
 
   it('AUTH-DB-099: #1535 a plane change booked as two flights does not stamp the hub country', async () => {
     const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'New York via Helsinki', start_date: PAST_START, end_date: PAST_END });
+    const trip = createTrip(testDb, user.id, {
+      title: 'New York via Helsinki',
+      start_date: PAST_START,
+      end_date: PAST_END,
+    });
     await splitChainThroughHelsinki(trip.id, '2023-05-01', '11:00');
 
     const stats = await atlas.getTravelStats(user.id);
@@ -209,7 +232,11 @@ describe('getTravelStats', () => {
 
   it('AUTH-DB-100: #1535 a stopover of two days still stamps the hub country', async () => {
     const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Helsinki stopover', start_date: PAST_START, end_date: PAST_END });
+    const trip = createTrip(testDb, user.id, {
+      title: 'Helsinki stopover',
+      start_date: PAST_START,
+      end_date: PAST_END,
+    });
     await splitChainThroughHelsinki(trip.id, '2023-05-03', '11:00');
 
     expect((await atlas.getTravelStats(user.id)).countries).toContain('FI');
@@ -217,7 +244,11 @@ describe('getTravelStats', () => {
 
   it('AUTH-DB-101: #1490 removing a country still subtracts it around the layover pairing', async () => {
     const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'New York via Helsinki', start_date: PAST_START, end_date: PAST_END });
+    const trip = createTrip(testDb, user.id, {
+      title: 'New York via Helsinki',
+      start_date: PAST_START,
+      end_date: PAST_END,
+    });
     await splitChainThroughHelsinki(trip.id, '2023-05-01', '11:00');
 
     await atlas.unmarkCountry(user.id, 'BE');
@@ -269,9 +300,21 @@ describe('personal figures on a shared trip (#1966)', () => {
   const PAST_START = '2023-05-01';
   const PAST_END = '2023-05-10';
 
-  const endpoint = async (reservationId: number, role: 'from' | 'to', sequence: number, lat: number, lng: number, code: string) =>
+  const endpoint = async (
+    reservationId: number,
+    role: 'from' | 'to',
+    sequence: number,
+    lat: number,
+    lng: number,
+    code: string,
+  ) =>
     makeReservationEndpoint(await sharedTestOrm(testDb), reservationId, {
-      role, sequence, name: `Endpoint ${sequence}`, lat, lng, code,
+      role,
+      sequence,
+      name: `Endpoint ${sequence}`,
+      lat,
+      lng,
+      code,
     });
 
   const assignTo = async (reservationId: number, userId: number) =>

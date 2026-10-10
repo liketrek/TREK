@@ -1,8 +1,8 @@
-import type { CollabLinks } from '../entities/CollabLinks.entity';
 import { currentTimestamp } from '../dialect/sql-functions';
+import type { CollabLinks } from '../entities/CollabLinks.entity';
+import type { DB } from '../kysely/db';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /** A bare `collab_links` row — every scalar column of the entity, incl. the two `persist(false)` relation mirrors (`trip_id`, `user_id`). */
 export interface CollabLinkRow {
@@ -47,17 +47,38 @@ export class CollabLinksRepository extends TrekRepository<CollabLinks> {
    * `string | number` id via `toRowId` before calling (rule 15).
    */
   async listForTrip(trip_id: number): Promise<CollabLinkJoinRow[]> {
-    return await this.joinedQuery().where('l.trip_id', '=', trip_id).orderBy('l.pinned', 'desc').orderBy('l.created_at', 'desc').execute();
+    return await this.joinedQuery()
+      .where('l.trip_id', '=', trip_id)
+      .orderBy('l.pinned', 'desc')
+      .orderBy('l.created_at', 'desc')
+      .execute();
   }
 
   /** CB39 (`updateLink`'s trip-scoping guard) — `SELECT * FROM collab_links WHERE id = ? AND trip_id = ?`. Full row: the falsy-coercion update (CB40) needs the pre-image to fall back onto. */
   async findInTrip(id: number, trip_id: number): Promise<CollabLinkRow | undefined> {
-    return await this.kysely<CollabLinksKyselyDB>().selectFrom('collab_links').selectAll().where('id', '=', id).where('trip_id', '=', trip_id).executeTakeFirst();
+    return await this.kysely<CollabLinksKyselyDB>()
+      .selectFrom('collab_links')
+      .selectAll()
+      .where('id', '=', id)
+      .where('trip_id', '=', trip_id)
+      .executeTakeFirst();
   }
 
   /** CB37 (`createLink`) — `INSERT INTO collab_links (trip_id, user_id, title, url, pinned) VALUES (?×5)`. The service trims `title`/`url` before calling (matching the legacy inline `.trim()`). Returns the new row's id. */
-  async insertLink(row: { trip_id: number | string; user_id: number; title: string; url: string; pinned: number }): Promise<number> {
-    return await this.insert({ trip: row.trip_id, user: row.user_id, title: row.title, url: row.url, pinned: row.pinned });
+  async insertLink(row: {
+    trip_id: number | string;
+    user_id: number;
+    title: string;
+    url: string;
+    pinned: number;
+  }): Promise<number> {
+    return await this.insert({
+      trip: row.trip_id,
+      user: row.user_id,
+      title: row.title,
+      url: row.url,
+      pinned: row.pinned,
+    });
   }
 
   /**
@@ -75,7 +96,10 @@ export class CollabLinksRepository extends TrekRepository<CollabLinks> {
    */
   async update(id: number, trip_id: number, write: { title: string; url: string; pinned: number }): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
-    await this.nativeUpdate({ id, trip: trip_id }, { title: write.title, url: write.url, pinned: write.pinned, updated_at: currentTimestamp(platform) });
+    await this.nativeUpdate(
+      { id, trip: trip_id },
+      { title: write.title, url: write.url, pinned: write.pinned, updated_at: currentTimestamp(platform) },
+    );
   }
 
   /** CB38/CB41 (`createLink`'s post-insert re-select, `updateLink`'s post-write re-select) — `SELECT l.*, u.username FROM collab_links l JOIN users u ON u.id = l.user_id WHERE l.id = ?`, same text at both call sites. */

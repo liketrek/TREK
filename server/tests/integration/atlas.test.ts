@@ -2,27 +2,27 @@
  * Atlas integration tests.
  * Covers ATLAS-001 to ATLAS-008.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { PlaceRegions } from '../../src/db/entities/PlaceRegions.entity';
+import { getRegionGeo } from '../../src/nest/atlas/atlas-geo';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { makePlace } from '../helpers/factories/places';
+import { findRow } from '../helpers/factories/rows';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { makePlace } from '../helpers/factories/places';
-import { findRow } from '../helpers/factories/rows';
-import type { FactoryOrm } from '../helpers/factories/context';
-import { PlaceRegions } from '../../src/db/entities/PlaceRegions.entity';
-import { getRegionGeo } from '../../src/nest/atlas/atlas-geo';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -76,9 +76,7 @@ describe('Atlas stats', () => {
   it('ATLAS-001 — GET /api/atlas/stats returns stats object', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/addons/atlas/stats')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/addons/atlas/stats').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('countries');
     expect(res.body).toHaveProperty('stats');
@@ -95,14 +93,12 @@ describe('Atlas stats', () => {
     await makePlace(orm(), past.id, { ...unplaced, name: 'Colosseum', address: 'Piazza del Colosseo, Rome, Italy' });
     await makePlace(orm(), future.id, { ...unplaced, name: 'Senso-ji', address: 'Asakusa, Tokyo, Japan' });
 
-    const res = await request(app)
-      .get('/api/addons/atlas/stats')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/addons/atlas/stats').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     const countries = res.body.countries as { code: string; status: string }[];
-    expect(countries.find(c => c.code === 'IT')?.status).toBe('visited');
-    expect(countries.find(c => c.code === 'JP')?.status).toBe('planned');
+    expect(countries.find((c) => c.code === 'IT')?.status).toBe('visited');
+    expect(countries.find((c) => c.code === 'JP')?.status).toBe('planned');
     expect(res.body.stats.totalCountries).toBe(1);
     expect(res.body.stats.totalCountriesPlanned).toBe(1);
     // The whole point: the map gets more countries than the passport counter shows.
@@ -112,9 +108,7 @@ describe('Atlas stats', () => {
   it('ATLAS-002 — GET /api/atlas/country/:code returns places in country', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/addons/atlas/country/FR')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/addons/atlas/country/FR').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.places)).toBe(true);
   });
@@ -124,16 +118,12 @@ describe('Mark/unmark country', () => {
   it('ATLAS-003 — POST /country/:code/mark marks country as visited', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .post('/api/addons/atlas/country/DE/mark')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).post('/api/addons/atlas/country/DE/mark').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
 
     // Verify it appears in visited countries
-    const stats = await request(app)
-      .get('/api/addons/atlas/stats')
-      .set('Cookie', authCookie(user.id));
+    const stats = await request(app).get('/api/addons/atlas/stats').set('Cookie', authCookie(user.id));
     const codes = (stats.body.countries as any[]).map((c: any) => c.code);
     expect(codes).toContain('DE');
   });
@@ -141,13 +131,9 @@ describe('Mark/unmark country', () => {
   it('ATLAS-004 — DELETE /country/:code/mark unmarks country', async () => {
     const { user } = createUser(testDb);
 
-    await request(app)
-      .post('/api/addons/atlas/country/IT/mark')
-      .set('Cookie', authCookie(user.id));
+    await request(app).post('/api/addons/atlas/country/IT/mark').set('Cookie', authCookie(user.id));
 
-    const res = await request(app)
-      .delete('/api/addons/atlas/country/IT/mark')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete('/api/addons/atlas/country/IT/mark').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
   });
@@ -160,7 +146,7 @@ describe('Bucket list', () => {
     const res = await request(app)
       .post('/api/addons/atlas/bucket-list')
       .set('Cookie', authCookie(user.id))
-      .send({ name: 'Machu Picchu', country_code: 'PE', lat: -13.1631, lng: -72.5450 });
+      .send({ name: 'Machu Picchu', country_code: 'PE', lat: -13.1631, lng: -72.545 });
     expect(res.status).toBe(201);
     expect(res.body.item.name).toBe('Machu Picchu');
   });
@@ -192,9 +178,7 @@ describe('Bucket list', () => {
     expect(second.status).toBe(409);
     expect(second.body).toEqual({ error: 'Already on your bucket list' });
 
-    const list = await request(app)
-      .get('/api/addons/atlas/bucket-list')
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get('/api/addons/atlas/bucket-list').set('Cookie', authCookie(user.id));
     expect(list.body.items).toHaveLength(1);
   });
 
@@ -213,9 +197,7 @@ describe('Bucket list', () => {
       .send({ name: 'Japan', country_code: 'JP', target_date: '2027-05' });
     expect(dated.status).toBe(201);
 
-    const list = await request(app)
-      .get('/api/addons/atlas/bucket-list')
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get('/api/addons/atlas/bucket-list').set('Cookie', authCookie(user.id));
     expect(list.body.items).toHaveLength(2);
   });
 
@@ -227,9 +209,7 @@ describe('Bucket list', () => {
       .set('Cookie', authCookie(user.id))
       .send({ name: 'Santorini', country_code: 'GR' });
 
-    const res = await request(app)
-      .get('/api/addons/atlas/bucket-list')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/addons/atlas/bucket-list').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(1);
   });
@@ -269,9 +249,7 @@ describe('Bucket list', () => {
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ error: 'Already on your bucket list' });
 
-    const list = await request(app)
-      .get('/api/addons/atlas/bucket-list')
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get('/api/addons/atlas/bucket-list').set('Cookie', authCookie(user.id));
     expect(list.body.items.map((i: { target_date: string }) => i.target_date).sort()).toEqual(['2027-05', '2028-09']);
   });
 
@@ -284,24 +262,18 @@ describe('Bucket list', () => {
       .send({ name: 'Tokyo' });
     const id = create.body.item.id;
 
-    const del = await request(app)
-      .delete(`/api/addons/atlas/bucket-list/${id}`)
-      .set('Cookie', authCookie(user.id));
+    const del = await request(app).delete(`/api/addons/atlas/bucket-list/${id}`).set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
-    const list = await request(app)
-      .get('/api/addons/atlas/bucket-list')
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get('/api/addons/atlas/bucket-list').set('Cookie', authCookie(user.id));
     expect(list.body.items).toHaveLength(0);
   });
 
   it('ATLAS-008 — DELETE non-existent item returns 404', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .delete('/api/addons/atlas/bucket-list/99999')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete('/api/addons/atlas/bucket-list/99999').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
   });
 });
@@ -349,9 +321,7 @@ describe('Mark/unmark region', () => {
       .set('Cookie', authCookie(user.id))
       .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
 
-    const stats = await request(app)
-      .get('/api/addons/atlas/stats')
-      .set('Cookie', authCookie(user.id));
+    const stats = await request(app).get('/api/addons/atlas/stats').set('Cookie', authCookie(user.id));
 
     const codes = (stats.body.countries as any[]).map((c: any) => c.code);
     expect(codes).toContain('DE');
@@ -386,9 +356,7 @@ describe('Mark/unmark region', () => {
       .set('Cookie', authCookie(user.id))
       .send({ name: 'Bayern', country_code: 'DE' });
 
-    const res = await request(app)
-      .get('/api/addons/atlas/regions')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/addons/atlas/regions').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('regions');
@@ -407,16 +375,12 @@ describe('Mark/unmark region', () => {
       .set('Cookie', authCookie(user.id))
       .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
 
-    const del = await request(app)
-      .delete('/api/addons/atlas/region/DE-NW/mark')
-      .set('Cookie', authCookie(user.id));
+    const del = await request(app).delete('/api/addons/atlas/region/DE-NW/mark').set('Cookie', authCookie(user.id));
 
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
-    const res = await request(app)
-      .get('/api/addons/atlas/regions')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/addons/atlas/regions').set('Cookie', authCookie(user.id));
 
     const deRegions = res.body.regions['DE'] as any[] | undefined;
     const codes = (deRegions || []).map((r: any) => r.code);
@@ -431,13 +395,9 @@ describe('Mark/unmark region', () => {
       .set('Cookie', authCookie(user.id))
       .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
 
-    await request(app)
-      .delete('/api/addons/atlas/region/DE-NW/mark')
-      .set('Cookie', authCookie(user.id));
+    await request(app).delete('/api/addons/atlas/region/DE-NW/mark').set('Cookie', authCookie(user.id));
 
-    const stats = await request(app)
-      .get('/api/addons/atlas/stats')
-      .set('Cookie', authCookie(user.id));
+    const stats = await request(app).get('/api/addons/atlas/stats').set('Cookie', authCookie(user.id));
 
     const codes = (stats.body.countries as any[]).map((c: any) => c.code);
     expect(codes).not.toContain('DE');
@@ -456,13 +416,9 @@ describe('Mark/unmark region', () => {
       .set('Cookie', authCookie(user.id))
       .send({ name: 'Bayern', country_code: 'DE' });
 
-    await request(app)
-      .delete('/api/addons/atlas/region/DE-NW/mark')
-      .set('Cookie', authCookie(user.id));
+    await request(app).delete('/api/addons/atlas/region/DE-NW/mark').set('Cookie', authCookie(user.id));
 
-    const stats = await request(app)
-      .get('/api/addons/atlas/stats')
-      .set('Cookie', authCookie(user.id));
+    const stats = await request(app).get('/api/addons/atlas/stats').set('Cookie', authCookie(user.id));
 
     const codes = (stats.body.countries as any[]).map((c: any) => c.code);
     expect(codes).toContain('DE');
@@ -477,9 +433,7 @@ describe('Mark/unmark region', () => {
       .set('Cookie', authCookie(user1.id))
       .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
 
-    const res = await request(app)
-      .get('/api/addons/atlas/regions')
-      .set('Cookie', authCookie(user2.id));
+    const res = await request(app).get('/api/addons/atlas/regions').set('Cookie', authCookie(user2.id));
 
     expect(res.status).toBe(200);
     const deRegions = res.body.regions['DE'] as any[] | undefined;
@@ -491,9 +445,7 @@ describe('Regions geo', () => {
   it('ATLAS-012 — GET /regions/geo without countries param returns empty FeatureCollection', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/addons/atlas/regions/geo')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/addons/atlas/regions/geo').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ type: 'FeatureCollection', features: [] });
@@ -536,7 +488,11 @@ describe('A place that moves takes its Atlas country with it (#2527)', () => {
 
   it('ATLAS-015: correcting a place from France to Germany moves it on the Atlas', async () => {
     const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Wrongly imported', start_date: '2025-05-01', end_date: '2025-05-05' });
+    const trip = createTrip(testDb, user.id, {
+      title: 'Wrongly imported',
+      start_date: '2025-05-01',
+      end_date: '2025-05-05',
+    });
     const place = await makePlace(orm(), trip.id, {
       name: 'Hotel',
       lat: 48.8566,

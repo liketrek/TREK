@@ -214,7 +214,10 @@ declare const query: { executeTakeFirstOrThrow(): Promise<{ insertId: bigint | u
     ]) {
       const options = await selectorsFor(file);
       expect(insertIdHits(options, 'void Number(result.insertId);'), file).toHaveLength(1);
-      expect(insertIdHits(options, 'void query.executeTakeFirstOrThrow().then(({ insertId }) => insertId);'), file).toHaveLength(1);
+      expect(
+        insertIdHits(options, 'void query.executeTakeFirstOrThrow().then(({ insertId }) => insertId);'),
+        file,
+      ).toHaveLength(1);
     }
   });
 
@@ -255,20 +258,45 @@ declare function demoDenied(): unknown;
 
   it('refuses a demo check of its own in a *.mcp.ts file, and keeps the env and fetch guards there', async () => {
     const options = await selectorsFor('src/nest/memories/probe.mcp.ts');
-    expect(demoHits(options, `${CODE}
-void auth.isDemoUser(1);`)).toHaveLength(1);
-    expect(demoHits(options, `${CODE}
-void demo.isDemoUserId(1);`)).toHaveLength(1);
-    expect(demoHits(options, `${CODE}
-void demoDenied();`)).toHaveLength(1);
+    expect(
+      demoHits(
+        options,
+        `${CODE}
+void auth.isDemoUser(1);`,
+      ),
+    ).toHaveLength(1);
+    expect(
+      demoHits(
+        options,
+        `${CODE}
+void demo.isDemoUserId(1);`,
+      ),
+    ).toHaveLength(1);
+    expect(
+      demoHits(
+        options,
+        `${CODE}
+void demoDenied();`,
+      ),
+    ).toHaveLength(1);
     expect(messages(options, 'void process.env.X;')).not.toEqual([]);
-    expect(messages(options, `${PRELUDE}
-void fetch(url);`)).not.toEqual([]);
+    expect(
+      messages(
+        options,
+        `${PRELUDE}
+void fetch(url);`,
+      ),
+    ).not.toEqual([]);
   });
 
   it('leaves the same call alone outside the tool files', async () => {
     const options = await selectorsFor('src/nest/memories/probe.service.ts');
-    expect(demoHits(options, `${CODE}
-void demo.isDemoUserId(1);`)).toEqual([]);
+    expect(
+      demoHits(
+        options,
+        `${CODE}
+void demo.isDemoUserId(1);`,
+      ),
+    ).toEqual([]);
   });
 });

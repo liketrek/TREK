@@ -21,10 +21,7 @@ import type { PluginsRepository } from '../../db/repositories/Plugins.repository
  * for them, not even a disabled one.
  */
 export type SignatureCode =
-  | 'SIGNATURE_MISSING'
-  | 'SIGNATURE_INCOMPLETE'
-  | 'SIGNATURE_KEY_CHANGED'
-  | 'SIGNATURE_INVALID';
+  'SIGNATURE_MISSING' | 'SIGNATURE_INCOMPLETE' | 'SIGNATURE_KEY_CHANGED' | 'SIGNATURE_INVALID';
 
 /** The one code an admin may override, via POST /api/admin/plugins/:id/retrust. */
 export const RETRUSTABLE_CODE: SignatureCode = 'SIGNATURE_KEY_CHANGED';
@@ -67,7 +64,13 @@ export function keyFingerprint(pubkey: string | null | undefined): string | null
  * old code. A blocked update is not a broken runtime, and conflating them would
  * make the isolation-health dot lie.
  */
-export async function setUpdateBlock(plugins: PluginsRepository, id: string, code: SignatureCode, detail: string, version: string | null): Promise<void> {
+export async function setUpdateBlock(
+  plugins: PluginsRepository,
+  id: string,
+  code: SignatureCode,
+  detail: string,
+  version: string | null,
+): Promise<void> {
   try {
     await plugins.setUpdateBlockColumns(id, code, detail, version);
   } catch {

@@ -1,19 +1,20 @@
-import type Database from 'better-sqlite3';
-import { sharedTestOrm } from './test-uow';
-import { PackingItems } from '../../src/db/entities/PackingItems.entity';
-import type { PackingItemsRepository } from '../../src/db/repositories/PackingItems.repository';
-import { PackingItemContributors } from '../../src/db/entities/PackingItemContributors.entity';
-import type { PackingItemContributorsRepository } from '../../src/db/repositories/PackingItemContributors.repository';
 import { PackingBags } from '../../src/db/entities/PackingBags.entity';
-import type { PackingBagsRepository } from '../../src/db/repositories/PackingBags.repository';
 import { PackingCategoryAssignees } from '../../src/db/entities/PackingCategoryAssignees.entity';
-import type { PackingCategoryAssigneesRepository } from '../../src/db/repositories/PackingCategoryAssignees.repository';
-import { PackingTemplates } from '../../src/db/entities/PackingTemplates.entity';
-import type { PackingTemplatesRepository } from '../../src/db/repositories/PackingTemplates.repository';
+import { PackingItemContributors } from '../../src/db/entities/PackingItemContributors.entity';
+import { PackingItems } from '../../src/db/entities/PackingItems.entity';
 import { PackingTemplateCategories } from '../../src/db/entities/PackingTemplateCategories.entity';
-import type { PackingTemplateCategoriesRepository } from '../../src/db/repositories/PackingTemplateCategories.repository';
 import { PackingTemplateItems } from '../../src/db/entities/PackingTemplateItems.entity';
+import { PackingTemplates } from '../../src/db/entities/PackingTemplates.entity';
+import type { PackingBagsRepository } from '../../src/db/repositories/PackingBags.repository';
+import type { PackingCategoryAssigneesRepository } from '../../src/db/repositories/PackingCategoryAssignees.repository';
+import type { PackingItemContributorsRepository } from '../../src/db/repositories/PackingItemContributors.repository';
+import type { PackingItemsRepository } from '../../src/db/repositories/PackingItems.repository';
+import type { PackingTemplateCategoriesRepository } from '../../src/db/repositories/PackingTemplateCategories.repository';
 import type { PackingTemplateItemsRepository } from '../../src/db/repositories/PackingTemplateItems.repository';
+import type { PackingTemplatesRepository } from '../../src/db/repositories/PackingTemplates.repository';
+import { sharedTestOrm } from './test-uow';
+
+import type Database from 'better-sqlite3';
 
 /**
  * Plan 3e Task 3 (`PackingService`) test-only repository factories, bound to
@@ -35,7 +36,9 @@ export function createTestPackingItemsRepo(db: Database.Database): Promise<Packi
   return sharedTestOrm(db).then((t) => t.repo(PackingItems));
 }
 
-export function createTestPackingItemContributorsRepo(db: Database.Database): Promise<PackingItemContributorsRepository> {
+export function createTestPackingItemContributorsRepo(
+  db: Database.Database,
+): Promise<PackingItemContributorsRepository> {
   return sharedTestOrm(db).then((t) => t.repo(PackingItemContributors));
 }
 
@@ -43,7 +46,9 @@ export function createTestPackingBagsRepo(db: Database.Database): Promise<Packin
   return sharedTestOrm(db).then((t) => t.repo(PackingBags));
 }
 
-export function createTestPackingCategoryAssigneesRepo(db: Database.Database): Promise<PackingCategoryAssigneesRepository> {
+export function createTestPackingCategoryAssigneesRepo(
+  db: Database.Database,
+): Promise<PackingCategoryAssigneesRepository> {
   return sharedTestOrm(db).then((t) => t.repo(PackingCategoryAssignees));
 }
 
@@ -51,7 +56,9 @@ export function createTestPackingTemplatesRepo(db: Database.Database): Promise<P
   return sharedTestOrm(db).then((t) => t.repo(PackingTemplates));
 }
 
-export function createTestPackingTemplateCategoriesRepo(db: Database.Database): Promise<PackingTemplateCategoriesRepository> {
+export function createTestPackingTemplateCategoriesRepo(
+  db: Database.Database,
+): Promise<PackingTemplateCategoriesRepository> {
   return sharedTestOrm(db).then((t) => t.repo(PackingTemplateCategories));
 }
 

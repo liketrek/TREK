@@ -15,49 +15,49 @@
  * `recordSyncResult` into `dawarich_connections`, so "the failure is stored" is
  * asserted against the table the settings card reads, not against a spy alone.
  */
+import { db as testDb } from '../../../src/db/database';
+import { BucketList } from '../../../src/db/entities/BucketList.entity';
+import { DawarichConnections } from '../../../src/db/entities/DawarichConnections.entity';
+import { DawarichVisitSuggestions } from '../../../src/db/entities/DawarichVisitSuggestions.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import type { BucketListRepository } from '../../../src/db/repositories/BucketList.repository';
+import type { DawarichConnectionsRepository } from '../../../src/db/repositories/DawarichConnections.repository';
+import type { DawarichVisitSuggestionsRepository } from '../../../src/db/repositories/DawarichVisitSuggestions.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { DawarichSyncService } from '../../../src/nest/integrations/dawarich-sync.service';
+import { DawarichError } from '../../../src/nest/integrations/dawarich.client';
+import type { DawarichClient, DawarichCreds, DawarichVisitRaw } from '../../../src/nest/integrations/dawarich.client';
+import type { DawarichService } from '../../../src/nest/integrations/dawarich.service';
+import {
+  createTestDawarichConnectionsRepo,
+  createTestDawarichVisitSuggestionsRepo,
+} from '../../helpers/dawarich-repos';
+import { createUser, createTrip } from '../../helpers/factories';
+import { deleteRows, findRow, findRows, insertRow, updateRows, upsertRow } from '../../helpers/factories/rows';
+import { addTripMember } from '../../helpers/factories/trips';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import { createTestTripsRepo, createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
+import type { DawarichCapabilities, DawarichSyncState } from '@trek/shared';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup (real in-memory SQLite — same vi.hoisted pattern as atlas/immich) ──
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
-    return {
-      db,
-      closeDb: () => {},
-      reinitialize: () => {},
-      getPlaceWithTags: () => null,
-      canAccessTrip: () => null,
-      isOwner: () => false,
-    };
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => null,
+    isOwner: () => false,
+  };
 });
-
-
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { DawarichSyncService } from '../../../src/nest/integrations/dawarich-sync.service';
-import { BucketList } from '../../../src/db/entities/BucketList.entity';
-import type { BucketListRepository } from '../../../src/db/repositories/BucketList.repository';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { DawarichVisitSuggestionsRepository } from '../../../src/db/repositories/DawarichVisitSuggestions.repository';
-import type { DawarichConnectionsRepository } from '../../../src/db/repositories/DawarichConnections.repository';
-import type { TestOrm } from '../../helpers/test-orm';
-import { createTestDawarichConnectionsRepo, createTestDawarichVisitSuggestionsRepo } from '../../helpers/dawarich-repos';
-import { createTestTripsRepo, createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
-import { deleteRows, findRow, findRows, insertRow, updateRows, upsertRow } from '../../helpers/factories/rows';
-import { addTripMember } from '../../helpers/factories/trips';
-import { DawarichConnections } from '../../../src/db/entities/DawarichConnections.entity';
-import { DawarichVisitSuggestions } from '../../../src/db/entities/DawarichVisitSuggestions.entity';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { DawarichError } from '../../../src/nest/integrations/dawarich.client';
-import type { DawarichClient, DawarichCreds, DawarichVisitRaw } from '../../../src/nest/integrations/dawarich.client';
-import type { DawarichService } from '../../../src/nest/integrations/dawarich.service';
-import type { DawarichCapabilities, DawarichSyncState } from '@trek/shared';
 
 // ── Fakes ────────────────────────────────────────────────────────────────────
 
@@ -84,16 +84,27 @@ const getCredentials = vi.fn(async (userId: number): Promise<DawarichCreds | nul
 });
 
 /** Writes the result where the settings card reads it, exactly as the real service does. */
-const recordSyncResult = vi.fn(async (userId: number, state: DawarichSyncState, error: string | null): Promise<void> => {
-  await updateRows(t, DawarichConnections, { user: userId }, {
-    last_sync_at: new Date().toISOString(), last_sync_state: state, last_sync_error: error,
-  });
-});
+const recordSyncResult = vi.fn(
+  async (userId: number, state: DawarichSyncState, error: string | null): Promise<void> => {
+    await updateRows(
+      t,
+      DawarichConnections,
+      { user: userId },
+      {
+        last_sync_at: new Date().toISOString(),
+        last_sync_state: state,
+        last_sync_error: error,
+      },
+    );
+  },
+);
 
 const listSyncableUserIds = vi.fn(async (): Promise<number[]> =>
   (
     await findRows(t, DawarichConnections, {
-      sync_enabled: 1, url: { $ne: null, $nin: [''] }, api_key: { $ne: null },
+      sync_enabled: 1,
+      url: { $ne: null, $nin: [''] },
+      api_key: { $ne: null },
     })
   ).map((r) => r.user_id as number),
 );
@@ -216,9 +227,18 @@ async function bucketItem(name: string, lat: number, lng: number, userId = USER)
 
 /** A suggestion row written straight in, as an earlier run or a stale state left it. */
 function seedSuggestion(row: {
-  source_visit_id: string; trip: number; name: string; lat: number | null; lng: number | null;
-  started_at: string; ended_at: string; duration_minutes: number; local_date: string;
-  state: string; source_hash: string; matchedBucketListItem?: number;
+  source_visit_id: string;
+  trip: number;
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  started_at: string;
+  ended_at: string;
+  duration_minutes: number;
+  local_date: string;
+  state: string;
+  source_hash: string;
+  matchedBucketListItem?: number;
 }): Promise<number> {
   return insertRow(t, DawarichVisitSuggestions, { user: USER, source_status: 'suggested', ...row });
 }
@@ -366,9 +386,17 @@ describe('DawarichSyncService, neighbouring trips', () => {
     // it loses nothing, and the panel of the trip it belongs to fills in.
     const next = nextTrip();
     await seedSuggestion({
-      source_visit_id: '911', trip: next, name: 'Hotel Adlon', lat: LAT, lng: LNG,
-      started_at: `${TRIP_END}T09:00:00Z`, ended_at: `${TRIP_END}T12:00:00Z`, duration_minutes: 180,
-      local_date: TRIP_END, state: 'new', source_hash: 'stale',
+      source_visit_id: '911',
+      trip: next,
+      name: 'Hotel Adlon',
+      lat: LAT,
+      lng: LNG,
+      started_at: `${TRIP_END}T09:00:00Z`,
+      ended_at: `${TRIP_END}T12:00:00Z`,
+      duration_minutes: 180,
+      local_date: TRIP_END,
+      state: 'new',
+      source_hash: 'stale',
     });
     withVisits(lastDayVisit(911));
 
@@ -383,9 +411,17 @@ describe('DawarichSyncService, neighbouring trips', () => {
     // it would leave the handled list pointing somewhere else than the place.
     const next = nextTrip();
     await seedSuggestion({
-      source_visit_id: '912', trip: next, name: 'Hotel Adlon', lat: LAT, lng: LNG,
-      started_at: `${TRIP_END}T09:00:00Z`, ended_at: `${TRIP_END}T12:00:00Z`, duration_minutes: 180,
-      local_date: TRIP_END, state: 'accepted', source_hash: 'stale',
+      source_visit_id: '912',
+      trip: next,
+      name: 'Hotel Adlon',
+      lat: LAT,
+      lng: LNG,
+      started_at: `${TRIP_END}T09:00:00Z`,
+      ended_at: `${TRIP_END}T12:00:00Z`,
+      duration_minutes: 180,
+      local_date: TRIP_END,
+      state: 'accepted',
+      source_hash: 'stale',
     });
     withVisits(lastDayVisit(912));
 
@@ -461,9 +497,16 @@ describe('DawarichSyncService — repeated runs', () => {
     const before = await only();
 
     // What acceptance leaves behind: the user's own wording plus the hash they said yes to.
-    await updateRows(t, DawarichVisitSuggestions, { id: before.id }, {
-      state: 'accepted', accepted_hash: before.source_hash, name: 'Our anniversary dinner',
-    });
+    await updateRows(
+      t,
+      DawarichVisitSuggestions,
+      { id: before.id },
+      {
+        state: 'accepted',
+        accepted_hash: before.source_hash,
+        name: 'Our anniversary dinner',
+      },
+    );
 
     withVisits(visit({ id: 603, name: 'Adlon Kempinski', place: { latitude: 52.4, longitude: 13.2, id: 79 } }));
     const second = await svc.syncUser(USER);
@@ -500,7 +543,12 @@ describe('DawarichSyncService — repeated runs', () => {
     await svc.syncUser(USER);
     // accepted_hash takes each row's own source_hash, so the rows are written one by one.
     for (const row of await findRows(t, DawarichVisitSuggestions)) {
-      await updateRows(t, DawarichVisitSuggestions, { id: row.id }, { state: 'accepted', accepted_hash: row.source_hash });
+      await updateRows(
+        t,
+        DawarichVisitSuggestions,
+        { id: row.id },
+        { state: 'accepted', accepted_hash: row.source_hash },
+      );
     }
 
     const second = await svc.syncUser(USER);
@@ -584,9 +632,17 @@ describe('DawarichSyncService — visits that vanish from the source', () => {
 
     // Same user and trip, but a start date years before the window this trip asks about.
     await seedSuggestion({
-      source_visit_id: '999', trip: TRIP, name: 'Ancient stay', lat: LAT, lng: LNG,
-      started_at: '2019-01-01T10:00:00Z', ended_at: '2019-01-01T12:00:00Z', duration_minutes: 120,
-      local_date: '2019-01-01', state: 'new', source_hash: 'deadbeef',
+      source_visit_id: '999',
+      trip: TRIP,
+      name: 'Ancient stay',
+      lat: LAT,
+      lng: LNG,
+      started_at: '2019-01-01T10:00:00Z',
+      ended_at: '2019-01-01T12:00:00Z',
+      duration_minutes: 120,
+      local_date: '2019-01-01',
+      state: 'new',
+      source_hash: 'deadbeef',
     });
 
     withVisits();
@@ -779,9 +835,18 @@ describe('DawarichSyncService — bucket-list matching', () => {
     // outside the synced window so the reconciliation leaves it alone.
     const wish = await bucketItem('Brandenburger Tor', LAT, LNG);
     await seedSuggestion({
-      source_visit_id: '990', trip: TRIP, name: 'Stay without a position', lat: null, lng: null,
-      started_at: '2019-01-01T10:00:00Z', ended_at: '2019-01-01T12:00:00Z', duration_minutes: 120,
-      local_date: '2019-01-01', state: 'new', source_hash: 'deadbeef', matchedBucketListItem: wish,
+      source_visit_id: '990',
+      trip: TRIP,
+      name: 'Stay without a position',
+      lat: null,
+      lng: null,
+      started_at: '2019-01-01T10:00:00Z',
+      ended_at: '2019-01-01T12:00:00Z',
+      duration_minutes: 120,
+      local_date: '2019-01-01',
+      state: 'new',
+      source_hash: 'deadbeef',
+      matchedBucketListItem: wish,
     });
 
     withVisits(visit({ id: 842 }));
@@ -801,11 +866,23 @@ describe('DawarichSyncService — bucket-list matching', () => {
     // independent statements, a concurrent read between them could observe
     // either two holders or zero.
     const wish = await bucketItem('Brandenburger Tor', LAT, LNG);
-    for (const [id, name, hash] of [['970', 'Old holder A', 'deadbeef-a'], ['971', 'Old holder B', 'deadbeef-b']]) {
+    for (const [id, name, hash] of [
+      ['970', 'Old holder A', 'deadbeef-a'],
+      ['971', 'Old holder B', 'deadbeef-b'],
+    ]) {
       await seedSuggestion({
-        source_visit_id: id, trip: TRIP, name, lat: LAT, lng: LNG,
-        started_at: '2019-01-01T10:00:00Z', ended_at: '2019-01-01T12:00:00Z', duration_minutes: 60,
-        local_date: '2019-01-01', state: 'new', source_hash: hash, matchedBucketListItem: wish,
+        source_visit_id: id,
+        trip: TRIP,
+        name,
+        lat: LAT,
+        lng: LNG,
+        started_at: '2019-01-01T10:00:00Z',
+        ended_at: '2019-01-01T12:00:00Z',
+        duration_minutes: 60,
+        local_date: '2019-01-01',
+        state: 'new',
+        source_hash: hash,
+        matchedBucketListItem: wish,
       });
     }
 
@@ -874,7 +951,12 @@ describe('DawarichSyncService — syncUser result state', () => {
   });
 
   it('DAWARICH-SYNC-043: reports "ok" and clears the stored error on a clean run', async () => {
-    await updateRows(t, DawarichConnections, { user: USER }, { last_sync_state: 'failed', last_sync_error: 'unreachable' });
+    await updateRows(
+      t,
+      DawarichConnections,
+      { user: USER },
+      { last_sync_state: 'failed', last_sync_error: 'unreachable' },
+    );
     withVisits(visit({ id: 902 }));
 
     const result = await svc.syncUser(USER);
@@ -1092,8 +1174,7 @@ describe('DawarichSyncService — runSync', () => {
     // clear a warning nobody fixed, and answering "never" would wipe the
     // history of a connection that has synced for months.
     await updateRows(t, DawarichConnections, { user: USER }, { last_sync_state: 'partial' });
-    let release: (value: { visits: DawarichVisitRaw[]; truncated: boolean; version: string | null }) => void =
-      () => {};
+    let release: (value: { visits: DawarichVisitRaw[]; truncated: boolean; version: string | null }) => void = () => {};
     listVisits.mockReturnValue(
       new Promise((resolve) => {
         release = resolve;

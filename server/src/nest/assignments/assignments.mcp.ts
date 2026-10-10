@@ -1,15 +1,21 @@
-import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  errorResult, ok,
-} from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { idSchema, assignmentEndDayRequestSchema, type AssignmentEndDayRequest } from '@trek/shared';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { AssignmentsService } from './assignments.service';
+import {
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { DaysService } from '../days/days.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { AssignmentsService } from './assignments.service';
+import { idSchema, assignmentEndDayRequestSchema, type AssignmentEndDayRequest } from '@trek/shared';
+
+import { z } from 'zod';
 
 /**
  * Assignment MCP surface — ported 1:1 from the legacy registrar in
@@ -56,7 +62,8 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'set_assignment_end_day',
-    description: 'End the travel day after this visit and its stay. Applies only with daily travel times enabled. Pass false to follow the default again.',
+    description:
+      'End the travel day after this visit and its stay. Applies only with daily travel times enabled. Pass false to follow the default again.',
     inputSchema: {
       tripId: idSchema,
       assignmentId: idSchema,
@@ -71,7 +78,8 @@ export class AssignmentsMcp {
   ) {
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
+    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId)))
+      return errorResult('Assignment not found.');
     const assignment = await this.assignments.setEndDay(assignmentId, end_day);
     this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
     return ok({ assignment });
@@ -104,7 +112,8 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'clear_day_assignments',
-    description: 'Remove every place from one day in a single step. The day itself, its notes and its bookings stay; the places stay in the trip and can be planned again. Returns the removed assignment ids.',
+    description:
+      'Remove every place from one day in a single step. The day itself, its notes and its bookings stay; the places stay in the trip and can be planned again. Returns the removed assignment ids.',
     inputSchema: {
       tripId: idSchema,
       dayId: idSchema,
@@ -112,22 +121,21 @@ export class AssignmentsMcp {
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'places', mode: 'write' },
   })
-  async clearDayAssignments(
-    { tripId, dayId }: { tripId: number; dayId: number },
-    ctx: McpContext,
-  ) {
+  async clearDayAssignments({ tripId, dayId }: { tripId: number; dayId: number }, ctx: McpContext) {
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.assignments.dayExists(dayId, tripId))) return errorResult('Day not found.');
     const removedIds = await this.assignments.clearDay(dayId);
-    for (const assignmentId of removedIds) this.guards.safeBroadcast(tripId, 'assignment:deleted', { assignmentId, dayId });
+    for (const assignmentId of removedIds)
+      this.guards.safeBroadcast(tripId, 'assignment:deleted', { assignmentId, dayId });
     if (removedIds.length > 0) await this.assignments.reconcile(tripId);
     return ok({ success: true, removedIds });
   }
 
   @Tool({
     name: 'update_assignment_time',
-    description: 'Set the start and/or end time for a place assignment on a day (e.g. "09:00", "11:30"). Pass null to clear a time.',
+    description:
+      'Set the start and/or end time for a place assignment on a day (e.g. "09:00", "11:30"). Pass null to clear a time.',
     inputSchema: {
       tripId: idSchema,
       assignmentId: idSchema,
@@ -138,8 +146,16 @@ export class AssignmentsMcp {
     access: { group: 'places', mode: 'write' },
   })
   async updateAssignmentTime(
-    { tripId, assignmentId, place_time, end_time }: {
-      tripId: number; assignmentId: number; place_time?: string | null; end_time?: string | null;
+    {
+      tripId,
+      assignmentId,
+      place_time,
+      end_time,
+    }: {
+      tripId: number;
+      assignmentId: number;
+      place_time?: string | null;
+      end_time?: string | null;
     },
     ctx: McpContext,
   ) {
@@ -150,7 +166,7 @@ export class AssignmentsMcp {
     const { assignment, reordered, vias } = await this.assignments.updateTime(
       assignmentId,
       place_time !== undefined ? place_time : existing.assignment_time,
-      end_time !== undefined ? end_time : existing.assignment_end_time
+      end_time !== undefined ? end_time : existing.assignment_end_time,
     );
     // Same three events as PUT /assignments/:id/time.
     this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
@@ -162,7 +178,8 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'update_assignment_notes',
-    description: 'Set or clear the day-specific note on a place assignment (the note assign_place_to_day and create_and_assign_place accept at creation). Pass null or an empty string to clear it.',
+    description:
+      'Set or clear the day-specific note on a place assignment (the note assign_place_to_day and create_and_assign_place accept at creation). Pass null or an empty string to clear it.',
     inputSchema: {
       tripId: idSchema,
       assignmentId: idSchema,
@@ -180,7 +197,8 @@ export class AssignmentsMcp {
   ) {
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
+    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId)))
+      return errorResult('Assignment not found.');
     const assignment = await this.assignments.updateNotes(assignmentId, notes);
     this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
     return ok({ assignment });
@@ -188,35 +206,54 @@ export class AssignmentsMcp {
 
   @Tool({
     name: 'set_leg_transport_mode',
-    description: 'Set the travel mode of a route leg for a place assignment. Use direction "outgoing" (default) for the common case: the leg leaving this stop toward the next. Use direction "incoming" ONLY when this stop\'s arriving leg originates from something that is not itself a place assignment (e.g. a flight/train booking arrival, or a morning hotel departure) – setting "incoming" on an ordinary place-to-place leg is stored but has no effect on route rendering, because it targets a column that is only read for non-place origins. transport_mode is a route profile key: "driving", "walking", "cycling", or a plugin profile written as "plugin:<pluginId>/<profileId>". Any other value is stored but drawn as a driving route. null clears it so the leg inherits the day default.',
+    description:
+      'Set the travel mode of a route leg for a place assignment. Use direction "outgoing" (default) for the common case: the leg leaving this stop toward the next. Use direction "incoming" ONLY when this stop\'s arriving leg originates from something that is not itself a place assignment (e.g. a flight/train booking arrival, or a morning hotel departure) – setting "incoming" on an ordinary place-to-place leg is stored but has no effect on route rendering, because it targets a column that is only read for non-place origins. transport_mode is a route profile key: "driving", "walking", "cycling", or a plugin profile written as "plugin:<pluginId>/<profileId>". Any other value is stored but drawn as a driving route. null clears it so the leg inherits the day default.',
     inputSchema: {
       tripId: idSchema,
       assignmentId: idSchema,
-      transport_mode: z.string().nullable().optional().describe('Route profile key (e.g. "driving"), or null to inherit the day default'),
-      direction: z.enum(['outgoing', 'incoming']).default('outgoing').describe('Which leg to set: "outgoing" (leaving this stop, default) or "incoming" (arriving at it)'),
+      transport_mode: z
+        .string()
+        .nullable()
+        .optional()
+        .describe('Route profile key (e.g. "driving"), or null to inherit the day default'),
+      direction: z
+        .enum(['outgoing', 'incoming'])
+        .default('outgoing')
+        .describe('Which leg to set: "outgoing" (leaving this stop, default) or "incoming" (arriving at it)'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
   })
   async setLegTransportMode(
-    { tripId, assignmentId, transport_mode, direction }: {
-      tripId: number; assignmentId: number; transport_mode?: string | null; direction?: 'outgoing' | 'incoming';
+    {
+      tripId,
+      assignmentId,
+      transport_mode,
+      direction,
+    }: {
+      tripId: number;
+      assignmentId: number;
+      transport_mode?: string | null;
+      direction?: 'outgoing' | 'incoming';
     },
     ctx: McpContext,
   ) {
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
-    const assignment = direction === 'incoming'
-      ? await this.assignments.setIncomingLegTransportMode(assignmentId, transport_mode ?? null)
-      : await this.assignments.setLegTransportMode(assignmentId, transport_mode ?? null);
+    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId)))
+      return errorResult('Assignment not found.');
+    const assignment =
+      direction === 'incoming'
+        ? await this.assignments.setIncomingLegTransportMode(assignmentId, transport_mode ?? null)
+        : await this.assignments.setLegTransportMode(assignmentId, transport_mode ?? null);
     this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
     return ok({ assignment });
   }
 
   @Tool({
     name: 'set_assignment_route_excluded',
-    description: 'Keep a place on its day but leave it out of that day route, or put it back. An excluded stop still shows in the day plan and on the map, and the route runs from the stop before it straight to the one after. Use it for a place only visited on foot from somewhere nearby, or one that is just a point of interest.',
+    description:
+      'Keep a place on its day but leave it out of that day route, or put it back. An excluded stop still shows in the day plan and on the map, and the route runs from the stop before it straight to the one after. Use it for a place only visited on foot from somewhere nearby, or one that is just a point of interest.',
     inputSchema: {
       tripId: idSchema,
       assignmentId: idSchema,
@@ -231,7 +268,8 @@ export class AssignmentsMcp {
   ) {
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
+    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId)))
+      return errorResult('Assignment not found.');
     const assignment = await this.assignments.setRouteExcluded(assignmentId, excluded);
     this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
     return ok({ assignment });
@@ -244,27 +282,43 @@ export class AssignmentsMcp {
       tripId: idSchema,
       assignmentId: idSchema,
       newDayId: idSchema,
-      oldDayId: idSchema.optional().describe('Deprecated and ignored — the server derives the source day from the assignment'),
+      oldDayId: idSchema
+        .optional()
+        .describe('Deprecated and ignored — the server derives the source day from the assignment'),
       orderIndex: z.number().int().min(0).optional().default(0),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
   })
   async moveAssignment(
-    { tripId, assignmentId, newDayId, orderIndex }: {
-      tripId: number; assignmentId: number; newDayId: number; oldDayId?: number; orderIndex?: number;
+    {
+      tripId,
+      assignmentId,
+      newDayId,
+      orderIndex,
+    }: {
+      tripId: number;
+      assignmentId: number;
+      newDayId: number;
+      oldDayId?: number;
+      orderIndex?: number;
     },
     ctx: McpContext,
   ) {
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
+    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId)))
+      return errorResult('Assignment not found.');
     if (!(await this.days.getDay(newDayId, tripId))) return errorResult('Day not found.');
     const result = await this.assignments.moveAssignment(assignmentId, newDayId, orderIndex ?? 0);
     // REST parity shape ({ assignment, oldDayId, newDayId }) — the client keys its
     // per-day assignment map on newDayId, so omitting it filed the moved assignment
     // under "undefined" on collaborator screens.
-    this.guards.safeBroadcast(tripId, 'assignment:moved', { assignment: result.assignment, oldDayId: result.oldDayId, newDayId });
+    this.guards.safeBroadcast(tripId, 'assignment:moved', {
+      assignment: result.assignment,
+      oldDayId: result.oldDayId,
+      newDayId,
+    });
     await this.assignments.reconcile(tripId);
     return ok({ assignment: result.assignment });
   }
@@ -279,12 +333,10 @@ export class AssignmentsMcp {
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },
   })
-  async getAssignmentParticipants(
-    { tripId, assignmentId }: { tripId: number; assignmentId: number },
-    ctx: McpContext,
-  ) {
+  async getAssignmentParticipants({ tripId, assignmentId }: { tripId: number; assignmentId: number }, ctx: McpContext) {
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
+    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId)))
+      return errorResult('Assignment not found.');
     const participants = await this.assignments.getParticipants(assignmentId);
     return ok({ participants });
   }
@@ -306,7 +358,8 @@ export class AssignmentsMcp {
   ) {
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
+    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId)))
+      return errorResult('Assignment not found.');
     const participants = await this.assignments.setParticipants(assignmentId, userIds, tripId);
     this.guards.safeBroadcast(tripId, 'assignment:participants', { assignmentId, participants });
     return ok({ participants });

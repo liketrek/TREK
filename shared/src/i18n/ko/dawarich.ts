@@ -57,7 +57,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': '이 인스턴스에서는 Dawarich 애드온이 꺼져 있습니다.',
   'dawarich.error.offline': '연결이 필요합니다 — TREK이 지금 오프라인입니다.',
   'dawarich.error.invalid_url': 'TREK은 이 주소를 사용할 수 없습니다.',
-  'dawarich.warning.private_ip': '이 주소는 사설 IP({ip})를 가리킵니다. 의도한 설정인지 확인하세요. 서버에 ALLOW_INTERNAL_NETWORK=true가 필요할 수 있습니다.',
+  'dawarich.warning.private_ip':
+    '이 주소는 사설 IP({ip})를 가리킵니다. 의도한 설정인지 확인하세요. 서버에 ALLOW_INTERNAL_NETWORK=true가 필요할 수 있습니다.',
   'dawarich.error.unknown': 'Dawarich와 통신하는 중 문제가 발생했습니다.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -172,7 +173,6 @@ const dawarich: TranslationStrings = {
   'dawarich.bucket.kilometersAway': '{km} km 거리',
   'dawarich.bucket.rule': '{meters} m 이내에서 {count}분 이상 머무르면 소원을 이룬 것으로 봅니다.',
   'dawarich.journey.dayStays.other': 'Dawarich 방문 기록 {count}건',
-
 };
 
 export default dawarich;

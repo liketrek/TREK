@@ -202,7 +202,8 @@ const journey: TranslationStrings = {
   'journey.settings.statusManualHint': '已手动设置。在切回自动之前，行程日期不会再改变它。',
   'journey.settings.photosSection': '照片',
   'journey.settings.photoLocation': '根据照片定位条目',
-  'journey.settings.photoLocationHint': '没有地点的条目会使用其第一张带 GPS 照片的拍摄位置。你手动设置的地点永远不会被改动。',
+  'journey.settings.photoLocationHint':
+    '没有地点的条目会使用其第一张带 GPS 照片的拍摄位置。你手动设置的地点永远不会被改动。',
   'journey.settings.endJourney': '归档旅程',
   'journey.settings.reopenJourney': '恢复旅程',
   'journey.settings.archived': '旅程已归档',
@@ -301,7 +302,8 @@ const journey: TranslationStrings = {
   'journey.studio.importSpreadHint': '从下载的设计文件添加一个跨页',
   'journey.studio.importSpreadFailed': '该文件不是 TREK Studio 的跨页',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': '排一本书需要足够的地方，所以 Studio 只在电脑上使用，生成 PDF 也是。旅程的其他功能在这里照常可用。', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    '排一本书需要足够的地方，所以 Studio 只在电脑上使用，生成 PDF 也是。旅程的其他功能在这里照常可用。', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -365,7 +367,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback

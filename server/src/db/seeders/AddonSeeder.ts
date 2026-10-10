@@ -1,7 +1,7 @@
-import type { EntityManager } from '@mikro-orm/core';
-import type { SqlEntityManager } from '@mikro-orm/sql';
-import { Seeder } from '@mikro-orm/seeder';
 import type { DB } from '../kysely/db';
+import type { EntityManager } from '@mikro-orm/core';
+import { Seeder } from '@mikro-orm/seeder';
+import type { SqlEntityManager } from '@mikro-orm/sql';
 
 interface AddonRow {
   id: string;

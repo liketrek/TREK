@@ -1,8 +1,8 @@
-import type { CollectionPlaces } from '../entities/CollectionPlaces.entity';
 import { currentTimestamp } from '../dialect/sql-functions';
+import type { CollectionPlaces } from '../entities/CollectionPlaces.entity';
+import type { DB } from '../kysely/db';
 import type { CollectionPlaceRow } from './Collections.repository';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /**
  * `collection_places` (Plan 3h Task 2, part B — saved places CRUD, dedup,
@@ -196,7 +196,10 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
 
   /** CL50 (`updatePlace`'s move branch, TX, dup text also `setPlaceLabels`) — `DELETE FROM collection_place_labels WHERE collection_place_id=?`. Pivot table, Kysely. */
   async deleteLabelAssignments(collectionPlaceId: number): Promise<void> {
-    await this.db_().deleteFrom('collection_place_labels').where('collection_place_id', '=', collectionPlaceId).execute();
+    await this.db_()
+      .deleteFrom('collection_place_labels')
+      .where('collection_place_id', '=', collectionPlaceId)
+      .execute();
   }
 
   // ---------------------------------------------------------------------
@@ -256,7 +259,14 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
   async matchingByTripSource(
     collectionIds: number[],
     tripId: number,
-    place: { id: number; lat: number | null; lng: number | null; google_place_id: string | null; google_ftid: string | null; osm_id: string | null },
+    place: {
+      id: number;
+      lat: number | null;
+      lng: number | null;
+      google_place_id: string | null;
+      google_ftid: string | null;
+      osm_id: string | null;
+    },
     tolerance: number,
   ): Promise<{ id: number }[]> {
     if (collectionIds.length === 0) return [];
@@ -309,8 +319,23 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
     return await this.db_()
       .selectFrom('collection_places')
       .select([
-        'id', 'collection_id', 'name', 'description', 'lat', 'lng', 'address', 'category_id', 'price', 'currency',
-        'notes', 'image_url', 'google_place_id', 'google_ftid', 'osm_id', 'website', 'phone',
+        'id',
+        'collection_id',
+        'name',
+        'description',
+        'lat',
+        'lng',
+        'address',
+        'category_id',
+        'price',
+        'currency',
+        'notes',
+        'image_url',
+        'google_place_id',
+        'google_ftid',
+        'osm_id',
+        'website',
+        'phone',
       ])
       .where('id', '=', id)
       .executeTakeFirst();
@@ -322,7 +347,11 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
 
   /** CL67 (`copyToTrip`, loop, TX) — `SELECT tag_id FROM collection_place_tags WHERE collection_place_id=?`. Pivot table, Kysely. */
   async tagIdsFor(collectionPlaceId: number): Promise<number[]> {
-    const rows = await this.db_().selectFrom('collection_place_tags').select('tag_id').where('collection_place_id', '=', collectionPlaceId).execute();
+    const rows = await this.db_()
+      .selectFrom('collection_place_tags')
+      .select('tag_id')
+      .where('collection_place_id', '=', collectionPlaceId)
+      .execute();
     return rows.map((r) => r.tag_id);
   }
 
@@ -433,7 +462,12 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
    * `PlacesRepository.existsByImageUrl` for its own table.
    */
   async existsByImageUrl(imageUrl: string): Promise<boolean> {
-    const row = await this.db_().selectFrom('collection_places').select('id').where('image_url', '=', imageUrl).limit(1).executeTakeFirst();
+    const row = await this.db_()
+      .selectFrom('collection_places')
+      .select('id')
+      .where('image_url', '=', imageUrl)
+      .limit(1)
+      .executeTakeFirst();
     return !!row;
   }
 

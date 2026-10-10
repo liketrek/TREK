@@ -216,7 +216,8 @@ const journey: TranslationStrings = {
   'journey.settings.statusManualHint': 'ตั้งเอง วันที่ของทริปจะไม่เปลี่ยนสถานะนี้จนกว่าจะกลับเป็นอัตโนมัติ',
   'journey.settings.photosSection': 'รูปภาพ',
   'journey.settings.photoLocation': 'ระบุตำแหน่งบันทึกจากรูปภาพ',
-  'journey.settings.photoLocationHint': 'บันทึกที่ไม่มีสถานที่จะใช้ตำแหน่งที่ถ่ายรูปแรกที่มี GPS สถานที่ที่คุณตั้งเองจะไม่ถูกย้าย',
+  'journey.settings.photoLocationHint':
+    'บันทึกที่ไม่มีสถานที่จะใช้ตำแหน่งที่ถ่ายรูปแรกที่มี GPS สถานที่ที่คุณตั้งเองจะไม่ถูกย้าย',
   'journey.settings.endJourney': 'ปิดการเดินทาง',
   'journey.settings.reopenJourney': 'เปิดการเดินทางอีกครั้ง',
   'journey.settings.archived': 'เก็บถาวรการเดินทางแล้ว',
@@ -449,7 +450,8 @@ const journey: TranslationStrings = {
   'journey.studio.paste': 'วาง (Ctrl+V)',
   'journey.studio.pasteEmpty': 'คัดลอกบางอย่างก่อน แล้ววางในหน้าใดก็ได้',
   'journey.studio.myLayouts': 'เค้าโครงของฉัน',
-  'journey.studio.myLayoutsEmpty': 'เก็บหน้าที่คุณจัดไว้ แล้วจัดหน้าอื่นในแบบเดียวกัน รูปภาพและข้อความของหน้าเหล่านั้นยังคงอยู่',
+  'journey.studio.myLayoutsEmpty':
+    'เก็บหน้าที่คุณจัดไว้ แล้วจัดหน้าอื่นในแบบเดียวกัน รูปภาพและข้อความของหน้าเหล่านั้นยังคงอยู่',
   'journey.studio.saveLayout': 'บันทึกหน้านี้เป็นเค้าโครง',
   'journey.studio.saveLayoutHint': 'เก็บการจัดวางโดยไม่รวมรูปภาพ สำหรับผู้แก้ไขทุกคนของหนังสือเล่มนี้',
   'journey.studio.saveLayoutFull': 'หนังสือเล่มนี้เก็บเค้าโครงได้สูงสุด 24 แบบ ลบหนึ่งแบบเพื่อบันทึกแบบใหม่',
@@ -654,7 +656,8 @@ const journey: TranslationStrings = {
   'journey.entry.offRoute': 'นอกเส้นทาง',
   'journey.entry.draft': 'ฉบับร่าง',
   'journey.editor.draft': 'ฉบับร่าง',
-  'journey.editor.draftHint': 'มีเพียงคุณและผู้ร่วมให้ข้อมูลคนอื่นที่เห็นรายการนี้ การเดินทางที่แชร์จะไม่แสดงรายการนี้จนกว่าคุณจะปิดตัวเลือกนี้',
+  'journey.editor.draftHint':
+    'มีเพียงคุณและผู้ร่วมให้ข้อมูลคนอื่นที่เห็นรายการนี้ การเดินทางที่แชร์จะไม่แสดงรายการนี้จนกว่าคุณจะปิดตัวเลือกนี้',
   'journey.editor.tripSuggestionHint': 'วันนี้อยู่ในช่วงทริปนี้ เชื่อมโยงแล้วสถานที่ของทริปจะเข้าร่วมการเดินทางนี้',
   'journey.editor.tripSuggestionLater': 'ไว้ทีหลัง',
   'journey.suggestions.dismiss': 'ซ่อนคำแนะนำนี้',

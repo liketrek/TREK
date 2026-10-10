@@ -1,9 +1,9 @@
-import type { PushSubscriptions } from '../entities/PushSubscriptions.entity';
-import { columnIncrementedBy, currentTimestamp } from '../dialect/sql-functions';
 import { currentTimestampKysely } from '../dialect/kysely-functions';
+import { columnIncrementedBy, currentTimestamp } from '../dialect/sql-functions';
+import type { PushSubscriptions } from '../entities/PushSubscriptions.entity';
+import type { DB } from '../kysely/db';
 import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /** A `push_subscriptions` row exactly as `SELECT *` reads it (Web Push, #894). */
 export interface PushSubscriptionRow {

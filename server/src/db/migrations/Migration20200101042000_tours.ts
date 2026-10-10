@@ -1,5 +1,5 @@
-import { Migration } from '@mikro-orm/migrations';
 import { addColumnIfMissing, tableExists } from '../migration-utils';
+import { Migration } from '@mikro-orm/migrations';
 
 /**
  * Tours: a facet on `places` for hikes and other single-day routes.

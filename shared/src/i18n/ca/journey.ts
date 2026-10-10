@@ -205,11 +205,14 @@ const journey: TranslationStrings = {
   'journey.settings.showTripTracksHint': 'Dibuixa al mapa les rutes enregistrades dels viatges enllaçats.',
   'journey.settings.status': 'Estat',
   'journey.settings.statusAuto': 'Automàtic',
-  'journey.settings.statusAutoHint': 'Segueix les dates dels viatges vinculats. Sense viatge, el diari es queda com a esborrany.',
-  'journey.settings.statusManualHint': 'Definit a mà. Les dates del viatge ja no el canvien fins que tornis a automàtic.',
+  'journey.settings.statusAutoHint':
+    'Segueix les dates dels viatges vinculats. Sense viatge, el diari es queda com a esborrany.',
+  'journey.settings.statusManualHint':
+    'Definit a mà. Les dates del viatge ja no el canvien fins que tornis a automàtic.',
   'journey.settings.photosSection': 'Fotos',
   'journey.settings.photoLocation': 'Situa les entrades segons les seves fotos',
-  'journey.settings.photoLocationHint': 'Una entrada sense lloc agafa el punt on es va fer la primera foto amb GPS. Els llocs que poses tu no es mouen mai.',
+  'journey.settings.photoLocationHint':
+    'Una entrada sense lloc agafa el punt on es va fer la primera foto amb GPS. Els llocs que poses tu no es mouen mai.',
   'journey.settings.endJourney': 'Arxiva el viatge',
   'journey.settings.reopenJourney': 'Restaura el viatge',
   'journey.settings.archived': 'Viatge arxivat',
@@ -380,7 +383,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -575,7 +579,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Contorns',
   'journey.studio.mapSourceRelief': 'Relleu',
   'journey.studio.mapSourceSatellite': 'Satèl·lit',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 sense núvols, lliure per imprimir amb l’atribució. Nítid fins al carrer.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 sense núvols, lliure per imprimir amb l’atribució. Nítid fins al carrer.',
   'journey.studio.routeLook': 'La línia',
   'journey.studio.routeStyle': 'Traç',
   'journey.studio.routePlain': 'Simple',
@@ -598,9 +603,12 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Torna-ho a demanar',
   'journey.studio.roadsClear': 'Esborra',
   'journey.studio.roadsBusy': 'Demanant',
-  'journey.studio.roadsHint': 'Demana a un servei de rutes el camí que es va fer a cada tram. Els trams llargs es queden com estan.',
-  'journey.studio.roadsHave': 'Les carreteres queden desades en aquest llibre, així imprimeix la mateixa línia sense connexió.',
-  'journey.studio.mapSourceReliefHint': 'Relleu ombrejat de la NASA, lliure per imprimir. Ideal per a un país o un continent, massa bast per a una ciutat.',
+  'journey.studio.roadsHint':
+    'Demana a un servei de rutes el camí que es va fer a cada tram. Els trams llargs es queden com estan.',
+  'journey.studio.roadsHave':
+    'Les carreteres queden desades en aquest llibre, així imprimeix la mateixa línia sense connexió.',
+  'journey.studio.mapSourceReliefHint':
+    'Relleu ombrejat de la NASA, lliure per imprimir. Ideal per a un país o un continent, massa bast per a una ciutat.',
   'journey.studio.mapPrintDpi': 'S’imprimeix a uns',
   'journey.studio.mapPrintDpiLow': 'poc nítid a aquesta mida, prova una vista més ampla o un altre origen',
   'journey.studio.mapPerTrip': 'Un viatge cada vegada',
@@ -685,7 +693,8 @@ const journey: TranslationStrings = {
   'journey.detail.searchPlaceholder': 'Cerca en aquest viatge',
   'journey.detail.searchEmpty': 'Cap entrada coincideix amb «{query}»',
   'journey.settings.entryFields': "Camps de l'entrada",
-  'journey.settings.entryFieldsHint': 'Desactiva el que aquest viatge no faci servir. No es perd res del que ja has escrit.',
+  'journey.settings.entryFieldsHint':
+    'Desactiva el que aquest viatge no faci servir. No es perd res del que ja has escrit.',
   'journey.settings.showVerdict': 'Pros i contres',
   'journey.settings.showMood': "Estat d'ànim",
   'journey.settings.showWeather': 'Temps',

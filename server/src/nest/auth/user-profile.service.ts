@@ -1,13 +1,19 @@
-import { DomainError } from '../common/domain-error';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { readEnv, getAppUrl } from '../../app-config';
-import { UnitOfWork } from '../database/unit-of-work';
-import { StorageService } from '../storage/storage.service';
-import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import {
+  UserIdentityTakenError,
+  type UsersRepository,
+  type UserApiKeyColumns,
+  type UserProfilePatch,
+} from '../../db/repositories/Users.repository';
 import { avatarUrl } from '../common/avatarUrl';
-import { EMAIL_REGEX, mask_stored_api_key } from './auth.helpers';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DomainError } from '../common/domain-error';
 import { splitManagedKeys, MANAGED_LOCKED_PROFILE_KEYS } from '../common/managed';
+import { UnitOfWork } from '../database/unit-of-work';
+import { SEARCH_TEXT_FIELD_MASK } from '../maps/providers/google-places.constants';
 import {
   INSTANCE_API_KEY_NAMES,
   operatorKeyVariables,
@@ -16,11 +22,10 @@ import {
   writeInstanceApiKey,
   type InstanceApiKeyName,
 } from '../settings/instance-api-keys';
-import { SEARCH_TEXT_FIELD_MASK } from '../maps/providers/google-places.constants';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { Users } from '../../db/entities/Users.entity';
-import { UserIdentityTakenError, type UsersRepository, type UserApiKeyColumns, type UserProfilePatch } from '../../db/repositories/Users.repository';
+import { StorageService } from '../storage/storage.service';
+import { EMAIL_REGEX, mask_stored_api_key } from './auth.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /** A key check is a single request to a provider; one that hangs must not hold the settings page. */
 const KEY_CHECK_TIMEOUT_MS = 10_000;
@@ -152,7 +157,12 @@ export class UserProfileService {
   }
 
   async updateApiKeys(userId: number, rawBody: unknown) {
-    const body = rawBody as { maps_api_key?: string; openweather_api_key?: string; unsplash_api_key?: string; amap_api_key?: string };
+    const body = rawBody as {
+      maps_api_key?: string;
+      openweather_api_key?: string;
+      unsplash_api_key?: string;
+      amap_api_key?: string;
+    };
     const { blocked } = splitManagedKeys(body, this.managed);
     for (const key of blocked) delete body[key as keyof typeof body];
     const current = await this.currentKeys(userId);
@@ -163,10 +173,18 @@ export class UserProfileService {
       // `?? null` instead of the former non-null assertions: a user row deleted
       // mid-request must degrade to a 0-row UPDATE, not a TypeError/500.
       await this.usersRepo.updateApiKeys(userId, {
-        maps_api_key: body.maps_api_key !== undefined ? maybe_encrypt_api_key(body.maps_api_key) : current?.maps_api_key ?? null,
-        openweather_api_key: body.openweather_api_key !== undefined ? maybe_encrypt_api_key(body.openweather_api_key) : current?.openweather_api_key ?? null,
-        unsplash_api_key: body.unsplash_api_key !== undefined ? maybe_encrypt_api_key(body.unsplash_api_key) : current?.unsplash_api_key ?? null,
-        amap_api_key: body.amap_api_key !== undefined ? maybe_encrypt_api_key(body.amap_api_key) : current?.amap_api_key ?? null,
+        maps_api_key:
+          body.maps_api_key !== undefined ? maybe_encrypt_api_key(body.maps_api_key) : (current?.maps_api_key ?? null),
+        openweather_api_key:
+          body.openweather_api_key !== undefined
+            ? maybe_encrypt_api_key(body.openweather_api_key)
+            : (current?.openweather_api_key ?? null),
+        unsplash_api_key:
+          body.unsplash_api_key !== undefined
+            ? maybe_encrypt_api_key(body.unsplash_api_key)
+            : (current?.unsplash_api_key ?? null),
+        amap_api_key:
+          body.amap_api_key !== undefined ? maybe_encrypt_api_key(body.amap_api_key) : (current?.amap_api_key ?? null),
       });
       await this.mirrorInstanceKeys(body, isAdmin);
     });
@@ -177,16 +195,30 @@ export class UserProfileService {
     return {
       success: true,
       ...(blocked.length ? { managed_keys: blocked } : {}),
-      user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), amap_api_key: mask_stored_api_key(u?.amap_api_key), avatar_url: avatarUrl(updated || {}) },
+      user: {
+        ...u,
+        maps_api_key: mask_stored_api_key(u?.maps_api_key),
+        openweather_api_key: mask_stored_api_key(u?.openweather_api_key),
+        unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key),
+        amap_api_key: mask_stored_api_key(u?.amap_api_key),
+        avatar_url: avatarUrl(updated || {}),
+      },
       changedKeys,
     };
   }
 
   async updateSettings(
     userId: number,
-    rawBody: unknown
+    rawBody: unknown,
   ): Promise<{ success?: boolean; user?: Record<string, unknown>; changedKeys?: string[] }> {
-    const body = rawBody as { maps_api_key?: string; openweather_api_key?: string; unsplash_api_key?: string; amap_api_key?: string; username?: string; email?: string };
+    const body = rawBody as {
+      maps_api_key?: string;
+      openweather_api_key?: string;
+      unsplash_api_key?: string;
+      amap_api_key?: string;
+      username?: string;
+      email?: string;
+    };
     const { maps_api_key, openweather_api_key, unsplash_api_key, amap_api_key, username, email } = body;
 
     if (username !== undefined) {
@@ -221,8 +253,10 @@ export class UserProfileService {
     // statement, never a built SQL string.
     const changes: UserProfilePatch = {};
     if (maps_api_key !== undefined && !keyLocked) changes.maps_api_key = maybe_encrypt_api_key(maps_api_key);
-    if (openweather_api_key !== undefined && !keyLocked) changes.openweather_api_key = maybe_encrypt_api_key(openweather_api_key);
-    if (unsplash_api_key !== undefined && !keyLocked) changes.unsplash_api_key = maybe_encrypt_api_key(unsplash_api_key);
+    if (openweather_api_key !== undefined && !keyLocked)
+      changes.openweather_api_key = maybe_encrypt_api_key(openweather_api_key);
+    if (unsplash_api_key !== undefined && !keyLocked)
+      changes.unsplash_api_key = maybe_encrypt_api_key(unsplash_api_key);
     if (amap_api_key !== undefined && !keyLocked) changes.amap_api_key = maybe_encrypt_api_key(amap_api_key);
     if (username !== undefined) changes.username = username.trim();
     if (email !== undefined) changes.email = email.trim();
@@ -254,7 +288,14 @@ export class UserProfileService {
     return {
       success: true,
       ...(blocked.length ? { managed_keys: blocked } : {}),
-      user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), amap_api_key: mask_stored_api_key(u?.amap_api_key), avatar_url: avatarUrl(updated || {}) },
+      user: {
+        ...u,
+        maps_api_key: mask_stored_api_key(u?.maps_api_key),
+        openweather_api_key: mask_stored_api_key(u?.openweather_api_key),
+        unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key),
+        amap_api_key: mask_stored_api_key(u?.amap_api_key),
+        avatar_url: avatarUrl(updated || {}),
+      },
       changedKeys,
     };
   }
@@ -342,14 +383,25 @@ export class UserProfileService {
     // The global user directory feeds the trip member-add / contributor pickers —
     // guests (#1362) are trip-scoped and must never be selectable here.
     const users = await this.usersRepo.listOthersNonGuest(excludeUserId);
-    return users.map(u => ({ ...u, avatar_url: avatarUrl(u) }));
+    return users.map((u) => ({ ...u, avatar_url: avatarUrl(u) }));
   }
 
   // -------------------------------------------------------------------------
   // Key validation
   // -------------------------------------------------------------------------
 
-  async validateKeys(userId: number): Promise<{ maps: boolean; weather: boolean; maps_details: null | { ok: boolean; status: number | null; status_text: string | null; error_message: string | null; error_status: string | null; error_raw: string | null } }> {
+  async validateKeys(userId: number): Promise<{
+    maps: boolean;
+    weather: boolean;
+    maps_details: null | {
+      ok: boolean;
+      status: number | null;
+      status_text: string | null;
+      error_message: string | null;
+      error_status: string | null;
+      error_raw: string | null;
+    };
+  }> {
     const user = await this.usersRepo.getRoleAndWeatherKey(userId);
     if (user?.role !== 'admin') throw new DomainError(403, 'Admin access required');
 
@@ -369,36 +421,46 @@ export class UserProfileService {
     // The key a search would actually use, not the one in this admin's column:
     // testing a value nothing resolves to is how "the panel says the key is
     // fine" and "every search 403s" coexisted (#1939).
-    const { key: maps_api_key } = await resolveApiKey(this.appSettings, this.usersRepo, 'maps_api_key', userId, readEnv().maps.placesApiKey);
+    const { key: maps_api_key } = await resolveApiKey(
+      this.appSettings,
+      this.usersRepo,
+      'maps_api_key',
+      userId,
+      readEnv().maps.placesApiKey,
+    );
     if (maps_api_key) {
       try {
         // Same Referer as maps.service googleFetch — without it, keys with an
         // HTTP-referrer restriction fail validation while real requests succeed.
         const referer = readEnv().app.appUrl ? getAppUrl() : undefined;
-        const mapsRes = await fetch(
-          `https://places.googleapis.com/v1/places:searchText`,
-          {
-            method: 'POST',
-            headers: {
-              ...(referer ? { Referer: referer } : {}),
-              'Content-Type': 'application/json',
-              'X-Goog-Api-Key': maps_api_key,
-              // The mask the real search sends. A narrower probe passes on keys
-              // that are restricted to fewer Places SKUs than TREK asks for.
-              'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK,
-            },
-            body: JSON.stringify({ textQuery: 'test' }),
-            signal: AbortSignal.timeout(KEY_CHECK_TIMEOUT_MS),
-          }
-        );
+        const mapsRes = await fetch(`https://places.googleapis.com/v1/places:searchText`, {
+          method: 'POST',
+          headers: {
+            ...(referer ? { Referer: referer } : {}),
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': maps_api_key,
+            // The mask the real search sends. A narrower probe passes on keys
+            // that are restricted to fewer Places SKUs than TREK asks for.
+            'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK,
+          },
+          body: JSON.stringify({ textQuery: 'test' }),
+          signal: AbortSignal.timeout(KEY_CHECK_TIMEOUT_MS),
+        });
         result.maps = mapsRes.status === 200;
         let error_text: string | null = null;
         let error_json: any = null;
         if (!result.maps) {
           try {
             error_text = await mapsRes.text();
-            try { error_json = JSON.parse(error_text); } catch { error_json = null; }
-          } catch { error_text = null; error_json = null; }
+            try {
+              error_json = JSON.parse(error_text);
+            } catch {
+              error_json = null;
+            }
+          } catch {
+            error_text = null;
+            error_json = null;
+          }
         }
         result.maps_details = {
           ok: result.maps,

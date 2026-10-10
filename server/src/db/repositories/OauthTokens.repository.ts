@@ -1,9 +1,9 @@
-import { OauthTokens } from '../entities/OauthTokens.entity';
-import { type AssertRowKeys } from './_shared/rows';
 import { columnRef, currentTimestamp } from '../dialect/sql-functions';
-import { TrekRepository } from './_shared/trek-repository';
+import { OauthTokens } from '../entities/OauthTokens.entity';
 import type { DB } from '../kysely/db';
 import type { DbTimestamp } from '../types';
+import { type AssertRowKeys } from './_shared/rows';
+import { TrekRepository } from './_shared/trek-repository';
 
 /**
  * The Kysely-side table shape `em.getKysely()` needs for `collectChainIds`'s
@@ -259,9 +259,15 @@ export class OauthTokensRepository extends TrekRepository<OauthTokens> {
     const row = await this.qb('ot')
       .innerJoin('ot.user', 'u')
       .select([
-        'ot.scopes', 'ot.audience', 'ot.revoked_at', 'ot.access_token_expires_at',
-        columnRef(platform, 'ot.user_id'), columnRef(platform, 'ot.client_id'),
-        'u.username', 'u.email', 'u.role',
+        'ot.scopes',
+        'ot.audience',
+        'ot.revoked_at',
+        'ot.access_token_expires_at',
+        columnRef(platform, 'ot.user_id'),
+        columnRef(platform, 'ot.client_id'),
+        'u.username',
+        'u.email',
+        'u.role',
       ])
       .where({ 'ot.access_token_hash': hash })
       .execute<OauthTokenWithUserRow | undefined>('get', false);
@@ -327,11 +333,13 @@ export class OauthTokensRepository extends TrekRepository<OauthTokens> {
   async collectChainIds(rootId: number): Promise<number[]> {
     const rows = await this.kysely<OauthTokensKyselyDB>()
       .withRecursive('chain', (db) =>
-        db.selectFrom('oauth_tokens')
+        db
+          .selectFrom('oauth_tokens')
           .select('id')
           .where('id', '=', rootId)
           .unionAll((eb) =>
-            eb.selectFrom('oauth_tokens as ot2')
+            eb
+              .selectFrom('oauth_tokens as ot2')
               .innerJoin('chain as c', 'c.id', 'ot2.parent_token_id')
               .select('ot2.id'),
           ),
@@ -364,7 +372,10 @@ export class OauthTokensRepository extends TrekRepository<OauthTokens> {
         .deleteFrom('oauth_tokens')
         .where('refresh_token_expires_at', '<', cutoff)
         .where('id', 'not in', (eb) =>
-          eb.selectFrom('oauth_tokens as child').select('child.parent_token_id').where('child.parent_token_id', 'is not', null),
+          eb
+            .selectFrom('oauth_tokens as child')
+            .select('child.parent_token_id')
+            .where('child.parent_token_id', 'is not', null),
         )
         .executeTakeFirst();
       const deleted = Number(result.numDeletedRows ?? 0);
@@ -433,7 +444,9 @@ export class OauthTokensRepository extends TrekRepository<OauthTokens> {
   async findByRefreshTokenHash(hash: string): Promise<OauthTokenRefreshRow | null> {
     const row = await this.findOne(
       { refresh_token_hash: hash },
-      { fields: ['id', 'client', 'user', 'scopes', 'audience', 'refresh_token_expires_at', 'revoked_at', 'parentToken'] },
+      {
+        fields: ['id', 'client', 'user', 'scopes', 'audience', 'refresh_token_expires_at', 'revoked_at', 'parentToken'],
+      },
     );
     return row
       ? {
@@ -548,7 +561,11 @@ export class OauthTokensRepository extends TrekRepository<OauthTokens> {
         'ot.refresh_token_expires_at',
         'ot.created_at',
       ])
-      .where({ 'ot.user_id': userId, 'ot.revoked_at': null, 'ot.refresh_token_expires_at': { $gt: currentTimestamp(platform) } })
+      .where({
+        'ot.user_id': userId,
+        'ot.revoked_at': null,
+        'ot.refresh_token_expires_at': { $gt: currentTimestamp(platform) },
+      })
       .orderBy({ 'ot.created_at': 'desc' })
       .execute<OauthSessionRow[]>('all', false);
     return rows.map((row) => ({

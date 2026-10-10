@@ -5,18 +5,18 @@
  * point is to prove the shipped docs are reachable through the HTTP layer, which is
  * what a broken path or a wiki missing from the image would silently cost us.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -95,7 +95,10 @@ describe('GET /api/help', () => {
   it('400s a missing, blank, overlong or non-integer-limited query', async () => {
     await request(app).get('/api/help/search').expect(400);
     await request(app).get('/api/help/search').query({ q: '   ' }).expect(400);
-    await request(app).get('/api/help/search').query({ q: 'x'.repeat(121) }).expect(400);
+    await request(app)
+      .get('/api/help/search')
+      .query({ q: 'x'.repeat(121) })
+      .expect(400);
     await request(app).get('/api/help/search').query({ q: 'trip', limit: 'many' }).expect(400);
   });
 

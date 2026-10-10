@@ -7,25 +7,25 @@
  * interesting part: trip access before permission, share_manage on reads as
  * well as writes, and demo mode refused on every write.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember } from '../../helpers/factories';
-import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { countRows, deleteRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import { TripInviteTokens } from '../../../src/db/entities/TripInviteTokens.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
+import { createUser, createTrip, addTripMember } from '../../helpers/factories';
+import { countRows, deleteRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 const BASE = 'https://trek.example';
 
@@ -61,9 +61,18 @@ async function inviteRow(tripId: number) {
   return (await findRow(orm, TripInviteTokens, { trip: tripId })) ?? undefined;
 }
 
-interface FeedResult { feed_url: string | null }
-interface InviteLink { token: string; expires_at: string | null; created_at: string; url: string }
-interface InviteResult { invite_link: InviteLink | null }
+interface FeedResult {
+  feed_url: string | null;
+}
+interface InviteLink {
+  token: string;
+  expires_at: string | null;
+  created_at: string;
+  url: string;
+}
+interface InviteResult {
+  invite_link: InviteLink | null;
+}
 
 beforeEach(async () => {
   resetTestDb(testDb);
@@ -87,7 +96,11 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -99,11 +112,15 @@ describe('Tool: get_trip_calendar_feed', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const off = payload<FeedResult>(await h.client.callTool({ name: 'get_trip_calendar_feed', arguments: { tripId: trip.id } }));
+      const off = payload<FeedResult>(
+        await h.client.callTool({ name: 'get_trip_calendar_feed', arguments: { tripId: trip.id } }),
+      );
       expect(off.feed_url).toBeNull();
 
       await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } });
-      const on = payload<FeedResult>(await h.client.callTool({ name: 'get_trip_calendar_feed', arguments: { tripId: trip.id } }));
+      const on = payload<FeedResult>(
+        await h.client.callTool({ name: 'get_trip_calendar_feed', arguments: { tripId: trip.id } }),
+      );
       expect(on.feed_url).toBe(`${BASE}/api/feed/trip/${await tripToken(trip.id)}.ics`);
     });
   });
@@ -118,7 +135,9 @@ describe('Tool: get_trip_calendar_feed', () => {
       await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } });
     });
     await withHarness(member.id, async (h) => {
-      const result = payload<FeedResult>(await h.client.callTool({ name: 'get_trip_calendar_feed', arguments: { tripId: trip.id } }));
+      const result = payload<FeedResult>(
+        await h.client.callTool({ name: 'get_trip_calendar_feed', arguments: { tripId: trip.id } }),
+      );
       expect(result.feed_url).toBe(`${BASE}/api/feed/trip/${await tripToken(trip.id)}.ics`);
     });
   });
@@ -129,12 +148,16 @@ describe('Tool: enable_trip_calendar_feed', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const first = payload<FeedResult>(await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } }));
+      const first = payload<FeedResult>(
+        await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } }),
+      );
       const minted = await tripToken(trip.id);
       expect(minted).toBeTruthy();
       expect(first.feed_url).toBe(`${BASE}/api/feed/trip/${minted}.ics`);
 
-      const second = payload<FeedResult>(await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } }));
+      const second = payload<FeedResult>(
+        await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } }),
+      );
       expect(second.feed_url).toBe(first.feed_url);
       expect(await tripToken(trip.id)).toBe(minted);
     });
@@ -148,7 +171,9 @@ describe('Tool: rotate_trip_calendar_feed', () => {
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } });
       const before = await tripToken(trip.id);
-      const rotated = payload<FeedResult>(await h.client.callTool({ name: 'rotate_trip_calendar_feed', arguments: { tripId: trip.id } }));
+      const rotated = payload<FeedResult>(
+        await h.client.callTool({ name: 'rotate_trip_calendar_feed', arguments: { tripId: trip.id } }),
+      );
       const after = await tripToken(trip.id);
       expect(after).not.toBe(before);
       expect(rotated.feed_url).toBe(`${BASE}/api/feed/trip/${after}.ics`);
@@ -162,7 +187,9 @@ describe('Tool: disable_trip_calendar_feed', () => {
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } });
-      const result = payload<FeedResult>(await h.client.callTool({ name: 'disable_trip_calendar_feed', arguments: { tripId: trip.id } }));
+      const result = payload<FeedResult>(
+        await h.client.callTool({ name: 'disable_trip_calendar_feed', arguments: { tripId: trip.id } }),
+      );
       expect(result.feed_url).toBeNull();
       expect(await tripToken(trip.id)).toBeNull();
     });
@@ -255,12 +282,16 @@ describe('Tool: enable_all_trips_calendar_feed', () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const first = payload<FeedResult>(await h.client.callTool({ name: 'enable_all_trips_calendar_feed', arguments: {} }));
+      const first = payload<FeedResult>(
+        await h.client.callTool({ name: 'enable_all_trips_calendar_feed', arguments: {} }),
+      );
       const minted = await userToken(user.id);
       expect(first.feed_url).toBe(`${BASE}/api/feed/user/${minted}.ics`);
       expect(await userToken(other.id)).toBeNull();
 
-      const second = payload<FeedResult>(await h.client.callTool({ name: 'enable_all_trips_calendar_feed', arguments: {} }));
+      const second = payload<FeedResult>(
+        await h.client.callTool({ name: 'enable_all_trips_calendar_feed', arguments: {} }),
+      );
       expect(second.feed_url).toBe(first.feed_url);
       expect(await userToken(user.id)).toBe(minted);
     });
@@ -273,7 +304,9 @@ describe('Tool: rotate_all_trips_calendar_feed', () => {
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'enable_all_trips_calendar_feed', arguments: {} });
       const before = await userToken(user.id);
-      const rotated = payload<FeedResult>(await h.client.callTool({ name: 'rotate_all_trips_calendar_feed', arguments: {} }));
+      const rotated = payload<FeedResult>(
+        await h.client.callTool({ name: 'rotate_all_trips_calendar_feed', arguments: {} }),
+      );
       const after = await userToken(user.id);
       expect(after).not.toBe(before);
       expect(rotated.feed_url).toBe(`${BASE}/api/feed/user/${after}.ics`);
@@ -286,7 +319,9 @@ describe('Tool: disable_all_trips_calendar_feed', () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'enable_all_trips_calendar_feed', arguments: {} });
-      const result = payload<FeedResult>(await h.client.callTool({ name: 'disable_all_trips_calendar_feed', arguments: {} }));
+      const result = payload<FeedResult>(
+        await h.client.callTool({ name: 'disable_all_trips_calendar_feed', arguments: {} }),
+      );
       expect(result.feed_url).toBeNull();
       expect(await userToken(user.id)).toBeNull();
     });
@@ -319,11 +354,15 @@ describe('Tool: get_trip_invite_link', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const none = payload<InviteResult>(await h.client.callTool({ name: 'get_trip_invite_link', arguments: { tripId: trip.id } }));
+      const none = payload<InviteResult>(
+        await h.client.callTool({ name: 'get_trip_invite_link', arguments: { tripId: trip.id } }),
+      );
       expect(none.invite_link).toBeNull();
 
       await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } });
-      const link = payload<InviteResult>(await h.client.callTool({ name: 'get_trip_invite_link', arguments: { tripId: trip.id } }));
+      const link = payload<InviteResult>(
+        await h.client.callTool({ name: 'get_trip_invite_link', arguments: { tripId: trip.id } }),
+      );
       expect(link.invite_link?.token).toBe((await inviteRow(trip.id))?.token);
       expect(link.invite_link?.url).toBe(`${BASE}/join/${(await inviteRow(trip.id))?.token}`);
       expect(link.invite_link?.expires_at).toBeNull();
@@ -336,7 +375,9 @@ describe('Tool: create_trip_invite_link', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const created = payload<InviteResult>(await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } }));
+      const created = payload<InviteResult>(
+        await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } }),
+      );
       const row = await inviteRow(trip.id);
       expect(row?.token).toBe(created.invite_link?.token);
       expect(row?.created_by).toBe(user.id);
@@ -353,8 +394,14 @@ describe('Tool: create_trip_invite_link', () => {
     const numeric = createTrip(testDb, user.id);
     const stringy = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: numeric.id, expires_in_days: 7 } });
-      await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: stringy.id, expires_in_days: '7' } });
+      await h.client.callTool({
+        name: 'create_trip_invite_link',
+        arguments: { tripId: numeric.id, expires_in_days: 7 },
+      });
+      await h.client.callTool({
+        name: 'create_trip_invite_link',
+        arguments: { tripId: stringy.id, expires_in_days: '7' },
+      });
     });
     const expected = Date.now() + 7 * 86400000;
     for (const trip of [numeric, stringy]) {
@@ -370,7 +417,10 @@ describe('Tool: create_trip_invite_link', () => {
     const blank = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: zero.id, expires_in_days: 0 } });
-      await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: blank.id, expires_in_days: '' } });
+      await h.client.callTool({
+        name: 'create_trip_invite_link',
+        arguments: { tripId: blank.id, expires_in_days: '' },
+      });
     });
     expect((await inviteRow(zero.id))?.expires_at).toBeNull();
     expect((await inviteRow(blank.id))?.expires_at).toBeNull();
@@ -380,7 +430,10 @@ describe('Tool: create_trip_invite_link', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id, expires_in_days: '7 days' } });
+      const result = await h.client.callTool({
+        name: 'create_trip_invite_link',
+        arguments: { tripId: trip.id, expires_in_days: '7 days' },
+      });
       expect(result.isError).toBe(true);
       expect(await inviteRow(trip.id)).toBeUndefined();
     });
@@ -390,8 +443,12 @@ describe('Tool: create_trip_invite_link', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const first = payload<InviteResult>(await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } }));
-      const second = payload<InviteResult>(await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } }));
+      const first = payload<InviteResult>(
+        await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } }),
+      );
+      const second = payload<InviteResult>(
+        await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } }),
+      );
       expect(second.invite_link?.token).not.toBe(first.invite_link?.token);
       expect(await countRows(orm, TripInviteTokens, { trip: trip.id })).toBe(1);
       expect((await inviteRow(trip.id))?.token).toBe(second.invite_link?.token);
@@ -405,7 +462,9 @@ describe('Tool: delete_trip_invite_link', () => {
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } });
-      const result = payload<{ success: boolean }>(await h.client.callTool({ name: 'delete_trip_invite_link', arguments: { tripId: trip.id } }));
+      const result = payload<{ success: boolean }>(
+        await h.client.callTool({ name: 'delete_trip_invite_link', arguments: { tripId: trip.id } }),
+      );
       expect(result.success).toBe(true);
       expect(await inviteRow(trip.id)).toBeUndefined();
       const audit = await findRow(orm, AuditLog, { action: 'trip.invite_link_delete' });
@@ -480,8 +539,14 @@ describe('trip invite link gates', () => {
 
 describe('scope gating', () => {
   const FEED_TOOLS = [
-    'get_trip_calendar_feed', 'enable_trip_calendar_feed', 'rotate_trip_calendar_feed', 'disable_trip_calendar_feed',
-    'get_all_trips_calendar_feed', 'enable_all_trips_calendar_feed', 'rotate_all_trips_calendar_feed', 'disable_all_trips_calendar_feed',
+    'get_trip_calendar_feed',
+    'enable_trip_calendar_feed',
+    'rotate_trip_calendar_feed',
+    'disable_trip_calendar_feed',
+    'get_all_trips_calendar_feed',
+    'enable_all_trips_calendar_feed',
+    'rotate_all_trips_calendar_feed',
+    'disable_all_trips_calendar_feed',
   ];
   const INVITE_TOOLS = ['get_trip_invite_link', 'create_trip_invite_link', 'delete_trip_invite_link'];
 

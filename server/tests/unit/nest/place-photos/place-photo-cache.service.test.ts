@@ -22,33 +22,32 @@
  * the full rows a hand-rolled table could not give them.
  * Plan 4 Task 4 dropped the now-unused `DatabaseService` injection entirely.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import path from 'node:path';
-import fs from 'node:fs';
-import crypto from 'node:crypto';
+import { db as testDb } from '../../../../src/db/database';
+import { CollectionPlaces } from '../../../../src/db/entities/CollectionPlaces.entity';
+import { GooglePlacePhotoMeta } from '../../../../src/db/entities/GooglePlacePhotoMeta.entity';
+import { Places } from '../../../../src/db/entities/Places.entity';
+import type { CollectionPlacesRepository } from '../../../../src/db/repositories/CollectionPlaces.repository';
+import type { GooglePlacePhotoMetaRepository } from '../../../../src/db/repositories/GooglePlacePhotoMeta.repository';
+import type { PlacesRepository } from '../../../../src/db/repositories/Places.repository';
+import { PlacePhotoCacheService } from '../../../../src/nest/place-photos/place-photo-cache.service';
+import { makeCollection, makeCollectionPlace } from '../../../helpers/factories/collections';
+import { makePlace } from '../../../helpers/factories/places';
+import { deleteRows, findRow, insertRow, updateRows } from '../../../helpers/factories/rows';
+import { makeTrip } from '../../../helpers/factories/trips';
+import { makeUser } from '../../../helpers/factories/users';
+import { makeStorageFixture, type StorageFixture } from '../../../helpers/storage-fixture';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
 import { Jimp, JimpMime } from 'jimp';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 vi.mock('../../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../../../src/db/database';
-
-import { PlacePhotoCacheService } from '../../../../src/nest/place-photos/place-photo-cache.service';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { GooglePlacePhotoMeta } from '../../../../src/db/entities/GooglePlacePhotoMeta.entity';
-import type { GooglePlacePhotoMetaRepository } from '../../../../src/db/repositories/GooglePlacePhotoMeta.repository';
-import { Places } from '../../../../src/db/entities/Places.entity';
-import type { PlacesRepository } from '../../../../src/db/repositories/Places.repository';
-import { CollectionPlaces } from '../../../../src/db/entities/CollectionPlaces.entity';
-import type { CollectionPlacesRepository } from '../../../../src/db/repositories/CollectionPlaces.repository';
-import { makeStorageFixture, type StorageFixture } from '../../../helpers/storage-fixture';
-import { deleteRows, findRow, insertRow, updateRows } from '../../../helpers/factories/rows';
-import { makeUser } from '../../../helpers/factories/users';
-import { makeTrip } from '../../../helpers/factories/trips';
-import { makePlace } from '../../../helpers/factories/places';
-import { makeCollection, makeCollectionPlace } from '../../../helpers/factories/collections';
 
 async function makeJpeg(width: number, height: number): Promise<Buffer> {
   const img = new Jimp({ width, height, color: 0xff0000ff });
@@ -68,7 +67,8 @@ let ownerId: number;
 let tripId: number;
 let collectionId: number;
 
-const referenceByPlace = (overrides: { google_place_id?: string; image_url?: string }) => makePlace(t, tripId, overrides);
+const referenceByPlace = (overrides: { google_place_id?: string; image_url?: string }) =>
+  makePlace(t, tripId, overrides);
 const referenceByCollectionPlace = (googlePlaceId: string) =>
   makeCollectionPlace(t, collectionId, ownerId, { google_place_id: googlePlaceId });
 const insertMeta = (placeId: string, attribution: string | null, fetchedAt: number) =>
@@ -101,7 +101,10 @@ beforeAll(async () => {
   tripId = (await makeTrip(t, ownerId)).id;
   collectionId = (await makeCollection(t, ownerId)).id;
 });
-afterAll(async () => { await t.close(); testDb.close(); });
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe.each([
   ['mode A (photos/google/ prefix)', 'photos/google/'],
@@ -200,7 +203,7 @@ describe.each([
     // a real `await` in the window — flagged, not fixed. This pins today's
     // outcome on a genuine race: two concurrent `get()` calls for a
     // never-checked placeId whose storage object is missing.
-    it('PPC-017 (§18.4 concurrency): two concurrent gets on a row whose storage object is missing both resolve null; the loser\'s delete is a harmless no-op', async () => {
+    it("PPC-017 (§18.4 concurrency): two concurrent gets on a row whose storage object is missing both resolve null; the loser's delete is a harmless no-op", async () => {
       await insertMeta('race-place', 'Dana', Date.now());
       const deleteSpy = vi.spyOn(metaRepo, 'deleteByPlaceId');
 

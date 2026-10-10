@@ -1,5 +1,5 @@
-import { asLlmVision, type LlmVision } from '@trek/shared';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { asLlmVision, type LlmVision } from '@trek/shared';
 
 /**
  * Shared types + helpers for the `llm_parsing` addon configuration.

@@ -1,5 +1,14 @@
+import {
+  isKnownPlatform,
+  isPostgres,
+  isSqlite,
+  PG_ISO_DATE_PREFIX,
+  PG_UTC_NOW,
+  pgDateText,
+  pgTimestampText,
+  unsupported,
+} from './platform';
 import { raw, type Platform, type RawQueryFragment } from '@mikro-orm/core';
-import { isKnownPlatform, isPostgres, isSqlite, PG_ISO_DATE_PREFIX, PG_UTC_NOW, pgDateText, pgTimestampText, unsupported } from './platform';
 
 /**
  * The only place a repository may spell a database function.
@@ -232,7 +241,11 @@ export function coalesce(platform: Platform, ref: string, fallbackRef: string): 
  * anywhere a plain `RawQueryFragment` is expected, a strict widening with no
  * behaviour change (the function body is untouched).
  */
-export function coalesceParam(platform: Platform, ref: string, value: string | number | null): RawQueryFragment & symbol {
+export function coalesceParam(
+  platform: Platform,
+  ref: string,
+  value: string | number | null,
+): RawQueryFragment & symbol {
   if (isKnownPlatform(platform)) return raw(`COALESCE(${column(ref)}, ?)`, [value]);
   return unsupported(platform);
 }
@@ -256,7 +269,11 @@ export function coalesceParam(platform: Platform, ref: string, value: string | n
  * columns exactly as they were before, since `coalesceParam`'s `COALESCE(col,
  * ?)` always preferred the non-null existing value).
  */
-export function coalesceOverride(platform: Platform, value: string | number | null, ref: string): RawQueryFragment & symbol {
+export function coalesceOverride(
+  platform: Platform,
+  value: string | number | null,
+  ref: string,
+): RawQueryFragment & symbol {
   if (isKnownPlatform(platform)) return raw(`COALESCE(?, ${column(ref)})`, [value]);
   return unsupported(platform);
 }
@@ -334,8 +351,15 @@ export function maxOf(platform: Platform, ref: string, aliasName: string): RawQu
  * time regardless of this function's own escaping; callers must guard a
  * non-finite `value` before calling.)
  */
-export function caseWhenEquals(platform: Platform, ref: string, value: number, whenTrue: string, whenFalse: string): RawQueryFragment {
-  if (isKnownPlatform(platform)) return raw(`CASE WHEN ${column(ref)} = ? THEN ? ELSE ? END`, [value, whenTrue, whenFalse]);
+export function caseWhenEquals(
+  platform: Platform,
+  ref: string,
+  value: number,
+  whenTrue: string,
+  whenFalse: string,
+): RawQueryFragment {
+  if (isKnownPlatform(platform))
+    return raw(`CASE WHEN ${column(ref)} = ? THEN ? ELSE ? END`, [value, whenTrue, whenFalse]);
   return unsupported(platform);
 }
 
@@ -537,7 +561,9 @@ export function castInteger(platform: Platform, ref: string): RawQueryFragment &
 export function dayDistance(platform: Platform, ref: string, isoDate: string): RawQueryFragment & symbol {
   if (isSqlite(platform)) return raw(`ABS(JULIANDAY(${column(ref)}) - JULIANDAY(?))`, [isoDate]);
   if (isPostgres(platform)) {
-    return raw(`ABS(EXTRACT(EPOCH FROM (CAST(${column(ref)} AS timestamp) - CAST(? AS timestamp))) / 86400)`, [isoDate]);
+    return raw(`ABS(EXTRACT(EPOCH FROM (CAST(${column(ref)} AS timestamp) - CAST(? AS timestamp))) / 86400)`, [
+      isoDate,
+    ]);
   }
   return unsupported(platform);
 }
@@ -779,9 +805,19 @@ export function foundAgainState(platform: Platform, stateRef: string, fileIdRef:
  * the fragment has two value slots and `raw()` binds positionally. SQLite's
  * null-safe `IS` is `IS NOT DISTINCT FROM` on Postgres.
  */
-export function coalesceOverrideWhileSame(platform: Platform, value: number | null, ref: string, keyRef: string, keyValue: string): RawQueryFragment {
+export function coalesceOverrideWhileSame(
+  platform: Platform,
+  value: number | null,
+  ref: string,
+  keyRef: string,
+  keyValue: string,
+): RawQueryFragment {
   if (isSqlite(platform)) {
-    return raw(`CASE WHEN ${column(keyRef)} IS ? THEN COALESCE(?, ${column(ref)}) ELSE COALESCE(?, 0) END`, [keyValue, value, value]);
+    return raw(`CASE WHEN ${column(keyRef)} IS ? THEN COALESCE(?, ${column(ref)}) ELSE COALESCE(?, 0) END`, [
+      keyValue,
+      value,
+      value,
+    ]);
   }
   if (isPostgres(platform)) {
     const sql = `CASE WHEN ${column(keyRef)} IS NOT DISTINCT FROM ? THEN COALESCE(?, ${column(ref)}) ELSE COALESCE(?, 0) END`;
@@ -789,7 +825,6 @@ export function coalesceOverrideWhileSame(platform: Platform, value: number | nu
   }
   return unsupported(platform);
 }
-
 
 // ---------------------------------------------------------------------------
 // Tours (#2586): `DayAssignmentsRepository`'s assignment projection carries a

@@ -1,7 +1,7 @@
 import type { PackingTemplateCategories } from '../entities/PackingTemplateCategories.entity';
+import type { DB } from '../kysely/db';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /** A bare `packing_template_categories` row — every scalar column, incl. the `persist(false)` `template_id` relation mirror. */
 export interface PackingTemplateCategoryRow {
@@ -26,7 +26,13 @@ export class PackingTemplateCategoriesRepository extends TrekRepository<PackingT
 
   /** PK66 (`getPackingTemplate`) — `SELECT * FROM packing_template_categories WHERE template_id = ? ORDER BY sort_order, id`. */
   async listForTemplate(template_id: number | string): Promise<PackingTemplateCategoryRow[]> {
-    return await this.db().selectFrom('packing_template_categories').selectAll().where('template_id', '=', template_id as number).orderBy('sort_order', 'asc').orderBy('id', 'asc').execute();
+    return await this.db()
+      .selectFrom('packing_template_categories')
+      .selectAll()
+      .where('template_id', '=', template_id as number)
+      .orderBy('sort_order', 'asc')
+      .orderBy('id', 'asc')
+      .execute();
   }
 
   /**
@@ -37,29 +43,53 @@ export class PackingTemplateCategoriesRepository extends TrekRepository<PackingT
    * with `TrekRepository`/`EntityRepository`'s own same-named method.
    */
   async insertCategory(template_id: number | string, name: string, sort_order: number): Promise<number> {
-    const inserted = await this.kysely<PackingTemplateCategoriesInsertKyselyDB>().insertInto('packing_template_categories').values({ template_id: template_id as number, name, sort_order }).returning('id').executeTakeFirstOrThrow();
+    const inserted = await this.kysely<PackingTemplateCategoriesInsertKyselyDB>()
+      .insertInto('packing_template_categories')
+      .values({ template_id: template_id as number, name, sort_order })
+      .returning('id')
+      .executeTakeFirstOrThrow();
     return inserted.id;
   }
 
   /** PK76 (`createTemplateCategory`) — `SELECT MAX(sort_order) as max FROM packing_template_categories WHERE template_id = ?`. */
   async maxSortOrder(template_id: number | string): Promise<number | null> {
-    const row = await this.db().selectFrom('packing_template_categories').select((eb) => eb.fn.max('sort_order').as('max')).where('template_id', '=', template_id as number).executeTakeFirst();
+    const row = await this.db()
+      .selectFrom('packing_template_categories')
+      .select((eb) => eb.fn.max('sort_order').as('max'))
+      .where('template_id', '=', template_id as number)
+      .executeTakeFirst();
     return row?.max ?? null;
   }
 
   /** PK78/PK81 — `SELECT * FROM packing_template_categories WHERE id = ?`, same text at two call sites (`createTemplateCategory`'s re-select, `updateTemplateCategory`'s re-select). */
   async findById(id: number | string): Promise<PackingTemplateCategoryRow | undefined> {
-    return await this.db().selectFrom('packing_template_categories').selectAll().where('id', '=', id as number).executeTakeFirst();
+    return await this.db()
+      .selectFrom('packing_template_categories')
+      .selectAll()
+      .where('id', '=', id as number)
+      .executeTakeFirst();
   }
 
   /** PK79/PK82 — `SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?`, the scope-check text at two call sites (`updateTemplateCategory`, `deleteTemplateCategory`). */
-  async findInTemplate(id: number | string, template_id: number | string): Promise<PackingTemplateCategoryRow | undefined> {
-    return await this.db().selectFrom('packing_template_categories').selectAll().where('id', '=', id as number).where('template_id', '=', template_id as number).executeTakeFirst();
+  async findInTemplate(
+    id: number | string,
+    template_id: number | string,
+  ): Promise<PackingTemplateCategoryRow | undefined> {
+    return await this.db()
+      .selectFrom('packing_template_categories')
+      .selectAll()
+      .where('id', '=', id as number)
+      .where('template_id', '=', template_id as number)
+      .executeTakeFirst();
   }
 
   /** PK80 (`updateTemplateCategory`) — `UPDATE packing_template_categories SET name = ? WHERE id = ?`. */
   async updateName(id: number | string, name: string): Promise<void> {
-    await this.db().updateTable('packing_template_categories').set({ name }).where('id', '=', id as number).execute();
+    await this.db()
+      .updateTable('packing_template_categories')
+      .set({ name })
+      .where('id', '=', id as number)
+      .execute();
   }
 
   /** PK83 (`deleteTemplateCategory`) — `DELETE FROM packing_template_categories WHERE id = ?`. */

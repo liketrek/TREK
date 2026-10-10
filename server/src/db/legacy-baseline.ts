@@ -1,8 +1,8 @@
+import { knownMigrationNames, unknownMigrations } from './known-migrations';
 import type { Connection, MigrationInfo } from '@mikro-orm/core';
 import type { Migrator } from '@mikro-orm/migrations';
 
 import fs from 'node:fs';
-import { knownMigrationNames, unknownMigrations } from './known-migrations';
 
 /**
  * Upgrading an install the retired hand-written runner migrated.
@@ -175,7 +175,9 @@ async function withoutToursSteps(connection: Connection, version: number): Promi
     `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'tour_types'`,
   );
   if (table.length === 0) return version;
-  console.log(`[DB] schema_version ${version} was written by the pre-ORM Tours branch; baselining to upstream step ${toursLine}`);
+  console.log(
+    `[DB] schema_version ${version} was written by the pre-ORM Tours branch; baselining to upstream step ${toursLine}`,
+  );
   return toursLine;
 }
 

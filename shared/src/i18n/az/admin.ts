@@ -53,7 +53,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNotificationsHint':
     'Yalnız administratorlara aid bildirişləri hansı kanalların çatdıracağını konfiqurasiya edin (məsələn, versiya xəbərdarlıqları).',
   'admin.notificationDefaults.title': 'İstifadəçilər üçün ilkin dəyərlər',
-  'admin.notificationDefaults.hint': 'Hər istifadəçinin bildirişləri belə başlayır. "Söndürülüb" istifadəçi özü yandıra bilər, "Bloklanıb" hamı üçün söndürür və onların ayarlarında kilidli görünür. Xananı özü dəyişməyən hər kəsə aiddir.',
+  'admin.notificationDefaults.hint':
+    'Hər istifadəçinin bildirişləri belə başlayır. "Söndürülüb" istifadəçi özü yandıra bilər, "Bloklanıb" hamı üçün söndürür və onların ayarlarında kilidli görünür. Xananı özü dəyişməyən hər kəsə aiddir.',
   'admin.notificationDefaults.on': 'Açıq',
   'admin.notificationDefaults.off': 'Söndürülüb',
   'admin.notificationDefaults.blocked': 'Bloklanıb',
@@ -96,8 +97,7 @@ const admin: TranslationStrings = {
   'admin.editUser': 'İstifadəçini redaktə et',
   'admin.newPassword': 'Yeni parol',
   'admin.newPasswordHint': 'Cari parolu saxlamaq üçün boş saxlayın',
-  'admin.deleteUser':
-    '"{name}" istifadəçisi silinsin? Bütün səyahətləri həmişəlik silinəcək.',
+  'admin.deleteUser': '"{name}" istifadəçisi silinsin? Bütün səyahətləri həmişəlik silinəcək.',
   'admin.deleteUserTitle': 'İstifadəçini sil',
   'admin.newPasswordPlaceholder': 'Yeni parolu daxil edin…',
   'admin.toast.loadError': 'Administrator məlumatlarını yükləmək mümkün olmadı',
@@ -135,8 +135,7 @@ const admin: TranslationStrings = {
   'admin.passwordLogin': 'Parolla giriş',
   'admin.passwordLoginHint': 'İstifadəçilərə e-poçt və parolla daxil olmağa icazə verin',
   'admin.passwordRegistration': 'Parolla qeydiyyat',
-  'admin.passwordRegistrationHint':
-    'Yeni istifadəçilərə e-poçt və parolla qeydiyyatdan keçməyə icazə verin',
+  'admin.passwordRegistrationHint': 'Yeni istifadəçilərə e-poçt və parolla qeydiyyatdan keçməyə icazə verin',
   'admin.oidcLogin': 'SSO ilə giriş',
   'admin.oidcLoginHint': 'İstifadəçilərə SSO ilə daxil olmağa icazə verin',
   'admin.oidcRegistration': 'SSO ilə avtomatik hesab yaratma',
@@ -170,8 +169,7 @@ const admin: TranslationStrings = {
   'admin.trekApi.notIncludedNote':
     'Heç bir açıq məlumat dəstində bunların heç biri heç bir qiymətə mövcud deyil. Bu ikisini əldə etməyin yeganə yolu Google açarı olaraq qalır.',
   'admin.trekApi.sourcesLabel': 'Mənbələr',
-  'admin.trekApi.sourcesNote':
-    'Cavabdakı hər sahə məlumatın bu mənbələrdən hansından əldə edildiyini göstərir.',
+  'admin.trekApi.sourcesNote': 'Cavabdakı hər sahə məlumatın bu mənbələrdən hansından əldə edildiyini göstərir.',
   'admin.trekApi.included': 'Daxildir',
   'admin.trekApi.notIncluded': 'Daxil deyil',
   'admin.mapsKey': 'Google Maps API açarı',
@@ -206,8 +204,7 @@ const admin: TranslationStrings = {
     'Google, Apple, Authentik və ya Keycloak kimi xarici provayderlər vasitəsilə girişə icazə verin.',
   'admin.oidcDisplayName': 'Göstərilən ad',
   'admin.oidcIssuer': 'Təminatçı URL-si',
-  'admin.oidcIssuerHint':
-    'Provayderin OpenID Connect təminatçı URL-si. Məsələn, https://accounts.google.com',
+  'admin.oidcIssuerHint': 'Provayderin OpenID Connect təminatçı URL-si. Məsələn, https://accounts.google.com',
   'admin.oidcSaved': 'OIDC konfiqurasiyası yadda saxlanıldı',
   'admin.oidcOnlyMode': 'Parolla doğrulamanı deaktiv et',
   'admin.oidcOnlyModeHint':
@@ -239,7 +236,8 @@ const admin: TranslationStrings = {
   'admin.placesGoogleOnly.otherProvider':
     'Məkan provayderi kimi Google tələb olunur. Amap və ya OpenStreetMap seçildikdə bu keçidin vəziyyətindən asılı olmayaraq axtarış heç vaxt Google-a göndərilmir.',
   'admin.googleQuota.title': 'Google sorğuları üçün gündəlik limit',
-  'admin.googleQuota.subtitle': 'Limitə çatanda TREK növbəti günə (UTC) qədər Google-a müraciət etmir və OpenStreetMap ilə axtarır. Boş qalsa, limit yoxdur.',
+  'admin.googleQuota.subtitle':
+    'Limitə çatanda TREK növbəti günə (UTC) qədər Google-a müraciət etmir və OpenStreetMap ilə axtarır. Boş qalsa, limit yoxdur.',
   'admin.googleQuota.placeholder': 'Limitsiz',
   'admin.googleQuota.usedToday': 'Bu gün: {used}',
   'admin.googleQuota.usedOfLimit': 'Bu gün: {used} / {limit}',
@@ -261,8 +259,7 @@ const admin: TranslationStrings = {
   'admin.placeShadow.subtitle':
     'Hansı axtarış nəticəsinin seçildiyini qeydə alın ki, başqa məkan indeksini sonradan real axtarışlarla müqayisə etmək mümkün olsun. Heç bir məlumat bu sistemdən kənara çıxmır və administrator istənilən vaxt jurnalı ixrac edə və ya silə bilər.',
   'admin.bagTracking.title': 'Çantaların izlənməsi',
-  'admin.bagTracking.subtitle':
-    'Baqaj elementləri üçün çəki və çanta təyin edilməsini aktivləşdirin',
+  'admin.bagTracking.subtitle': 'Baqaj elementləri üçün çəki və çanta təyin edilməsini aktivləşdirin',
   'admin.collab.chat.title': 'Çat',
   'admin.collab.chat.subtitle': 'Səyahətin birgə planlaşdırılması üçün real vaxt mesajlaşması',
   'admin.collab.notes.title': 'Qeydlər',
@@ -333,8 +330,7 @@ const admin: TranslationStrings = {
   'admin.plugins.devLinkPathPlaceholder': '/plagininize/mutleq/yol',
   'admin.plugins.devLinkButton': 'Əlaqələndir',
   'admin.plugins.devLinkLinked': '{id} əlaqələndirildi — işlətmək üçün aktivləşdirin',
-  'admin.plugins.sideloadedHint':
-    'Əl ilə yüklənib — reyestrdən deyil, imzalanmayıb və yoxlanılmayıb',
+  'admin.plugins.sideloadedHint': 'Əl ilə yüklənib — reyestrdən deyil, imzalanmayıb və yoxlanılmayıb',
   'admin.plugins.browse': 'Plaginlərə bax',
   'admin.plugins.installed': 'Quraşdırılıb',
   'admin.plugins.install': 'Quraşdır',
@@ -352,8 +348,7 @@ const admin: TranslationStrings = {
   'admin.plugins.allowedHosts.none': 'Hələ heç bir host əlavə edilməyib.',
   'admin.plugins.allowedHosts.unsupported':
     'Bu plagin operator tərəfindən təqdim edilən hostlardan istifadə etmir. İcazə verilən hostlar onun manifestində sabit şəkildə müəyyən edilib.',
-  'admin.plugins.allowedHosts.restartNote':
-    'Yadda saxlamaq plagini yenidən başladır ki, yeni siyahını tətbiq etsin.',
+  'admin.plugins.allowedHosts.restartNote': 'Yadda saxlamaq plagini yenidən başladır ki, yeni siyahını tətbiq etsin.',
   'admin.plugins.allowedHosts.add': 'İcazə verilən host əlavə et',
   'admin.plugins.allowedHosts.count': '{n} icazə verilən host',
   'admin.plugins.allowedHosts.count.one': '{n} icazə verilən host',
@@ -407,8 +402,7 @@ const admin: TranslationStrings = {
   'admin.plugins.requiresTrek': 'TREK {version}+ tələb edir',
   'admin.plugins.reviewedOn': '{date} tarixində yoxlanılıb',
   'admin.plugins.perm.db:own': 'Öz məlumatlarını təcrid edilmiş verilənlər bazasında saxlamaq',
-  'admin.plugins.perm.db:read:trips':
-    'Əməliyyatı həyata keçirən istifadəçinin giriş icazəsi olan səyahətləri oxumaq',
+  'admin.plugins.perm.db:read:trips': 'Əməliyyatı həyata keçirən istifadəçinin giriş icazəsi olan səyahətləri oxumaq',
   'admin.plugins.perm.db:read:users':
     'Əsas profil məlumatlarını oxumaq (ad və avatar — giriş məlumatları heç vaxt daxil deyil)',
   'admin.plugins.perm.db:read:costs':
@@ -417,11 +411,9 @@ const admin: TranslationStrings = {
     'Əməliyyatı həyata keçirən istifadəçinin giriş icazəsi olan səyahətlərin baqaj siyahılarını oxumaq',
   'admin.plugins.perm.db:write:packing':
     'Əməliyyatı həyata keçirən istifadəçinin redaktə edə bildiyi səyahətlərdə baqaj elementləri yaratmaq, redaktə etmək və silmək',
-  'admin.plugins.perm.weather:read':
-    'Hostun keşlənmiş hava proqnozunu oxumaq (koordinatlar üzrə)',
+  'admin.plugins.perm.weather:read': 'Hostun keşlənmiş hava proqnozunu oxumaq (koordinatlar üzrə)',
   'admin.plugins.perm.db:read:categories': 'Ümumi məkan kateqoriyaları siyahısını oxumaq',
-  'admin.plugins.perm.db:read:tags':
-    'Əməliyyatı həyata keçirən istifadəçinin öz etiketlərini oxumaq',
+  'admin.plugins.perm.db:read:tags': 'Əməliyyatı həyata keçirən istifadəçinin öz etiketlərini oxumaq',
   'admin.plugins.perm.db:write:tags':
     'Əməliyyatı həyata keçirən istifadəçinin öz etiketlərini yaratmaq, redaktə etmək və silmək',
   'admin.plugins.perm.db:read:todos':
@@ -479,8 +471,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:meta':
     'Əməliyyatı həyata keçirən istifadəçinin giriş icazəsi olan səyahətlərə, məkanlara və günlərə öz məxfi məlumatlarını əlavə etmək',
   'admin.plugins.perm.ws:broadcast:trip': 'Səyahət üzvlərinə real vaxt yeniləmələri göndərmək',
-  'admin.plugins.perm.ws:broadcast:user':
-    'Ayrı-ayrı istifadəçilərə real vaxt yeniləmələri göndərmək',
+  'admin.plugins.perm.ws:broadcast:user': 'Ayrı-ayrı istifadəçilərə real vaxt yeniləmələri göndərmək',
   'admin.plugins.perm.hook:photo-provider': 'Xatirələr bölməsinə fotolar təqdim etmək',
   'admin.plugins.perm.hook:calendar-source': 'Təqvimə tədbirlər təqdim etmək',
   'admin.plugins.perm.hook:place-detail-provider':
@@ -495,8 +486,7 @@ const admin: TranslationStrings = {
     'Səyahət görünüşlərinə (rezervasiyalar, məkanlar və günlər) sütunlar və əməliyyatlar əlavə etmək',
   'admin.plugins.perm.hook:map-marker-provider':
     'Səyahət xəritəsinə markerlər əlavə etmək (məsələn, rezervasiyaları və ya maraqlı nöqtələri göstərmək)',
-  'admin.plugins.perm.hook:map-layer-provider':
-    'Səyahət xəritəsində marşrutlar, dəhlizlər və zonalar çəkmək',
+  'admin.plugins.perm.hook:map-layer-provider': 'Səyahət xəritəsində marşrutlar, dəhlizlər və zonalar çəkmək',
   'admin.plugins.perm.hook:route-provider':
     'Planlayıcının günlər üçün istifadə edə biləcəyi marşrut profilləri təqdim etmək (məsələn, şarj dayanacaqları ilə elektrik avtomobili marşrutu)',
   'admin.plugins.perm.hook:day-schedule-provider':
@@ -512,16 +502,14 @@ const admin: TranslationStrings = {
     'Süni intellekt köməkçisinin sizin adınızdan işə sala biləcəyi alətlər yayımlamaq (köməkçinin öz icazələri ilə deyil, burada plaginə verdiyiniz giriş icazələri ilə işləyir)',
   'admin.plugins.perm.geolocation:read':
     'Plaginin görünüşlərindən biri açıq olduqda canlı mövqeyinizi istəmək (TREK onu plaginin öz icazəsi ilə deyil, bu saytın məkan icazəsi ilə oxuyur)',
-  'admin.plugins.perm.hook:pdf-section-provider':
-    'Səyahətin PDF ixracına mətn bölmələri əlavə etmək',
+  'admin.plugins.perm.hook:pdf-section-provider': 'Səyahətin PDF ixracına mətn bölmələri əlavə etmək',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Atlas dünya xəritəsində ölkələri vurğulamaq (məsələn, arzular siyahıları və ya səyahət xəbərdarlıqları)',
   'admin.plugins.perm.hook:journal-entry-provider':
     'Səyahət gündəliyi qeydlərinə əlavə sətirlər (keçidlər və statistika) təqdim etmək',
   'admin.plugins.perm.hook:trip-card-provider':
     'İdarə panelindəki səyahət kartlarına kiçik nişanlar (vəziyyət və saylar) əlavə etmək',
-  'admin.plugins.perm.hook:notification-channel':
-    'Bildirişlərinizi əlavə kanal vasitəsilə çatdırmaq',
+  'admin.plugins.perm.hook:notification-channel': 'Bildirişlərinizi əlavə kanal vasitəsilə çatdırmaq',
   'admin.plugins.perm.hook:user-data':
     'İstifadəçi haqqında saxladığı məlumatları silmək və ya ixrac etmək (GDPR hesab silmə və məlumat sorğuları)',
   'admin.plugins.perm.events:subscribe':
@@ -533,8 +521,7 @@ const admin: TranslationStrings = {
     'Əməliyyatı həyata keçirən istifadəçinin giriş icazəsi olan səyahətlərin qeydlərini, sorğularını və çat mesajlarını oxumaq (Collab əlavəsi tələb olunur)',
   'admin.plugins.perm.db:read:files:content':
     'Əməliyyatı həyata keçirən istifadəçinin giriş icazəsi olan səyahətlərdəki faylların bayt məzmununu oxumaq',
-  'admin.plugins.perm.db:create:trips':
-    'Əməliyyatı həyata keçirən istifadəçiyə məxsus yeni səyahətlər yaratmaq',
+  'admin.plugins.perm.db:create:trips': 'Əməliyyatı həyata keçirən istifadəçiyə məxsus yeni səyahətlər yaratmaq',
   'admin.plugins.perm.rates:read': 'Hostun keşlənmiş valyuta məzənnələrini oxumaq',
   'admin.plugins.updateConsentTitle': 'Bu yeniləmə yeni icazələr tələb edir',
   'admin.plugins.updateConsentBody':
@@ -543,8 +530,7 @@ const admin: TranslationStrings = {
   'admin.plugins.updateNewEgress': 'Yeni xarici bağlantılar',
   'admin.plugins.updateApprove': 'Təsdiqlə və aktivləşdir',
   'admin.plugins.updateLater': 'Hələlik deaktiv saxla',
-  'admin.plugins.updateKeptOff':
-    'Yeniləmə quraşdırıldı — yeni icazələri təsdiqləyənə qədər deaktiv saxlanıldı',
+  'admin.plugins.updateKeptOff': 'Yeniləmə quraşdırıldı — yeni icazələri təsdiqləyənə qədər deaktiv saxlanıldı',
   'admin.plugins.reviewedMeaning':
     '“Yoxlanılıb” o deməkdir ki, TREK tərtibatçısı plaginin hər versiyasını zərərli proqramlara qarşı nəzərdən keçirib — keyfiyyətinə və ya işləyib-işləmədiyinə görə yox. Bu, plaginin zərərsiz olduğuna zəmanət vermir.',
   'admin.plugins.security.title': 'Plaginlərin necə təcrid edildiyi və məhdudiyyətlər',
@@ -567,8 +553,7 @@ const admin: TranslationStrings = {
   'admin.plugins.security.signedBody':
     'TREK-in hər quraşdırmada yoxladığı nəzarət cəmi faylların reyestrin təsdiqlədiyi fayllarla tam eyni olduğunu sübut edir. İmza isə başqa şeyi sübut edir: faylların müəllifdən gəldiyini və yalnız onun sahib olduğu açarla imzalandığını. İmzalanmış plagində hər ikisi mövcuddur. İmzalanmamış plagin təhlükəli demək deyil — sadəcə bir zəmanəti daha azdır və hazırda reyestrdəki plaginlərin əksəriyyəti imzalanmayıb.',
   'admin.plugins.signed': 'İmzalanıb',
-  'admin.plugins.signedHint':
-    'Quraşdırılarkən müəllifin imzalama açarı ilə doğrulanıb',
+  'admin.plugins.signedHint': 'Quraşdırılarkən müəllifin imzalama açarı ilə doğrulanıb',
   'admin.plugins.unsigned': 'İmzalanmayıb',
   'admin.plugins.unsignedHint':
     'Fayllar reyestrin təsdiqlədiyi fayllarla uyğun gəlir, lakin onları müəlliflə əlaqələndirən heç nə yoxdur. Bir zəmanəti daha azdır — bu, təhlükəli olduğu demək deyil.',
@@ -632,8 +617,7 @@ const admin: TranslationStrings = {
   'admin.plugins.restarted': 'Plagin yenidən başladıldı',
   'admin.plugins.instanceSettings': 'Sistem tənzimləmələri',
   'admin.plugins.settingsSaved': 'Tənzimləmələr yadda saxlanıldı',
-  'admin.plugins.settingsSavedRestarted':
-    'Tənzimləmələr yadda saxlanıldı — plagin yenidən başladıldı',
+  'admin.plugins.settingsSavedRestarted': 'Tənzimləmələr yadda saxlanıldı — plagin yenidən başladıldı',
   'admin.plugins.actions': 'Əməliyyatlar',
   'admin.plugins.actions.confirm': 'Bu əməliyyat icra edilsin?',
   'admin.plugins.actions.inactive': 'Əməliyyatlarını icra etmək üçün plagini aktivləşdirin',
@@ -677,16 +661,13 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.autoEnabled.one': 'Əvvəlcə tələb olunan plagin aktivləşdirildi: {plugins}',
   'admin.plugins.dep.downloaded': '{id} endirildi',
   'admin.plugins.dep.resolveTitle': 'Çatışmayan asılılıqlar',
-  'admin.plugins.dep.resolveBody':
-    '“{name}” aktivləşdirilməzdən əvvəl bu plaginlərin quraşdırılması tələb olunur.',
+  'admin.plugins.dep.resolveBody': '“{name}” aktivləşdirilməzdən əvvəl bu plaginlərin quraşdırılması tələb olunur.',
   'admin.plugins.dep.requires': '{version} tələb edir',
   'admin.plugins.dep.mismatch': '{wanted} tələb edir — {installed} quraşdırılıb',
   'admin.plugins.dep.download': 'Endir',
   'admin.plugins.dep.update': 'Yenilə',
-  'admin.plugins.dep.resolveHint':
-    'Öz asılılıqları daxil olmaqla ən son uyğun versiyanı endirir.',
-  'admin.plugins.dep.trekIncompatible':
-    'TREK {range} tələb edir — bu serverdə {host} işləyir',
+  'admin.plugins.dep.resolveHint': 'Öz asılılıqları daxil olmaqla ən son uyğun versiyanı endirir.',
+  'admin.plugins.dep.trekIncompatible': 'TREK {range} tələb edir — bu serverdə {host} işləyir',
   'admin.plugins.dep.trekUnknown': 'Hansı TREK versiyalarını dəstəklədiyini göstərmir',
   'admin.plugins.installCompatible': '{version} versiyasını quraşdır',
   'admin.plugins.installAnyway': 'Yenə də quraşdır',
@@ -694,16 +675,13 @@ const admin: TranslationStrings = {
   'admin.plugins.rangeBypass.pillHint':
     'TREK_PLUGINS_IGNORE_TREK_RANGE təyin edilib — plaginlər müəlliflərinin göstərdiyi TREK versiyalarından kənarda quraşdırıla və işləyə bilər',
   'admin.plugins.rangeBypass.title': 'Dəstəklədiyi TREK versiyalarından kənardır',
-  'admin.plugins.rangeBypass.noticeTitle':
-    'Dəstəklədiyi TREK versiyalarından kənarda quraşdırılıb',
+  'admin.plugins.rangeBypass.noticeTitle': 'Dəstəklədiyi TREK versiyalarından kənarda quraşdırılıb',
   'admin.plugins.rangeBypass.body':
     '“{name}” TREK {range} versiyalarını dəstəklədiyini göstərir, bu serverdə isə {host} işləyir. TREK buna yalnız TREK_PLUGINS_IGNORE_TREK_RANGE təyin edildiyi üçün icazə verir. Müəllif bu TREK versiyası üçün plaginin versiya aralığını yeniləməyib, buna görə işləyəcəyinə zəmanət yoxdur — nadir hallarda uyğun olmayan plagin TREK məlumatlarını korlaya bilər. Yalnız bu riski qəbul edirsinizsə davam edin.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '“{name}” hansı TREK versiyalarını dəstəklədiyini göstərmir; bu serverdə {host} işləyir. TREK buna yalnız TREK_PLUGINS_IGNORE_TREK_RANGE təyin edildiyi üçün icazə verir. Müəllifin onu bu TREK versiyasında sınaqdan keçirdiyinə dair məlumat yoxdur, buna görə işləyəcəyinə zəmanət verilmir — nadir hallarda uyğun olmayan plagin TREK məlumatlarını korlaya bilər. Yalnız bu riski qəbul edirsinizsə davam edin.',
-  'admin.plugins.dep.trekBypassed':
-    'TREK versiya aralığından ({range}) kənardır — versiya yoxlamaları deaktivdir',
-  'admin.plugins.dep.trekBypassedUnknown':
-    'TREK versiya aralığı göstərilməyib — versiya yoxlamaları deaktivdir',
+  'admin.plugins.dep.trekBypassed': 'TREK versiya aralığından ({range}) kənardır — versiya yoxlamaları deaktivdir',
+  'admin.plugins.dep.trekBypassedUnknown': 'TREK versiya aralığı göstərilməyib — versiya yoxlamaları deaktivdir',
   'admin.plugins.incompatible': 'Uyğun deyil',
   'admin.plugins.accessTitle': 'Giriş əldə edə biləcəyi məlumatlar',
   'admin.plugins.connectsTitle': 'Qoşulduğu xidmətlər',
@@ -715,41 +693,32 @@ const admin: TranslationStrings = {
   'admin.plugins.metaReviewed': 'Yoxlanılma tarixi',
   'admin.plugins.downloads': 'Endirmələr',
   'admin.addons.title': 'Əlavələr',
-  'admin.addons.subtitle':
-    'TREK təcrübənizi fərdiləşdirmək üçün funksiyaları aktivləşdirin və ya deaktiv edin.',
+  'admin.addons.subtitle': 'TREK təcrübənizi fərdiləşdirmək üçün funksiyaları aktivləşdirin və ya deaktiv edin.',
   'admin.addons.catalog.packing.name': 'Siyahılar',
-  'admin.addons.catalog.packing.description':
-    'Səyahətləriniz üçün baqaj siyahıları və tapşırıqlar',
+  'admin.addons.catalog.packing.description': 'Səyahətləriniz üçün baqaj siyahıları və tapşırıqlar',
   'admin.addons.catalog.budget.name': 'Xərclər',
-  'admin.addons.catalog.budget.description':
-    'Səyahət xərclərini izləyin və onları səyahətçilər arasında bölüşdürün',
+  'admin.addons.catalog.budget.description': 'Səyahət xərclərini izləyin və onları səyahətçilər arasında bölüşdürün',
   'admin.addons.catalog.documents.name': 'Sənədlər',
   'admin.addons.catalog.documents.description': 'Səyahət sənədlərini saxlayın və idarə edin',
   'admin.addons.catalog.vacay.name': 'Vacay',
   'admin.addons.catalog.vacay.description': 'Təqvim görünüşlü şəxsi məzuniyyət planlayıcısı',
   'admin.addons.catalog.atlas.name': 'Atlas',
-  'admin.addons.catalog.atlas.description':
-    'Ziyarət edilmiş ölkələr və səyahət statistikası ilə dünya xəritəsi',
+  'admin.addons.catalog.atlas.description': 'Ziyarət edilmiş ölkələr və səyahət statistikası ilə dünya xəritəsi',
   'admin.addons.catalog.collab.name': 'Collab',
-  'admin.addons.catalog.collab.description':
-    'Birgə planlaşdırma üçün qeydlər, sorğular, çat və təkliflər',
+  'admin.addons.catalog.collab.description': 'Birgə planlaşdırma üçün qeydlər, sorğular, çat və təkliflər',
   'admin.addons.catalog.roadtrip.name': 'Avtomobil səyahəti',
   'admin.addons.catalog.roadtrip.description':
     'Marşrut üzərindəki dayanacaqlar, sürmə müddətləri və avtomatik yenilənən çatma vaxtları ilə avtomobil səfərlərini planlaşdırın',
   'admin.addons.catalog.memories.name': 'Fotolar (Immich)',
-  'admin.addons.catalog.memories.description':
-    'Immich sisteminiz vasitəsilə səyahət fotolarını paylaşın',
+  'admin.addons.catalog.memories.description': 'Immich sisteminiz vasitəsilə səyahət fotolarını paylaşın',
   'admin.addons.catalog.mcp.name': 'MCP',
-  'admin.addons.catalog.mcp.description':
-    'Süni intellekt köməkçisi inteqrasiyası üçün Model Context Protocol',
+  'admin.addons.catalog.mcp.description': 'Süni intellekt köməkçisi inteqrasiyası üçün Model Context Protocol',
   'admin.addons.subtitleBefore': 'Funksiyaları aktiv və ya deaktiv edərək ',
   'admin.addons.subtitleAfter': ' təcrübənizi fərdiləşdirin.',
   'admin.addons.catalog.naver_list_import.name': 'Naver siyahısının idxalı',
-  'admin.addons.catalog.naver_list_import.description':
-    'Paylaşılan Naver Maps siyahısından məkanları idxal edin',
+  'admin.addons.catalog.naver_list_import.description': 'Paylaşılan Naver Maps siyahısından məkanları idxal edin',
   'admin.addons.catalog.airtrail.name': 'AirTrail',
-  'admin.addons.catalog.airtrail.description':
-    'AirTrail sisteminizdən uçuşları sinxronlaşdırın',
+  'admin.addons.catalog.airtrail.description': 'AirTrail sisteminizdən uçuşları sinxronlaşdırın',
   'admin.addons.catalog.dawarich.name': 'Dawarich',
   'admin.addons.catalog.dawarich.description':
     'Hər istifadəçinin özünün qoşduğu Dawarich sistemindən ziyarətləri və qeydə alınmış marşrutları oxuyun',
@@ -759,8 +728,10 @@ const admin: TranslationStrings = {
   'admin.addons.llm.vision.auto': 'Avtomatik',
   'admin.addons.llm.vision.on': 'Bəli',
   'admin.addons.llm.vision.off': 'Xeyr',
-  'admin.addons.llm.vision.hintLocal': 'Avtomatik rejim bu modelin şəkilləri oxuyub-oxumadığını Ollama serverindən soruşur.',
-  'admin.addons.llm.vision.hintCloud': 'Bulud modeli üçün Avtomatik "xeyr" deməkdir. Bu model şəkilləri oxuyursa, Bəli seç.',
+  'admin.addons.llm.vision.hintLocal':
+    'Avtomatik rejim bu modelin şəkilləri oxuyub-oxumadığını Ollama serverindən soruşur.',
+  'admin.addons.llm.vision.hintCloud':
+    'Bulud modeli üçün Avtomatik "xeyr" deməkdir. Bu model şəkilləri oxuyursa, Bəli seç.',
   'admin.addons.enabled': 'Aktivdir',
   'admin.addons.disabled': 'Deaktivdir',
   'admin.addons.type.trip': 'Səyahət',
@@ -768,8 +739,7 @@ const admin: TranslationStrings = {
   'admin.addons.type.integration': 'İnteqrasiya',
   'admin.addons.tripHint': 'Hər səyahətdə tab kimi mövcuddur',
   'admin.addons.globalHint': 'Əsas naviqasiyada müstəqil bölmə kimi mövcuddur',
-  'admin.addons.integrationHint':
-    'Ayrıca səhifəsi olmayan server xidmətləri və API inteqrasiyaları',
+  'admin.addons.integrationHint': 'Ayrıca səhifəsi olmayan server xidmətləri və API inteqrasiyaları',
   'admin.addons.toast.updated': 'Əlavə yeniləndi',
   'admin.addons.toast.error': 'Əlavəni yeniləmək mümkün olmadı',
   'admin.addons.group.count': '{total} əlavədən {enabled} aktivdir',
@@ -781,16 +751,14 @@ const admin: TranslationStrings = {
   'admin.weather.forecast': '16 günlük hava proqnozu',
   'admin.weather.forecastDesc': 'Əvvəllər 5 gün idi (OpenWeatherMap)',
   'admin.weather.climate': 'Tarixi iqlim məlumatları',
-  'admin.weather.climateDesc':
-    '16 günlük hava proqnozundan sonrakı günlər üçün son 85 ilin orta göstəriciləri',
+  'admin.weather.climateDesc': '16 günlük hava proqnozundan sonrakı günlər üçün son 85 ilin orta göstəriciləri',
   'admin.weather.requests': 'Gündə 10 000 sorğu',
   'admin.weather.requestsDesc': 'Pulsuzdur, API açarı tələb olunmur',
   'admin.weather.locationHint':
     'Hava məlumatları hər gün üçün koordinatları olan ilk məkana əsaslanır. Günə heç bir məkan təyin edilməyibsə, məkan siyahısındakı istənilən məkan istinad kimi istifadə olunur.',
   'admin.tabs.mcpTokens': 'MCP girişi',
   'admin.mcpTokens.title': 'MCP girişi',
-  'admin.mcpTokens.subtitle':
-    'Bütün istifadəçilər üzrə OAuth sessiyalarını və API tokenlərini idarə edin',
+  'admin.mcpTokens.subtitle': 'Bütün istifadəçilər üzrə OAuth sessiyalarını və API tokenlərini idarə edin',
   'admin.mcpTokens.sectionTitle': 'API tokenləri',
   'admin.mcpTokens.owner': 'Sahib',
   'admin.mcpTokens.tokenName': 'Tokenin adı',
@@ -903,8 +871,7 @@ const admin: TranslationStrings = {
   'admin.placesUsageTitle': 'Açarın hansı məqsədlərlə istifadə edildiyi',
   'admin.mapsKeyHintShort':
     'Fotolar, reytinqlər və iş saatları əlavə edir. Bundan sonra hər sorğu Google-a göndərilir.',
-  'admin.amapKeyHintShort':
-    'Materik Çinində məkan axtarışı üçün. JS API açarı deyil, veb xidməti açarı tələb olunur.',
+  'admin.amapKeyHintShort': 'Materik Çinində məkan axtarışı üçün. JS API açarı deyil, veb xidməti açarı tələb olunur.',
   'admin.collab.links.subtitle': 'Paylaşılan keçidlər və əlfəcinlər',
 };
 

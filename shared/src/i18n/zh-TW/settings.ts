@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': '選擇模板...',
   'settings.mapDefaultHint': '留空則使用 OpenStreetMap（預設）',
   'settings.routingBase': '自建路徑規劃服務',
-  'settings.routingBaseHint': '你自己的 OSRM 實例。留空則使用公共伺服器，約每秒一個請求 — 單日夠用，長途自駕則吃緊。需重新啟動伺服器後生效。',
+  'settings.routingBaseHint':
+    '你自己的 OSRM 實例。留空則使用公共伺服器，約每秒一個請求 — 單日夠用，長途自駕則吃緊。需重新啟動伺服器後生效。',
   'settings.valhallaBase': '自建 Valhalla 執行個體',
   'settings.valhallaBaseHint':
     'TREK 預設使用 FOSSGIS 的公共 Valhalla 來避開收費道路、高速公路和渡輪。若要改用自己的 Valhalla，請在此輸入網址。如果只設定了自己的路線規劃伺服器，就不會使用公共 Valhalla。輸入自己的網址後，請重新啟動伺服器並重新載入頁面。',
@@ -42,7 +43,8 @@ const settings: TranslationStrings = {
   'settings.mapCartoKey': 'CARTO API 金鑰',
   'settings.mapCartoKeyHint': '沒有金鑰時 CARTO 底圖會顯示浮水印。免費且無需帳戶，來自',
   'settings.mapCartoKeyLink': 'carto.com 底圖 API 金鑰',
-  'settings.mapCartoKeyMissing': '此範本是 CARTO 底圖。沒有金鑰時，CARTO 會在每個圖磚上印上 "API KEY REQUIRED"。 在輸入金鑰之前，TREK 會顯示預設底圖。',
+  'settings.mapCartoKeyMissing':
+    '此範本是 CARTO 底圖。沒有金鑰時，CARTO 會在每個圖磚上印上 "API KEY REQUIRED"。 在輸入金鑰之前，TREK 會顯示預設底圖。',
   'settings.mapStyle': '地圖樣式',
   'settings.mapStylePlaceholder': '選擇 Mapbox 樣式',
   'settings.mapStyleHint': '預設或您自己的 mapbox://styles/USER/ID URL',

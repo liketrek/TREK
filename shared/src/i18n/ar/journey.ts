@@ -265,7 +265,8 @@ const journey: TranslationStrings = {
   'journey.settings.statusManualHint': 'مضبوطة يدويًا. لن تغيرها تواريخ الرحلة حتى تعود إلى الوضع التلقائي.',
   'journey.settings.photosSection': 'الصور',
   'journey.settings.photoLocation': 'تحديد موقع الإدخالات من صورها',
-  'journey.settings.photoLocationHint': 'يأخذ الإدخال الذي بلا مكان موقع أول صورة له تحمل GPS. لا تُنقل الأماكن التي حددتها بنفسك أبدًا.',
+  'journey.settings.photoLocationHint':
+    'يأخذ الإدخال الذي بلا مكان موقع أول صورة له تحمل GPS. لا تُنقل الأماكن التي حددتها بنفسك أبدًا.',
   'journey.settings.delete': 'Delete', // en-fallback
   'journey.settings.deleteJourney': 'Delete Journey', // en-fallback
   'journey.settings.deleteMessage': 'Delete "{title}"? All entries and photos will be lost.', // en-fallback
@@ -347,7 +348,8 @@ const journey: TranslationStrings = {
   'journey.studio.importSpreadHint': 'إضافة صفحة مزدوجة من ملف تصميم منزّل',
   'journey.studio.importSpreadFailed': 'هذا الملف ليس صفحة من TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'تصميم كتاب يحتاج مساحة للعمل، لذلك يعمل الاستوديو على سطح المكتب فقط، وكذلك إنشاء ملف PDF. كل شيء آخر في رحلتك يعمل هنا كالمعتاد.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'تصميم كتاب يحتاج مساحة للعمل، لذلك يعمل الاستوديو على سطح المكتب فقط، وكذلك إنشاء ملف PDF. كل شيء آخر في رحلتك يعمل هنا كالمعتاد.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -411,7 +413,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -604,7 +607,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'المخططات',
   'journey.studio.mapSourceRelief': 'تضاريس',
   'journey.studio.mapSourceSatellite': 'قمر صناعي',
-  'journey.studio.mapSourceSatelliteHint': 'صور Sentinel-2 خالية من السحب، يمكن طباعتها بحرية مع ذكر المصدر. حادة حتى مستوى شارع في المدينة.',
+  'journey.studio.mapSourceSatelliteHint':
+    'صور Sentinel-2 خالية من السحب، يمكن طباعتها بحرية مع ذكر المصدر. حادة حتى مستوى شارع في المدينة.',
   'journey.studio.routeLook': 'الخط',
   'journey.studio.routeStyle': 'الشكل',
   'journey.studio.routePlain': 'عادي',
@@ -629,7 +633,8 @@ const journey: TranslationStrings = {
   'journey.studio.roadsBusy': 'جارٍ الجلب',
   'journey.studio.roadsHint': 'اطلب من خدمة توجيه الطريق الذي قُطعت به كل مرحلة. المراحل الطويلة تبقى كما هي.',
   'journey.studio.roadsHave': 'تُحفظ الطرق في هذا الكتاب، فيُطبع الخط نفسه دون اتصال.',
-  'journey.studio.mapSourceReliefHint': 'تضاريس ناسا المظللة، يمكن طباعتها بحرية. تناسب بلدًا أو قارة، وهي خشنة جدًا لمدينة واحدة.',
+  'journey.studio.mapSourceReliefHint':
+    'تضاريس ناسا المظللة، يمكن طباعتها بحرية. تناسب بلدًا أو قارة، وهي خشنة جدًا لمدينة واحدة.',
   'journey.studio.mapPrintDpi': 'تُطبع بنحو',
   'journey.studio.mapPrintDpiLow': 'غير حادة بهذا الحجم، جرّب عرضًا أوسع أو مصدرًا آخر',
   'journey.studio.mapPerTrip': 'رحلة واحدة في كل مرة',
@@ -700,7 +705,8 @@ const journey: TranslationStrings = {
   'journey.entry.offRoute': 'خارج المسار',
   'journey.entry.draft': 'مسودة',
   'journey.editor.draft': 'مسودة',
-  'journey.editor.draftHint': 'لا يرى هذا المدخل سواك وسوى المساهمين الآخرين. تستبعده اليوميات المشتركة حتى توقف هذا الخيار.',
+  'journey.editor.draftHint':
+    'لا يرى هذا المدخل سواك وسوى المساهمين الآخرين. تستبعده اليوميات المشتركة حتى توقف هذا الخيار.',
   'journey.editor.tripSuggestionHint': 'يقع هذا اليوم ضمن هذه الرحلة. اربطه لتنضم أماكنها إلى هذه اليوميات.',
   'journey.editor.tripSuggestionLater': 'ليس الآن',
   'journey.suggestions.dismiss': 'تجاهل هذا الاقتراح',

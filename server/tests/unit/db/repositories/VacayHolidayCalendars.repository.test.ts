@@ -5,15 +5,16 @@
  * pre-existing `existsForSchoolRegion` per this file's own ownership rule
  * (SH14, untouched).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { VacayHolidayCalendars } from '../../../../src/db/entities/VacayHolidayCalendars.entity';
+import type { VacayHolidayCalendarsRepository } from '../../../../src/db/repositories/VacayHolidayCalendars.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { createUser } from '../../../helpers/factories';
 import { insertRow } from '../../../helpers/factories/rows';
 import { makeVacayPlan } from '../../../helpers/factories/vacay';
-import { VacayHolidayCalendars } from '../../../../src/db/entities/VacayHolidayCalendars.entity';
-import type { VacayHolidayCalendarsRepository } from '../../../../src/db/repositories/VacayHolidayCalendars.repository';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -23,14 +24,23 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(VacayHolidayCalendars);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 async function insertPlan(ownerId: number): Promise<number> {
   return (await makeVacayPlan(t, ownerId)).id;
 }
 
-async function insertCalendar(planId: number, overrides: Partial<{ type: string; region: string; label: string | null; color: string; sort_order: number }> = {}): Promise<number> {
+async function insertCalendar(
+  planId: number,
+  overrides: Partial<{ type: string; region: string; label: string | null; color: string; sort_order: number }> = {},
+): Promise<number> {
   return insertRow(t, VacayHolidayCalendars, {
     plan: planId,
     type: overrides.type ?? 'public_holiday',
@@ -51,7 +61,9 @@ describe('VacayHolidayCalendarsRepository.listForPlan (VC37/131, getPlanData)', 
     await insertCalendar(other, { region: 'US' });
 
     // test-sql-allow: the raw SELECT is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb.prepare('SELECT * FROM vacay_holiday_calendars WHERE plan_id = ? ORDER BY sort_order ASC, id ASC').all(planId);
+    const legacy = testDb
+      .prepare('SELECT * FROM vacay_holiday_calendars WHERE plan_id = ? ORDER BY sort_order ASC, id ASC')
+      .all(planId);
     const rows = await repo.listForPlan(planId);
 
     expect(rows).toEqual(legacy);

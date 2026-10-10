@@ -1,27 +1,27 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { NotificationChannelPreferences } from '../../db/entities/NotificationChannelPreferences.entity';
+import { Notifications } from '../../db/entities/Notifications.entity';
+import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
+import { Settings } from '../../db/entities/Settings.entity';
+import { TodoItems } from '../../db/entities/TodoItems.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { SchedulingModule } from '../scheduling/scheduling.module';
+import { StorageModule } from '../storage/storage.module';
+import { MailerModule } from './mailer/mailer.module';
+import { NotificationPreferencesService } from './notification-preferences.service';
 import { AdminNotificationPreferencesController, NotificationsController } from './notifications.controller';
 import { NotificationsMcp } from './notifications.mcp';
 import { NotificationsService } from './notifications.service';
-import { NotificationPreferencesService } from './notification-preferences.service';
+import { PushSubscriptionsService } from './push/push-subscriptions.service';
+import { PushController } from './push/push.controller';
+import { VapidKeysService } from './push/vapid-keys.service';
 import { ReminderJobsService } from './reminder-jobs.service';
 import { StorageHealthNotifierService } from './storage-health-notifier.service';
 import { NtfyService } from './transports/ntfy.service';
-import { WebhookService } from './transports/webhook.service';
 import { WebPushService } from './transports/web-push.service';
-import { PushController } from './push/push.controller';
-import { PushSubscriptionsService } from './push/push-subscriptions.service';
-import { VapidKeysService } from './push/vapid-keys.service';
-import { MailerModule } from './mailer/mailer.module';
-import { SchedulingModule } from '../scheduling/scheduling.module';
-import { StorageModule } from '../storage/storage.module';
-import { Notifications } from '../../db/entities/Notifications.entity';
-import { NotificationChannelPreferences } from '../../db/entities/NotificationChannelPreferences.entity';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { Settings } from '../../db/entities/Settings.entity';
-import { Trips } from '../../db/entities/Trips.entity';
-import { TodoItems } from '../../db/entities/TodoItems.entity';
-import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
+import { WebhookService } from './transports/webhook.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /** Notifications domain (L6 leaf module). Registered in AppModule.
  *  MailerModule carries SMTP, which lives outside this module so AuthService
@@ -62,7 +62,7 @@ import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
       TodoItems,
       PushSubscriptions,
     ]),
-    
+
     MailerModule,
     SchedulingModule,
     StorageModule,

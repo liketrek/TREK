@@ -1,11 +1,11 @@
+import { CookieAuthGuard } from '../auth-core/cookie-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { OptionalJwtGuard } from '../auth-core/optional-jwt.guard';
+import { IS_PUBLIC, OPTIONAL_AUTH } from '../auth-core/public.decorator';
+import { ApiTokenGuard } from '../public-api/api-token.guard';
+import type { INestApplication } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA, GUARDS_METADATA } from '@nestjs/common/constants';
 import { ModulesContainer } from '@nestjs/core';
-import type { INestApplication } from '@nestjs/common';
-import { IS_PUBLIC, OPTIONAL_AUTH } from '../auth-core/public.decorator';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { CookieAuthGuard } from '../auth-core/cookie-auth.guard';
-import { OptionalJwtGuard } from '../auth-core/optional-jwt.guard';
-import { ApiTokenGuard } from '../public-api/api-token.guard';
 
 export interface RouteGuardEntry {
   /** `ControllerClass.methodName` */
@@ -193,14 +193,10 @@ export function validateRouteGuards(
 
   const problems: string[] = [];
   if (undeclared.length > 0) {
-    problems.push(
-      `route(s) marked @Public() but not in PUBLIC_ROUTE_ALLOW_LIST:\n  ${undeclared.join('\n  ')}`,
-    );
+    problems.push(`route(s) marked @Public() but not in PUBLIC_ROUTE_ALLOW_LIST:\n  ${undeclared.join('\n  ')}`);
   }
   if (stale.length > 0) {
-    problems.push(
-      `PUBLIC_ROUTE_ALLOW_LIST entries that are no longer @Public():\n  ${stale.join('\n  ')}`,
-    );
+    problems.push(`PUBLIC_ROUTE_ALLOW_LIST entries that are no longer @Public():\n  ${stale.join('\n  ')}`);
   }
   if (undeclaredAnonymous.length > 0) {
     problems.push(

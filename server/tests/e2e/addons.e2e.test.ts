@@ -9,19 +9,29 @@
  * reads since the admin-1 extraction). Asserts the byte-identical body the legacy
  * inline handler produced.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { Addons } from '../../src/db/entities/Addons.entity';
+import { PhotoProviderFields } from '../../src/db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
+import { AddonsModule } from '../../src/nest/addons/addons.module';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { findRow, insertRow } from '../helpers/factories/rows';
+import { setAddonEnabled, setAppSetting } from '../helpers/factories/settings';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db } from '../../src/db/database';
 
 // The snapshot ships the real seeded catalogue (production default addons +
 // photo providers) — this suite wants a known, empty set of each so every
@@ -37,17 +47,6 @@ const { getPhotoProviderConfig } = vi.hoisted(() => ({
 }));
 vi.mock('../../src/nest/common/photo-provider-config', () => ({ getPhotoProviderConfig }));
 
-import { AddonsModule } from '../../src/nest/addons/addons.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeUser } from '../helpers/factories/users';
-import { setAddonEnabled, setAppSetting } from '../helpers/factories/settings';
-import { findRow, insertRow } from '../helpers/factories/rows';
-import { Addons } from '../../src/db/entities/Addons.entity';
-import { PhotoProviderFields } from '../../src/db/entities/PhotoProviderFields.entity';
-import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
-
 let orm: TestOrm;
 
 describe('GET /api/addons e2e (real auth guard + temp SQLite)', () => {
@@ -55,7 +54,9 @@ describe('GET /api/addons e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), AddonsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), AddonsModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -72,14 +73,44 @@ describe('GET /api/addons e2e (real auth guard + temp SQLite)', () => {
     await makeUser(orm, { id: 1, username: 'e2e-user', email: 'e2e@example.test' });
     // bag tracking is opt-in (=== 'true'); collab flags default ON with no rows
     await setAppSetting(orm, 'bag_tracking_enabled', 'true');
-    await insertRow(orm, Addons, { id: 'packing', name: 'Packing', type: 'trip', icon: 'Backpack', enabled: true, sort_order: 1 });
-    await insertRow(orm, Addons, { id: 'disabled', name: 'Disabled', type: 'trip', icon: 'X', enabled: false, sort_order: 2 });
+    await insertRow(orm, Addons, {
+      id: 'packing',
+      name: 'Packing',
+      type: 'trip',
+      icon: 'Backpack',
+      enabled: true,
+      sort_order: 1,
+    });
+    await insertRow(orm, Addons, {
+      id: 'disabled',
+      name: 'Disabled',
+      type: 'trip',
+      icon: 'X',
+      enabled: false,
+      sort_order: 2,
+    });
     // The providers ride the journey addon — without this row they are dropped from the listing.
-    await insertRow(orm, Addons, { id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: true, sort_order: 3 });
+    await insertRow(orm, Addons, {
+      id: 'journey',
+      name: 'Journey',
+      type: 'global',
+      icon: 'Compass',
+      enabled: true,
+      sort_order: 3,
+    });
     await insertRow(orm, PhotoProviders, { id: 'immich', name: 'Immich', icon: 'Image', enabled: 1, sort_order: 1 });
     await insertRow(orm, PhotoProviderFields, {
-      provider: 'immich', field_key: 'base_url', label: 'Base URL', input_type: 'text', placeholder: 'https://...', hint: null,
-      required: 1, secret: 0, settings_key: 'immich_url', payload_key: null, sort_order: 1,
+      provider: 'immich',
+      field_key: 'base_url',
+      label: 'Base URL',
+      input_type: 'text',
+      placeholder: 'https://...',
+      hint: null,
+      required: 1,
+      secret: 0,
+      settings_key: 'immich_url',
+      payload_key: null,
+      sort_order: 1,
     });
     app = await build();
     server = app.getHttpServer();

@@ -8,24 +8,24 @@
  * real migrated SQLite instead, and asserts on the bytes a calendar client
  * would receive.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
-import type { Server } from 'http';
+import { db } from '../../src/db/database';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { FeedsModule } from '../../src/nest/feeds/feeds.module';
+import { makeReservation } from '../helpers/factories/reservations';
+import { makeTrip, readTripDays } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { Test } from '@nestjs/testing';
+
+import type { Server } from 'http';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db } from '../../src/db/database';
-import { FeedsModule } from '../../src/nest/feeds/feeds.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeUser } from '../helpers/factories/users';
-import { makeTrip, readTripDays } from '../helpers/factories/trips';
-import { makeReservation } from '../helpers/factories/reservations';
 
 describe('Calendar feed visibility e2e (real CalendarService over temp SQLite)', () => {
   let server: Server;
@@ -34,7 +34,9 @@ describe('Calendar feed visibility e2e (real CalendarService over temp SQLite)',
   let orm: TestOrm;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), FeedsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), FeedsModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.useGlobalFilters(new TrekExceptionFilter());
     await nest.init();

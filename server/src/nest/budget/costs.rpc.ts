@@ -1,14 +1,14 @@
-import { budgetCreateItemRequestSchema, budgetUpdateItemRequestSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import { ADDON_IDS } from '../../addons';
 import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
-import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
+import { num, schemaMessage } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
-import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import { ADDON_IDS } from '../../addons';
-import { BudgetService } from './budget.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
+import { BudgetService } from './budget.service';
+import { budgetCreateItemRequestSchema, budgetUpdateItemRequestSchema } from '@trek/shared';
 
 /** Costs are budget items, and the app edits them under 'budget_edit'. */
 const BUDGET_EDIT_ACTION = 'budget_edit';
@@ -102,7 +102,10 @@ export class CostsRpc {
   }
 
   /** A booking or place the cost links to has to be on the same trip, as over REST and MCP. */
-  private async refuseForeignLinks(tripId: number, data: { reservation_id?: number | null; place_id?: number | null }): Promise<void> {
+  private async refuseForeignLinks(
+    tripId: number,
+    data: { reservation_id?: number | null; place_id?: number | null },
+  ): Promise<void> {
     const refusal = await this.budget.linkRefusal(tripId, data);
     if (refusal) throw new ForbiddenResource(refusal);
   }

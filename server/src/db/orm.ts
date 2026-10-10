@@ -1,9 +1,9 @@
 import mikroOrmConfig from '../mikro-orm.config';
+import { withRequestContext } from '../nest/database/request-context';
 import { runDemoSeed } from './database';
 import { ensureEmailCaseIndex } from './email-case-index';
 import { migrateToHead, NO_SAFETY_NET } from './legacy-baseline';
 import { preMigrateSnapshot } from './pre-migrate-snapshot';
-import { withRequestContext } from '../nest/database/request-context';
 import type { AnyEntity, EntityClass, EntityManager, EntitySchema, IDatabaseDriver, MikroORM } from '@mikro-orm/core';
 import type { Migrator } from '@mikro-orm/migrations';
 import { MikroORM as SqliteMikroORM } from '@mikro-orm/sqlite';
@@ -45,7 +45,13 @@ export async function runSchemaBootstrap(orm: AnyOrm, { snapshot = true }: { sna
   // what it already has is recorded in the same transaction as the run, or the
   // run would replay the whole history over it (see legacy-baseline.ts). Every
   // other database just gets its pending migrations.
-  await migrateToHead(connection, migrator, undefined, undefined, snapshot ? preMigrateSnapshot(connection) : NO_SAFETY_NET);
+  await migrateToHead(
+    connection,
+    migrator,
+    undefined,
+    undefined,
+    snapshot ? preMigrateSnapshot(connection) : NO_SAFETY_NET,
+  );
   // The one index a migration may have had to defer (see email-case-index.ts).
   await ensureEmailCaseIndex(connection);
 

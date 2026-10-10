@@ -1,14 +1,15 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import type { PluginActionsRepository } from '../../../db/repositories/PluginActions.repository';
+import type { PluginErrorLogRepository } from '../../../db/repositories/PluginErrorLog.repository';
+import type { PluginSettingsFieldsRepository } from '../../../db/repositories/PluginSettingsFields.repository';
+import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
+import type { UnitOfWork } from '../../database/unit-of-work';
+import { devLinkEnabled } from '../dev-link';
 import { pluginsCodeRoot, pluginCodeDir } from '../paths';
 import { parseJsonText, parseManifest, type PluginManifest } from './manifest';
 import { scanForNativeBinaries } from './native-scan';
-import { devLinkEnabled } from '../dev-link';
-import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
-import type { PluginActionsRepository } from '../../../db/repositories/PluginActions.repository';
-import type { PluginSettingsFieldsRepository } from '../../../db/repositories/PluginSettingsFields.repository';
-import type { PluginErrorLogRepository } from '../../../db/repositories/PluginErrorLog.repository';
-import type { UnitOfWork } from '../../database/unit-of-work';
+
+import fs from 'node:fs';
+import path from 'node:path';
 
 /** `discoverPlugins`/`upsert`'s repository set — "swap the parameter type" (plan3j-inputs.md
  * §0): the raw `BetterSqlite3.Database` parameter becomes this bundle of the four
@@ -50,7 +51,11 @@ export async function discoverPlugins(repos: DiscoveryRepos): Promise<{ discover
       // A dev-link symlink only loads in dev-link mode; a stale link left on the
       // volume must not be discovered/registered on a normal (non-dev) boot.
       if (!devLinkEnabled()) continue;
-      try { isDir = fs.statSync(full).isDirectory(); } catch { isDir = false; }
+      try {
+        isDir = fs.statSync(full).isDirectory();
+      } catch {
+        isDir = false;
+      }
     } else if (isDir && !devLinkEnabled()) {
       // On Windows a dev-link is a junction, which Dirent reports as a plain
       // directory (isSymbolicLink() is false). Detect it the same way: if the
@@ -58,7 +63,9 @@ export async function discoverPlugins(repos: DiscoveryRepos): Promise<{ discover
       // unless dev-link mode is on. A normal dir realpaths back to itself.
       try {
         if (fs.realpathSync(full) !== path.join(fs.realpathSync(root), entry.name)) continue;
-      } catch { /* unreadable target — leave as a normal dir and let discovery fail loudly */ }
+      } catch {
+        /* unreadable target — leave as a normal dir and let discovery fail loudly */
+      }
     }
     if (!isDir) continue;
     const dir = pluginCodeDir(entry.name);
@@ -116,7 +123,14 @@ async function upsert(repos: DiscoveryRepos, m: PluginManifest): Promise<void> {
     await repos.actions.deleteAllForPlugin(m.id);
     await repos.actions.insertActions(
       m.id,
-      m.actions.map((a, i) => ({ action_key: a.key, label: a.label, hint: a.hint ?? null, danger: a.danger ? 1 : 0, scope: a.scope, sort_order: i })),
+      m.actions.map((a, i) => ({
+        action_key: a.key,
+        label: a.label,
+        hint: a.hint ?? null,
+        danger: a.danger ? 1 : 0,
+        scope: a.scope,
+        sort_order: i,
+      })),
     );
 
     await repos.settingsFields.deleteAllForPlugin(m.id);

@@ -61,7 +61,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'De Dawarich-add-on staat uit voor deze instantie.',
   'dawarich.error.offline': 'Hiervoor is een verbinding nodig — TREK is nu offline.',
   'dawarich.error.invalid_url': 'TREK kan dit adres niet gebruiken.',
-  'dawarich.warning.private_ip': 'Dit adres wijst naar een privé-IP ({ip}). Controleer of dat de bedoeling is — de server heeft er mogelijk ALLOW_INTERNAL_NETWORK=true voor nodig.',
+  'dawarich.warning.private_ip':
+    'Dit adres wijst naar een privé-IP ({ip}). Controleer of dat de bedoeling is — de server heeft er mogelijk ALLOW_INTERNAL_NETWORK=true voor nodig.',
   'dawarich.error.unknown': 'Er ging iets mis in het contact met Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -188,7 +189,6 @@ const dawarich: TranslationStrings = {
   'dawarich.bucket.rule.one': 'Een wens telt als bereikt binnen {meters} m en na {count} minuut ter plaatse.',
   'dawarich.journey.dayStays.other': '{count} bezoeken uit Dawarich',
   'dawarich.journey.dayStays.one': '{count} bezoek uit Dawarich',
-
 };
 
 export default dawarich;

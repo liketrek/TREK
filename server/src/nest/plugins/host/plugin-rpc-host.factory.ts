@@ -1,16 +1,22 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { PluginCapabilityAudit } from '../../../db/entities/PluginCapabilityAudit.entity';
 import type { PluginCapabilityAuditRepository } from '../../../db/repositories/PluginCapabilityAudit.repository';
-import { PluginRpcHost } from './rpc-host';
 import type { PluginRpcRegistry } from '../../../nest-rpc/rpc-kit/registry';
 import { PluginRpcRegistryService } from '../../../nest-rpc/rpc-kit/registry.service';
 import { appendAudit } from './plugin-audit';
 import { getPluginDataDb } from './plugin-host-state';
+import { PluginRpcHost } from './rpc-host';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Inject, Injectable } from '@nestjs/common';
 
 /** Routes inter-plugin calls/events; supplied by PluginRuntimeService (owns the supervisor). */
 export interface PluginCallRouter {
-  callPlugin(callerId: string, targetId: string, fn: string, args: unknown, actingUserId: number | undefined): Promise<unknown>;
+  callPlugin(
+    callerId: string,
+    targetId: string,
+    fn: string,
+    args: unknown,
+    actingUserId: number | undefined,
+  ): Promise<unknown>;
   emitPluginEvent(sourceId: string, event: string, payload: unknown): Promise<void>;
 }
 

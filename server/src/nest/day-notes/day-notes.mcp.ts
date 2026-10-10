@@ -1,13 +1,19 @@
+import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
-  McpController, Tool, ResourceTemplate, type McpContext,
-  TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  McpController,
+  Tool,
+  ResourceTemplate,
+  type McpContext,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { idSchema, NOTE_COLORS, type NoteColor } from '@trek/shared';
-import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { DayNotesService } from './day-notes.service';
+import { idSchema, NOTE_COLORS, type NoteColor } from '@trek/shared';
+
+import { z } from 'zod';
 
 /**
  * The palette itself rather than the REST contract's `z.string().max(9)`.
@@ -53,21 +59,44 @@ export class DayNotesMcp {
       text: z.string().min(1).max(500),
       time: z.string().max(250).optional().describe('Time label (e.g. "09:00" or "Morning")'),
       icon: z.string().max(64).optional().describe('Emoji icon for the note'),
-      color: noteColorSchema.nullable().optional().describe('Card colour from the note palette; null or omitted leaves the neutral card'),
-      sort_order: z.number().optional().describe('Position in the day, lowest first, interleaved with the places of that day. Omit to append at the bottom'),
+      color: noteColorSchema
+        .nullable()
+        .optional()
+        .describe('Card colour from the note palette; null or omitted leaves the neutral card'),
+      sort_order: z
+        .number()
+        .optional()
+        .describe(
+          'Position in the day, lowest first, interleaved with the places of that day. Omit to append at the bottom',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
   })
   async createDayNote(
-    { tripId, dayId, text, time, icon, color, sort_order }: {
-      tripId: number; dayId: number; text: string; time?: string; icon?: string; color?: NoteColor | null; sort_order?: number;
+    {
+      tripId,
+      dayId,
+      text,
+      time,
+      icon,
+      color,
+      sort_order,
+    }: {
+      tripId: number;
+      dayId: number;
+      text: string;
+      time?: string;
+      icon?: string;
+      color?: NoteColor | null;
+      sort_order?: number;
     },
     ctx: McpContext,
   ) {
     if (!(await this.notes.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    if (!(await this.notes.dayExists(dayId, tripId))) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
+    if (!(await this.notes.dayExists(dayId, tripId)))
+      return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
     const note = await this.notes.create(dayId, tripId, text, time, icon, sort_order, color);
     this.guards.safeBroadcast(tripId, 'dayNote:created', { dayId, note });
     return ok({ note });
@@ -81,17 +110,44 @@ export class DayNotesMcp {
       dayId: idSchema,
       noteId: idSchema,
       text: z.string().min(1).max(500).optional(),
-      time: z.string().max(250).nullable().optional().describe('Time label (e.g. "09:00" or "Morning"), or null to clear'),
+      time: z
+        .string()
+        .max(250)
+        .nullable()
+        .optional()
+        .describe('Time label (e.g. "09:00" or "Morning"), or null to clear'),
       icon: z.string().max(64).optional().describe('Emoji icon for the note'),
-      color: noteColorSchema.nullable().optional().describe('Card colour from the note palette, or null to go back to the neutral card'),
-      sort_order: z.number().optional().describe('New position in the day, lowest first, interleaved with the places of that day'),
+      color: noteColorSchema
+        .nullable()
+        .optional()
+        .describe('Card colour from the note palette, or null to go back to the neutral card'),
+      sort_order: z
+        .number()
+        .optional()
+        .describe('New position in the day, lowest first, interleaved with the places of that day'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'write' },
   })
   async updateDayNote(
-    { tripId, dayId, noteId, text, time, icon, color, sort_order }: {
-      tripId: number; dayId: number; noteId: number; text?: string; time?: string | null; icon?: string; color?: NoteColor | null; sort_order?: number;
+    {
+      tripId,
+      dayId,
+      noteId,
+      text,
+      time,
+      icon,
+      color,
+      sort_order,
+    }: {
+      tripId: number;
+      dayId: number;
+      noteId: number;
+      text?: string;
+      time?: string | null;
+      icon?: string;
+      color?: NoteColor | null;
+      sort_order?: number;
     },
     ctx: McpContext,
   ) {
@@ -99,7 +155,13 @@ export class DayNotesMcp {
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     const existing = await this.notes.getNote(noteId, dayId, tripId);
     if (!existing) return { content: [{ type: 'text' as const, text: 'Note not found.' }], isError: true };
-    const note = await this.notes.update(noteId, existing, { text, time: time !== undefined ? time : undefined, icon, color, sort_order });
+    const note = await this.notes.update(noteId, existing, {
+      text,
+      time: time !== undefined ? time : undefined,
+      icon,
+      color,
+      sort_order,
+    });
     this.guards.safeBroadcast(tripId, 'dayNote:updated', { dayId, note });
     return ok({ note });
   }
@@ -132,25 +194,33 @@ export class DayNotesMcp {
     mimeType: 'application/json',
     access: { group: 'trips', mode: 'read' },
   })
-  async dayNotesResource(uri: URL, { tripId, dayId }: { tripId: string | string[]; dayId: string | string[] }, ctx: McpContext) {
+  async dayNotesResource(
+    uri: URL,
+    { tripId, dayId }: { tripId: string | string[]; dayId: string | string[] },
+    ctx: McpContext,
+  ) {
     const tId = parseId(tripId);
     const dId = parseId(dayId);
     if (tId === null || dId === null || !(await this.notes.verifyTripAccess(tId, ctx.userId))) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
     const notes = await this.notes.list(dId, tId);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(notes, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(notes, null, 2),
+        },
+      ],
     };
   }
 }

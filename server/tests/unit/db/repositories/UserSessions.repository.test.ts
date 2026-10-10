@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
-import { deleteRows, findRow, updateRows } from '../../../helpers/factories/rows';
 import { UserSessions } from '../../../../src/db/entities/UserSessions.entity';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import type { UserSessionsRepository } from '../../../../src/db/repositories/UserSessions.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { deleteRows, findRow, updateRows } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -20,8 +21,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   sessions = t.repo(UserSessions);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function row(id: string) {
   return findRow(t, UserSessions, { id });
@@ -31,7 +38,11 @@ function revoke(ids: string[], at: string) {
   return updateRows(t, UserSessions, { id: { $in: ids } }, { revoked_at: at });
 }
 
-async function add(id: string, userId: number, overrides: { created_at?: string; expires_at?: string; user_agent?: string | null } = {}) {
+async function add(
+  id: string,
+  userId: number,
+  overrides: { created_at?: string; expires_at?: string; user_agent?: string | null } = {},
+) {
   await sessions.insertSession({
     id,
     user_id: userId,
@@ -75,7 +86,9 @@ describe('UserSessionsRepository', () => {
     const { user } = createUser(testDb);
     await add('s1', user.id);
     await sessions.touchLastSeen('s1', NOW);
-    expect(await row('s1')).toEqual(expect.objectContaining({ last_seen_at: NOW, created_at: EARLIER, expires_at: LATER }));
+    expect(await row('s1')).toEqual(
+      expect.objectContaining({ last_seen_at: NOW, created_at: EARLIER, expires_at: LATER }),
+    );
   });
 
   it('SESSREPO-004: extendActive moves the expiry of an active session and refuses an ended one', async () => {
@@ -85,7 +98,9 @@ describe('UserSessionsRepository', () => {
     await revoke(['revoked'], EARLIER);
 
     expect(await sessions.extendActive('live', user.id, NOW, '2026-12-01 00:00:00')).toBe(true);
-    expect(await row('live')).toEqual(expect.objectContaining({ expires_at: '2026-12-01 00:00:00', last_seen_at: NOW }));
+    expect(await row('live')).toEqual(
+      expect.objectContaining({ expires_at: '2026-12-01 00:00:00', last_seen_at: NOW }),
+    );
     expect(await sessions.extendActive('revoked', user.id, NOW, '2026-12-01 00:00:00')).toBe(false);
     expect(await row('revoked')).toEqual(expect.objectContaining({ expires_at: LATER }));
   });
@@ -166,8 +181,24 @@ describe('UserSessionsRepository', () => {
     await revoke(['revoked'], EARLIER);
 
     expect(await sessions.listActiveToCarry(NOW)).toEqual([
-      { id: 'a1', user_id: user.id, email: 'carry-a@example.test', created_at: EARLIER, last_seen_at: EARLIER, expires_at: LATER, user_agent: 'A' },
-      { id: 'b1', user_id: other.id, email: 'carry-b@example.test', created_at: EARLIER, last_seen_at: EARLIER, expires_at: LATER, user_agent: null },
+      {
+        id: 'a1',
+        user_id: user.id,
+        email: 'carry-a@example.test',
+        created_at: EARLIER,
+        last_seen_at: EARLIER,
+        expires_at: LATER,
+        user_agent: 'A',
+      },
+      {
+        id: 'b1',
+        user_id: other.id,
+        email: 'carry-b@example.test',
+        created_at: EARLIER,
+        last_seen_at: EARLIER,
+        expires_at: LATER,
+        user_agent: null,
+      },
     ]);
     expect(await sessions.listActiveToCarry(LATER)).toEqual([]);
   });
@@ -215,11 +246,23 @@ describe('UserSessionsRepository', () => {
 
   it('SESSREPO-013: insertSessionIfAbsent writes a new row and leaves an existing one alone', async () => {
     const { user } = createUser(testDb);
-    await sessions.insertSessionIfAbsent({ id: 'derived', user_id: user.id, created_at: EARLIER, expires_at: LATER, user_agent: 'First' });
+    await sessions.insertSessionIfAbsent({
+      id: 'derived',
+      user_id: user.id,
+      created_at: EARLIER,
+      expires_at: LATER,
+      user_agent: 'First',
+    });
     await revoke(['derived'], NOW);
     t.clear();
 
-    await sessions.insertSessionIfAbsent({ id: 'derived', user_id: user.id, created_at: NOW, expires_at: '2026-12-01 00:00:00', user_agent: 'Second' });
+    await sessions.insertSessionIfAbsent({
+      id: 'derived',
+      user_id: user.id,
+      created_at: NOW,
+      expires_at: '2026-12-01 00:00:00',
+      user_agent: 'Second',
+    });
 
     expect(await row('derived')).toStrictEqual({
       id: 'derived',

@@ -1,5 +1,3 @@
-import { describe, it, expect } from 'vitest';
-import { Jimp } from 'jimp';
 import {
   capImage,
   IMAGE_MAX_BYTES,
@@ -9,6 +7,9 @@ import {
   readImageHeader,
   renderPdfPages,
 } from '../../../../src/nest/llm-parse/image-input';
+
+import { Jimp } from 'jimp';
+import { describe, it, expect } from 'vitest';
 
 async function png(w: number, h: number): Promise<Buffer> {
   const image = new Jimp({ width: w, height: h, color: 0xffffffff });
@@ -118,7 +119,9 @@ describe('capImage', () => {
   it('refuses a PNG whose header claims more than the pixel cap, before decoding a byte of it', async () => {
     // 33 bytes that would inflate to 1.6 GB: the header alone says so.
     await expect(capImage(pngHeader(20000, 20000), 'image/png')).rejects.toThrow(ImageTooLargeError);
-    await expect(capImage(pngHeader(20000, 20000), 'image/png')).rejects.toThrow('20000 x 20000 pixels, more than the 40 megapixels');
+    await expect(capImage(pngHeader(20000, 20000), 'image/png')).rejects.toThrow(
+      '20000 x 20000 pixels, more than the 40 megapixels',
+    );
   });
 
   it('refuses a JPEG and a WebP over the pixel cap the same way', async () => {
@@ -159,8 +162,16 @@ describe('readImageHeader', () => {
 
   it('reads all three WebP flavours', () => {
     expect(readImageHeader(webpHeader('VP8 ', 640, 480))).toEqual({ mimeType: 'image/webp', width: 640, height: 480 });
-    expect(readImageHeader(webpHeader('VP8L', 1024, 768))).toEqual({ mimeType: 'image/webp', width: 1024, height: 768 });
-    expect(readImageHeader(webpHeader('VP8X', 4000, 3000))).toEqual({ mimeType: 'image/webp', width: 4000, height: 3000 });
+    expect(readImageHeader(webpHeader('VP8L', 1024, 768))).toEqual({
+      mimeType: 'image/webp',
+      width: 1024,
+      height: 768,
+    });
+    expect(readImageHeader(webpHeader('VP8X', 4000, 3000))).toEqual({
+      mimeType: 'image/webp',
+      width: 4000,
+      height: 3000,
+    });
   });
 
   it('is null for bytes that are none of the three, or say no size', () => {
@@ -184,13 +195,21 @@ async function scannedPdf(pages: number, box = { w: 300, h: 400 }, claimed = { w
   for (let i = 0; i < pages; i++) {
     const page = 3 + i * 3;
     const content = `q ${box.w} 0 0 ${box.h} 0 0 cm /Im0 Do Q`;
-    objects.push(Buffer.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${box.w} ${box.h}] /Resources << /XObject << /Im0 ${page + 2} 0 R >> >> /Contents ${page + 1} 0 R >>`));
+    objects.push(
+      Buffer.from(
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${box.w} ${box.h}] /Resources << /XObject << /Im0 ${page + 2} 0 R >> >> /Contents ${page + 1} 0 R >>`,
+      ),
+    );
     objects.push(Buffer.from(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
-    objects.push(Buffer.concat([
-      Buffer.from(`<< /Type /XObject /Subtype /Image /Width ${claimed.w} /Height ${claimed.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`),
-      jpg,
-      Buffer.from('\nendstream'),
-    ]));
+    objects.push(
+      Buffer.concat([
+        Buffer.from(
+          `<< /Type /XObject /Subtype /Image /Width ${claimed.w} /Height ${claimed.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`,
+        ),
+        jpg,
+        Buffer.from('\nendstream'),
+      ]),
+    );
   }
   const parts: Buffer[] = [Buffer.from('%PDF-1.4\n')];
   const offsets: number[] = [];
@@ -202,7 +221,11 @@ async function scannedPdf(pages: number, box = { w: 300, h: 400 }, claimed = { w
     length += obj.length;
   });
   const rows = offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('');
-  parts.push(Buffer.from(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${rows}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${length}\n%%EOF\n`));
+  parts.push(
+    Buffer.from(
+      `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${rows}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${length}\n%%EOF\n`,
+    ),
+  );
   return Buffer.concat(parts);
 }
 

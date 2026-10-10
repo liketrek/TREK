@@ -1,17 +1,17 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { Users } from '../../db/entities/Users.entity';
 import { AddonsModule } from '../addons/addons.module';
 import { AuditModule } from '../audit/audit.module';
+import { UserConnectionRepositoriesModule } from '../database/user-connection-repositories.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { ReservationsReadModule } from '../reservations/reservations-read.module';
-import { Users } from '../../db/entities/Users.entity';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { AirtrailClient } from './airtrail.client';
 import { AirtrailLinkService } from './airtrail-link.service';
+import { AirtrailClient } from './airtrail.client';
 import { AirtrailService } from './airtrail.service';
-import { UserConnectionRepositoriesModule } from '../database/user-connection-repositories.module';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * The AirTrail pieces ReservationsModule may inject: the HTTP client, the

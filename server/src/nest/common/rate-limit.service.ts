@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
 import { InMemoryRateLimitStore, RateLimitStore } from './rate-limit.store';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Per-IP rate limiting for the auth-adjacent routes. `check` resolves false

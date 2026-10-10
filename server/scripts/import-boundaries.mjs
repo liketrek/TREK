@@ -68,15 +68,23 @@
  *
  * --dir=<path> points the check at another server root (the unit tests use it).
  */
-import { createRequire } from 'node:module';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 
-export const RULES = ['fileCycles', 'domainCycles', 'sharedImportsDomain', 'domainInternals', 'dbImportsNest', 'foreignRepositories', 'providersImportOrchestrator'];
+export const RULES = [
+  'fileCycles',
+  'domainCycles',
+  'sharedImportsDomain',
+  'domainInternals',
+  'dbImportsNest',
+  'foreignRepositories',
+  'providersImportOrchestrator',
+];
 
 /**
  * Folders under src/nest whose every file is shared infrastructure, open to all domains.
@@ -148,7 +156,9 @@ function isTypeOnlyImport(node) {
 function isTypeOnlyExport(node) {
   if (node.isTypeOnly) return true;
   const clause = node.exportClause;
-  return Boolean(clause && ts.isNamedExports(clause) && clause.elements.length > 0 && clause.elements.every((el) => el.isTypeOnly));
+  return Boolean(
+    clause && ts.isNamedExports(clause) && clause.elements.length > 0 && clause.elements.every((el) => el.isTypeOnly),
+  );
 }
 
 /** Every relative import of a file: { spec, runtime } where runtime means eager and not erased. */
@@ -180,7 +190,8 @@ export function importsOf(text, fileName = 'file.ts') {
     ts.forEachChild(node, (child) => visit(child, inner));
   };
   for (const stmt of sf.statements) {
-    if (!ts.isImportDeclaration(stmt) && !ts.isExportDeclaration(stmt) && !ts.isImportEqualsDeclaration(stmt)) visit(stmt, 0);
+    if (!ts.isImportDeclaration(stmt) && !ts.isExportDeclaration(stmt) && !ts.isImportEqualsDeclaration(stmt))
+      visit(stmt, 0);
   }
   return found;
 }
@@ -412,7 +423,8 @@ export function analyse(edges) {
     if (a && b && SHARED_DOMAINS.has(a) && !SHARED_DOMAINS.has(b)) sharedImportsDomain.add(`${e.from} -> ${e.to}`);
     if (a && b && a !== b && !isPublic(e.to)) domainInternals.add(`${a} -> ${e.to.slice('nest/'.length)}`);
     if (e.from.startsWith('db/') && e.to.startsWith('nest/')) dbImportsNest.add(`${e.from} -> ${e.to}`);
-    if (isProviderFile(e.from) && isOrchestratorOf(e.from, e.to)) providersImportOrchestrator.add(`${e.from} -> ${e.to}`);
+    if (isProviderFile(e.from) && isOrchestratorOf(e.from, e.to))
+      providersImportOrchestrator.add(`${e.from} -> ${e.to}`);
   }
   const sorted = (set) => [...set].sort();
   return {
@@ -494,14 +506,17 @@ function main(argv) {
   );
   if (unowned.length) {
     // An entity without an owner is an injection the rule cannot judge.
-    for (const u of unowned) console.error(`FAIL  no owner for injected entity ${u}: add it to scripts/repository-owners.json`);
+    for (const u of unowned)
+      console.error(`FAIL  no owner for injected entity ${u}: add it to scripts/repository-owners.json`);
     return 1;
   }
   found.foreignRepositories = foreignRepositories;
   let baseline = readBaseline(baselinePath);
   if (update) {
     const now = Object.fromEntries(RULES.map((rule) => [rule, new Set(found[rule])]));
-    baseline = Object.fromEntries(RULES.map((rule) => [rule, baseline[rule].filter((key) => now[rule].has(key)).sort()]));
+    baseline = Object.fromEntries(
+      RULES.map((rule) => [rule, baseline[rule].filter((key) => now[rule].has(key)).sort()]),
+    );
     writeFileSync(baselinePath, JSON.stringify(baseline, null, 2) + '\n');
   }
 
@@ -526,14 +541,17 @@ function main(argv) {
     );
   }
   console.log(
-    `boundaries: ${edges.length} import(s); held at baseline: ` + RULES.map((rule) => `${rule} ${baseline[rule].length}`).join(', '),
+    `boundaries: ${edges.length} import(s); held at baseline: ` +
+      RULES.map((rule) => `${rule} ${baseline[rule].length}`).join(', '),
   );
   return failed ? 1 : 0;
 }
 
 // Compared by real path, so the check still runs when the script is started through a symlink.
 const isCli =
-  Boolean(process.argv[1]) && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  Boolean(process.argv[1]) &&
+  existsSync(process.argv[1]) &&
+  realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isCli) {
   try {
     process.exitCode = main(process.argv.slice(2));

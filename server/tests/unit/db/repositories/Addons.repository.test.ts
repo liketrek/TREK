@@ -1,10 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { Addons } from '../../../../src/db/entities/Addons.entity';
+import type { AddonsRepository } from '../../../../src/db/repositories/Addons.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { deleteRows, insertRow, updateRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { Addons } from '../../../../src/db/entities/Addons.entity';
-import { deleteRows, insertRow, updateRows } from '../../../helpers/factories/rows';
-import type { AddonsRepository } from '../../../../src/db/repositories/Addons.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -103,7 +104,15 @@ describe('AddonsRepository', () => {
     });
 
     it('ADDONSREPO-009: carries the full row shape (id, name, description, type, icon, enabled, config, sort_order)', async () => {
-      await insertAddon({ id: 'atlas', name: 'Atlas', description: 'Visited countries map', type: 'page', icon: 'globe', enabled: 1, sort_order: 3 });
+      await insertAddon({
+        id: 'atlas',
+        name: 'Atlas',
+        description: 'Visited countries map',
+        type: 'page',
+        icon: 'globe',
+        enabled: 1,
+        sort_order: 3,
+      });
       const [row] = await addons.listEnabled();
       expect(row).toEqual({
         id: 'atlas',
@@ -131,7 +140,11 @@ describe('AddonsRepository', () => {
       const rows = await addons.listAllOrdered();
       expect(rows.map((r) => r.id)).toEqual(['budget', 'vacay']); // includes the disabled one, unlike listEnabled
       expect(rows).toEqual(
-        (legacy as Array<{ enabled: number; config: string | null }>).map((r) => ({ ...r, enabled: !!r.enabled, config: JSON.parse(r.config ?? '{}') })),
+        (legacy as Array<{ enabled: number; config: string | null }>).map((r) => ({
+          ...r,
+          enabled: !!r.enabled,
+          config: JSON.parse(r.config ?? '{}'),
+        })),
       );
     });
 
@@ -142,9 +155,26 @@ describe('AddonsRepository', () => {
 
   describe('findById (AD30/AD39)', () => {
     it('ADDONSREPO-012: matches SELECT * FROM addons WHERE id = ?, on both a pre-write read and a post-write re-select (byte-identical text at both call sites)', async () => {
-      await insertAddon({ id: 'budget', name: 'Costs', description: 'Track spend', type: 'trip', icon: 'wallet', enabled: 0, sort_order: 4 });
+      await insertAddon({
+        id: 'budget',
+        name: 'Costs',
+        description: 'Track spend',
+        type: 'trip',
+        icon: 'wallet',
+        enabled: 0,
+        sort_order: 4,
+      });
       const preWrite = await addons.findById('budget');
-      expect(preWrite).toEqual({ id: 'budget', name: 'Costs', description: 'Track spend', type: 'trip', icon: 'wallet', enabled: false, config: {}, sort_order: 4 });
+      expect(preWrite).toEqual({
+        id: 'budget',
+        name: 'Costs',
+        description: 'Track spend',
+        type: 'trip',
+        icon: 'wallet',
+        enabled: false,
+        config: {},
+        sort_order: 4,
+      });
 
       await updateRows(t, Addons, { id: 'budget' }, { enabled: true });
       const postWrite = await addons.findById('budget');

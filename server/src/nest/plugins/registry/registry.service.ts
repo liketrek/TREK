@@ -1,6 +1,22 @@
 import { readEnv } from '../../../app-config';
+import { PluginActions } from '../../../db/entities/PluginActions.entity';
+import { PluginErrorLog } from '../../../db/entities/PluginErrorLog.entity';
+import { PluginSettingsFields } from '../../../db/entities/PluginSettingsFields.entity';
+import { Plugins } from '../../../db/entities/Plugins.entity';
+import type { PluginActionsRepository } from '../../../db/repositories/PluginActions.repository';
+import type { PluginErrorLogRepository } from '../../../db/repositories/PluginErrorLog.repository';
+import type { PluginSettingsFieldsRepository } from '../../../db/repositories/PluginSettingsFields.repository';
+import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
+import { UnitOfWork } from '../../database/unit-of-work';
 import { discoverPlugins, type DiscoveryRepos } from '../install/discovery';
-import { bypassedRange, hostSatisfies, hostVersion, normalizedHost, trekRangeBypassed, warnRangeBypass } from '../install/host-compat';
+import {
+  bypassedRange,
+  hostSatisfies,
+  hostVersion,
+  normalizedHost,
+  trekRangeBypassed,
+  warnRangeBypass,
+} from '../install/host-compat';
 import type { TrekRangeBypass } from '../install/host-compat';
 import type { PluginDependency } from '../install/manifest';
 import { parseJsonText, parseManifest } from '../install/manifest';
@@ -8,27 +24,18 @@ import { scanForNativeBinaries } from '../install/native-scan';
 import { extractArchive } from '../install/safe-extract';
 import { safeDownload, sha256Matches } from '../install/safe-fetch';
 import { verifyAuthorSignature, SignatureError } from '../install/verify-signature';
+import { MCP_TOOLS_MAX, TOOL_DESCRIPTION_MAX, TOOL_TITLE_MAX } from '../mcp-tool-schema';
 import { pluginCodeDir, pluginsCodeRoot, pluginsDataRoot } from '../paths';
+import { poiCategoriesFrom } from '../poi-categories';
 import { clearUpdateBlock, isSignatureCode, setUpdateBlock, RETRUSTABLE_CODE } from '../signature-status';
-import { Injectable, Optional } from '@nestjs/common';
+import { sanitiseAssistantText } from '../text-sanitize';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Plugins } from '../../../db/entities/Plugins.entity';
-import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
-import { PluginActions } from '../../../db/entities/PluginActions.entity';
-import type { PluginActionsRepository } from '../../../db/repositories/PluginActions.repository';
-import { PluginSettingsFields } from '../../../db/entities/PluginSettingsFields.entity';
-import type { PluginSettingsFieldsRepository } from '../../../db/repositories/PluginSettingsFields.repository';
-import { PluginErrorLog } from '../../../db/entities/PluginErrorLog.entity';
-import type { PluginErrorLogRepository } from '../../../db/repositories/PluginErrorLog.repository';
-import { UnitOfWork } from '../../database/unit-of-work';
+import { Injectable, Optional } from '@nestjs/common';
+import type { PluginPoiCategory } from '@trek/shared';
 
 import fs from 'node:fs';
 import path from 'node:path';
 import semver from 'semver';
-import { MCP_TOOLS_MAX, TOOL_DESCRIPTION_MAX, TOOL_TITLE_MAX } from '../mcp-tool-schema';
-import { sanitiseAssistantText } from '../text-sanitize';
-import { poiCategoriesFrom } from '../poi-categories';
-import type { PluginPoiCategory } from '@trek/shared';
 
 /**
  * TREK-side of the plugin registry (#plugins, M5). Fetches the single aggregated
@@ -201,7 +208,13 @@ export class PluginRegistryService {
 
   private get discoveryRepos(): DiscoveryRepos {
     if (!this.uow) throw new Error('UnitOfWork not provided — tests that exercise plugin discovery must pass one');
-    return { plugins: this.plugins, actions: this.pluginActions, settingsFields: this.pluginSettingsFields, errorLog: this.pluginErrorLog, uow: this.uow };
+    return {
+      plugins: this.plugins,
+      actions: this.pluginActions,
+      settingsFields: this.pluginSettingsFields,
+      errorLog: this.pluginErrorLog,
+      uow: this.uow,
+    };
   }
 
   /**
@@ -349,7 +362,8 @@ export class PluginRegistryService {
       publishedAt: latest?.publishedAt ?? null,
       requiredAddons: latest?.requiredAddons ?? [],
       pluginDependencies: latest?.pluginDependencies ?? [],
-      screenshotUrl: entry.screenshotUrl ?? (latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null),
+      screenshotUrl:
+        entry.screenshotUrl ?? (latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null),
       signed: !!entry.authorPublicKey && !!latest?.signature,
       authorPublicKey: entry.authorPublicKey ?? null,
       // The version picker's data: every published version with its OWN server-computed
@@ -481,7 +495,8 @@ export class PluginRegistryService {
     try {
       await this.verifySignatureAndTofu(id, bytes, entry, ver, opts?.retrustKey);
     } catch (e) {
-      if (e instanceof RegistryError && isSignatureCode(e.code)) await setUpdateBlock(this.plugins, id, e.code, e.message, ver.version);
+      if (e instanceof RegistryError && isSignatureCode(e.code))
+        await setUpdateBlock(this.plugins, id, e.code, e.message, ver.version);
       throw e;
     }
 
@@ -607,7 +622,13 @@ export class PluginRegistryService {
    * binaries) — only the registry sha256/signature checks are absent, because a
    * sideload has no registry entry. Throws (and self-cleans staging) on failure.
    */
-  stageUpload(bytes: Buffer): { id: string; version: string; root: string; stagingDir: string; trekRangeBypassed: TrekRangeBypass | null } {
+  stageUpload(bytes: Buffer): {
+    id: string;
+    version: string;
+    root: string;
+    stagingDir: string;
+    trekRangeBypassed: TrekRangeBypass | null;
+  } {
     if (bytes.length > MAX_UPLOAD_BYTES) throw new RegistryError('archive exceeds the 50MB limit');
     const stagingDir = path.join(pluginsDataRoot(), '.staging', `upload-${Date.now()}`);
     try {

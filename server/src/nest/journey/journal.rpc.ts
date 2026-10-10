@@ -1,18 +1,19 @@
-import pathMod from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { Readable } from 'node:stream';
-import { journalPluginPhotoInputSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import { ADDON_IDS } from '../../addons';
 import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
-import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { ADDON_IDS } from '../../addons';
+import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { DemoService } from '../common/demo.service';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
 import { StorageService } from '../storage/storage.service';
-import { DemoService } from '../common/demo.service';
 import { JourneyDomainService } from './journey-domain.service';
 import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
+import { journalPluginPhotoInputSchema } from '@trek/shared';
+
+import { randomUUID } from 'node:crypto';
+import pathMod from 'node:path';
+import { Readable } from 'node:stream';
 
 /** 10MB decoded, the same cap the file surface applies to plugin uploads. */
 const PHOTO_CONTENT_MAX = 10 * 1024 * 1024;
@@ -24,8 +25,14 @@ const PHOTO_CONTENT_MAX = 10 * 1024 * 1024;
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.heic', '.heif'];
 
 const MIME_BY_EXT: Record<string, string> = {
-  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif',
-  '.webp': 'image/webp', '.avif': 'image/avif', '.heic': 'image/heic', '.heif': 'image/heif',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif',
 };
 
 /**

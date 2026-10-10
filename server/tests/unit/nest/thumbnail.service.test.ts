@@ -6,21 +6,21 @@
  * picture or a broken tile: the addon gate, the "source is gone" bail-out, and
  * the mtime check that avoids regenerating an up-to-date thumbnail.
  */
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { ThumbnailService, journeyThumbName } from '../../../src/nest/memories/thumbnail.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { deleteRows, insertRow } from '../../helpers/factories/rows';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { Jimp } from 'jimp';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
-
-import fs from 'node:fs';
-import path from 'node:path';
-import { Jimp } from 'jimp';
-import { ThumbnailService, journeyThumbName } from '../../../src/nest/memories/thumbnail.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { deleteRows, insertRow } from '../../helpers/factories/rows';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
 
 // Category-addressed since slice 4: originals + thumbs are ('journey', <name>)
 // objects; the fixture's 'journey/' prefix reproduces the real layout, so the

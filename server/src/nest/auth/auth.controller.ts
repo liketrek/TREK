@@ -1,3 +1,31 @@
+import type { User } from '../../types';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { currentSessionId, decodeSessionClaims } from '../auth-core/jwt-verify';
+import { MfaExempt } from '../auth-core/mfa-policy.guard';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
+import { ManagedForbidden } from '../common/managed';
+import { RateLimitService } from '../common/rate-limit.service';
+import { sessionClientFrom } from '../sessions/sessions.service';
+import { StorageService } from '../storage/storage.service';
+import { TokenService } from '../tokens/token.service';
+import {
+  ChangePasswordDto,
+  MapsKeyUpdateDto,
+  ApiKeysUpdateDto,
+  SettingsUpdateDto,
+  AppSettingsUpdateDto,
+  MfaEnableDto,
+  MfaDisableDto,
+  McpTokenCreateDto,
+  ApiTokenCreateDto,
+  ResourceTokenDto,
+} from './auth.dto';
+import { AuthService } from './auth.service';
+import { UserProfileService } from './user-profile.service';
 import {
   Body,
   Controller,
@@ -15,37 +43,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import type { Options } from 'multer';
+
 import type { Request, Response } from 'express';
+import type { Options } from 'multer';
 import path from 'path';
-import { AuthService } from './auth.service';
-import { TokenService } from '../tokens/token.service';
-import { UserProfileService } from './user-profile.service';
-import { StorageService } from '../storage/storage.service';
-import {
-  ChangePasswordDto,
-  MapsKeyUpdateDto,
-  ApiKeysUpdateDto,
-  SettingsUpdateDto,
-  AppSettingsUpdateDto,
-  MfaEnableDto,
-  MfaDisableDto,
-  McpTokenCreateDto,
-  ApiTokenCreateDto,
-  ResourceTokenDto,
-} from './auth.dto';
-import { RateLimitService } from '../common/rate-limit.service';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { CurrentUser } from '../auth-core/current-user.decorator';
-import { currentSessionId, decodeSessionClaims } from '../auth-core/jwt-verify';
-import { sessionClientFrom } from '../sessions/sessions.service';
-import { getClientIp } from '../audit/client-ip';
-import { AuditService } from '../audit/audit.service';
-import type { User } from '../../types';
-import { MfaExempt } from '../auth-core/mfa-policy.guard';
-import { ManagedForbidden } from '../common/managed';
 
 const WINDOW = 15 * 60 * 1000;
 const ALLOWED_AVATAR_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -74,7 +75,15 @@ export const AVATAR_FILE_FILTER: Options['fileFilter'] = (_req, file, cb) => {
 @Controller('api/auth')
 @UseGuards(JwtAuthGuard)
 export class AuthController {
-  constructor(private readonly auth: AuthService, private readonly profile: UserProfileService, private readonly tokens: TokenService, private readonly rl: RateLimitService, private readonly audit: AuditService, private readonly env: RuntimeEnvService, private readonly storage: StorageService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly profile: UserProfileService,
+    private readonly tokens: TokenService,
+    private readonly rl: RateLimitService,
+    private readonly audit: AuditService,
+    private readonly env: RuntimeEnvService,
+    private readonly storage: StorageService,
+  ) {}
 
   private async limit(bucket: string, req: Request, max: number): Promise<void> {
     if (!(await this.rl.check(bucket, req.ip || 'unknown', max, WINDOW, Date.now()))) {
@@ -108,7 +117,12 @@ export class AuthController {
   }
 
   @Put('me/password')
-  async changePassword(@CurrentUser() user: User, @Body() body: ChangePasswordDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async changePassword(
+    @CurrentUser() user: User,
+    @Body() body: ChangePasswordDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.limit('login', req, 5);
     // Carry the session's remember choice into the re-issued token/cookie so a
     // "remember me" login survives a password change (#1927). The guard
@@ -118,7 +132,14 @@ export class AuthController {
     const cookie = (req.cookies as Record<string, string> | undefined)?.trek_session;
     const remember = decodeSessionClaims(cookie)?.remember;
     const cookieSession = typeof cookie === 'string' && cookie.length > 0;
-    const result = await this.auth.changePassword(user.id, user.email, body, remember, sessionClientFrom(req), cookieSession);
+    const result = await this.auth.changePassword(
+      user.id,
+      user.email,
+      body,
+      remember,
+      sessionClientFrom(req),
+      cookieSession,
+    );
     // Refresh this device's cookie with the new password_version so the user
     // stays logged in here while all other sessions are invalidated.
     if (result.token) this.auth.setAuthCookie(res, result.token, req, remember);
@@ -228,7 +249,13 @@ export class AuthController {
   @MfaExempt('an admin locked out by their own policy must still be able to lift it')
   async updateAppSettings(@CurrentUser() user: User, @Body() body: AppSettingsUpdateDto, @Req() req: Request) {
     const result = await this.auth.updateAppSettings(user.id, body);
-    await this.audit.writeAudit({ userId: user.id, action: 'settings.app_update', ip: getClientIp(req), details: result.auditSummary, debugDetails: result.auditDebugDetails });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'settings.app_update',
+      ip: getClientIp(req),
+      details: result.auditSummary,
+      debugDetails: result.auditDebugDetails,
+    });
     // Named so the settings tab can say which fields the operator holds rather
     // than showing a saved value that silently did not save.
     return { success: true, ...(result.managedKeys?.length ? { managed_keys: result.managedKeys } : {}) };

@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { computeTourMetrics } from './tours.metrics';
 import { haversineMetres } from '../geo/haversine';
+import { computeTourMetrics } from './tours.metrics';
+
+import { describe, expect, it } from 'vitest';
 
 describe('computeTourMetrics', () => {
   it('sums distance and both elevation directions over a 3D track', () => {

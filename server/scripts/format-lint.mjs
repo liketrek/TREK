@@ -22,10 +22,11 @@
  * scripts/lib/format.mjs at the repository root; Prettier and its config come
  * from this workspace.
  */
-import { fileURLToPath } from 'node:url';
-import * as prettier from 'prettier';
 import { check } from '../../scripts/lib/format.mjs';
 import { runCli } from '../../scripts/lib/ratchet.mjs';
+
+import { fileURLToPath } from 'node:url';
+import * as prettier from 'prettier';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 // The entity files are written by scripts/generate-entities.ts and held byte for

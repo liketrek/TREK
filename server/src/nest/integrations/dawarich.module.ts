@@ -1,29 +1,29 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { AddonsModule } from '../addons/addons.module';
-import { AuditModule } from '../audit/audit.module';
-import { AtlasModule } from '../atlas/atlas.module';
-import { PermissionsModule } from '../permissions/permissions.module';
-import { PlacesModule } from '../places/places.module';
-import { AssignmentsDomainModule } from '../assignments/assignments-domain.module';
-import { JourneyDomainModule } from '../journey/journey-domain.module';
-import { SchedulingModule } from '../scheduling/scheduling.module';
-import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { BucketList } from '../../db/entities/BucketList.entity';
 import { DawarichConnections } from '../../db/entities/DawarichConnections.entity';
 import { DawarichVisitSuggestions } from '../../db/entities/DawarichVisitSuggestions.entity';
-import { Trips } from '../../db/entities/Trips.entity';
 import { Places } from '../../db/entities/Places.entity';
-import { BucketList } from '../../db/entities/BucketList.entity';
+import { Trips } from '../../db/entities/Trips.entity';
 import { Users } from '../../db/entities/Users.entity';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { DawarichClient } from './dawarich.client';
-import { DawarichController } from './dawarich.controller';
-import { DawarichMcp } from './dawarich.mcp';
-import { DawarichService } from './dawarich.service';
+import { AddonsModule } from '../addons/addons.module';
+import { AssignmentsDomainModule } from '../assignments/assignments-domain.module';
+import { AtlasModule } from '../atlas/atlas.module';
+import { AuditModule } from '../audit/audit.module';
+import { JourneyDomainModule } from '../journey/journey-domain.module';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { PlacesModule } from '../places/places.module';
+import { SchedulingModule } from '../scheduling/scheduling.module';
 import { DawarichSuggestionsService } from './dawarich-suggestions.service';
 import { DawarichSyncJob } from './dawarich-sync.job';
 import { DawarichSyncService } from './dawarich-sync.service';
 import { DawarichTracksService } from './dawarich-tracks.service';
+import { DawarichClient } from './dawarich.client';
+import { DawarichController } from './dawarich.controller';
+import { DawarichMcp } from './dawarich.mcp';
+import { DawarichService } from './dawarich.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * The Dawarich integration (#2279): a per-user connection to a self-hosted
@@ -55,12 +55,20 @@ import { DawarichTracksService } from './dawarich-tracks.service';
  */
 @Module({
   imports: [
-    MikroOrmModule.forFeature([DawarichConnections, DawarichVisitSuggestions, Trips, Places, BucketList, Users, AppSettings]),
+    MikroOrmModule.forFeature([
+      DawarichConnections,
+      DawarichVisitSuggestions,
+      Trips,
+      Places,
+      BucketList,
+      Users,
+      AppSettings,
+    ]),
     AddonsModule,
     AuditModule,
     // The MCP tools ask AuthService whether the caller is the demo user, the
     // same gate every other write tool carries.
-    
+
     AtlasModule,
     // Accepting a stay writes a place and a day assignment, so it asks the same
     // permissions the planner asks before doing either.

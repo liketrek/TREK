@@ -17,11 +17,11 @@
  * already imports a local `ConfigModule` (the /api/config endpoint module), so
  * the alias keeps the two from colliding anywhere else.
  */
+import { DataPathsService } from './data-paths.service';
+import { RuntimeEnvService } from './runtime-env.service';
+import { BOOT_STABLE_TOKENS } from './tokens';
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
-import { BOOT_STABLE_TOKENS } from './tokens';
-import { RuntimeEnvService } from './runtime-env.service';
-import { DataPathsService } from './data-paths.service';
 
 @Global()
 @Module({

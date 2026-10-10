@@ -10,19 +10,20 @@
  * has been read (#1614). These pin the merge rule that keeps a later,
  * emptier answer from erasing an earlier one, plus the rest of PH1-11.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
+import { Journeys } from '../../../src/db/entities/Journeys.entity';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripAlbumLinks } from '../../../src/db/entities/TripAlbumLinks.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { decrypt_api_key } from '../../../src/nest/common/crypto/apiKeyCrypto';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser, createTrip } from '../../helpers/factories';
+import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createUser, createTrip } from '../../helpers/factories';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
-import { TripAlbumLinks } from '../../../src/db/entities/TripAlbumLinks.entity';
-import { Journeys } from '../../../src/db/entities/Journeys.entity';
-import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
-import { decrypt_api_key } from '../../../src/nest/common/crypto/apiKeyCrypto';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -33,8 +34,14 @@ beforeAll(async () => {
   repo = new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), t.repo(JourneyPhotos));
 });
 
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 // A fresh path per call: getOrCreateLocal is keyed on file_path and resetTestDb
 // leaves trek_photos alone, so a shared path would hand every test the same row.
@@ -110,7 +117,12 @@ describe('TrekPhotoRegistrationService.getOrCreate (PH1-3)', () => {
   it('TREKPHOTO-010: registers a new remote asset', async () => {
     const { user } = createUser(testDb);
     const id = await repo.getOrCreate('immich', 'asset-1', user.id, undefined, 'video');
-    expect(await rawRow(id)).toMatchObject({ provider: 'immich', asset_id: 'asset-1', owner_id: user.id, media_type: 'video' });
+    expect(await rawRow(id)).toMatchObject({
+      provider: 'immich',
+      asset_id: 'asset-1',
+      owner_id: user.id,
+      media_type: 'video',
+    });
   });
 
   it('TREKPHOTO-011: a repeat lookup returns the same id rather than inserting a duplicate row', async () => {
@@ -144,7 +156,11 @@ describe('TrekPhotoRegistrationService.getOrCreateLocal (PH4-5)', () => {
   it('TREKPHOTO-020: registers a new local photo', async () => {
     const id = await repo.getOrCreateLocal('journey/a.jpg', 'journey/thumbs/a.jpg', 800, 600, 'image', null);
     expect(await rawRow(id)).toMatchObject({
-      provider: 'local', file_path: 'journey/a.jpg', thumbnail_path: 'journey/thumbs/a.jpg', width: 800, height: 600,
+      provider: 'local',
+      file_path: 'journey/a.jpg',
+      thumbnail_path: 'journey/thumbs/a.jpg',
+      width: 800,
+      height: 600,
     });
   });
 
@@ -209,7 +225,11 @@ describe('TrekPhotoRegistrationService.recordLocalThumbnail (PH8)', () => {
     await repo.recordLocalThumbnail(id, 'journey/thumbs/thumb-keep.jpg', 400, 300);
 
     // COALESCE(width, ?) keeps the already-known 1200x900, not the new 400x300.
-    expect(await rawRow(id)).toMatchObject({ thumbnail_path: 'journey/thumbs/thumb-keep.jpg', width: 1200, height: 900 });
+    expect(await rawRow(id)).toMatchObject({
+      thumbnail_path: 'journey/thumbs/thumb-keep.jpg',
+      width: 1200,
+      height: 900,
+    });
   });
 });
 
@@ -234,7 +254,13 @@ describe('TrekPhotoRegistrationService.deleteIfOrphan (PH10-11)', () => {
   it('TREKPHOTO-062: a photo still referenced by journey_photos (Plan 3g, converted onto JourneyPhotosRepository.existsForPhoto) is kept', async () => {
     const { user } = createUser(testDb);
     const id = await repo.getOrCreate('immich', 'referenced-2', user.id);
-    const journeyId = await insertRow(t, Journeys, { user: user.id, title: 'J', status: 'draft', created_at: 0, updated_at: 0 });
+    const journeyId = await insertRow(t, Journeys, {
+      user: user.id,
+      title: 'J',
+      status: 'draft',
+      created_at: 0,
+      updated_at: 0,
+    });
     await insertRow(t, JourneyPhotos, { journey: journeyId, photo: id, created_at: 0 });
 
     await repo.deleteIfOrphan(id);
@@ -253,7 +279,14 @@ describe('M1: TripAlbumLinksRepository/TripPhotosRepository onConflict + empty-a
     const albumLinks = t.repo(TripAlbumLinks);
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const row = { trip_id: trip.id, user_id: user.id, provider: 'immich', album_id: 'alb-1', album_name: 'Album', passphrase: null };
+    const row = {
+      trip_id: trip.id,
+      user_id: user.id,
+      provider: 'immich',
+      album_id: 'alb-1',
+      album_name: 'Album',
+      passphrase: null,
+    };
 
     expect(await albumLinks.insertIgnore(row)).toBe(true);
     expect(await albumLinks.insertIgnore(row)).toBe(false); // same (trip, user, provider, album_id) — conflict

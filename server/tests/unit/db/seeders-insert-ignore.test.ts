@@ -65,7 +65,9 @@ describe('seeders that leave existing rows alone', () => {
 
     expect(await count('photo_providers')).toBe(providers);
     expect(await count('photo_provider_fields')).toBe(fields);
-    expect(await rawQuery(orm, "SELECT name FROM photo_providers WHERE id = 'synologyphotos'")).toEqual([{ name: 'Renamed' }]);
+    expect(await rawQuery(orm, "SELECT name FROM photo_providers WHERE id = 'synologyphotos'")).toEqual([
+      { name: 'Renamed' },
+    ]);
   });
 
   it('SEEDIGN-004: DocumentProviderSeeder seeds providers disabled and fields once', async () => {

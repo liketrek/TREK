@@ -23,10 +23,11 @@
  * ESLint comes from this workspace, so the server lints with the major its
  * config was written for.
  */
-import { ESLint } from 'eslint';
-import { fileURLToPath } from 'node:url';
 import { check, lintWith } from '../../scripts/lib/eslint-warnings.mjs';
 import { runCli } from '../../scripts/lib/ratchet.mjs';
+
+import { ESLint } from 'eslint';
+import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 await runCli('lint:warnings', (args) => check({ root, update: args.includes('--update'), lint: lintWith(ESLint) }));

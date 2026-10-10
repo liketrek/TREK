@@ -1,6 +1,6 @@
 import type { PluginOauthState } from '../entities/PluginOauthState.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /**
  * Plan 3j Task 2 note: this repository's ONLY method today is the uninstall
@@ -37,7 +37,13 @@ export class PluginOauthStateRepository extends TrekRepository<PluginOauthState>
   }
 
   /** PO4 (`startConnect`) — `INSERT INTO plugin_oauth_state (state, plugin_id, user_id, verifier, created_at) VALUES (?, ?, ?, ?, ?)`. */
-  async insertState(state: string, pluginId: string, userId: number, verifier: string, createdAt: number): Promise<void> {
+  async insertState(
+    state: string,
+    pluginId: string,
+    userId: number,
+    verifier: string,
+    createdAt: number,
+  ): Promise<void> {
     await this.insert({ state, plugin_id: pluginId, user_id: userId, verifier, created_at: createdAt });
   }
 

@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Välj mall...',
   'settings.mapDefaultHint': 'Lämna fältet tomt för OpenStreetMap (standard)',
   'settings.routingBase': 'Egen ruttmotor',
-  'settings.routingBaseHint': 'En egen OSRM-instans. Tomt använder de publika servrarna, som tillåter ungefär en förfrågan per sekund – nog för en dag, knappt för en bilresa. Träder i kraft efter omstart av servern.',
+  'settings.routingBaseHint':
+    'En egen OSRM-instans. Tomt använder de publika servrarna, som tillåter ungefär en förfrågan per sekund – nog för en dag, knappt för en bilresa. Träder i kraft efter omstart av servern.',
   'settings.valhallaBase': 'Egen Valhalla-instans',
   'settings.valhallaBaseHint':
     'TREK använder som standard FOSSGIS publika Valhalla för att undvika vägtullar, motorvägar och färjor. Ange URL:en till din egen Valhalla här för att använda den i stället. Om bara en egen ruttserver är konfigurerad används inte den publika Valhalla. Starta om servern och ladda om sidan efter att du angett en egen URL.',
@@ -81,7 +82,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Veckans första dag i alla datumväljare. Vacay har en egen inställning.',
   'settings.preferredNavApp': 'Öppna platser i',
   'settings.preferredNavAppAsk': 'Fråga varje gång',
-  'settings.preferredNavAppHint': 'Med en vald app öppnar navigeringsknappen den direkt i stället för att erbjuda alla kartappar.',
+  'settings.preferredNavAppHint':
+    'Med en vald app öppnar navigeringsknappen den direkt i stället för att erbjuda alla kartappar.',
   'settings.bookingLabels': 'Etiketter för bokningsrutter',
   'settings.bookingLabelsHint':
     'Visa stations- och flygplatsnamn på kartan. När funktionen är avstängd visas endast ikonen.',
@@ -355,7 +357,8 @@ const settings: TranslationStrings = {
   'settings.currencyTrip': 'Resans valuta',
   'settings.placeLanguage': 'Platsnamn',
   'settings.placeLanguageApp': 'Samma som appen',
-  'settings.placeLanguageHint': 'Språket som platssökning, förslag och adresser svarar på. Om en plats saknar namn på det språket visas dess lokala namn.',
+  'settings.placeLanguageHint':
+    'Språket som platssökning, förslag och adresser svarar på. Om en plats saknar namn på det språket visas dess lokala namn.',
   'settings.passkey.title': 'Inloggningsnycklar',
   'settings.passkey.description':
     'Logga in snabbare och med bättre skydd mot nätfiske med en inloggningsnyckel – ditt fingeravtryck, ditt ansikte, din PIN-kod eller en hårdvarunyckel. Ditt lösenord finns kvar som reserv.',
@@ -500,8 +503,10 @@ const settings: TranslationStrings = {
   'settings.general.startup': 'Start',
   'settings.dayDateFirst': 'Datum först i dagsrubriker',
   'settings.compactUnplanned': 'Kompakta markörer för oplanerade platser',
-  'settings.compactUnplannedHint': 'Platser som inte är planerade på någon dag visas som små markörer utan foto, så att de planerade stoppen sticker ut.',
-  'settings.dayDateFirstHint': 'Inled varje dag med dess kalenderdatum och visa ”Dag 1” eller dagens egen titel bredvid.',
+  'settings.compactUnplannedHint':
+    'Platser som inte är planerade på någon dag visas som små markörer utan foto, så att de planerade stoppen sticker ut.',
+  'settings.dayDateFirstHint':
+    'Inled varje dag med dess kalenderdatum och visa ”Dag 1” eller dagens egen titel bredvid.',
   'settings.startPage': 'Startsida',
   'settings.startPageDashboard': 'Översikt',
   'settings.startPageActiveTrip': 'Aktiv resa',
@@ -611,7 +616,8 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Önskelista',
   'settings.apiScopes.stats': 'Totalsummor',
   'settings.apiKeys.title': 'API-nycklar',
-  'settings.apiKeys.description': 'Nycklar för det publika API:et, så att annan programvara kan läsa dina resor. Endast läsning: en nyckel kan inte ändra eller ta bort något.',
+  'settings.apiKeys.description':
+    'Nycklar för det publika API:et, så att annan programvara kan läsa dina resor. Endast läsning: en nyckel kan inte ändra eller ta bort något.',
   'settings.apiKeys.create': 'Skapa nyckel',
   'settings.apiKeys.empty': 'Inga nycklar än. Skapa en för att koppla annan programvara.',
   'settings.apiKeys.createdAt': 'skapad',

@@ -4,8 +4,16 @@
  * NOCASE collation, and splitting the generated DDL so one refused statement
  * does not take the rest with it.
  */
+import {
+  adjustColumns,
+  NOCASE_COLLATION_SQL,
+  PG_NOW_TEXT_DEFAULT,
+  portableDefault,
+  splitStatements,
+  type ColumnMeta,
+} from '../../../../scripts/pg-probe/schema';
+
 import { describe, expect, it } from 'vitest';
-import { adjustColumns, NOCASE_COLLATION_SQL, PG_NOW_TEXT_DEFAULT, portableDefault, splitStatements, type ColumnMeta } from '../../../../scripts/pg-probe/schema';
 
 class DbTimestampType {}
 class TextType {}
@@ -22,7 +30,12 @@ describe('pg-probe schema', () => {
 
   it('PGPROBE-041: makes timestamp columns text, rewrites defaults and the NOCASE collation, and names what it changed', () => {
     const columns: ColumnMeta[] = [
-      { name: 'created_at', customType: new DbTimestampType(), columnTypes: ['timestamptz'], defaultRaw: 'CURRENT_TIMESTAMP' },
+      {
+        name: 'created_at',
+        customType: new DbTimestampType(),
+        columnTypes: ['timestamptz'],
+        defaultRaw: 'CURRENT_TIMESTAMP',
+      },
       { name: 'title', customType: new TextType(), columnTypes: ['text'], defaultRaw: "'x'" },
       { name: 'stamp', columnTypes: ['int'], defaultRaw: "(strftime('%s','now'))" },
       { name: 'region', columnTypes: ['text'], collation: 'NOCASE' },
@@ -31,7 +44,10 @@ describe('pg-probe schema', () => {
     expect(adjustColumns(columns)).toEqual(['created_at', 'stamp', 'region']);
     expect(columns[0]).toMatchObject({ columnTypes: ['text'], defaultRaw: PG_NOW_TEXT_DEFAULT });
     expect(columns[1]).toMatchObject({ columnTypes: ['text'], defaultRaw: "'x'" });
-    expect(columns[2]).toMatchObject({ columnTypes: ['int'], defaultRaw: 'CAST(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) AS bigint)' });
+    expect(columns[2]).toMatchObject({
+      columnTypes: ['int'],
+      defaultRaw: 'CAST(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) AS bigint)',
+    });
     expect(columns[3]).toMatchObject({ collation: 'nocase' });
     expect(NOCASE_COLLATION_SQL).toContain('CREATE COLLATION IF NOT EXISTS nocase');
   });

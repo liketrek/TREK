@@ -1,10 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { PhotoProviders } from '../../../../src/db/entities/PhotoProviders.entity';
 import type { PhotoProvidersRepository } from '../../../../src/db/repositories/PhotoProviders.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { findRow, insertRow } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -40,7 +41,12 @@ async function insertProvider(row: {
   sort_order?: number;
 }): Promise<void> {
   await insertRow(t, PhotoProviders, {
-    id: row.id, name: row.name, description: row.description ?? null, icon: row.icon ?? null, enabled: row.enabled, sort_order: row.sort_order ?? 0,
+    id: row.id,
+    name: row.name,
+    description: row.description ?? null,
+    icon: row.icon ?? null,
+    enabled: row.enabled,
+    sort_order: row.sort_order ?? 0,
   });
 }
 
@@ -67,7 +73,14 @@ describe('PhotoProvidersRepository.listEnabled', () => {
   });
 
   it('ADDONSPPREPO-004: carries the full row shape (id, name, description, icon, enabled, sort_order)', async () => {
-    await insertProvider({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', icon: 'image', enabled: 1, sort_order: 4 });
+    await insertProvider({
+      id: 'immich',
+      name: 'Immich',
+      description: 'Self-hosted photos',
+      icon: 'image',
+      enabled: 1,
+      sort_order: 4,
+    });
     const [row] = await photoProviders.listEnabled();
     expect(row).toEqual({
       id: 'immich',
@@ -108,7 +121,9 @@ describe('PhotoProvidersRepository.listAllOrdered (AD27) / findById (AD31/AD40)'
     await insertProvider({ id: 'immich', name: 'Immich', enabled: 1, sort_order: 0 });
 
     // test-sql-allow: the legacy statement is the parity oracle the repository is compared against.
-    const legacy = testDb.prepare('SELECT id, name, description, icon, enabled, sort_order FROM photo_providers ORDER BY sort_order, id').all();
+    const legacy = testDb
+      .prepare('SELECT id, name, description, icon, enabled, sort_order FROM photo_providers ORDER BY sort_order, id')
+      .all();
     const rows = await photoProviders.listAllOrdered();
     expect(rows.map((r) => r.id)).toEqual(['immich', 'off']); // includes the disabled one, unlike listEnabled
     expect(rows).toEqual(legacy);
@@ -119,9 +134,23 @@ describe('PhotoProvidersRepository.listAllOrdered (AD27) / findById (AD31/AD40)'
   });
 
   it('ADDONSPPREPO-007: findById matches SELECT * FROM photo_providers WHERE id = ?, on both a pre-write read and a post-write re-select (byte-identical text at both call sites)', async () => {
-    await insertProvider({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', icon: 'image', enabled: 0, sort_order: 2 });
+    await insertProvider({
+      id: 'immich',
+      name: 'Immich',
+      description: 'Self-hosted photos',
+      icon: 'image',
+      enabled: 0,
+      sort_order: 2,
+    });
     const preWrite = await photoProviders.findById('immich');
-    expect(preWrite).toEqual({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', icon: 'image', enabled: 0, sort_order: 2 });
+    expect(preWrite).toEqual({
+      id: 'immich',
+      name: 'Immich',
+      description: 'Self-hosted photos',
+      icon: 'image',
+      enabled: 0,
+      sort_order: 2,
+    });
 
     // test-sql-allow: the out-of-band write this case is about has to bypass every EntityManager, the one under test included.
     testDb.prepare('UPDATE photo_providers SET enabled = 1 WHERE id = ?').run('immich');

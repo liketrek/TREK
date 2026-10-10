@@ -1,24 +1,25 @@
-import archiver from 'archiver';
-import path from 'path';
-import { pipeline } from 'node:stream/promises';
 import { readEnv } from '../../app-config';
 import { resolveDataPaths } from '../../app-config/data-paths';
-import fs from 'fs';
-import { RequestContext } from '@mikro-orm/core';
-import type { CarriedUserSessionRow } from '../../db/repositories/UserSessions.repository';
 import { UserSessions } from '../../db/entities/UserSessions.entity';
+import type { CarriedUserSessionRow } from '../../db/repositories/UserSessions.repository';
 import { dbNow } from '../../db/types';
 import { logError, logWarn } from '../audit/audit-log.logger';
 import type { DatabaseBackupStrategy } from '../database/database-backup.interface';
-import { VALID_INTERVALS } from './auto-backup.settings';
-import { extractBackupArchive } from './backup-archive';
 import { invalidatePermissionsCache } from '../permissions/permissions-cache';
+import { snapshotAllPluginDataDbs } from '../plugins/host/plugin-data.service';
 import { pluginsCodeRoot, pluginsDataRoot } from '../plugins/paths';
 import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../plugins/plugin-backup';
-import { snapshotAllPluginDataDbs } from '../plugins/host/plugin-data.service';
-import type { Response } from 'express';
 import type { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError } from '../storage/storage.types';
+import { VALID_INTERVALS } from './auto-backup.settings';
+import { extractBackupArchive } from './backup-archive';
+import { RequestContext } from '@mikro-orm/core';
+
+import archiver from 'archiver';
+import type { Response } from 'express';
+import fs from 'fs';
+import { pipeline } from 'node:stream/promises';
+import path from 'path';
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -76,10 +77,7 @@ export function parseAutoBackupBody(body: Record<string, unknown>): {
 } {
   const enabled = body.enabled === true || body.enabled === 'true' || body.enabled === 1;
   const rawInterval = body.interval;
-  const interval =
-    typeof rawInterval === 'string' && VALID_INTERVALS.includes(rawInterval)
-      ? rawInterval
-      : 'daily';
+  const interval = typeof rawInterval === 'string' && VALID_INTERVALS.includes(rawInterval) ? rawInterval : 'daily';
   const keep_days = Math.max(0, parseIntField(body.keep_days, 7));
   const hour = Math.min(23, Math.max(0, parseIntField(body.hour, 2)));
   const day_of_week = Math.min(6, Math.max(0, parseIntField(body.day_of_week, 0)));
@@ -201,7 +199,9 @@ export async function createBackup(
     try {
       await database.checkpoint();
     } catch (e) {
-      logWarn(`Backup: the WAL checkpoint before the snapshot failed (${describeError(e)}), taking the snapshot anyway`);
+      logWarn(
+        `Backup: the WAL checkpoint before the snapshot failed (${describeError(e)}), taking the snapshot anyway`,
+      );
     }
 
     // Enumerate the archived categories up front (the archiver reads entries
@@ -255,7 +255,9 @@ export async function createBackup(
       try {
         await database.snapshot(dbSnap);
       } catch (e) {
-        logError(`Backup: could not take a snapshot of the database at ${database.location()} (${describeError(e)}). No backup was written.`);
+        logError(
+          `Backup: could not take a snapshot of the database at ${database.location()} (${describeError(e)}). No backup was written.`,
+        );
         throw new Error(`Database snapshot failed: ${describeError(e)}`, { cause: e });
       }
     } else {
@@ -322,9 +324,17 @@ export async function createBackup(
         for (const entry of fs.readdirSync(pcode)) {
           const dir = path.join(pcode, entry);
           let real: string;
-          try { real = fs.realpathSync(dir); } catch { continue; }
+          try {
+            real = fs.realpathSync(dir);
+          } catch {
+            continue;
+          }
           if (!real.startsWith(realRoot + path.sep)) continue; // dev-link points outside → skip
-          try { if (!fs.statSync(dir).isDirectory()) continue; } catch { continue; }
+          try {
+            if (!fs.statSync(dir).isDirectory()) continue;
+          } catch {
+            continue;
+          }
           archive.directory(dir, `plugins-code/${entry}`);
         }
       }
@@ -518,7 +528,9 @@ export async function restoreFromZip({ storage, database }: BackupDeps, zipPath:
         for (const category of BACKUP_UPLOAD_CATEGORIES) {
           for await (const obj of storage.list(category)) {
             if (obj.key.includes('/')) continue;
-            await storage.delete(category, obj.key).catch(() => { /* best-effort, as the old unlink loop was */ });
+            await storage.delete(category, obj.key).catch(() => {
+              /* best-effort, as the old unlink loop was */
+            });
           }
         }
         await rehydrateUploads(storage, extractedUploads);
@@ -551,7 +563,12 @@ export async function restoreFromZip({ storage, database }: BackupDeps, zipPath:
     fs.rmSync(extractDir, { recursive: true, force: true });
     if (reinitFailed) {
       console.error('Restore: database reopen failed after file swap:', reinitFailed);
-      return { success: false, error: 'Backup files were restored but the database connection could not be reopened. Restart the server to finish the restore.', status: 500 };
+      return {
+        success: false,
+        error:
+          'Backup files were restored but the database connection could not be reopened. Restart the server to finish the restore.',
+        status: 500,
+      };
     }
     return { success: true };
   } catch (err: unknown) {
@@ -565,7 +582,11 @@ export async function restoreFromZip({ storage, database }: BackupDeps, zipPath:
     // we leave the process in after a failed restore.
     // D6: same no-repository-read note as the other invalidatePermissionsCache()
     // call above — nothing to wrap yet.
-    try { await invalidatePermissionsCache(); } catch { /* best-effort */ }
+    try {
+      await invalidatePermissionsCache();
+    } catch {
+      /* best-effort */
+    }
     throw err;
   }
 }
@@ -577,4 +598,3 @@ export async function restoreFromZip({ storage, database }: BackupDeps, zipPath:
 export function deleteBackup(storage: StorageService, filename: string): Promise<void> {
   return storage.delete('backups', filename);
 }
-

@@ -1,18 +1,24 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
 
 // Global context DISALLOWED here on purpose: this is the production setting.
-beforeAll(async () => { t = await createTestOrm(testDb, { allowGlobalContext: false }); });
+beforeAll(async () => {
+  t = await createTestOrm(testDb, { allowGlobalContext: false });
+});
 beforeEach(() => resetTestDb(testDb));
-afterAll(async () => { await t.close(); testDb.close(); });
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('withRequestContext', () => {
   it('CTX-001: the global EntityManager refuses a query outside a context', async () => {

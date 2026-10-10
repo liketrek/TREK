@@ -2,26 +2,26 @@
  * User Profile & Settings integration tests.
  * Covers PROFILE-001 to PROFILE-015.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { Users } from '../../src/db/entities/Users.entity';
+import { authCookie } from '../helpers/auth';
+import { createUser, createAdmin, createTrip } from '../helpers/factories';
+import { insertRow } from '../helpers/factories/rows';
+import { readUser } from '../helpers/factories/users';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
 import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createAdmin, createTrip } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { MikroORM } from '@mikro-orm/core';
-import { readUser } from '../helpers/factories/users';
-import { insertRow } from '../helpers/factories/rows';
-import { Users } from '../../src/db/entities/Users.entity';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -52,9 +52,7 @@ afterAll(async () => {
 describe('PROFILE-001 — Get current user profile', () => {
   it('returns user object with expected fields', async () => {
     const { user } = createUser(testDb);
-    const res = await request(app)
-      .get('/api/auth/me')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/auth/me').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.user).toMatchObject({
       id: user.id,
@@ -86,9 +84,7 @@ describe('PUT /api/auth/me/settings (F3)', () => {
     expect(put.body.success).toBe(true);
     expect(put.body.user).toMatchObject({ username: 'after-name', email: 'after@example.test' });
 
-    const get = await request(app)
-      .get('/api/auth/me')
-      .set('Cookie', authCookie(user.id));
+    const get = await request(app).get('/api/auth/me').set('Cookie', authCookie(user.id));
     expect(get.status).toBe(200);
     expect(get.body.user).toMatchObject({ username: 'after-name', email: 'after@example.test' });
 
@@ -104,7 +100,7 @@ describe('PUT /api/auth/me/settings (F3)', () => {
   // username field itself is ASCII-only by the service's own validation
   // regex, `^[a-zA-Z0-9_.-]+$`, so a non-ASCII collision can never reach
   // this route.)
-  it('PROFILE-016b — renaming to a non-ASCII email that collides with ANOTHER user still 409s; renaming to one\'s own exact non-ASCII spelling succeeds', async () => {
+  it("PROFILE-016b — renaming to a non-ASCII email that collides with ANOTHER user still 409s; renaming to one's own exact non-ASCII spelling succeeds", async () => {
     createUser(testDb, { email: 'JOSÉ-OTHER@x.com' });
     const { user } = createUser(testDb, { email: 'plain-self@example.test' });
 
@@ -177,19 +173,12 @@ describe('Avatar', () => {
   it('PROFILE-005 — DELETE /api/auth/avatar clears avatar_url', async () => {
     const { user } = createUser(testDb);
     // Upload first
-    await request(app)
-      .post('/api/auth/avatar')
-      .set('Cookie', authCookie(user.id))
-      .attach('avatar', FIXTURE_JPEG);
+    await request(app).post('/api/auth/avatar').set('Cookie', authCookie(user.id)).attach('avatar', FIXTURE_JPEG);
 
-    const res = await request(app)
-      .delete('/api/auth/avatar')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete('/api/auth/avatar').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
 
-    const me = await request(app)
-      .get('/api/auth/me')
-      .set('Cookie', authCookie(user.id));
+    const me = await request(app).get('/api/auth/me').set('Cookie', authCookie(user.id));
     expect(me.body.user.avatar_url).toBeNull();
   });
 });
@@ -234,19 +223,14 @@ describe('Settings', () => {
       .send({ key: 'dark_mode', value: 'dark' });
     expect(put.status).toBe(200);
 
-    const get = await request(app)
-      .get('/api/settings')
-      .set('Cookie', authCookie(user.id));
+    const get = await request(app).get('/api/settings').set('Cookie', authCookie(user.id));
     expect(get.status).toBe(200);
     expect(get.body.settings).toHaveProperty('dark_mode', 'dark');
   });
 
   it('PROFILE-009 — PUT /api/settings without key returns 400', async () => {
     const { user } = createUser(testDb);
-    const res = await request(app)
-      .put('/api/settings')
-      .set('Cookie', authCookie(user.id))
-      .send({ value: 'dark' });
+    const res = await request(app).put('/api/settings').set('Cookie', authCookie(user.id)).send({ value: 'dark' });
     expect(res.status).toBe(400);
   });
 
@@ -260,9 +244,7 @@ describe('Settings', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
 
-    const get = await request(app)
-      .get('/api/settings')
-      .set('Cookie', authCookie(user.id));
+    const get = await request(app).get('/api/settings').set('Cookie', authCookie(user.id));
     expect(get.body.settings).toHaveProperty('theme', 'dark');
     expect(get.body.settings).toHaveProperty('language', 'fr');
     expect(get.body.settings).toHaveProperty('timezone', 'Europe/Paris');
@@ -273,24 +255,18 @@ describe('Account deletion', () => {
   it('PROFILE-013 — DELETE /api/auth/me removes account, subsequent login fails', async () => {
     const { user, password } = createUser(testDb);
 
-    const del = await request(app)
-      .delete('/api/auth/me')
-      .set('Cookie', authCookie(user.id));
+    const del = await request(app).delete('/api/auth/me').set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
 
     // Should not be able to log in
-    const login = await request(app)
-      .post('/api/auth/login')
-      .send({ email: user.email, password });
+    const login = await request(app).post('/api/auth/login').send({ email: user.email, password });
     expect(login.status).toBe(401);
   });
 
   it('PROFILE-013 — admin cannot delete their own account', async () => {
     const { user: admin } = createAdmin(testDb);
     // Admins are protected from self-deletion
-    const res = await request(app)
-      .delete('/api/auth/me')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).delete('/api/auth/me').set('Cookie', authCookie(admin.id));
     // deleteAccount returns 400 when the user is the last admin
     expect(res.status).toBe(400);
   });
@@ -305,9 +281,7 @@ describe('Travel stats', () => {
       end_date: '2024-06-05',
     });
 
-    const res = await request(app)
-      .get('/api/auth/travel-stats')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/auth/travel-stats').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('totalTrips');
     expect(res.body.totalTrips).toBeGreaterThanOrEqual(1);
@@ -317,7 +291,9 @@ describe('Travel stats', () => {
 describe('Demo mode protections', () => {
   it('PROFILE-015 — demo user cannot upload avatar (demoUploadBlock)', async () => {
     // demoUploadBlock checks for email === 'demo@nomad.app'
-    const demoUser = { id: await insertRow(orm, Users, { username: 'demo', email: 'demo@nomad.app', password_hash: 'x', role: 'user' }) };
+    const demoUser = {
+      id: await insertRow(orm, Users, { username: 'demo', email: 'demo@nomad.app', password_hash: 'x', role: 'user' }),
+    };
     process.env.DEMO_MODE = 'true';
 
     try {

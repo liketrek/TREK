@@ -6,17 +6,17 @@
  * calls this file makes. The plugin staging is the one seam stubbed, because
  * it moves trees under the plugin roots of the machine running the tests.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { BootRestoreError, restoreOnFirstBoot } from '../../../src/nest/backup/boot-restore';
+
+import archiver from 'archiver';
+import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import archiver from 'archiver';
-import Database from 'better-sqlite3';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { stageMock } = vi.hoisted(() => ({ stageMock: vi.fn() }));
 vi.mock('../../../src/nest/plugins/plugin-backup', () => ({ stageExtractedPluginTrees: stageMock }));
-
-import { BootRestoreError, restoreOnFirstBoot } from '../../../src/nest/backup/boot-restore';
 
 let root: string;
 let dataDir: string;
@@ -65,7 +65,12 @@ async function archive(entries: Record<string, string | { file: string }>): Prom
 async function goodArchive(extra: Record<string, string> = {}) {
   const src = path.join(root, 'src.db');
   trekDb(src);
-  return archive({ 'travel.db': { file: src }, '.encryption_key': 'a'.repeat(64), 'uploads/covers/c.jpg': 'jpeg', ...extra });
+  return archive({
+    'travel.db': { file: src },
+    '.encryption_key': 'a'.repeat(64),
+    'uploads/covers/c.jpg': 'jpeg',
+    ...extra,
+  });
 }
 
 describe('restoreOnFirstBoot', () => {
@@ -74,7 +79,7 @@ describe('restoreOnFirstBoot', () => {
     expect(fs.existsSync(dbFile)).toBe(false);
   });
 
-  it('BOOT-RESTORE-002: on a first start the backup\'s database, key and uploads are put in place', async () => {
+  it("BOOT-RESTORE-002: on a first start the backup's database, key and uploads are put in place", async () => {
     const zipPath = await goodArchive();
 
     const out = await restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir });
@@ -97,38 +102,45 @@ describe('restoreOnFirstBoot', () => {
     const before = fs.readFileSync(dbFile);
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    expect(await restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir })).toEqual({ restored: false, reason: 'database-exists' });
+    expect(await restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir })).toEqual({
+      restored: false,
+      reason: 'database-exists',
+    });
     expect(fs.readFileSync(dbFile).equals(before)).toBe(true);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('only restored on a first start'));
   });
 
   it('BOOT-RESTORE-004: a missing archive stops the start instead of coming up empty', async () => {
-    await expect(restoreOnFirstBoot({ archive: path.join(root, 'nope.zip'), dbFile, dataDir }))
-      .rejects.toBeInstanceOf(BootRestoreError);
+    await expect(restoreOnFirstBoot({ archive: path.join(root, 'nope.zip'), dbFile, dataDir })).rejects.toBeInstanceOf(
+      BootRestoreError,
+    );
     expect(fs.existsSync(dbFile)).toBe(false);
   });
 
   it('BOOT-RESTORE-005: an archive without a database is refused and leaves no scratch behind', async () => {
     const zipPath = await archive({ 'notes.txt': 'hello' });
-    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir }))
-      .rejects.toThrow('RESTORE_FROM_BACKUP: Invalid backup: travel.db not found');
+    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir })).rejects.toThrow(
+      'RESTORE_FROM_BACKUP: Invalid backup: travel.db not found',
+    );
     expect(fs.existsSync(dbFile)).toBe(false);
-    expect(fs.readdirSync(dataDir).filter(n => n.startsWith('restore-boot-'))).toEqual([]);
+    expect(fs.readdirSync(dataDir).filter((n) => n.startsWith('restore-boot-'))).toEqual([]);
   });
 
   it('BOOT-RESTORE-006: a database that is not a TREK one is refused', async () => {
     const src = path.join(root, 'other.db');
     trekDb(src, ['users']);
     const zipPath = await archive({ 'travel.db': { file: src } });
-    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir }))
-      .rejects.toThrow('missing required table: trips');
+    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir })).rejects.toThrow(
+      'missing required table: trips',
+    );
     expect(fs.existsSync(dbFile)).toBe(false);
   });
 
   it('BOOT-RESTORE-007: an entry escaping the archive is refused', async () => {
     const zipPath = await archive({ '../escape.txt': 'x', 'travel.db': 'not a db' });
-    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir }))
-      .rejects.toThrow(/escapes the archive root|not a valid SQLite database/);
+    await expect(restoreOnFirstBoot({ archive: zipPath, dbFile, dataDir })).rejects.toThrow(
+      /escapes the archive root|not a valid SQLite database/,
+    );
     expect(fs.existsSync(dbFile)).toBe(false);
   });
 

@@ -235,9 +235,14 @@ describe('planLegacyBaseline / migrateToHead', () => {
 
   it('LEGACYBASE-008: refuses a database a newer TREK migrated, before applying anything', async () => {
     await migrate();
-    await rawExec(orm, "INSERT INTO mikro_orm_migrations (name, executed_at) VALUES ('Migration20990101000000_from_a_newer_release', CURRENT_TIMESTAMP)");
+    await rawExec(
+      orm,
+      "INSERT INTO mikro_orm_migrations (name, executed_at) VALUES ('Migration20990101000000_from_a_newer_release', CURRENT_TIMESTAMP)",
+    );
     const before = await recorded();
-    await expect(migrate()).rejects.toThrow(/Refusing to boot: the database was migrated by a newer TREK \(1 unknown migration\(s\), latest Migration20990101000000_from_a_newer_release\)/);
+    await expect(migrate()).rejects.toThrow(
+      /Refusing to boot: the database was migrated by a newer TREK \(1 unknown migration\(s\), latest Migration20990101000000_from_a_newer_release\)/,
+    );
     expect(await recorded()).toEqual(before);
   });
 
@@ -250,14 +255,17 @@ describe('planLegacyBaseline / migrateToHead', () => {
     [246, 242],
     [243, 242],
     [217, 215],
-  ])('LEGACYBASE-010: a pre-ORM Tours branch database at schema_version %i is baselined to upstream step %i', async (version, upstream) => {
-    const all = await pendingNames(orm);
-    const numbered = all.filter((name) => !UNNUMBERED.includes(name));
-    await rawExec(orm, 'CREATE TABLE schema_version (version INTEGER NOT NULL)');
-    await rawExec(orm, `INSERT INTO schema_version (version) VALUES (${version})`);
-    await rawExec(orm, 'CREATE TABLE tour_types (key TEXT PRIMARY KEY)');
-    expect(await baseline()).toEqual(numbered.slice(0, upstream));
-  });
+  ])(
+    'LEGACYBASE-010: a pre-ORM Tours branch database at schema_version %i is baselined to upstream step %i',
+    async (version, upstream) => {
+      const all = await pendingNames(orm);
+      const numbered = all.filter((name) => !UNNUMBERED.includes(name));
+      await rawExec(orm, 'CREATE TABLE schema_version (version INTEGER NOT NULL)');
+      await rawExec(orm, `INSERT INTO schema_version (version) VALUES (${version})`);
+      await rawExec(orm, 'CREATE TABLE tour_types (key TEXT PRIMARY KEY)');
+      expect(await baseline()).toEqual(numbered.slice(0, upstream));
+    },
+  );
 
   it('LEGACYBASE-011: the same schema_version without the Tours tables is an upstream database and keeps its step', async () => {
     const all = await pendingNames(orm);

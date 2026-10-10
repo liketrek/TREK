@@ -63,14 +63,16 @@ export class UserSessionsRepository extends TrekRepository<UserSessions> {
    */
   async insertSessionIfAbsent(row: NewUserSessionRow): Promise<void> {
     await this.upsertMany(
-      [{
-        id: row.id,
-        user: row.user_id,
-        created_at: row.created_at,
-        last_seen_at: row.created_at,
-        expires_at: row.expires_at,
-        user_agent: row.user_agent,
-      }],
+      [
+        {
+          id: row.id,
+          user: row.user_id,
+          created_at: row.created_at,
+          last_seen_at: row.created_at,
+          expires_at: row.expires_at,
+          user_agent: row.user_agent,
+        },
+      ],
       { onConflictFields: ['id'], onConflictAction: 'ignore' },
     );
   }

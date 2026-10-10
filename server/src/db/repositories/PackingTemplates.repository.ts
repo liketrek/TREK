@@ -1,7 +1,7 @@
 import type { PackingTemplates } from '../entities/PackingTemplates.entity';
+import type { DB } from '../kysely/db';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /** A bare `packing_templates` row — every scalar column, incl. the `persist(false)` `created_by` relation mirror. */
 export interface PackingTemplateRow {
@@ -27,7 +27,10 @@ export interface PackingTemplateAdminRow extends PackingTemplateRow {
   category_count: number;
 }
 
-type PackingTemplatesKyselyDB = Pick<DB, 'packing_templates' | 'packing_template_categories' | 'packing_template_items' | 'users'>;
+type PackingTemplatesKyselyDB = Pick<
+  DB,
+  'packing_templates' | 'packing_template_categories' | 'packing_template_items' | 'users'
+>;
 
 /** The table `insertTemplate` (PK55/PK68) inserts into; `id`/`created_at` are `InsertOptional` in the generated type. */
 type PackingTemplatesInsertKyselyDB = Pick<DB, 'packing_templates'>;
@@ -106,7 +109,11 @@ export class PackingTemplatesRepository extends TrekRepository<PackingTemplates>
    * `deletePackingTemplate`'s existence check). One method, five sites.
    */
   async findById(id: number | string): Promise<PackingTemplateRow | undefined> {
-    return await this.db().selectFrom('packing_templates').selectAll().where('id', '=', id as number).executeTakeFirst();
+    return await this.db()
+      .selectFrom('packing_templates')
+      .selectAll()
+      .where('id', '=', id as number)
+      .executeTakeFirst();
   }
 
   /**
@@ -118,13 +125,21 @@ export class PackingTemplatesRepository extends TrekRepository<PackingTemplates>
    * .insertItem`'s precedent).
    */
   async insertTemplate(name: string, created_by: number): Promise<number> {
-    const inserted = await this.kysely<PackingTemplatesInsertKyselyDB>().insertInto('packing_templates').values({ name, created_by }).returning('id').executeTakeFirstOrThrow();
+    const inserted = await this.kysely<PackingTemplatesInsertKyselyDB>()
+      .insertInto('packing_templates')
+      .values({ name, created_by })
+      .returning('id')
+      .executeTakeFirstOrThrow();
     return inserted.id;
   }
 
   /** PK71 (`updatePackingTemplate`) — `UPDATE packing_templates SET name = ? WHERE id = ?`. */
   async updateName(id: number | string, name: string): Promise<void> {
-    await this.db().updateTable('packing_templates').set({ name }).where('id', '=', id as number).execute();
+    await this.db()
+      .updateTable('packing_templates')
+      .set({ name })
+      .where('id', '=', id as number)
+      .execute();
   }
 
   /** PK74 (`deletePackingTemplate`) — `DELETE FROM packing_templates WHERE id = ?`. */

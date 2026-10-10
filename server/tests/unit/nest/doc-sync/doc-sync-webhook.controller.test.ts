@@ -1,6 +1,12 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import type { DocSyncConfigService, LinkRow } from '../../../../src/nest/doc-sync/doc-sync-config.service';
+import { DocSyncWebhookController } from '../../../../src/nest/doc-sync/doc-sync-webhook.controller';
+import type { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createTestOrm } from '../../../helpers/test-orm';
+
 import crypto from 'crypto';
 import type { Request } from 'express';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 
 // Nothing here touches SQLite; the stub keeps the import chain from opening a
 // database and running 238 migrations for a handler that never queries one.
@@ -12,12 +18,6 @@ vi.mock('../../../../src/db/database', () => ({
   canAccessTrip: () => undefined,
   isOwner: () => false,
 }));
-
-import { DocSyncWebhookController } from '../../../../src/nest/doc-sync/doc-sync-webhook.controller';
-import type { DocSyncConfigService, LinkRow } from '../../../../src/nest/doc-sync/doc-sync-config.service';
-import type { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { createTestOrm } from '../../../helpers/test-orm';
 
 /**
  * The webhook endpoint, with both services stubbed.
@@ -102,7 +102,11 @@ let controller: DocSyncWebhookController;
 
 beforeAll(async () => {
   const t = await createTestOrm(testDb);
-  controller = new DocSyncWebhookController(config as unknown as DocSyncConfigService, sync as unknown as DocSyncService, t.orm);
+  controller = new DocSyncWebhookController(
+    config as unknown as DocSyncConfigService,
+    sync as unknown as DocSyncService,
+    t.orm,
+  );
 });
 
 afterAll(() => {
@@ -110,7 +114,10 @@ afterAll(() => {
 });
 
 /** Only what the handler reads: headers, the parsed body, and the raw bytes. */
-function makeReq(headers: Record<string, string> = {}, opts: { body?: unknown; rawBody?: Buffer | undefined } = {}): Request {
+function makeReq(
+  headers: Record<string, string> = {},
+  opts: { body?: unknown; rawBody?: Buffer | undefined } = {},
+): Request {
   return {
     headers,
     body: opts.body,
@@ -175,7 +182,9 @@ describe('an unknown token', () => {
 describe('a binding whose sync is switched off', () => {
   it('is left alone, and says nothing about it', async () => {
     config.getLinkByToken.mockReturnValue(link({ sync_enabled: 0 }));
-    expect(await controller.nudge('tok-live', makeReq({ 'x-trek-docsync-secret': SECRET }))).toEqual({ received: true });
+    expect(await controller.nudge('tok-live', makeReq({ 'x-trek-docsync-secret': SECRET }))).toEqual({
+      received: true,
+    });
     expect(sync.syncLink).not.toHaveBeenCalled();
   });
 });
@@ -293,7 +302,11 @@ describe('a Papra standard-webhooks signature', () => {
   it('verifies against the parsed body when a mount left no raw bytes behind', async () => {
     const body = { event: 'document.created', documentId: 'doc_1' };
     const req = makeReq(
-      { 'webhook-id': WEBHOOK_ID, 'webhook-timestamp': WEBHOOK_TS, 'webhook-signature': `v1,${sign(JSON.stringify(body))}` },
+      {
+        'webhook-id': WEBHOOK_ID,
+        'webhook-timestamp': WEBHOOK_TS,
+        'webhook-signature': `v1,${sign(JSON.stringify(body))}`,
+      },
       { body },
     );
     await controller.nudge('tok-live', req);
@@ -322,7 +335,9 @@ describe('a credential of the wrong length', () => {
   });
 
   it('is rejected the same way when it is longer than the stored secret', async () => {
-    await expect(controller.nudge('tok-live', makeReq({ 'x-trek-docsync-secret': `${SECRET}extra` }))).resolves.not.toThrow();
+    await expect(
+      controller.nudge('tok-live', makeReq({ 'x-trek-docsync-secret': `${SECRET}extra` })),
+    ).resolves.not.toThrow();
     expect(sync.syncLink).not.toHaveBeenCalled();
   });
 });
@@ -366,7 +381,8 @@ describe('a burst of nudges', () => {
   it('keeps one window per binding, so a busy trip cannot starve a quiet one', async () => {
     const other = link({ id: 9, webhook_token: 'tok-other' });
     config.getLinkByToken.mockImplementation((t: string) =>
-      t === 'tok-live' ? link() : t === 'tok-other' ? other : undefined);
+      t === 'tok-live' ? link() : t === 'tok-other' ? other : undefined,
+    );
     config.getLink.mockImplementation((id: number) => (id === 4 ? link() : id === 9 ? other : undefined));
 
     await controller.nudge('tok-live', makeReq({ 'x-trek-docsync-secret': SECRET }));
@@ -410,7 +426,9 @@ describe('a burst of nudges', () => {
 describe('the admin switches', () => {
   it('does nothing while the addon or the provider of the binding is switched off', async () => {
     sync.isSwitchedOff.mockReturnValue(true);
-    expect(await controller.nudge('tok-live', makeReq({ 'x-trek-docsync-secret': SECRET }))).toEqual({ received: true });
+    expect(await controller.nudge('tok-live', makeReq({ 'x-trek-docsync-secret': SECRET }))).toEqual({
+      received: true,
+    });
     await settle();
     expect(sync.isSwitchedOff.mock.calls[0][0]).toMatchObject({ id: 4, provider_id: 'papra' });
     expect(sync.syncLink).not.toHaveBeenCalled();
@@ -458,7 +476,10 @@ describe('a nudge that arrives mid-run', () => {
   it('gives up after that one retry rather than chasing itself', async () => {
     sync.syncLink.mockResolvedValue({ state: 'busy', pulled: 0, pushed: 0, conflicts: 0, missing: 0 });
     await controller.nudge('tok-live', makeReq({ 'x-trek-docsync-secret': SECRET }));
-    for (let i = 0; i < 5; i += 1) { await settle(); await Promise.resolve(); }
+    for (let i = 0; i < 5; i += 1) {
+      await settle();
+      await Promise.resolve();
+    }
     expect(sync.syncLink).toHaveBeenCalledTimes(2);
   });
 

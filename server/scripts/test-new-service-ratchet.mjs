@@ -24,9 +24,10 @@
  *   npm run lint:test-new-service              check against the baseline (CI)
  *   npm run lint:test-new-service -- --update  lower the counts; never raises or adds an entry
  */
+import { cliMain, stripComments } from './lib/count-ratchet.mjs';
+
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { cliMain, stripComments } from './lib/count-ratchet.mjs';
 
 const CLASS_DECL = /\bclass\s+([A-Za-z_$][\w$]*)(?:\s*<[^{]*?>)?(?:\s+extends\s+([A-Za-z_$][\w$.]*))?[^{]*\{/g;
 

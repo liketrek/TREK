@@ -2,26 +2,26 @@
  * Todo integration tests — TODO-001 through TODO-012.
  * Covers all endpoints at /api/trips/:tripId/todo.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { TodoItems } from '../../src/db/entities/TodoItems.entity';
+import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, addTripMember } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { findRows } from '../helpers/factories/rows';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { MikroORM } from '@mikro-orm/core';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import type { FactoryOrm } from '../helpers/factories/context';
-import { createUser, createTrip, addTripMember } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { findRows } from '../helpers/factories/rows';
-import { TodoItems } from '../../src/db/entities/TodoItems.entity';
-import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -48,9 +48,7 @@ describe('Todo items', () => {
   it('TODO-001: GET /api/trips/:id/todo returns empty items for a new trip', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/todo`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/todo`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.items).toEqual([]);
   });
@@ -70,15 +68,12 @@ describe('Todo items', () => {
   it('TODO-003: POST /api/trips/:id/todo creates a todo with all optional fields', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const res = await request(app)
-      .post(`/api/trips/${trip.id}/todo`)
-      .set('Cookie', authCookie(user.id))
-      .send({
-        name: 'Pack suitcase',
-        category: 'Preparation',
-        description: 'Pack everything for the trip',
-        priority: 2,
-      });
+    const res = await request(app).post(`/api/trips/${trip.id}/todo`).set('Cookie', authCookie(user.id)).send({
+      name: 'Pack suitcase',
+      category: 'Preparation',
+      description: 'Pack everything for the trip',
+      priority: 2,
+    });
     expect(res.status).toBe(201);
     expect(res.body.item).toMatchObject({
       name: 'Pack suitcase',
@@ -151,16 +146,12 @@ describe('Todo items', () => {
       .send({ name: 'To Delete' });
     const itemId = createRes.body.item.id;
 
-    const res = await request(app)
-      .delete(`/api/trips/${trip.id}/todo/${itemId}`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete(`/api/trips/${trip.id}/todo/${itemId}`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
 
     // Verify gone from list
-    const listRes = await request(app)
-      .get(`/api/trips/${trip.id}/todo`)
-      .set('Cookie', authCookie(user.id));
+    const listRes = await request(app).get(`/api/trips/${trip.id}/todo`).set('Cookie', authCookie(user.id));
     expect(listRes.body.items).toHaveLength(0);
   });
 
@@ -206,9 +197,7 @@ describe('Todo items', () => {
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/todo`)
-      .set('Cookie', authCookie(stranger.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/todo`).set('Cookie', authCookie(stranger.id));
     expect(res.status).toBe(404);
   });
 
@@ -219,9 +208,7 @@ describe('Todo items', () => {
     addTripMember(testDb, trip.id, member.id);
 
     // Member can read
-    const getRes = await request(app)
-      .get(`/api/trips/${trip.id}/todo`)
-      .set('Cookie', authCookie(member.id));
+    const getRes = await request(app).get(`/api/trips/${trip.id}/todo`).set('Cookie', authCookie(member.id));
     expect(getRes.status).toBe(200);
 
     // Member can create

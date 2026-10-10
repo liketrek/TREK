@@ -4,18 +4,19 @@
  * common recipient (one hidden, one not), plus an unrelated share that must
  * not leak across owners/recipients.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createUser } from '../../../helpers/factories';
-import { createTestVacaySharesRepo } from '../../../helpers/vacay-repos';
-import type { VacaySharesRepository } from '../../../../src/db/repositories/VacayShares.repository';
-import { sharedTestOrm } from '../../../helpers/test-uow';
-import type { TestOrm } from '../../../helpers/test-orm';
-import { insertRow, updateRows } from '../../../helpers/factories/rows';
-import { addVacayPlanMember, makeVacayPlan } from '../../../helpers/factories/vacay';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import { VacayShares } from '../../../../src/db/entities/VacayShares.entity';
+import type { VacaySharesRepository } from '../../../../src/db/repositories/VacayShares.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { insertRow, updateRows } from '../../../helpers/factories/rows';
+import { addVacayPlanMember, makeVacayPlan } from '../../../helpers/factories/vacay';
+import { resetTestDb } from '../../../helpers/test-db';
+import type { TestOrm } from '../../../helpers/test-orm';
+import { sharedTestOrm } from '../../../helpers/test-uow';
+import { createTestVacaySharesRepo } from '../../../helpers/vacay-repos';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let repo: VacaySharesRepository;

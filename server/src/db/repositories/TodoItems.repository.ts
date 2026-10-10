@@ -1,9 +1,9 @@
+import { columnRef, currentTimestamp, nowMinusHours } from '../dialect/sql-functions';
 import type { TodoItems } from '../entities/TodoItems.entity';
+import type { DB } from '../kysely/db';
+import { presenceSet } from './_shared/presence-set';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import { presenceSet } from './_shared/presence-set';
-import { columnRef, currentTimestamp, nowMinusHours } from '../dialect/sql-functions';
-import type { DB } from '../kysely/db';
 
 /** A bare `todo_items` row — every scalar column, incl. the two `persist(false)` relation mirrors (`trip_id`, `assigned_user_id`). */
 export interface TodoItemRow {
@@ -59,7 +59,11 @@ export class TodoItemsRepository extends TrekRepository<TodoItems> {
 
   /** TD2 (`createItem`) — `SELECT MAX(sort_order) as max FROM todo_items WHERE trip_id = ?`. */
   async maxSortOrder(trip_id: number | string): Promise<number | null> {
-    const row = await this.kysely<TodoItemsKyselyDB>().selectFrom('todo_items').select((eb) => eb.fn.max('sort_order').as('max')).where('trip_id', '=', trip_id as number).executeTakeFirst();
+    const row = await this.kysely<TodoItemsKyselyDB>()
+      .selectFrom('todo_items')
+      .select((eb) => eb.fn.max('sort_order').as('max'))
+      .where('trip_id', '=', trip_id as number)
+      .executeTakeFirst();
     return row?.max ?? null;
   }
 
@@ -72,8 +76,14 @@ export class TodoItemsRepository extends TrekRepository<TodoItems> {
    * different signature: an unpersisted-entity builder, not an INSERT).
    */
   async insertItem(row: {
-    trip_id: number | string; name: string; category: string | null; sort_order: number;
-    due_date: string | null; description: string | null; assigned_user_id: number | null; priority: number;
+    trip_id: number | string;
+    name: string;
+    category: string | null;
+    sort_order: number;
+    due_date: string | null;
+    description: string | null;
+    assigned_user_id: number | null;
+    priority: number;
   }): Promise<number> {
     const inserted = await this.kysely<TodoItemsInsertKyselyDB>()
       .insertInto('todo_items')
@@ -85,7 +95,11 @@ export class TodoItemsRepository extends TrekRepository<TodoItems> {
 
   /** TD4/TD7 (`createItem`/`updateItem`'s post-write re-select) — `SELECT * FROM todo_items WHERE id = ?` (no trip filter — the caller already knows `id` is in-scope, having just written it). */
   async findById(id: number | string): Promise<TodoItemRow | undefined> {
-    return await this.kysely<TodoItemsKyselyDB>().selectFrom('todo_items').selectAll().where('id', '=', id as number).executeTakeFirst();
+    return await this.kysely<TodoItemsKyselyDB>()
+      .selectFrom('todo_items')
+      .selectAll()
+      .where('id', '=', id as number)
+      .executeTakeFirst();
   }
 
   /**
@@ -97,12 +111,22 @@ export class TodoItemsRepository extends TrekRepository<TodoItems> {
    * a separate, still-accepted carry — see `todo.service.ts`'s own note).
    */
   async findInTrip(id: number, trip_id: number | string): Promise<TodoItemRow | undefined> {
-    return await this.kysely<TodoItemsKyselyDB>().selectFrom('todo_items').selectAll().where('id', '=', id).where('trip_id', '=', trip_id as number).executeTakeFirst();
+    return await this.kysely<TodoItemsKyselyDB>()
+      .selectFrom('todo_items')
+      .selectAll()
+      .where('id', '=', id)
+      .where('trip_id', '=', trip_id as number)
+      .executeTakeFirst();
   }
 
   /** TD8 (`deleteItem`'s trip-scoping guard) — `SELECT id FROM todo_items WHERE id = ? AND trip_id = ?`. `id: number`, same Plan 4 Task 8b narrowing as {@link findInTrip}. */
   async existsInTrip(id: number, trip_id: number | string): Promise<{ id: number } | undefined> {
-    return await this.kysely<TodoItemsKyselyDB>().selectFrom('todo_items').select('id').where('id', '=', id).where('trip_id', '=', trip_id as number).executeTakeFirst();
+    return await this.kysely<TodoItemsKyselyDB>()
+      .selectFrom('todo_items')
+      .select('id')
+      .where('id', '=', id)
+      .where('trip_id', '=', trip_id as number)
+      .executeTakeFirst();
   }
 
   /**
@@ -114,18 +138,26 @@ export class TodoItemsRepository extends TrekRepository<TodoItems> {
    * exactly); every other column is a true presence sentinel bound off the
    * legacy `bodyKeys` array (`present = bodyKeys.includes('<col>')`).
    */
-  async update(id: number, write: {
-    name?: readonly [present: boolean, value: string];
-    checked?: readonly [present: boolean, value: number];
-    category?: readonly [present: boolean, value: string | null];
-    due_date?: readonly [present: boolean, value: string | null];
-    description?: readonly [present: boolean, value: string | null];
-    assigned_user_id?: readonly [present: boolean, value: number | null];
-    priority?: readonly [present: boolean, value: number];
-  }): Promise<void> {
+  async update(
+    id: number,
+    write: {
+      name?: readonly [present: boolean, value: string];
+      checked?: readonly [present: boolean, value: number];
+      category?: readonly [present: boolean, value: string | null];
+      due_date?: readonly [present: boolean, value: string | null];
+      description?: readonly [present: boolean, value: string | null];
+      assigned_user_id?: readonly [present: boolean, value: number | null];
+      priority?: readonly [present: boolean, value: number];
+    },
+  ): Promise<void> {
     const data = presenceSet<{
-      name: string; checked: number; category: string | null; due_date: string | null;
-      description: string | null; assigned_user_id: number | null; priority: number;
+      name: string;
+      checked: number;
+      category: string | null;
+      due_date: string | null;
+      description: string | null;
+      assigned_user_id: number | null;
+      priority: number;
     }>(write);
     if (Object.keys(data).length === 0) return;
     await this.kysely<TodoItemsKyselyDB>().updateTable('todo_items').set(data).where('id', '=', id).execute();
@@ -138,12 +170,21 @@ export class TodoItemsRepository extends TrekRepository<TodoItems> {
 
   /** TD10 (`reorderItems`, looped) — `UPDATE todo_items SET sort_order = ? WHERE id = ? AND trip_id = ?`. */
   async setSortOrder(id: number | string, trip_id: number | string, sort_order: number): Promise<void> {
-    await this.kysely<TodoItemsKyselyDB>().updateTable('todo_items').set({ sort_order }).where('id', '=', id as number).where('trip_id', '=', trip_id as number).execute();
+    await this.kysely<TodoItemsKyselyDB>()
+      .updateTable('todo_items')
+      .set({ sort_order })
+      .where('id', '=', id as number)
+      .where('trip_id', '=', trip_id as number)
+      .execute();
   }
 
   /** TP72 (`TripsService.copy`) — `SELECT * FROM todo_items WHERE trip_id = ?`. */
   async listAllForTrip(trip_id: number | string): Promise<TodoItemRow[]> {
-    return await this.kysely<TodoItemsKyselyDB>().selectFrom('todo_items').selectAll().where('trip_id', '=', trip_id as number).execute();
+    return await this.kysely<TodoItemsKyselyDB>()
+      .selectFrom('todo_items')
+      .selectAll()
+      .where('trip_id', '=', trip_id as number)
+      .execute();
   }
 
   /**
@@ -155,8 +196,13 @@ export class TodoItemsRepository extends TrekRepository<TodoItems> {
    * has no roster yet (`TripsService.copy`'s own comment, kept exactly).
    */
   async insertCopy(row: {
-    trip_id: number | string; name: string; category: string | null; sort_order: number | null;
-    due_date: string | null; description: string | null; priority: number | null;
+    trip_id: number | string;
+    name: string;
+    category: string | null;
+    sort_order: number | null;
+    due_date: string | null;
+    description: string | null;
+    priority: number | null;
   }): Promise<number> {
     const inserted = await this.kysely<TodoItemsCopyInsertKyselyDB>()
       .insertInto('todo_items')
@@ -213,7 +259,16 @@ export class TodoItemsRepository extends TrekRepository<TodoItems> {
     const platform = this.getEntityManager().getPlatform();
     const rows = await this.qb('ti')
       .join('ti.trip', 't')
-      .select(['ti.id', columnRef(platform, 'ti.trip_id'), 'ti.name', 'ti.due_date', columnRef(platform, 'ti.assigned_user_id'), 'ti.reminded_at', 't.title', 't.user'])
+      .select([
+        'ti.id',
+        columnRef(platform, 'ti.trip_id'),
+        'ti.name',
+        'ti.due_date',
+        columnRef(platform, 'ti.assigned_user_id'),
+        'ti.reminded_at',
+        't.title',
+        't.user',
+      ])
       .andWhere({ checked: 0 })
       .andWhere({ due_date: { $ne: null } })
       .andWhere({ due_date: { $ne: '' } })

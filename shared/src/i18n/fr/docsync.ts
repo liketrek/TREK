@@ -181,7 +181,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Le transfert n’a pas abouti.',
 
   'docsync.error.unknown_provider': 'Ce fournisseur n’est pas disponible sur cette instance.',
-  'docsync.error.provider_disabled': 'En pause : un administrateur a désactivé ce fournisseur. La synchronisation reprendra dès qu’il sera réactivé.',
+  'docsync.error.provider_disabled':
+    'En pause : un administrateur a désactivé ce fournisseur. La synchronisation reprendra dès qu’il sera réactivé.',
   'docsync.binding.reconnect': 'Reconnecter',
 };
 

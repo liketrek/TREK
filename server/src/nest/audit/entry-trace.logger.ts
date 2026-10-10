@@ -1,5 +1,5 @@
-import { logDebug, logError, logWarn } from './audit-log.logger';
 import { childCorrelation, runWithCorrelation, type Correlation, type EntryKind } from '../common/request-correlation';
+import { logDebug, logError, logWarn } from './audit-log.logger';
 
 /** Errors a trace has already written to the log, so an outer handler can skip a second line. */
 const reported = new WeakSet<object>();

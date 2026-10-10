@@ -4,13 +4,18 @@
  * these repositories with no test exercising the empty/no-op arm. One
  * seeded world per repository (shared `testDb`, reset between tests).
  */
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import {
+  createTestPlaceRegionsRepo,
+  createTestVisitedCountriesRepo,
+  createTestBucketListRepo,
+} from '../../../helpers/atlas-repos';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
 import { createUser } from '../../../helpers/factories';
-import { createTestPlaceRegionsRepo, createTestVisitedCountriesRepo, createTestBucketListRepo } from '../../../helpers/atlas-repos';
-import { createTestReservationEndpointsRepo } from '../../../helpers/test-uow';
 import { createTestSchoolHolidayCountriesRepo } from '../../../helpers/school-holidays-repos';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestReservationEndpointsRepo } from '../../../helpers/test-uow';
+
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 beforeEach(() => resetTestDb(testDb));
@@ -46,7 +51,16 @@ describe('BucketListRepository.update — the no-op empty-patch branch (AT35)', 
   it('an empty write leaves the row untouched', async () => {
     const repo = await createTestBucketListRepo(testDb);
     const { user } = createUser(testDb);
-    const id = await repo.insertItem({ user_id: user.id, name: 'Kyoto', lat: null, lng: null, country_code: null, notes: null, target_date: null, region_code: null });
+    const id = await repo.insertItem({
+      user_id: user.id,
+      name: 'Kyoto',
+      lat: null,
+      lng: null,
+      country_code: null,
+      notes: null,
+      target_date: null,
+      region_code: null,
+    });
 
     await repo.update(id, user.id, {});
 

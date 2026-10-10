@@ -1,10 +1,4 @@
-import { describe, it, expect } from 'vitest';
-
-import { MASKED_SETTING_VALUE, type StorageConfig } from '@trek/shared';
-import {
-  decrypt_api_key,
-  encrypt_api_key,
-} from '../../../../src/nest/common/crypto/apiKeyCrypto';
+import { decrypt_api_key, encrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto';
 import {
   assertNoMaskSentinels,
   decryptBackendSecrets,
@@ -13,6 +7,9 @@ import {
   redactStorageSecrets,
   unmaskStorageConfig,
 } from '../../../../src/nest/storage/storage-secrets';
+import { MASKED_SETTING_VALUE, type StorageConfig } from '@trek/shared';
+
+import { describe, it, expect } from 'vitest';
 
 const S3_OPTIONS = {
   endpoint: 'http://127.0.0.1:9000',
@@ -69,7 +66,9 @@ describe('unmaskStorageConfig', () => {
     expect(() => unmaskStorageConfig(s3Config(MASKED_SETTING_VALUE), [])).toThrow(
       "re-enter the secret 'secretAccessKey' for 'off-box'",
     );
-    const renamed = [{ name: 'old-name', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: encrypt_api_key('sk') } }];
+    const renamed = [
+      { name: 'old-name', type: 's3', options: { ...S3_OPTIONS, secretAccessKey: encrypt_api_key('sk') } },
+    ];
     expect(() => unmaskStorageConfig(s3Config(MASKED_SETTING_VALUE), renamed)).toThrow(
       "re-enter the secret 'secretAccessKey' for 'off-box'",
     );

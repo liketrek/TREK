@@ -1,12 +1,6 @@
-import semver from 'semver';
+import { McpToolSchemaError, buildToolInputSchema, normaliseToolSchema, sanitiseToolText } from '../mcp-tool-schema';
+import { readPoiCategory } from '../poi-categories';
 import { isKnownPermission, PLUGIN_API_VERSION } from '../protocol/envelope';
-import { isValidTrekRange, minTrekOf, trekRangeBypassed } from './host-compat';
-import {
-  McpToolSchemaError,
-  buildToolInputSchema,
-  normaliseToolSchema,
-  sanitiseToolText,
-} from '../mcp-tool-schema';
 import {
   ACTIONS_MAX,
   ADDON_ID_RE,
@@ -28,8 +22,10 @@ import {
   TRIP_PAGE_POSITION_MAX,
   WIDGET_SLOTS,
 } from '../protocol/manifest-rules';
+import { isValidTrekRange, minTrekOf, trekRangeBypassed } from './host-compat';
 import { PLUGIN_POI_MAX_CATEGORIES, type PluginPoiCategory } from '@trek/shared';
-import { readPoiCategory } from '../poi-categories';
+
+import semver from 'semver';
 
 /**
  * Parse + validate a plugin's trek-plugin.json (#plugins, M4). Kept deliberately
@@ -262,7 +258,9 @@ export function parseManifest(raw: unknown, opts?: { requireTrek?: boolean }): P
     egress.length === 0 &&
     m.operatorEgress !== true
   ) {
-    throw new ManifestError('http:outbound declared but egress[] is empty (set operatorEgress: true if the hosts are admin-supplied)');
+    throw new ManifestError(
+      'http:outbound declared but egress[] is empty (set operatorEgress: true if the hosts are admin-supplied)',
+    );
   }
   if (egress.includes('*')) throw new ManifestError('egress[] must not contain a bare "*"');
   const badEgress = egress.find((h) => !HOST_RE.test(h));
@@ -321,7 +319,8 @@ export function parseManifest(raw: unknown, opts?: { requireTrek?: boolean }): P
 function parseRequiredAddons(raw: unknown): string[] {
   const out: string[] = [];
   for (const v of arr(raw)) {
-    if (typeof v !== 'string' || !ADDON_ID_RE.test(v)) throw new ManifestError(`invalid requiredAddons entry "${String(v)}"`);
+    if (typeof v !== 'string' || !ADDON_ID_RE.test(v))
+      throw new ManifestError(`invalid requiredAddons entry "${String(v)}"`);
     if (!out.includes(v)) out.push(v);
   }
   return out;
@@ -343,7 +342,8 @@ function parsePluginDependencies(raw: unknown, selfId: string): PluginDependency
     if (id === selfId) throw new ManifestError(`plugin "${selfId}" cannot depend on itself`);
     if (out.some((e) => e.id === id)) throw new ManifestError(`duplicate pluginDependencies id "${id}"`);
     const version = str(d.version, 'pluginDependencies.version');
-    if (semver.validRange(version) === null) throw new ManifestError(`invalid pluginDependencies version range "${version}" for "${id}"`);
+    if (semver.validRange(version) === null)
+      throw new ManifestError(`invalid pluginDependencies version range "${version}" for "${id}"`);
     out.push({ id, version });
   }
   return out;
@@ -371,15 +371,24 @@ function parseCapabilities(raw: unknown): PluginCapabilities {
       const replaces: string[] = [];
       for (const v of tp.replaces) {
         if (typeof v !== 'string' || !TABS.includes(v)) {
-          throw new ManifestError(`capabilities.tripPage.replaces: "${String(v)}" is not a replaceable tab (${REPLACEABLE_TABS.join(', ')})`);
+          throw new ManifestError(
+            `capabilities.tripPage.replaces: "${String(v)}" is not a replaceable tab (${REPLACEABLE_TABS.join(', ')})`,
+          );
         }
         if (!replaces.includes(v)) replaces.push(v);
       }
       if (replaces.length) page.replaces = replaces;
     }
     if (tp.position !== undefined) {
-      if (typeof tp.position !== 'number' || !Number.isInteger(tp.position) || tp.position < 0 || tp.position > TRIP_PAGE_POSITION_MAX) {
-        throw new ManifestError(`capabilities.tripPage.position must be an integer between 0 and ${TRIP_PAGE_POSITION_MAX}`);
+      if (
+        typeof tp.position !== 'number' ||
+        !Number.isInteger(tp.position) ||
+        tp.position < 0 ||
+        tp.position > TRIP_PAGE_POSITION_MAX
+      ) {
+        throw new ManifestError(
+          `capabilities.tripPage.position must be an integer between 0 and ${TRIP_PAGE_POSITION_MAX}`,
+        );
       }
       page.position = tp.position;
     }
@@ -395,7 +404,8 @@ function parseCapabilities(raw: unknown): PluginCapabilities {
     const title = optStr(nc.title);
     if (title) channel.title = title;
     if (nc.events !== undefined) {
-      if (!Array.isArray(nc.events)) throw new ManifestError('capabilities.notificationChannel.events must be an array');
+      if (!Array.isArray(nc.events))
+        throw new ManifestError('capabilities.notificationChannel.events must be an array');
       const events: string[] = [];
       for (const v of nc.events) {
         if (typeof v !== 'string' || !CHANNEL_EVENTS.includes(v)) {
@@ -422,9 +432,11 @@ function parseCapabilities(raw: unknown): PluginCapabilities {
       if (!ROUTE_PROFILE_ID_RE.test(id)) {
         throw new ManifestError('capabilities.routeProfiles: id must be lowercase [a-z][a-z0-9-], max 24 chars');
       }
-      if (profiles.some((x) => x.id === id)) throw new ManifestError(`capabilities.routeProfiles: duplicate id "${id}"`);
+      if (profiles.some((x) => x.id === id))
+        throw new ManifestError(`capabilities.routeProfiles: duplicate id "${id}"`);
       const label = typeof p.label === 'string' ? p.label.trim() : '';
-      if (!label || label.length > 40) throw new ManifestError('capabilities.routeProfiles: label is required (max 40 chars)');
+      if (!label || label.length > 40)
+        throw new ManifestError('capabilities.routeProfiles: label is required (max 40 chars)');
       const icon = optStr(p.icon);
       profiles.push({ id, label, ...(icon ? { icon: icon.slice(0, 40) } : {}) });
     }
@@ -525,7 +537,8 @@ function parseCapabilityNames(raw: unknown, field: string): string[] {
   if (!Array.isArray(raw)) throw new ManifestError(`capabilities.${field} must be an array of names`);
   const out: string[] = [];
   for (const v of raw) {
-    if (typeof v !== 'string' || !CAPABILITY_NAME_RE.test(v)) throw new ManifestError(`invalid capabilities.${field} entry "${String(v)}"`);
+    if (typeof v !== 'string' || !CAPABILITY_NAME_RE.test(v))
+      throw new ManifestError(`invalid capabilities.${field} entry "${String(v)}"`);
     if (!out.includes(v)) out.push(v);
   }
   return out;
@@ -550,7 +563,10 @@ function parseSettings(raw: unknown): ManifestSettingField[] {
         default: parseSettingDefault(s.default, { secret, input_type, options }),
         scope: s.scope === 'user' ? 'user' : 'instance',
         options,
-        oauth: s.oauth && typeof s.oauth === 'object' ? (s.oauth as { initPath?: string; callbackPath?: string }) : undefined,
+        oauth:
+          s.oauth && typeof s.oauth === 'object'
+            ? (s.oauth as { initPath?: string; callbackPath?: string })
+            : undefined,
       };
     })
     .filter((s) => s.key);
@@ -573,7 +589,8 @@ function parseSettingDefault(
   if (raw === undefined || raw === null || field.secret) return undefined;
   if (typeof raw !== 'string' && typeof raw !== 'number' && typeof raw !== 'boolean') return undefined;
   if (field.input_type === 'checkbox' && typeof raw !== 'boolean') return undefined;
-  if (field.options && field.options.length > 0 && !field.options.some((o) => o.value === String(raw))) return undefined;
+  if (field.options && field.options.length > 0 && !field.options.some((o) => o.value === String(raw)))
+    return undefined;
   return raw;
 }
 
@@ -636,7 +653,9 @@ function assertSettingKey(key: string): string {
   // would leave the plugin expecting a setting the host will never store.
   if (!key) return key;
   if (!SETTING_KEY_RE.test(key) || RESERVED_SETTING_KEYS.has(key)) {
-    throw new ManifestError(`invalid settings key "${key}" (letters, digits, . _ - ; must start with a letter; 1–64 chars)`);
+    throw new ManifestError(
+      `invalid settings key "${key}" (letters, digits, . _ - ; must start with a letter; 1–64 chars)`,
+    );
   }
   return key;
 }

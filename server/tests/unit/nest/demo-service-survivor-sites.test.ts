@@ -7,15 +7,19 @@
  * throw instead. The fifth site, PluginMcpToolsService, keeps its own gate and
  * is MCPTOOLS-014 in tests/unit/plugins/plugin-mcp-tools.test.ts.
  */
-import { describe, expect, it } from 'vitest';
 import type { McpContext } from '../../../src/nest-mcp';
-import { callGatedTool } from '../../helpers/mcp-gate';
-import { TripInviteMcp } from '../../../src/nest/trip-invite/trip-invite.mcp';
-import { FeedsMcp } from '../../../src/nest/feeds/feeds.mcp';
-import { CategoriesMcp } from '../../../src/nest/categories/categories.mcp';
 import { BudgetMcp } from '../../../src/nest/budget/budget.mcp';
+import { CategoriesMcp } from '../../../src/nest/categories/categories.mcp';
+import { FeedsMcp } from '../../../src/nest/feeds/feeds.mcp';
+import { TripInviteMcp } from '../../../src/nest/trip-invite/trip-invite.mcp';
+import { callGatedTool } from '../../helpers/mcp-gate';
 
-const DEMO_REFUSAL = { content: [{ type: 'text', text: 'Write operations are disabled in demo mode.' }], isError: true };
+import { describe, expect, it } from 'vitest';
+
+const DEMO_REFUSAL = {
+  content: [{ type: 'text', text: 'Write operations are disabled in demo mode.' }],
+  isError: true,
+};
 
 const ctx = { userId: 5, scopes: null, isStaticToken: false } as McpContext;
 
@@ -26,7 +30,13 @@ const stub = {} as never;
 describe('demo refusal at the former survivor sites: exact refusal body per domain', () => {
   it('DEMO-SURVIVOR-001 (trip-invite.mcp.ts): create_trip_invite_link refuses byte-for-byte in demo mode', async () => {
     const mcp = new TripInviteMcp(stub, stub, stub, stub);
-    const res = await callGatedTool(mcp, 'createTripInviteLink', { tripId: 1, expires_in_days: null }, ctx, demoBlocked);
+    const res = await callGatedTool(
+      mcp,
+      'createTripInviteLink',
+      { tripId: 1, expires_in_days: null },
+      ctx,
+      demoBlocked,
+    );
     expect(res).toEqual(DEMO_REFUSAL);
   });
 
@@ -44,7 +54,13 @@ describe('demo refusal at the former survivor sites: exact refusal body per doma
 
   it('DEMO-SURVIVOR-004 (budget.mcp.ts): create_budget_item refuses byte-for-byte in demo mode', async () => {
     const mcp = new BudgetMcp(stub, stub, stub, stub, stub, stub, stub, stub, stub, stub);
-    const res = await callGatedTool(mcp, 'createBudgetItem', { tripId: 1, name: 'Test', total_price: 10 }, ctx, demoBlocked);
+    const res = await callGatedTool(
+      mcp,
+      'createBudgetItem',
+      { tripId: 1, name: 'Test', total_price: 10 },
+      ctx,
+      demoBlocked,
+    );
     expect(res).toEqual(DEMO_REFUSAL);
   });
 });

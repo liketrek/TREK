@@ -2,21 +2,21 @@
  * Settings integration tests — SET-001 through SET-008.
  * Covers GET /api/settings, PUT /api/settings, POST /api/settings/bulk.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { authCookie } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -39,9 +39,7 @@ afterAll(async () => {
 describe('Settings', () => {
   it('SET-001: GET /api/settings returns empty object for new user', async () => {
     const { user } = createUser(testDb);
-    const res = await request(app)
-      .get('/api/settings')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/settings').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.settings).toBeDefined();
     expect(typeof res.body.settings).toBe('object');
@@ -63,10 +61,7 @@ describe('Settings', () => {
 
   it('SET-003: PUT /api/settings updates an existing key', async () => {
     const { user } = createUser(testDb);
-    await request(app)
-      .put('/api/settings')
-      .set('Cookie', authCookie(user.id))
-      .send({ key: 'theme', value: 'dark' });
+    await request(app).put('/api/settings').set('Cookie', authCookie(user.id)).send({ key: 'theme', value: 'dark' });
 
     const res = await request(app)
       .put('/api/settings')
@@ -77,9 +72,7 @@ describe('Settings', () => {
     expect(res.body.value).toBe('light');
 
     // Verify the GET reflects the updated value
-    const getRes = await request(app)
-      .get('/api/settings')
-      .set('Cookie', authCookie(user.id));
+    const getRes = await request(app).get('/api/settings').set('Cookie', authCookie(user.id));
     expect(getRes.body.settings.theme).toBe('light');
   });
 
@@ -101,9 +94,7 @@ describe('Settings', () => {
       .set('Cookie', authCookie(user.id))
       .send({ settings: { theme: 'dark', language: 'fr' } });
 
-    const res = await request(app)
-      .get('/api/settings')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/settings').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.settings.theme).toBe('dark');
     expect(res.body.settings.language).toBe('fr');
@@ -116,10 +107,7 @@ describe('Settings', () => {
 
   it('SET-007: PUT /api/settings without key returns 400', async () => {
     const { user } = createUser(testDb);
-    const res = await request(app)
-      .put('/api/settings')
-      .set('Cookie', authCookie(user.id))
-      .send({ value: 'dark' });
+    const res = await request(app).put('/api/settings').set('Cookie', authCookie(user.id)).send({ value: 'dark' });
     expect(res.status).toBe(400);
     expect(res.body.error).toBeDefined();
   });
@@ -159,9 +147,7 @@ describe('Settings', () => {
       .set('Cookie', authCookie(userA.id))
       .send({ key: 'secret_setting', value: 'user_a_secret' });
 
-    const res = await request(app)
-      .get('/api/settings')
-      .set('Cookie', authCookie(userB.id));
+    const res = await request(app).get('/api/settings').set('Cookie', authCookie(userB.id));
     expect(res.status).toBe(200);
     expect(res.body.settings.secret_setting).toBeUndefined();
   });

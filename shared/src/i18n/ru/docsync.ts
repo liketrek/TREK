@@ -181,7 +181,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Передача не прошла.',
 
   'docsync.error.unknown_provider': 'Этот провайдер недоступен в этом экземпляре.',
-  'docsync.error.provider_disabled': 'Приостановлено: администратор отключил этого провайдера. Синхронизация возобновится, как только его снова включат.',
+  'docsync.error.provider_disabled':
+    'Приостановлено: администратор отключил этого провайдера. Синхронизация возобновится, как только его снова включат.',
   'docsync.binding.reconnect': 'Подключить заново',
 };
 

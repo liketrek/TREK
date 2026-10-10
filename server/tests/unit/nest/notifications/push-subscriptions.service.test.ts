@@ -2,9 +2,29 @@
  * Web Push subscriptions: what the browser may hand over (PUSHSUB-CHK-*) and
  * the table behind it (PUSHSUB-*), on the migrated snapshot including legacy step 245.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import { createECDH } from 'node:crypto';
+import { db as testDb } from '../../../../src/db/database';
+import { PushSubscriptions } from '../../../../src/db/entities/PushSubscriptions.entity';
+import { Users } from '../../../../src/db/entities/Users.entity';
+import {
+  PUSH_SUBSCRIPTION_ERRORS,
+  checkPushEndpoint,
+  checkPushSubscription,
+  isPushServiceEndpoint,
+  type CheckedPushSubscription,
+} from '../../../../src/nest/notifications/push/push-subscription.helpers';
+import {
+  MAX_PUSH_DEVICES_PER_USER,
+  PushSubscriptionsService,
+} from '../../../../src/nest/notifications/push/push-subscriptions.service';
+import { createUser } from '../../../helpers/factories';
+import { countRows, deleteRows, updateRows } from '../../../helpers/factories/rows';
+import { makePushSubscriptionsService } from '../../../helpers/notifications';
+import { resetTestDb } from '../../../helpers/test-db';
+import { sharedTestOrm } from '../../../helpers/test-uow';
 import { MAX_PUSH_ENDPOINT_LENGTH, pushUnsubscribeRequestSchema } from '@trek/shared';
+
+import { createECDH } from 'node:crypto';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // One snapshot connection per file, created inside the factory so nothing has
 // to be hoisted above the imports; the tests reach it through the mocked module.
@@ -20,26 +40,6 @@ vi.mock('../../../../src/db/database', async () => {
     isOwner: () => false,
   };
 });
-
-import { db as testDb } from '../../../../src/db/database';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createUser } from '../../../helpers/factories';
-import { makePushSubscriptionsService } from '../../../helpers/notifications';
-import { sharedTestOrm } from '../../../helpers/test-uow';
-import { countRows, deleteRows, updateRows } from '../../../helpers/factories/rows';
-import { PushSubscriptions } from '../../../../src/db/entities/PushSubscriptions.entity';
-import { Users } from '../../../../src/db/entities/Users.entity';
-import {
-  MAX_PUSH_DEVICES_PER_USER,
-  PushSubscriptionsService,
-} from '../../../../src/nest/notifications/push/push-subscriptions.service';
-import {
-  PUSH_SUBSCRIPTION_ERRORS,
-  checkPushEndpoint,
-  checkPushSubscription,
-  isPushServiceEndpoint,
-  type CheckedPushSubscription,
-} from '../../../../src/nest/notifications/push/push-subscription.helpers';
 
 let subs: PushSubscriptionsService;
 

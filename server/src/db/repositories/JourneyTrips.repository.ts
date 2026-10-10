@@ -1,6 +1,6 @@
 import type { JourneyTrips } from '../entities/JourneyTrips.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** JG17's trip-link row (`getJourneyFull`) — the junction plus the joined trip summary and its place count. */
 export interface JourneyTripLinkRow {
@@ -126,7 +126,17 @@ export class JourneyTripsRepository extends TrekRepository<JourneyTrips> {
       .selectFrom('places as p')
       .innerJoin('day_assignments as da', 'da.place_id', 'p.id')
       .innerJoin('days as d', 'd.id', 'da.day_id')
-      .select(['p.id', 'p.name', 'p.address', 'p.lat', 'p.lng', 'p.place_time', 'da.id as assignment_id', 'd.date as day_date', 'da.assignment_time'])
+      .select([
+        'p.id',
+        'p.name',
+        'p.address',
+        'p.lat',
+        'p.lng',
+        'p.place_time',
+        'da.id as assignment_id',
+        'd.date as day_date',
+        'da.assignment_time',
+      ])
       .where('p.trip_id', '=', tripId)
       .orderBy('d.day_number', 'asc')
       .orderBy('da.order_index', 'asc')
@@ -140,7 +150,17 @@ export class JourneyTripsRepository extends TrekRepository<JourneyTrips> {
       .selectFrom('places as p')
       .innerJoin('day_assignments as da', 'da.place_id', 'p.id')
       .innerJoin('days as d', 'd.id', 'da.day_id')
-      .select(['p.id', 'p.name', 'p.address', 'p.lat', 'p.lng', 'p.place_time', 'da.id as assignment_id', 'd.date as day_date', 'da.assignment_time'])
+      .select([
+        'p.id',
+        'p.name',
+        'p.address',
+        'p.lat',
+        'p.lng',
+        'p.place_time',
+        'da.id as assignment_id',
+        'd.date as day_date',
+        'da.assignment_time',
+      ])
       .where('p.id', '=', placeId)
       .orderBy('d.day_number', 'asc')
       .orderBy('da.order_index', 'asc')

@@ -45,7 +45,13 @@ export class VacayUserYearsRepository extends TrekRepository<VacayUserYears> {
    * legacy SQL text inserts the exact same row a bound `30` does), so a
    * single flexible method, not four near-duplicates.
    */
-  async insertIgnore(userId: number, planId: number, year: number, vacationDays: number | null, carriedOver: number | null): Promise<void> {
+  async insertIgnore(
+    userId: number,
+    planId: number,
+    year: number,
+    vacationDays: number | null,
+    carriedOver: number | null,
+  ): Promise<void> {
     await this.upsert(
       { user: userId, plan: planId, year, vacation_days: vacationDays, carried_over: carriedOver },
       { onConflictFields: ['user', 'plan', 'year'], onConflictAction: 'ignore' },
@@ -68,7 +74,11 @@ export class VacayUserYearsRepository extends TrekRepository<VacayUserYears> {
   async upsertCarriedOver(userId: number, planId: number, year: number, carriedOver: number): Promise<void> {
     await this.upsert(
       { user: userId, plan: planId, year, vacation_days: 30, carried_over: carriedOver },
-      { onConflictFields: ['user', 'plan', 'year'], onConflictAction: 'merge', onConflictMergeFields: ['carried_over'] },
+      {
+        onConflictFields: ['user', 'plan', 'year'],
+        onConflictAction: 'merge',
+        onConflictMergeFields: ['carried_over'],
+      },
     );
   }
 
@@ -83,7 +93,11 @@ export class VacayUserYearsRepository extends TrekRepository<VacayUserYears> {
   async upsertVacationDays(userId: number, planId: number, year: number, vacationDays: number): Promise<void> {
     await this.upsert(
       { user: userId, plan: planId, year, vacation_days: vacationDays, carried_over: 0 },
-      { onConflictFields: ['user', 'plan', 'year'], onConflictAction: 'merge', onConflictMergeFields: ['vacation_days'] },
+      {
+        onConflictFields: ['user', 'plan', 'year'],
+        onConflictAction: 'merge',
+        onConflictMergeFields: ['vacation_days'],
+      },
     );
   }
 

@@ -1,6 +1,6 @@
 import type { PluginUserErasureQueue } from '../entities/PluginUserErasureQueue.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** The drain's own pending-row projection. */
 export interface PendingErasureRow {
@@ -15,7 +15,10 @@ type PluginUserErasureQueueKyselyDB = Pick<DB, 'plugin_user_erasure_queue' | 'pl
 export class PluginUserErasureQueueRepository extends TrekRepository<PluginUserErasureQueue> {
   /** PR8 — `INSERT OR IGNORE INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES (?, ?)` (idempotent — a duplicate enqueue for the same pair is a no-op). */
   async insertIgnore(pluginId: string, userId: number): Promise<void> {
-    await this.upsert({ plugin_id: pluginId, user_id: userId }, { onConflictFields: ['plugin_id', 'user_id'], onConflictAction: 'ignore' });
+    await this.upsert(
+      { plugin_id: pluginId, user_id: userId },
+      { onConflictFields: ['plugin_id', 'user_id'], onConflictAction: 'ignore' },
+    );
   }
 
   /**

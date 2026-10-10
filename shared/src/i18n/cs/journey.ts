@@ -214,7 +214,8 @@ const journey: TranslationStrings = {
   'journey.settings.statusManualHint': 'Nastaveno ručně. Data výletu ho nezmění, dokud nepřepnete zpět na automaticky.',
   'journey.settings.photosSection': 'Fotky',
   'journey.settings.photoLocation': 'Umístit záznamy podle jejich fotek',
-  'journey.settings.photoLocationHint': 'Záznam bez místa převezme místo, kde vznikla jeho první fotka s GPS. Místa nastavená ručně se nikdy nepřesunou.',
+  'journey.settings.photoLocationHint':
+    'Záznam bez místa převezme místo, kde vznikla jeho první fotka s GPS. Místa nastavená ručně se nikdy nepřesunou.',
   'journey.settings.endJourney': 'Archivovat cestu',
   'journey.settings.reopenJourney': 'Obnovit cestu',
   'journey.settings.archived': 'Cesta archivována',
@@ -316,12 +317,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Stáhnout tuto dvoustranu',
-  'journey.studio.downloadSpreadHint': 'Uloží návrh této dvoustrany jako soubor, bez fotografií, ke sdílení nebo dalšímu použití',
+  'journey.studio.downloadSpreadHint':
+    'Uloží návrh této dvoustrany jako soubor, bez fotografií, ke sdílení nebo dalšímu použití',
   'journey.studio.importSpread': 'Importovat',
   'journey.studio.importSpreadHint': 'Přidá dvoustranu ze staženého souboru s návrhem',
   'journey.studio.importSpreadFailed': 'Tento soubor není dvoustrana z TREK Studia',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Sazba knihy potřebuje místo, a tak je Studio jen na počítači, stejně jako tvorba PDF. Všechno ostatní z cesty tu funguje jako obvykle.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Sazba knihy potřebuje místo, a tak je Studio jen na počítači, stejně jako tvorba PDF. Všechno ostatní z cesty tu funguje jako obvykle.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -385,7 +388,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -466,7 +470,8 @@ const journey: TranslationStrings = {
   'journey.studio.paste': 'Vložit (Ctrl+V)',
   'journey.studio.pasteEmpty': 'Nejprve něco zkopírujte a pak to vložte na libovolnou stranu',
   'journey.studio.myLayouts': 'Moje rozvržení',
-  'journey.studio.myLayoutsEmpty': 'Uložte si stranu, kterou jste uspořádali, a rozvrhněte stejně i další strany. Jejich fotky a texty zůstanou.',
+  'journey.studio.myLayoutsEmpty':
+    'Uložte si stranu, kterou jste uspořádali, a rozvrhněte stejně i další strany. Jejich fotky a texty zůstanou.',
   'journey.studio.saveLayout': 'Uložit tuto stranu jako rozvržení',
   'journey.studio.saveLayoutHint': 'Uloží uspořádání bez fotek, pro všechny editory této knihy',
   'journey.studio.saveLayoutFull': 'Tato kniha pojme až 24 rozvržení. Jedno smažte, abyste mohli uložit další.',
@@ -602,8 +607,10 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Fotky',
   'journey.studio.pinPhotoNone': 'U těchto zastávek zatím nejsou žádné fotky, kreslí se proto jako tečky.',
   'journey.studio.mapSourceSatellite': 'Satelit',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 bez oblačnosti, volný k tisku s uvedením zdroje. Ostrý až na úroveň ulice.',
-  'journey.studio.mapSourceReliefHint': 'Stínovaný reliéf od NASA, volný k tisku. Vhodný pro zemi nebo kontinent, pro jedno město je příliš hrubý.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 bez oblačnosti, volný k tisku s uvedením zdroje. Ostrý až na úroveň ulice.',
+  'journey.studio.mapSourceReliefHint':
+    'Stínovaný reliéf od NASA, volný k tisku. Vhodný pro zemi nebo kontinent, pro jedno město je příliš hrubý.',
   'journey.studio.mapPrintDpi': 'Tiskne se přibližně v',
   'journey.studio.mapPrintDpiLow': 'v této velikosti bude neostrá, zkuste širší výřez nebo jiný zdroj',
   'journey.studio.mapPerTrip': 'Každá cesta zvlášť',
@@ -672,8 +679,10 @@ const journey: TranslationStrings = {
   'journey.entry.offRoute': 'Mimo trasu',
   'journey.entry.draft': 'Koncept',
   'journey.editor.draft': 'Koncept',
-  'journey.editor.draftHint': 'Tento záznam vidíte jen vy a ostatní přispěvatelé. Sdílený deník ho vynechá, dokud tuto volbu nevypnete.',
-  'journey.editor.tripSuggestionHint': 'Tento den spadá do této cesty. Propojte ji a její místa se přidají do tohoto deníku.',
+  'journey.editor.draftHint':
+    'Tento záznam vidíte jen vy a ostatní přispěvatelé. Sdílený deník ho vynechá, dokud tuto volbu nevypnete.',
+  'journey.editor.tripSuggestionHint':
+    'Tento den spadá do této cesty. Propojte ji a její místa se přidají do tohoto deníku.',
   'journey.editor.tripSuggestionLater': 'Teď ne',
   'journey.suggestions.dismiss': 'Zahodit tento návrh',
   'journey.suggestions.dismissed': 'Návrh zahozen',

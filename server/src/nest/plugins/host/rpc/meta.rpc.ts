@@ -1,21 +1,21 @@
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { PluginController, PluginMethod } from '../../../../nest-rpc/rpc-kit/decorators';
+import { DayAccommodations } from '../../../../db/entities/DayAccommodations.entity';
+import { Days } from '../../../../db/entities/Days.entity';
+import { Places } from '../../../../db/entities/Places.entity';
+import { PluginEntityMetadata } from '../../../../db/entities/PluginEntityMetadata.entity';
+import { Reservations } from '../../../../db/entities/Reservations.entity';
+import { Trips } from '../../../../db/entities/Trips.entity';
+import type { DayAccommodationsRepository } from '../../../../db/repositories/DayAccommodations.repository';
+import type { DaysRepository } from '../../../../db/repositories/Days.repository';
+import type { PlacesRepository } from '../../../../db/repositories/Places.repository';
+import type { PluginEntityMetadataRepository } from '../../../../db/repositories/PluginEntityMetadata.repository';
+import type { ReservationsRepository } from '../../../../db/repositories/Reservations.repository';
+import type { TripsRepository } from '../../../../db/repositories/Trips.repository';
 import { PluginGuards } from '../../../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../../../nest-rpc/rpc-errors';
-import { num, str } from '../../../../nest-rpc/rpc-params';
+import { PluginController, PluginMethod } from '../../../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../../../nest-rpc/rpc-kit/types';
-import { PluginEntityMetadata } from '../../../../db/entities/PluginEntityMetadata.entity';
-import type { PluginEntityMetadataRepository } from '../../../../db/repositories/PluginEntityMetadata.repository';
-import { Trips } from '../../../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../../../db/repositories/Trips.repository';
-import { Places } from '../../../../db/entities/Places.entity';
-import type { PlacesRepository } from '../../../../db/repositories/Places.repository';
-import { Days } from '../../../../db/entities/Days.entity';
-import type { DaysRepository } from '../../../../db/repositories/Days.repository';
-import { Reservations } from '../../../../db/entities/Reservations.entity';
-import type { ReservationsRepository } from '../../../../db/repositories/Reservations.repository';
-import { DayAccommodations } from '../../../../db/entities/DayAccommodations.entity';
-import type { DayAccommodationsRepository } from '../../../../db/repositories/DayAccommodations.repository';
+import { num, str } from '../../../../nest-rpc/rpc-params';
+import { InjectRepository } from '@mikro-orm/nestjs';
 
 /** Core entities a plugin may attach its own db:meta to. */
 const META_ENTITY_TYPES: ReadonlySet<string> = new Set(['trip', 'place', 'day', 'reservation', 'accommodation']);

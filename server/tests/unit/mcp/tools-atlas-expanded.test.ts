@@ -4,31 +4,37 @@
  * unmark_region_visited, get_country_atlas_places, update_bucket_list_item.
  * Also covers resources trek://atlas/stats and trek://atlas/regions.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import { db as testDb } from '../../../src/db/database';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createBucketListItem, createVisitedCountry, createTrip, createReservation } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { setAddonEnabled } from '../../helpers/test-db';
 import { ADDON_IDS } from '../../../src/addons';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow, insertRow, upsertRow } from '../../helpers/factories/rows';
-import { makePlace } from '../../helpers/factories/places';
-import { makeTrip } from '../../helpers/factories/trips';
-import { markCountryVisited } from '../../helpers/factories/atlas';
+import { db as testDb } from '../../../src/db/database';
 import { BucketList } from '../../../src/db/entities/BucketList.entity';
 import { HiddenRegions } from '../../../src/db/entities/HiddenRegions.entity';
 import { PlaceRegions } from '../../../src/db/entities/PlaceRegions.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
 import { VisitedRegions } from '../../../src/db/entities/VisitedRegions.entity';
+import {
+  createUser,
+  createBucketListItem,
+  createVisitedCountry,
+  createTrip,
+  createReservation,
+} from '../../helpers/factories';
+import { markCountryVisited } from '../../helpers/factories/atlas';
+import { makePlace } from '../../helpers/factories/places';
+import { countRows, findRow, insertRow, upsertRow } from '../../helpers/factories/rows';
+import { makeTrip } from '../../helpers/factories/trips';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { setAddonEnabled } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -53,7 +59,11 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // The atlas resources register via the nest-mcp registry inside registerTools
@@ -61,27 +71,65 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 // (same shape as tools-vacay.test.ts's withResourceHarness).
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: true });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // A place carrying an address and coordinates, which createPlace does not write.
-async function insertPlace(tripId: number, name: string, address: string | null, lat: number, lng: number): Promise<number> {
+async function insertPlace(
+  tripId: number,
+  name: string,
+  address: string | null,
+  lat: number,
+  lng: number,
+): Promise<number> {
   return (await makePlace(orm, tripId, { name, address, lat, lng, category: null })).id;
 }
 
 // The geocoder's answer for a place, pre-seeded so visitedRegions() reads the cache
 // and never reaches for Nominatim (same trick as ATLAS-UNIT-020).
-async function cacheRegion(placeId: number, countryCode: string, regionCode: string, regionName: string): Promise<void> {
-  await upsertRow(orm, PlaceRegions, { place: placeId, country_code: countryCode, region_code: regionCode, region_name: regionName });
+async function cacheRegion(
+  placeId: number,
+  countryCode: string,
+  regionCode: string,
+  regionName: string,
+): Promise<void> {
+  await upsertRow(orm, PlaceRegions, {
+    place: placeId,
+    country_code: countryCode,
+    region_code: regionCode,
+    region_name: regionName,
+  });
 }
 
-async function insertEndpoint(reservationId: number, role: 'from' | 'to', sequence: number, lat: number, lng: number): Promise<void> {
-  await insertRow(orm, ReservationEndpoints, { reservation: reservationId, role, sequence, name: `Endpoint ${sequence}`, lat, lng });
+async function insertEndpoint(
+  reservationId: number,
+  role: 'from' | 'to',
+  sequence: number,
+  lat: number,
+  lng: number,
+): Promise<void> {
+  await insertRow(orm, ReservationEndpoints, {
+    reservation: reservationId,
+    role,
+    sequence,
+    name: `Endpoint ${sequence}`,
+    lat,
+    lng,
+  });
 }
 
 /** Marks a region by hand, the way the region route stores it. */
 async function markRegion(userId: number, regionCode: string, regionName: string, countryCode: string): Promise<void> {
-  await insertRow(orm, VisitedRegions, { user: userId, region_code: regionCode, region_name: regionName, country_code: countryCode });
+  await insertRow(orm, VisitedRegions, {
+    user: userId,
+    region_code: regionCode,
+    region_name: regionName,
+    country_code: countryCode,
+  });
 }
 
 /** A wish with no coordinates; returns its id. */
@@ -548,7 +596,7 @@ describe('Resource: trek://atlas/regions', () => {
 // ---------------------------------------------------------------------------
 
 describe('Resource: trek://bucket-list', () => {
-  it('returns only the current user\'s bucket list items', async () => {
+  it("returns only the current user's bucket list items", async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
     createBucketListItem(testDb, user.id, { name: 'Tokyo' });
@@ -578,7 +626,7 @@ describe('Resource: trek://bucket-list', () => {
 // ---------------------------------------------------------------------------
 
 describe('Resource: trek://visited-countries', () => {
-  it('returns only the current user\'s visited countries', async () => {
+  it("returns only the current user's visited countries", async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
     createVisitedCountry(testDb, user.id, 'FR');

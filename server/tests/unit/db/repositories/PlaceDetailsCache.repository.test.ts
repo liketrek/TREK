@@ -4,13 +4,14 @@
  * PRIMARY KEY is the composite `(place_id, lang, expanded)` — the parity
  * proof below writes the same triple twice and asserts exactly one row.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
 import { PlaceDetailsCache } from '../../../../src/db/entities/PlaceDetailsCache.entity';
 import type { PlaceDetailsCacheRepository } from '../../../../src/db/repositories/PlaceDetailsCache.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -20,15 +21,27 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   cache = t.repo(PlaceDetailsCache);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function rawRow(placeId: string, lang: string, expanded: number) {
   return findRow(t, PlaceDetailsCache, { place_id: placeId, lang, expanded });
 }
 
 function seedEntry(placeId: string, lang: string, expanded: number, payloadJson: string, fetchedAt: number) {
-  return insertRow(t, PlaceDetailsCache, { place_id: placeId, lang, expanded, payload_json: payloadJson, fetched_at: fetchedAt });
+  return insertRow(t, PlaceDetailsCache, {
+    place_id: placeId,
+    lang,
+    expanded,
+    payload_json: payloadJson,
+    fetched_at: fetchedAt,
+  });
 }
 
 describe('PlaceDetailsCacheRepository.findEntry', () => {
@@ -75,9 +88,27 @@ describe('PlaceDetailsCacheRepository.upsertEntry — composite-key INSERT OR RE
   });
 
   it('PDCREPO-007: a different lang or expanded value for the same place_id is a SEPARATE row, not overwritten', async () => {
-    await cache.upsertEntry({ place_id: 'p1', lang: 'en', expanded: 0, payload_json: '{"kind":"details"}', fetched_at: 100 });
-    await cache.upsertEntry({ place_id: 'p1', lang: 'en', expanded: 2, payload_json: '{"kind":"enrichment"}', fetched_at: 200 });
-    await cache.upsertEntry({ place_id: 'p1', lang: 'fr', expanded: 2, payload_json: '{"kind":"enrichment-fr"}', fetched_at: 300 });
+    await cache.upsertEntry({
+      place_id: 'p1',
+      lang: 'en',
+      expanded: 0,
+      payload_json: '{"kind":"details"}',
+      fetched_at: 100,
+    });
+    await cache.upsertEntry({
+      place_id: 'p1',
+      lang: 'en',
+      expanded: 2,
+      payload_json: '{"kind":"enrichment"}',
+      fetched_at: 200,
+    });
+    await cache.upsertEntry({
+      place_id: 'p1',
+      lang: 'fr',
+      expanded: 2,
+      payload_json: '{"kind":"enrichment-fr"}',
+      fetched_at: 300,
+    });
 
     const rows = await findRows(t, PlaceDetailsCache, { place_id: 'p1' }, { lang: 'asc', expanded: 'asc' });
     expect(rows).toHaveLength(3);
@@ -98,7 +129,12 @@ describe('PlaceDetailsCacheRepository — D-shape', () => {
     // populate an entry for the later assertion to prove stale (the D-shape
     // claim would be vacuous, the same class of gap rule 20 exists to close).
     await t.repo(PlaceDetailsCache).findOne({ place_id: 'p1', lang: 'en', expanded: 2 }, { disableIdentityMap: false });
-    await updateRows(t, PlaceDetailsCache, { place_id: 'p1', lang: 'en', expanded: 2 }, { payload_json: '{"v":"new"}', fetched_at: 200 });
+    await updateRows(
+      t,
+      PlaceDetailsCache,
+      { place_id: 'p1', lang: 'en', expanded: 2 },
+      { payload_json: '{"v":"new"}', fetched_at: 200 },
+    );
 
     const connection = t.orm.em.getConnection();
     const spy = vi.spyOn(connection, 'execute');

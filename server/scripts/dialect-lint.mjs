@@ -29,8 +29,8 @@
  *
  * --dir=<path> points the check at another server root (the unit tests use it).
  */
-import { createRequire } from 'node:module';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -225,9 +225,12 @@ export function readBaseline(path) {
       throw new Error(`scripts/dialect-baseline.json: ${file} must map rule names to counts`);
     }
     for (const [rule, n] of Object.entries(rules)) {
-      if (!RULE_NAMES.has(rule)) throw new Error(`scripts/dialect-baseline.json: ${file} names an unknown rule "${rule}"`);
+      if (!RULE_NAMES.has(rule))
+        throw new Error(`scripts/dialect-baseline.json: ${file} names an unknown rule "${rule}"`);
       if (!Number.isInteger(n) || n <= 0) {
-        throw new Error(`scripts/dialect-baseline.json: ${file} ${rule} holds ${JSON.stringify(n)}, expected a positive integer`);
+        throw new Error(
+          `scripts/dialect-baseline.json: ${file} ${rule} holds ${JSON.stringify(n)}, expected a positive integer`,
+        );
       }
     }
   }
@@ -291,18 +294,27 @@ function main(argv) {
     console.error(`FAIL  ${file}: ${n} SQLite-only ${rule} hit(s), ${allowed} allowed. ${adviceFor(rule)}.`);
   }
   for (const { file, rule, allowed, now } of stale) {
-    console.error(`FAIL  ${file} is held at ${allowed} ${rule} hit(s) in scripts/dialect-baseline.json, but has ${now} now.`);
+    console.error(
+      `FAIL  ${file} is held at ${allowed} ${rule} hit(s) in scripts/dialect-baseline.json, but has ${now} now.`,
+    );
   }
   if (stale.length) {
     console.error('Run npm run lint:dialect -- --update to lower the baseline with the change that removed them.');
   }
-  const total = Object.values(baseline).reduce((sum, rules) => sum + Object.values(rules).reduce((a, b) => a + b, 0), 0);
-  console.log(`dialect: ${Object.keys(baseline).length} file(s) hold ${total} SQLite-only spelling(s) at their baseline`);
+  const total = Object.values(baseline).reduce(
+    (sum, rules) => sum + Object.values(rules).reduce((a, b) => a + b, 0),
+    0,
+  );
+  console.log(
+    `dialect: ${Object.keys(baseline).length} file(s) hold ${total} SQLite-only spelling(s) at their baseline`,
+  );
   return grown.length || stale.length ? 1 : 0;
 }
 
 const isCli =
-  Boolean(process.argv[1]) && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  Boolean(process.argv[1]) &&
+  existsSync(process.argv[1]) &&
+  realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isCli) {
   try {
     process.exitCode = main(process.argv.slice(2));

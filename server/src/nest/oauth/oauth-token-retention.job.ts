@@ -1,10 +1,10 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { OauthTokens } from '../../db/entities/OauthTokens.entity';
 import type { OauthTokensRepository } from '../../db/repositories/OauthTokens.repository';
-import { logError, logInfo } from '../audit/audit-log.logger';
 import { dbNow } from '../../db/types';
+import { logError, logInfo } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /** How long a token is kept after its refresh token expired. */
 export const OAUTH_TOKEN_RETENTION_DAYS = 30;

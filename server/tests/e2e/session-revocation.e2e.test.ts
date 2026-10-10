@@ -9,25 +9,25 @@
  * for real (two tracked sessions), the admin acts, and both of the member's
  * cookies must stop working while the admin's own session carries on.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
-import jwt from 'jsonwebtoken';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { Users } from '../../src/db/entities/Users.entity';
+import { createAdmin, createUser } from '../helpers/factories';
+import { findRow, updateRows } from '../helpers/factories/rows';
+import { sessionRows } from '../helpers/sessions';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import jwt from 'jsonwebtoken';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetRateLimits } from '../helpers/test-db';
-import { createAdmin, createUser } from '../helpers/factories';
-import { sessionRows } from '../helpers/sessions';
-import { findRow, updateRows } from '../helpers/factories/rows';
-import { Users } from '../../src/db/entities/Users.entity';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -55,7 +55,8 @@ async function signIn(email: string, password: string, device: string): Promise<
 
 const sessionIdOf = (cookie: string) => (jwt.decode(cookie.slice('trek_session='.length)) as { jti: string }).jti;
 const me = (cookie: string) => request(app).get('/api/auth/me').set('Cookie', cookie);
-const liveRows = async (userId: number) => (await sessionRows(testDb as never, userId)).filter((row) => row.revoked_at === null);
+const liveRows = async (userId: number) =>
+  (await sessionRows(testDb as never, userId)).filter((row) => row.revoked_at === null);
 
 /** An admin and a member, each signed in; the member on two devices. */
 async function signedInPair(name: string) {
@@ -69,7 +70,7 @@ async function signedInPair(name: string) {
   };
 }
 
-describe('Admin actions that end another account\'s sessions', () => {
+describe("Admin actions that end another account's sessions", () => {
   it('SESS-E2E-ADMIN-001: setting a new password for a member ends every session of that member', async () => {
     const { adminCookie, member, laptop, phone } = await signedInPair('sess-admin-pw');
     expect((await me(laptop)).status).toBe(200);
@@ -82,12 +83,14 @@ describe('Admin actions that end another account\'s sessions', () => {
 
     expect((await me(laptop)).status).toBe(401);
     expect((await me(phone)).status).toBe(401);
-    expect((await sessionRows(testDb as never, member.id)).map((row) => row.id).sort()).toEqual([sessionIdOf(laptop), sessionIdOf(phone)].sort());
+    expect((await sessionRows(testDb as never, member.id)).map((row) => row.id).sort()).toEqual(
+      [sessionIdOf(laptop), sessionIdOf(phone)].sort(),
+    );
     expect(await liveRows(member.id)).toEqual([]);
     expect((await me(adminCookie)).status).toBe(200);
   }, 30000);
 
-  it('SESS-E2E-ADMIN-002: clearing a member\'s two-factor ends every session of that member', async () => {
+  it("SESS-E2E-ADMIN-002: clearing a member's two-factor ends every session of that member", async () => {
     const { adminCookie, member, laptop, phone } = await signedInPair('sess-admin-mfa');
     await updateRows(nestApp.get(MikroORM), Users, { id: member.id }, { mfa_enabled: 1, mfa_secret: 'x' });
 
@@ -102,7 +105,7 @@ describe('Admin actions that end another account\'s sessions', () => {
     expect((await me(adminCookie)).status).toBe(200);
   }, 30000);
 
-  it('SESS-E2E-ADMIN-003: deleting a member takes the member\'s session rows with the account', async () => {
+  it("SESS-E2E-ADMIN-003: deleting a member takes the member's session rows with the account", async () => {
     const { adminCookie, member, laptop, phone } = await signedInPair('sess-admin-delete');
     expect(await sessionRows(testDb as never, member.id)).toHaveLength(2);
 

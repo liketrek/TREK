@@ -6,43 +6,51 @@
  * factories in tests/helpers/factories. Only the permission check stays
  * mocked.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { TodoCategoryAssignees } from '../../src/db/entities/TodoCategoryAssignees.entity';
+import { TodoItems } from '../../src/db/entities/TodoItems.entity';
+import { TripMembers } from '../../src/db/entities/TripMembers.entity';
+import { Trips } from '../../src/db/entities/Trips.entity';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { TodoModule } from '../../src/nest/todo/todo.module';
+import { countRows, deleteRows, findRow, findRows, insertRow } from '../helpers/factories/rows';
+import { addTripMember, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
 
-import { db } from '../../src/db/database';
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
-
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
 let checkPermission: MockInstance;
 
-import { TodoModule } from '../../src/nest/todo/todo.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeUser } from '../helpers/factories/users';
-import { addTripMember, makeTrip } from '../helpers/factories/trips';
-import { countRows, deleteRows, findRow, findRows, insertRow } from '../helpers/factories/rows';
-import { TodoCategoryAssignees } from '../../src/db/entities/TodoCategoryAssignees.entity';
-import { TodoItems } from '../../src/db/entities/TodoItems.entity';
-import { TripMembers } from '../../src/db/entities/TripMembers.entity';
-import { Trips } from '../../src/db/entities/Trips.entity';
-
 let orm: TestOrm;
 
-function insertItem(tripId: number, name: string, extra: Partial<{ sort_order: number; due_date: string }> = {}): Promise<number> {
-  return insertRow(orm, TodoItems, { trip: tripId, name, sort_order: extra.sort_order ?? 0, due_date: extra.due_date ?? null });
+function insertItem(
+  tripId: number,
+  name: string,
+  extra: Partial<{ sort_order: number; due_date: string }> = {},
+): Promise<number> {
+  return insertRow(orm, TodoItems, {
+    trip: tripId,
+    name,
+    sort_order: extra.sort_order ?? 0,
+    due_date: extra.due_date ?? null,
+  });
 }
 
 describe('To-do e2e (real auth guard + real SQL over temp SQLite)', () => {
@@ -51,7 +59,9 @@ describe('To-do e2e (real auth guard + real SQL over temp SQLite)', () => {
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, TodoModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, TodoModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -108,7 +118,10 @@ describe('To-do e2e (real auth guard + real SQL over temp SQLite)', () => {
 
   it('201 on create, inserting the row with the legacy defaults and incrementing sort_order', async () => {
     await insertItem(tripId, 'Existing', { sort_order: 4 });
-    const res = await request(server).post(`/api/trips/${tripId}/todo`).set('Cookie', sessionCookie(1)).send({ name: 'Book hotel' });
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/todo`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Book hotel' });
     expect(res.status).toBe(201);
     expect(res.body.item).toMatchObject({ name: 'Book hotel', checked: 0, priority: 0, sort_order: 5 });
     expect((await findRow(orm, TodoItems, { id: res.body.item.id }))!.name).toBe('Book hotel');
@@ -128,14 +141,20 @@ describe('To-do e2e (real auth guard + real SQL over temp SQLite)', () => {
 
   it('accepts the legacy numeric checked form through the pipe', async () => {
     const id = await insertItem(tripId, 'Toggle me');
-    const res = await request(server).put(`/api/trips/${tripId}/todo/${id}`).set('Cookie', sessionCookie(1)).send({ checked: 1 });
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/todo/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ checked: 1 });
     expect(res.status).toBe(200);
     expect(res.body.item.checked).toBe(1);
   });
 
   it('403 on create without permission, writing nothing', async () => {
     checkPermission.mockReturnValue(false);
-    const res = await request(server).post(`/api/trips/${tripId}/todo`).set('Cookie', sessionCookie(1)).send({ name: 'X' });
+    const res = await request(server)
+      .post(`/api/trips/${tripId}/todo`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'X' });
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'No permission' });
     expect(await countRows(orm, TodoItems)).toBe(0);
@@ -143,16 +162,25 @@ describe('To-do e2e (real auth guard + real SQL over temp SQLite)', () => {
 
   it('200 on update; a body key with null clears the field, omitted keys stay', async () => {
     const id = await insertItem(tripId, 'Task', { due_date: '2026-06-01' });
-    const renamed = await request(server).put(`/api/trips/${tripId}/todo/${id}`).set('Cookie', sessionCookie(1)).send({ name: 'Renamed' });
+    const renamed = await request(server)
+      .put(`/api/trips/${tripId}/todo/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Renamed' });
     expect(renamed.status).toBe(200);
     expect(renamed.body.item).toMatchObject({ id, name: 'Renamed', due_date: '2026-06-01' });
-    const cleared = await request(server).put(`/api/trips/${tripId}/todo/${id}`).set('Cookie', sessionCookie(1)).send({ due_date: null });
+    const cleared = await request(server)
+      .put(`/api/trips/${tripId}/todo/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ due_date: null });
     expect(cleared.status).toBe(200);
     expect(cleared.body.item.due_date).toBeNull();
   });
 
   it('404 on update of a missing item', async () => {
-    const res = await request(server).put(`/api/trips/${tripId}/todo/9999`).set('Cookie', sessionCookie(1)).send({ name: 'X' });
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/todo/9999`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'X' });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Item not found' });
   });
@@ -163,7 +191,10 @@ describe('To-do e2e (real auth guard + real SQL over temp SQLite)', () => {
   // column-affinity CAST to simply not match (the legacy outcome was also a
   // 404, same status — this pins the gate itself, not just the status).
   it('404 (not 500) on update with a non-numeric :id', async () => {
-    const res = await request(server).put(`/api/trips/${tripId}/todo/abc`).set('Cookie', sessionCookie(1)).send({ name: 'X' });
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/todo/abc`)
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'X' });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Item not found' });
   });
@@ -177,7 +208,10 @@ describe('To-do e2e (real auth guard + real SQL over temp SQLite)', () => {
   it('200 on reorder, persisting the new sort_order', async () => {
     const a = await insertItem(tripId, 'A', { sort_order: 0 });
     const b = await insertItem(tripId, 'B', { sort_order: 1 });
-    const res = await request(server).put(`/api/trips/${tripId}/todo/reorder`).set('Cookie', sessionCookie(1)).send({ orderedIds: [b, a] });
+    const res = await request(server)
+      .put(`/api/trips/${tripId}/todo/reorder`)
+      .set('Cookie', sessionCookie(1))
+      .send({ orderedIds: [b, a] });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true });
     const rows = await findRows(orm, TodoItems, { trip: tripId }, { sort_order: 'asc' });
@@ -203,7 +237,9 @@ describe('To-do e2e (real auth guard + real SQL over temp SQLite)', () => {
       .send({ user_ids: [1, 2] });
     expect(put.status).toBe(200);
     expect(put.body.assignees).toHaveLength(2);
-    const get = await request(server).get(`/api/trips/${tripId}/todo/category-assignees`).set('Cookie', sessionCookie(1));
+    const get = await request(server)
+      .get(`/api/trips/${tripId}/todo/category-assignees`)
+      .set('Cookie', sessionCookie(1));
     expect(get.status).toBe(200);
     expect(get.body.assignees.Booking).toHaveLength(2);
     const replaced = await request(server)

@@ -2,22 +2,29 @@
  * Unit tests for MCP extra assignment/reservation tools:
  * move_assignment, get_assignment_participants, set_assignment_participants, reorder_reservations.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { AssignmentParticipants } from '../../../src/db/entities/AssignmentParticipants.entity';
+import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createDayAssignment,
+  createReservation,
+} from '../../helpers/factories';
+import { findRow, insertRow } from '../../helpers/factories/rows';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment, createReservation } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { findRow, insertRow } from '../../helpers/factories/rows';
-import { AssignmentParticipants } from '../../../src/db/entities/AssignmentParticipants.entity';
-import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -41,7 +48,11 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -60,7 +71,13 @@ describe('Tool: move_assignment', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'move_assignment',
-        arguments: { tripId: trip.id, assignmentId: assignment.id, newDayId: day2.id, oldDayId: day1.id, orderIndex: 0 },
+        arguments: {
+          tripId: trip.id,
+          assignmentId: assignment.id,
+          newDayId: day2.id,
+          oldDayId: day1.id,
+          orderIndex: 0,
+        },
       });
       const data = parseToolResult(result) as any;
       expect(data.assignment).toBeDefined();
@@ -131,7 +148,10 @@ describe('Tool: get_assignment_participants', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'get_assignment_participants', arguments: { tripId: trip.id, assignmentId: 1 } });
+      const result = await h.client.callTool({
+        name: 'get_assignment_participants',
+        arguments: { tripId: trip.id, assignmentId: 1 },
+      });
       expect(result.isError).toBe(true);
     });
   });

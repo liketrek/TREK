@@ -39,8 +39,7 @@ const packing: TranslationStrings = {
   'packing.importError': 'İdxal uğursuz oldu',
   'packing.importEmpty': 'İdxal ediləcək element yoxdur',
 
-  'packing.progress':
-    '{total} elementdən {packed} yığılıb ({percent}%)',
+  'packing.progress': '{total} elementdən {packed} yığılıb ({percent}%)',
   'packing.clearChecked': 'İşarələnmiş {count} elementi sil',
   'packing.clearChecked.one': 'İşarələnmiş {count} elementi sil',
   'packing.clearCheckedShort': '{count} elementi sil',
@@ -57,8 +56,7 @@ const packing: TranslationStrings = {
   'packing.sortByName': 'A-dan Z-yə',
 
   'packing.emptyTitle': 'Baqaj siyahısı boşdur',
-  'packing.emptyFiltered':
-    'Bu filtrə uyğun heç bir element yoxdur',
+  'packing.emptyFiltered': 'Bu filtrə uyğun heç bir element yoxdur',
 
   'packing.menuRename': 'Adını dəyiş',
   'packing.menuCheckAll': 'Hamısını işarələ',
@@ -69,19 +67,16 @@ const packing: TranslationStrings = {
   'packing.addItem': 'Element əlavə et',
   'packing.addItemPlaceholder': 'Elementin adı...',
   'packing.addCategory': 'Siyahı əlavə et',
-  'packing.newCategoryPlaceholder':
-    'Siyahının adı (məs. Geyim)',
+  'packing.newCategoryPlaceholder': 'Siyahının adı (məs. Geyim)',
 
   'packing.applyTemplate': 'Şablonu tətbiq et',
   'packing.template': 'Şablon',
-  'packing.templateApplied':
-    'Şablondan {count} element əlavə edildi',
+  'packing.templateApplied': 'Şablondan {count} element əlavə edildi',
   'packing.templateApplied.one': 'Şablondan {count} element əlavə edildi',
   'packing.templateError': 'Şablonu tətbiq etmək mümkün olmadı',
   'packing.saveAsTemplate': 'Şablon kimi yadda saxla',
   'packing.templateName': 'Şablonun adı',
-  'packing.templateSaved':
-    'Baqaj siyahısı şablon kimi yadda saxlanıldı',
+  'packing.templateSaved': 'Baqaj siyahısı şablon kimi yadda saxlanıldı',
 
   'packing.bags': 'Çantalar',
   'packing.noBag': 'Təyin edilməyib',
@@ -100,13 +95,11 @@ const packing: TranslationStrings = {
   'packing.viewCommon': 'Paylaşılan',
   'packing.viewPersonal': 'Mənim siyahım',
   'packing.share': 'Paylaşım',
-  'packing.tierCommonHint':
-    'Ümumi siyahıdadır və hər kəsə görünür',
+  'packing.tierCommonHint': 'Ümumi siyahıdadır və hər kəsə görünür',
   'packing.tierPersonal': 'Şəxsi',
   'packing.tierPersonalHint': 'Şəxsi — yalnız siz görə bilərsiniz',
   'packing.tierShared': 'Paylaşılıb:',
-  'packing.noOneToShare':
-    'Bu səyahətdə hələ başqa üzv yoxdur',
+  'packing.noOneToShare': 'Bu səyahətdə hələ başqa üzv yoxdur',
 
   'packing.takenCareOf': '{name} cavabdehdir',
   'packing.sharedWithCount': '{count} nəfərlə paylaşılıb',
@@ -116,8 +109,7 @@ const packing: TranslationStrings = {
   'packing.alsoBringingStop': 'Mən bunu gətirməyəcəyəm',
   'packing.cloneToMine': 'Mənim siyahıma köçür',
 
-  'packing.confirm.clearChecked':
-    'İşarələnmiş {count} elementi silmək istədiyinizə əminsiniz?',
+  'packing.confirm.clearChecked': 'İşarələnmiş {count} elementi silmək istədiyinizə əminsiniz?',
   'packing.confirm.clearChecked.one': 'İşarələnmiş {count} elementi silmək istədiyinizə əminsiniz?',
   'packing.confirm.deleteCat':
     '“{name}” siyahısını daxilindəki {count} elementlə birlikdə silmək istədiyinizə əminsiniz?',
@@ -129,7 +121,6 @@ const packing: TranslationStrings = {
   'packing.toast.deleteError': 'Silmək mümkün olmadı',
   'packing.toast.renameError': 'Adını dəyişmək mümkün olmadı',
   'packing.toast.addError': 'Əlavə etmək mümkün olmadı',
-
 
   'packing.bagLimit': 'Çəki limiti',
   'packing.setBagLimit': 'Limit təyin et',

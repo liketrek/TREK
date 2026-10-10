@@ -1,7 +1,8 @@
-import { HttpException } from '@nestjs/common';
-import type { Request } from 'express';
-import { PUBLIC_API_SCOPES, type PublicApiScope } from '@trek/shared';
 import type { RateLimitService } from '../common/rate-limit.service';
+import { HttpException } from '@nestjs/common';
+import { PUBLIC_API_SCOPES, type PublicApiScope } from '@trek/shared';
+
+import type { Request } from 'express';
 
 /**
  * What every `/api/v1` route does with the incoming request, in one place because

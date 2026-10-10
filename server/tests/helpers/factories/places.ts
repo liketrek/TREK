@@ -1,9 +1,9 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { Categories } from '../../../src/db/entities/Categories.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { Tags } from '../../../src/db/entities/Tags.entity';
 import { inContext, nextSeq, type FactoryOrm } from './context';
 import { createRow } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type PlaceRow = EntityDTO<Places>;
 export type CategoryRow = EntityDTO<Categories>;
@@ -42,7 +42,11 @@ function firstCategoryId(orm: FactoryOrm): Promise<number | null> {
  * seeded category when `category` is not given (pass `category: null` for
  * an uncategorised one).
  */
-export async function makePlace(orm: FactoryOrm, tripId: number, overrides: EntityData<Places> = {}): Promise<PlaceRow> {
+export async function makePlace(
+  orm: FactoryOrm,
+  tripId: number,
+  overrides: EntityData<Places> = {},
+): Promise<PlaceRow> {
   const category = 'category' in overrides ? overrides.category : await firstCategoryId(orm);
   return createRow(orm, Places, {
     trip: tripId,

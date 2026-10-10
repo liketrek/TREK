@@ -8,9 +8,11 @@ const dawarich: TranslationStrings = {
   'dawarich.url': 'Адреса сервера',
   'dawarich.apiKey': 'Ключ API',
   'dawarich.apiKeyPlaceholder': 'Вставте свій ключ API Dawarich',
-  'dawarich.apiKeyHint': 'Шукайте в Dawarich у розділі «Обліковий запис → Ключ API». Зберігається зашифрованим і більше ніколи не показується.',
+  'dawarich.apiKeyHint':
+    'Шукайте в Dawarich у розділі «Обліковий запис → Ключ API». Зберігається зашифрованим і більше ніколи не показується.',
   'dawarich.allowInsecureTls': 'Дозволити самопідписаний сертифікат',
-  'dawarich.allowInsecureTlsHint': 'Потрібно лише тоді, коли ваш сервер використовує сертифікат, якому ваш сервер не довіряє.',
+  'dawarich.allowInsecureTlsHint':
+    'Потрібно лише тоді, коли ваш сервер використовує сертифікат, якому ваш сервер не довіряє.',
   'dawarich.syncEnabled': 'Автоматично перевіряти нові перебування',
   'dawarich.syncEnabledHint': 'Якщо вимкнено, TREK читає Dawarich лише на ваш запит.',
   'dawarich.test.button': 'Перевірити з’єднання',
@@ -63,7 +65,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Доповнення Dawarich вимкнено на цьому сервері.',
   'dawarich.error.offline': 'Для цього потрібне з’єднання — TREK зараз офлайн.',
   'dawarich.error.invalid_url': 'TREK не може використати цю адресу.',
-  'dawarich.warning.private_ip': 'Ця адреса вказує на приватну IP ({ip}). Перевірте, чи саме це мали на увазі — серверу може знадобитися ALLOW_INTERNAL_NETWORK=true.',
+  'dawarich.warning.private_ip':
+    'Ця адреса вказує на приватну IP ({ip}). Перевірте, чи саме це мали на увазі — серверу може знадобитися ALLOW_INTERNAL_NETWORK=true.',
   'dawarich.error.unknown': 'Щось пішло не так під час обміну даними з Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -214,7 +217,6 @@ const dawarich: TranslationStrings = {
   'dawarich.journey.dayStays.one': '{count} перебування з Dawarich',
   'dawarich.journey.dayStays.few': '{count} перебування з Dawarich',
   'dawarich.journey.dayStays.many': '{count} перебувань із Dawarich',
-
 };
 
 export default dawarich;

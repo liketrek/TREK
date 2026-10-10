@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { describe, it, expect } from 'vitest';
 
 // Container management UIs let you edit a running container's command, and they
 // do it by rendering Config.Cmd back into a text field and re-splitting it with a

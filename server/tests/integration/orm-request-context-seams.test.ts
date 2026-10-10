@@ -29,29 +29,29 @@
  * `@nestjs/core`'s `nest-application.js`/`.d.ts` — the field is `config`, NOT
  * `applicationConfig`, despite the class's own name).
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { PlaceShadowPicks } from '../../src/db/entities/PlaceShadowPicks.entity';
+import { Users } from '../../src/db/entities/Users.entity';
+import { PlaceShadowRetentionJob } from '../../src/nest/place-shadow/place-shadow.job';
+import { PluginRuntimeService } from '../../src/nest/plugins/plugin-runtime.service';
+import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
+import { StorageService } from '../../src/nest/storage/storage.service';
+import { generateToken } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import { countRows, insertRow } from '../helpers/factories/rows';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { MikroORM } from '@mikro-orm/core';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import request from 'supertest';
-import type { Application } from 'express';
-import { buildApp } from '../../src/bootstrap';
-import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
-import { PluginRuntimeService } from '../../src/nest/plugins/plugin-runtime.service';
-import { PlaceShadowRetentionJob } from '../../src/nest/place-shadow/place-shadow.job';
-import { StorageService } from '../../src/nest/storage/storage.service';
-import { Users } from '../../src/db/entities/Users.entity';
-import { PlaceShadowPicks } from '../../src/db/entities/PlaceShadowPicks.entity';
-import { countRows, insertRow } from '../helpers/factories/rows';
-import { createUser } from '../helpers/factories';
-import { generateToken } from '../helpers/auth';
 
 describe('ORM request-context seams populated in production', () => {
   let app: INestApplication;

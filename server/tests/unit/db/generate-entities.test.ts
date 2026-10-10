@@ -1,12 +1,3 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { EntityMetadata, type EntityRepository, ReferenceKind, type EntityProperty } from '@mikro-orm/core';
-import { describe, expect, expectTypeOf, it } from 'vitest';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm } from '../../helpers/test-orm';
 import {
   assertFilesGenerated,
   BOOLEAN_COLUMNS,
@@ -54,6 +45,16 @@ import {
   writeRepositoriesIfMissing,
   type DefaultFixup,
 } from '../../../scripts/generate-entities';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createTestOrm } from '../../helpers/test-orm';
+import { EntityMetadata, type EntityRepository, ReferenceKind, type EntityProperty } from '@mikro-orm/core';
+
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
 const ENTITIES_DIR = path.join(__dirname, '../../../src/db/entities');
 const REPOSITORIES_DIR = path.join(__dirname, '../../../src/db/repositories');
@@ -161,7 +162,15 @@ describe('RULE1b_markJsonColumns', () => {
 
 describe('RULE1c_markBooleanColumns', () => {
   it('RULE1C-001: marks a known boolean column type=boolean, runtimeType=boolean, coerces a falsy numeric default (I4)', () => {
-    const p = fixtureProp({ name: 'enabled', type: 'integer', runtimeType: 'number', fieldNames: ['enabled'], nullable: true, default: 0, defaultRaw: '0' });
+    const p = fixtureProp({
+      name: 'enabled',
+      type: 'integer',
+      runtimeType: 'number',
+      fieldNames: ['enabled'],
+      nullable: true,
+      default: 0,
+      defaultRaw: '0',
+    });
     const meta = fixtureMeta('Addons', 'addons', [p]);
     const fixups = RULE1c_markBooleanColumns([meta]);
     expect(p.type).toBe('boolean');
@@ -211,7 +220,13 @@ describe('RULE1d_fixNaNNumericDefaults', () => {
   });
 
   it('RULE1D-002: a non-literal expression default with a NaN default clears the initialiser', () => {
-    const p = fixtureProp({ name: 'created_at', type: 'integer', nullable: false, defaultRaw: "(strftime('%s','now'))", default: NaN });
+    const p = fixtureProp({
+      name: 'created_at',
+      type: 'integer',
+      nullable: false,
+      defaultRaw: "(strftime('%s','now'))",
+      default: NaN,
+    });
     const meta = fixtureMeta('IdempotencyKeys', 'idempotency_keys', [p]);
     RULE1d_fixNaNNumericDefaults([meta]);
     expect(p.default).toBeUndefined();
@@ -268,7 +283,13 @@ describe('RULE3_integerPkAutoincrement', () => {
   });
 
   it('RULE3-002: a composite PK is untouched', () => {
-    const a = fixtureProp({ name: 'trip', type: 'integer', columnTypes: ['INTEGER'], primary: true, kind: ReferenceKind.MANY_TO_ONE });
+    const a = fixtureProp({
+      name: 'trip',
+      type: 'integer',
+      columnTypes: ['INTEGER'],
+      primary: true,
+      kind: ReferenceKind.MANY_TO_ONE,
+    });
     const b = fixtureProp({ name: 'category', type: 'text', columnTypes: ['TEXT'], primary: true, nullable: true });
     const meta = fixtureMeta('X', 'x', [a, b]);
     RULE3_integerPkAutoincrement([meta]);
@@ -300,7 +321,12 @@ describe('RULE4_hideAllRelations', () => {
 
 describe('RULE5_renameOwningRelations', () => {
   it('RULE5-001: a normal FK relation is renamed camelCase(column minus _id)', () => {
-    const rel = fixtureProp({ name: 'start_day', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['start_day_id'], type: 'Days' });
+    const rel = fixtureProp({
+      name: 'start_day',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['start_day_id'],
+      type: 'Days',
+    });
     const meta = fixtureMeta('DayAccommodations', 'day_accommodations', [rel]);
     const fixups = RULE5_renameOwningRelations([meta]);
     expect(meta.properties['startDay']).toBe(rel);
@@ -309,16 +335,28 @@ describe('RULE5_renameOwningRelations', () => {
   });
 
   it('RULE5-002: a collision-class column (no _id suffix) is renamed <camel>Ref and recorded for joinColumn', () => {
-    const rel = fixtureProp({ name: 'country', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['country'], type: 'SchoolHolidayCountries' });
+    const rel = fixtureProp({
+      name: 'country',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['country'],
+      type: 'SchoolHolidayCountries',
+    });
     const meta = fixtureMeta('SchoolHolidayRegions', 'school_holiday_regions', [rel]);
     const fixups = RULE5_renameOwningRelations([meta]);
     expect(meta.properties['countryRef']).toBe(rel);
     expect(rel.name).toBe('countryRef');
-    expect(fixups).toEqual<JoinColumnFixup[]>([{ className: 'SchoolHolidayRegions', propName: 'countryRef', column: 'country' }]);
+    expect(fixups).toEqual<JoinColumnFixup[]>([
+      { className: 'SchoolHolidayRegions', propName: 'countryRef', column: 'country' },
+    ]);
   });
 
   it('RULE5-003: multi-word collision column created_by -> createdByRef', () => {
-    const rel = fixtureProp({ name: 'created_by', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['created_by'], type: 'Users' });
+    const rel = fixtureProp({
+      name: 'created_by',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['created_by'],
+      type: 'Users',
+    });
     const meta = fixtureMeta('AuditLog', 'audit_log', [rel]);
     const fixups = RULE5_renameOwningRelations([meta]);
     expect(rel.name).toBe('createdByRef');
@@ -326,7 +364,12 @@ describe('RULE5_renameOwningRelations', () => {
   });
 
   it('RULE5-004: an inverse mappedBy pointing at a renamed owning relation is fixed up to the new name', () => {
-    const owning = fixtureProp({ name: 'start_day', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['start_day_id'], type: 'Days' });
+    const owning = fixtureProp({
+      name: 'start_day',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['start_day_id'],
+      type: 'Days',
+    });
     const ownerMeta = fixtureMeta('DayAccommodations', 'day_accommodations', [owning]);
     const inverse = fixtureProp({
       name: 'dayAccommodationsCollection',
@@ -340,7 +383,12 @@ describe('RULE5_renameOwningRelations', () => {
   });
 
   it('RULE5-005: a client_id FK is NOT collision class (ends in _id) -> renamed client, no fixup', () => {
-    const rel = fixtureProp({ name: 'client', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['client_id'], type: 'OauthClients' });
+    const rel = fixtureProp({
+      name: 'client',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['client_id'],
+      type: 'OauthClients',
+    });
     const meta = fixtureMeta('X', 'x', [rel]);
     const fixups = RULE5_renameOwningRelations([meta]);
     expect(rel.name).toBe('client');
@@ -348,7 +396,12 @@ describe('RULE5_renameOwningRelations', () => {
   });
 
   it('RULE5-006: a multi-column FK throws, naming the entity and property (I1)', () => {
-    const rel = fixtureProp({ name: 'weird', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['a_id', 'b_id'], type: 'Y' });
+    const rel = fixtureProp({
+      name: 'weird',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['a_id', 'b_id'],
+      type: 'Y',
+    });
     const meta = fixtureMeta('X', 'x', [rel]);
     expect(() => RULE5_renameOwningRelations([meta])).toThrow(/X\.weird is a multi-column FK/);
   });
@@ -359,16 +412,26 @@ describe('RULE5_renameOwningRelations', () => {
     // inserts an underscore between a LOWERCASE letter and an uppercase one
     // — the digit before "Config" blocks that, so it comes back "v2config",
     // not "v2_config". A genuine, schema-plausible round-trip failure.
-    const rel = fixtureProp({ name: 'v2_config', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['v2_config_id'], type: 'Configs' });
+    const rel = fixtureProp({
+      name: 'v2_config',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['v2_config_id'],
+      type: 'Configs',
+    });
     const meta = fixtureMeta('X', 'x', [rel]);
     const fixups = RULE5_renameOwningRelations([meta]);
     expect(rel.name).toBe('v2Config');
     expect(fixups).toEqual<JoinColumnFixup[]>([{ className: 'X', propName: 'v2Config', column: 'v2_config_id' }]);
   });
 
-  it('RULE5-008: a renamed relation keeps its original position among the entity\'s properties (M7)', () => {
+  it("RULE5-008: a renamed relation keeps its original position among the entity's properties (M7)", () => {
     const before = fixtureProp({ name: 'before', kind: ReferenceKind.SCALAR });
-    const rel = fixtureProp({ name: 'start_day', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['start_day_id'], type: 'Days' });
+    const rel = fixtureProp({
+      name: 'start_day',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['start_day_id'],
+      type: 'Days',
+    });
     const after = fixtureProp({ name: 'after', kind: ReferenceKind.SCALAR });
     const meta = fixtureMeta('DayAccommodations', 'day_accommodations', [before, rel, after]);
     RULE5_renameOwningRelations([meta]);
@@ -386,7 +449,11 @@ describe('RULE6_renameInverseCollections', () => {
   });
 
   it('RULE6-002: a disambiguating trailing digit is preserved, not underscore-separated', () => {
-    const inv = fixtureProp({ name: 'dayAccommodationsCollection1', kind: ReferenceKind.ONE_TO_MANY, mappedBy: 'end_day' });
+    const inv = fixtureProp({
+      name: 'dayAccommodationsCollection1',
+      kind: ReferenceKind.ONE_TO_MANY,
+      mappedBy: 'end_day',
+    });
     const meta = fixtureMeta('Days', 'days', [inv]);
     RULE6_renameInverseCollections([meta]);
     expect(inv.name).toBe('day_accommodations_collection1');
@@ -401,7 +468,7 @@ describe('RULE6_renameInverseCollections', () => {
     expect(owning.name).toBe('trip');
   });
 
-  it('RULE6-004: a renamed inverse collection keeps its original position among the entity\'s properties (M7)', () => {
+  it("RULE6-004: a renamed inverse collection keeps its original position among the entity's properties (M7)", () => {
     const before = fixtureProp({ name: 'before', kind: ReferenceKind.SCALAR });
     const inv = fixtureProp({ name: 'dayNotesCollection', kind: ReferenceKind.ONE_TO_MANY, mappedBy: 'day' });
     const after = fixtureProp({ name: 'after', kind: ReferenceKind.SCALAR });
@@ -413,8 +480,18 @@ describe('RULE6_renameInverseCollections', () => {
 
 describe('RULE7_dropNoActionRules', () => {
   it('RULE7-001: drops updateRule/deleteRule "no action", keeps every other value', () => {
-    const noAction = fixtureProp({ name: 'a', kind: ReferenceKind.MANY_TO_ONE, updateRule: 'no action', deleteRule: 'no action' });
-    const cascade = fixtureProp({ name: 'b', kind: ReferenceKind.MANY_TO_ONE, updateRule: 'no action', deleteRule: 'cascade' });
+    const noAction = fixtureProp({
+      name: 'a',
+      kind: ReferenceKind.MANY_TO_ONE,
+      updateRule: 'no action',
+      deleteRule: 'no action',
+    });
+    const cascade = fixtureProp({
+      name: 'b',
+      kind: ReferenceKind.MANY_TO_ONE,
+      updateRule: 'no action',
+      deleteRule: 'cascade',
+    });
     const meta = fixtureMeta('X', 'x', [noAction, cascade]);
     RULE7_dropNoActionRules([meta]);
     expect(noAction.updateRule).toBeUndefined();
@@ -448,8 +525,14 @@ describe('RULE10_repositoryTypeMarker', () => {
 });
 
 describe('RULE11_referencedColumns', () => {
-  it('RULE11-001: an FK targeting its target\'s own single-column PK gets no fixup (the common case)', () => {
-    const rel = fixtureProp({ name: 'user', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['user_id'], type: 'Users', referencedColumnNames: ['id'] });
+  it("RULE11-001: an FK targeting its target's own single-column PK gets no fixup (the common case)", () => {
+    const rel = fixtureProp({
+      name: 'user',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['user_id'],
+      type: 'Users',
+      referencedColumnNames: ['id'],
+    });
     const owner = fixtureMeta('OauthTokens', 'oauth_tokens', [rel]);
     const target = fixtureMeta('Users', 'users', [fixtureProp({ name: 'id', primary: true })]);
     const fixups = RULE11_referencedColumns([owner, target]);
@@ -457,30 +540,58 @@ describe('RULE11_referencedColumns', () => {
   });
 
   it('RULE11-002: an FK targeting a non-PK column (the real oauth_tokens.client_id -> oauth_clients.client_id case) gets a fixup', () => {
-    const rel = fixtureProp({ name: 'client', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['client_id'], type: 'OauthClients', referencedColumnNames: ['client_id'] });
+    const rel = fixtureProp({
+      name: 'client',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['client_id'],
+      type: 'OauthClients',
+      referencedColumnNames: ['client_id'],
+    });
     const owner = fixtureMeta('OauthTokens', 'oauth_tokens', [rel]);
     const target = fixtureMeta('OauthClients', 'oauth_clients', [fixtureProp({ name: 'id', primary: true })]);
     const fixups = RULE11_referencedColumns([owner, target]);
-    expect(fixups).toEqual<ReferencedColumnsFixup[]>([{ className: 'OauthTokens', propName: 'client', referencedColumnNames: ['client_id'] }]);
+    expect(fixups).toEqual<ReferencedColumnsFixup[]>([
+      { className: 'OauthTokens', propName: 'client', referencedColumnNames: ['client_id'] },
+    ]);
   });
 
   it('RULE11-003: a text PK target whose FK genuinely references that PK (school_holiday_regions.country -> school_holiday_countries.code) gets no fixup', () => {
-    const rel = fixtureProp({ name: 'countryRef', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['country'], type: 'SchoolHolidayCountries', referencedColumnNames: ['code'] });
+    const rel = fixtureProp({
+      name: 'countryRef',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['country'],
+      type: 'SchoolHolidayCountries',
+      referencedColumnNames: ['code'],
+    });
     const owner = fixtureMeta('SchoolHolidayRegions', 'school_holiday_regions', [rel]);
-    const target = fixtureMeta('SchoolHolidayCountries', 'school_holiday_countries', [fixtureProp({ name: 'code', primary: true })]);
+    const target = fixtureMeta('SchoolHolidayCountries', 'school_holiday_countries', [
+      fixtureProp({ name: 'code', primary: true }),
+    ]);
     const fixups = RULE11_referencedColumns([owner, target]);
     expect(fixups).toEqual([]);
   });
 
   it('RULE11-004: an unresolved relation target (no matching metadata) is skipped, not thrown or flagged', () => {
-    const rel = fixtureProp({ name: 'something', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['something_id'], type: 'Nowhere', referencedColumnNames: ['id'] });
+    const rel = fixtureProp({
+      name: 'something',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['something_id'],
+      type: 'Nowhere',
+      referencedColumnNames: ['id'],
+    });
     const owner = fixtureMeta('X', 'x', [rel]);
     expect(() => RULE11_referencedColumns([owner])).not.toThrow();
     expect(RULE11_referencedColumns([owner])).toEqual([]);
   });
 
   it('RULE11-005: an inverse relation (oneToMany) is never a candidate — only an owning to-one is checked', () => {
-    const inverse = fixtureProp({ name: 'oauth_tokens_collection', kind: ReferenceKind.ONE_TO_MANY, type: 'OauthTokens', mappedBy: 'client', referencedColumnNames: ['id'] });
+    const inverse = fixtureProp({
+      name: 'oauth_tokens_collection',
+      kind: ReferenceKind.ONE_TO_MANY,
+      type: 'OauthTokens',
+      mappedBy: 'client',
+      referencedColumnNames: ['id'],
+    });
     const owner = fixtureMeta('OauthClients', 'oauth_clients', [inverse]);
     const target = fixtureMeta('OauthTokens', 'oauth_tokens', [fixtureProp({ name: 'id', primary: true })]);
     const fixups = RULE11_referencedColumns([owner, target]);
@@ -488,19 +599,27 @@ describe('RULE11_referencedColumns', () => {
   });
 
   it('RULE11-006: a composite-PK target compares the full column list, in order', () => {
-    const rel = fixtureProp({ name: 'setting', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['a', 'b'], type: 'Composite', referencedColumnNames: ['b', 'a'] });
+    const rel = fixtureProp({
+      name: 'setting',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['a', 'b'],
+      type: 'Composite',
+      referencedColumnNames: ['b', 'a'],
+    });
     const owner = fixtureMeta('X', 'x', [rel]);
     const target = fixtureMeta('Composite', 'composite', [
       fixtureProp({ name: 'a', primary: true }),
       fixtureProp({ name: 'b', primary: true }),
     ]);
     const fixups = RULE11_referencedColumns([owner, target]);
-    expect(fixups).toEqual<ReferencedColumnsFixup[]>([{ className: 'X', propName: 'setting', referencedColumnNames: ['b', 'a'] }]);
+    expect(fixups).toEqual<ReferencedColumnsFixup[]>([
+      { className: 'X', propName: 'setting', referencedColumnNames: ['b', 'a'] },
+    ]);
   });
 });
 
 describe('RULE12_fixGarbledCheckExpressions', () => {
-  it('RULE12-001: the real roadtrip_day_boundaries.fraction over-capture is trimmed to the DDL\'s own CHECK expression', () => {
+  it("RULE12-001: the real roadtrip_day_boundaries.fraction over-capture is trimmed to the DDL's own CHECK expression", () => {
     const meta = fixtureMeta('RoadtripDayBoundaries', 'roadtrip_day_boundaries', []);
     meta.checks = [
       {
@@ -510,7 +629,9 @@ describe('RULE12_fixGarbledCheckExpressions', () => {
     ];
     const fixups = RULE12_fixGarbledCheckExpressions([meta]);
     expect(meta.checks[0].expression).toBe('fraction BETWEEN 0 AND 1');
-    expect(fixups).toEqual<CheckExpressionFixup[]>([{ className: 'RoadtripDayBoundaries', checkName: 'roadtrip_day_boundaries_fraction_check' }]);
+    expect(fixups).toEqual<CheckExpressionFixup[]>([
+      { className: 'RoadtripDayBoundaries', checkName: 'roadtrip_day_boundaries_fraction_check' },
+    ]);
   });
 
   it('RULE12-002: a clean expression with no parens at all (day_number >= 1) is left byte-identical, no fixup', () => {
@@ -569,7 +690,10 @@ describe('RULE13_pinDeleteRuleDrift', () => {
     const id = fixtureProp({ name: 'id', primary: true, autoincrement: true });
     const rel = fixtureProp({ name: 'reservation', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['reservation_id'] });
     const meta = fixtureMeta('ReservationTravelers', 'reservation_travelers', [id, rel]);
-    const fixups = RULE13_pinDeleteRuleDrift([meta], new Map([['reservation_travelers', new Map([['reservation_id', 'cascade']])]]));
+    const fixups = RULE13_pinDeleteRuleDrift(
+      [meta],
+      new Map([['reservation_travelers', new Map([['reservation_id', 'cascade']])]]),
+    );
     expect(fixups).toEqual<DeleteRuleFixup[]>([
       { className: 'ReservationTravelers', propName: 'reservation', from: undefined, to: 'cascade' },
     ]);
@@ -577,10 +701,20 @@ describe('RULE13_pinDeleteRuleDrift', () => {
   });
 
   it('RULE13-002: a nullable relation whose physical rule is "no action" (no ON DELETE at all in its migration) gets pinned — the implicit "set null" default would be wrong (the real trip_members.invited_by case)', () => {
-    const rel = fixtureProp({ name: 'invitedByRef', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['invited_by'], nullable: true });
+    const rel = fixtureProp({
+      name: 'invitedByRef',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['invited_by'],
+      nullable: true,
+    });
     const meta = fixtureMeta('TripMembers', 'trip_members', [rel]);
-    const fixups = RULE13_pinDeleteRuleDrift([meta], new Map([['trip_members', new Map([['invited_by', 'no action']])]]));
-    expect(fixups).toEqual<DeleteRuleFixup[]>([{ className: 'TripMembers', propName: 'invitedByRef', from: undefined, to: 'no action' }]);
+    const fixups = RULE13_pinDeleteRuleDrift(
+      [meta],
+      new Map([['trip_members', new Map([['invited_by', 'no action']])]]),
+    );
+    expect(fixups).toEqual<DeleteRuleFixup[]>([
+      { className: 'TripMembers', propName: 'invitedByRef', from: undefined, to: 'no action' },
+    ]);
     expect(rel.deleteRule).toBe('no action');
   });
 
@@ -593,7 +727,12 @@ describe('RULE13_pinDeleteRuleDrift', () => {
   });
 
   it('RULE13-004: a composite-PK member (every PK on the entity is itself a relation) whose physical rule is "no action" gets pinned — the implicit "cascade" default for FK-as-PK would be wrong (the real journey_contributors.user_id case)', () => {
-    const journey = fixtureProp({ name: 'journey', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['journey_id'], primary: true });
+    const journey = fixtureProp({
+      name: 'journey',
+      kind: ReferenceKind.MANY_TO_ONE,
+      fieldNames: ['journey_id'],
+      primary: true,
+    });
     const user = fixtureProp({ name: 'user', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['user_id'], primary: true });
     const meta = fixtureMeta('JourneyContributors', 'journey_contributors', [journey, user]);
     const fixups = RULE13_pinDeleteRuleDrift(
@@ -608,16 +747,30 @@ describe('RULE13_pinDeleteRuleDrift', () => {
         ],
       ]),
     );
-    expect(fixups).toEqual<DeleteRuleFixup[]>([{ className: 'JourneyContributors', propName: 'user', from: undefined, to: 'no action' }]);
+    expect(fixups).toEqual<DeleteRuleFixup[]>([
+      { className: 'JourneyContributors', propName: 'user', from: undefined, to: 'no action' },
+    ]);
     expect(journey.deleteRule).toBeUndefined(); // already correct via the implicit cascade default — left alone
     expect(user.deleteRule).toBe('no action');
   });
 
-  it('RULE13-005: a relation that is BOTH nullable AND its entity\'s sole FK-as-PK is always pinned explicitly, even when the implicit default happens to already agree with physical (the DawarichConnections/PlaceRegions/VacayUserSettings wrinkle — order-dependent at runtime, never trusted)', () => {
-    const rel = fixtureProp({ name: 'user', kind: ReferenceKind.ONE_TO_ONE, owner: true, fieldNames: ['user_id'], primary: true, nullable: true });
+  it("RULE13-005: a relation that is BOTH nullable AND its entity's sole FK-as-PK is always pinned explicitly, even when the implicit default happens to already agree with physical (the DawarichConnections/PlaceRegions/VacayUserSettings wrinkle — order-dependent at runtime, never trusted)", () => {
+    const rel = fixtureProp({
+      name: 'user',
+      kind: ReferenceKind.ONE_TO_ONE,
+      owner: true,
+      fieldNames: ['user_id'],
+      primary: true,
+      nullable: true,
+    });
     const meta = fixtureMeta('DawarichConnections', 'dawarich_connections', [rel]);
-    const fixups = RULE13_pinDeleteRuleDrift([meta], new Map([['dawarich_connections', new Map([['user_id', 'cascade']])]]));
-    expect(fixups).toEqual<DeleteRuleFixup[]>([{ className: 'DawarichConnections', propName: 'user', from: undefined, to: 'cascade' }]);
+    const fixups = RULE13_pinDeleteRuleDrift(
+      [meta],
+      new Map([['dawarich_connections', new Map([['user_id', 'cascade']])]]),
+    );
+    expect(fixups).toEqual<DeleteRuleFixup[]>([
+      { className: 'DawarichConnections', propName: 'user', from: undefined, to: 'cascade' },
+    ]);
     expect(rel.deleteRule).toBe('cascade');
   });
 
@@ -632,7 +785,10 @@ describe('RULE13_pinDeleteRuleDrift', () => {
       deleteRule: 'cascade',
     });
     const meta = fixtureMeta('RoadtripDayTracks', 'roadtrip_day_tracks', [rel]);
-    const fixups = RULE13_pinDeleteRuleDrift([meta], new Map([['roadtrip_day_tracks', new Map([['day_id', 'cascade']])]]));
+    const fixups = RULE13_pinDeleteRuleDrift(
+      [meta],
+      new Map([['roadtrip_day_tracks', new Map([['day_id', 'cascade']])]]),
+    );
     expect(fixups).toEqual([]);
     expect(rel.deleteRule).toBe('cascade');
   });
@@ -644,7 +800,7 @@ describe('RULE13_pinDeleteRuleDrift', () => {
     expect(RULE13_pinDeleteRuleDrift([meta], new Map())).toEqual([]);
   });
 
-  it('RULE13-008: a column the map has no entry for (no db FK on it at all) is skipped — PARITY-009 proper\'s job, not this rule\'s', () => {
+  it("RULE13-008: a column the map has no entry for (no db FK on it at all) is skipped — PARITY-009 proper's job, not this rule's", () => {
     const rel = fixtureProp({ name: 'trip', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['trip_id'] });
     const meta = fixtureMeta('X', 'x', [rel]);
     const fixups = RULE13_pinDeleteRuleDrift([meta], new Map([['x', new Map([['other_id', 'cascade']])]]));
@@ -653,7 +809,12 @@ describe('RULE13_pinDeleteRuleDrift', () => {
   });
 
   it('RULE13-009: an inverse relation (mappedBy set, not owning) is never a candidate, even when its column name collides with a physical FK entry', () => {
-    const inverse = fixtureProp({ name: 'trips_collection', kind: ReferenceKind.ONE_TO_MANY, mappedBy: 'x', fieldNames: ['trip_id'] });
+    const inverse = fixtureProp({
+      name: 'trips_collection',
+      kind: ReferenceKind.ONE_TO_MANY,
+      mappedBy: 'x',
+      fieldNames: ['trip_id'],
+    });
     const meta = fixtureMeta('X', 'x', [inverse]);
     const fixups = RULE13_pinDeleteRuleDrift([meta], new Map([['x', new Map([['trip_id', 'cascade']])]]));
     expect(fixups).toEqual([]);
@@ -672,7 +833,10 @@ describe('collectForeignKeyDeleteRules', () => {
     const db = createSnapshotTestDb();
     const t = await createTestOrm(db);
     try {
-      const result = await collectForeignKeyDeleteRules(t.orm.em.getConnection(), ['trip_members', 'reservation_travelers']);
+      const result = await collectForeignKeyDeleteRules(t.orm.em.getConnection(), [
+        'trip_members',
+        'reservation_travelers',
+      ]);
       expect(result.get('trip_members')?.get('trip_id')).toBe('cascade');
       expect(result.get('trip_members')?.get('invited_by')).toBe('no action');
       expect(result.get('reservation_travelers')?.get('reservation_id')).toBe('cascade');
@@ -732,7 +896,7 @@ describe('RULE9_addImplicitUniqueConstraints', () => {
     expect(meta.uniques).toEqual([{ properties: ['user_id', 'key'] }]);
   });
 
-  it('RULE9-007: a column that IS a single-column owning relation\'s join column is emitted as the RELATION property name, not the persist(false) twin (Important 1, task-5-review.md — the settings.(user_id, key) real case, post-RULE5-rename property name)', () => {
+  it("RULE9-007: a column that IS a single-column owning relation's join column is emitted as the RELATION property name, not the persist(false) twin (Important 1, task-5-review.md — the settings.(user_id, key) real case, post-RULE5-rename property name)", () => {
     const user = fixtureProp({ name: 'user', kind: ReferenceKind.MANY_TO_ONE, fieldNames: ['user_id'] });
     const userId = fixtureProp({ name: 'user_id', primary: false, persist: false });
     const key = fixtureProp({ name: 'key', primary: false });
@@ -762,7 +926,7 @@ describe('RULE9_addImplicitUniqueConstraints', () => {
     expect(meta.uniques).toEqual([{ properties: ['x_id', 'key'] }]);
   });
 
-  it('RULE9-002: a column set identical to the table\'s own primary key is skipped (Addons.id/AppSettings.key noise, real schema)', () => {
+  it("RULE9-002: a column set identical to the table's own primary key is skipped (Addons.id/AppSettings.key noise, real schema)", () => {
     const id = fixtureProp({ name: 'id', primary: true });
     const meta = fixtureMeta('Addons', 'addons', [id]);
     const implicitUniques = new Map([['addons', [['id']]]]);
@@ -801,7 +965,10 @@ describe('RULE9_addImplicitUniqueConstraints', () => {
       ],
     ]);
     RULE9_addImplicitUniqueConstraints([meta], implicitUniques);
-    expect(meta.uniques).toEqual([{ properties: ['file_id', 'place_id'] }, { properties: ['file_id', 'assignment_id'] }]);
+    expect(meta.uniques).toEqual([
+      { properties: ['file_id', 'place_id'] },
+      { properties: ['file_id', 'assignment_id'] },
+    ]);
   });
 
   it('RULE9-006: throws, naming the table/columns/entity, when an implicit index names a column with no matching property (I3)', () => {
@@ -819,11 +986,19 @@ describe('RULE_normalizeLiteralDefaults', () => {
     const meta = fixtureMeta('BudgetCategoryOrder', 'budget_category_order', [p]);
     const fixups = RULE_normalizeLiteralDefaults([meta]);
     expect(p.defaultRaw).toBeUndefined();
-    expect(fixups).toEqual<DefaultFixup[]>([{ className: 'BudgetCategoryOrder', propName: 'sort_order', literal: '0' }]);
+    expect(fixups).toEqual<DefaultFixup[]>([
+      { className: 'BudgetCategoryOrder', propName: 'sort_order', literal: '0' },
+    ]);
   });
 
   it('DEFAULTS-002: a string literal default is single-quoted and escaped', () => {
-    const p = fixtureProp({ name: 'year_type', type: 'text', nullable: false, default: 'calendar', defaultRaw: "'calendar'" });
+    const p = fixtureProp({
+      name: 'year_type',
+      type: 'text',
+      nullable: false,
+      default: 'calendar',
+      defaultRaw: "'calendar'",
+    });
     const meta = fixtureMeta('VacayUserSettings', 'vacay_user_settings', [p]);
     const fixups = RULE_normalizeLiteralDefaults([meta]);
     expect(fixups[0]?.literal).toBe("'calendar'");
@@ -838,7 +1013,12 @@ describe('RULE_normalizeLiteralDefaults', () => {
   });
 
   it('DEFAULTS-004: a SQL expression default (CURRENT_TIMESTAMP) is left to Rule 2, never treated as a literal', () => {
-    const p = fixtureProp({ name: 'created_at', type: 'DbTimestampType', nullable: false, defaultRaw: 'CURRENT_TIMESTAMP' });
+    const p = fixtureProp({
+      name: 'created_at',
+      type: 'DbTimestampType',
+      nullable: false,
+      defaultRaw: 'CURRENT_TIMESTAMP',
+    });
     const meta = fixtureMeta('X', 'x', [p]);
     const fixups = RULE_normalizeLiteralDefaults([meta]);
     expect(fixups).toEqual([]);
@@ -847,9 +1027,11 @@ describe('RULE_normalizeLiteralDefaults', () => {
 });
 
 describe('injectJoinColumns', () => {
-  it('TEXT-JOINCOL-001: replaces the renderer\'s inert .name(col) with .joinColumn(col)', () => {
+  it("TEXT-JOINCOL-001: replaces the renderer's inert .name(col) with .joinColumn(col)", () => {
     const source = "    countryRef: () => p.manyToOne(SchoolHolidayCountries).ref().name('country'),\n";
-    const out = injectJoinColumns(source, [{ className: 'SchoolHolidayRegions', propName: 'countryRef', column: 'country' }]);
+    const out = injectJoinColumns(source, [
+      { className: 'SchoolHolidayRegions', propName: 'countryRef', column: 'country' },
+    ]);
     expect(out).toContain(".joinColumn('country')");
     expect(out).not.toContain(".name('country')");
   });
@@ -867,7 +1049,9 @@ describe('injectJoinColumns', () => {
   });
 
   it('TEXT-JOINCOL-003: throws if the property line is not found (I3)', () => {
-    expect(() => injectJoinColumns('', [{ className: 'X', propName: 'countryRef', column: 'country' }])).toThrow(/could not find/);
+    expect(() => injectJoinColumns('', [{ className: 'X', propName: 'countryRef', column: 'country' }])).toThrow(
+      /could not find/,
+    );
   });
 });
 
@@ -880,13 +1064,15 @@ describe('injectMissingDefaults', () => {
   });
 
   it('TEXT-DEFAULTS-002: does not double up when a default is already present', () => {
-    const source = '    year_type: p.text().default(\'calendar\'),\n';
+    const source = "    year_type: p.text().default('calendar'),\n";
     const out = injectMissingDefaults(source, [{ className: 'X', propName: 'year_type', literal: "'calendar'" }]);
     expect(out).toBe(source);
   });
 
   it('TEXT-DEFAULTS-003: throws if the property line is not found (I3)', () => {
-    expect(() => injectMissingDefaults('', [{ className: 'X', propName: 'sort_order', literal: '0' }])).toThrow(/could not find/);
+    expect(() => injectMissingDefaults('', [{ className: 'X', propName: 'sort_order', literal: '0' }])).toThrow(
+      /could not find/,
+    );
   });
 });
 
@@ -899,12 +1085,16 @@ describe('fixDbTimestampClassFieldTypes', () => {
   });
 
   it('TEXT-TS-002: throws if the class field line is not found (I3)', () => {
-    expect(() => fixDbTimestampClassFieldTypes('', [{ className: 'X', propName: 'created_at' }])).toThrow(/could not find/);
+    expect(() => fixDbTimestampClassFieldTypes('', [{ className: 'X', propName: 'created_at' }])).toThrow(
+      /could not find/,
+    );
   });
 
   it('TEXT-TS-003: throws if the class field has no "Date" to rewrite (I3)', () => {
     const source = '  created_at?: string | null;\n';
-    expect(() => fixDbTimestampClassFieldTypes(source, [{ className: 'X', propName: 'created_at' }])).toThrow(/no "Date" to rewrite/);
+    expect(() => fixDbTimestampClassFieldTypes(source, [{ className: 'X', propName: 'created_at' }])).toThrow(
+      /no "Date" to rewrite/,
+    );
   });
 });
 
@@ -921,13 +1111,17 @@ describe('stripRedundantColumnType', () => {
 
   it('TEXT-COLTYPE-003: throws if there is no .columnType() to strip (I3)', () => {
     const source = '    sort_order: p.double().nullable(),\n';
-    expect(() => stripRedundantColumnType(source, [{ className: 'X', propName: 'sort_order' }])).toThrow(/no \.columnType\(\) to strip/);
+    expect(() => stripRedundantColumnType(source, [{ className: 'X', propName: 'sort_order' }])).toThrow(
+      /no \.columnType\(\) to strip/,
+    );
   });
 });
 
 describe('injectJsonTypeParams', () => {
-  it('TEXT-JSON-001: types a known JSON column\'s bare p.json() call', () => {
-    const out = injectJsonTypeParams('    config: p.json().nullable(),\n', [{ className: 'Addons', propName: 'config', typeName: 'AddonConfig' }]);
+  it("TEXT-JSON-001: types a known JSON column's bare p.json() call", () => {
+    const out = injectJsonTypeParams('    config: p.json().nullable(),\n', [
+      { className: 'Addons', propName: 'config', typeName: 'AddonConfig' },
+    ]);
     expect(out).toBe('    config: p.json<AddonConfig>().nullable(),\n');
   });
 
@@ -938,7 +1132,9 @@ describe('injectJsonTypeParams', () => {
   });
 
   it('TEXT-JSON-003: throws if the property line is not found (I3)', () => {
-    expect(() => injectJsonTypeParams('', [{ className: 'Addons', propName: 'config', typeName: 'AddonConfig' }])).toThrow(/could not find/);
+    expect(() =>
+      injectJsonTypeParams('', [{ className: 'Addons', propName: 'config', typeName: 'AddonConfig' }]),
+    ).toThrow(/could not find/);
   });
 
   it('TEXT-JSON-A2: a p.json() mention inside a comment is never touched (adversarial fixture A2, M4)', () => {
@@ -963,7 +1159,9 @@ describe('fixJsonClassFieldTypes', () => {
   });
 
   it('TEXT-JSONFIELD-003: throws if the class field line is not found (I3)', () => {
-    expect(() => fixJsonClassFieldTypes('', [{ className: 'Addons', propName: 'config', typeName: 'AddonConfig' }])).toThrow(/could not find/);
+    expect(() =>
+      fixJsonClassFieldTypes('', [{ className: 'Addons', propName: 'config', typeName: 'AddonConfig' }]),
+    ).toThrow(/could not find/);
   });
 });
 
@@ -985,9 +1183,9 @@ describe('injectJsonInterfaces', () => {
   });
 
   it('TEXT-JSONIFACE-003: throws for a type name with no JSON_INTERFACES declaration', () => {
-    expect(() => injectJsonInterfaces('export class X {}\n', [{ className: 'X', propName: 'p', typeName: 'NoSuchType' }])).toThrow(
-      /no declaration/,
-    );
+    expect(() =>
+      injectJsonInterfaces('export class X {}\n', [{ className: 'X', propName: 'p', typeName: 'NoSuchType' }]),
+    ).toThrow(/no declaration/);
   });
 
   it('TEXT-JSONIFACE-004: throws when there is no "export class" to anchor on', () => {
@@ -999,7 +1197,8 @@ describe('injectJsonInterfaces', () => {
 
 describe('stripHiddenTypeAnnotation', () => {
   it('TEXT-HIDDEN-001: strips " & Hidden" from a plain relation field and drops the now-unused import', () => {
-    const source = "import { type Hidden, type Ref, defineEntity, p } from '@mikro-orm/core';\n\nexport class X {\n  trip!: Ref<Trips> & Hidden;\n}\n";
+    const source =
+      "import { type Hidden, type Ref, defineEntity, p } from '@mikro-orm/core';\n\nexport class X {\n  trip!: Ref<Trips> & Hidden;\n}\n";
     const out = stripHiddenTypeAnnotation(source);
     expect(out).toContain('trip!: Ref<Trips>;');
     expect(out).not.toContain('Hidden');
@@ -1030,8 +1229,8 @@ describe('stripHiddenTypeAnnotation', () => {
   it('TEXT-HIDDEN-A1: never touches "& Hidden" inside a string literal default (adversarial fixture A1, M3/I3)', () => {
     const source =
       "import { defineEntity, p } from '@mikro-orm/core';\n\n" +
-      "export class X {\n  note?: string | null;\n}\n\n" +
-      "export const XSchema = defineEntity({\n  properties: {\n" +
+      'export class X {\n  note?: string | null;\n}\n\n' +
+      'export const XSchema = defineEntity({\n  properties: {\n' +
       "    note: p.text().default('a & Hidden b'),\n" +
       '  },\n});\n';
     const out = stripHiddenTypeAnnotation(source);
@@ -1040,7 +1239,8 @@ describe('stripHiddenTypeAnnotation', () => {
 
   it('TEXT-HIDDEN-A3: two adjacent Collection fields never collapse, even when the first has no initialiser (adversarial fixture A3, M3/I3)', () => {
     const source =
-      '  first_collection: Collection<A> & Hidden;\n' + '  second_collection: Collection<B> & Hidden = new Collection<B>(this);\n';
+      '  first_collection: Collection<A> & Hidden;\n' +
+      '  second_collection: Collection<B> & Hidden = new Collection<B>(this);\n';
     const out = stripHiddenTypeAnnotation(source);
     expect(out).toContain('first_collection: Collection<A>;');
     expect(out).toContain('second_collection = new Collection<B>(this);');
@@ -1065,7 +1265,9 @@ describe('injectRepositoryTypeMarker', () => {
     const source =
       "import { PrimaryKeyProp, defineEntity, p } from '@mikro-orm/core';\n\n" +
       "export class AppSettings {\n  [PrimaryKeyProp]?: 'key';\n  key?: string | null;\n}\n";
-    const out = injectRepositoryTypeMarker(source, [{ className: 'AppSettings', repositoryClassName: 'AppSettingsRepository' }]);
+    const out = injectRepositoryTypeMarker(source, [
+      { className: 'AppSettings', repositoryClassName: 'AppSettingsRepository' },
+    ]);
     const markerIndex = out.indexOf('[EntityRepositoryType]');
     const pkIndex = out.indexOf('[PrimaryKeyProp]');
     expect(markerIndex).toBeGreaterThan(-1);
@@ -1073,9 +1275,12 @@ describe('injectRepositoryTypeMarker', () => {
   });
 
   it('TEXT-REPOMARKER-003: re-sorts the import line the same way the generator itself would (case-sensitive, type prefix ignored for ordering)', () => {
-    const source = "import { Collection, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';\n\nexport class Users {\n  id!: number;\n}\n";
+    const source =
+      "import { Collection, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';\n\nexport class Users {\n  id!: number;\n}\n";
     const out = injectRepositoryTypeMarker(source, [{ className: 'Users', repositoryClassName: 'UsersRepository' }]);
-    expect(out).toContain("import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';");
+    expect(out).toContain(
+      "import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';",
+    );
   });
 
   it('TEXT-REPOMARKER-004: throws, naming the class, if "export class X {" cannot be found (renderer shape changed)', () => {
@@ -1093,41 +1298,52 @@ describe('injectRepositoryTypeMarker', () => {
 
 describe('injectReferencedColumns', () => {
   it('TEXT-REFCOL-001: appends .referencedColumnNames(<col>) before the trailing comma (the real client_id shape)', () => {
-    const source = "    client: () => p.manyToOne(OauthClients).ref().name('client_id').deleteRule('cascade').hidden(),\n";
-    const out = injectReferencedColumns(source, [{ className: 'OauthTokens', propName: 'client', referencedColumnNames: ['client_id'] }]);
-    expect(out).toBe("    client: () => p.manyToOne(OauthClients).ref().name('client_id').deleteRule('cascade').hidden().referencedColumnNames('client_id'),\n");
+    const source =
+      "    client: () => p.manyToOne(OauthClients).ref().name('client_id').deleteRule('cascade').hidden(),\n";
+    const out = injectReferencedColumns(source, [
+      { className: 'OauthTokens', propName: 'client', referencedColumnNames: ['client_id'] },
+    ]);
+    expect(out).toBe(
+      "    client: () => p.manyToOne(OauthClients).ref().name('client_id').deleteRule('cascade').hidden().referencedColumnNames('client_id'),\n",
+    );
   });
 
   it('TEXT-REFCOL-002: multiple referenced columns render as bare comma-separated quoted strings, no array brackets (rest-args API)', () => {
     const source = '    setting: () => p.manyToOne(Composite).ref(),\n';
-    const out = injectReferencedColumns(source, [{ className: 'X', propName: 'setting', referencedColumnNames: ['b', 'a'] }]);
+    const out = injectReferencedColumns(source, [
+      { className: 'X', propName: 'setting', referencedColumnNames: ['b', 'a'] },
+    ]);
     expect(out).toContain(".referencedColumnNames('b', 'a')");
     expect(out).not.toContain('[');
   });
 
   it('TEXT-REFCOL-003: a line already carrying an explicit .referencedColumnNames( call is left untouched (legitimate no-op)', () => {
     const source = "    client: () => p.manyToOne(OauthClients).ref().referencedColumnNames('client_id'),\n";
-    const out = injectReferencedColumns(source, [{ className: 'X', propName: 'client', referencedColumnNames: ['client_id'] }]);
+    const out = injectReferencedColumns(source, [
+      { className: 'X', propName: 'client', referencedColumnNames: ['client_id'] },
+    ]);
     expect(out).toBe(source);
   });
 
   it('TEXT-REFCOL-004: appends before a trailing comma even with a line comment after it', () => {
     const source = '    client: () => p.manyToOne(Y).ref(), // pins client\n';
-    const out = injectReferencedColumns(source, [{ className: 'X', propName: 'client', referencedColumnNames: ['client_id'] }]);
+    const out = injectReferencedColumns(source, [
+      { className: 'X', propName: 'client', referencedColumnNames: ['client_id'] },
+    ]);
     expect(out).toBe("    client: () => p.manyToOne(Y).ref().referencedColumnNames('client_id'), // pins client\n");
   });
 
   it('TEXT-REFCOL-005: throws, naming the class and property, if the property line is not found', () => {
-    expect(() => injectReferencedColumns('', [{ className: 'X', propName: 'client', referencedColumnNames: ['client_id'] }])).toThrow(
-      /could not find the property line for "X\.client"/,
-    );
+    expect(() =>
+      injectReferencedColumns('', [{ className: 'X', propName: 'client', referencedColumnNames: ['client_id'] }]),
+    ).toThrow(/could not find the property line for "X\.client"/);
   });
 
   it('TEXT-REFCOL-006: throws if the property line has no trailing comma to anchor on', () => {
     const source = '    client: () => p.manyToOne(Y).ref()';
-    expect(() => injectReferencedColumns(source, [{ className: 'X', propName: 'client', referencedColumnNames: ['client_id'] }])).toThrow(
-      /could not append/,
-    );
+    expect(() =>
+      injectReferencedColumns(source, [{ className: 'X', propName: 'client', referencedColumnNames: ['client_id'] }]),
+    ).toThrow(/could not append/);
   });
 
   it('TEXT-REFCOL-007: an empty fixups list is a no-op', () => {
@@ -1140,8 +1356,8 @@ describe('applyTextPasses', () => {
   it('TEXT-ALL-001: composes every pass without one undoing another', () => {
     const source =
       "import { type Hidden, defineEntity, p } from '@mikro-orm/core';\n\n" +
-      "export class X {\n  countryRef!: Ref<Y> & Hidden;\n}\n\n" +
-      "export const XSchema = defineEntity({\n  properties: {\n" +
+      'export class X {\n  countryRef!: Ref<Y> & Hidden;\n}\n\n' +
+      'export const XSchema = defineEntity({\n  properties: {\n' +
       "    countryRef: () => p.manyToOne(Y).ref().name('country'),\n" +
       '  },\n});\n';
     const out = applyTextPasses(source, {
@@ -1188,51 +1404,44 @@ describe('regenerateEntitiesIndex', () => {
  * so a failing assertion here can never leave the working tree dirty.
  */
 describe('checkEntities', () => {
-  it(
-    'CHECK-001: a hand-mutated entity in the scratch copy is reported by name, exit-worthy',
-    async () => {
-      const { files } = await generateEntities();
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gen-entities-check-'));
-      try {
-        fs.cpSync(ENTITIES_DIR, dir, { recursive: true });
-        // Same shape as VALIDATE-004's mutation (MUT-B): drop a ONE_TO_MANY relation's .hidden().
-        const daysPath = path.join(dir, 'Days.entity.ts');
-        const original = fs.readFileSync(daysPath, 'utf8');
-        const mutated = original.replace(
-          "day_accommodations_collection: () => p.oneToMany(DayAccommodations).mappedBy('startDay').hidden(),",
-          "day_accommodations_collection: () => p.oneToMany(DayAccommodations).mappedBy('startDay'),",
-        );
-        expect(mutated, 'the mutation string was not found in the committed file — update it to match the current shape').not.toBe(
-          original,
-        );
-        fs.writeFileSync(daysPath, mutated);
+  it('CHECK-001: a hand-mutated entity in the scratch copy is reported by name, exit-worthy', async () => {
+    const { files } = await generateEntities();
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gen-entities-check-'));
+    try {
+      fs.cpSync(ENTITIES_DIR, dir, { recursive: true });
+      // Same shape as VALIDATE-004's mutation (MUT-B): drop a ONE_TO_MANY relation's .hidden().
+      const daysPath = path.join(dir, 'Days.entity.ts');
+      const original = fs.readFileSync(daysPath, 'utf8');
+      const mutated = original.replace(
+        "day_accommodations_collection: () => p.oneToMany(DayAccommodations).mappedBy('startDay').hidden(),",
+        "day_accommodations_collection: () => p.oneToMany(DayAccommodations).mappedBy('startDay'),",
+      );
+      expect(
+        mutated,
+        'the mutation string was not found in the committed file — update it to match the current shape',
+      ).not.toBe(original);
+      fs.writeFileSync(daysPath, mutated);
 
-        const report = checkEntities(dir, REPOSITORIES_DIR, files);
-        expect(report.differingFiles).toEqual(['Days.entity.ts']);
-        expect(report.missingRepositories).toEqual([]);
-      } finally {
-        fs.rmSync(dir, { recursive: true, force: true });
-      }
-    },
-    30_000,
-  );
+      const report = checkEntities(dir, REPOSITORIES_DIR, files);
+      expect(report.differingFiles).toEqual(['Days.entity.ts']);
+      expect(report.missingRepositories).toEqual([]);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }, 30_000);
 
-  it(
-    'CHECK-002: an untouched copy of the committed tree reports no differences and no missing repositories',
-    async () => {
-      const { files } = await generateEntities();
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gen-entities-check-'));
-      try {
-        fs.cpSync(ENTITIES_DIR, dir, { recursive: true });
-        const report = checkEntities(dir, REPOSITORIES_DIR, files);
-        expect(report.differingFiles).toEqual([]);
-        expect(report.missingRepositories).toEqual([]);
-      } finally {
-        fs.rmSync(dir, { recursive: true, force: true });
-      }
-    },
-    30_000,
-  );
+  it('CHECK-002: an untouched copy of the committed tree reports no differences and no missing repositories', async () => {
+    const { files } = await generateEntities();
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gen-entities-check-'));
+    try {
+      fs.cpSync(ENTITIES_DIR, dir, { recursive: true });
+      const report = checkEntities(dir, REPOSITORIES_DIR, files);
+      expect(report.differingFiles).toEqual([]);
+      expect(report.missingRepositories).toEqual([]);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }, 30_000);
 
   it('CHECK-003: a missing entity file is reported', async () => {
     const files = new Map([['X.entity.ts', 'content']]);
@@ -1378,7 +1587,13 @@ function normalizeForDiff(source: string): string {
     // rewrote the default's VALUE was invisible too — proven by MUT-D below).
     .replace(
       /(icon|sort_order): p\.(text|double)\(\)\.nullable\(\)(?:\.default\((-?\d+(?:\.\d+)?|'[^']*')\)|\.defaultRaw\('(-?\d+(?:\.\d+)?|[^']*)'\))?/g,
-      (_full: string, prop: string, type: string, defaultVal: string | undefined, defaultRawVal: string | undefined) => {
+      (
+        _full: string,
+        prop: string,
+        type: string,
+        defaultVal: string | undefined,
+        defaultRawVal: string | undefined,
+      ) => {
         const canonical = defaultVal !== undefined ? defaultVal.replace(/^'|'$/g, '') : defaultRawVal;
         const suffix = canonical !== undefined ? `.default(${canonical})` : '';
         return `${prop}: p.${type}().nullable()${suffix}`;
@@ -1424,68 +1639,65 @@ function stripPendingEntityRelations(generatedSource: string): string {
 }
 
 describe('generateEntities — validation diff against the five reference entities', () => {
-  it(
-    'VALIDATE-001: Days/DayNotes/Trips/BudgetCategoryOrder/VacayUserSettings match modulo KNOWN_DIFFS',
-    async () => {
-      const { files } = await generateEntities();
-      const referenceNames = ['Days', 'DayNotes', 'Trips', 'BudgetCategoryOrder', 'VacayUserSettings'];
-      for (const name of referenceNames) {
-        const generated = files.get(`${name}.entity.ts`);
-        expect(generated, `generator produced no ${name}.entity.ts`).toBeDefined();
-        const reference = fs.readFileSync(path.join(ENTITIES_DIR, `${name}.entity.ts`), 'utf8');
-        const generatedForDiff = stripPendingEntityRelations(generated ?? '');
-        expect(normalizeForDiff(generatedForDiff), `${name}.entity.ts differs beyond KNOWN_DIFFS`).toBe(normalizeForDiff(reference));
-      }
-    },
-    30_000,
-  );
+  it('VALIDATE-001: Days/DayNotes/Trips/BudgetCategoryOrder/VacayUserSettings match modulo KNOWN_DIFFS', async () => {
+    const { files } = await generateEntities();
+    const referenceNames = ['Days', 'DayNotes', 'Trips', 'BudgetCategoryOrder', 'VacayUserSettings'];
+    for (const name of referenceNames) {
+      const generated = files.get(`${name}.entity.ts`);
+      expect(generated, `generator produced no ${name}.entity.ts`).toBeDefined();
+      const reference = fs.readFileSync(path.join(ENTITIES_DIR, `${name}.entity.ts`), 'utf8');
+      const generatedForDiff = stripPendingEntityRelations(generated ?? '');
+      expect(normalizeForDiff(generatedForDiff), `${name}.entity.ts differs beyond KNOWN_DIFFS`).toBe(
+        normalizeForDiff(reference),
+      );
+    }
+  }, 30_000);
 
   it('VALIDATE-002: KNOWN_DIFFS is present and non-empty documentation', () => {
     expect(KNOWN_DIFFS.length).toBeGreaterThan(0);
   });
 
-  it(
-    'VALIDATE-003: normalizeForDiff does not mask a relation that lost its own .index() (MUT-A, C2)',
-    async () => {
-      const { files } = await generateEntities();
-      const generated = files.get('Days.entity.ts');
-      expect(generated).toBeDefined();
-      const reference = fs.readFileSync(path.join(ENTITIES_DIR, 'Days.entity.ts'), 'utf8');
-      // MUT-A: simulate a rule bug that drops the named index specifically
-      // from the OWNING RELATION line — not its persist(false) twin, whose
-      // duplicate index KNOWN_DIFFS #1 legitimately normalises away.
-      const mutated = (generated ?? '').replace(
-        "trip: () => p.manyToOne(Trips).ref().deleteRule('cascade').hidden().index('idx_days_trip_id'),",
-        "trip: () => p.manyToOne(Trips).ref().deleteRule('cascade').hidden(),",
-      );
-      expect(mutated, 'the mutation string was not found in the real generated output — update it to match the renderer').not.toBe(generated);
-      expect(normalizeForDiff(stripPendingEntityRelations(mutated))).not.toBe(normalizeForDiff(reference));
-    },
-    30_000,
-  );
+  it('VALIDATE-003: normalizeForDiff does not mask a relation that lost its own .index() (MUT-A, C2)', async () => {
+    const { files } = await generateEntities();
+    const generated = files.get('Days.entity.ts');
+    expect(generated).toBeDefined();
+    const reference = fs.readFileSync(path.join(ENTITIES_DIR, 'Days.entity.ts'), 'utf8');
+    // MUT-A: simulate a rule bug that drops the named index specifically
+    // from the OWNING RELATION line — not its persist(false) twin, whose
+    // duplicate index KNOWN_DIFFS #1 legitimately normalises away.
+    const mutated = (generated ?? '').replace(
+      "trip: () => p.manyToOne(Trips).ref().deleteRule('cascade').hidden().index('idx_days_trip_id'),",
+      "trip: () => p.manyToOne(Trips).ref().deleteRule('cascade').hidden(),",
+    );
+    expect(
+      mutated,
+      'the mutation string was not found in the real generated output — update it to match the renderer',
+    ).not.toBe(generated);
+    expect(normalizeForDiff(stripPendingEntityRelations(mutated))).not.toBe(normalizeForDiff(reference));
+  }, 30_000);
 
-  it(
-    'VALIDATE-004: normalizeForDiff does not mask a ONE_TO_MANY relation that lost .hidden() (MUT-B, C1)',
-    async () => {
-      const { files } = await generateEntities();
-      const generated = files.get('Days.entity.ts');
-      expect(generated).toBeDefined();
-      const reference = fs.readFileSync(path.join(ENTITIES_DIR, 'Days.entity.ts'), 'utf8');
-      // MUT-B: simulate RULE4 skipping a ONE_TO_MANY relation.
-      const mutated = (generated ?? '').replace(
-        "day_accommodations_collection: () => p.oneToMany(DayAccommodations).mappedBy('startDay').hidden(),",
-        "day_accommodations_collection: () => p.oneToMany(DayAccommodations).mappedBy('startDay'),",
-      );
-      expect(mutated, 'the mutation string was not found in the real generated output — update it to match the renderer').not.toBe(generated);
-      expect(normalizeForDiff(stripPendingEntityRelations(mutated))).not.toBe(normalizeForDiff(reference));
-    },
-    30_000,
-  );
+  it('VALIDATE-004: normalizeForDiff does not mask a ONE_TO_MANY relation that lost .hidden() (MUT-B, C1)', async () => {
+    const { files } = await generateEntities();
+    const generated = files.get('Days.entity.ts');
+    expect(generated).toBeDefined();
+    const reference = fs.readFileSync(path.join(ENTITIES_DIR, 'Days.entity.ts'), 'utf8');
+    // MUT-B: simulate RULE4 skipping a ONE_TO_MANY relation.
+    const mutated = (generated ?? '').replace(
+      "day_accommodations_collection: () => p.oneToMany(DayAccommodations).mappedBy('startDay').hidden(),",
+      "day_accommodations_collection: () => p.oneToMany(DayAccommodations).mappedBy('startDay'),",
+    );
+    expect(
+      mutated,
+      'the mutation string was not found in the real generated output — update it to match the renderer',
+    ).not.toBe(generated);
+    expect(normalizeForDiff(stripPendingEntityRelations(mutated))).not.toBe(normalizeForDiff(reference));
+  }, 30_000);
 
   it('NORMALIZE-005: normalizeForDiff does not mask a rewritten default VALUE on icon/sort_order (MUT-D, M6)', () => {
-    const reference = "    sort_order: p.double().nullable().default(0),\n    icon: p.text().nullable(),\n";
-    const generatedHonest = "    sort_order: p.double().nullable().defaultRaw(`0`),\n    icon: p.text().nullable(),\n";
-    const generatedMutated = "    sort_order: p.double().nullable().defaultRaw(`999`),\n    icon: p.text().nullable(),\n";
+    const reference = '    sort_order: p.double().nullable().default(0),\n    icon: p.text().nullable(),\n';
+    const generatedHonest = '    sort_order: p.double().nullable().defaultRaw(`0`),\n    icon: p.text().nullable(),\n';
+    const generatedMutated =
+      '    sort_order: p.double().nullable().defaultRaw(`999`),\n    icon: p.text().nullable(),\n';
     // The honest generated text (same value, different rendering method) matches.
     expect(normalizeForDiff(generatedHonest)).toBe(normalizeForDiff(reference));
     // MUT-D: rewriting the value must NOT be swallowed by the normalisation.
@@ -1501,19 +1713,15 @@ describe('generateEntities — validation diff against the five reference entiti
     expect(offenders).toEqual([]);
   }, 30_000);
 
-  it(
-    'UNIQUE-001: Rule 9 end-to-end against the real schema — settings gets the inline UNIQUE(user_id, key) as uniques:, naming the RELATION property (user), not its persist(false) twin (user_id); AppSettings/Addons do NOT get a redundant entry for their own (TEXT) primary key',
-    async () => {
-      const { files } = await generateEntities();
-      const settings = files.get('Settings.entity.ts');
-      expect(settings).toContain("uniques: [{ properties: ['user', 'key'] }],");
-      const appSettings = files.get('AppSettings.entity.ts');
-      expect(appSettings).not.toMatch(/uniques:/);
-      const addons = files.get('Addons.entity.ts');
-      expect(addons).not.toMatch(/uniques:/);
-    },
-    30_000,
-  );
+  it('UNIQUE-001: Rule 9 end-to-end against the real schema — settings gets the inline UNIQUE(user_id, key) as uniques:, naming the RELATION property (user), not its persist(false) twin (user_id); AppSettings/Addons do NOT get a redundant entry for their own (TEXT) primary key', async () => {
+    const { files } = await generateEntities();
+    const settings = files.get('Settings.entity.ts');
+    expect(settings).toContain("uniques: [{ properties: ['user', 'key'] }],");
+    const appSettings = files.get('AppSettings.entity.ts');
+    expect(appSettings).not.toMatch(/uniques:/);
+    const addons = files.get('Addons.entity.ts');
+    expect(addons).not.toMatch(/uniques:/);
+  }, 30_000);
 });
 
 /**
@@ -1532,7 +1740,9 @@ describe('generateEntities — repository type marker (Plan 3b pre-task, RULE10)
     const users = files.get('Users.entity.ts');
     expect(users).toBeDefined();
     expect(users).toMatch(/export class Users \{\n {2}\[EntityRepositoryType\]\?: UsersRepository;\n/);
-    expect(users).toMatch(/^import \{ Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p \} from '@mikro-orm\/core';$/m);
+    expect(users).toMatch(
+      /^import \{ Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p \} from '@mikro-orm\/core';$/m,
+    );
   }, 30_000);
 
   it('REPOMARKER-E2E-002: em.getRepository(Users) / t.repo(Users) resolve to UsersRepository — no cast needed, real instance at runtime', async () => {
@@ -1560,11 +1770,13 @@ describe('generateEntities — repository type marker (Plan 3b pre-task, RULE10)
 });
 
 describe('PENDING_ENTITIES ratchet (I7)', () => {
-  it("PENDING-ENTITIES-001: stays accurate — none of them may already have an entity file", () => {
+  it('PENDING-ENTITIES-001: stays accurate — none of them may already have an entity file', () => {
     const failures: string[] = [];
     for (const className of PENDING_ENTITIES) {
       if (fs.existsSync(path.join(ENTITIES_DIR, `${className}.entity.ts`))) {
-        failures.push(`${className}: has an entity file now — remove it from PENDING_ENTITIES and update VALIDATE-001's tolerance`);
+        failures.push(
+          `${className}: has an entity file now — remove it from PENDING_ENTITIES and update VALIDATE-001's tolerance`,
+        );
       }
     }
     expect(failures).toEqual([]);
@@ -1586,7 +1798,9 @@ describe('PENDING_ENTITIES ratchet (I7)', () => {
     const failures: string[] = [];
     for (const className of PENDING_ENTITIES) {
       if (!new RegExp(`\\b${className}\\b`).test(allGeneratedSource)) {
-        failures.push(`${className}: listed in PENDING_ENTITIES but does not appear anywhere in generateEntities()'s output`);
+        failures.push(
+          `${className}: listed in PENDING_ENTITIES but does not appear anywhere in generateEntities()'s output`,
+        );
       }
     }
     expect(failures).toEqual([]);
@@ -1594,19 +1808,15 @@ describe('PENDING_ENTITIES ratchet (I7)', () => {
 });
 
 describe('generateEntities — migrations path is anchored to SERVER_ROOT, not cwd (I5)', () => {
-  it(
-    'MIGPATH-001: generation still finds migrations when run from the repo root instead of server/',
-    async () => {
-      const originalCwd = process.cwd();
-      // process.chdir() is only safe because vitest.config.ts uses pool: 'forks' (a worker thread cannot chdir).
-      process.chdir(path.join(__dirname, '../../../..')); // server/tests/unit/db -> repo root
-      try {
-        const { files } = await generateEntities();
-        expect(files.size).toBeGreaterThan(0);
-      } finally {
-        process.chdir(originalCwd);
-      }
-    },
-    30_000,
-  );
+  it('MIGPATH-001: generation still finds migrations when run from the repo root instead of server/', async () => {
+    const originalCwd = process.cwd();
+    // process.chdir() is only safe because vitest.config.ts uses pool: 'forks' (a worker thread cannot chdir).
+    process.chdir(path.join(__dirname, '../../../..')); // server/tests/unit/db -> repo root
+    try {
+      const { files } = await generateEntities();
+      expect(files.size).toBeGreaterThan(0);
+    } finally {
+      process.chdir(originalCwd);
+    }
+  }, 30_000);
 });

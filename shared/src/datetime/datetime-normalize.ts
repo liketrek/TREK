@@ -46,7 +46,10 @@ export function parseMeridiemClock(value: string | null | undefined): string | n
 
 /** The part after a leading `YYYY-MM-DD`, with its `T` or space removed. */
 function clockPart(value: string): string {
-  return value.slice(10).replace(/^[T\s]/, '').trim();
+  return value
+    .slice(10)
+    .replace(/^[T\s]/, '')
+    .trim();
 }
 
 /** Split a naive date-time string into its date and its 24-hour clock. */

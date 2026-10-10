@@ -1,24 +1,34 @@
+import { ADDON_IDS } from '../../addons';
+import { canRead, canReadTrips, canDeleteTrips } from '../../mcp/scopes';
+import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
-  McpController, Tool, Resource, ResourceTemplate, Prompt, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  errorResult, ok,
+  McpController,
+  Tool,
+  Resource,
+  ResourceTemplate,
+  Prompt,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  errorResult,
+  ok,
 } from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { DomainError } from '../common/domain-error';
-import { tripIdPromptArg } from '../mcp-shared/prompt-args';
-import { z } from 'zod';
+import { AddonsService } from '../addons/addons.service';
 import { CalendarService } from '../calendar/calendar.service';
+import { CollabService } from '../collab/collab.service';
+import { DomainError } from '../common/domain-error';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { tripIdPromptArg } from '../mcp-shared/prompt-args';
+import { TodoService } from '../todo/todo.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
-import { ADDON_IDS } from '../../addons';
-import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { canRead, canReadTrips, canDeleteTrips } from '../../mcp/scopes';
-import { idSchema, MAX_TRIP_DAYS } from '@trek/shared';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
-import { TodoService } from '../todo/todo.service';
-import { CollabService } from '../collab/collab.service';
-import { AddonsService } from '../addons/addons.service';
+import { idSchema, MAX_TRIP_DAYS } from '@trek/shared';
+
+import { z } from 'zod';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -27,21 +37,25 @@ function parseId(value: string | string[]): number | null {
 
 function accessDenied(uri: string) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify({ error: 'Trip not found or access denied' }),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify({ error: 'Trip not found or access denied' }),
+      },
+    ],
   };
 }
 
 function jsonContent(uri: string, data: unknown) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify(data, null, 2),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
   };
 }
 
@@ -81,32 +95,75 @@ export class TripsMcp {
 
   @Tool({
     name: 'create_trip',
-    description: 'Create a new trip. Returns the created trip; its day_count is the number of days generated, one per day of the date range.',
+    description:
+      'Create a new trip. Returns the created trip; its day_count is the number of days generated, one per day of the date range.',
     inputSchema: {
       title: z.string().min(1).max(200).describe('Trip title'),
       description: z.string().max(2000).optional().describe('Trip description'),
-      start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Start date (YYYY-MM-DD)'),
-      end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('End date (YYYY-MM-DD)'),
-      currency: z.string().length(3).optional().describe('Currency code (e.g. EUR, USD). Left out, the trip takes the display currency from the settings (see get_display_settings), or EUR when none is set.'),
-      day_count: z.number().int().min(1).max(MAX_TRIP_DAYS).optional().describe(
-        'How many days a trip without dates gets (default 7). Ignored when start_date and end_date are both set, because the range decides the count.'),
-      reminder_days: z.number().int().min(0).max(30).optional().describe(
-        'How many days before departure the pre-trip reminder fires (default 3). 0 turns the reminder off.'),
+      start_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe('Start date (YYYY-MM-DD)'),
+      end_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe('End date (YYYY-MM-DD)'),
+      currency: z
+        .string()
+        .length(3)
+        .optional()
+        .describe(
+          'Currency code (e.g. EUR, USD). Left out, the trip takes the display currency from the settings (see get_display_settings), or EUR when none is set.',
+        ),
+      day_count: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_TRIP_DAYS)
+        .optional()
+        .describe(
+          'How many days a trip without dates gets (default 7). Ignored when start_date and end_date are both set, because the range decides the count.',
+        ),
+      reminder_days: z
+        .number()
+        .int()
+        .min(0)
+        .max(30)
+        .optional()
+        .describe('How many days before departure the pre-trip reminder fires (default 3). 0 turns the reminder off.'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'write' },
   })
   async createTrip(
-    { title, description, start_date, end_date, currency, day_count, reminder_days }: {
-      title: string; description?: string; start_date?: string; end_date?: string; currency?: string;
-      day_count?: number; reminder_days?: number;
+    {
+      title,
+      description,
+      start_date,
+      end_date,
+      currency,
+      day_count,
+      reminder_days,
+    }: {
+      title: string;
+      description?: string;
+      start_date?: string;
+      end_date?: string;
+      currency?: string;
+      day_count?: number;
+      reminder_days?: number;
     },
     ctx: McpContext,
   ) {
     if (start_date) {
       const d = new Date(start_date + 'T00:00:00Z');
       if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== start_date)
-        return { content: [{ type: 'text' as const, text: 'start_date is not a valid calendar date.' }], isError: true };
+        return {
+          content: [{ type: 'text' as const, text: 'start_date is not a valid calendar date.' }],
+          isError: true,
+        };
     }
     if (end_date) {
       const d = new Date(end_date + 'T00:00:00Z');
@@ -117,7 +174,15 @@ export class TripsMcp {
       return { content: [{ type: 'text' as const, text: 'End date must be after start date.' }], isError: true };
     }
     try {
-      const { trip } = await this.trips.create(ctx.userId, { title, description, start_date, end_date, currency, day_count, reminder_days });
+      const { trip } = await this.trips.create(ctx.userId, {
+        title,
+        description,
+        start_date,
+        end_date,
+        currency,
+        day_count,
+        reminder_days,
+      });
       return ok({ trip });
     } catch (err) {
       if (err instanceof ValidationError) return errorResult(err.message);
@@ -127,33 +192,86 @@ export class TripsMcp {
 
   @Tool({
     name: 'update_trip',
-    description: 'Update an existing trip\'s details. Shortening a dated trip deletes its last days by position, with their planned places, notes and any stay that checks in or out on them; day plans move with the dates, so a later start with the same end also takes the last days. When a change removed days, the result lists them in removed_days (id, day_number and date as they stood before; reason overflow for a day past the new range, spare for an empty one).',
+    description:
+      "Update an existing trip's details. Shortening a dated trip deletes its last days by position, with their planned places, notes and any stay that checks in or out on them; day plans move with the dates, so a later start with the same end also takes the last days. When a change removed days, the result lists them in removed_days (id, day_number and date as they stood before; reason overflow for a day past the new range, spare for an empty one).",
     inputSchema: {
       tripId: idSchema,
       title: z.string().min(1).max(200).optional(),
       description: z.string().max(2000).nullable().optional().describe('Trip description; null removes it'),
-      start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-      end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-      clear_dates: z.boolean().optional().describe(
-        'Drop both dates and turn the trip back into a dateless one. Cannot be combined with start_date or end_date; pair it with day_count to say how many days the dateless trip keeps'),
+      start_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+      end_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+      clear_dates: z
+        .boolean()
+        .optional()
+        .describe(
+          'Drop both dates and turn the trip back into a dateless one. Cannot be combined with start_date or end_date; pair it with day_count to say how many days the dateless trip keeps',
+        ),
       currency: z.string().length(3).optional(),
       is_archived: z.boolean().optional().describe('Archive (true) or unarchive (false) the trip'),
-      cover_image: z.string().nullable().optional().describe('Cover image path, e.g. /uploads/covers/abc.jpg; null removes the cover'),
-      day_count: z.number().int().min(1).max(MAX_TRIP_DAYS).optional().describe(
-        'Resize a trip without dates to this many days. Days that still hold content are never trimmed. Ignored while the trip has a date range, because the range decides the count'),
-      reminder_days: z.number().int().min(0).max(30).optional().describe(
-        'How many days before departure the pre-trip reminder fires. 0 turns the reminder off'),
-      date_shift_mode: z.enum(['keep_bookings', 'shift_all']).optional().describe(
-        'When changing dates: keep_bookings (default) keeps dated reservations/accommodations on their dates while day plans move; shift_all moves the whole itinerary, bookings included'),
+      cover_image: z
+        .string()
+        .nullable()
+        .optional()
+        .describe('Cover image path, e.g. /uploads/covers/abc.jpg; null removes the cover'),
+      day_count: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_TRIP_DAYS)
+        .optional()
+        .describe(
+          'Resize a trip without dates to this many days. Days that still hold content are never trimmed. Ignored while the trip has a date range, because the range decides the count',
+        ),
+      reminder_days: z
+        .number()
+        .int()
+        .min(0)
+        .max(30)
+        .optional()
+        .describe('How many days before departure the pre-trip reminder fires. 0 turns the reminder off'),
+      date_shift_mode: z
+        .enum(['keep_bookings', 'shift_all'])
+        .optional()
+        .describe(
+          'When changing dates: keep_bookings (default) keeps dated reservations/accommodations on their dates while day plans move; shift_all moves the whole itinerary, bookings included',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'write' },
   })
   async updateTrip(
-    { tripId, title, description, start_date, end_date, clear_dates, currency, is_archived, cover_image, day_count, reminder_days, date_shift_mode }: {
-      tripId: number; title?: string; description?: string | null; start_date?: string; end_date?: string;
-      clear_dates?: boolean; currency?: string; is_archived?: boolean; cover_image?: string | null;
-      day_count?: number; reminder_days?: number; date_shift_mode?: 'keep_bookings' | 'shift_all';
+    {
+      tripId,
+      title,
+      description,
+      start_date,
+      end_date,
+      clear_dates,
+      currency,
+      is_archived,
+      cover_image,
+      day_count,
+      reminder_days,
+      date_shift_mode,
+    }: {
+      tripId: number;
+      title?: string;
+      description?: string | null;
+      start_date?: string;
+      end_date?: string;
+      clear_dates?: boolean;
+      currency?: string;
+      is_archived?: boolean;
+      cover_image?: string | null;
+      day_count?: number;
+      reminder_days?: number;
+      date_shift_mode?: 'keep_bookings' | 'shift_all';
     },
     ctx: McpContext,
   ) {
@@ -164,7 +282,10 @@ export class TripsMcp {
     if (start_date) {
       const d = new Date(start_date + 'T00:00:00Z');
       if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== start_date)
-        return { content: [{ type: 'text' as const, text: 'start_date is not a valid calendar date.' }], isError: true };
+        return {
+          content: [{ type: 'text' as const, text: 'start_date is not a valid calendar date.' }],
+          isError: true,
+        };
     }
     if (end_date) {
       const d = new Date(end_date + 'T00:00:00Z');
@@ -181,7 +302,12 @@ export class TripsMcp {
     // update() re-anchors the budget before the trip row moves off the old
     // currency (#1543) and then runs the legacy updateTrip core.
     try {
-      const { updatedTrip, removedDays } = await this.trips.update(tripId, ctx.userId, { title, description, ...dates, currency, is_archived, cover_image, day_count, reminder_days, date_shift_mode }, 'user');
+      const { updatedTrip, removedDays } = await this.trips.update(
+        tripId,
+        ctx.userId,
+        { title, description, ...dates, currency, is_archived, cover_image, day_count, reminder_days, date_shift_mode },
+        'user',
+      );
       this.guards.safeBroadcast(tripId, 'trip:updated', { trip: updatedTrip });
       // Only when days went, so the answer to a rename or a longer trip stays as it was.
       return ok({ trip: updatedTrip, ...(removedDays.length > 0 ? { removed_days: removedDays } : {}) });
@@ -193,7 +319,8 @@ export class TripsMcp {
 
   @Tool({
     name: 'search_cover_images',
-    description: 'Search Unsplash for candidate cover photos and return their URLs, thumbnails and photographer credits. Use this when the user wants a cover image but has no URL of their own, then pass the chosen photo\'s url back as update_trip\'s cover_image. Nothing is saved to a trip here.',
+    description:
+      "Search Unsplash for candidate cover photos and return their URLs, thumbnails and photographer credits. Use this when the user wants a cover image but has no URL of their own, then pass the chosen photo's url back as update_trip's cover_image. Nothing is saved to a trip here.",
     inputSchema: {
       query: z.string().min(1).max(200).describe('What the cover should show, e.g. "Lisbon rooftops at sunset"'),
     },
@@ -232,7 +359,8 @@ export class TripsMcp {
   // they are navigation tools that any MCP client needs to discover trip IDs.
   @Tool({
     name: 'list_trips',
-    description: 'List all trips the current user owns or is a member of. Use this for trip discovery before calling get_trip_summary.',
+    description:
+      'List all trips the current user owns or is a member of. Use this for trip discovery before calling get_trip_summary.',
     inputSchema: {
       include_archived: z.boolean().optional().describe('Include archived trips (default false)'),
     },
@@ -241,13 +369,14 @@ export class TripsMcp {
   async listTrips({ include_archived }: { include_archived?: boolean }, ctx: McpContext) {
     const notice = ctx.getDeprecationNotice ? ctx.getDeprecationNotice() : null;
     const trips = await this.trips.list(ctx.userId, include_archived ? null : 0);
-    if (notice) return {
-      isError: true as const,
-      content: [
-        { type: 'text' as const, text: notice },
-        { type: 'text' as const, text: JSON.stringify({ trips }, null, 2) },
-      ],
-    };
+    if (notice)
+      return {
+        isError: true as const,
+        content: [
+          { type: 'text' as const, text: notice },
+          { type: 'text' as const, text: JSON.stringify({ trips }, null, 2) },
+        ],
+      };
     return ok({ trips });
   }
 
@@ -255,7 +384,8 @@ export class TripsMcp {
 
   @Tool({
     name: 'get_trip_summary',
-    description: 'Get a full denormalized summary of a trip in a single call: metadata, members, days with assignments and notes, accommodations, budget line items (when enabled), packing list (when enabled), reservations, collab notes and poll/message counts (when enabled), and to-do items (when enabled). Use this as a context loader before planning or modifying a trip.',
+    description:
+      'Get a full denormalized summary of a trip in a single call: metadata, members, days with assignments and notes, accommodations, budget line items (when enabled), packing list (when enabled), reservations, collab notes and poll/message counts (when enabled), and to-do items (when enabled). Use this as a context loader before planning or modifying a trip.',
     inputSchema: {
       tripId: idSchema,
     },
@@ -268,23 +398,23 @@ export class TripsMcp {
     const R = canReadTrips(ctx.scopes);
     // Addon availability gates
     const packingEnabled = await this.addons.isAddonEnabled(ADDON_IDS.PACKING);
-    const budgetEnabled  = await this.addons.isAddonEnabled(ADDON_IDS.BUDGET);
-    const collabEnabled  = await this.addons.isAddonEnabled(ADDON_IDS.COLLAB);
+    const budgetEnabled = await this.addons.isAddonEnabled(ADDON_IDS.BUDGET);
+    const collabEnabled = await this.addons.isAddonEnabled(ADDON_IDS.COLLAB);
     const collabFeatures = collabEnabled ? await this.addons.getCollabFeatures() : null;
     // Scope gates — sections not covered by the client's OAuth scopes are omitted.
     // Core trip data (metadata, days, members, accommodations) is always included
     // because this tool is always registered and needed for navigation.
-    const canReadBudget  = budgetEnabled  && canRead(ctx.scopes, 'budget');
+    const canReadBudget = budgetEnabled && canRead(ctx.scopes, 'budget');
     const canReadPacking = packingEnabled && canRead(ctx.scopes, 'packing');
-    const canReadCollab  = collabEnabled  && canRead(ctx.scopes, 'collab');
-    const canReadTodos   = packingEnabled && canRead(ctx.scopes, 'todos');
-    const canReadRes     = canRead(ctx.scopes, 'reservations');
+    const canReadCollab = collabEnabled && canRead(ctx.scopes, 'collab');
+    const canReadTodos = packingEnabled && canRead(ctx.scopes, 'todos');
+    const canReadRes = canRead(ctx.scopes, 'reservations');
     const todos = canReadTodos ? await this.todos.listItems(tripId) : [];
     let pollCount = 0;
     let messageCount = 0;
     if (canReadCollab) {
-      if (collabFeatures?.polls) pollCount    = (await this.collab.listPolls(tripId)).length;
-      if (collabFeatures?.chat)  messageCount = await this.collab.countMessages(tripId);
+      if (collabFeatures?.polls) pollCount = (await this.collab.listPolls(tripId)).length;
+      if (collabFeatures?.chat) messageCount = await this.collab.countMessages(tripId);
     }
     const notice = ctx.getDeprecationNotice ? ctx.getDeprecationNotice() : null;
     // The core bucket (trip metadata, members WITH email, days with place
@@ -294,28 +424,29 @@ export class TripsMcp {
     // navigation (list_trips already covers discovery). trek_ PATs (null scopes)
     // and any trips:read holder keep the full payload — no behaviour change.
     const summaryData = {
-      trip:          R                                             ? summary.trip          : { id: summary.trip.id, title: summary.trip.title },
-      members:       R                                             ? summary.members       : undefined,
-      days:          R                                             ? summary.days          : undefined,
+      trip: R ? summary.trip : { id: summary.trip.id, title: summary.trip.title },
+      members: R ? summary.members : undefined,
+      days: R ? summary.days : undefined,
       // Accommodations are "accommodation details" under reservations:read too
       // (see SCOPE_INFO) and pair with reservations in the share payload, so a
       // reservations-scoped token keeps them — gate on either read scope.
-      accommodations: (R || canReadRes)                            ? summary.accommodations : undefined,
-      reservations:  canReadRes                                    ? summary.reservations : undefined,
-      packing:       canReadPacking                                ? summary.packing      : undefined,
-      budget:        canReadBudget                                 ? summary.budget       : undefined,
-      collab_notes:  canReadCollab && collabFeatures?.notes        ? summary.collab_notes : [],
+      accommodations: R || canReadRes ? summary.accommodations : undefined,
+      reservations: canReadRes ? summary.reservations : undefined,
+      packing: canReadPacking ? summary.packing : undefined,
+      budget: canReadBudget ? summary.budget : undefined,
+      collab_notes: canReadCollab && collabFeatures?.notes ? summary.collab_notes : [],
       todos,
       pollCount,
       messageCount,
     };
-    if (notice) return {
-      isError: true as const,
-      content: [
-        { type: 'text' as const, text: notice },
-        { type: 'text' as const, text: JSON.stringify(summaryData, null, 2) },
-      ],
-    };
+    if (notice)
+      return {
+        isError: true as const,
+        content: [
+          { type: 'text' as const, text: notice },
+          { type: 'text' as const, text: JSON.stringify(summaryData, null, 2) },
+        ],
+      };
     return ok(summaryData);
   }
 
@@ -340,7 +471,8 @@ export class TripsMcp {
 
   @Tool({
     name: 'add_trip_member',
-    description: 'Add a user to a trip by their username or email address. Needs the member_manage permission, which by default only the trip owner holds. Use create_trip_guest instead for a companion who has no TREK account.',
+    description:
+      'Add a user to a trip by their username or email address. Needs the member_manage permission, which by default only the trip owner holds. Use create_trip_guest instead for a companion who has no TREK account.',
     inputSchema: {
       tripId: idSchema,
       identifier: z.string().min(1).describe('Username or email of the user to add'),
@@ -361,14 +493,16 @@ export class TripsMcp {
       this.guards.safeBroadcast(tripId, 'member:added', { member: result.member });
       return ok({ member: result.member });
     } catch (err) {
-      const msg = err instanceof ValidationError || err instanceof NotFoundError ? err.message : 'Failed to add member.';
+      const msg =
+        err instanceof ValidationError || err instanceof NotFoundError ? err.message : 'Failed to add member.';
       return { content: [{ type: 'text' as const, text: msg }], isError: true };
     }
   }
 
   @Tool({
     name: 'remove_trip_member',
-    description: 'Remove somebody else from a trip. Needs the member_manage permission, which by default only the trip owner holds. When the user means themselves, prefer leave_trip: it says so plainly and needs no permission.',
+    description:
+      'Remove somebody else from a trip. Needs the member_manage permission, which by default only the trip owner holds. When the user means themselves, prefer leave_trip: it says so plainly and needs no permission.',
     inputSchema: {
       tripId: idSchema,
       memberId: idSchema.describe('User ID of the member to remove'),
@@ -389,7 +523,8 @@ export class TripsMcp {
 
   @Tool({
     name: 'leave_trip',
-    description: 'Leave a trip you were invited to, giving up your own access to it. Prefer this over remove_trip_member whenever the user means themselves. The owner cannot leave their own trip.',
+    description:
+      'Leave a trip you were invited to, giving up your own access to it. Prefer this over remove_trip_member whenever the user means themselves. The owner cannot leave their own trip.',
     inputSchema: {
       tripId: idSchema,
     },
@@ -421,7 +556,8 @@ export class TripsMcp {
 
   @Tool({
     name: 'create_trip_guest',
-    description: 'Add a travelling companion who has no TREK account to a trip. Use this when the person cannot be found by username or email. A guest can be assigned to budget splits, packing items, to-dos and day participants like any member, but never signs in and is never emailed. Only the trip owner can do this.',
+    description:
+      'Add a travelling companion who has no TREK account to a trip. Use this when the person cannot be found by username or email. A guest can be assigned to budget splits, packing items, to-dos and day participants like any member, but never signs in and is never emailed. Only the trip owner can do this.',
     inputSchema: {
       tripId: idSchema,
       name: z.string().min(1).max(50).describe('Display name of the guest, e.g. "Anna"'),
@@ -473,7 +609,8 @@ export class TripsMcp {
 
   @Tool({
     name: 'delete_trip_guest',
-    description: 'Remove a guest from a trip. This deletes the guest outright (they exist only for this trip) and re-splits any expenses they were part of. Only the trip owner can do this.',
+    description:
+      'Remove a guest from a trip. This deletes the guest outright (they exist only for this trip) and re-splits any expenses they were part of. Only the trip owner can do this.',
     inputSchema: {
       tripId: idSchema,
       guestId: idSchema.describe('User ID of the guest, from list_trip_members'),
@@ -494,7 +631,8 @@ export class TripsMcp {
 
   @Tool({
     name: 'copy_trip',
-    description: 'Duplicate a trip (all days, places, itinerary, packing, budget, reservations, day notes). Packing items and to-dos are reset to unchecked. Returns the new trip.',
+    description:
+      'Duplicate a trip (all days, places, itinerary, packing, budget, reservations, day notes). Packing items and to-dos are reset to unchecked. Returns the new trip.',
     inputSchema: {
       tripId: idSchema.describe('Source trip ID to duplicate'),
       title: z.string().min(1).max(200).optional().describe('Title for the new trip (defaults to source title)'),
@@ -515,7 +653,8 @@ export class TripsMcp {
 
   @Tool({
     name: 'export_trip_ics',
-    description: 'Export a trip\'s itinerary and reservations as iCalendar (.ics) format text. Useful for importing into calendar apps.',
+    description:
+      "Export a trip's itinerary and reservations as iCalendar (.ics) format text. Useful for importing into calendar apps.",
     inputSchema: {
       tripId: idSchema,
     },
@@ -588,7 +727,11 @@ export class TripsMcp {
   })
   async tripSummaryPrompt({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) {
-      return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } }] };
+      return {
+        messages: [
+          { role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } },
+        ],
+      };
     }
     const summary = await this.readModel.getTripSummary(tripId, ctx.userId);
     if (!summary) {

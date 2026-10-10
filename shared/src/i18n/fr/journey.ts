@@ -207,10 +207,12 @@ const journey: TranslationStrings = {
   'journey.settings.status': 'Statut',
   'journey.settings.statusAuto': 'Automatique',
   'journey.settings.statusAutoHint': 'Suit les dates des voyages liés. Sans voyage, le carnet reste un brouillon.',
-  'journey.settings.statusManualHint': 'Défini à la main. Les dates du voyage ne le changent plus tant que vous ne repassez pas en automatique.',
+  'journey.settings.statusManualHint':
+    'Défini à la main. Les dates du voyage ne le changent plus tant que vous ne repassez pas en automatique.',
   'journey.settings.photosSection': 'Photos',
   'journey.settings.photoLocation': "Placer les entrées d'après leurs photos",
-  'journey.settings.photoLocationHint': "Une entrée sans lieu prend l'endroit où sa première photo avec GPS a été prise. Les lieux que vous avez définis ne sont jamais déplacés.",
+  'journey.settings.photoLocationHint':
+    "Une entrée sans lieu prend l'endroit où sa première photo avec GPS a été prise. Les lieux que vous avez définis ne sont jamais déplacés.",
   'journey.settings.endJourney': 'Archiver le journal',
   'journey.settings.reopenJourney': 'Restaurer le journal',
   'journey.settings.archived': 'Journal archivé',
@@ -309,7 +311,8 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Télécharger cette double page',
-  'journey.studio.downloadSpreadHint': 'Enregistre la mise en page de cette double page dans un fichier, sans les photos, à partager ou à réutiliser',
+  'journey.studio.downloadSpreadHint':
+    'Enregistre la mise en page de cette double page dans un fichier, sans les photos, à partager ou à réutiliser',
   'journey.studio.importSpread': 'Importer',
   'journey.studio.importSpreadHint': "Ajoute une double page à partir d'un fichier de mise en page téléchargé",
   'journey.studio.importSpreadFailed': "Ce fichier n'est pas une double page TREK Studio",
@@ -379,7 +382,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -574,7 +578,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Contours',
   'journey.studio.mapSourceRelief': 'Relief',
   'journey.studio.mapSourceSatellite': 'Satellite',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 sans nuages, libre à l’impression avec son crédit. Net jusqu’à la rue.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 sans nuages, libre à l’impression avec son crédit. Net jusqu’à la rue.',
   'journey.studio.routeLook': 'Le tracé',
   'journey.studio.routeStyle': 'Trait',
   'journey.studio.routePlain': 'Simple',
@@ -597,9 +602,11 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Relancer',
   'journey.studio.roadsClear': 'Effacer',
   'journey.studio.roadsBusy': 'Recherche',
-  'journey.studio.roadsHint': 'Demande à un service d’itinéraires le chemin parcouru sur chaque trajet. Les longs trajets restent tels quels.',
+  'journey.studio.roadsHint':
+    'Demande à un service d’itinéraires le chemin parcouru sur chaque trajet. Les longs trajets restent tels quels.',
   'journey.studio.roadsHave': 'Les routes sont enregistrées dans ce livre, il imprime donc le même tracé hors ligne.',
-  'journey.studio.mapSourceReliefHint': 'Relief ombré de la NASA, libre à l’impression. Parfait pour un pays ou un continent, trop grossier pour une ville.',
+  'journey.studio.mapSourceReliefHint':
+    'Relief ombré de la NASA, libre à l’impression. Parfait pour un pays ou un continent, trop grossier pour une ville.',
   'journey.studio.mapPrintDpi': 'Impression à environ',
   'journey.studio.mapPrintDpiLow': 'flou à cette taille, essayez une vue plus large ou une autre source',
   'journey.studio.mapPerTrip': 'Un voyage à la fois',

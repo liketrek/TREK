@@ -1,23 +1,14 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
-import {
-  ConnectedSocket,
-  MessageBody,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  OnGatewayInit,
-  SubscribeMessage,
-  WebSocketGateway,
-} from '@nestjs/websockets';
-import type { IncomingMessage } from 'node:http';
-import type { WebSocketServer } from 'ws';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
+import { runningVersion } from '../../app-config';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { Users } from '../../db/entities/Users.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { User } from '../../types';
 import { logError } from '../audit/audit-log.logger';
+import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
+import { readAppSetting } from '../common/app-settings.registry';
+import { TripAccessService } from '../trip-membership/trip-access.service';
+import { JOURNEY_ACCESS, type JourneyAccess } from './journey-access.types';
 import {
   bookPeers,
   broadcastToBook,
@@ -28,10 +19,20 @@ import {
   userOf,
   type TrekWebSocket,
 } from './ws-state';
-import { JOURNEY_ACCESS, type JourneyAccess } from './journey-access.types';
-import { readAppSetting } from '../common/app-settings.registry';
-import { runningVersion } from '../../app-config';
-import { TripAccessService } from '../trip-membership/trip-access.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import {
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  OnGatewayInit,
+  SubscribeMessage,
+  WebSocketGateway,
+} from '@nestjs/websockets';
+
+import type { IncomingMessage } from 'node:http';
+import type { WebSocketServer } from 'ws';
 
 const HEARTBEAT_INTERVAL = 30_000;
 
@@ -56,9 +57,7 @@ const HEARTBEAT_INTERVAL = 30_000;
  */
 @Injectable()
 @WebSocketGateway({ path: '/ws' })
-export class RealtimeGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
-{
+export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
   private heartbeat: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -160,7 +159,9 @@ export class RealtimeGateway
       // runs the previous build: a deploy restarts the server, so every open
       // client reconnects and reads this again.
       socket.send(JSON.stringify({ type: 'welcome', socketId: sid, version: runningVersion() }));
-      socket.on('pong', () => { socket.isAlive = true; });
+      socket.on('pong', () => {
+        socket.isAlive = true;
+      });
     } catch (err) {
       logError(`ws handshake failed: ${err instanceof Error ? err.message : String(err)}`);
       socket.close(4001, 'connection setup failed');
@@ -251,7 +252,8 @@ export class RealtimeGateway
    */
   @SubscribeMessage('book:cursor')
   handleBookCursor(
-    @MessageBody() message: {
+    @MessageBody()
+    message: {
       journeyId?: number | string;
       spreadIndex?: number;
       x?: number | null;

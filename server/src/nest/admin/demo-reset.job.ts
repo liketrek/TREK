@@ -1,12 +1,12 @@
-import { Inject, Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/core';
-import { logInfo, logError } from '../audit/audit-log.logger';
+import { hasBaseline, resetDemoUser, saveBaseline, takeExampleTripsSeeded } from '../../demo/demo-reset';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { logInfo, logError } from '../audit/audit-log.logger';
 import { DATABASE_BACKUP, type DatabaseBackupStrategy } from '../database/database-backup.interface';
 import { DatabaseLifecycle } from '../database/database-lifecycle.service';
 import { withRequestContext } from '../database/request-context';
-import { hasBaseline, resetDemoUser, saveBaseline, takeExampleTripsSeeded } from '../../demo/demo-reset';
+import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { EntityManager } from '@mikro-orm/core';
+import { Inject, Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * Demo mode: hourly reset of demo user data (moved from src/scheduler.ts).

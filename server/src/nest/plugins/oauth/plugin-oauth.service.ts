@@ -1,20 +1,21 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import crypto from 'node:crypto';
-import { encrypt_api_key, decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
-import { applySettingDefaults, settingDefaults } from '../settings-defaults';
 import { getAppUrl } from '../../../app-config';
-import { isPrivateIp } from '../install/safe-fetch';
-import { safeFetchAdminConfigured } from '../../../utils/ssrfGuard';
-import { Plugins } from '../../../db/entities/Plugins.entity';
-import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
-import { PluginOauthTokens } from '../../../db/entities/PluginOauthTokens.entity';
-import type { PluginOauthTokensRepository } from '../../../db/repositories/PluginOauthTokens.repository';
 import { PluginOauthState } from '../../../db/entities/PluginOauthState.entity';
-import type { PluginOauthStateRepository } from '../../../db/repositories/PluginOauthState.repository';
+import { PluginOauthTokens } from '../../../db/entities/PluginOauthTokens.entity';
 import { PluginSettingsFields } from '../../../db/entities/PluginSettingsFields.entity';
+import { Plugins } from '../../../db/entities/Plugins.entity';
+import type { PluginOauthStateRepository } from '../../../db/repositories/PluginOauthState.repository';
+import type { PluginOauthTokensRepository } from '../../../db/repositories/PluginOauthTokens.repository';
 import type { PluginSettingsFieldsRepository } from '../../../db/repositories/PluginSettingsFields.repository';
+import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
+import { safeFetchAdminConfigured } from '../../../utils/ssrfGuard';
+import { encrypt_api_key, decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
 import { UnitOfWork } from '../../database/unit-of-work';
+import { isPrivateIp } from '../install/safe-fetch';
+import { applySettingDefaults, settingDefaults } from '../settings-defaults';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+import crypto from 'node:crypto';
 
 /**
  * Host-brokered outbound OAuth (#plugins). A plugin becomes an OAuth *client* of a
@@ -63,13 +64,18 @@ function assertSafeHttps(urlStr: string, what: string): URL {
   const host = u.hostname.toLowerCase();
   const ip = host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host;
   const loopbackOrMeta =
-    ip === '::1' || ip.startsWith('127.') || ip.startsWith('0.') ||
-    ip.startsWith('169.254.') || /^fe[89ab][0-9a-f]:/.test(ip) || ip.startsWith('fd00:ec2:');
+    ip === '::1' ||
+    ip.startsWith('127.') ||
+    ip.startsWith('0.') ||
+    ip.startsWith('169.254.') ||
+    /^fe[89ab][0-9a-f]:/.test(ip) ||
+    ip.startsWith('fd00:ec2:');
   if (loopbackOrMeta) throw new Error(`${what} may not point at a loopback or metadata address`);
   if (host === 'localhost' || host.endsWith('.local') || host.endsWith('.internal')) {
     throw new Error(`${what} may not point at a local address`);
   }
-  if (/^\d+\.\d+\.\d+\.\d+$/.test(host) && isPrivateIp(host)) throw new Error(`${what} may not point at a private address`);
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host) && isPrivateIp(host))
+    throw new Error(`${what} may not point at a private address`);
   return u;
 }
 
@@ -207,7 +213,10 @@ export class PluginOAuthService {
 
   // --- internals ---
 
-  private async tokenRequest(cfg: OAuthProviderConfig, params: Record<string, string>): Promise<{ access_token?: string; refresh_token?: string; expires_in?: number; scope?: string }> {
+  private async tokenRequest(
+    cfg: OAuthProviderConfig,
+    params: Record<string, string>,
+  ): Promise<{ access_token?: string; refresh_token?: string; expires_in?: number; scope?: string }> {
     assertSafeHttps(cfg.tokenUrl, 'token_url');
     const body = new URLSearchParams({ ...params, client_id: cfg.clientId, client_secret: cfg.clientSecret });
     // Route the server-side token POST through the SSRF guard: it resolves the host
@@ -219,12 +228,16 @@ export class PluginOAuthService {
     // client_secret to a second host, and a token endpoint has no legitimate
     // reason to redirect. The timeout is not optional either — without it a
     // hanging provider pins the request handler open indefinitely.
-    const resp = await safeFetchAdminConfigured(cfg.tokenUrl, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
-      body: body.toString(),
-      signal: AbortSignal.timeout(15000),
-    }, 0);
+    const resp = await safeFetchAdminConfigured(
+      cfg.tokenUrl,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+        body: body.toString(),
+        signal: AbortSignal.timeout(15000),
+      },
+      0,
+    );
     if (!resp.ok) throw new Error(`token endpoint returned ${resp.status}`);
     const json = (await resp.json()) as Record<string, unknown>;
     return {
@@ -235,7 +248,12 @@ export class PluginOAuthService {
     };
   }
 
-  private async storeToken(pluginId: string, userId: number, token: { access_token?: string; refresh_token?: string; expires_in?: number; scope?: string }, nowMs: number): Promise<void> {
+  private async storeToken(
+    pluginId: string,
+    userId: number,
+    token: { access_token?: string; refresh_token?: string; expires_in?: number; scope?: string },
+    nowMs: number,
+  ): Promise<void> {
     if (!token.access_token) throw new Error('token endpoint returned no access_token');
     const expiresAt = token.expires_in ? nowMs + token.expires_in * 1000 : null;
     // PO11 (R-oauth-upsert) — encryption happens HERE, in the service, before the

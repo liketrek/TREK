@@ -1,6 +1,7 @@
-import path from 'path';
 import { readEnv } from '../../app-config';
 import { resolveDataPaths } from '../../app-config/data-paths';
+
+import path from 'path';
 
 /**
  * File-domain constants and pure helpers, split out of FilesService because
@@ -14,7 +15,8 @@ import { resolveDataPaths } from '../../app-config/data-paths';
 // FILE_UPLOAD_LIMIT_MB, 50 MB by default (#1364). Read once at load, like the
 // backup cap: the multer configs that use it are built before the container.
 export const MAX_FILE_SIZE = readEnv().files.uploadLimitMb * 1024 * 1024;
-export const DEFAULT_ALLOWED_EXTENSIONS = 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv,pkpass,pkpasses,md,markdown';
+export const DEFAULT_ALLOWED_EXTENSIONS =
+  'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv,pkpass,pkpasses,md,markdown';
 
 // Video support (#823). Gallery/media uploads accept these in addition to images,
 // independent of the admin doc-types allowlist. Videos are stored as-is and
@@ -38,11 +40,37 @@ export const BLOCKED_EXTENSIONS = [
   // Server-rendered / scripted content that could XSS a viewer. Downloads are
   // served inline with an extension-derived Content-Type, so every spelling a
   // browser renders as a document has to be listed, not just the common ones.
-  '.svg', '.svgz', '.html', '.htm', '.shtml', '.shtm', '.xml', '.xhtml', '.xht',
+  '.svg',
+  '.svgz',
+  '.html',
+  '.htm',
+  '.shtml',
+  '.shtm',
+  '.xml',
+  '.xhtml',
+  '.xht',
   // Scripts
-  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.php', '.py', '.rb', '.pl',
+  '.js',
+  '.jsx',
+  '.ts',
+  '.tsx',
+  '.mjs',
+  '.cjs',
+  '.php',
+  '.py',
+  '.rb',
+  '.pl',
   // Executables
-  '.exe', '.bat', '.sh', '.cmd', '.msi', '.dll', '.com', '.vbs', '.ps1', '.app',
+  '.exe',
+  '.bat',
+  '.sh',
+  '.cmd',
+  '.msi',
+  '.dll',
+  '.com',
+  '.vbs',
+  '.ps1',
+  '.app',
 ];
 /** `<server>/uploads/files`, from the one data layout. */
 export const filesDir = path.join(resolveDataPaths().uploadsDir, 'files');

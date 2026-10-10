@@ -1,10 +1,11 @@
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
-import { User } from '../../types';
-import { utcSuffix } from '../../db/types';
 import { USER_MFA_BACKUP_CODES } from '../../db/json-columns';
+import { utcSuffix } from '../../db/types';
+import { User } from '../../types';
 import { decodeJson } from '../../utils/json-column';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 /**
  * Pure half of the auth domain (no DB, no injected deps) — the DB half lives
@@ -73,7 +74,9 @@ export function mask_stored_api_key(key: string | null | undefined): string | nu
 // ---------------------------------------------------------------------------
 
 export function normalizeBackupCode(input: string): string {
-  return String(input || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return String(input || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
 }
 
 // Legacy SHA-256 hex hash. Kept so existing stored hashes (from before
@@ -106,8 +109,11 @@ export function matchBackupCode(plaintext: string, storedHash: string): boolean 
   if (!storedHash) return false;
   if (storedHash.startsWith('$2')) {
     // bcrypt hash — compareSync is constant-time internally.
-    try { return bcrypt.compareSync(normalizeBackupCode(plaintext), storedHash); }
-    catch { return false; }
+    try {
+      return bcrypt.compareSync(normalizeBackupCode(plaintext), storedHash);
+    } catch {
+      return false;
+    }
   }
   // Legacy SHA-256 hex. Compare the SHA-256 of the input against the
   // stored hex with a constant-time comparator so timing can't leak.

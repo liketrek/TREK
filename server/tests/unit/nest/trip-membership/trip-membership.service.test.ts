@@ -10,17 +10,18 @@
  * `createTestOrm()`, the same harness every other converted repository test
  * uses.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { TripMembers } from '../../../../src/db/entities/TripMembers.entity';
+import { Trips } from '../../../../src/db/entities/Trips.entity';
+import type { TripMembersRepository } from '../../../../src/db/repositories/TripMembers.repository';
+import type { TripsRepository } from '../../../../src/db/repositories/Trips.repository';
+import { TripMembershipService } from '../../../../src/nest/trip-membership/trip-membership.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser, createTrip } from '../../../helpers/factories';
+import { countRows, findRow, insertRow, updateRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser, createTrip } from '../../../helpers/factories';
-import { Trips } from '../../../../src/db/entities/Trips.entity';
-import type { TripsRepository } from '../../../../src/db/repositories/Trips.repository';
-import { TripMembers } from '../../../../src/db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../../../src/db/repositories/TripMembers.repository';
-import { countRows, findRow, insertRow, updateRows } from '../../../helpers/factories/rows';
-import { TripMembershipService } from '../../../../src/nest/trip-membership/trip-membership.service';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -34,8 +35,14 @@ beforeAll(async () => {
   tripMembers = t.repo(TripMembers);
   svc = new TripMembershipService(trips, tripMembers);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function memberRow(tripId: number, userId: number) {
   return findRow(t, TripMembers, { trip: tripId, user: userId });
@@ -104,7 +111,9 @@ describe('joinTripAsMember', () => {
     // precisely the bug this test exists to catch (order-insensitive:
     // `Promise.allSettled` does not guarantee which of the two promises is
     // the winner).
-    const fulfilled = results.filter((r): r is PromiseFulfilledResult<{ joined: boolean; tripId: number }> => r.status === 'fulfilled');
+    const fulfilled = results.filter(
+      (r): r is PromiseFulfilledResult<{ joined: boolean; tripId: number }> => r.status === 'fulfilled',
+    );
     const rejected = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
     expect(fulfilled.length).toBe(1);
     expect(fulfilled[0].value).toEqual({ joined: true, tripId: trip.id });

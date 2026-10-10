@@ -1,11 +1,12 @@
-import type { Platform } from '@mikro-orm/core';
-import type { ExpressionBuilder } from 'kysely';
 import type { GalleryPhoto } from '../../types';
-import type { JourneyPhotos } from '../entities/JourneyPhotos.entity';
 import { concatKysely, unixEpochToIsoKysely } from '../dialect/kysely-functions';
+import type { JourneyPhotos } from '../entities/JourneyPhotos.entity';
+import type { DB } from '../kysely/db';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
+import type { Platform } from '@mikro-orm/core';
+
+import type { ExpressionBuilder } from 'kysely';
 
 /** `SELECT * FROM journey_photos WHERE id = ?`'s row (JG105) — every scalar column of the entity. */
 export interface JourneyPhotoFullRow {
@@ -24,7 +25,10 @@ export interface JourneyPhotoFullRow {
 const _journeyPhotoFullRowKeys: AssertRowKeys<JourneyPhotoFullRow, JourneyPhotos> = true;
 
 /** The `journey_photos`/`trek_photos`/`journey_entry_photos`/`journey_entries` tables the gallery reads (JG19/JG101/JG102, `galleryChronologicalOrderExpr`) read. */
-type GalleryKyselyDB = Pick<DB, 'journey_photos' | 'trek_photos' | 'journey_entry_photos' | 'journey_entries' | 'journeys'>;
+type GalleryKyselyDB = Pick<
+  DB,
+  'journey_photos' | 'trek_photos' | 'journey_entry_photos' | 'journey_entries' | 'journeys'
+>;
 
 /** JS7 (Plan 4 Task 8b relocation) — the public photo-validation join's row (`journey_photos` + `trek_photos`). */
 export interface JourneyPublicPhotoValidationRow {
@@ -41,9 +45,25 @@ export interface JourneyPublicAssetValidationRow {
 
 /** `GALLERY_SELECT`'s exact column list (`journey-domain.service.ts`'s module const), aliased `gp`/`tp` — shared by every gallery-shaped read below. */
 const GALLERY_COLUMNS = [
-  'gp.id', 'gp.journey_id', 'gp.photo_id', 'gp.caption', 'gp.shared', 'gp.sort_order', 'gp.created_at',
-  'tp.provider', 'tp.asset_id', 'tp.owner_id', 'tp.file_path', 'tp.thumbnail_path', 'tp.width', 'tp.height',
-  'tp.media_type', 'tp.duration_ms', 'tp.taken_at', 'tp.lat', 'tp.lng',
+  'gp.id',
+  'gp.journey_id',
+  'gp.photo_id',
+  'gp.caption',
+  'gp.shared',
+  'gp.sort_order',
+  'gp.created_at',
+  'tp.provider',
+  'tp.asset_id',
+  'tp.owner_id',
+  'tp.file_path',
+  'tp.thumbnail_path',
+  'tp.width',
+  'tp.height',
+  'tp.media_type',
+  'tp.duration_ms',
+  'tp.taken_at',
+  'tp.lat',
+  'tp.lng',
 ] as const;
 
 /**
@@ -63,7 +83,10 @@ const GALLERY_COLUMNS = [
  */
 function galleryChronologicalOrderExpr(
   platform: Platform,
-  eb: ExpressionBuilder<GalleryKyselyDB & { gp: GalleryKyselyDB['journey_photos']; tp: GalleryKyselyDB['trek_photos'] }, 'gp' | 'tp'>,
+  eb: ExpressionBuilder<
+    GalleryKyselyDB & { gp: GalleryKyselyDB['journey_photos']; tp: GalleryKyselyDB['trek_photos'] },
+    'gp' | 'tp'
+  >,
 ) {
   return eb.fn.coalesce(
     eb.fn<string | null>('nullif', [eb.ref('tp.taken_at'), eb.val('')]),
@@ -78,7 +101,12 @@ function galleryChronologicalOrderExpr(
               eb2,
               { column: 'je.entry_date' },
               { value: 'T' },
-              { expression: eb2.fn.coalesce(eb2.fn<string | null>('nullif', [eb2.ref('je.entry_time'), eb2.val('')]), eb2.val('00:00')) },
+              {
+                expression: eb2.fn.coalesce(
+                  eb2.fn<string | null>('nullif', [eb2.ref('je.entry_time'), eb2.val('')]),
+                  eb2.val('00:00'),
+                ),
+              },
             ),
           )
           .as('min_dt'),
@@ -147,7 +175,10 @@ export class JourneyPhotosRepository extends TrekRepository<JourneyPhotos> {
    * already converted onto `TripPhotosRepository.existsForPhoto`).
    */
   async existsForPhoto(photoId: number): Promise<boolean> {
-    const row = await this.qb('gp').select(['gp.id']).where({ photo: photoId }).execute<{ id: number } | undefined>('get', false);
+    const row = await this.qb('gp')
+      .select(['gp.id'])
+      .where({ photo: photoId })
+      .execute<{ id: number } | undefined>('get', false);
     return !!row;
   }
 
@@ -205,7 +236,10 @@ export class JourneyPhotosRepository extends TrekRepository<JourneyPhotos> {
    * fallback stub from 3g Task 3 (this repository was still mid-flight when
    * that task landed) — relocated here now that it is stable.
    */
-  async findGalleryPhotoForValidation(photoId: number, journeyId: number): Promise<JourneyPublicPhotoValidationRow | undefined> {
+  async findGalleryPhotoForValidation(
+    photoId: number,
+    journeyId: number,
+  ): Promise<JourneyPublicPhotoValidationRow | undefined> {
     return await this.kysely<GalleryKyselyDB>()
       .selectFrom('journey_photos as gp')
       .innerJoin('trek_photos as tkp', 'tkp.id', 'gp.photo_id')
@@ -227,7 +261,10 @@ export class JourneyPhotosRepository extends TrekRepository<JourneyPhotos> {
    * resolves `ownerId`. Relocated the same way as {@link
    * findGalleryPhotoForValidation}/JS7.
    */
-  async findAssetForValidation(assetId: string, journeyId: number): Promise<JourneyPublicAssetValidationRow | undefined> {
+  async findAssetForValidation(
+    assetId: string,
+    journeyId: number,
+  ): Promise<JourneyPublicAssetValidationRow | undefined> {
     return await this.kysely<GalleryKyselyDB>()
       .selectFrom('journey_photos as gp')
       .innerJoin('trek_photos as tkp', 'tkp.id', 'gp.photo_id')
@@ -323,10 +360,7 @@ export class JourneyPhotosRepository extends TrekRepository<JourneyPhotos> {
 
   /** JG105 — `deleteGalleryPhoto`'s pre-delete read: `SELECT * FROM journey_photos WHERE id = ?`. */
   async findFull(id: number): Promise<JourneyPhotoFullRow | undefined> {
-    return await this.qb('gp')
-      .select(['gp.*'])
-      .where({ id })
-      .execute<JourneyPhotoFullRow | undefined>('get', false);
+    return await this.qb('gp').select(['gp.*']).where({ id }).execute<JourneyPhotoFullRow | undefined>('get', false);
   }
 
   /** JG108 — `setPhotoProvider`'s `trek_photos.id` resolution: `SELECT photo_id FROM journey_photos WHERE id = ?`. Relation property (`gp.photo`), not the shadow column — see {@link findScopeById}'s docstring. */

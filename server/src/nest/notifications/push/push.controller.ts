@@ -1,5 +1,3 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, HttpException, Post, UseGuards } from '@nestjs/common';
-import type { PushPublicKeyResult, PushSubscribeResult, PushUnsubscribeResult } from '@trek/shared';
 import type { User } from '../../../types';
 import { CurrentUser } from '../../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
@@ -7,6 +5,8 @@ import { PushSubscribeDto, PushUnsubscribeDto } from '../notifications.dto';
 import { checkPushSubscription } from './push-subscription.helpers';
 import { PushSubscriptionsService } from './push-subscriptions.service';
 import { PUSH_UNAVAILABLE_ERROR, PushUnavailableError, VapidKeysService } from './vapid-keys.service';
+import { Body, Controller, Delete, Get, Headers, HttpCode, HttpException, Post, UseGuards } from '@nestjs/common';
+import type { PushPublicKeyResult, PushSubscribeResult, PushUnsubscribeResult } from '@trek/shared';
 
 /**
  * /api/notifications/push: how a browser signs up for Web Push (#894).

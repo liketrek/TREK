@@ -5,13 +5,26 @@
  * ordering (404 wins over 401), auth, the service-owned 403/404 mapping, status
  * codes and the unguarded public route.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { AddonsService } from '../../src/nest/addons/addons.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { JourneyBookService } from '../../src/nest/journey/journey-book.service';
+import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
+import { JourneyShareService } from '../../src/nest/journey/journey-share.service';
+import { JourneyModule } from '../../src/nest/journey/journey.module';
+import { PhotoCaptureBackfillService } from '../../src/nest/memories/photo-capture-backfill.service';
+import { StorageService } from '../../src/nest/storage/storage.service';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+import { MAX_SPREAD_ELEMENTS } from '@trek/shared';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
 import path from 'node:path';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -49,54 +62,72 @@ vi.mock('../../src/nest/memories/photo-resolver.service', async (importOriginal)
 // Whole rows, as the service returns them: the routes answer under their
 // @ResponseContract, and a stub missing columns would fail it.
 const journeyRow = (id: number) => ({
-  id, user_id: 1, title: 'J', subtitle: null, cover_gradient: null, status: 'draft',
-  created_at: 1_760_000_000_000, updated_at: 1_760_000_000_000, cover_image: null,
-  show_trip_tracks: 1, show_verdict: 1, show_mood: 1, show_weather: 1, status_override: null, photo_location: 1,
+  id,
+  user_id: 1,
+  title: 'J',
+  subtitle: null,
+  cover_gradient: null,
+  status: 'draft',
+  created_at: 1_760_000_000_000,
+  updated_at: 1_760_000_000_000,
+  cover_image: null,
+  show_trip_tracks: 1,
+  show_verdict: 1,
+  show_mood: 1,
+  show_weather: 1,
+  status_override: null,
+  photo_location: 1,
 });
-const journeyListRow = { ...journeyRow(1), entry_count: 0, photo_count: 0, place_count: 0, trip_date_min: null, trip_date_max: null };
+const journeyListRow = {
+  ...journeyRow(1),
+  entry_count: 0,
+  photo_count: 0,
+  place_count: 0,
+  trip_date_min: null,
+  trip_date_max: null,
+};
 
 const { jsvc } = vi.hoisted(() => ({
   jsvc: {
-    listJourneys: vi.fn(), createJourney: vi.fn(), getJourneyFull: vi.fn(),
-    journeyStats: vi.fn(), updateEntry: vi.fn(), restoreDismissedSuggestions: vi.fn(),
-    addProviderPhoto: vi.fn(), addProviderPhotoToGallery: vi.fn(), uploadGalleryPhotos: vi.fn(),
-    broadcastJourneyEvent: vi.fn(), journeyIdOfEntry: vi.fn(),
+    listJourneys: vi.fn(),
+    createJourney: vi.fn(),
+    getJourneyFull: vi.fn(),
+    journeyStats: vi.fn(),
+    updateEntry: vi.fn(),
+    restoreDismissedSuggestions: vi.fn(),
+    addProviderPhoto: vi.fn(),
+    addProviderPhotoToGallery: vi.fn(),
+    uploadGalleryPhotos: vi.fn(),
+    broadcastJourneyEvent: vi.fn(),
+    journeyIdOfEntry: vi.fn(),
   },
 }));
-import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
 
 // The capture-time lookup itself asks a real provider; what these cases pin is
 // the wiring around it: the route answers, the backfill runs detached, and the
 // journey hears about it after a provider add, never after an upload (#1587).
 const { backfillRun, backfillSchedule } = vi.hoisted(() => ({ backfillRun: vi.fn(), backfillSchedule: vi.fn() }));
-import { PhotoCaptureBackfillService } from '../../src/nest/memories/photo-capture-backfill.service';
 
 const { sharesvc } = vi.hoisted(() => ({ sharesvc: { getPublicJourney: vi.fn() } }));
-import { JourneyShareService } from '../../src/nest/journey/journey-share.service';
 
 const { booksvc } = vi.hoisted(() => ({
   booksvc: {
-    getBook: vi.fn(), canOpen: vi.fn(), saveBook: vi.fn(),
-    deleteBook: vi.fn(), broadcastSaved: vi.fn(),
+    getBook: vi.fn(),
+    canOpen: vi.fn(),
+    saveBook: vi.fn(),
+    deleteBook: vi.fn(),
+    broadcastSaved: vi.fn(),
   },
 }));
-import { JourneyBookService } from '../../src/nest/journey/journey-book.service';
-import { MAX_SPREAD_ELEMENTS } from '@trek/shared';
-
-import { JourneyModule } from '../../src/nest/journey/journey.module';
-import { StorageService } from '../../src/nest/storage/storage.service';
-import { AddonsService } from '../../src/nest/addons/addons.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
 
 describe('Journey e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), JourneyModule] })
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), JourneyModule],
+    })
       .overrideProvider(JourneyDomainService)
       .useValue(jsvc)
       .overrideProvider(JourneyShareService)
@@ -218,11 +249,17 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
 
   it('200 with the figures, returned bare rather than in an envelope', async () => {
     jsvc.journeyStats.mockReturnValue({
-      journeyId: 9, distance: 1_189_000, days: 14, steps: 14, photos: 57, places: 0,
+      journeyId: 9,
+      distance: 1_189_000,
+      days: 14,
+      steps: 14,
+      photos: 57,
+      places: 0,
       furthest: 408_000,
       countries: [{ code: 'IS', name: 'Iceland', places: 14, firstVisit: '2026-06-02' }],
       points: [{ lat: 64.14, lng: -21.94, label: 'Reykjavík', date: '2026-06-02', country: 'IS' }],
-      start: '2026-06-02', end: '2026-06-15',
+      start: '2026-06-02',
+      end: '2026-06-15',
     });
     const res = await request(server).get('/api/journeys/9/stats').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
@@ -339,10 +376,7 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('400 for a save with no document at all', async () => {
-    const res = await request(server)
-      .put('/api/journeys/9/book')
-      .set('Cookie', sessionCookie(1))
-      .send({ title: 'T' });
+    const res = await request(server).put('/api/journeys/9/book').set('Cookie', sessionCookie(1)).send({ title: 'T' });
     expect(res.status).toBe(400);
     expect(booksvc.saveBook).not.toHaveBeenCalled();
   });
@@ -358,7 +392,10 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
    */
   it('400 for a spread carrying more elements than the contract allows', async () => {
     const element = (i: number) => ({
-      id: 'e' + i, kind: 'shape', frame: { x: 0, y: 0, w: 10, h: 10 }, shape: 'rect',
+      id: 'e' + i,
+      kind: 'shape',
+      frame: { x: 0, y: 0, w: 10, h: 10 },
+      shape: 'rect',
     });
     const res = await request(server)
       .put('/api/journeys/9/book')
@@ -367,11 +404,13 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
         title: 'T',
         document: {
           version: 1,
-          spreads: [{
-            id: 'sp1',
-            role: 'inner',
-            elements: Array.from({ length: MAX_SPREAD_ELEMENTS + 1 }, (_, i) => element(i)),
-          }],
+          spreads: [
+            {
+              id: 'sp1',
+              role: 'inner',
+              elements: Array.from({ length: MAX_SPREAD_ELEMENTS + 1 }, (_, i) => element(i)),
+            },
+          ],
         },
       });
     expect(res.status).toBe(400);
@@ -421,18 +460,14 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     // POST defaults to 201 in Nest, and the route carries @HttpCode(200) to match
     // every other action-shaped POST in this controller.
     jsvc.restoreDismissedSuggestions.mockReturnValueOnce({ restored: 2 });
-    const res = await request(server)
-      .post('/api/journeys/9/suggestions/restore')
-      .set('Cookie', sessionCookie(1));
+    const res = await request(server).post('/api/journeys/9/suggestions/restore').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ restored: 2 });
   });
 
   it('restoring suggestions 403 for someone who may not edit the journey', async () => {
     jsvc.restoreDismissedSuggestions.mockReturnValueOnce(null);
-    const res = await request(server)
-      .post('/api/journeys/9/suggestions/restore')
-      .set('Cookie', sessionCookie(1));
+    const res = await request(server).post('/api/journeys/9/suggestions/restore').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'Not allowed' });
   });
@@ -477,7 +512,7 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
       .set('Cookie', sessionCookie(1))
       .send({ provider: 'immich', asset_ids: ['a3'] });
     await vi.waitFor(() => expect(backfillRun).toHaveBeenCalled());
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 10));
     expect(jsvc.broadcastJourneyEvent).not.toHaveBeenCalled();
   });
 
@@ -486,7 +521,8 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     backfillRun.mockReset().mockResolvedValue(true);
     backfillSchedule.mockReset();
     jsvc.uploadGalleryPhotos.mockImplementation((_id: number, _userId: number, files: Array<{ path: string }>) =>
-      files.map((f, i) => ({ id: 30 + i, journey_id: 9, photo_id: 90 + i, file_path: f.path })));
+      files.map((f, i) => ({ id: 30 + i, journey_id: 9, photo_id: 90 + i, file_path: f.path })),
+    );
 
     const res = await request(server)
       .post('/api/journeys/9/gallery/photos')
@@ -497,7 +533,7 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
       expect(res.status).toBe(201);
       expect(res.body.photos).toHaveLength(1);
       // The capture backfill runs for the upload (and may place its entry, #1003)...
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
       expect(backfillRun).toHaveBeenCalledWith([90], 1);
       // ...but no journey refresh follows: a bulk upload would otherwise reload
       // every open client once per photo.

@@ -1,9 +1,10 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import type { Observable } from 'rxjs';
-import { SessionsService, sessionClientFrom } from '../sessions/sessions.service';
 import { decodeSessionClaims } from '../auth-core/jwt-verify';
 import { setAuthCookie } from '../common/cookie';
+import { SessionsService, sessionClientFrom } from '../sessions/sessions.service';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
+import type { Observable } from 'rxjs';
 
 /**
  * Sliding session renewal (#1927): once a cookie-authenticated session token is

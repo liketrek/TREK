@@ -1,7 +1,7 @@
 import { readEnv } from '../../app-config';
 import { resolveDataPaths } from '../../app-config/data-paths';
-import { BufferedLogFile } from './log-file';
 import { correlationTag, currentCorrelation } from '../common/request-correlation';
+import { BufferedLogFile } from './log-file';
 
 /**
  * The server's rotating file logger, a plain module and NOT an injectable
@@ -26,11 +26,11 @@ const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_LOG_FILES = 5;
 
 const C = {
-  blue:    '\x1b[34m',
-  cyan:    '\x1b[36m',
-  red:     '\x1b[31m',
-  yellow:  '\x1b[33m',
-  reset:   '\x1b[0m',
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m',
+  red: '\x1b[31m',
+  yellow: '\x1b[33m',
+  reset: '\x1b[0m',
 };
 
 // ── File sink ─────────────────────────────────────────────────────────────

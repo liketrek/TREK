@@ -1,6 +1,6 @@
 import type { SchedulerLeases } from '../entities/SchedulerLeases.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /**
  * `scheduler_leases`: which process may run a cron job's tick, and until when
@@ -23,7 +23,9 @@ export class SchedulerLeasesRepository extends TrekRepository<SchedulerLeases> {
         oc
           .column('name')
           .doUpdateSet({ owner, expires_at: until })
-          .where((eb) => eb.or([eb('scheduler_leases.expires_at', '<=', now), eb('scheduler_leases.owner', '=', owner)])),
+          .where((eb) =>
+            eb.or([eb('scheduler_leases.expires_at', '<=', now), eb('scheduler_leases.owner', '=', owner)]),
+          ),
       )
       .executeTakeFirst();
     return (result.numInsertedOrUpdatedRows ?? 0n) > 0n;

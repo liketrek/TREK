@@ -388,12 +388,14 @@ export const budgetParticipantFinalSchema = z.object({
     /** Per expense they paid on: what they fronted, negative for a refund they received. Σ = expenses. */
     fronted: z.array(z.object({ item_id: z.number(), cents: z.number().int() })),
     /** Per recorded transfer on their side: positive when received, negative when sent. Σ = reimbursed. */
-    moved: z.array(z.object({
-      settlement_id: z.number(),
-      from_user_id: z.number(),
-      to_user_id: z.number(),
-      cents: z.number().int(),
-    })),
+    moved: z.array(
+      z.object({
+        settlement_id: z.number(),
+        from_user_id: z.number(),
+        to_user_id: z.number(),
+        cents: z.number().int(),
+      }),
+    ),
     /** Per suggested flow on their side: positive when it comes to them, negative when they owe it. Σ = pending. */
     outstanding: z.array(z.object({ from_user_id: z.number(), to_user_id: z.number(), cents: z.number().int() })),
   }),

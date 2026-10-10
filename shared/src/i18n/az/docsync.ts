@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const docsync: TranslationStrings = {
   'docsync.title': 'Sənəd sinxronizasiyası',
   'docsync.noProviders': 'Heç bir sənəd provayderi mövcud deyil',
-  'docsync.noProvidersHint':
-    'Sistem administratoru bunları İdarəetmə → Əlavələr → Sənədlər bölməsində aktivləşdirir.',
+  'docsync.noProvidersHint': 'Sistem administratoru bunları İdarəetmə → Əlavələr → Sənədlər bölməsində aktivləşdirir.',
   'docsync.addProvider': 'Provayder qoş',
   'docsync.test': 'Bağlantını sına',
   'docsync.connect.optional': 'İstəyə bağlı',
@@ -14,8 +13,7 @@ const docsync: TranslationStrings = {
   'docsync.newFolderPlaceholder': 'Yeni qovluğun adı',
   'docsync.syncNow': 'İndi sinxronlaşdır',
   'docsync.unlink': 'Bağlantını kəs',
-  'docsync.confirmUnlink':
-    'Sənədlər TREK-də və saxlama xidmətində qalacaq. Yalnız onların arasındakı əlaqə silinəcək.',
+  'docsync.confirmUnlink': 'Sənədlər TREK-də və saxlama xidmətində qalacaq. Yalnız onların arasındakı əlaqə silinəcək.',
   'docsync.syncEnabled': 'Avtomatik sinxronlaşdır',
   'docsync.deletePolicy': 'Sənəd silindikdə',
   'docsync.deleteUnlink': 'Hər iki nüsxəni saxla',
@@ -51,12 +49,10 @@ const docsync: TranslationStrings = {
     'Tənzimləmələr → Təhlükəsizlik → Yeni tətbiq parolu yarat. Hesab parolunuzu heç vaxt istifadə etməyin.',
   'docsync.hintOpenCloudToken': 'OpenCloud-da tətbiq tokenləri bölməsindən yaradılır.',
   'docsync.hintBasePath': 'TREK-in səyahət qovluqlarını axtardığı yer. Standart olaraq /TREK.',
-  'docsync.hintSynologyUrl':
-    'Portu da daxil edin, məsələn, https://nas.example.com:5001',
+  'docsync.hintSynologyUrl': 'Portu da daxil edin, məsələn, https://nas.example.com:5001',
   'docsync.hintSynologyUser':
     'Yalnız bu paylaşılan qovluğa giriş icazəsi olan ayrıca DSM hesabından istifadə etmək daha yaxşıdır.',
-  'docsync.hintSynologyOtp':
-    'Hesab iki faktorlu doğrulamadan istifadə edirsə, yalnız bir dəfə tələb olunur.',
+  'docsync.hintSynologyOtp': 'Hesab iki faktorlu doğrulamadan istifadə edirsə, yalnız bir dəfə tələb olunur.',
 
   'docsync.linkState.never': 'Hələ sinxronlaşdırılmayıb',
   'docsync.linkState.ok': 'Sinxronlaşdırılıb',
@@ -93,8 +89,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': 'Bu hesabın həmin əməliyyatı yerinə yetirməsinə icazə verilmir.',
   'docsync.error.not_found': 'Provayderdə tapılmadı.',
   'docsync.error.scope_missing': 'Qoşulmuş qovluq artıq mövcud deyil.',
-  'docsync.error.rate_limited':
-    'Provayder sorğu tezliyini məhdudlaşdırır. TREK daha sonra yenidən cəhd edəcək.',
+  'docsync.error.rate_limited': 'Provayder sorğu tezliyini məhdudlaşdırır. TREK daha sonra yenidən cəhd edəcək.',
   'docsync.error.too_large': 'Fayl provayderin qəbul etdiyi ölçüdən böyükdür.',
   'docsync.error.unsupported_type': 'Provayder bu fayl növünü qəbul etmir.',
   'docsync.error.quota_exceeded': 'Provayderdə boş yer qalmayıb.',
@@ -116,8 +111,7 @@ const docsync: TranslationStrings = {
   'docsync.empty.title': 'Hələ heç nə qoşulmayıb',
   'docsync.empty.hintOwner':
     'Soldan saxlama xidməti seçin. TREK hər şeyin öz nüsxəsini saxlayır, buna görə xidmət yoxa çıxsa belə heç nə itmir.',
-  'docsync.empty.hintMember':
-    'Bunu səyahətin sahibi quraşdırır. Hər bir halda sənədlər TREK-də qalır.',
+  'docsync.empty.hintMember': 'Bunu səyahətin sahibi quraşdırır. Hər bir halda sənədlər TREK-də qalır.',
 
   // How each product files things. Shown before anyone connects, because it is
   // what the next screen will ask for.
@@ -135,12 +129,9 @@ const docsync: TranslationStrings = {
   'docsync.flow.summary.both': 'Sənədlər hər iki istiqamətdə ötürülür.',
   'docsync.flow.summary.pull': 'Sənədlər yalnız daxil olur.',
   'docsync.flow.summary.push': 'Sənədlər yalnız xaricə göndərilir.',
-  'docsync.flow.summaryEditable.both':
-    'Hər iki istiqamətdə ötürülür. Dayandırmaq üçün istiqamətlərdən birinə toxunun.',
-  'docsync.flow.summaryEditable.pull':
-    'Yalnız daxil olur. Xaricə də göndərmək üçün digər istiqamətə toxunun.',
-  'docsync.flow.summaryEditable.push':
-    'Yalnız xaricə göndərilir. Daxil də etmək üçün digər istiqamətə toxunun.',
+  'docsync.flow.summaryEditable.both': 'Hər iki istiqamətdə ötürülür. Dayandırmaq üçün istiqamətlərdən birinə toxunun.',
+  'docsync.flow.summaryEditable.pull': 'Yalnız daxil olur. Xaricə də göndərmək üçün digər istiqamətə toxunun.',
+  'docsync.flow.summaryEditable.push': 'Yalnız xaricə göndərilir. Daxil də etmək üçün digər istiqamətə toxunun.',
 
   // ── One binding ────────────────────────────────────────────────────────────
   'docsync.binding.settings': 'Tənzimləmələr',
@@ -149,8 +140,7 @@ const docsync: TranslationStrings = {
   'docsync.binding.autoOff': 'Dayandırılıb',
   'docsync.binding.neverRun': 'hələ icra edilməyib',
   'docsync.binding.deleteHint': 'Digər tərəfdəki nüsxəyə nə ediləcəyi.',
-  'docsync.binding.conflictHint':
-    'Sənəd hər iki yerdə redaktə edildikdə hansı nüsxənin saxlanılacağı.',
+  'docsync.binding.conflictHint': 'Sənəd hər iki yerdə redaktə edildikdə hansı nüsxənin saxlanılacağı.',
   'docsync.binding.autoHint': 'Arxa fonda dəyişiklikləri yoxla.',
   'docsync.binding.webhookTitle': 'Ani yeniləmələr',
   'docsync.binding.copy': 'Kopyala',
@@ -160,16 +150,14 @@ const docsync: TranslationStrings = {
   'docsync.connect.submit': 'Qoşul',
   'docsync.connect.testing': 'Qoşulmağa cəhd edilir',
   'docsync.connect.okAs': 'Qoşuldu, {account} hesabı ilə daxil olundu',
-  'docsync.connect.insecureHint':
-    'Öz-özünə imzalanmış sertifikata malik şəxsi şəbəkənizdəki sistem üçün.',
+  'docsync.connect.insecureHint': 'Öz-özünə imzalanmış sertifikata malik şəxsi şəbəkənizdəki sistem üçün.',
   'docsync.connect.about.paperless':
     'TREK bu səyahətin fayllarını ayrıca etiket altında saxlayır və arxivinizin qalan hissəsinə toxunmur.',
   'docsync.connect.about.papra':
     'Bu səyahətin aid olduğu təşkilatı seçin. TREK faylları onun daxilində ayrıca etiket altında saxlayır.',
   'docsync.connect.about.nextcloud':
     'Hesab parolunuzdan deyil, tətbiq parolundan istifadə edin: o, iki faktorlu doğrulama ilə işləyir və ayrıca ləğv edilə bilər.',
-  'docsync.connect.about.opencloud':
-    'TREK bu səyahət üçün digər hər şeydən ayrı öz məkanını əldə edir.',
+  'docsync.connect.about.opencloud': 'TREK bu səyahət üçün digər hər şeydən ayrı öz məkanını əldə edir.',
   'docsync.connect.about.synologydrive':
     'Yalnız bu səyahətin istifadə etməli olduğu paylaşılan qovluğa giriş əldə edən DSM hesabından istifadə etmək daha yaxşıdır.',
 
@@ -185,10 +173,8 @@ const docsync: TranslationStrings = {
 
   // ── Things a person has to decide ──────────────────────────────────────────
   'docsync.issues.title': 'Yoxlanılmalıdır',
-  'docsync.issues.conflict':
-    'Hər iki yerdə dəyişdirilib. Hansının saxlanılacağını seçin.',
-  'docsync.issues.remote_missing':
-    'Saxlama xidmətindən silinib. TREK nüsxəsi hələ də buradadır.',
+  'docsync.issues.conflict': 'Hər iki yerdə dəyişdirilib. Hansının saxlanılacağını seçin.',
+  'docsync.issues.remote_missing': 'Saxlama xidmətindən silinib. TREK nüsxəsi hələ də buradadır.',
   'docsync.issues.rejected_type': 'Bu fayl növünə burada icazə verilmir.',
   'docsync.issues.too_large': 'İcazə verilən ölçüdən böyükdür.',
   'docsync.issues.error': 'Ötürmə baş tutmadı.',

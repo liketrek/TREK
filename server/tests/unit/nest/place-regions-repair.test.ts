@@ -1,3 +1,32 @@
+import { db } from '../../../src/db/database';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { PlaceRegions } from '../../../src/db/entities/PlaceRegions.entity';
+import { Places } from '../../../src/db/entities/Places.entity';
+import { PlaceRegionsRepository } from '../../../src/db/repositories/PlaceRegions.repository';
+import { reverseGeocodeRegion } from '../../../src/nest/atlas/atlas-geo';
+import { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import { PLACE_REGIONS_REPAIR_DONE_KEY, PlaceRegionsRepairJob } from '../../../src/nest/atlas/place-regions-repair.job';
+import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+import {
+  createTestBucketListRepo,
+  createTestHiddenCountriesRepo,
+  createTestHiddenRegionsRepo,
+  createTestPlaceRegionsRepo,
+  createTestVisitedCountriesRepo,
+  createTestVisitedRegionsRepo,
+} from '../../helpers/atlas-repos';
+import { createTrip, createUser } from '../../helpers/factories';
+import { findRow, insertRow } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestAppSettingsRepo,
+  createTestPlacesRepo,
+  createTestReservationEndpointsRepo,
+  createTestTripsRepo,
+  createTestUnitOfWork,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The migrated snapshot, so the #2527 trigger on places is there like on a real install.
@@ -6,32 +35,19 @@ vi.mock('../../../src/db/database', async () => {
   return { db: createSnapshotTestDb(), closeDb: () => {}, reinitialize: () => {} };
 });
 
-import { db } from '../../../src/db/database';
-import { PlaceRegionsRepository } from '../../../src/db/repositories/PlaceRegions.repository';
-import { reverseGeocodeRegion } from '../../../src/nest/atlas/atlas-geo';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
-import { PLACE_REGIONS_REPAIR_DONE_KEY, PlaceRegionsRepairJob } from '../../../src/nest/atlas/place-regions-repair.job';
-import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
-import { createTrip, createUser } from '../../helpers/factories';
-import { resetTestDb } from '../../helpers/test-db';
-import { findRow, insertRow } from '../../helpers/factories/rows';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
-import { PlaceRegions } from '../../../src/db/entities/PlaceRegions.entity';
-import { Places } from '../../../src/db/entities/Places.entity';
-import {
-  createTestAppSettingsRepo, createTestPlacesRepo, createTestReservationEndpointsRepo, createTestTripsRepo, createTestUnitOfWork, sharedTestOrm,
-} from '../../helpers/test-uow';
-import {
-  createTestBucketListRepo, createTestHiddenCountriesRepo, createTestHiddenRegionsRepo, createTestPlaceRegionsRepo,
-  createTestVisitedCountriesRepo, createTestVisitedRegionsRepo,
-} from '../../helpers/atlas-repos';
-
 async function buildAtlas(): Promise<AtlasService> {
   return new AtlasService(
-    await createTestBucketListRepo(db), await createTestHiddenCountriesRepo(db), await createTestHiddenRegionsRepo(db),
-    await createTestVisitedCountriesRepo(db), await createTestVisitedRegionsRepo(db), await createTestPlaceRegionsRepo(db),
-    await createTestTripsRepo(db), await createTestPlacesRepo(db), await createTestReservationEndpointsRepo(db),
-    await createTestUnitOfWork(db), (await sharedTestOrm(db)).orm,
+    await createTestBucketListRepo(db),
+    await createTestHiddenCountriesRepo(db),
+    await createTestHiddenRegionsRepo(db),
+    await createTestVisitedCountriesRepo(db),
+    await createTestVisitedRegionsRepo(db),
+    await createTestPlaceRegionsRepo(db),
+    await createTestTripsRepo(db),
+    await createTestPlacesRepo(db),
+    await createTestReservationEndpointsRepo(db),
+    await createTestUnitOfWork(db),
+    (await sharedTestOrm(db)).orm,
   );
 }
 
@@ -66,7 +82,13 @@ describe('the one time repair of place_regions rows cached before #2527', () => 
 
   const orm = () => sharedTestOrm(db);
   const addPlace = async (name: string, at: Location, cached?: [string, string, string]) => {
-    const id = await insertRow(await orm(), Places, { trip: tripId, name, lat: at.lat, lng: at.lng, address: at.address });
+    const id = await insertRow(await orm(), Places, {
+      trip: tripId,
+      name,
+      lat: at.lat,
+      lng: at.lng,
+      address: at.address,
+    });
     if (cached) {
       const [country_code, region_code, region_name] = cached;
       await insertRow(await orm(), PlaceRegions, { place: id, country_code, region_code, region_name });
@@ -77,10 +99,14 @@ describe('the one time repair of place_regions rows cached before #2527', () => 
     const row = await findRow(await orm(), PlaceRegions, { place: id });
     return row ? { country_code: row.country_code, region_code: row.region_code } : undefined;
   };
-  const markedDone = async () => (await findRow(await orm(), AppSettings, { key: PLACE_REGIONS_REPAIR_DONE_KEY })) ?? undefined;
+  const markedDone = async () =>
+    (await findRow(await orm(), AppSettings, { key: PLACE_REGIONS_REPAIR_DONE_KEY })) ?? undefined;
   // runOnBoot is where the real registrar opens the request context; here it just runs the pass.
   const registrar = (enabled: boolean) =>
-    ({ isEnabled: () => enabled, runOnBoot: async (_name: string, fn: () => Promise<void>) => fn() }) as unknown as CronRegistrarService;
+    ({
+      isEnabled: () => enabled,
+      runOnBoot: async (_name: string, fn: () => Promise<void>) => fn(),
+    }) as unknown as CronRegistrarService;
 
   beforeEach(async () => {
     resetTestDb(db);
@@ -142,7 +168,11 @@ describe('the one time repair of place_regions rows cached before #2527', () => 
 
   it('drops a row the bundle cannot re-derive when coordinates and address both name another country', async () => {
     const beach = await addPlace('Beach hut', SYLT_BEACH, ['FR', 'FR-BRE', 'Bretagne']);
-    const cleared = await addPlace('Somewhere', { lat: null, lng: null, address: null }, ['FR', 'FR-IDF', 'Ile-de-France']);
+    const cleared = await addPlace('Somewhere', { lat: null, lng: null, address: null }, [
+      'FR',
+      'FR-IDF',
+      'Ile-de-France',
+    ]);
 
     expect(await atlas.repairStaleRegionCache()).toEqual({ replaced: 0, dropped: 2 });
     expect(await cachedRow(beach)).toBeUndefined();

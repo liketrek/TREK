@@ -1,7 +1,19 @@
-import { describe, expect, it } from 'vitest';
-import { Platform } from '@mikro-orm/core';
-import { BasePostgreSqlPlatform, SqlitePlatform } from '@mikro-orm/sql';
-import { DummyDriver, expressionBuilder, Kysely, PostgresAdapter, PostgresIntrospector, PostgresQueryCompiler } from 'kysely';
+import {
+  castIntegerKysely,
+  concatKysely,
+  currentTimestampKysely,
+  nowPlusSecondsKysely,
+  startsWithIsoDateKysely,
+  substringKysely,
+  unixEpochToIsoKysely,
+} from '../../../../src/db/dialect/kysely-functions';
+import {
+  isKnownPlatform,
+  isPostgres,
+  isSqlite,
+  pgDateText,
+  pgTimestampText,
+} from '../../../../src/db/dialect/platform';
 import {
   absDifference,
   caseWhenEquals,
@@ -36,16 +48,18 @@ import {
   substring,
   trim,
 } from '../../../../src/db/dialect/sql-functions';
+import { Platform } from '@mikro-orm/core';
+import { BasePostgreSqlPlatform, SqlitePlatform } from '@mikro-orm/sql';
+
 import {
-  castIntegerKysely,
-  concatKysely,
-  currentTimestampKysely,
-  nowPlusSecondsKysely,
-  startsWithIsoDateKysely,
-  substringKysely,
-  unixEpochToIsoKysely,
-} from '../../../../src/db/dialect/kysely-functions';
-import { isKnownPlatform, isPostgres, isSqlite, pgDateText, pgTimestampText } from '../../../../src/db/dialect/platform';
+  DummyDriver,
+  expressionBuilder,
+  Kysely,
+  PostgresAdapter,
+  PostgresIntrospector,
+  PostgresQueryCompiler,
+} from 'kysely';
+import { describe, expect, it } from 'vitest';
 
 /**
  * The Postgres branches of the dialect layer, pinned as compiled text. Nothing
@@ -83,14 +97,14 @@ describe('dialect platform checks', () => {
     expect(isKnownPlatform(new FakePlatform())).toBe(false);
   });
 
-  it('SQLFPG-002: renders a timestamp expression as SQLite\'s timestamp and date text', () => {
+  it("SQLFPG-002: renders a timestamp expression as SQLite's timestamp and date text", () => {
     expect(pgTimestampText('x')).toBe("to_char(x, 'YYYY-MM-DD HH24:MI:SS')");
     expect(pgDateText('x')).toBe("to_char(x, 'YYYY-MM-DD')");
   });
 });
 
 describe('sql-functions (postgres)', () => {
-  it('SQLFPG-010: the clock helpers render SQLite\'s UTC text', () => {
+  it("SQLFPG-010: the clock helpers render SQLite's UTC text", () => {
     expect(currentTimestamp(pg).sql).toBe(`to_char(${NOW}, 'YYYY-MM-DD HH24:MI:SS')`);
     expect(nowMinusDays(pg, 30).sql).toBe(`to_char(${NOW} - INTERVAL '30 days', 'YYYY-MM-DD HH24:MI:SS')`);
     expect(nowMinusHours(pg, 20).sql).toBe(`to_char(${NOW} - INTERVAL '20 hours', 'YYYY-MM-DD HH24:MI:SS')`);
@@ -101,8 +115,12 @@ describe('sql-functions (postgres)', () => {
 
   it('SQLFPG-011: the column date helpers cast the stored text to a timestamp', () => {
     expect(dateOf(pg, 'u.created_at').sql).toBe("to_char(CAST(u.created_at AS timestamp), 'YYYY-MM-DD')");
-    expect(dateAdd(pg, 'u.created_at', 10).sql).toBe("to_char(CAST(u.created_at AS timestamp) + INTERVAL '10 days', 'YYYY-MM-DD')");
-    expect(dateAdd(pg, 'u.created_at', -3).sql).toBe("to_char(CAST(u.created_at AS timestamp) + INTERVAL '-3 days', 'YYYY-MM-DD')");
+    expect(dateAdd(pg, 'u.created_at', 10).sql).toBe(
+      "to_char(CAST(u.created_at AS timestamp) + INTERVAL '10 days', 'YYYY-MM-DD')",
+    );
+    expect(dateAdd(pg, 'u.created_at', -3).sql).toBe(
+      "to_char(CAST(u.created_at AS timestamp) + INTERVAL '-3 days', 'YYYY-MM-DD')",
+    );
     const distance = dayDistance(pg, 'date', '2026-01-01');
     expect(distance.sql).toBe('ABS(EXTRACT(EPOCH FROM (CAST(date AS timestamp) - CAST(? AS timestamp))) / 86400)');
     expect(distance.params).toEqual(['2026-01-01']);
@@ -150,18 +168,27 @@ describe('sql-functions (postgres)', () => {
   });
 
   it('SQLFPG-014: GLOB, the integer cast, NOCASE and the null-safe IS get their Postgres forms', () => {
-    expect(startsWithIsoDate(pg, 'r.reservation_time').sql).toBe("CAST(r.reservation_time AS text) ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'");
-    expect(castInteger(pg, 'vr.accommodation_id').sql).toBe('CAST(trunc(CAST(vr.accommodation_id AS numeric)) AS integer)');
+    expect(startsWithIsoDate(pg, 'r.reservation_time').sql).toBe(
+      "CAST(r.reservation_time AS text) ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'",
+    );
+    expect(castInteger(pg, 'vr.accommodation_id').sql).toBe(
+      'CAST(trunc(CAST(vr.accommodation_id AS numeric)) AS integer)',
+    );
     expect(collateNoCase(pg, 'name').sql).toBe('name COLLATE "nocase"');
     const whileSame = coalesceOverrideWhileSame(pg, null, 'u.tls', 'u.url', 'https://a');
-    expect(whileSame.sql).toBe('CASE WHEN u.url IS NOT DISTINCT FROM ? THEN COALESCE(?, u.tls) ELSE COALESCE(?, 0) END');
+    expect(whileSame.sql).toBe(
+      'CASE WHEN u.url IS NOT DISTINCT FROM ? THEN COALESCE(?, u.tls) ELSE COALESCE(?, 0) END',
+    );
     expect(whileSame.params).toEqual(['https://a', null, null]);
   });
 });
 
 describe('kysely-functions (postgres)', () => {
   it('SQLFPG-020: startsWithIsoDateKysely is an anchored regular expression over the text', () => {
-    const compiled = db.selectFrom('users').select((eb) => startsWithIsoDateKysely(pg, eb, 'username').as('v')).compile();
+    const compiled = db
+      .selectFrom('users')
+      .select((eb) => startsWithIsoDateKysely(pg, eb, 'username').as('v'))
+      .compile();
     expect(compiled.sql).toBe('select cast("username" as text) ~ $1 as "v" from "users"');
     expect(compiled.parameters).toEqual(['^[0-9]{4}-[0-9]{2}-[0-9]{2}']);
   });
@@ -170,37 +197,58 @@ describe('kysely-functions (postgres)', () => {
     const compiled = db
       .selectFrom('users')
       .select((eb) =>
-        concatKysely(pg, eb, { column: 'username' }, { value: 'T' }, { expression: substringKysely(pg, eb, 'username', 12) }).as('v'),
+        concatKysely(
+          pg,
+          eb,
+          { column: 'username' },
+          { value: 'T' },
+          { expression: substringKysely(pg, eb, 'username', 12) },
+        ).as('v'),
       )
       .compile();
     expect(compiled.sql).toBe('select "username" || cast($1 as text) || substr("username", $2) as "v" from "users"');
     expect(compiled.parameters).toEqual(['T', 12]);
 
-    const sliced = db.selectFrom('users').select((eb) => substringKysely(pg, eb, 'username', 1, 10).as('v')).compile();
+    const sliced = db
+      .selectFrom('users')
+      .select((eb) => substringKysely(pg, eb, 'username', 1, 10).as('v'))
+      .compile();
     expect(sliced.sql).toBe('select substr("username", $1, $2) as "v" from "users"');
     expect(sliced.parameters).toEqual([1, 10]);
   });
 
   it('SQLFPG-022: castIntegerKysely truncates through numeric', () => {
-    const compiled = db.selectFrom('users').select((eb) => castIntegerKysely(pg, eb, 'display_name').as('v')).compile();
+    const compiled = db
+      .selectFrom('users')
+      .select((eb) => castIntegerKysely(pg, eb, 'display_name').as('v'))
+      .compile();
     expect(compiled.sql).toBe('select cast(trunc(cast("display_name" as numeric)) as integer) as "v" from "users"');
     expect(compiled.parameters).toEqual([]);
   });
 
   it('SQLFPG-023: unixEpochToIsoKysely renders UTC ISO text from epoch milliseconds', () => {
-    const compiled = db.selectFrom('users').select((eb) => unixEpochToIsoKysely(pg, eb, 'created_at').as('v')).compile();
+    const compiled = db
+      .selectFrom('users')
+      .select((eb) => unixEpochToIsoKysely(pg, eb, 'created_at').as('v'))
+      .compile();
     expect(compiled.sql).toBe(
       'select to_char(timezone(cast($1 as text), to_timestamp("created_at" / $2)), cast($3 as text)) as "v" from "users"',
     );
     expect(compiled.parameters).toEqual(['UTC', 1000, 'YYYY-MM-DD"T"HH24:MI:SS"Z"']);
   });
 
-  it('SQLFPG-024: the Kysely clock helpers render SQLite\'s timestamp text', () => {
-    const later = db.selectFrom('users').select((eb) => nowPlusSecondsKysely(pg, eb, 45).as('v')).compile();
+  it("SQLFPG-024: the Kysely clock helpers render SQLite's timestamp text", () => {
+    const later = db
+      .selectFrom('users')
+      .select((eb) => nowPlusSecondsKysely(pg, eb, 45).as('v'))
+      .compile();
     expect(later.sql).toBe(`select to_char(${NOW} + make_interval(secs => 45), cast($1 as text)) as "v" from "users"`);
     expect(later.parameters).toEqual(['YYYY-MM-DD HH24:MI:SS']);
 
-    const now = db.selectFrom('users').select(() => currentTimestampKysely(pg).as('v')).compile();
+    const now = db
+      .selectFrom('users')
+      .select(() => currentTimestampKysely(pg).as('v'))
+      .compile();
     expect(now.sql).toBe(`select to_char(${NOW}, 'YYYY-MM-DD HH24:MI:SS') as "v" from "users"`);
     expect(now.parameters).toEqual([]);
   });
@@ -209,11 +257,17 @@ describe('kysely-functions (postgres)', () => {
     class FakePlatform extends Platform {}
     const foreign = new FakePlatform();
     const eb = expressionBuilder<ProbeDB, 'users'>();
-    expect(() => startsWithIsoDateKysely(foreign, eb, 'username')).toThrow(/no implementation for platform FakePlatform/);
+    expect(() => startsWithIsoDateKysely(foreign, eb, 'username')).toThrow(
+      /no implementation for platform FakePlatform/,
+    );
     expect(() => substringKysely(foreign, eb, 'username', 1)).toThrow(/no implementation for platform FakePlatform/);
-    expect(() => concatKysely(foreign, eb, { value: 'a' }, { value: 'b' })).toThrow(/no implementation for platform FakePlatform/);
+    expect(() => concatKysely(foreign, eb, { value: 'a' }, { value: 'b' })).toThrow(
+      /no implementation for platform FakePlatform/,
+    );
     expect(() => castIntegerKysely(foreign, eb, 'display_name')).toThrow(/no implementation for platform FakePlatform/);
-    expect(() => unixEpochToIsoKysely(foreign, eb, 'created_at')).toThrow(/no implementation for platform FakePlatform/);
+    expect(() => unixEpochToIsoKysely(foreign, eb, 'created_at')).toThrow(
+      /no implementation for platform FakePlatform/,
+    );
     expect(() => nowPlusSecondsKysely(foreign, eb, 1)).toThrow(/no implementation for platform FakePlatform/);
     expect(() => currentTimestampKysely(foreign)).toThrow(/no implementation for platform FakePlatform/);
   });

@@ -9,6 +9,8 @@
  *
  * fetch is stubbed; the DB is mocked the same way maps.service.test.ts does it.
  */
+import { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../../src/db/database', () => ({
@@ -20,8 +22,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   checkSsrf: vi.fn(async () => ({ allowed: true })),
   SsrfBlockedError: class extends Error {},
 }));
-
-import { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
 
 const svcOf = () => new WikimediaClient();
 
@@ -93,7 +93,9 @@ describe('fetchWikidataCandidates', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        entities: { Q1: { claims: { P18: [{ mainsnak: { datavalue: { value: 'Wrong.jpg' } }, rank: 'deprecated' }] } } },
+        entities: {
+          Q1: { claims: { P18: [{ mainsnak: { datavalue: { value: 'Wrong.jpg' } }, rank: 'deprecated' }] } },
+        },
       }),
     });
     vi.stubGlobal('fetch', fetchMock);

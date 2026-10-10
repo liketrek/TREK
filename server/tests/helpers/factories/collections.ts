@@ -1,9 +1,9 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { CollectionMembers } from '../../../src/db/entities/CollectionMembers.entity';
 import { CollectionPlaces } from '../../../src/db/entities/CollectionPlaces.entity';
 import { Collections } from '../../../src/db/entities/Collections.entity';
 import { inContext, nextSeq, type FactoryOrm } from './context';
 import { createRow } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type CollectionRow = EntityDTO<Collections>;
 export type CollectionPlaceRow = EntityDTO<CollectionPlaces>;

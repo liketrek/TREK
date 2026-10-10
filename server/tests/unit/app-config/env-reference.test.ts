@@ -4,10 +4,11 @@
  * the two together, so about forty variables the server reads were missing
  * from the reference. These cases fail on drift in either direction.
  */
-import { describe, it, expect } from 'vitest';
+import { envSchema } from '../../../src/app-config/env.schema';
+
 import fs from 'node:fs';
 import path from 'node:path';
-import { envSchema } from '../../../src/app-config/env.schema';
+import { describe, it, expect } from 'vitest';
 
 const ENV_EXAMPLE = path.join(__dirname, '..', '..', '..', '.env.example');
 

@@ -1,27 +1,16 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
 import type { User } from '../../types';
-import { ReservationsService } from './reservations.service';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { AirtrailLinkService } from '../integrations/airtrail-link.service';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import {
   ReservationCreateDto,
   ReservationUpdateDto,
   ReservationPositionsDto,
   ReservationTravelersDto,
 } from './reservations.dto';
+import { ReservationsService } from './reservations.service';
+import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 type ReservationBody = Record<string, unknown> & {
   title?: string;
@@ -52,8 +41,6 @@ export class ReservationsController {
     private readonly airtrailLink: AirtrailLinkService,
   ) {}
 
-
-
   @Get()
   async list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { reservations: await this.reservations.list(tripId) };
@@ -73,7 +60,11 @@ export class ReservationsController {
     // at a rate frozen now (#2525).
     const budgetEntry = await this.reservations.withFrozenRate(tripId, body.create_budget_entry);
     // The booking and its linked cost are one write.
-    const { reservation, accommodationCreated, costEvents } = await this.reservations.createWithCost(tripId, body as never, budgetEntry);
+    const { reservation, accommodationCreated, costEvents } = await this.reservations.createWithCost(
+      tripId,
+      body as never,
+      budgetEntry,
+    );
     if (accommodationCreated) {
       this.reservations.broadcast(tripId, 'accommodation:created', {}, socketId);
     }
@@ -93,8 +84,17 @@ export class ReservationsController {
   ) {
     // The legacy signature declares day_plan_position required, but the wire
     // contract tolerates absent values (bind NULL) — see the shared schema.
-    await this.reservations.updatePositions(tripId, body.positions as { id: number; day_plan_position: number }[], body.day_id);
-    this.reservations.broadcast(tripId, 'reservation:positions', { positions: body.positions, day_id: body.day_id }, socketId);
+    await this.reservations.updatePositions(
+      tripId,
+      body.positions as { id: number; day_plan_position: number }[],
+      body.day_id,
+    );
+    this.reservations.broadcast(
+      tripId,
+      'reservation:positions',
+      { positions: body.positions, day_id: body.day_id },
+      socketId,
+    );
     return { success: true };
   }
 
@@ -114,7 +114,13 @@ export class ReservationsController {
     }
     await this.rejectForeignReferences(tripId, body);
     // The booking and its linked cost are one write.
-    const { reservation, accommodationChanged, costEvents } = await this.reservations.updateWithCost(id, tripId, body as never, current, body.create_budget_entry);
+    const { reservation, accommodationChanged, costEvents } = await this.reservations.updateWithCost(
+      id,
+      tripId,
+      body as never,
+      current,
+      body.create_budget_entry,
+    );
     if (accommodationChanged) {
       this.reservations.broadcast(tripId, 'accommodation:updated', {}, socketId);
     }
@@ -143,7 +149,12 @@ export class ReservationsController {
     if (!result) {
       throw new HttpException({ error: 'Reservation not found' }, 404);
     }
-    this.reservations.broadcast(tripId, 'reservation:travelers-updated', { reservationId: Number(id), travelers: result.travelers }, socketId);
+    this.reservations.broadcast(
+      tripId,
+      'reservation:travelers-updated',
+      { reservationId: Number(id), travelers: result.travelers },
+      socketId,
+    );
     return { travelers: result.travelers, reservation: result.reservation };
   }
 
@@ -160,7 +171,12 @@ export class ReservationsController {
       throw new HttpException({ error: 'Reservation not found' }, 404);
     }
     if (accommodationDeleted) {
-      this.reservations.broadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id }, socketId);
+      this.reservations.broadcast(
+        tripId,
+        'accommodation:deleted',
+        { accommodationId: deleted.accommodation_id },
+        socketId,
+      );
     }
     for (const itemId of deletedBudgetItemIds) {
       this.reservations.broadcast(tripId, 'budget:deleted', { itemId }, socketId);

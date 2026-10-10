@@ -8,14 +8,18 @@
  * segment is its own route rather than a query on the search, and that the typed-ahead
  * route asks exactly the providers whose hook carries `suggest`.
  */
+import { db } from '../../src/db/database';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 import { PluginContributionsModule } from '../../src/nest/plugins/contributions/plugin-contributions.module';
 import { PluginHooks } from '../../src/nest/plugins/plugin-hooks.service';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { sessionCookie } from './harness';
-import { pluginSuggestResultSchema } from '@trek/shared';
 import { Test } from '@nestjs/testing';
+import { pluginSuggestResultSchema } from '@trek/shared';
 
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
@@ -40,11 +44,6 @@ vi.mock('../../src/db/database', async () => {
 });
 vi.mock('../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled: () => pluginsEnabled.value }));
 
-import { db } from '../../src/db/database';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeUser } from '../helpers/factories/users';
-
 let orm: TestOrm;
 
 const place = (id: string, name: string) => ({ id, name, lat: 35.66, lng: 139.7, address: 'Shibuya', rating: 4.4 });
@@ -58,7 +57,12 @@ describe('Plugin search e2e (real guard chain + temp SQLite)', () => {
 
   async function build() {
     const moduleRef = await Test.createTestingModule({
-      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, PluginContributionsModule],
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        PluginContributionsModule,
+      ],
     }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -85,13 +89,20 @@ describe('Plugin search e2e (real guard chain + temp SQLite)', () => {
 
   beforeEach(() => {
     // Two installed indexes; only the local one takes a request per keystroke.
-    providersOf.mockReset().mockImplementation((_hook: string, fn?: string) =>
-      fn === 'suggest' ? ['local-index'] : ['local-index', 'remote-api'],
-    );
+    providersOf
+      .mockReset()
+      .mockImplementation((_hook: string, fn?: string) =>
+        fn === 'suggest' ? ['local-index'] : ['local-index', 'remote-api'],
+      );
     searchPlaces.mockReset().mockImplementation(async (pluginId: string) => [place('s1', `${pluginId} search`)]);
-    suggestPlaces.mockReset().mockResolvedValue([
-      place('a', 'Ichiran Shibuya'), place('b', 'Ichiran Harajuku'), place('c', 'Ichiran Ueno'), place('d', 'Ichiran Asakusa'),
-    ]);
+    suggestPlaces
+      .mockReset()
+      .mockResolvedValue([
+        place('a', 'Ichiran Shibuya'),
+        place('b', 'Ichiran Harajuku'),
+        place('c', 'Ichiran Ueno'),
+        place('d', 'Ichiran Asakusa'),
+      ]);
   });
 
   afterAll(async () => {
@@ -115,22 +126,36 @@ describe('Plugin search e2e (real guard chain + temp SQLite)', () => {
       .query({ q: 'ichi', lat: '35.66', lng: '139.7', lang: 'ja' })
       .expect(200);
     expect(pluginSuggestResultSchema.parse(res.body).places.map((p) => p.osm_id)).toEqual([
-      'plugin:local-index:a', 'plugin:local-index:b', 'plugin:local-index:c',
+      'plugin:local-index:a',
+      'plugin:local-index:b',
+      'plugin:local-index:c',
     ]);
     expect(providersOf).toHaveBeenCalledWith('searchProvider', 'suggest');
     expect(suggestPlaces).toHaveBeenCalledTimes(1);
-    expect(suggestPlaces).toHaveBeenCalledWith('local-index', { query: 'ichi', limit: 3, lang: 'ja', near: { lat: 35.66, lng: 139.7 } }, 1);
+    expect(suggestPlaces).toHaveBeenCalledWith(
+      'local-index',
+      { query: 'ichi', limit: 3, lang: 'ja', near: { lat: 35.66, lng: 139.7 } },
+      1,
+    );
     expect(searchPlaces).not.toHaveBeenCalled();
   });
 
   it('asks nobody for a single letter', async () => {
-    const res = await request(server).get('/api/plugin-search/suggest').set('Cookie', cookie()).query({ q: 'i' }).expect(200);
+    const res = await request(server)
+      .get('/api/plugin-search/suggest')
+      .set('Cookie', cookie())
+      .query({ q: 'i' })
+      .expect(200);
     expect(res.body).toEqual({ places: [] });
     expect(suggestPlaces).not.toHaveBeenCalled();
   });
 
   it('keeps the explicit search on every provider, the typed-ahead route beside it', async () => {
-    const res = await request(server).get('/api/plugin-search').set('Cookie', cookie()).query({ q: 'ichiran' }).expect(200);
+    const res = await request(server)
+      .get('/api/plugin-search')
+      .set('Cookie', cookie())
+      .query({ q: 'ichiran' })
+      .expect(200);
     expect(res.body.places.map((p: { name: string }) => p.name)).toEqual(['local-index search', 'remote-api search']);
     expect(suggestPlaces).not.toHaveBeenCalled();
   });
@@ -138,7 +163,11 @@ describe('Plugin search e2e (real guard chain + temp SQLite)', () => {
   it('answers an empty list while the plugin runtime is switched off', async () => {
     pluginsEnabled.value = false;
     try {
-      const res = await request(server).get('/api/plugin-search/suggest').set('Cookie', cookie()).query({ q: 'ichiran' }).expect(200);
+      const res = await request(server)
+        .get('/api/plugin-search/suggest')
+        .set('Cookie', cookie())
+        .query({ q: 'ichiran' })
+        .expect(200);
       expect(res.body).toEqual({ places: [] });
       expect(suggestPlaces).not.toHaveBeenCalled();
     } finally {

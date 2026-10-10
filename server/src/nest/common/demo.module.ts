@@ -1,5 +1,5 @@
-import { Global, Module } from '@nestjs/common';
 import { DemoService } from './demo.service';
+import { Global, Module } from '@nestjs/common';
 
 /**
  * Global home for `DemoService` (Plan 3i Task 3). The 5 `isDemoUserId`

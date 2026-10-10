@@ -1,63 +1,66 @@
-import { DomainError } from '../common/domain-error';
-import { Inject, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
-import fs from 'fs';
 import { ADDON_IDS, MCP_GATED_ADDON_IDS } from '../../addons';
 import { readEnv } from '../../app-config';
 import { updateJwtSecret } from '../../config';
+import { Addons } from '../../db/entities/Addons.entity';
+import type { AddonConfig } from '../../db/entities/Addons.entity';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { AuditLog } from '../../db/entities/AuditLog.entity';
+import { DocumentProviders } from '../../db/entities/DocumentProviders.entity';
+import { McpTokens } from '../../db/entities/McpTokens.entity';
+import { OauthTokens } from '../../db/entities/OauthTokens.entity';
+import { PhotoProviderFields } from '../../db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../db/entities/PhotoProviders.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
+import { TripFiles } from '../../db/entities/TripFiles.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { AddonsRepository } from '../../db/repositories/Addons.repository';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { AuditLogRepository } from '../../db/repositories/AuditLog.repository';
+import type { DocumentProvidersRepository } from '../../db/repositories/DocumentProviders.repository';
+import type { McpTokensRepository } from '../../db/repositories/McpTokens.repository';
+import type { OauthTokensRepository } from '../../db/repositories/OauthTokens.repository';
+import type { PhotoProviderFieldsRepository } from '../../db/repositories/PhotoProviderFields.repository';
+import type { PhotoProvidersRepository } from '../../db/repositories/PhotoProviders.repository';
+import type { PlacesRepository } from '../../db/repositories/Places.repository';
+import type { PushSubscriptionsRepository } from '../../db/repositories/PushSubscriptions.repository';
+import type { TripFilesRepository } from '../../db/repositories/TripFiles.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import {
+  UserIdentityTakenError,
+  type UsersRepository,
+  type AdminEditPatch,
+} from '../../db/repositories/Users.repository';
+import { utcSuffix } from '../../db/types';
+import { invalidateMcpSessions } from '../../mcp';
 // Import from sessionManager directly, NOT the ../../mcp barrel — the direct
 // path keeps this module's graph minimal, and the split predates the barrel's
 // shrink to process-wide state. The invalidateMcpSessions barrel import below
 // is deliberately separate: it is only reached from the controller, never from
 // the cron path.
 import { revokeUserSessions, revokeUserSessionsForClient } from '../../mcp/sessionManager';
-import { invalidateMcpSessions } from '../../mcp';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
-import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { avatarUrl } from '../common/avatarUrl';
-import { DATABASE_BACKUP, type DatabaseBackupStrategy } from '../database/database-backup.interface';
-import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/llm-config';
-import { getPhotoProviderConfig } from '../common/photo-provider-config';
-import { validatePassword } from '../common/passwordPolicy';
-import { UserCleanupService } from '../auth/user-cleanup.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import { DataPathsService } from '../app-config/data-paths.service';
 import { AddonsService } from '../addons/addons.service';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PasskeyService } from '../auth/passkey.service';
+import { DataPathsService } from '../app-config/data-paths.service';
 import { AuthService } from '../auth/auth.service';
+import { PasskeyService } from '../auth/passkey.service';
+import { UserCleanupService } from '../auth/user-cleanup.service';
+import { readAppSetting } from '../common/app-settings.registry';
+import { avatarUrl } from '../common/avatarUrl';
+import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DomainError } from '../common/domain-error';
+import { MANAGED_FORBIDDEN_ERROR } from '../common/managed';
+import { validatePassword } from '../common/passwordPolicy';
+import { getPhotoProviderConfig } from '../common/photo-provider-config';
+import { DATABASE_BACKUP, type DatabaseBackupStrategy } from '../database/database-backup.interface';
+import { UnitOfWork } from '../database/unit-of-work';
+import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/llm-config';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PERMISSION_ACTIONS } from '../permissions/permissions.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { Users } from '../../db/entities/Users.entity';
-import { UserIdentityTakenError, type UsersRepository, type AdminEditPatch } from '../../db/repositories/Users.repository';
-import { AuditLog } from '../../db/entities/AuditLog.entity';
-import type { AuditLogRepository } from '../../db/repositories/AuditLog.repository';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { Addons } from '../../db/entities/Addons.entity';
-import type { AddonsRepository } from '../../db/repositories/Addons.repository';
-import { PhotoProviders } from '../../db/entities/PhotoProviders.entity';
-import type { PhotoProvidersRepository } from '../../db/repositories/PhotoProviders.repository';
-import { PhotoProviderFields } from '../../db/entities/PhotoProviderFields.entity';
-import type { PhotoProviderFieldsRepository } from '../../db/repositories/PhotoProviderFields.repository';
-import { DocumentProviders } from '../../db/entities/DocumentProviders.entity';
-import type { DocumentProvidersRepository } from '../../db/repositories/DocumentProviders.repository';
-import { McpTokens } from '../../db/entities/McpTokens.entity';
-import type { McpTokensRepository } from '../../db/repositories/McpTokens.repository';
-import { OauthTokens } from '../../db/entities/OauthTokens.entity';
-import type { OauthTokensRepository } from '../../db/repositories/OauthTokens.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository } from '../../db/repositories/Places.repository';
-import { TripFiles } from '../../db/entities/TripFiles.entity';
-import type { TripFilesRepository } from '../../db/repositories/TripFiles.repository';
-import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
-import type { PushSubscriptionsRepository } from '../../db/repositories/PushSubscriptions.repository';
-import type { AddonConfig } from '../../db/entities/Addons.entity';
+import { RealtimeService } from '../realtime/realtime.service';
+import { SessionsService } from '../sessions/sessions.service';
 import {
   BCRYPT_COST,
   compareVersions,
@@ -66,10 +69,12 @@ import {
   writeVersionCache,
   type VersionInfo,
 } from './admin.helpers';
-import { MANAGED_FORBIDDEN_ERROR } from '../common/managed';
-import { utcSuffix } from '../../db/types';
-import { SessionsService } from '../sessions/sessions.service';
-import { readAppSetting } from '../common/app-settings.registry';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Inject, Injectable } from '@nestjs/common';
+
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import fs from 'fs';
 
 /** Outbound GitHub calls: hard timeout and response-size cap (server/CLAUDE.md). */
 const GITHUB_TIMEOUT_MS = 10_000;
@@ -190,7 +195,10 @@ export class AdminService {
     let insertedId: number;
     try {
       insertedId = await this.users.insertAdminCreatedUser({
-        username, email, password_hash: passwordHash, role: data.role || 'user',
+        username,
+        email,
+        password_hash: passwordHash,
+        role: data.role || 'user',
       });
     } catch (err) {
       // Another write took the name or address between the check and the insert.
@@ -284,7 +292,9 @@ export class AdminService {
           await this.mcpTokens.deleteAllForUser(userId);
           try {
             await this.oauthTokens.revokeAllForUser(userId);
-          } catch { /* very old installs predate oauth_tokens */ }
+          } catch {
+            /* very old installs predate oauth_tokens */
+          }
           // Push devices outlive every session, so the intruder's browser would
           // keep receiving this account's notifications. They go with the rest.
           await this.pushSubscriptions.deleteAllForUser(userId);
@@ -297,7 +307,11 @@ export class AdminService {
     }
 
     if (password) {
-      try { revokeUserSessions(Number(id)); } catch { /* best-effort, same as elsewhere */ }
+      try {
+        revokeUserSessions(Number(id));
+      } catch {
+        /* best-effort, same as elsewhere */
+      }
     }
 
     const updated = await this.users.findAdminSummary(userId);
@@ -330,7 +344,9 @@ export class AdminService {
     return { email: userToDel.email };
   }
 
-  resetUserPasskeys(id: string) { return this.passkeys.adminResetPasskeys(Number(id)); }
+  resetUserPasskeys(id: string) {
+    return this.passkeys.adminResetPasskeys(Number(id));
+  }
 
   /**
    * Clear another account's TOTP so its owner can enrol again.
@@ -424,7 +440,6 @@ export class AdminService {
     return { entries, total, limit, offset };
   }
 
-
   // ── Demo Baseline ──────────────────────────────────────────────────────────
 
   async saveDemoBaseline(): Promise<{ message?: string }> {
@@ -516,9 +531,9 @@ export class AdminService {
     let result: VersionInfo;
     if (isPrerelease) {
       // Fetch release list and find the newest prerelease
-      const data = await this.fetchGithub('https://api.github.com/repos/liketrek/TREK/releases?per_page=100') as
-        | Array<{ tag_name?: string; html_url?: string; prerelease?: boolean }>
-        | null;
+      const data = (await this.fetchGithub(
+        'https://api.github.com/repos/liketrek/TREK/releases?per_page=100',
+      )) as Array<{ tag_name?: string; html_url?: string; prerelease?: boolean }> | null;
       if (!data) return fail();
       const prereleases = Array.isArray(data) ? data.filter((r) => r.prerelease) : [];
       if (!prereleases.length) return fail();
@@ -536,9 +551,10 @@ export class AdminService {
         is_prerelease: true,
       };
     } else {
-      const data = await this.fetchGithub('https://api.github.com/repos/liketrek/TREK/releases/latest') as
-        | { tag_name?: string; html_url?: string }
-        | null;
+      const data = (await this.fetchGithub('https://api.github.com/repos/liketrek/TREK/releases/latest')) as {
+        tag_name?: string;
+        html_url?: string;
+      } | null;
       if (!data) return fail();
       const latest = (data.tag_name || '').replace(/^v/, '');
       const update_available = !!latest && latest !== currentVersion && compareVersions(latest, currentVersion) > 0;
@@ -599,9 +615,7 @@ export class AdminService {
         (a) =>
           !(
             readEnv().managed.enabled &&
-            (a.id === ADDON_IDS.LLM_PARSING ||
-              a.id === ADDON_IDS.AIRTRAIL ||
-              a.id === ADDON_IDS.DAWARICH)
+            (a.id === ADDON_IDS.LLM_PARSING || a.id === ADDON_IDS.AIRTRAIL || a.id === ADDON_IDS.DAWARICH)
           ),
       );
     const providers = (await this.photoProviders.listAllOrdered())
@@ -626,17 +640,13 @@ export class AdminService {
     // not belong to a user here but to a trip, so they are entered in the trip
     // rather than in settings. The admin decides only whether a provider may be
     // offered at all.
-    const docProviders = (await this.documentProviders.listAllOrdered())
-      .filter(() => !readEnv().managed.enabled);
+    const docProviders = (await this.documentProviders.listAllOrdered()).filter(() => !readEnv().managed.enabled);
 
     return [
       ...addons.map((a) => ({
         ...a,
         enabled: !!a.enabled,
-        config:
-          a.id === ADDON_IDS.LLM_PARSING
-            ? maskLlmAddonConfig(a.config ?? {})
-            : (a.config ?? {}),
+        config: a.id === ADDON_IDS.LLM_PARSING ? maskLlmAddonConfig(a.config ?? {}) : (a.config ?? {}),
       })),
       ...providers.map((p) => ({
         id: p.id,
@@ -707,28 +717,22 @@ export class AdminService {
           await this.addonsRepo.setEnabled(id, !!data.enabled);
           // Journey off takes its providers with it: a row left enabled would
           // resurface the moment journey returns, which nobody switched on.
-          if (id === ADDON_IDS.JOURNEY && !data.enabled)
-            await this.photoProviders.disableAll();
+          if (id === ADDON_IDS.JOURNEY && !data.enabled) await this.photoProviders.disableAll();
           // Documents off takes its providers with it, for the reason above: a
           // row left enabled would resurface the moment the addon returns.
-          if (id === ADDON_IDS.DOCUMENTS && !data.enabled)
-            await this.documentProviders.disableAll();
+          if (id === ADDON_IDS.DOCUMENTS && !data.enabled) await this.documentProviders.disableAll();
         }
         if (data.config !== undefined) {
           // The AI-parsing addon holds an API key — encrypt it at rest and preserve
           // the stored key when the client echoes the mask sentinel (see llmConfig.ts).
           const configToStore =
-            id === ADDON_IDS.LLM_PARSING
-              ? prepareLlmAddonConfigForWrite(data.config, addon.config ?? {})
-              : data.config;
+            id === ADDON_IDS.LLM_PARSING ? prepareLlmAddonConfigForWrite(data.config, addon.config ?? {}) : data.config;
           await this.addonsRepo.setConfig(id, configToStore as AddonConfig);
         }
       } else if (provider) {
-        if (data.enabled !== undefined)
-          await this.photoProviders.setEnabled(id, data.enabled ? 1 : 0);
+        if (data.enabled !== undefined) await this.photoProviders.setEnabled(id, data.enabled ? 1 : 0);
       } else {
-        if (data.enabled !== undefined)
-          await this.documentProviders.setEnabled(id, data.enabled ? 1 : 0);
+        if (data.enabled !== undefined) await this.documentProviders.setEnabled(id, data.enabled ? 1 : 0);
       }
     });
 
@@ -797,8 +801,9 @@ export class AdminService {
     updateJwtSecret(newSecret);
   }
 
-  invalidateMcpSessions() { invalidateMcpSessions(); }
+  invalidateMcpSessions() {
+    invalidateMcpSessions();
+  }
 
   // ── Settings + notification preference helpers (non-admin-service modules) ──
-
 }

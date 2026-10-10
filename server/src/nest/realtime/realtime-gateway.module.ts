@@ -1,12 +1,12 @@
-import { Module, type OnModuleDestroy } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { RealtimeGateway } from './realtime.gateway';
-import { EphemeralTokenModule } from '../auth-core/ephemeral-token.module';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { Users } from '../../db/entities/Users.entity';
 import { Trips } from '../../db/entities/Trips.entity';
-import { processRooms, RoomRegistry, roomsSlot } from './ws-state';
+import { Users } from '../../db/entities/Users.entity';
+import { EphemeralTokenModule } from '../auth-core/ephemeral-token.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { RealtimeGateway } from './realtime.gateway';
+import { processRooms, RoomRegistry, roomsSlot } from './ws-state';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module, type OnModuleDestroy } from '@nestjs/common';
 
 /**
  * The transport, kept out of RealtimeModule on purpose.

@@ -1,19 +1,19 @@
+import { db } from '../../../src/db/database';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { GoogleApiUsage } from '../../../src/db/entities/GoogleApiUsage.entity';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { GoogleApiUsageRepository } from '../../../src/db/repositories/GoogleApiUsage.repository';
+import { GoogleQuotaService, GOOGLE_DAILY_LIMIT_SETTING } from '../../../src/nest/google-quota/google-quota.service';
+import { countRows, deleteRows, findRow, insertRow, insertRows } from '../../helpers/factories/rows';
+import { readAppSetting } from '../../helpers/factories/settings';
+import { createTestAppSettingsRepo, sharedTestOrm } from '../../helpers/test-uow';
+
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db } from '../../../src/db/database';
-import { GoogleQuotaService, GOOGLE_DAILY_LIMIT_SETTING } from '../../../src/nest/google-quota/google-quota.service';
-import { GoogleApiUsage } from '../../../src/db/entities/GoogleApiUsage.entity';
-import type { GoogleApiUsageRepository } from '../../../src/db/repositories/GoogleApiUsage.repository';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import { createTestAppSettingsRepo, sharedTestOrm } from '../../helpers/test-uow';
-import { countRows, deleteRows, findRow, insertRow, insertRows } from '../../helpers/factories/rows';
-import { readAppSetting } from '../../helpers/factories/settings';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 
 /** The UTC calendar day `days` before today, the text SQLite's date('now', '-N days') gives. */
 const utcDaysAgo = (days: number): string => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);

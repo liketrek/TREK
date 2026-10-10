@@ -11,12 +11,27 @@
  * The PDF is built here from synthetic text; the reporter's document is never
  * part of the repository.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { Addons } from '../../src/db/entities/Addons.entity';
+import { KitineraryExtractorService } from '../../src/nest/booking-import/kitinerary-extractor.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { NotificationsService } from '../../src/nest/notifications/notifications.service';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { ReservationImportModule } from '../../src/nest/reservation-import/reservation-import.module';
+import { upsertRow } from '../helpers/factories/rows';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { safeFetchLlm } = vi.hoisted(() => ({ safeFetchLlm: vi.fn() }));
 // The temp db is born inside the factory, which runs before anything imports it,
@@ -36,21 +51,6 @@ vi.mock('../../src/db/database', async () => {
   };
 });
 vi.mock('../../src/utils/ssrfGuard', async (orig) => ({ ...(await orig<Record<string, unknown>>()), safeFetchLlm }));
-
-import { db } from '../../src/db/database';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { ReservationImportModule } from '../../src/nest/reservation-import/reservation-import.module';
-import { KitineraryExtractorService } from '../../src/nest/booking-import/kitinerary-extractor.service';
-import { NotificationsService } from '../../src/nest/notifications/notifications.service';
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm } from '../helpers/test-orm';
-import { makeUser } from '../helpers/factories/users';
-import { makeTrip } from '../helpers/factories/trips';
-import { upsertRow } from '../helpers/factories/rows';
-import { Addons } from '../../src/db/entities/Addons.entity';
 
 /** A one-page PDF whose text layer holds `lines`, in the standard Helvetica. */
 function pdfWithText(lines: string[]): Buffer {
@@ -110,9 +110,21 @@ describe('Booking import e2e (#2477): a schema-bound provider on the upload rout
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, ReservationImportModule] })
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        ReservationImportModule,
+      ],
+    })
       .overrideProvider(KitineraryExtractorService)
-      .useValue({ onModuleInit: () => {}, isAvailable: () => false, extract: vi.fn(), describe: () => ({ available: false }) })
+      .useValue({
+        onModuleInit: () => {},
+        isAvailable: () => false,
+        extract: vi.fn(),
+        describe: () => ({ available: false }),
+      })
       .overrideProvider(NotificationsService)
       .useValue({ send: vi.fn().mockResolvedValue(undefined) })
       .compile();
@@ -149,7 +161,11 @@ describe('Booking import e2e (#2477): a schema-bound provider on the upload rout
         name: 'AI Parsing',
         type: 'integration',
         enabled: true,
-        config: { provider: 'openai', model: 'gemini-3.5-flash', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai' },
+        config: {
+          provider: 'openai',
+          model: 'gemini-3.5-flash',
+          baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+        },
       },
       ['enabled', 'config'],
     );
@@ -198,12 +214,17 @@ describe('Booking import e2e (#2477): a schema-bound provider on the upload rout
     expect(res.body.items).toEqual([]);
     // One warning, not two: the copy is gone before the mapper sees it.
     expect(res.body.warnings).toHaveLength(1);
-    expect(res.body.warnings[0]).toMatch(/^Incomplete LodgingReservation in Bestätigung_1234567890\.PDF\[0\] \(no reservationFor\)/);
+    expect(res.body.warnings[0]).toMatch(
+      /^Incomplete LodgingReservation in Bestätigung_1234567890\.PDF\[0\] \(no reservationFor\)/,
+    );
     expect(res.body.files).toEqual([{ fileName: 'Bestätigung_1234567890.PDF', aiAvailable: true, aiUsed: true }]);
   });
 
   it('once Gemini fills the venue: one hotel in EUR, attached to the uploaded file', async () => {
-    const stay = { ...bareStay, reservationFor: { name: 'Harbour View Inn', address: 'Example Road 1, 1000 Sample Town' } };
+    const stay = {
+      ...bareStay,
+      reservationFor: { name: 'Harbour View Inn', address: 'Example Road 1, 1000 Sample Town' },
+    };
     geminiAnswers([stay, { ...stay }]);
     const res = await upload('Bestätigung_1.pdf', 'force-ai');
 

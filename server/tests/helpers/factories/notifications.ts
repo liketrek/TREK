@@ -1,9 +1,9 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
 import { Notifications } from '../../../src/db/entities/Notifications.entity';
 import type { FactoryOrm } from './context';
 import { createRow, upsertRow } from './rows';
 import { setAppSetting } from './settings';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type NotificationRow = EntityDTO<Notifications>;
 

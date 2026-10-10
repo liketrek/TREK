@@ -1,9 +1,10 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import type { Database as Db, Statement } from 'better-sqlite3';
 import { openDatabase } from '../../../db/connection';
 import { pluginDataDir, pluginDbFile, pluginsDataRoot } from '../paths';
 import { splitAfterSemicolons } from './sql-script';
+
+import type { Database as Db, Statement } from 'better-sqlite3';
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * A plugin's own sqlite database (#plugins, db:own). The HOST owns the handle;
@@ -81,7 +82,11 @@ const openDbs = new Set<PluginDataDb>();
  * Best-effort per handle; never throws. */
 export function checkpointAllPluginDataDbs(): void {
   for (const d of openDbs) {
-    try { d.checkpoint(); } catch { /* a busy/closed handle is skipped, not fatal */ }
+    try {
+      d.checkpoint();
+    } catch {
+      /* a busy/closed handle is skipped, not fatal */
+    }
   }
 }
 
@@ -102,9 +107,7 @@ export class PluginDataDb {
     const pageSize = Number(this.db.pragma('page_size', { simple: true })) || 4096;
     this.db.pragma(`max_page_count = ${Math.max(1, Math.floor(QUOTA_BYTES / pageSize))}`);
     // Track applied migrations so db.migrate is idempotent per (plugin, id).
-    this.db.exec(
-      `CREATE TABLE IF NOT EXISTS _plugin_migrations (id TEXT PRIMARY KEY, applied_at INTEGER)`,
-    );
+    this.db.exec(`CREATE TABLE IF NOT EXISTS _plugin_migrations (id TEXT PRIMARY KEY, applied_at INTEGER)`);
   }
 
   private guard(sql: string): void {
@@ -327,11 +330,21 @@ export function snapshotAllPluginDataDbs(destRoot: string): void {
     // WAL loses committed transactions, whereas the .db + its WAL is a recoverable set.
     let foldedIn = false;
     if (open) {
-      try { open.snapshotInto(path.join(destDir, 'plugin.db')); foldedIn = true; }
-      catch {
-        try { open.checkpoint(); foldedIn = true; } catch { /* WAL not folded — keep sidecars */ }
-        try { fs.copyFileSync(path.join(srcDir, 'plugin.db'), path.join(destDir, 'plugin.db')); }
-        catch { /* unreadable live db — best effort */ }
+      try {
+        open.snapshotInto(path.join(destDir, 'plugin.db'));
+        foldedIn = true;
+      } catch {
+        try {
+          open.checkpoint();
+          foldedIn = true;
+        } catch {
+          /* WAL not folded — keep sidecars */
+        }
+        try {
+          fs.copyFileSync(path.join(srcDir, 'plugin.db'), path.join(destDir, 'plugin.db'));
+        } catch {
+          /* unreadable live db — best effort */
+        }
       }
     }
     for (const f of fs.readdirSync(srcDir, { withFileTypes: true })) {
@@ -348,7 +361,9 @@ export function snapshotAllPluginDataDbs(destRoot: string): void {
       try {
         if (f.isDirectory()) fs.cpSync(src, dest, { recursive: true });
         else fs.copyFileSync(src, dest);
-      } catch { /* skip an unreadable entry rather than fail the whole backup */ }
+      } catch {
+        /* skip an unreadable entry rather than fail the whole backup */
+      }
     }
   }
 }

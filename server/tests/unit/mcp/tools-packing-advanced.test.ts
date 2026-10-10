@@ -6,27 +6,27 @@
  * bulk_import_packing. The basic item tools + scope/addon gating + resources
  * live in tools-packing.test.ts.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, createTrip, createPackingItem } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
-import { addPackingBagMembers, makePackingBag, makePackingItem } from '../../helpers/factories/packing';
 import { PackingBags } from '../../../src/db/entities/PackingBags.entity';
 import { PackingCategoryAssignees } from '../../../src/db/entities/PackingCategoryAssignees.entity';
 import { PackingItems } from '../../../src/db/entities/PackingItems.entity';
 import { PackingTemplateCategories } from '../../../src/db/entities/PackingTemplateCategories.entity';
 import { PackingTemplateItems } from '../../../src/db/entities/PackingTemplateItems.entity';
 import { PackingTemplates } from '../../../src/db/entities/PackingTemplates.entity';
+import { createUser, createAdmin, createTrip, createPackingItem } from '../../helpers/factories';
+import { addPackingBagMembers, makePackingBag, makePackingItem } from '../../helpers/factories/packing';
+import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -50,7 +50,11 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -248,7 +252,13 @@ describe('Tool: delete_packing_bag', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const { id: bagId } = await makePackingBag(orm, trip.id, { name: 'Carry-on', color: '#000000' });
-    await makePackingItem(orm, trip.id, { name: 'Tent', category: 'Camping', checked: 0, bag: bagId, weight_grams: 3000 });
+    await makePackingItem(orm, trip.id, {
+      name: 'Tent',
+      category: 'Camping',
+      checked: 0,
+      bag: bagId,
+      weight_grams: 3000,
+    });
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'delete_packing_bag',
@@ -294,7 +304,11 @@ describe('Tool: set_bag_members', () => {
       const data = parseToolResult(result) as any;
       // Returns the hydrated members list (REST parity), not { success }.
       expect(data.members.map((m: any) => m.user_id)).toEqual([user.id]);
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:bag-members-updated', expect.objectContaining({ members: expect.any(Array) }));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'packing:bag-members-updated',
+        expect.objectContaining({ members: expect.any(Array) }),
+      );
     });
   });
 
@@ -349,7 +363,11 @@ describe('Tool: set_packing_category_assignees', () => {
       const data = parseToolResult(result) as any;
       // Returns the hydrated assignees list (REST parity), not { success }.
       expect(data.assignees.map((a: any) => a.user_id)).toEqual([user.id]);
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:assignees', expect.objectContaining({ category: 'Clothing', assignees: expect.any(Array) }));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'packing:assignees',
+        expect.objectContaining({ category: 'Clothing', assignees: expect.any(Array) }),
+      );
     });
   });
 
@@ -390,7 +408,11 @@ describe('Tool: apply_packing_template', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const templateId = await insertRow(orm, PackingTemplates, { name: 'Hiking', createdByRef: user.id });
-    const categoryId = await insertRow(orm, PackingTemplateCategories, { template: templateId, name: 'Gear', sort_order: 0 });
+    const categoryId = await insertRow(orm, PackingTemplateCategories, {
+      template: templateId,
+      name: 'Gear',
+      sort_order: 0,
+    });
     await insertRow(orm, PackingTemplateItems, { category: categoryId, name: 'Boots', sort_order: 0 });
 
     await withHarness(user.id, async (h) => {
@@ -489,15 +511,19 @@ describe('Tool: list_packing_templates', () => {
     const trip = createTrip(testDb, user.id);
     createPackingItem(testDb, trip.id, { name: 'Toothbrush', category: 'Toiletries' });
     await withHarness(user.id, async (h) => {
-      const saved = parseToolResult(await h.client.callTool({
-        name: 'save_packing_template',
-        arguments: { tripId: trip.id, templateName: 'Beach' },
-      })) as any;
+      const saved = parseToolResult(
+        await h.client.callTool({
+          name: 'save_packing_template',
+          arguments: { tripId: trip.id, templateName: 'Beach' },
+        }),
+      ) as any;
 
-      const listed = parseToolResult(await h.client.callTool({
-        name: 'list_packing_templates',
-        arguments: { tripId: trip.id },
-      })) as any;
+      const listed = parseToolResult(
+        await h.client.callTool({
+          name: 'list_packing_templates',
+          arguments: { tripId: trip.id },
+        }),
+      ) as any;
       expect(listed.templates.some((t: any) => t.id === saved.template.id && t.name === 'Beach')).toBe(true);
     });
   });
@@ -523,16 +549,20 @@ describe('Tool: delete_packing_template', () => {
     const trip = createTrip(testDb, user.id);
     createPackingItem(testDb, trip.id, { name: 'Toothbrush', category: 'Toiletries' });
     await withHarness(user.id, async (h) => {
-      const saved = parseToolResult(await h.client.callTool({
-        name: 'save_packing_template',
-        arguments: { tripId: trip.id, templateName: 'Ski' },
-      })) as any;
+      const saved = parseToolResult(
+        await h.client.callTool({
+          name: 'save_packing_template',
+          arguments: { tripId: trip.id, templateName: 'Ski' },
+        }),
+      ) as any;
       const id = saved.template.id;
 
-      const deleted = parseToolResult(await h.client.callTool({
-        name: 'delete_packing_template',
-        arguments: { templateId: id },
-      })) as any;
+      const deleted = parseToolResult(
+        await h.client.callTool({
+          name: 'delete_packing_template',
+          arguments: { templateId: id },
+        }),
+      ) as any;
       expect(deleted.success).toBe(true);
       const remaining = await countRows(orm, PackingTemplates, { id });
       expect(remaining).toBe(0);
@@ -587,7 +617,11 @@ describe('Tool: bulk_import_packing', () => {
       expect(Array.isArray(data.items)).toBe(true);
       expect(data.items).toHaveLength(items.length);
       expect(data.items[0].name).toBe('Passport');
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:created', expect.objectContaining({ item: expect.any(Object) }));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'packing:created',
+        expect.objectContaining({ item: expect.any(Object) }),
+      );
       // Plus ONE bag-totals ping for the whole import (#2191) — not one per
       // item: it is content-free and each one costs every connected client a
       // listBags round trip.

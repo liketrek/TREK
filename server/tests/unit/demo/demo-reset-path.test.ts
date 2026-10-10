@@ -21,18 +21,19 @@
  * `withRequestContext` over a real (empty) test database: the reads find
  * nothing and the restore-writes are skipped.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
-import type Database from 'better-sqlite3';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm } from '../../helpers/test-orm';
-import { withRequestContext } from '../../../src/nest/database/request-context';
-import { SqliteDatabaseBackup } from '../../../src/nest/backup/sqlite-database-backup';
-import type { DatabaseLifecycle } from '../../../src/nest/database/database-lifecycle.service';
 import type { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
 import { resetDemoUser, saveBaseline } from '../../../src/demo/demo-reset';
+import { SqliteDatabaseBackup } from '../../../src/nest/backup/sqlite-database-backup';
 import { DatabaseConnectionLostError } from '../../../src/nest/database/database-backup.interface';
+import type { DatabaseLifecycle } from '../../../src/nest/database/database-lifecycle.service';
+import { withRequestContext } from '../../../src/nest/database/request-context';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createTestOrm } from '../../helpers/test-orm';
+
+import type Database from 'better-sqlite3';
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const LIVE_DB = path.join(path.sep, 'srv', 'trek', 'custom-name.db');
 const BASELINE = path.resolve(__dirname, '..', '..', '..', 'data', 'travel-baseline.db');
@@ -57,10 +58,15 @@ describe('demo-reset DB path', () => {
     renameSync = vi.spyOn(fs, 'renameSync').mockImplementation(() => undefined);
     vi.spyOn(fs, 'unlinkSync').mockImplementation(() => undefined);
     vi.spyOn(fs, 'rmSync').mockImplementation(() => undefined);
-    vi.spyOn(fs, 'existsSync').mockImplementation(((p: fs.PathLike) => String(p) === BASELINE || String(p) === LIVE_DB) as typeof fs.existsSync);
+    vi.spyOn(fs, 'existsSync').mockImplementation(
+      ((p: fs.PathLike) => String(p) === BASELINE || String(p) === LIVE_DB) as typeof fs.existsSync,
+    );
     lifecycle = { file: LIVE_DB, close: vi.fn(), reopen: vi.fn(async () => {}) };
     maintenance = { walCheckpoint: vi.fn(async () => {}), vacuumInto: vi.fn(async () => {}) };
-    database = new SqliteDatabaseBackup(lifecycle as unknown as DatabaseLifecycle, maintenance as unknown as MaintenanceRepository);
+    database = new SqliteDatabaseBackup(
+      lifecycle as unknown as DatabaseLifecycle,
+      maintenance as unknown as MaintenanceRepository,
+    );
   });
 
   afterEach(() => {
@@ -84,8 +90,12 @@ describe('demo-reset DB path', () => {
   it('DEMORESET-002: restores the baseline onto that same file, not data/travel.db', async () => {
     const order: string[] = [];
     lifecycle.close.mockImplementation(() => order.push('close'));
-    copyFileSync.mockImplementation(() => { order.push('copy'); });
-    lifecycle.reopen.mockImplementation(async () => { order.push('reopen'); });
+    copyFileSync.mockImplementation(() => {
+      order.push('copy');
+    });
+    lifecycle.reopen.mockImplementation(async () => {
+      order.push('reopen');
+    });
 
     await withCtx(() => resetDemoUser(database));
 
@@ -115,7 +125,9 @@ describe('demo-reset DB path', () => {
   });
 
   it('DEMORESET-005: a swap that fails is logged, and the connection is reopened anyway', async () => {
-    copyFileSync.mockImplementation(() => { throw new Error('EACCES'); });
+    copyFileSync.mockImplementation(() => {
+      throw new Error('EACCES');
+    });
 
     await expect(withCtx(() => resetDemoUser(database))).resolves.toBeUndefined();
 
@@ -131,7 +143,9 @@ describe('demo-reset DB path', () => {
   });
 
   it('DEMORESET-007: a swap that fails with a reopen that fails too is not swallowed either', async () => {
-    copyFileSync.mockImplementation(() => { throw new Error('EACCES'); });
+    copyFileSync.mockImplementation(() => {
+      throw new Error('EACCES');
+    });
     lifecycle.reopen.mockRejectedValueOnce(new Error('database is locked'));
 
     // The instance has no connection now: the tick has to log that, so the

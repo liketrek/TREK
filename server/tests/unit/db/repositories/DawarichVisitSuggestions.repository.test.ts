@@ -1,15 +1,16 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { DawarichVisitSuggestions } from '../../../../src/db/entities/DawarichVisitSuggestions.entity';
+import { JourneyEntries } from '../../../../src/db/entities/JourneyEntries.entity';
+import { Journeys } from '../../../../src/db/entities/Journeys.entity';
+import type { DawarichVisitSuggestionsRepository } from '../../../../src/db/repositories/DawarichVisitSuggestions.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser, createTrip } from '../../../helpers/factories';
+import { makeBucketListItem } from '../../../helpers/factories/atlas';
+import { makePlace } from '../../../helpers/factories/places';
+import { deleteRows, findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser, createTrip } from '../../../helpers/factories';
-import { DawarichVisitSuggestions } from '../../../../src/db/entities/DawarichVisitSuggestions.entity';
-import { Journeys } from '../../../../src/db/entities/Journeys.entity';
-import { JourneyEntries } from '../../../../src/db/entities/JourneyEntries.entity';
-import { deleteRows, findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
-import { makePlace } from '../../../helpers/factories/places';
-import { makeBucketListItem } from '../../../helpers/factories/atlas';
-import type { DawarichVisitSuggestionsRepository } from '../../../../src/db/repositories/DawarichVisitSuggestions.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -102,7 +103,13 @@ async function seedPlace(tripId: number): Promise<number> {
 }
 
 async function seedJourneyEntry(userId: number): Promise<number> {
-  const journeyId = await insertRow(t, Journeys, { user: userId, title: 'Trip diary', status: 'active', created_at: 0, updated_at: 0 });
+  const journeyId = await insertRow(t, Journeys, {
+    user: userId,
+    title: 'Trip diary',
+    status: 'active',
+    created_at: 0,
+    updated_at: 0,
+  });
   return insertRow(t, JourneyEntries, {
     journey: journeyId,
     author: userId,
@@ -145,7 +152,7 @@ describe('DawarichVisitSuggestionsRepository', () => {
       expect(rows[0].matched_bucket_name).toBe('Wish');
     });
 
-    it('DVSREPO-002: scoped by user_id — a stranger\'s row never appears', async () => {
+    it("DVSREPO-002: scoped by user_id — a stranger's row never appears", async () => {
       const { user } = createUser(testDb);
       const { user: stranger } = createUser(testDb);
       await seed(stranger.id);
@@ -216,7 +223,7 @@ describe('DawarichVisitSuggestionsRepository', () => {
       expect((await rawRow(id)).state).toBe('new');
     });
 
-    it('DVSREPO-014: an intact acceptance (place still exists) is left alone; another user\'s orphan is untouched', async () => {
+    it("DVSREPO-014: an intact acceptance (place still exists) is left alone; another user's orphan is untouched", async () => {
       const { user } = createUser(testDb);
       const { user: stranger } = createUser(testDb);
       const trip = createTrip(testDb, user.id);
@@ -318,11 +325,21 @@ describe('DawarichVisitSuggestionsRepository', () => {
 
     it('DVSREPO-032: refreshHash touches only source_hash/source_missing_at/last_seen_at — the user-visible fields survive', async () => {
       const { user } = createUser(testDb);
-      const id = await seed(user.id, { name: 'Kept name', state: 'accepted', source_missing_at: '2026-01-01T00:00:00Z' });
+      const id = await seed(user.id, {
+        name: 'Kept name',
+        state: 'accepted',
+        source_missing_at: '2026-01-01T00:00:00Z',
+      });
 
       await suggestions.refreshHash(id, 'h3', '2026-03-01T00:00:00Z');
 
-      expect(await rawRow(id)).toMatchObject({ name: 'Kept name', state: 'accepted', source_hash: 'h3', source_missing_at: null, last_seen_at: '2026-03-01T00:00:00Z' });
+      expect(await rawRow(id)).toMatchObject({
+        name: 'Kept name',
+        state: 'accepted',
+        source_hash: 'h3',
+        source_missing_at: null,
+        last_seen_at: '2026-03-01T00:00:00Z',
+      });
     });
   });
 
@@ -378,7 +395,7 @@ describe('DawarichVisitSuggestionsRepository', () => {
   });
 
   describe('listHoldersOfWish/clearWishHolders/assignWishHolder (DSY11/12/13)', () => {
-    it('DVSREPO-060: listHoldersOfWish excludes the caller\'s own source_visit_id', async () => {
+    it("DVSREPO-060: listHoldersOfWish excludes the caller's own source_visit_id", async () => {
       const { user } = createUser(testDb);
       const wish = await seedBucketItem(user.id);
       const holder = await seed(user.id, { source_visit_id: 'holder', matched_bucket_list_item_id: wish });
@@ -410,7 +427,7 @@ describe('DawarichVisitSuggestionsRepository', () => {
   });
 
   describe('matchedStayStart (DWS14)', () => {
-    it('DVSREPO-070: the most recent started_at among the user\'s stays matched to that wish', async () => {
+    it("DVSREPO-070: the most recent started_at among the user's stays matched to that wish", async () => {
       const { user } = createUser(testDb);
       const wish = await seedBucketItem(user.id);
       await seed(user.id, { matched_bucket_list_item_id: wish, started_at: '2026-01-01T00:00:00Z' });

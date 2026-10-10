@@ -1,3 +1,5 @@
+import { BadParams, ForbiddenResource } from '../../../nest-rpc/rpc-errors';
+import type { PluginRpcRegistry } from '../../../nest-rpc/rpc-kit/registry';
 import {
   KNOWN_METHODS,
   METHOD_PERMISSION,
@@ -6,11 +8,9 @@ import {
   type RpcRequest,
   type RpcResponse,
 } from '../protocol/envelope';
-import type { PluginDataDb } from './plugin-data.service';
-import { auditResource, isAuditable } from './plugin-audit';
-import { BadParams, ForbiddenResource } from '../../../nest-rpc/rpc-errors';
 import { shapePluginOutput } from '../protocol/output-contract';
-import type { PluginRpcRegistry } from '../../../nest-rpc/rpc-kit/registry';
+import { auditResource, isAuditable } from './plugin-audit';
+import type { PluginDataDb } from './plugin-data.service';
 
 // Both used to be declared here. They now live in rpc-errors.ts so decorated
 // *.rpc.ts handlers can throw them without importing the router, and are re-exported
@@ -50,7 +50,13 @@ export interface HostDeps {
   /** Publish an event from this host's plugin to its subscribed dependents. */
   emitPluginEvent(event: string, payload: unknown): Promise<void>;
   /** Optional sink for the capability audit log (host-side, hash-chained). */
-  audit?(entry: { pluginId: string; actingUserId?: number; method: string; resource: string | null; code: string }): Promise<void>;
+  audit?(entry: {
+    pluginId: string;
+    actingUserId?: number;
+    method: string;
+    resource: string | null;
+    code: string;
+  }): Promise<void>;
 }
 
 type Handler = (params: Record<string, unknown>, actingUserId: number | undefined) => unknown;

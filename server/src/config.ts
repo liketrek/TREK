@@ -1,7 +1,8 @@
-import crypto from 'node:crypto';
-import fs from 'node:fs';
 import { readEnv } from './app-config';
 import { resolveDataPaths } from './app-config/data-paths';
+
+import crypto from 'node:crypto';
+import fs from 'node:fs';
 
 const { dataDir, jwtSecretFile, encryptionKeyFile: encKeyFile } = resolveDataPaths();
 
@@ -45,8 +46,12 @@ function persistEnvKey(envKey: string): void {
   }
   if (storedKey && storedKey !== envKey.trim()) {
     console.error(`FATAL: ENCRYPTION_KEY does not match ${encKeyFile}.`);
-    console.error('The stored secrets are encrypted with the key in that file, so TREK will not start with a different one.');
-    console.error('To change the key, run scripts/migrate-encryption.ts first; it re-encrypts the secrets and updates the file.');
+    console.error(
+      'The stored secrets are encrypted with the key in that file, so TREK will not start with a different one.',
+    );
+    console.error(
+      'To change the key, run scripts/migrate-encryption.ts first; it re-encrypts the secrets and updates the file.',
+    );
     console.error('Otherwise set ENCRYPTION_KEY back to the value in the file, or remove the variable.');
     process.exit(1);
   }
@@ -79,7 +84,9 @@ if (_encryptionKey) {
       if (code === 'EISDIR') {
         // Compose creating a missing bind-mount source as a directory is by far
         // the most common way this file stops being a file.
-        console.error('EISDIR: the path is a directory. A bind mount pointed at data/.encryption_key created it as one — remove it and mount the data directory instead.');
+        console.error(
+          'EISDIR: the path is a directory. A bind mount pointed at data/.encryption_key created it as one — remove it and mount the data directory instead.',
+        );
       }
       console.error('Fix the file permissions or set ENCRYPTION_KEY explicitly.');
       process.exit(1);

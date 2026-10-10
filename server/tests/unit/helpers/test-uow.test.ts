@@ -1,11 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
+import { countRows } from '../../helpers/factories/rows';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
-import { countRows } from '../../helpers/factories/rows';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { createUser } from '../../helpers/factories';
-import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let uow: UnitOfWork;

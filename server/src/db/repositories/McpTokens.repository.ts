@@ -1,6 +1,6 @@
+import { columnRef, currentTimestamp } from '../dialect/sql-functions';
 import { McpTokens } from '../entities/McpTokens.entity';
 import type { AssertRowKeys } from './_shared/rows';
-import { columnRef, currentTimestamp } from '../dialect/sql-functions';
 import { TrekRepository } from './_shared/trek-repository';
 
 /**
@@ -312,7 +312,15 @@ export class McpTokensRepository extends TrekRepository<McpTokens> {
     const platform = this.getEntityManager().getPlatform();
     const rows = await this.qb('t')
       .innerJoin('t.user', 'u')
-      .select(['t.id', 't.name', 't.token_prefix', 't.created_at', 't.last_used_at', columnRef(platform, 't.user_id'), 'u.username'])
+      .select([
+        't.id',
+        't.name',
+        't.token_prefix',
+        't.created_at',
+        't.last_used_at',
+        columnRef(platform, 't.user_id'),
+        'u.username',
+      ])
       .orderBy({ 't.created_at': 'desc' })
       .execute<McpTokenWithUsernameRow[]>('all', false);
     return rows.map((row) => ({

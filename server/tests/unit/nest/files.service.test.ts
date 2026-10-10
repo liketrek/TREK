@@ -6,9 +6,62 @@
  * and the download-token auth over a real in-memory SQLite DB, plus the
  * files.bridge delegation (inside the src/nest coverage gate).
  */
+import { db as testDb } from '../../../src/db/database';
+import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
+import { FileLinks } from '../../../src/db/entities/FileLinks.entity';
+import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
+import { UserSessions } from '../../../src/db/entities/UserSessions.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { FileLinksRepository } from '../../../src/db/repositories/FileLinks.repository';
+import type { TripFilesRepository } from '../../../src/db/repositories/TripFiles.repository';
+import type { TripAccess } from '../../../src/db/repositories/Trips.repository';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
+import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
+import {
+  DEFAULT_ALLOWED_EXTENSIONS,
+  MAX_FILE_SIZE,
+  MAX_VIDEO_SIZE,
+  BLOCKED_EXTENSIONS,
+  filesDir,
+  isVideoMime,
+  isVideoExtension,
+} from '../../../src/nest/files/files.constants';
+import { FilesService } from '../../../src/nest/files/files.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
+import type { User } from '../../../src/types';
 import { asLegacyResult } from '../../helpers/domain-error';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
+import {
+  createUser,
+  createTrip,
+  addTripMember,
+  createPlace,
+  createReservation,
+  createDay,
+  createDayAssignment,
+  setAppSetting,
+  createCollabNote,
+} from '../../helpers/factories';
+import { makeCollabMessage } from '../../helpers/factories/collab';
+import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
+import { createTestTripFilesRepo, createTestFileLinksRepo, createTestBudgetItemsRepo } from '../../helpers/files-repos';
+import { resetTestDb } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestReservationsRepo,
+  createTestPlacesRepo,
+  createTestDayAssignmentsRepo,
+  createTestTripsRepo,
+} from '../../helpers/test-uow';
+import { sharedTestOrm } from '../../helpers/test-uow';
+import type { EntityManager } from '@mikro-orm/core';
+
+import type { Request } from 'express';
 import path from 'path';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -30,8 +83,6 @@ vi.mock('../../../src/db/database', async () => {
   };
 });
 
-import { db as testDb } from '../../../src/db/database';
-
 const checkPermission = vi.fn(() => true);
 const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
@@ -41,43 +92,10 @@ vi.mock('../../../src/nest/auth-core/jwt-verify', () => ({ verifyJwtAndLoadUser 
 const { consumeEphemeralToken } = vi.hoisted(() => ({ consumeEphemeralToken: vi.fn() }));
 vi.mock('../../../src/nest/auth-core/ephemeral-tokens', () => ({ consumeEphemeralToken }));
 
-import type { Request } from 'express';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember, createPlace, createReservation, createDay, createDayAssignment, setAppSetting, createCollabNote } from '../../helpers/factories';
-import type { TripAccess } from '../../../src/db/repositories/Trips.repository';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestReservationsRepo, createTestPlacesRepo, createTestDayAssignmentsRepo, createTestTripsRepo } from '../../helpers/test-uow';
-import { createTestTripFilesRepo, createTestFileLinksRepo, createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import { sharedTestOrm } from '../../helpers/test-uow';
-import type { TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
-import { makeCollabMessage } from '../../helpers/factories/collab';
-import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
-import { FileLinks } from '../../../src/db/entities/FileLinks.entity';
-import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
-import type { TripFilesRepository } from '../../../src/db/repositories/TripFiles.repository';
-import type { FileLinksRepository } from '../../../src/db/repositories/FileLinks.repository';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { FilesService } from '../../../src/nest/files/files.service';
-import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
-import {
-  DEFAULT_ALLOWED_EXTENSIONS,
-  MAX_FILE_SIZE,
-  MAX_VIDEO_SIZE,
-  BLOCKED_EXTENSIONS,
-  filesDir,
-  isVideoMime,
-  isVideoExtension,
-} from '../../../src/nest/files/files.constants';
-import type { User } from '../../../src/types';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
-import type { EntityManager } from '@mikro-orm/core';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { UserSessions } from '../../../src/db/entities/UserSessions.entity';
-import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
-
 const storageDelete = vi.fn();
-const storageStub = { delete: storageDelete } as unknown as import('../../../src/nest/storage/storage.service').StorageService;
+const storageStub = {
+  delete: storageDelete,
+} as unknown as import('../../../src/nest/storage/storage.service').StorageService;
 // EntityManager stub (Plan 3b Task 1 RULING): verifyJwtAndLoadUser is
 // fully mocked above, so `em.getRepository` never needs to return
 // anything meaningful; it just has to not throw when the service calls it.
@@ -151,12 +169,17 @@ function seedTrip() {
   return { user, trip };
 }
 
-async function makeFile(tripId: number, userId: number, overrides: Partial<{ filename: string; originalname: string; size: number; mimetype: string }> = {}, opts: Parameters<FilesService['createFile']>[3] = {}) {
+async function makeFile(
+  tripId: number,
+  userId: number,
+  overrides: Partial<{ filename: string; originalname: string; size: number; mimetype: string }> = {},
+  opts: Parameters<FilesService['createFile']>[3] = {},
+) {
   return await svc.createFile(
     tripId,
     { filename: 'stored-name.pdf', originalname: 'visa.pdf', size: 1234, mimetype: 'application/pdf', ...overrides },
     userId,
-    opts
+    opts,
   );
 }
 
@@ -198,7 +221,9 @@ describe('files.constants', () => {
     }
     expect(MAX_FILE_SIZE).toBe(50 * 1024 * 1024);
     expect(MAX_VIDEO_SIZE).toBe(500 * 1024 * 1024);
-    expect(DEFAULT_ALLOWED_EXTENSIONS).toBe('jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv,pkpass,pkpasses,md,markdown');
+    expect(DEFAULT_ALLOWED_EXTENSIONS).toBe(
+      'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv,pkpass,pkpasses,md,markdown',
+    );
   });
 
   it('FILE-SVC-004: filesDir resolves to <server>/uploads/files despite the deeper module location', () => {
@@ -219,16 +244,22 @@ describe('AllowedFileTypesService.get', () => {
   });
 
   it('FILE-SVC-007: returns the default when the row is absent', async () => {
-    expect(await new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)).get()).toBe(DEFAULT_ALLOWED_EXTENSIONS);
+    expect(await new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)).get()).toBe(
+      DEFAULT_ALLOWED_EXTENSIONS,
+    );
   });
 
   it('FILE-SVC-008: returns the default for an empty value (|| coercion, not ??)', async () => {
     setAppSetting(testDb, 'allowed_file_types', '');
-    expect(await new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)).get()).toBe(DEFAULT_ALLOWED_EXTENSIONS);
+    expect(await new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)).get()).toBe(
+      DEFAULT_ALLOWED_EXTENSIONS,
+    );
   });
 
   it('FILE-SVC-009: returns the default when the query throws (no app_settings table)', async () => {
-    expect(await new AllowedFileTypesService(await createTestAppSettingsRepo(bareDb)).get()).toBe(DEFAULT_ALLOWED_EXTENSIONS);
+    expect(await new AllowedFileTypesService(await createTestAppSettingsRepo(bareDb)).get()).toBe(
+      DEFAULT_ALLOWED_EXTENSIONS,
+    );
   });
 });
 
@@ -271,7 +302,7 @@ describe('listFiles', () => {
     await svc.toggleStarred(starred.id, 0);
     await svc.softDeleteFile(trashed.id);
 
-    const files = await svc.listFiles(trip.id, false) as Record<string, unknown>[];
+    const files = (await svc.listFiles(trip.id, false)) as Record<string, unknown>[];
     expect(files.map((f) => f.id)).toHaveLength(2);
     expect(files[0].id).toBe(starred.id); // ORDER BY f.starred DESC first
     expect(files.map((f) => f.id)).not.toContain(trashed.id);
@@ -286,7 +317,7 @@ describe('listFiles', () => {
     const trashed = await makeFile(trip.id, user.id);
     await svc.softDeleteFile(trashed.id);
 
-    const trash = await svc.listFiles(trip.id, true) as Record<string, unknown>[];
+    const trash = (await svc.listFiles(trip.id, true)) as Record<string, unknown>[];
     expect(trash.map((f) => f.id)).toEqual([trashed.id]);
     expect(trash.map((f) => f.id)).not.toContain(kept.id);
   });
@@ -300,7 +331,7 @@ describe('listFiles', () => {
     await svc.createFileLink(linked.id, { reservation_id: reservation.id });
     await svc.createFileLink(linked.id, { place_id: place.id });
 
-    const files = await svc.listFiles(trip.id, false) as Record<string, unknown>[];
+    const files = (await svc.listFiles(trip.id, false)) as Record<string, unknown>[];
     const linkedRow = files.find((f) => f.id === linked.id);
     const bareRow = files.find((f) => f.id === bare.id);
     expect(linkedRow.linked_reservation_ids).toEqual([reservation.id]);
@@ -310,9 +341,14 @@ describe('listFiles', () => {
 
     const item = await insertBudgetItem(trip.id, 'Dinner');
     await svc.createFileLink(linked.id, { budget_item_id: item });
-    const withReceipt = (await svc.listFiles(trip.id, false) as Record<string, unknown>[]).find((f) => f.id === linked.id);
+    const withReceipt = ((await svc.listFiles(trip.id, false)) as Record<string, unknown>[]).find(
+      (f) => f.id === linked.id,
+    );
     expect(withReceipt.linked_budget_item_ids).toEqual([item]);
-    expect((await svc.listFiles(trip.id, false) as Record<string, unknown>[]).find((f) => f.id === bare.id).linked_budget_item_ids).toEqual([]);
+    expect(
+      ((await svc.listFiles(trip.id, false)) as Record<string, unknown>[]).find((f) => f.id === bare.id)
+        .linked_budget_item_ids,
+    ).toEqual([]);
 
     // The empty-trip guard skips the IN () batch entirely.
     const empty = createTrip(testDb, user.id);
@@ -383,10 +419,15 @@ describe('createFile', () => {
   it('FILE-SVC-016: stores the provided metadata and links the reservation title through FILE_SELECT', async () => {
     const { user, trip } = seedTrip();
     const reservation = createReservation(testDb, trip.id, { title: 'Night train' });
-    const file = await makeFile(trip.id, user.id, { originalname: 'ticket.pdf', size: 99, mimetype: 'application/pdf' }, {
-      reservation_id: String(reservation.id),
-      description: 'the booking',
-    });
+    const file = await makeFile(
+      trip.id,
+      user.id,
+      { originalname: 'ticket.pdf', size: 99, mimetype: 'application/pdf' },
+      {
+        reservation_id: String(reservation.id),
+        description: 'the booking',
+      },
+    );
     expect((file as unknown as Record<string, unknown>).reservation_title).toBe('Night train');
     expect(file.description).toBe('the booking');
     expect(file.original_name).toBe('ticket.pdf');
@@ -410,7 +451,7 @@ describe('updateFile', () => {
     const place = createPlace(testDb, trip.id);
     const file = await makeFile(trip.id, user.id, {}, { description: 'keep me', place_id: String(place.id) });
     const current = (await svc.getFileById(file.id, trip.id))!;
-    const updated = await svc.updateFile(file.id, current, {}) as Record<string, unknown>;
+    const updated = (await svc.updateFile(file.id, current, {})) as Record<string, unknown>;
     expect(updated.description).toBe('keep me');
     expect(updated.place_id).toBe(place.id);
   });
@@ -419,9 +460,18 @@ describe('updateFile', () => {
     const { user, trip } = seedTrip();
     const place = createPlace(testDb, trip.id);
     const reservation = createReservation(testDb, trip.id);
-    const file = await makeFile(trip.id, user.id, {}, { description: 'old', place_id: String(place.id), reservation_id: String(reservation.id) });
+    const file = await makeFile(
+      trip.id,
+      user.id,
+      {},
+      { description: 'old', place_id: String(place.id), reservation_id: String(reservation.id) },
+    );
     const current = (await svc.getFileById(file.id, trip.id))!;
-    const updated = await svc.updateFile(file.id, current, { description: '', place_id: '', reservation_id: null }) as Record<string, unknown>;
+    const updated = (await svc.updateFile(file.id, current, {
+      description: '',
+      place_id: '',
+      reservation_id: null,
+    })) as Record<string, unknown>;
     expect(updated.description).toBeNull(); // '' → NULL on update too (post-migration fix: symmetric with createFile)
     expect(updated.place_id).toBeNull();
     expect(updated.reservation_id).toBeNull();
@@ -434,7 +484,9 @@ describe('updateFile', () => {
     const file = await makeFile(trip.id, user.id, {}, { description: 'old' });
     const current = (await svc.getFileById(file.id, trip.id))!;
     const spy = vi.spyOn(fileLinksRepo, 'insertIgnore').mockRejectedValueOnce(new Error('boom'));
-    await expect(svc.updateFile(file.id, current, { description: 'new', place_id: String(place.id), budget_item_id: item })).rejects.toThrow('boom');
+    await expect(
+      svc.updateFile(file.id, current, { description: 'new', place_id: String(place.id), budget_item_id: item }),
+    ).rejects.toThrow('boom');
     const row = await findRow(orm, TripFiles, { id: file.id });
     expect(row?.description).toBe('old');
     expect(row?.place_id).toBeNull();
@@ -466,7 +518,7 @@ describe('toggleStarred / softDeleteFile / restoreFile', () => {
     const { user, trip } = seedTrip();
     const file = await makeFile(trip.id, user.id);
     await svc.softDeleteFile(file.id);
-    const restored = await svc.restoreFile(file.id) as Record<string, unknown>;
+    const restored = (await svc.restoreFile(file.id)) as Record<string, unknown>;
     expect(restored.deleted_at).toBeNull();
     expect(restored.url).toBe(`/api/trips/${trip.id}/files/${file.id}/download`);
   });
@@ -519,7 +571,7 @@ describe('emptyTrash', () => {
     await svc.softDeleteFile(bad.id);
     const boom = new Error('EBUSY');
     storageDelete.mockImplementation((_category: string, name: string) =>
-      name.includes('bad.pdf') ? Promise.reject(boom) : Promise.resolve()
+      name.includes('bad.pdf') ? Promise.reject(boom) : Promise.resolve(),
     );
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -591,10 +643,14 @@ describe('findForeignLinkTarget', () => {
     const foreignRes = createReservation(testDb, foreign.id);
     const foreignPlace = createPlace(testDb, foreign.id);
 
-    expect(await svc.findForeignLinkTarget(mine.id, { reservation_id: 0, place_id: null, assignment_id: undefined })).toBeNull();
+    expect(
+      await svc.findForeignLinkTarget(mine.id, { reservation_id: 0, place_id: null, assignment_id: undefined }),
+    ).toBeNull();
     expect(await svc.findForeignLinkTarget(mine.id, { reservation_id: '' })).toBeNull();
     // Both foreign — the reservation check runs before the place check.
-    expect(await svc.findForeignLinkTarget(mine.id, { reservation_id: foreignRes.id, place_id: foreignPlace.id })).toBe('reservation_id');
+    expect(await svc.findForeignLinkTarget(mine.id, { reservation_id: foreignRes.id, place_id: foreignPlace.id })).toBe(
+      'reservation_id',
+    );
   });
 
   it('M1: a malformed (non-canonical) id for each target kind is refused as foreign (toRowId narrows to null, rule 15)', async () => {
@@ -672,15 +728,18 @@ describe('createFileLink / deleteFileLink / getFileLinks', () => {
     const reservation = createReservation(testDb, trip.id, { title: 'Ferry' });
     const file = await makeFile(trip.id, user.id);
 
-    const links = await svc.createFileLink(file.id, { reservation_id: reservation.id, place_id: '' }) as FileLinkRow[];
+    const links = (await svc.createFileLink(file.id, {
+      reservation_id: reservation.id,
+      place_id: '',
+    })) as FileLinkRow[];
     expect(links).toHaveLength(1);
     expect(links[0].reservation_id).toBe(reservation.id);
     expect(links[0].place_id).toBeNull();
 
-    const again = await svc.createFileLink(file.id, { reservation_id: reservation.id }) as FileLinkRow[];
+    const again = (await svc.createFileLink(file.id, { reservation_id: reservation.id })) as FileLinkRow[];
     expect(again).toHaveLength(1); // UNIQUE(file_id, reservation_id) + OR IGNORE
 
-    const hydrated = await svc.getFileLinks(file.id) as FileLinkRow[];
+    const hydrated = (await svc.getFileLinks(file.id)) as FileLinkRow[];
     expect(hydrated[0].reservation_title).toBe('Ferry');
   });
 
@@ -708,7 +767,7 @@ describe('createFileLink / deleteFileLink / getFileLinks', () => {
     const reservation = createReservation(testDb, trip.id);
     const file = await makeFile(trip.id, user.id);
     const other = await makeFile(trip.id, user.id);
-    const [link] = await svc.createFileLink(file.id, { reservation_id: reservation.id }) as FileLinkRow[];
+    const [link] = (await svc.createFileLink(file.id, { reservation_id: reservation.id })) as FileLinkRow[];
 
     await svc.deleteFileLink(link.id, other.id); // wrong file — no-op
     expect(await svc.getFileLinks(file.id)).toHaveLength(1);
@@ -735,8 +794,18 @@ describe('read-model parity: raw SQL vs. the repository-backed reads', () => {
     // persist(false) mirror at once to prove the Kysely `selectAll()` read
     // carries all six, the trap the class docstring names.
     const id = await insertRow(orm, TripFiles, {
-      trip: trip.id, place: place.id, reservation: reservation.id, filename: 'a.pdf', original_name: 'A.pdf', file_size: 10,
-      mime_type: 'application/pdf', description: 'a note', note: note.id, uploadedByRef: user.id, starred: 1, message: messageId,
+      trip: trip.id,
+      place: place.id,
+      reservation: reservation.id,
+      filename: 'a.pdf',
+      original_name: 'A.pdf',
+      file_size: 10,
+      mime_type: 'application/pdf',
+      description: 'a note',
+      note: note.id,
+      uploadedByRef: user.id,
+      starred: 1,
+      message: messageId,
     });
 
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
@@ -754,7 +823,11 @@ describe('read-model parity: raw SQL vs. the repository-backed reads', () => {
     // one `createFileLink` call can attach several targets to the same file
     // at once (the legacy statement writes all four columns in one INSERT).
     const live = await makeFile(trip.id, user.id);
-    await svc.createFileLink(live.id, { reservation_id: String(reservation.id), place_id: String(place.id), budget_item_id: item });
+    await svc.createFileLink(live.id, {
+      reservation_id: String(reservation.id),
+      place_id: String(place.id),
+      budget_item_id: item,
+    });
     const trashed = await makeFile(trip.id, user.id, { filename: 'gone.pdf' });
     await svc.softDeleteFile(trashed.id);
 
@@ -769,14 +842,18 @@ describe('read-model parity: raw SQL vs. the repository-backed reads', () => {
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
     const legacyTrashed = testDb.prepare(`${FILE_SELECT} WHERE f.id = ?`).get(trashed.id) as Record<string, unknown>;
 
-    const activeRow = (await svc.listFiles(trip.id, false) as Record<string, unknown>[]).find((f) => f.id === live.id)!;
+    const activeRow = ((await svc.listFiles(trip.id, false)) as Record<string, unknown>[]).find(
+      (f) => f.id === live.id,
+    )!;
     const pickedActive = Object.fromEntries(Object.keys(legacyLive).map((k) => [k, activeRow[k]]));
     expect(pickedActive).toEqual(legacyLive);
     expect(activeRow.linked_reservation_ids).toEqual([reservation.id]);
     expect(activeRow.linked_place_ids).toEqual([place.id]);
     expect(activeRow.linked_budget_item_ids).toEqual([item]);
 
-    const trashedRow = (await svc.listFiles(trip.id, true) as Record<string, unknown>[]).find((f) => f.id === trashed.id)!;
+    const trashedRow = ((await svc.listFiles(trip.id, true)) as Record<string, unknown>[]).find(
+      (f) => f.id === trashed.id,
+    )!;
     const pickedTrashed = Object.fromEntries(Object.keys(legacyTrashed).map((k) => [k, trashedRow[k]]));
     expect(pickedTrashed).toEqual(legacyTrashed);
   });
@@ -788,12 +865,16 @@ describe('read-model parity: raw SQL vs. the repository-backed reads', () => {
     await svc.createFileLink(file.id, { reservation_id: String(reservation.id) });
 
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT fl.*, r.title as reservation_title
       FROM file_links fl
       LEFT JOIN reservations r ON fl.reservation_id = r.id
       WHERE fl.file_id = ?
-    `).all(file.id);
+    `,
+      )
+      .all(file.id);
     expect(await svc.getFileLinks(file.id)).toEqual(legacy);
   });
 });
@@ -826,7 +907,10 @@ describe('authenticateDownload', () => {
     expect(getRepository).toHaveBeenCalledWith(UserSessions);
 
     verifyJwtAndLoadUser.mockReturnValue(null);
-    expect(await asLegacyResult(svc.authenticateDownload(req({ bearer: 'stale' })))).toEqual({ error: 'Invalid or expired token', status: 401 });
+    expect(await asLegacyResult(svc.authenticateDownload(req({ bearer: 'stale' })))).toEqual({
+      error: 'Invalid or expired token',
+      status: 401,
+    });
   });
 
   it('FILE-SVC-034: a ?token= ephemeral token is consumed with the download purpose', async () => {
@@ -835,11 +919,17 @@ describe('authenticateDownload', () => {
     expect(consumeEphemeralToken).toHaveBeenCalledWith('eph', 'download');
 
     consumeEphemeralToken.mockReturnValue(null);
-    expect(await asLegacyResult(svc.authenticateDownload(req({ token: 'spent' })))).toEqual({ error: 'Invalid or expired token', status: 401 });
+    expect(await asLegacyResult(svc.authenticateDownload(req({ token: 'spent' })))).toEqual({
+      error: 'Invalid or expired token',
+      status: 401,
+    });
   });
 
   it('FILE-SVC-035: no credentials at all is a 401 Authentication required', async () => {
-    expect(await asLegacyResult(svc.authenticateDownload(req({})))).toEqual({ error: 'Authentication required', status: 401 });
+    expect(await asLegacyResult(svc.authenticateDownload(req({})))).toEqual({
+      error: 'Authentication required',
+      status: 401,
+    });
     expect(verifyJwtAndLoadUser).not.toHaveBeenCalled();
     expect(consumeEphemeralToken).not.toHaveBeenCalled();
   });

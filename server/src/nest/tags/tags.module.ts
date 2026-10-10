@@ -1,10 +1,10 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Tags } from '../../db/entities/Tags.entity';
 import { TagsController } from './tags.controller';
 import { TagsMcp } from './tags.mcp';
 import { TagsRpc } from './tags.rpc';
 import { TagsService } from './tags.service';
-import { Tags } from '../../db/entities/Tags.entity';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Tags domain (L5 leaf module). Registered in AppModule.

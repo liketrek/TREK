@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { DEFAULT_ALLOWED_EXTENSIONS } from './files.constants';
 import { readAppSetting } from '../common/app-settings.registry';
+import { DEFAULT_ALLOWED_EXTENSIONS } from './files.constants';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The operator's allowed-extension list, on its own.

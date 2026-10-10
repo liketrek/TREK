@@ -1,6 +1,6 @@
 import type { Photos } from '../entities/Photos.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** The `photos` tables {@link PhotosRepository.findTripIdByFilename} reads. */
 type PhotosKyselyDB = Pick<DB, 'photos'>;

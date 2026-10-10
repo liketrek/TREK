@@ -10,16 +10,17 @@
  * visibility.ts` three-tier model this method deliberately does NOT route
  * through — it only ever sees the Common tier).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createPackingItem, createTrip, createUser } from '../../../helpers/factories';
-import { createTestPackingItemsRepo } from '../../../helpers/packing-repos';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { updateRows } from '../../../helpers/factories/rows';
-import { addPackingItemRecipients } from '../../../helpers/factories/packing';
 import { PackingItems } from '../../../../src/db/entities/PackingItems.entity';
 import type { PackingItemsRepository } from '../../../../src/db/repositories/PackingItems.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createPackingItem, createTrip, createUser } from '../../../helpers/factories';
+import { addPackingItemRecipients } from '../../../helpers/factories/packing';
+import { updateRows } from '../../../helpers/factories/rows';
+import { createTestPackingItemsRepo } from '../../../helpers/packing-repos';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let packingItemsRepo: PackingItemsRepository;
@@ -37,9 +38,9 @@ afterAll(async () => {
 
 function legacyPublicForShare(tripId: number): unknown {
   // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-  return testDb.prepare(
-    'SELECT * FROM packing_items WHERE trip_id = ? AND is_private = 0 ORDER BY sort_order ASC',
-  ).all(tripId);
+  return testDb
+    .prepare('SELECT * FROM packing_items WHERE trip_id = ? AND is_private = 0 ORDER BY sort_order ASC')
+    .all(tripId);
 }
 
 describe('PackingItemsRepository — share.service.ts SH13 read', () => {
@@ -50,28 +51,38 @@ describe('PackingItemsRepository — share.service.ts SH13 read', () => {
 
     // Common, every nullable column set.
     const commonFull = createPackingItem(testDb, trip.id, { name: 'Tent', category: 'Gear' });
-    await updateRows(t, PackingItems, { id: commonFull.id }, {
-      checked: 1,
-      sort_order: 5,
-      weight_grams: 1200,
-      bag: null,
-      quantity: 2,
-      updated_at: '2026-09-01T00:00:00.000Z',
-      is_private: 0,
-      owner: owner.id,
-    });
+    await updateRows(
+      t,
+      PackingItems,
+      { id: commonFull.id },
+      {
+        checked: 1,
+        sort_order: 5,
+        weight_grams: 1200,
+        bag: null,
+        quantity: 2,
+        updated_at: '2026-09-01T00:00:00.000Z',
+        is_private: 0,
+        owner: owner.id,
+      },
+    );
 
     // Common, every nullable column left null.
     const commonBare = createPackingItem(testDb, trip.id, { name: 'Rope' });
-    await updateRows(t, PackingItems, { id: commonBare.id }, {
-      category: null,
-      sort_order: null,
-      weight_grams: null,
-      bag: null,
-      updated_at: null,
-      is_private: 0,
-      owner: null,
-    });
+    await updateRows(
+      t,
+      PackingItems,
+      { id: commonBare.id },
+      {
+        category: null,
+        sort_order: null,
+        weight_grams: null,
+        bag: null,
+        updated_at: null,
+        is_private: 0,
+        owner: null,
+      },
+    );
 
     // Personal (is_private = 1, owned) — must be excluded even though it has an owner.
     const personal = createPackingItem(testDb, trip.id, { name: 'Passport' });

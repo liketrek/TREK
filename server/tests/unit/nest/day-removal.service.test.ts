@@ -6,6 +6,43 @@
  * accommodations and assignments services over the ORM test harness, so the
  * foreign key cascades and the stay cancellation are the ones production runs.
  */
+import { db as testDb } from '../../../src/db/database';
+import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
+import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
+import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
+import { Days } from '../../../src/db/entities/Days.entity';
+import { Places } from '../../../src/db/entities/Places.entity';
+import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../../src/db/entities/Reservations.entity';
+import { RoadtripDayBoundaries } from '../../../src/db/entities/RoadtripDayBoundaries.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import { AccommodationsService, type MirrorSender } from '../../../src/nest/accommodations/accommodations.service';
+import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
+import {
+  DayRemovalService,
+  DayDeleteError,
+  LAST_DAY_MESSAGE,
+  type DayRemoval,
+} from '../../../src/nest/days/day-removal.service';
+import { DaysModule } from '../../../src/nest/days/days.module';
+import { DaysService } from '../../../src/nest/days/days.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createDayAssignment,
+  createDayAccommodation,
+} from '../../helpers/factories';
+import { makeBudgetItem } from '../../helpers/factories/budget';
+import { makeReservation } from '../../helpers/factories/reservations';
+import { countRows, deleteRows, findRow, findRows, insertRow } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestModule, type TestModule } from '../../helpers/test-module';
+import { sharedTestOrm } from '../../helpers/test-uow';
+import type { EntityClass, FilterQuery } from '@mikro-orm/core';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
@@ -14,31 +51,6 @@ vi.mock('../../../src/db/database', async () => {
   // Trip access reads through TripsRepository now; the module only hands out the handle.
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment, createDayAccommodation } from '../../helpers/factories';
-import { DaysService } from '../../../src/nest/days/days.service';
-import { DaysModule } from '../../../src/nest/days/days.module';
-import { DayRemovalService, DayDeleteError, LAST_DAY_MESSAGE, type DayRemoval } from '../../../src/nest/days/day-removal.service';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { AccommodationsService, type MirrorSender } from '../../../src/nest/accommodations/accommodations.service';
-import { sharedTestOrm } from '../../helpers/test-uow';
-import { createTestModule, type TestModule } from '../../helpers/test-module';
-import type { EntityClass, FilterQuery } from '@mikro-orm/core';
-import { countRows, deleteRows, findRow, findRows, insertRow } from '../../helpers/factories/rows';
-import { makeReservation } from '../../helpers/factories/reservations';
-import { makeBudgetItem } from '../../helpers/factories/budget';
-import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
-import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
-import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
-import { Days } from '../../../src/db/entities/Days.entity';
-import { Places } from '../../../src/db/entities/Places.entity';
-import { Reservations } from '../../../src/db/entities/Reservations.entity';
-import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
-import { RoadtripDayBoundaries } from '../../../src/db/entities/RoadtripDayBoundaries.entity';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
 
 let days: DaysService;
 let journey: JourneyDomainService;
@@ -108,41 +120,59 @@ const range = async (tripId: number) => {
 const reservationRow = async (id: number) => {
   const r = await findRow(await orm(), Reservations, { id });
   if (!r) return undefined;
-  return { day_id: r.day_id ?? null, end_day_id: r.end_day_id ?? null, reservation_time: r.reservation_time ?? null, reservation_end_time: r.reservation_end_time ?? null };
+  return {
+    day_id: r.day_id ?? null,
+    end_day_id: r.end_day_id ?? null,
+    reservation_time: r.reservation_time ?? null,
+    reservation_end_time: r.reservation_end_time ?? null,
+  };
 };
 
-async function booking(tripId: number, dayId: number | null, time: string | null, extra: { endDayId?: number; endTime?: string } = {}): Promise<number> {
-  return (await makeReservation(await orm(), tripId, {
-    day: dayId,
-    endDay: extra.endDayId ?? null,
-    title: 'Booking',
-    type: 'restaurant',
-    reservation_time: time,
-    reservation_end_time: extra.endTime ?? null,
-  })).id;
+async function booking(
+  tripId: number,
+  dayId: number | null,
+  time: string | null,
+  extra: { endDayId?: number; endTime?: string } = {},
+): Promise<number> {
+  return (
+    await makeReservation(await orm(), tripId, {
+      day: dayId,
+      endDay: extra.endDayId ?? null,
+      title: 'Booking',
+      type: 'restaurant',
+      reservation_time: time,
+      reservation_end_time: extra.endTime ?? null,
+    })
+  ).id;
 }
 
 /** A dated trip whose days the factory generated, one per date. */
 async function datedTrip(start: string, end: string) {
   const { user } = createUser(testDb);
   const trip = createTrip(testDb, user.id, { start_date: start, end_date: end });
-  return { user, trip, rows: await (await dayRows(trip.id)) };
+  return { user, trip, rows: await await dayRows(trip.id) };
 }
 
 /** A booked night: the stay, its hotel booking, the stop on its check-in day and an expense. */
 async function bookedNight(tripId: number, startDayId: number, endDayId: number) {
   const place = createPlace(testDb, tripId, { name: 'Harbour Hotel' });
-  const { accommodation } = await accommodations.createAccommodation(tripId, { place_id: place.id, start_day_id: startDayId, end_day_id: endDayId });
+  const { accommodation } = await accommodations.createAccommodation(tripId, {
+    place_id: place.id,
+    start_day_id: startDayId,
+    end_day_id: endDayId,
+  });
   const stayId = (accommodation as { id: number }).id;
   const hotelBooking = await findRow(await orm(), Reservations, { accommodation_id: legacyBoundIntegerText(stayId) });
   if (!hotelBooking) throw new Error('createAccommodation should have booked the stay');
   const reservationId = hotelBooking.id;
-  const budgetId = (await makeBudgetItem(await orm(), tripId, {
-    name: 'Harbour Hotel',
-    category: 'Accommodation',
-    total_price: 240,
-    reservation: reservationId,
-  })).id;
+  const budgetId = (
+    await makeBudgetItem(await orm(), tripId, {
+      name: 'Harbour Hotel',
+      category: 'Accommodation',
+      total_price: 240,
+      reservation: reservationId,
+    })
+  ).id;
   const stopRow = await findRow(await orm(), DayAssignments, { accommodation_id: stayId });
   if (!stopRow) throw new Error('createAccommodation should have put a stop on the check-in day');
   const stop = { id: stopRow.id, day_id: stopRow.day_id };
@@ -186,7 +216,13 @@ describe('DayRemovalService.remove', () => {
       { id: a.id, day_number: 1, date: null },
       { id: c.id, day_number: 2, date: null },
     ]);
-    expect(result).toMatchObject({ dayId: b.id, orderedIds: [a.id, c.id], endDate: null, boundaries: null, stayIds: [] });
+    expect(result).toMatchObject({
+      dayId: b.id,
+      orderedIds: [a.id, c.id],
+      endDate: null,
+      boundaries: null,
+      stayIds: [],
+    });
 
     // The extra day of a dated trip, the case the dialog was asked for: no date moves.
     const dated = await datedTrip('2026-03-01', '2026-03-02');
@@ -220,7 +256,10 @@ describe('DayRemovalService.remove', () => {
       { id: d3.id, day_number: 2, date: '2026-01-02' },
       { id: spare.id, day_number: 3, date: '2026-01-03' },
     ]);
-    expect(await reservationRow(flight)).toMatchObject({ reservation_time: '2026-01-02T10:00', reservation_end_time: '2026-01-02T12:00' });
+    expect(await reservationRow(flight)).toMatchObject({
+      reservation_time: '2026-01-02T10:00',
+      reservation_end_time: '2026-01-02T12:00',
+    });
     expect((await findRow(await orm(), ReservationEndpoints, { id: leg }))?.local_date).toBe('2026-01-02');
     // The spare day took the last date, so the trip keeps its range.
     expect(await range(trip.id)).toEqual({ start_date: '2026-01-01', end_date: '2026-01-03' });
@@ -240,20 +279,28 @@ describe('DayRemovalService.remove', () => {
     expect(await range(trip.id)).toEqual({ start_date: '2026-01-01', end_date: '2026-01-02' });
     expect(result.endDate).toBe('2026-01-02');
     // The trip in list shape for the trip header, without its feed credential.
-    expect(result.trip).toMatchObject({ id: trip.id, end_date: '2026-01-02', day_count: 2, is_owner: 1, feed_token: null });
+    expect(result.trip).toMatchObject({
+      id: trip.id,
+      end_date: '2026-01-02',
+      day_count: 2,
+      is_owner: 1,
+      feed_token: null,
+    });
   });
 
   it('DAY-DEL-004 the last day of a trip stays, and nothing is written', async () => {
     const { user, trip, rows } = await datedTrip('2026-05-01', '2026-05-01');
     const night = await bookedNight(trip.id, rows[0].id, rows[0].id);
 
-    await expect(removal.remove(trip.id, rows[0].id, { userId: user.id })).rejects.toThrow(new DayDeleteError(LAST_DAY_MESSAGE));
+    await expect(removal.remove(trip.id, rows[0].id, { userId: user.id })).rejects.toThrow(
+      new DayDeleteError(LAST_DAY_MESSAGE),
+    );
     expect(await dayRows(trip.id)).toEqual(rows);
     expect(await exists(DayAccommodations, night.stayId)).toBe(true);
     expect(await reservationRow(night.reservationId)).toBeDefined();
   });
 
-  it('DAY-DEL-005 a stay checking in on the day is cancelled with its booking and that booking\'s expense', async () => {
+  it("DAY-DEL-005 a stay checking in on the day is cancelled with its booking and that booking's expense", async () => {
     const { user, trip, rows } = await datedTrip('2026-01-01', '2026-01-03');
     const night = await bookedNight(trip.id, rows[1].id, rows[2].id);
     expect(night.stop.day_id).toBe(rows[1].id);
@@ -265,7 +312,11 @@ describe('DayRemovalService.remove', () => {
     expect(await exists(BudgetItems, night.budgetId)).toBe(false);
     // The hotel itself is a place and stays on the list.
     expect(await exists(Places, night.place.id)).toBe(true);
-    expect(result).toMatchObject({ stayIds: [night.stayId], reservationIds: [night.reservationId], budgetItemIds: [night.budgetId] });
+    expect(result).toMatchObject({
+      stayIds: [night.stayId],
+      reservationIds: [night.reservationId],
+      budgetItemIds: [night.budgetId],
+    });
     // Its stop sat on the deleted day, which day:deleted already covers.
     expect(result.mirrors[0].removed).toEqual([]);
   });
@@ -289,8 +340,10 @@ describe('DayRemovalService.remove', () => {
     const result = await removal.remove(trip.id, rows[1].id, { userId: user.id });
 
     const stay = await findRow(await orm(), DayAccommodations, { id: night.stayId });
-    expect({ start_day_id: stay?.start_day_id, end_day_id: stay?.end_day_id })
-      .toEqual({ start_day_id: rows[0].id, end_day_id: rows[2].id });
+    expect({ start_day_id: stay?.start_day_id, end_day_id: stay?.end_day_id }).toEqual({
+      start_day_id: rows[0].id,
+      end_day_id: rows[2].id,
+    });
     expect(await reservationRow(night.reservationId)).toBeDefined();
     expect(result.stayIds).toEqual([]);
   });
@@ -303,14 +356,24 @@ describe('DayRemovalService.remove', () => {
 
     await removal.remove(trip.id, d2.id, { userId: user.id });
 
-    expect(await reservationRow(dinner)).toEqual({ day_id: null, end_day_id: null, reservation_time: '2026-01-02T19:00', reservation_end_time: null });
-    expect(await reservationRow(car)).toEqual({ day_id: d1.id, end_day_id: null, reservation_time: '2026-01-01T09:00', reservation_end_time: '2026-01-02T10:00' });
+    expect(await reservationRow(dinner)).toEqual({
+      day_id: null,
+      end_day_id: null,
+      reservation_time: '2026-01-02T19:00',
+      reservation_end_time: null,
+    });
+    expect(await reservationRow(car)).toEqual({
+      day_id: d1.id,
+      end_day_id: null,
+      reservation_time: '2026-01-01T09:00',
+      reservation_end_time: '2026-01-02T10:00',
+    });
   });
 
   it('DAY-DEL-009 the road trip boundaries after the day move up with their days', async () => {
     const { user, trip, rows } = await datedTrip('2026-01-01', '2026-01-04');
     const place = createPlace(testDb, trip.id);
-    const stops = rows.map(r => createDayAssignment(testDb, r.id, place.id));
+    const stops = rows.map((r) => createDayAssignment(testDb, r.id, place.id));
     for (const [i] of rows.entries()) await boundary(trip.id, i + 1, stops[i].id);
 
     const result = await removal.remove(trip.id, rows[1].id, { userId: user.id });
@@ -327,13 +390,15 @@ describe('DayRemovalService.remove', () => {
   it('DAY-DEL-010 deleting the day an insert slotted in gives back the trip as it was', async () => {
     const { user, trip, rows } = await datedTrip('2026-01-01', '2026-01-03');
     const train = await booking(trip.id, rows[2].id, '2026-01-03T08:00');
-    const before = { rows: (await dayRows(trip.id)), range: (await range(trip.id)), train: (await reservationRow(train)) };
+    const before = { rows: await dayRows(trip.id), range: await range(trip.id), train: await reservationRow(train) };
 
     const inserted = await days.insert(trip.id, 2);
     expect((await range(trip.id)).end_date).toBe('2026-01-04');
     await removal.remove(trip.id, inserted.id, { userId: user.id });
 
-    expect({ rows: (await dayRows(trip.id)), range: (await range(trip.id)), train: (await reservationRow(train)) }).toEqual(before);
+    expect({ rows: await dayRows(trip.id), range: await range(trip.id), train: await reservationRow(train) }).toEqual(
+      before,
+    );
   });
 
   it('DAY-DEL-011 appending a day, moving it into a slot and deleting the day it pushed out keeps every date', async () => {
@@ -361,7 +426,9 @@ describe('DayRemovalService.remove', () => {
   it('DAY-DEL-012 a failure halfway rolls the whole delete back', async () => {
     const { user, trip, rows } = await datedTrip('2026-01-01', '2026-01-03');
     const night = await bookedNight(trip.id, rows[1].id, rows[2].id);
-    vi.spyOn(days, 'restampReservationDates').mockImplementation(() => { throw new Error('disk full'); });
+    vi.spyOn(days, 'restampReservationDates').mockImplementation(() => {
+      throw new Error('disk full');
+    });
 
     await expect(removal.remove(trip.id, rows[1].id, { userId: user.id })).rejects.toThrow('disk full');
 
@@ -373,7 +440,9 @@ describe('DayRemovalService.remove', () => {
 
   it('DAY-DEL-013 the journey catches up after the commit, and a failure there does not undo the delete', async () => {
     const { user, trip, rows } = await datedTrip('2026-01-01', '2026-01-02');
-    const reconcile = vi.spyOn(journey, 'reconcileTripSkeletons').mockImplementation(() => { throw new Error('journey down'); });
+    const reconcile = vi.spyOn(journey, 'reconcileTripSkeletons').mockImplementation(() => {
+      throw new Error('journey down');
+    });
 
     const result = await removal.remove(trip.id, rows[0].id, { userId: user.id, socketId: 'sock-1' });
 
@@ -386,7 +455,9 @@ describe('DayRemovalService.remove', () => {
     const { user, trip, rows } = await datedTrip('2026-01-01', '2026-01-02');
     const other = await datedTrip('2026-02-01', '2026-02-02');
 
-    await expect(removal.remove(trip.id, other.rows[0].id, { userId: user.id })).rejects.toThrow(new DayDeleteError('Day not found'));
+    await expect(removal.remove(trip.id, other.rows[0].id, { userId: user.id })).rejects.toThrow(
+      new DayDeleteError('Day not found'),
+    );
     expect(await dayRows(trip.id)).toEqual(rows);
     expect(await dayRows(other.trip.id)).toEqual(other.rows);
   });
@@ -410,28 +481,45 @@ describe('DayRemovalService.remove', () => {
     createDayAccommodation(testDb, trip.id, place.id, rows[1].id, rows[1].id);
     const stub = {
       deleteAccommodation: vi.fn(() => ({
-        linkedReservationId: null, deletedBudgetItemId: null, linkedReservationIds: [], deletedBudgetItemIds: [],
+        linkedReservationId: null,
+        deletedBudgetItemId: null,
+        linkedReservationIds: [],
+        deletedBudgetItemIds: [],
         mirror: {
-          created: null, moved: null, updated: [], stamped: null,
-          removed: [{ id: 1, dayId: rows[1].id }, { id: 2, dayId: rows[0].id }],
-          vias: [{ dayId: rows[1].id, vias: [] }, { dayId: rows[0].id, vias: [] }],
+          created: null,
+          moved: null,
+          updated: [],
+          stamped: null,
+          removed: [
+            { id: 1, dayId: rows[1].id },
+            { id: 2, dayId: rows[0].id },
+          ],
+          vias: [
+            { dayId: rows[1].id, vias: [] },
+            { dayId: rows[0].id, vias: [] },
+          ],
         },
       })),
     } as unknown as AccommodationsService;
 
     const result = await (await removalWith(stub)).remove(trip.id, rows[1].id, { userId: user.id });
 
-    expect(result.mirrors).toEqual([{
-      created: null, moved: null, updated: [], stamped: null,
-      removed: [{ id: 2, dayId: rows[0].id }],
-      vias: [{ dayId: rows[0].id, vias: [] }],
-    }]);
+    expect(result.mirrors).toEqual([
+      {
+        created: null,
+        moved: null,
+        updated: [],
+        stamped: null,
+        removed: [{ id: 2, dayId: rows[0].id }],
+        vias: [{ dayId: rows[0].id, vias: [] }],
+      },
+    ]);
   });
 
   it('DAY-DEL-019 a hole left in the numbering closes too, and the boundaries follow their own days into it', async () => {
     const { user, trip, rows } = await datedTrip('2026-01-01', '2026-01-05');
     const place = createPlace(testDb, trip.id);
-    const stops = rows.map(r => createDayAssignment(testDb, r.id, place.id));
+    const stops = rows.map((r) => createDayAssignment(testDb, r.id, place.id));
     // Days 1, 2, 4 and 5: the third went through the old bare delete, which left
     // its number empty and one boundary on it. Another one sits past the last day.
     await boundary(trip.id, 2, stops[1].id);
@@ -443,7 +531,11 @@ describe('DayRemovalService.remove', () => {
 
     const result = await removal.remove(trip.id, rows[1].id, { userId: user.id });
 
-    expect((await dayRows(trip.id)).map(r => [r.id, r.day_number])).toEqual([[rows[0].id, 1], [rows[3].id, 2], [rows[4].id, 3]]);
+    expect((await dayRows(trip.id)).map((r) => [r.id, r.day_number])).toEqual([
+      [rows[0].id, 1],
+      [rows[3].id, 2],
+      [rows[4].id, 3],
+    ]);
     const expected = [
       { day_number: 2, from_assignment_id: stops[3].id, to_assignment_id: null, fraction: 1 },
       { day_number: 3, from_assignment_id: stops[4].id, to_assignment_id: null, fraction: 1 },
@@ -457,8 +549,12 @@ describe('DayRemovalService.remove', () => {
 describe('DayRemovalService.announce', () => {
   function recorder() {
     const sent: [string, string, unknown][] = [];
-    const all: MirrorSender = (event, payload) => { sent.push(['all', event, payload]); };
-    const others: MirrorSender = (event, payload) => { sent.push(['others', event, payload]); };
+    const all: MirrorSender = (event, payload) => {
+      sent.push(['all', event, payload]);
+    };
+    const others: MirrorSender = (event, payload) => {
+      sent.push(['others', event, payload]);
+    };
     return { sent, all, others };
   }
 
@@ -497,8 +593,15 @@ describe('DayRemovalService.announce', () => {
 
   it('DAY-DEL-017 a plain delete announces the day and the new order, nothing else', async () => {
     const removed: DayRemoval = {
-      dayId: 4, orderedIds: [3, 5], stayIds: [], reservationIds: [], budgetItemIds: [], mirrors: [],
-      boundaries: null, endDate: null, trip: null,
+      dayId: 4,
+      orderedIds: [3, 5],
+      stayIds: [],
+      reservationIds: [],
+      budgetItemIds: [],
+      mirrors: [],
+      boundaries: null,
+      endDate: null,
+      trip: null,
     };
     const { sent, all, others } = recorder();
 

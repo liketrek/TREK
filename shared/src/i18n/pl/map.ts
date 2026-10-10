@@ -20,7 +20,8 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Satelita',
   'map.baseLayer.switchToSatellite': 'Przełącz na widok satelitarny',
   'map.baseLayer.switchToDefault': 'Przełącz na widok mapy',
-  'map.location.denied': 'Dostęp do lokalizacji jest zablokowany. Sprawdź ustawienia urządzenia; zainstalowana aplikacja ma własne uprawnienie do lokalizacji, niezależne od przeglądarki.',
+  'map.location.denied':
+    'Dostęp do lokalizacji jest zablokowany. Sprawdź ustawienia urządzenia; zainstalowana aplikacja ma własne uprawnienie do lokalizacji, niezależne od przeglądarki.',
   'map.location.unavailable': 'Nie udało się ustalić Twojej lokalizacji.',
   'map.location.timeout': 'Ustalanie lokalizacji trwało zbyt długo. Spróbuj ponownie przy lepszej widoczności nieba.',
   'map.overview.show': 'Pokaż całą podróż',

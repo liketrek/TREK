@@ -40,8 +40,25 @@
  *    whatever build was running last, and a malformed value means "not probed
  *    yet", never a crash on the settings page.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { DawarichConnections } from '../../../src/db/entities/DawarichConnections.entity';
+import type { DawarichConnectionsRepository } from '../../../src/db/repositories/DawarichConnections.repository';
+import type { AuditService } from '../../../src/nest/audit/audit.service';
+import {
+  DawarichError,
+  type DawarichClient,
+  type DawarichVisitRaw,
+} from '../../../src/nest/integrations/dawarich.client';
+import { DawarichService } from '../../../src/nest/integrations/dawarich.service';
+import { createTestDawarichConnectionsRepo } from '../../helpers/dawarich-repos';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
+import { findRow, upsertRow } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import { createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
+import { DAWARICH_KEY_MASK, type DawarichCapabilities } from '@trek/shared';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup (real in-memory SQLite, the pattern the other Dawarich service tests use) ──
 
@@ -64,23 +81,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   createPinnedDispatcher: vi.fn(() => ({})),
   SsrfBlockedError: class extends Error {},
 }));
-
-import { DAWARICH_KEY_MASK, type DawarichCapabilities } from '@trek/shared';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { DawarichConnections } from '../../../src/db/entities/DawarichConnections.entity';
-import { findRow, upsertRow } from '../../helpers/factories/rows';
-import type { DawarichConnectionsRepository } from '../../../src/db/repositories/DawarichConnections.repository';
-import { DawarichService } from '../../../src/nest/integrations/dawarich.service';
-import type { TestOrm } from '../../helpers/test-orm';
-import { createTestDawarichConnectionsRepo } from '../../helpers/dawarich-repos';
-import { createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
-import {
-  DawarichError,
-  type DawarichClient,
-  type DawarichVisitRaw,
-} from '../../../src/nest/integrations/dawarich.client';
-import type { AuditService } from '../../../src/nest/audit/audit.service';
 
 // ── Collaborators ────────────────────────────────────────────────────────────
 
@@ -569,15 +569,12 @@ describe('DawarichService saveSettings', () => {
     ['https://d.example/api', 'https://d.example/'],
     ['https://d.example', 'https://d.example/api/v1'],
     ['https://d.example/', 'https://d.example'],
-  ])(
-    'DAWARICH-SVC-057: %s to %s is the same instance and keeps the key',
-    async (before, after) => {
-      await connect(USER, { url: before, apiKey: 'stored-key' });
-      await svc.saveSettings(USER, after, undefined, false, true, IP);
-      expect((await row())?.api_key).toBe('stored-key');
-      expect((await row())?.url).toBe(after);
-    },
-  );
+  ])('DAWARICH-SVC-057: %s to %s is the same instance and keeps the key', async (before, after) => {
+    await connect(USER, { url: before, apiKey: 'stored-key' });
+    await svc.saveSettings(USER, after, undefined, false, true, IP);
+    expect((await row())?.api_key).toBe('stored-key');
+    expect((await row())?.url).toBe(after);
+  });
 
   it('DAWARICH-SVC-058: a key typed at the same time as the host change survives, because it was minted for the new host', async () => {
     await connect(USER, { url: 'https://old.example', apiKey: 'stored-key' });
@@ -953,9 +950,7 @@ describe('DawarichService testConnection', () => {
 
   it('DAWARICH-SVC-101: the free-text detail rides along when there is one, for the person debugging their own reverse proxy', async () => {
     await connect(USER, { apiKey: 'stored-key' });
-    client.probe.mockRejectedValue(
-      new DawarichError('invalid_response', 'Not JSON', 200, '<html>login</html>'),
-    );
+    client.probe.mockRejectedValue(new DawarichError('invalid_response', 'Not JSON', 200, '<html>login</html>'));
 
     expect(await svc.testConnection(USER, HOST, undefined, false)).toEqual({
       connected: false,
@@ -1028,7 +1023,11 @@ describe('DawarichService testConnection', () => {
     const out = await svc.testConnection(USER, 'https://d.example/', undefined, false);
 
     expect(out.connected).toBe(true);
-    expect(client.probe).toHaveBeenCalledWith({ baseUrl: 'https://d.example/', apiKey: 'stored-key', allowInsecureTls: false });
+    expect(client.probe).toHaveBeenCalledWith({
+      baseUrl: 'https://d.example/',
+      apiKey: 'stored-key',
+      allowInsecureTls: false,
+    });
   });
 
   it('DAWARICH-SVC-108: a key typed for the new host is used as typed, so moving an instance and testing it first still works', async () => {
@@ -1037,7 +1036,11 @@ describe('DawarichService testConnection', () => {
     const out = await svc.testConnection(USER, 'https://new.example', 'minted-for-new', false);
 
     expect(out.connected).toBe(true);
-    expect(client.probe).toHaveBeenCalledWith({ baseUrl: 'https://new.example', apiKey: 'minted-for-new', allowInsecureTls: false });
+    expect(client.probe).toHaveBeenCalledWith({
+      baseUrl: 'https://new.example',
+      apiKey: 'minted-for-new',
+      allowInsecureTls: false,
+    });
   });
 });
 

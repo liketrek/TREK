@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import Database from 'better-sqlite3';
-import { RouteUsageService, RETENTION_DAYS } from '../../../src/nest/route-usage/route-usage.service';
-import type { RouteUsageEntry } from '@trek/shared';
-import { createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
-import { RouteUsageDaily } from '../../../src/db/entities/RouteUsageDaily.entity';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { RouteUsageDaily } from '../../../src/db/entities/RouteUsageDaily.entity';
+import { RouteUsageService, RETENTION_DAYS } from '../../../src/nest/route-usage/route-usage.service';
 import { countRows, insertRow } from '../../helpers/factories/rows';
+import { createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
+import type { RouteUsageEntry } from '@trek/shared';
+
+import Database from 'better-sqlite3';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 /**
  * SRV-ROUTEUSAGE-001..010 — the counters behind "could TREK host a router".
@@ -67,8 +68,14 @@ async function insertDay(
 const daysAgo = (days: number): string => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 
 const entry = (over: Partial<RouteUsageEntry> = {}): RouteUsageEntry => ({
-  profile: 'driving', surface: 'legs', selfHosted: false,
-  requests: 1, waypoints: 3, km: 100, failed: 0, ...over,
+  profile: 'driving',
+  surface: 'legs',
+  selfHosted: false,
+  requests: 1,
+  waypoints: 3,
+  km: 100,
+  failed: 0,
+  ...over,
 });
 
 describe('RouteUsageService', () => {
@@ -102,12 +109,14 @@ describe('RouteUsageService', () => {
   });
 
   it('SRV-ROUTEUSAGE-004: a different kind or engine is its own row', async () => {
-    await svc.record({ entries: [
-      entry({ surface: 'legs' }),
-      entry({ surface: 'alternatives' }),
-      entry({ surface: 'legs', selfHosted: true }),
-      entry({ surface: 'legs', profile: 'walking' }),
-    ] });
+    await svc.record({
+      entries: [
+        entry({ surface: 'legs' }),
+        entry({ surface: 'alternatives' }),
+        entry({ surface: 'legs', selfHosted: true }),
+        entry({ surface: 'legs', profile: 'walking' }),
+      ],
+    });
     expect(await svc.rows()).toHaveLength(4);
   });
 

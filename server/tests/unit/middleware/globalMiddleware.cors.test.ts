@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import express, { type NextFunction, type Request, type Response } from 'express';
-import request from 'supertest';
 import { applyGlobalMiddleware } from '../../../src/middleware/globalMiddleware';
 import { httpConfig } from '../../../src/nest/app-config/tokens';
 import { isSameHostOrigin } from '../../../src/nest/common/same-origin';
+
+import express, { type NextFunction, type Request, type Response } from 'express';
+import request from 'supertest';
+import { describe, it, expect } from 'vitest';
 
 /**
  * An app with ALLOWED_ORIGINS set, and the error mapping TrekExceptionFilter
@@ -92,7 +93,7 @@ describe('isSameHostOrigin', () => {
     expect(isSameHostOrigin('https://Trek.Example.com', 'TREK.example.com')).toBe(true);
   });
 
-  it('drops the default port of the Origin\'s scheme from the Host', () => {
+  it("drops the default port of the Origin's scheme from the Host", () => {
     expect(isSameHostOrigin('https://trek.example.com', 'trek.example.com:443')).toBe(true);
     expect(isSameHostOrigin('http://trek.example.com', 'trek.example.com:80')).toBe(true);
   });

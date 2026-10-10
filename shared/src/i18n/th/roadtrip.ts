@@ -113,7 +113,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.line.dayColors': 'สีแยกตามวัน',
   'roadtrip.line.hint': 'การขับรถเชื่อมต่อจะนับรวมในวันที่เดินทางถึง',
   'roadtrip.line.hotelBookends': 'เริ่มและจบแต่ละวันที่ที่พักของคุณ',
-  'roadtrip.line.hotelBookendsHint': 'หลังคืนที่จองไว้ วันนั้นจะเริ่มที่ที่พักนั้น และก่อนคืนที่จองไว้ วันนั้นจะจบที่ที่พักที่จองไว้สำหรับคืนนั้น',
+  'roadtrip.line.hotelBookendsHint':
+    'หลังคืนที่จองไว้ วันนั้นจะเริ่มที่ที่พักนั้น และก่อนคืนที่จองไว้ วันนั้นจะจบที่ที่พักที่จองไว้สำหรับคืนนั้น',
   'roadtrip.avoid.section': 'หลีกเลี่ยงเมื่อทำได้',
   'roadtrip.avoid.toll': 'ถนนเก็บค่าผ่านทาง',
   'roadtrip.avoid.motorway': 'ทางด่วน',
@@ -223,7 +224,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.alt.otherEngineStandard': 'เวลาคำนวณโดยตัวคำนวณเส้นทางหลัก ไม่ใช่ตัวที่ใช้วางแผนช่วงนี้',
   'roadtrip.alt.avoidNotHeld': 'โรดทริปจะใช้เส้นทางนี้ก็ต่อเมื่อติ๊ก “{class}” ไว้ใน “{setting}” ในการตั้งค่า',
   'roadtrip.alt.checking': 'กำลังตรวจสอบเส้นทางนี้ด้วยตัวคำนวณเส้นทางของโรดทริป…',
-  'roadtrip.alt.standIn': 'ตัวคำนวณเส้นทางแบบหลีกเลี่ยงไม่ตอบสำหรับช่วงนี้ ตัวคำนวณเส้นทางหลักจึงวาดแทน กำลังถามอีกครั้ง',
+  'roadtrip.alt.standIn':
+    'ตัวคำนวณเส้นทางแบบหลีกเลี่ยงไม่ตอบสำหรับช่วงนี้ ตัวคำนวณเส้นทางหลักจึงวาดแทน กำลังถามอีกครั้ง',
   'roadtrip.day': 'วันที่ {number}',
   'roadtrip.quietDay.empty': 'ยังไม่มีจุดแวะ — วางจุดแวะที่นี่',
   'roadtrip.quietDay.one': 'ตอนนี้มีเพียง {name} — วางจุดแวะที่นี่',

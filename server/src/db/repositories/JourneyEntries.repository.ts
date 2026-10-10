@@ -1,7 +1,7 @@
 import type { JourneyEntry } from '../../types';
 import type { JourneyEntries } from '../entities/JourneyEntries.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** JG55's wider reconciliation projection (`reconcileTripSkeletons`) — a distinct column set from JG35's dedup-key-only read. */
 export interface ReconcileEntryRow {
@@ -42,7 +42,10 @@ export interface PhotoPlacementRow {
 }
 
 /** The `trek_photos`/`journey_photos`/`journey_entry_photos`/`journey_entries`/`journeys` tables {@link JourneyEntriesRepository.listPhotoPlacementCandidates} reads. */
-type PhotoPlacementKyselyDB = Pick<DB, 'trek_photos' | 'journey_photos' | 'journey_entry_photos' | 'journey_entries' | 'journeys'>;
+type PhotoPlacementKyselyDB = Pick<
+  DB,
+  'trek_photos' | 'journey_photos' | 'journey_entry_photos' | 'journey_entries' | 'journeys'
+>;
 
 /** `journey_entry_photos`, read cross-table (no `JourneyEntryPhotosRepository` yet — Task 2's own; the two `hasPhotos` guards in Part A only ever check existence). */
 type JourneyEntryPhotosExistsKyselyDB = Pick<DB, 'journey_entry_photos'>;
@@ -200,7 +203,10 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
    * "fixed" into a redundant one.
    */
   async detachAllFilledForTrip(tripId: number): Promise<void> {
-    await this.nativeUpdate({ sourceTrip: tripId }, { sourcePlace: null, sourceTrip: null, source_assignment_id: null });
+    await this.nativeUpdate(
+      { sourceTrip: tripId },
+      { sourcePlace: null, sourceTrip: null, source_assignment_id: null },
+    );
   }
 
   /**
@@ -214,7 +220,10 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
   }
 
   /** JG35 — `syncTripPlaces`'s existing-skeleton dedup-key read: `SELECT source_place_id, source_assignment_id FROM journey_entries WHERE journey_id = ? AND source_trip_id = ?`. */
-  async listSourceKeysForTrip(journeyId: number, tripId: number): Promise<{ source_place_id: number; source_assignment_id: number | null }[]> {
+  async listSourceKeysForTrip(
+    journeyId: number,
+    tripId: number,
+  ): Promise<{ source_place_id: number; source_assignment_id: number | null }[]> {
     return await this.qb('je')
       .select(['je.sourcePlace', 'je.source_assignment_id'])
       .where({ journey: journeyId, sourceTrip: tripId })
@@ -323,7 +332,13 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
   /** JG47/JG59 — the location-only silent update (`onPlaceUpdated`'s filled-entry branch, `reconcileTripSkeletons`'s stale-filled-entry branch), one statement text. */
   async updateLocationOnly(
     id: number,
-    patch: { location_name: string; location_lat: number | null; location_lng: number | null; country_code: string | null; updated_at: number },
+    patch: {
+      location_name: string;
+      location_lat: number | null;
+      location_lng: number | null;
+      country_code: string | null;
+      updated_at: number;
+    },
   ): Promise<void> {
     await this.nativeUpdate({ id }, patch);
   }
@@ -390,7 +405,17 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
    */
   async listStatsRows(journeyId: number): Promise<StatsEntryRow[]> {
     return await this.qb('je')
-      .select(['je.id', 'je.title', 'je.location_name', 'je.location_lat', 'je.location_lng', 'je.entry_date', 'je.sourceTrip', 'je.sourcePlace', 'je.stats_excluded'])
+      .select([
+        'je.id',
+        'je.title',
+        'je.location_name',
+        'je.location_lat',
+        'je.location_lng',
+        'je.entry_date',
+        'je.sourceTrip',
+        'je.sourcePlace',
+        'je.stats_excluded',
+      ])
       .where({ journey: journeyId, dismissed: 0 })
       .orderBy({ entry_date: 'asc', sort_order: 'asc', id: 'asc' })
       .execute<StatsEntryRow[]>('all', false);
@@ -431,7 +456,15 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
       .innerJoin('places as p', 'p.trip_id', 'jt.trip_id')
       .leftJoin('day_assignments as da', 'da.place_id', 'p.id')
       .leftJoin('days as d', 'd.id', 'da.day_id')
-      .select((eb) => ['p.id', 'p.name', 'p.lat', 'p.lng', 'p.trip_id as tripId', eb.fn.min<string | null>('d.date').as('day'), eb.fn.min<number | null>('da.order_index').as('ord')])
+      .select((eb) => [
+        'p.id',
+        'p.name',
+        'p.lat',
+        'p.lng',
+        'p.trip_id as tripId',
+        eb.fn.min<string | null>('d.date').as('day'),
+        eb.fn.min<number | null>('da.order_index').as('ord'),
+      ])
       .where('jt.journey_id', '=', journeyId)
       .groupBy('p.id')
       .orderBy((eb) => eb(eb.fn.min<string | null>('d.date'), 'is', null), 'asc')
@@ -466,7 +499,9 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
    * (r.country_code)` filter and the `.toUpperCase()` call both stay in the
    * SERVICE, matching the legacy code's own JS-side handling.
    */
-  async listCachedCountriesForPlaceIds(placeIds: number[]): Promise<{ place_id: number; country_code: string | null }[]> {
+  async listCachedCountriesForPlaceIds(
+    placeIds: number[],
+  ): Promise<{ place_id: number; country_code: string | null }[]> {
     const out: { place_id: number; country_code: string | null }[] = [];
     for (let i = 0; i < placeIds.length; i += 400) {
       // M4 (task-5-review.md) — `chunk` can never be empty here: the loop
@@ -597,7 +632,18 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
 
   /** JG85 — `deleteEntry`'s revert-to-skeleton write (a filled, trip-sourced entry is "deleted" by reverting it, not removed — {@link deleteById} (JG50/61/86) is the true hard delete, for entries with no trip origin). */
   async revertToSkeleton(id: number, updatedAt: number): Promise<void> {
-    await this.nativeUpdate({ id }, { type: 'skeleton', story: null, mood: null, weather: null, pros_cons: null, visibility: 'private', updated_at: updatedAt });
+    await this.nativeUpdate(
+      { id },
+      {
+        type: 'skeleton',
+        story: null,
+        mood: null,
+        weather: null,
+        pros_cons: null,
+        visibility: 'private',
+        updated_at: updatedAt,
+      },
+    );
   }
 
   /** JG87 — `promoteSkeletonIfNeeded`'s write: `UPDATE journey_entries SET type = ?, updated_at = ? WHERE id = ?`, called only when the entry is still a skeleton (the SERVICE's own `if (entry.type !== 'skeleton') return;` guard, unchanged). */

@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { logDebug, logError, logInfo } from '../../audit/audit-log.logger';
-import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
-import { AppSettingsRepository } from '../../../db/repositories/AppSettings.repository';
-import { SettingsRepository } from '../../../db/repositories/Settings.repository';
 import { AppSettings } from '../../../db/entities/AppSettings.entity';
 import { Settings } from '../../../db/entities/Settings.entity';
+import { AppSettingsRepository } from '../../../db/repositories/AppSettings.repository';
+import { SettingsRepository } from '../../../db/repositories/Settings.repository';
 import { safeFetchFollow, SsrfBlockedError } from '../../../utils/ssrfGuard';
-import type { NotifEventType } from '../notification-events';
+import { logDebug, logError, logInfo } from '../../audit/audit-log.logger';
 import { readAppSetting } from '../../common/app-settings.registry';
+import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
+import type { NotifEventType } from '../notification-events';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /** NS2's three per-user ntfy keys, read together off `SettingsRepository.getForUser`. */
 const NTFY_USER_KEYS = new Set(['ntfy_topic', 'ntfy_server', 'ntfy_token']);

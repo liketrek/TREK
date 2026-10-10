@@ -1,8 +1,9 @@
-import path from 'node:path';
-import fs from 'node:fs';
+import { resolveDataPaths } from '../../app-config/data-paths';
 import { logInfo, logError } from '../audit/audit-log.logger';
 import type { StorageService } from '../storage/storage.service';
-import { resolveDataPaths } from '../../app-config/data-paths';
+
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * Auto-backup settings and retention — the pure half of the auto-backup cron
@@ -36,11 +37,16 @@ export function buildCronExpression(settings: BackupSettings): string {
   const dom = settings.day_of_month >= 1 && settings.day_of_month <= 28 ? settings.day_of_month : 1;
 
   switch (settings.interval) {
-    case 'hourly':  return '0 * * * *';
-    case 'daily':   return `0 ${hour} * * *`;
-    case 'weekly':  return `0 ${hour} * * ${dow}`;
-    case 'monthly': return `0 ${hour} ${dom} * *`;
-    default:        return `0 ${hour} * * *`;
+    case 'hourly':
+      return '0 * * * *';
+    case 'daily':
+      return `0 ${hour} * * *`;
+    case 'weekly':
+      return `0 ${hour} * * ${dow}`;
+    case 'monthly':
+      return `0 ${hour} ${dom} * *`;
+    default:
+      return `0 ${hour} * * *`;
   }
 }
 
@@ -74,7 +80,11 @@ function autoBackupTimestampMs(filename: string): number | null {
   return Number.isNaN(ms) ? null : ms;
 }
 
-export async function cleanupOldBackups(storage: StorageService, keepDays: number, now: number = Date.now()): Promise<void> {
+export async function cleanupOldBackups(
+  storage: StorageService,
+  keepDays: number,
+  now: number = Date.now(),
+): Promise<void> {
   try {
     const cutoff = now - keepDays * 24 * 60 * 60 * 1000;
     for await (const obj of storage.list('backups')) {

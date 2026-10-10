@@ -1,10 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { DocumentProviders } from '../../../../src/db/entities/DocumentProviders.entity';
 import type { DocumentProvidersRepository } from '../../../../src/db/repositories/DocumentProviders.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { insertRow } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -36,7 +37,12 @@ async function insertProvider(row: {
   sort_order?: number;
 }): Promise<void> {
   await insertRow(t, DocumentProviders, {
-    id: row.id, name: row.name, description: row.description ?? null, icon: row.icon ?? null, enabled: row.enabled, sort_order: row.sort_order ?? 0,
+    id: row.id,
+    name: row.name,
+    description: row.description ?? null,
+    icon: row.icon ?? null,
+    enabled: row.enabled,
+    sort_order: row.sort_order ?? 0,
   });
 }
 
@@ -48,7 +54,14 @@ async function insertProvider(row: {
 // docstring names.
 describe('DocumentProvidersRepository — admin (AD29/AD32) read methods, full-key parity', () => {
   it('DOCPROVREPO-001 (AD29): listAllOrdered matches SELECT * FROM document_providers ORDER BY sort_order, id — unfiltered, including a disabled provider', async () => {
-    await insertProvider({ id: 'paperless', name: 'Paperless', description: 'Self-hosted document management', icon: 'FileText', enabled: 0, sort_order: 1 });
+    await insertProvider({
+      id: 'paperless',
+      name: 'Paperless',
+      description: 'Self-hosted document management',
+      icon: 'FileText',
+      enabled: 0,
+      sort_order: 1,
+    });
     await insertProvider({ id: 'papra', name: 'Papra', enabled: 1, sort_order: 0 });
 
     // test-sql-allow: the legacy AD29 statement is the parity oracle the repository is compared against.
@@ -66,9 +79,23 @@ describe('DocumentProvidersRepository — admin (AD29/AD32) read methods, full-k
   });
 
   it('DOCPROVREPO-003 (AD32): findById matches SELECT * FROM document_providers WHERE id = ?, on both a pre-write read and a post-write re-select', async () => {
-    await insertProvider({ id: 'paperless', name: 'Paperless', description: 'Self-hosted document management', icon: 'FileText', enabled: 0, sort_order: 3 });
+    await insertProvider({
+      id: 'paperless',
+      name: 'Paperless',
+      description: 'Self-hosted document management',
+      icon: 'FileText',
+      enabled: 0,
+      sort_order: 3,
+    });
     const preWrite = await documentProviders.findById('paperless');
-    expect(preWrite).toEqual({ id: 'paperless', name: 'Paperless', description: 'Self-hosted document management', icon: 'FileText', enabled: 0, sort_order: 3 });
+    expect(preWrite).toEqual({
+      id: 'paperless',
+      name: 'Paperless',
+      description: 'Self-hosted document management',
+      icon: 'FileText',
+      enabled: 0,
+      sort_order: 3,
+    });
 
     // test-sql-allow: the out-of-band write this case is about has to bypass every EntityManager, the one under test included.
     testDb.prepare('UPDATE document_providers SET enabled = 1 WHERE id = ?').run('paperless');

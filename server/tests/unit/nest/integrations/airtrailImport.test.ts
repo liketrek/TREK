@@ -1,5 +1,3 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
 /**
  * Import pipeline against the real test DB — only the AirTrail client and the
  * per-user credentials are mocked. Covers the joined multi-leg import (#1535):
@@ -7,28 +5,44 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * member id recorded for dedupe; plus the fallbacks when a requested join
  * doesn't actually chain.
  */
-
 import { db } from '../../../../src/db/database';
-import { createUser, createTrip } from '../../../helpers/factories';
-import type { AirtrailAirport, AirtrailFlightRaw } from '../../../../src/nest/integrations/airtrail.client';
-import { AirtrailImportService } from '../../../../src/nest/integrations/airtrail-import.service';
-import { PermissionsService } from '../../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
+import { Days } from '../../../../src/db/entities/Days.entity';
+import { ReservationEndpoints } from '../../../../src/db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../../../src/db/entities/Reservations.entity';
 import { BudgetService } from '../../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../../src/nest/budget/exchange-rates.service';
-import { ReservationsService } from '../../../../src/nest/reservations/reservations.service';
-import { ReservationsReadService } from '../../../../src/nest/reservations/reservations-read.service';
+import { AirtrailImportService } from '../../../../src/nest/integrations/airtrail-import.service';
+import type { AirtrailAirport, AirtrailFlightRaw } from '../../../../src/nest/integrations/airtrail.client';
 import type { AirtrailClient } from '../../../../src/nest/integrations/airtrail.client';
 import type { AirtrailService } from '../../../../src/nest/integrations/airtrail.service';
-import { notificationsStub } from '../../../helpers/notifications';
+import { PermissionsService } from '../../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
+import { ReservationsReadService } from '../../../../src/nest/reservations/reservations-read.service';
+import { ReservationsService } from '../../../../src/nest/reservations/reservations.service';
 import { accommodationsOver } from '../../../helpers/accommodations-service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestReservationsRepo, createTestReservationEndpointsRepo, createTestReservationTravelersRepo, createTestReservationDayPositionsRepo, createTestDayAccommodationsRepo, createTestDaysRepo, createTestPlacesRepo, createTestDayAssignmentsRepo, createTestTripMembersRepo, createTestUsersRepo, createTestTripsRepo, sharedTestOrm } from '../../../helpers/test-uow';
-import { createTestBudgetItemsRepo } from '../../../helpers/files-repos';
 import { budgetRepoArgs } from '../../../helpers/budget-repos';
+import { createUser, createTrip } from '../../../helpers/factories';
 import { findRow, findRows } from '../../../helpers/factories/rows';
-import { Days } from '../../../../src/db/entities/Days.entity';
-import { Reservations } from '../../../../src/db/entities/Reservations.entity';
-import { ReservationEndpoints } from '../../../../src/db/entities/ReservationEndpoints.entity';
+import { createTestBudgetItemsRepo } from '../../../helpers/files-repos';
+import { notificationsStub } from '../../../helpers/notifications';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestReservationsRepo,
+  createTestReservationEndpointsRepo,
+  createTestReservationTravelersRepo,
+  createTestReservationDayPositionsRepo,
+  createTestDayAccommodationsRepo,
+  createTestDaysRepo,
+  createTestPlacesRepo,
+  createTestDayAssignmentsRepo,
+  createTestTripMembersRepo,
+  createTestUsersRepo,
+  createTestTripsRepo,
+  sharedTestOrm,
+} from '../../../helpers/test-uow';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The client and the per-user credentials are the only stubs; the reservation
 // writes go through the real service against the real test DB, as before. They
@@ -46,15 +60,33 @@ async function makeImportService(): Promise<AirtrailImportService> {
     realtime,
     new ReservationsService(
       permissions,
-      new BudgetService(permissions, new ExchangeRatesService(), realtime, await createTestUnitOfWork(db), ...(await budgetRepoArgs(db))),
+      new BudgetService(
+        permissions,
+        new ExchangeRatesService(),
+        realtime,
+        await createTestUnitOfWork(db),
+        ...(await budgetRepoArgs(db)),
+      ),
       realtime,
       notificationsStub(),
-      new ReservationsReadService(await createTestReservationsRepo(db), await createTestReservationEndpointsRepo(db), await createTestReservationTravelersRepo(db)),
-      await accommodationsOver(db), await createTestUnitOfWork(db),
-      await createTestReservationsRepo(db), await createTestReservationEndpointsRepo(db), await createTestReservationTravelersRepo(db),
-      await createTestReservationDayPositionsRepo(db), await createTestDayAccommodationsRepo(db),
-      await createTestDaysRepo(db), await createTestPlacesRepo(db), await createTestDayAssignmentsRepo(db),
-      await createTestTripMembersRepo(db), await createTestUsersRepo(db), await createTestTripsRepo(db),
+      new ReservationsReadService(
+        await createTestReservationsRepo(db),
+        await createTestReservationEndpointsRepo(db),
+        await createTestReservationTravelersRepo(db),
+      ),
+      await accommodationsOver(db),
+      await createTestUnitOfWork(db),
+      await createTestReservationsRepo(db),
+      await createTestReservationEndpointsRepo(db),
+      await createTestReservationTravelersRepo(db),
+      await createTestReservationDayPositionsRepo(db),
+      await createTestDayAccommodationsRepo(db),
+      await createTestDaysRepo(db),
+      await createTestPlacesRepo(db),
+      await createTestDayAssignmentsRepo(db),
+      await createTestTripMembersRepo(db),
+      await createTestUsersRepo(db),
+      await createTestTripsRepo(db),
       await createTestBudgetItemsRepo(db),
     ),
     { listFlights } as unknown as AirtrailClient,
@@ -65,14 +97,49 @@ async function makeImportService(): Promise<AirtrailImportService> {
   );
 }
 
-const importAirtrailFlights = async (
-  ...args: Parameters<AirtrailImportService['importAirtrailFlights']>
-) => (await makeImportService()).importAirtrailFlights(...args);
+const importAirtrailFlights = async (...args: Parameters<AirtrailImportService['importAirtrailFlights']>) =>
+  (await makeImportService()).importAirtrailFlights(...args);
 
-const BRU: AirtrailAirport = { id: 1, icao: 'EBBR', iata: 'BRU', name: 'Brussels', lat: 50.9014, lon: 4.4844, tz: 'Europe/Brussels', country: 'BE' };
-const HEL: AirtrailAirport = { id: 2, icao: 'EFHK', iata: 'HEL', name: 'Helsinki-Vantaa', lat: 60.3172, lon: 24.9633, tz: 'Europe/Helsinki', country: 'FI' };
-const JFK: AirtrailAirport = { id: 3, icao: 'KJFK', iata: 'JFK', name: 'John F. Kennedy Intl.', lat: 40.6413, lon: -73.7781, tz: 'America/New_York', country: 'US' };
-const LHR: AirtrailAirport = { id: 4, icao: 'EGLL', iata: 'LHR', name: 'London Heathrow', lat: 51.4706, lon: -0.4619, tz: 'Europe/London', country: 'GB' };
+const BRU: AirtrailAirport = {
+  id: 1,
+  icao: 'EBBR',
+  iata: 'BRU',
+  name: 'Brussels',
+  lat: 50.9014,
+  lon: 4.4844,
+  tz: 'Europe/Brussels',
+  country: 'BE',
+};
+const HEL: AirtrailAirport = {
+  id: 2,
+  icao: 'EFHK',
+  iata: 'HEL',
+  name: 'Helsinki-Vantaa',
+  lat: 60.3172,
+  lon: 24.9633,
+  tz: 'Europe/Helsinki',
+  country: 'FI',
+};
+const JFK: AirtrailAirport = {
+  id: 3,
+  icao: 'KJFK',
+  iata: 'JFK',
+  name: 'John F. Kennedy Intl.',
+  lat: 40.6413,
+  lon: -73.7781,
+  tz: 'America/New_York',
+  country: 'US',
+};
+const LHR: AirtrailAirport = {
+  id: 4,
+  icao: 'EGLL',
+  iata: 'LHR',
+  name: 'London Heathrow',
+  lat: 51.4706,
+  lon: -0.4619,
+  tz: 'Europe/London',
+  country: 'GB',
+};
 
 function rawFlight(over: Partial<AirtrailFlightRaw> = {}): AirtrailFlightRaw {
   return {
@@ -162,7 +229,7 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
     const meta = JSON.parse(String(r.metadata));
     expect(meta.airtrail_ids).toEqual(['101', '102']);
     expect(meta.legs).toHaveLength(2);
-    expect((await endpointsOf(r.id)).map(e => [e.role, e.code])).toEqual([
+    expect((await endpointsOf(r.id)).map((e) => [e.role, e.code])).toEqual([
       ['from', 'BRU'],
       ['stop', 'HEL'],
       ['to', 'JFK'],
@@ -250,7 +317,12 @@ describe('importAirtrailFlights connection joining (#1535)', () => {
   });
 
   it('falls back to individual imports when the layover exceeds 24 h', async () => {
-    const lateLeg2 = { ...legHelJfk(), departure: '2026-08-03T11:00:00.000+00:00', arrival: '2026-08-03T19:00:00.000+00:00', date: '2026-08-03' };
+    const lateLeg2 = {
+      ...legHelJfk(),
+      departure: '2026-08-03T11:00:00.000+00:00',
+      arrival: '2026-08-03T19:00:00.000+00:00',
+      date: '2026-08-03',
+    };
     listFlights.mockResolvedValue([legBruHel(), lateLeg2]);
 
     const result = await importAirtrailFlights(tripId, userId, ['101', '102'], undefined, [['101', '102']]);
@@ -298,7 +370,10 @@ describe('importAirtrailFlights writes a booking with its link', () => {
     try {
       const result = await importAirtrailFlights(tripId, userId, ['101', '102'], undefined, [['101', '102']]);
       expect(result.imported).toEqual([]);
-      expect(result.skipped.map(s => [s.flightId, s.reason])).toEqual([['101', 'invalid'], ['102', 'invalid']]);
+      expect(result.skipped.map((s) => [s.flightId, s.reason])).toEqual([
+        ['101', 'invalid'],
+        ['102', 'invalid'],
+      ]);
     } finally {
       spy.mockRestore();
       quiet.mockRestore();

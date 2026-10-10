@@ -1,21 +1,26 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { AirtrailImportResult } from '@trek/shared';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
-import { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
 import { Days } from '../../db/entities/Days.entity';
+import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { RESERVATION_METADATA } from '../../db/json-columns';
 import { DaysRepository } from '../../db/repositories/Days.repository';
+import { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
+import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import { decodeJson } from '../../utils/json-column';
+import { UnitOfWork } from '../database/unit-of-work';
 import { RealtimeService } from '../realtime/realtime.service';
 import { ReservationsService } from '../reservations/reservations.service';
-import { UnitOfWork } from '../database/unit-of-work';
 import { AirtrailRequestError, type AirtrailFlightRaw } from './airtrail.client';
 import { AirtrailClient } from './airtrail.client';
+import {
+  canonicalHash,
+  mapFlightToReservation,
+  mapFlightsToMultiLegReservation,
+  normalizeFlight,
+} from './airtrail.mapper';
 import { AirtrailService } from './airtrail.service';
-import { canonicalHash, mapFlightToReservation, mapFlightsToMultiLegReservation, normalizeFlight } from './airtrail.mapper';
-import { RESERVATION_METADATA } from '../../db/json-columns';
-import { decodeJson } from '../../utils/json-column';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { AirtrailImportResult } from '@trek/shared';
 
 interface ExistingFlightRow {
   id: number;
@@ -53,8 +58,8 @@ function flightSignature(flight: AirtrailFlightRaw): string | null {
   return softSignature(
     depDate(mapped.reservation_time),
     (mapped.metadata.flight_number as string) ?? null,
-    mapped.endpoints.find(e => e.role === 'from')?.code ?? null,
-    mapped.endpoints.find(e => e.role === 'to')?.code ?? null,
+    mapped.endpoints.find((e) => e.role === 'from')?.code ?? null,
+    mapped.endpoints.find((e) => e.role === 'to')?.code ?? null,
   );
 }
 
@@ -70,9 +75,9 @@ function flightSignature(flight: AirtrailFlightRaw): string | null {
  */
 function orderConnectionChain(group: AirtrailFlightRaw[]): AirtrailFlightRaw[] | null {
   if (group.length < 2) return null;
-  const norm = group.map(raw => ({ raw, n: normalizeFlight(raw) }));
+  const norm = group.map((raw) => ({ raw, n: normalizeFlight(raw) }));
   const depMs = (n: (typeof norm)[number]['n']): number => (n.departure ? Date.parse(n.departure) : Number.NaN);
-  if (norm.some(x => Number.isNaN(depMs(x.n)))) return null;
+  if (norm.some((x) => Number.isNaN(depMs(x.n)))) return null;
   norm.sort((a, b) => depMs(a.n) - depMs(b.n));
   const origin = norm[0].n.fromCode;
   for (let i = 1; i < norm.length; i++) {
@@ -85,7 +90,7 @@ function orderConnectionChain(group: AirtrailFlightRaw[]): AirtrailFlightRaw[] |
     const gap = depMs(next) - arrMs;
     if (gap < 0 || gap > 24 * 3600 * 1000) return null;
   }
-  return norm.map(x => x.raw);
+  return norm.map((x) => x.raw);
 }
 
 /**
@@ -155,8 +160,8 @@ export class AirtrailImportService {
     if (!creds) throw new AirtrailRequestError('AirTrail is not connected', 400);
 
     const wanted = new Set(flightIds.map(String));
-    const selected = (await this.client.listFlights(creds)).filter(f => wanted.has(String(f.id)));
-    const byId = new Map(selected.map(f => [String(f.id), f]));
+    const selected = (await this.client.listFlights(creds)).filter((f) => wanted.has(String(f.id)));
+    const byId = new Map(selected.map((f) => [String(f.id), f]));
 
     const result: AirtrailImportResult = { imported: [], skipped: [] };
     const tripIdNum = this.rowIdNum(tripId);
@@ -202,16 +207,22 @@ export class AirtrailImportService {
         // misaligned date would produce a WRONG signature, worse than none.
         const aligned = eps.length === legs.length + 1;
         legs.forEach((leg, i) => {
-          const legDate = (typeof leg?.dep_day_id === 'number' ? dayDateById.get(leg.dep_day_id) : null)
-            ?? (aligned ? eps[i]?.local_date : null)
-            ?? null;
+          const legDate =
+            (typeof leg?.dep_day_id === 'number' ? dayDateById.get(leg.dep_day_id) : null) ??
+            (aligned ? eps[i]?.local_date : null) ??
+            null;
           const sig = softSignature(legDate, leg?.flight_number ?? null, leg?.from ?? null, leg?.to ?? null);
           if (sig) existingSigs.add(sig);
         });
       } else {
         const from = eps[0]?.code ?? null;
         const to = eps.length > 1 ? eps[eps.length - 1].code : null;
-        const sig = softSignature(depDate(row.reservation_time), (meta.flight_number as string | null | undefined) ?? null, from, to);
+        const sig = softSignature(
+          depDate(row.reservation_time),
+          (meta.flight_number as string | null | undefined) ?? null,
+          from,
+          to,
+        );
         if (sig) existingSigs.add(sig);
       }
     }
@@ -223,18 +234,22 @@ export class AirtrailImportService {
     const chains: AirtrailFlightRaw[][] = [];
     for (const ids of connections) {
       const unique = [...new Set(ids.map(String))];
-      const members = unique.map(id => byId.get(id)).filter((f): f is AirtrailFlightRaw => !!f);
-      const chain = members.length === unique.length && !unique.some(id => groupedIds.has(id))
-        ? orderConnectionChain(members)
-        : null;
+      const members = unique.map((id) => byId.get(id)).filter((f): f is AirtrailFlightRaw => !!f);
+      const chain =
+        members.length === unique.length && !unique.some((id) => groupedIds.has(id))
+          ? orderConnectionChain(members)
+          : null;
       if (!chain) {
         console.warn('[airtrail-import] join group is not a connection chain — importing flights individually');
         continue;
       }
-      if (unique.some(id => linkedIds.has(id)) || chain.some(f => {
-        const sig = flightSignature(f);
-        return !!sig && existingSigs.has(sig);
-      })) {
+      if (
+        unique.some((id) => linkedIds.has(id)) ||
+        chain.some((f) => {
+          const sig = flightSignature(f);
+          return !!sig && existingSigs.has(sig);
+        })
+      ) {
         continue; // a member already exists in the trip — let the single path sort it out
       }
       chains.push(chain);
@@ -242,7 +257,7 @@ export class AirtrailImportService {
     }
 
     for (const chain of chains) {
-      const ids = chain.map(f => String(f.id));
+      const ids = chain.map((f) => String(f.id));
       try {
         const mapped = mapFlightsToMultiLegReservation(chain, resolveDayId);
         const now = new Date().toISOString();
@@ -266,12 +281,20 @@ export class AirtrailImportService {
           const sig = flightSignature(f);
           if (sig) existingSigs.add(sig);
         }
-        ids.forEach(id => linkedIds.add(id));
+        ids.forEach((id) => linkedIds.add(id));
         result.imported.push(...ids);
       } catch (err) {
-        console.error('[airtrail-import] failed to import connection', ids.join('+'), err instanceof Error ? err.message : err);
+        console.error(
+          '[airtrail-import] failed to import connection',
+          ids.join('+'),
+          err instanceof Error ? err.message : err,
+        );
         for (const id of ids) {
-          result.skipped.push({ flightId: id, reason: 'invalid', detail: err instanceof Error ? err.message : undefined });
+          result.skipped.push({
+            flightId: id,
+            reason: 'invalid',
+            detail: err instanceof Error ? err.message : undefined,
+          });
         }
       }
     }
@@ -296,7 +319,13 @@ export class AirtrailImportService {
         // One write with its link, as for a joined connection above.
         const reservation = await this.uow.transactional(async () => {
           const created = (await this.reservations.create(tripId, mapped as any)).reservation;
-          await this.reservationsRepo.linkAirtrailSingleFlight(Number(created.id), fid, userId, canonicalHash(flight), now);
+          await this.reservationsRepo.linkAirtrailSingleFlight(
+            Number(created.id),
+            fid,
+            userId,
+            canonicalHash(flight),
+            now,
+          );
           return created;
         });
 
@@ -313,7 +342,11 @@ export class AirtrailImportService {
         result.imported.push(fid);
       } catch (err) {
         console.error('[airtrail-import] failed to import flight', fid, err instanceof Error ? err.message : err);
-        result.skipped.push({ flightId: fid, reason: 'invalid', detail: err instanceof Error ? err.message : undefined });
+        result.skipped.push({
+          flightId: fid,
+          reason: 'invalid',
+          detail: err instanceof Error ? err.message : undefined,
+        });
       }
     }
 

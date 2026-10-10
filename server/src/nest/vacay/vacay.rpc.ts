@@ -1,8 +1,8 @@
-import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import { ADDON_IDS } from '../../addons';
 import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { ADDON_IDS } from '../../addons';
 import { VacayService } from './vacay.service';
 
 /**
@@ -31,7 +31,14 @@ export class VacayRpc {
     const userId = this.requireVacayUser(ctx, 'writes');
     const date = this.dateStr(params.date);
     await this.requireVacayAddon();
-    return await this.vacay.toggleEntry(userId, await this.vacay.getActivePlanId(userId), date, 1, 'vacation', undefined);
+    return await this.vacay.toggleEntry(
+      userId,
+      await this.vacay.getActivePlanId(userId),
+      date,
+      1,
+      'vacation',
+      undefined,
+    );
   }
 
   @PluginMethod('vacay.toggleCompanyHoliday', { permission: 'db:write:vacay' })
@@ -40,7 +47,13 @@ export class VacayRpc {
     const date = this.dateStr(params.date);
     const note = typeof params.note === 'string' ? params.note.slice(0, 256) : undefined;
     await this.requireVacayAddon();
-    return await this.vacay.toggleCompanyHoliday(await this.vacay.getActivePlanId(userId), date, note, undefined, params.fraction);
+    return await this.vacay.toggleCompanyHoliday(
+      await this.vacay.getActivePlanId(userId),
+      date,
+      note,
+      undefined,
+      params.fraction,
+    );
   }
 
   private requireVacayUser(ctx: PluginRpcContext, kind: 'reads' | 'writes'): number {

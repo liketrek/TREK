@@ -5,9 +5,10 @@
  * sessions comes through untouched (tokens from before carry no session id
  * and are not looked up, so nothing has to be backfilled).
  */
-import { describe, expect, it } from 'vitest';
 import { createMigrationOrm, migrateTo, pendingNames, rawExec, rawQuery } from '../../helpers/migration-step';
 import type { MikroORM } from '@mikro-orm/sqlite';
+
+import { describe, expect, it } from 'vitest';
 
 const TARGET = 'Migration20200101042600_a_session_row_per_sign_in';
 
@@ -24,12 +25,15 @@ describe('user_sessions migration', () => {
   it('USERSESSMIG-001: creates the table with a non-null text id, the owner foreign key and both indexes', async () => {
     const orm = await ormBeforeTarget();
     try {
-      await rawExec(orm, "INSERT INTO users (id, username, email, password_hash) VALUES (1, 'owner', 'owner@test', 'x')");
+      await rawExec(
+        orm,
+        "INSERT INTO users (id, username, email, password_hash) VALUES (1, 'owner', 'owner@test', 'x')",
+      );
       await migrateTo(orm, TARGET);
 
       const columns = await rawQuery<{ name: string; type: string; notnull: number; pk: number }>(
         orm,
-        "SELECT name, type, \"notnull\", pk FROM pragma_table_info('user_sessions') ORDER BY cid",
+        'SELECT name, type, "notnull", pk FROM pragma_table_info(\'user_sessions\') ORDER BY cid',
       );
       expect(columns).toEqual([
         { name: 'id', type: 'TEXT', notnull: 1, pk: 1 },
@@ -43,12 +47,17 @@ describe('user_sessions migration', () => {
 
       const fks = await rawQuery<{ table: string; from: string; on_delete: string }>(
         orm,
-        "SELECT \"table\", \"from\", on_delete FROM pragma_foreign_key_list('user_sessions')",
+        'SELECT "table", "from", on_delete FROM pragma_foreign_key_list(\'user_sessions\')',
       );
       expect(fks).toEqual([{ table: 'users', from: 'user_id', on_delete: 'CASCADE' }]);
 
-      const indexes = await rawQuery<{ name: string }>(orm, "SELECT name FROM pragma_index_list('user_sessions') ORDER BY name");
-      expect(indexes.map((i) => i.name)).toEqual(expect.arrayContaining(['idx_user_sessions_expires', 'idx_user_sessions_user']));
+      const indexes = await rawQuery<{ name: string }>(
+        orm,
+        "SELECT name FROM pragma_index_list('user_sessions') ORDER BY name",
+      );
+      expect(indexes.map((i) => i.name)).toEqual(
+        expect.arrayContaining(['idx_user_sessions_expires', 'idx_user_sessions_user']),
+      );
 
       // The existing account is untouched and has no session rows to begin with.
       expect(await rawQuery(orm, 'SELECT id, username FROM users')).toEqual([{ id: 1, username: 'owner' }]);

@@ -7,15 +7,16 @@
  * not a no-op through a mock. `ENCRYPTION_KEY` comes from
  * `tests/global-setup.ts`.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { Addons } from '../../../../src/db/entities/Addons.entity';
+import type { AddonsRepository } from '../../../../src/db/repositories/Addons.repository';
+import { decrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto';
+import { prepareLlmAddonConfigForWrite } from '../../../../src/nest/llm-parse/llm-config';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { deleteRows, insertRow } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { Addons } from '../../../../src/db/entities/Addons.entity';
-import { deleteRows, insertRow } from '../../../helpers/factories/rows';
-import type { AddonsRepository } from '../../../../src/db/repositories/Addons.repository';
-import { prepareLlmAddonConfigForWrite } from '../../../../src/nest/llm-parse/llm-config';
-import { decrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;

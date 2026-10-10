@@ -13,8 +13,9 @@
  * released, the database is closed on BOTH exit paths, and the fallback timer
  * fires inside Docker's 10s grace rather than on top of it.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runShutdown, createFatalHandler, SOCKET_DRAIN_MS, FORCED_EXIT_MS } from '../../src/shutdown';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 type Deps = Parameters<typeof runShutdown>[1];
 
@@ -29,7 +30,9 @@ function makeSocket() {
 function makeServer() {
   let done: (() => void) | undefined;
   return {
-    close: vi.fn((cb: () => void) => { done = cb; }),
+    close: vi.fn((cb: () => void) => {
+      done = cb;
+    }),
     closeIdleConnections: vi.fn(),
     closeAllConnections: vi.fn(),
     /** Stand-in for the last connection going away. */
@@ -37,7 +40,9 @@ function makeServer() {
   };
 }
 
-function makeDeps(over: Partial<Deps> = {}): Deps & { exit: ReturnType<typeof vi.fn>; closeDb: ReturnType<typeof vi.fn> } {
+function makeDeps(
+  over: Partial<Deps> = {},
+): Deps & { exit: ReturnType<typeof vi.fn>; closeDb: ReturnType<typeof vi.fn> } {
   const server = makeServer();
   return {
     server: server as unknown as Deps['server'],
@@ -52,8 +57,12 @@ function makeDeps(over: Partial<Deps> = {}): Deps & { exit: ReturnType<typeof vi
   } as never;
 }
 
-beforeEach(() => { vi.useFakeTimers(); });
-afterEach(() => { vi.useRealTimers(); });
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('runShutdown', () => {
   it('SHUTDOWN-001 asks every ws client to go away before Nest tears the adapter down', async () => {
@@ -61,8 +70,13 @@ describe('runShutdown', () => {
     const b = makeSocket();
     const order: string[] = [];
     const deps = makeDeps({
-      getWsClients: () => { order.push('ws'); return [a, b]; },
-      closeNestApp: vi.fn(async () => { order.push('nest'); }),
+      getWsClients: () => {
+        order.push('ws');
+        return [a, b];
+      },
+      closeNestApp: vi.fn(async () => {
+        order.push('nest');
+      }),
     });
 
     const run = runShutdown('SIGTERM', deps);
@@ -149,7 +163,11 @@ describe('runShutdown', () => {
     // allSettled absorbs the rejection; without an explicit report the operator
     // would read "Shutdown complete" and exit 0 while the crons and the plugin
     // children were never torn down.
-    const deps = makeDeps({ closeNestApp: vi.fn(async () => { throw new Error('hook boom'); }) });
+    const deps = makeDeps({
+      closeNestApp: vi.fn(async () => {
+        throw new Error('hook boom');
+      }),
+    });
 
     const run = runShutdown('SIGTERM', deps);
     (deps.server as unknown as ReturnType<typeof makeServer>).finishClose();
@@ -173,8 +191,12 @@ describe('runShutdown', () => {
 
   it('SHUTDOWN-008 carries on when a teardown step throws', async () => {
     const deps = makeDeps({
-      closeMcpSessions: vi.fn(() => { throw new Error('mcp boom'); }),
-      getWsClients: () => { throw new Error('ws boom'); },
+      closeMcpSessions: vi.fn(() => {
+        throw new Error('mcp boom');
+      }),
+      getWsClients: () => {
+        throw new Error('ws boom');
+      },
     });
 
     const run = runShutdown('SIGTERM', deps);
@@ -191,9 +213,16 @@ describe('runShutdown: readiness and the exit code', () => {
   it('SHUTDOWN-020 marks the process as draining before anything else happens', async () => {
     const order: string[] = [];
     const deps = makeDeps({
-      markDraining: vi.fn(() => { order.push('draining'); }),
-      closeMcpSessions: vi.fn(() => { order.push('mcp'); }),
-      getWsClients: () => { order.push('ws'); return null; },
+      markDraining: vi.fn(() => {
+        order.push('draining');
+      }),
+      closeMcpSessions: vi.fn(() => {
+        order.push('mcp');
+      }),
+      getWsClients: () => {
+        order.push('ws');
+        return null;
+      },
     });
     const run = runShutdown('SIGTERM', deps);
     (deps.server as unknown as ReturnType<typeof makeServer>).finishClose();
@@ -203,7 +232,11 @@ describe('runShutdown: readiness and the exit code', () => {
   });
 
   it('SHUTDOWN-021 a readiness flag that cannot be set is logged and the shutdown goes on', async () => {
-    const deps = makeDeps({ markDraining: () => { throw new Error('no app yet'); } });
+    const deps = makeDeps({
+      markDraining: () => {
+        throw new Error('no app yet');
+      },
+    });
     const run = runShutdown('SIGTERM', deps);
     (deps.server as unknown as ReturnType<typeof makeServer>).finishClose();
     await run;
@@ -254,7 +287,9 @@ describe('createFatalHandler', () => {
 
   it('FATAL-004 a logger that throws does not stop the shutdown', () => {
     const deps = fatalDeps();
-    deps.logError.mockImplementation(() => { throw new Error('disk gone'); });
+    deps.logError.mockImplementation(() => {
+      throw new Error('disk gone');
+    });
     createFatalHandler(deps)('Uncaught exception', new Error('boom'));
     expect(deps.shutdown).toHaveBeenCalledWith('Uncaught exception', 1);
   });

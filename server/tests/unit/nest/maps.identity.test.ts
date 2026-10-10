@@ -5,6 +5,10 @@
  * wiki tags, OpenStreetMap does. The two gates below are the whole safety
  * argument — a confident description of the wrong building is worse than none.
  */
+import { toWikiLang, haversineMetres, namesOverlap } from '../../../src/nest/maps/maps.helpers';
+import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
+import { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../../src/db/database', () => ({
@@ -16,10 +20,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   checkSsrf: vi.fn(async () => ({ allowed: true })),
   SsrfBlockedError: class extends Error {},
 }));
-
-import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
-import { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
-import { toWikiLang, haversineMetres, namesOverlap } from '../../../src/nest/maps/maps.helpers';
 
 const wikiOf = () => new WikimediaClient();
 const osmOf = () => new OsmClient();

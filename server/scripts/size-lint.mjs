@@ -33,8 +33,6 @@
  * Walking the tree and handling the baseline live in scripts/lib/ratchet.mjs
  * at the repository root.
  */
-import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   listFiles,
   lowerCounts,
@@ -46,6 +44,9 @@ import {
   toKey,
   writeBaseline,
 } from '../../scripts/lib/ratchet.mjs';
+
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /** The most lines a source file without a baseline entry may hold. */
 const LIMIT = 1000;
@@ -112,7 +113,8 @@ const sizeEntries = (limit) => (value) => {
     return 'it must be an object of file paths to line counts';
   }
   for (const [file, n] of Object.entries(value)) {
-    if (!Number.isInteger(n) || n <= limit) return `${file} holds ${JSON.stringify(n)}, expected an integer above ${limit}`;
+    if (!Number.isInteger(n) || n <= limit)
+      return `${file} holds ${JSON.stringify(n)}, expected an integer above ${limit}`;
   }
   return null;
 };

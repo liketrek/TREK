@@ -138,13 +138,17 @@ function main(argv) {
     console.error('Run npm run lint:query-api -- --update to lower the baseline with the change that made it smaller.');
   }
   const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
-  console.log(`query-api: ${total} QueryBuilder call(s) in ${Object.keys(counts).length} file(s) held at their baseline`);
+  console.log(
+    `query-api: ${total} QueryBuilder call(s) in ${Object.keys(counts).length} file(s) held at their baseline`,
+  );
   return grown.length || stale.length ? 1 : 0;
 }
 
 // Compared by real path, so the check still runs when the script is started through a symlink.
 const isCli =
-  Boolean(process.argv[1]) && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  Boolean(process.argv[1]) &&
+  existsSync(process.argv[1]) &&
+  realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isCli) {
   try {
     process.exitCode = main(process.argv.slice(2));

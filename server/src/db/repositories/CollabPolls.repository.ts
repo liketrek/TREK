@@ -1,7 +1,7 @@
 import type { CollabPolls } from '../entities/CollabPolls.entity';
+import type { DB } from '../kysely/db';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /** A bare `collab_polls` row — every scalar column of the entity, incl. the two `persist(false)` relation mirrors (`trip_id`, `user_id`). */
 export interface CollabPollRow {
@@ -45,7 +45,12 @@ export class CollabPollsRepository extends TrekRepository<CollabPolls> {
 
   /** CB25 (`listPolls`) — `SELECT id FROM collab_polls WHERE trip_id = ? ORDER BY created_at DESC`. */
   async listIdsForTrip(trip_id: number): Promise<number[]> {
-    const rows = await this.kysely<CollabPollsKyselyDB>().selectFrom('collab_polls').select(['id']).where('trip_id', '=', trip_id).orderBy('created_at', 'desc').execute();
+    const rows = await this.kysely<CollabPollsKyselyDB>()
+      .selectFrom('collab_polls')
+      .select(['id'])
+      .where('trip_id', '=', trip_id)
+      .orderBy('created_at', 'desc')
+      .execute();
     return rows.map((r) => r.id);
   }
 
@@ -55,12 +60,31 @@ export class CollabPollsRepository extends TrekRepository<CollabPolls> {
    * text at all three call sites.
    */
   async findInTrip(id: number, trip_id: number): Promise<CollabPollRow | undefined> {
-    return await this.kysely<CollabPollsKyselyDB>().selectFrom('collab_polls').selectAll().where('id', '=', id).where('trip_id', '=', trip_id).executeTakeFirst();
+    return await this.kysely<CollabPollsKyselyDB>()
+      .selectFrom('collab_polls')
+      .selectAll()
+      .where('id', '=', id)
+      .where('trip_id', '=', trip_id)
+      .executeTakeFirst();
   }
 
   /** CB26 (`createPoll`) — `INSERT INTO collab_polls (trip_id, user_id, question, options, multiple, deadline) VALUES (?×6)`. Returns the new row's id. */
-  async insertPoll(row: { trip_id: number | string; user_id: number; question: string; options: string; multiple: number; deadline: string | null }): Promise<number> {
-    return await this.insert({ trip: row.trip_id, user: row.user_id, question: row.question, options: row.options, multiple: row.multiple, deadline: row.deadline });
+  async insertPoll(row: {
+    trip_id: number | string;
+    user_id: number;
+    question: string;
+    options: string;
+    multiple: number;
+    deadline: string | null;
+  }): Promise<number> {
+    return await this.insert({
+      trip: row.trip_id,
+      user: row.user_id,
+      question: row.question,
+      options: row.options,
+      multiple: row.multiple,
+      deadline: row.deadline,
+    });
   }
 
   /** CB33 (`closePoll`) — `UPDATE collab_polls SET closed = 1 WHERE id = ?`. */

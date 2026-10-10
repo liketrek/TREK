@@ -1,9 +1,10 @@
-import type Database from 'better-sqlite3';
 import { DawarichConnections } from '../../src/db/entities/DawarichConnections.entity';
-import type { DawarichConnectionsRepository } from '../../src/db/repositories/DawarichConnections.repository';
 import { DawarichVisitSuggestions } from '../../src/db/entities/DawarichVisitSuggestions.entity';
+import type { DawarichConnectionsRepository } from '../../src/db/repositories/DawarichConnections.repository';
 import type { DawarichVisitSuggestionsRepository } from '../../src/db/repositories/DawarichVisitSuggestions.repository';
 import { sharedTestOrm } from './test-uow';
+
+import type Database from 'better-sqlite3';
 
 /**
  * Plan 3h Task 3 (dawarich connection/credentials, sync/reconcile, review
@@ -31,7 +32,9 @@ export function createTestDawarichConnectionsRepo(db: Database.Database): Promis
 }
 
 /** The `DawarichVisitSuggestionsRepository` a hand-constructed `DawarichSuggestionsService`/`DawarichSyncService` needs. */
-export function createTestDawarichVisitSuggestionsRepo(db: Database.Database): Promise<DawarichVisitSuggestionsRepository> {
+export function createTestDawarichVisitSuggestionsRepo(
+  db: Database.Database,
+): Promise<DawarichVisitSuggestionsRepository> {
   const existing = suggestionsPerHandle.get(db);
   if (existing !== undefined) return existing;
   const pending = sharedTestOrm(db).then((t) => t.repo(DawarichVisitSuggestions));

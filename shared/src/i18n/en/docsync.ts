@@ -175,7 +175,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'The transfer did not go through.',
 
   'docsync.error.unknown_provider': 'This provider is not available on this instance.',
-  'docsync.error.provider_disabled': 'Paused: an administrator has switched this provider off. Syncing resumes once it is back on.',
+  'docsync.error.provider_disabled':
+    'Paused: an administrator has switched this provider off. Syncing resumes once it is back on.',
   'docsync.binding.reconnect': 'Reconnect',
 };
 

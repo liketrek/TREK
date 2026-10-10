@@ -1,17 +1,17 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { logInfo, logError, logWarn } from '../audit/audit-log.logger';
-import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { TripsRepository } from '../../db/repositories/Trips.repository';
-import { TodoItemsRepository } from '../../db/repositories/TodoItems.repository';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { Trips } from '../../db/entities/Trips.entity';
 import { TodoItems } from '../../db/entities/TodoItems.entity';
-import { NotificationsService, type NotificationDelivery, type NotificationPayload } from './notifications.service';
-import { CronRegistrarService } from '../scheduling/cron-registrar.service';
-import { addIsoDays } from '@trek/shared';
-import { appClock } from '../common/timezoneService';
+import { Trips } from '../../db/entities/Trips.entity';
+import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { TodoItemsRepository } from '../../db/repositories/TodoItems.repository';
+import { TripsRepository } from '../../db/repositories/Trips.repository';
+import { logInfo, logError, logWarn } from '../audit/audit-log.logger';
 import { readAppSetting } from '../common/app-settings.registry';
+import { appClock } from '../common/timezoneService';
+import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { NotificationsService, type NotificationDelivery, type NotificationPayload } from './notifications.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import { addIsoDays } from '@trek/shared';
 
 /**
  * The trip-reminder and todo-due reminder crons, in the domain that owns them
@@ -64,13 +64,18 @@ export class ReminderJobsService implements OnApplicationBootstrap {
     await this.registrar.runOnBoot('reminder-jobs-boot', async () => {
       try {
         const reminderEnabled = (await readAppSetting(this.appSettings, 'notify_trip_reminder')) !== 'false';
-        const channelsRaw = (await readAppSetting(this.appSettings, 'notification_channels')) || (await readAppSetting(this.appSettings, 'notification_channel')) || 'none';
-        const activeChannels = channelsRaw === 'none' ? [] : channelsRaw.split(',').map(c => c.trim());
+        const channelsRaw =
+          (await readAppSetting(this.appSettings, 'notification_channels')) ||
+          (await readAppSetting(this.appSettings, 'notification_channel')) ||
+          'none';
+        const activeChannels = channelsRaw === 'none' ? [] : channelsRaw.split(',').map((c) => c.trim());
         if (!reminderEnabled) {
           logInfo('Trip reminders: disabled in settings');
         } else {
           const tripCount = await this.trips.countActiveWithReminders();
-          logInfo(`Trip reminders: enabled via [${activeChannels.join(',')}]${tripCount > 0 ? `, ${tripCount} trip(s) with active reminders` : ''}`);
+          logInfo(
+            `Trip reminders: enabled via [${activeChannels.join(',')}]${tripCount > 0 ? `, ${tripCount} trip(s) with active reminders` : ''}`,
+          );
         }
 
         if ((await readAppSetting(this.appSettings, 'notify_todo_due')) !== 'false') {
@@ -115,15 +120,23 @@ export class ReminderJobsService implements OnApplicationBootstrap {
 
       const today = appClock().date;
       const candidates = await this.trips.listReminderCandidates();
-      const trips = candidates.filter((t) =>
-        t.reminder_sent_for !== t.start_date
-        && t.start_date >= today
-        && addIsoDays(t.start_date, -t.reminder_days) <= today);
+      const trips = candidates.filter(
+        (t) =>
+          t.reminder_sent_for !== t.start_date &&
+          t.start_date >= today &&
+          addIsoDays(t.start_date, -t.reminder_days) <= today,
+      );
 
       const sent: typeof trips = [];
       for (const trip of trips) {
         if (!(await this.trips.claimReminder(trip.id, trip.start_date))) continue;
-        const delivery = await this.deliver({ event: 'trip_reminder', actorId: null, scope: 'trip', targetId: trip.id, params: { trip: trip.title, tripId: String(trip.id) } });
+        const delivery = await this.deliver({
+          event: 'trip_reminder',
+          actorId: null,
+          scope: 'trip',
+          targetId: trip.id,
+          params: { trip: trip.title, tripId: String(trip.id) },
+        });
         if (undelivered(delivery)) {
           await this.trips.releaseReminder(trip.id, trip.start_date, trip.reminder_sent_for);
           logWarn(`Trip reminder for "${trip.title}" was not delivered; the next run tries again`);
@@ -133,7 +146,9 @@ export class ReminderJobsService implements OnApplicationBootstrap {
       }
 
       if (sent.length > 0) {
-        logInfo(`Trip reminders sent for ${sent.length} trip(s): ${sent.map(t => `"${t.title}" (${t.reminder_days}d)`).join(', ')}`);
+        logInfo(
+          `Trip reminders sent for ${sent.length} trip(s): ${sent.map((t) => `"${t.title}" (${t.reminder_days}d)`).join(', ')}`,
+        );
       }
     } catch (err: unknown) {
       logError(`Trip reminder check failed: ${err instanceof Error ? err.message : err}`);
@@ -145,7 +160,9 @@ export class ReminderJobsService implements OnApplicationBootstrap {
     try {
       return await this.notifications.send(payload);
     } catch (err: unknown) {
-      logError(`Reminder ${payload.event} for ${payload.scope} ${payload.targetId} failed: ${err instanceof Error ? err.message : err}`);
+      logError(
+        `Reminder ${payload.event} for ${payload.scope} ${payload.targetId} failed: ${err instanceof Error ? err.message : err}`,
+      );
       return null;
     }
   }

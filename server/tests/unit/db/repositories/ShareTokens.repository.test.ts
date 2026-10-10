@@ -8,15 +8,16 @@
  * reads through, with every nullable column seeded both null and set, per
  * the shape `InviteTokens.repository.test.ts` uses.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { findRow } from '../../../helpers/factories/rows';
-import { makeShareToken } from '../../../helpers/factories/trips';
-import { createTrip, createUser } from '../../../helpers/factories';
 import { ShareTokens } from '../../../../src/db/entities/ShareTokens.entity';
 import type { ShareTokensRepository } from '../../../../src/db/repositories/ShareTokens.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { findRow } from '../../../helpers/factories/rows';
+import { makeShareToken } from '../../../helpers/factories/trips';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -26,8 +27,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(ShareTokens);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 /** The SELECT * row as the database holds it: the oracle the repository's full rows are compared with. */
 function rawShareToken(id: number): unknown {
@@ -72,7 +79,12 @@ describe('ShareTokensRepository', () => {
       const { user } = createUser(testDb);
       const trip = createTrip(testDb, user.id);
       const id = await insertShareToken(trip.id, user.id, {
-        share_map: null, share_bookings: null, share_packing: null, share_budget: null, share_collab: null, expires_at: null,
+        share_map: null,
+        share_bookings: null,
+        share_packing: null,
+        share_budget: null,
+        share_collab: null,
+        expires_at: null,
       });
 
       const row = await repo.findRawByTrip(trip.id);
@@ -84,7 +96,12 @@ describe('ShareTokensRepository', () => {
       const { user } = createUser(testDb);
       const trip = createTrip(testDb, user.id);
       const id = await insertShareToken(trip.id, user.id, {
-        share_map: 1, share_bookings: 0, share_packing: 1, share_budget: 0, share_collab: 1, expires_at: '2099-01-01 00:00:00',
+        share_map: 1,
+        share_bookings: 0,
+        share_packing: 1,
+        share_budget: 0,
+        share_collab: 1,
+        expires_at: '2099-01-01 00:00:00',
       });
 
       const row = await repo.findRawByTrip(trip.id);
@@ -176,11 +193,15 @@ describe('ShareTokensRepository', () => {
 
       const legacySet = testDb
         // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-        .prepare("SELECT trip_id, share_map, share_hide_images FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))")
+        .prepare(
+          "SELECT trip_id, share_map, share_hide_images FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))",
+        )
         .get('map-set');
       const legacyNull = testDb
         // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-        .prepare("SELECT trip_id, share_map, share_hide_images FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))")
+        .prepare(
+          "SELECT trip_id, share_map, share_hide_images FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))",
+        )
         .get('map-null');
 
       expect(await repo.findTripAndShareMapByToken('map-set')).toEqual(legacySet);
@@ -203,7 +224,9 @@ describe('ShareTokensRepository', () => {
 
       const legacy = testDb
         // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-        .prepare("SELECT trip_id FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))")
+        .prepare(
+          "SELECT trip_id FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))",
+        )
         .get('trip-id-only');
 
       expect(await repo.findTripIdByToken('trip-id-only')).toEqual(legacy);
@@ -223,16 +246,32 @@ describe('ShareTokensRepository', () => {
       const trip = createTrip(testDb, user.id);
 
       await repo.insertNew({
-        trip_id: trip.id, token: 'inserted-token', created_by: user.id,
-        share_map: 1, share_bookings: 0, share_packing: 1, share_budget: 0, share_collab: 1,
-        share_travel_only: 1, share_hide_images: 0, expires_at: '2099-06-01 00:00:00',
+        trip_id: trip.id,
+        token: 'inserted-token',
+        created_by: user.id,
+        share_map: 1,
+        share_bookings: 0,
+        share_packing: 1,
+        share_budget: 0,
+        share_collab: 1,
+        share_travel_only: 1,
+        share_hide_images: 0,
+        expires_at: '2099-06-01 00:00:00',
       });
 
       const raw = await findRow(t, ShareTokens, { token: 'inserted-token' });
       expect(raw).toMatchObject({
-        trip_id: trip.id, token: 'inserted-token', created_by: user.id,
-        share_map: 1, share_bookings: 0, share_packing: 1, share_budget: 0, share_collab: 1,
-        share_travel_only: 1, share_hide_images: 0, expires_at: '2099-06-01 00:00:00',
+        trip_id: trip.id,
+        token: 'inserted-token',
+        created_by: user.id,
+        share_map: 1,
+        share_bookings: 0,
+        share_packing: 1,
+        share_budget: 0,
+        share_collab: 1,
+        share_travel_only: 1,
+        share_hide_images: 0,
+        expires_at: '2099-06-01 00:00:00',
       });
     });
 
@@ -244,19 +283,36 @@ describe('ShareTokensRepository', () => {
       const otherId = await insertShareToken(other.id, user.id, { token: 'untouched' });
 
       await repo.updateFlagsByTrip(trip.id, {
-        share_map: 0, share_bookings: 0, share_packing: 0, share_budget: 0, share_collab: 0,
-        share_travel_only: 1, share_hide_images: 1, expires_at: '2099-12-31 00:00:00',
+        share_map: 0,
+        share_bookings: 0,
+        share_packing: 0,
+        share_budget: 0,
+        share_collab: 0,
+        share_travel_only: 1,
+        share_hide_images: 1,
+        expires_at: '2099-12-31 00:00:00',
       });
 
       expect(await storedShareToken(id)).toMatchObject({
-        share_map: 0, share_bookings: 0, share_packing: 0, share_budget: 0, share_collab: 0,
-        share_travel_only: 1, share_hide_images: 1, expires_at: '2099-12-31 00:00:00',
+        share_map: 0,
+        share_bookings: 0,
+        share_packing: 0,
+        share_budget: 0,
+        share_collab: 0,
+        share_travel_only: 1,
+        share_hide_images: 1,
+        expires_at: '2099-12-31 00:00:00',
       });
       // The other trip's row is untouched — a different predicate, not a global update.
-      expect(await storedShareToken(otherId)).toMatchObject({ share_map: 1, share_bookings: 1, share_travel_only: 0, share_hide_images: 0 });
+      expect(await storedShareToken(otherId)).toMatchObject({
+        share_map: 1,
+        share_bookings: 1,
+        share_travel_only: 0,
+        share_hide_images: 0,
+      });
     });
 
-    it('SHTOKREPO-016: deleteByTrip removes exactly that trip\'s row, leaving another trip\'s row alone', async () => {
+    it("SHTOKREPO-016: deleteByTrip removes exactly that trip's row, leaving another trip's row alone", async () => {
       const { user } = createUser(testDb);
       const tripA = createTrip(testDb, user.id);
       const tripB = createTrip(testDb, user.id);
@@ -269,7 +325,7 @@ describe('ShareTokensRepository', () => {
       expect(await storedShareToken(keepId)).not.toBeNull();
     });
 
-    it('SHTOKREPO-017: deleteByCreator removes every link that user created, across every trip, leaving another creator\'s links alone (DISTINCT from deleteByTrip)', async () => {
+    it("SHTOKREPO-017: deleteByCreator removes every link that user created, across every trip, leaving another creator's links alone (DISTINCT from deleteByTrip)", async () => {
       const { user: creator } = createUser(testDb);
       const { user: otherCreator } = createUser(testDb);
       const tripA = createTrip(testDb, creator.id);

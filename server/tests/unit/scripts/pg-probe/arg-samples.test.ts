@@ -6,12 +6,18 @@
  * settings, so each shape it meets in the real repositories has a pinned
  * sample (or a pinned reason it has none).
  */
+import {
+  planRepositories,
+  readCompilerOptions,
+  sampleString,
+  type MethodPlan,
+} from '../../../../scripts/pg-probe/arg-samples';
+
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import ts from 'typescript';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { planRepositories, readCompilerOptions, sampleString, type MethodPlan } from '../../../../scripts/pg-probe/arg-samples';
 
 const FIXTURE = `
 export interface NewThing {
@@ -71,7 +77,11 @@ beforeAll(() => {
   // The server's own settings (non-strict: `string | null` is `string`), so
   // the fixture is sampled the way the real repositories are.
   const options = readCompilerOptions(path.join(__dirname, '../../../../tsconfig.json'));
-  plans = planRepositories([path.join(root, 'src/Things.repository.ts')], { ...options, rootDir: root, paths: undefined, types: [] }, root);
+  plans = planRepositories(
+    [path.join(root, 'src/Things.repository.ts')],
+    { ...options, rootDir: root, paths: undefined, types: [] },
+    root,
+  );
 });
 
 afterAll(() => {

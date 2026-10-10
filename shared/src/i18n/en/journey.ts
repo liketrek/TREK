@@ -218,10 +218,12 @@ const journey: TranslationStrings = {
   'journey.settings.status': 'Status',
   'journey.settings.statusAuto': 'Automatic',
   'journey.settings.statusAutoHint': 'Follows the dates of the linked trips. Without a trip the journey stays a draft.',
-  'journey.settings.statusManualHint': 'Set by hand. The trip dates no longer change it until you switch back to automatic.',
+  'journey.settings.statusManualHint':
+    'Set by hand. The trip dates no longer change it until you switch back to automatic.',
   'journey.settings.photosSection': 'Photos',
   'journey.settings.photoLocation': 'Place entries from their photos',
-  'journey.settings.photoLocationHint': 'An entry without a place takes the spot where its first photo with GPS was taken. Places you set yourself are never moved.',
+  'journey.settings.photoLocationHint':
+    'An entry without a place takes the spot where its first photo with GPS was taken. Places you set yourself are never moved.',
   'journey.settings.endJourney': 'Archive Journey',
   'journey.settings.reopenJourney': 'Restore Journey',
   'journey.settings.archived': 'Journey archived',
@@ -314,7 +316,8 @@ const journey: TranslationStrings = {
   'journey.studio.importSpreadHint': 'Add a spread from a downloaded design file',
   'journey.studio.importSpreadFailed': 'That file is not a TREK Studio spread',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen',
-  'journey.studio.desktopOnlyHint': 'Designing a book asks for room to work, so Studio is desktop only, and so is making the PDF. Everything else about your journey works here as usual.',
+  'journey.studio.desktopOnlyHint':
+    'Designing a book asks for room to work, so Studio is desktop only, and so is making the PDF. Everything else about your journey works here as usual.',
   'journey.studio.formatA5Landscape': 'A5 landscape',
   'journey.studio.bookView': 'Book view',
   'journey.studio.multiple': 'Several',
@@ -378,7 +381,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading',
   'journey.studio.sampleBody': 'Write something about this day.',
   'journey.studio.sampleCaption': 'Caption',
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.',
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.',
   'journey.studio.tpl.heroStory': 'Hero and story',
   'journey.studio.tpl.fullBleed': 'One picture, full spread',
   'journey.studio.tpl.twoUp': 'Two full pages',
@@ -459,7 +463,8 @@ const journey: TranslationStrings = {
   'journey.studio.paste': 'Paste (Ctrl+V)',
   'journey.studio.pasteEmpty': 'Copy something first, then paste it on any page',
   'journey.studio.myLayouts': 'My layouts',
-  'journey.studio.myLayoutsEmpty': 'Keep a page you arranged and lay other pages out the same way. Their photos and words stay.',
+  'journey.studio.myLayoutsEmpty':
+    'Keep a page you arranged and lay other pages out the same way. Their photos and words stay.',
   'journey.studio.saveLayout': 'Save this page as a layout',
   'journey.studio.saveLayoutHint': 'Keeps the arrangement without the photos, for every editor of this book',
   'journey.studio.saveLayoutFull': 'This book keeps up to 24 layouts. Delete one to save another.',
@@ -595,13 +600,15 @@ const journey: TranslationStrings = {
   'journey.studio.recommended': 'recommended',
   'journey.studio.bleed': 'Bleed',
   'journey.studio.safeArea': 'Safe',
-  'journey.studio.mapSourceSatelliteHint': 'Cloud-free Sentinel-2, free to print with credit. Sharp down to a city street.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Cloud-free Sentinel-2, free to print with credit. Sharp down to a city street.',
   'journey.studio.mapPerTrip': 'One trip at a time',
   'journey.studio.mapWholeJourney': 'Whole journey',
   'journey.studio.mapScope': 'Shows',
   'journey.studio.mapPrintDpi': 'Prints at about',
   'journey.studio.mapPrintDpiLow': 'soft at this size, try a wider view or another source',
-  'journey.studio.mapSourceReliefHint': 'NASA shaded relief, free to print. Best for a country or a continent, too coarse for one city.',
+  'journey.studio.mapSourceReliefHint':
+    'NASA shaded relief, free to print. Best for a country or a continent, too coarse for one city.',
   'journey.studio.mapSourceTiles': 'Map tiles',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Fetched when the page is rendered, and printed with its credit',
@@ -665,7 +672,8 @@ const journey: TranslationStrings = {
   'journey.entry.offRoute': 'Off route',
   'journey.entry.draft': 'Draft',
   'journey.editor.draft': 'Draft',
-  'journey.editor.draftHint': 'Only you and the other contributors see this entry. The shared journey leaves it out until you switch this off.',
+  'journey.editor.draftHint':
+    'Only you and the other contributors see this entry. The shared journey leaves it out until you switch this off.',
   'journey.editor.tripSuggestionHint': 'This day falls in this trip. Link it, and its places join this journey.',
   'journey.editor.tripSuggestionLater': 'Not now',
   'journey.suggestions.dismiss': 'Dismiss this suggestion',

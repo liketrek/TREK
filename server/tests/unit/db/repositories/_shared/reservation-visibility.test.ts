@@ -1,17 +1,24 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../../helpers/db-mock';
-import { resetTestDb } from '../../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
-import { createDayAccommodation, createPlace, createReservation, createTrip, createUser } from '../../../../helpers/factories';
 import { Reservations } from '../../../../../src/db/entities/Reservations.entity';
-import { updateRows } from '../../../../helpers/factories/rows';
-import { readTripDays } from '../../../../helpers/factories/trips';
 import {
   publicReservationCondition,
   publicReservationExpr,
   publicStayExists,
   type ReservationVisibilityKyselyDB,
 } from '../../../../../src/db/repositories/_shared/reservation-visibility';
+import { createSnapshotTestDb } from '../../../../helpers/db-mock';
+import {
+  createDayAccommodation,
+  createPlace,
+  createReservation,
+  createTrip,
+  createUser,
+} from '../../../../helpers/factories';
+import { updateRows } from '../../../../helpers/factories/rows';
+import { readTripDays } from '../../../../helpers/factories/trips';
+import { resetTestDb } from '../../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * The legacy string fragments this harness proves parity against
@@ -35,9 +42,17 @@ const publicStaySql = (alias = 'a'): string => `(
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
 
-beforeAll(async () => { t = await createTestOrm(testDb); });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 /**
  * R3's string-vs-predicate parity harness: seeds staged/live/mixed
@@ -59,7 +74,8 @@ describe('reservation-visibility parity (RV1: publicReservationCondition vs publ
     await updateRows(t, Reservations, { id: staged2.id }, { ingest_state: 'staged' });
 
     const platform = t.em.getPlatform();
-    const typed = await t.em.createQueryBuilder(Reservations, 'r')
+    const typed = await t.em
+      .createQueryBuilder(Reservations, 'r')
       .select(['r.id'])
       .where({ 'r.trip_id': trip.id, ...publicReservationCondition(platform, 'r') })
       .orderBy({ id: 'asc' })
@@ -81,7 +97,8 @@ describe('reservation-visibility parity (RV1: publicReservationCondition vs publ
     await updateRows(t, Reservations, { id: staged.id }, { ingest_state: 'staged' });
     const platform = t.em.getPlatform();
 
-    const typed = await t.em.createQueryBuilder(Reservations, 'r')
+    const typed = await t.em
+      .createQueryBuilder(Reservations, 'r')
       .select(['r.id'])
       .where({ 'r.trip_id': trip.id, ...publicReservationCondition(platform, 'r') })
       .execute<{ id: number }[]>('all', false);
@@ -102,7 +119,8 @@ describe('reservation-visibility parity (RV1: publicReservationCondition vs publ
     await updateRows(t, Reservations, { id: staged.id }, { ingest_state: 'staged' });
     const platform = t.em.getPlatform();
 
-    const typed = await t.em.createQueryBuilder(Reservations, 'vr')
+    const typed = await t.em
+      .createQueryBuilder(Reservations, 'vr')
       .select(['vr.id'])
       .where({ 'vr.trip_id': trip.id, ...publicReservationCondition(platform, 'vr') })
       .execute<{ id: number }[]>('all', false);
@@ -137,7 +155,8 @@ describe('reservation-visibility parity (RV1 Kysely form: publicReservationExpr 
     const staged = createReservation(testDb, trip.id, { title: 'Staged' });
     await updateRows(t, Reservations, { id: staged.id }, { ingest_state: 'staged' });
 
-    const typed = await t.em.getKysely<PublicReservationExprTestDB>()
+    const typed = await t.em
+      .getKysely<PublicReservationExprTestDB>()
       .selectFrom('reservations as r')
       .select('r.id')
       .where('r.trip_id', '=', trip.id)
@@ -170,7 +189,8 @@ describe('reservation-visibility parity (RV1 Kysely form: publicReservationExpr 
     const staged = createReservation(testDb, trip.id, { title: 'Staged' });
     await updateRows(t, Reservations, { id: staged.id }, { ingest_state: 'staged' });
 
-    const typed = await t.em.getKysely<PublicReservationExprTestDB>()
+    const typed = await t.em
+      .getKysely<PublicReservationExprTestDB>()
       .selectFrom('reservations as r')
       .select('r.id')
       .where('r.trip_id', '=', trip.id)
@@ -209,7 +229,8 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const days = await readTripDays(t, trip.id);
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -234,7 +255,8 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const booking = createReservation(testDb, trip.id, { title: 'Hotel', type: 'hotel' });
     await updateRows(t, Reservations, { id: booking.id }, { accommodation_id: String(stay.id) });
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -256,9 +278,15 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const days = await readTripDays(t, trip.id);
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
     const booking = createReservation(testDb, trip.id, { title: 'Hotel', type: 'hotel' });
-    await updateRows(t, Reservations, { id: booking.id }, { accommodation_id: String(stay.id), ingest_state: 'staged' });
+    await updateRows(
+      t,
+      Reservations,
+      { id: booking.id },
+      { accommodation_id: String(stay.id), ingest_state: 'staged' },
+    );
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -280,11 +308,17 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const days = await readTripDays(t, trip.id);
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
     const stagedBooking = createReservation(testDb, trip.id, { title: 'Staged copy', type: 'hotel' });
-    await updateRows(t, Reservations, { id: stagedBooking.id }, { accommodation_id: String(stay.id), ingest_state: 'staged' });
+    await updateRows(
+      t,
+      Reservations,
+      { id: stagedBooking.id },
+      { accommodation_id: String(stay.id), ingest_state: 'staged' },
+    );
     const liveBooking = createReservation(testDb, trip.id, { title: 'Live copy', type: 'hotel' });
     await updateRows(t, Reservations, { id: liveBooking.id }, { accommodation_id: String(stay.id) });
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -312,7 +346,8 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const booking = createReservation(testDb, trip.id, { title: 'Hotel', type: 'hotel' });
     await updateRows(t, Reservations, { id: booking.id }, { accommodation_id: `${stay.id}.0` });
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -339,9 +374,15 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     await updateRows(t, Reservations, { id: liveBooking.id }, { accommodation_id: String(liveLinked.id) });
     const stagedOnly = createDayAccommodation(testDb, trip.id, place.id, days[4].id, days[5].id);
     const stagedBooking = createReservation(testDb, trip.id, { title: 'Staged', type: 'hotel' });
-    await updateRows(t, Reservations, { id: stagedBooking.id }, { accommodation_id: String(stagedOnly.id), ingest_state: 'staged' });
+    await updateRows(
+      t,
+      Reservations,
+      { id: stagedBooking.id },
+      { accommodation_id: String(stagedOnly.id), ingest_state: 'staged' },
+    );
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -374,9 +415,15 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const days = await readTripDays(t, trip.id);
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
     const booking = createReservation(testDb, trip.id, { title: 'Staged prefix-numeric link', type: 'hotel' });
-    await updateRows(t, Reservations, { id: booking.id }, { accommodation_id: `${stay.id}abc`, ingest_state: 'staged' });
+    await updateRows(
+      t,
+      Reservations,
+      { id: booking.id },
+      { accommodation_id: `${stay.id}abc`, ingest_state: 'staged' },
+    );
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
@@ -406,7 +453,8 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
     const booking = createReservation(testDb, trip.id, { title: 'Staged padded link', type: 'hotel' });
     await updateRows(t, Reservations, { id: booking.id }, { accommodation_id: `${stay.id} `, ingest_state: 'staged' });
 
-    const typed = await t.em.getKysely<StayVisibilityTestDB>()
+    const typed = await t.em
+      .getKysely<StayVisibilityTestDB>()
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)

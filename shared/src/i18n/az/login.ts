@@ -3,7 +3,8 @@ import type { TranslationStrings } from '../types';
 const login: TranslationStrings = {
   'login.error': 'Giriş uğursuz oldu. Giriş məlumatlarınızı yoxlayın.',
   'login.tagline': 'Səyahətləriniz.\nPlanınız.',
-  'login.description': 'İnteraktiv xəritələr, büdcələr və real vaxt sinxronizasiyası ilə səyahətləri birlikdə planlaşdırın.',
+  'login.description':
+    'İnteraktiv xəritələr, büdcələr və real vaxt sinxronizasiyası ilə səyahətləri birlikdə planlaşdırın.',
   'login.title': 'Daxil ol',
   'login.subtitle': 'Yenidən xoş gəlmisiniz',
   'login.signingIn': 'Daxil olunur…',
@@ -59,7 +60,8 @@ const login: TranslationStrings = {
   'login.passwordsDontMatch': 'Parollar uyğun gəlmir',
   'login.mfaCode': '2FA kodu',
   'login.resetPasswordTitle': 'Yeni parol təyin et',
-  'login.resetPasswordBody': 'Əvvəllər burada istifadə etmədiyiniz güclü parol seçin. Parol ən azı 8 simvoldan ibarət olmalıdır.',
+  'login.resetPasswordBody':
+    'Əvvəllər burada istifadə etmədiyiniz güclü parol seçin. Parol ən azı 8 simvoldan ibarət olmalıdır.',
   'login.resetPasswordMfaBody': 'Sıfırlamanı tamamlamaq üçün 2FA kodunuzu və ya ehtiyat kodu daxil edin.',
   'login.resetPasswordSubmit': 'Parolu sıfırla',
   'login.resetPasswordVerify': 'Doğrula və sıfırla',

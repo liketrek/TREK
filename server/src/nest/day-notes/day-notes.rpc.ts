@@ -1,8 +1,8 @@
-import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
-import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
+import { asPayload, num } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DayNotesService } from './day-notes.service';
 
@@ -29,8 +29,10 @@ export class DayNotesRpc {
 
   @PluginMethod('daynotes.list', { permission: 'db:read:daynotes' })
   async list(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    return await this.guards.tripRead(params, ctx, async () =>
-      await this.dayNotes.list(num(params.dayId, 'dayId'), num(params.tripId, 'tripId')),
+    return await this.guards.tripRead(
+      params,
+      ctx,
+      async () => await this.dayNotes.list(num(params.dayId, 'dayId'), num(params.tripId, 'tripId')),
     );
   }
 
@@ -42,7 +44,8 @@ export class DayNotesRpc {
     const input = asPayload(params.input);
     if (typeof input.text !== 'string' || input.text.trim() === '') throw new BadParams('note text is required');
     await this.guards.requireTripEdit(tripId, actor, DAY_NOTE_EDIT_ACTION);
-    if (!(await this.dayNotes.dayExists(dayId, tripId))) throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
+    if (!(await this.dayNotes.dayExists(dayId, tripId)))
+      throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
     const i = input as DayNoteInput;
     const note = await this.dayNotes.create(dayId, tripId, i.text ?? '', i.time, i.icon, i.sort_order);
     this.realtime.broadcast(tripId, 'dayNote:created', { dayId, note }, undefined);

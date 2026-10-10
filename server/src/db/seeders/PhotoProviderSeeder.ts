@@ -1,7 +1,7 @@
-import type { EntityManager } from '@mikro-orm/core';
-import type { SqlEntityManager } from '@mikro-orm/sql';
-import { Seeder } from '@mikro-orm/seeder';
 import type { DB } from '../kysely/db';
+import type { EntityManager } from '@mikro-orm/core';
+import { Seeder } from '@mikro-orm/seeder';
+import type { SqlEntityManager } from '@mikro-orm/sql';
 
 interface PhotoProviderRow {
   id: string;
@@ -167,7 +167,14 @@ export class PhotoProviderSeeder extends Seeder {
     for (const p of PROVIDERS) {
       await db
         .insertInto('photo_providers')
-        .values({ id: p.id, name: p.name, description: p.description, icon: p.icon, enabled: p.enabled, sort_order: p.sort_order })
+        .values({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          icon: p.icon,
+          enabled: p.enabled,
+          sort_order: p.sort_order,
+        })
         .onConflict((oc) => oc.doNothing())
         .execute();
     }

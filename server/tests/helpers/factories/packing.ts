@@ -1,8 +1,8 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { PackingBags } from '../../../src/db/entities/PackingBags.entity';
 import { PackingItems } from '../../../src/db/entities/PackingItems.entity';
 import { inContext, nextSeq, type FactoryOrm } from './context';
 import { createRow } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type PackingItemRow = EntityDTO<PackingItems>;
 export type PackingBagRow = EntityDTO<PackingBags>;

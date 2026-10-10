@@ -1,9 +1,10 @@
+import { deriveApp } from '../../../src/app-config/derive';
+import { imageVersion, resetImageVersion } from '../../../src/app-config/image-version';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { deriveApp } from '../../../src/app-config/derive';
-import { imageVersion, resetImageVersion } from '../../../src/app-config/image-version';
 
 describe('imageVersion', () => {
   const dirs: string[] = [];

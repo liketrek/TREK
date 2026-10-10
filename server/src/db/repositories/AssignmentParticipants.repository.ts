@@ -1,5 +1,5 @@
-import type { AssignmentParticipants } from '../entities/AssignmentParticipants.entity';
 import { coalesce, columnRef } from '../dialect/sql-functions';
+import type { AssignmentParticipants } from '../entities/AssignmentParticipants.entity';
 import { TrekRepository } from './_shared/trek-repository';
 
 /** One assignment's participant, from `QueryHelpersService.loadParticipantsByAssignmentIds` (QH3). */

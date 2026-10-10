@@ -3,33 +3,7 @@
  * 1:1 with the SQL they cover when accommodations became their own domain; the
  * case ids are unchanged so the diff reads as a move. Real in-memory SQLite.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-
-  const { createSnapshotTestDb } = await import('../../helpers/db-mock');
-  const db = createSnapshotTestDb();
-    return {
-      db,
-      closeDb: () => {},
-      reinitialize: () => {},
-    };
-});
-
 import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAccommodation, createDayAssignment, addTripMember } from '../../helpers/factories';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
-import { makeAccommodationsService } from '../../helpers/accommodations-service';
-import { AccommodationsModule } from '../../../src/nest/accommodations/accommodations.module';
-import { AccommodationsDomainModule } from '../../../src/nest/accommodations/accommodations-domain.module';
-import { AccommodationsController } from '../../../src/nest/accommodations/accommodations.controller';
-import { expectRegisteredProvider, expectRegisteredController } from '../../helpers/module-providers';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestReservationsRepo } from '../../helpers/test-uow';
-import type { FilterQuery } from '@mikro-orm/core';
-import { sharedTestOrm } from '../../helpers/test-uow';
-import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { AssignmentParticipants } from '../../../src/db/entities/AssignmentParticipants.entity';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
@@ -38,8 +12,41 @@ import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
+import { AccommodationsDomainModule } from '../../../src/nest/accommodations/accommodations-domain.module';
+import { AccommodationsController } from '../../../src/nest/accommodations/accommodations.controller';
+import { AccommodationsModule } from '../../../src/nest/accommodations/accommodations.module';
+import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { makeAccommodationsService } from '../../helpers/accommodations-service';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createDayAccommodation,
+  createDayAssignment,
+  addTripMember,
+} from '../../helpers/factories';
+import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { expectRegisteredProvider, expectRegisteredController } from '../../helpers/module-providers';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestUnitOfWork, createTestAppSettingsRepo, createTestReservationsRepo } from '../../helpers/test-uow';
+import { sharedTestOrm } from '../../helpers/test-uow';
+import type { FilterQuery } from '@mikro-orm/core';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../helpers/db-mock');
+  const db = createSnapshotTestDb();
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+  };
+});
 
 const realtime = new FakeRealtimeService();
 const broadcast = realtime.broadcastMock;
@@ -53,26 +60,53 @@ async function linkedReservation(accommodationId: number) {
 
 /** Every booking linked to a stay. */
 async function linkedReservations(accommodationId: number) {
-  return findRows(await orm(), Reservations, { accommodation_id: legacyBoundIntegerText(accommodationId) }, { id: 'asc' });
+  return findRows(
+    await orm(),
+    Reservations,
+    { accommodation_id: legacyBoundIntegerText(accommodationId) },
+    { id: 'asc' },
+  );
 }
 
 /** How many bookings a stay holds. */
 async function linkedCount(accommodationId: number): Promise<{ n: number }> {
-  return { n: await countRows(await orm(), Reservations, { accommodation_id: legacyBoundIntegerText(accommodationId) }) };
+  return {
+    n: await countRows(await orm(), Reservations, { accommodation_id: legacyBoundIntegerText(accommodationId) }),
+  };
 }
 
 /** A second hotel booking on the same stay. */
 async function addSecondBooking(tripId: number, accommodationId: number): Promise<number> {
-  return insertRow(await orm(), Reservations, { trip: tripId, type: 'hotel', title: 'Second booking', accommodation_id: legacyBoundIntegerText(accommodationId) });
+  return insertRow(await orm(), Reservations, {
+    trip: tripId,
+    type: 'hotel',
+    title: 'Second booking',
+    accommodation_id: legacyBoundIntegerText(accommodationId),
+  });
 }
 
 /** An expense, optionally on a booking. */
-async function addExpense(tripId: number, name: string, category: string, totalPrice: number, reservationId: number | null): Promise<number> {
-  return insertRow(await orm(), BudgetItems, { trip: tripId, name, category, total_price: totalPrice, reservation: reservationId });
+async function addExpense(
+  tripId: number,
+  name: string,
+  category: string,
+  totalPrice: number,
+  reservationId: number | null,
+): Promise<number> {
+  return insertRow(await orm(), BudgetItems, {
+    trip: tripId,
+    name,
+    category,
+    total_price: totalPrice,
+    reservation: reservationId,
+  });
 }
 
 /** Sets columns on day assignments. */
-async function setStops(where: FilterQuery<DayAssignments>, data: Partial<Pick<DayAssignments, 'assignment_time' | 'order_index' | 'notes' | 'end_day'>>) {
+async function setStops(
+  where: FilterQuery<DayAssignments>,
+  data: Partial<Pick<DayAssignments, 'assignment_time' | 'order_index' | 'notes' | 'end_day'>>,
+) {
   await updateRows(await orm(), DayAssignments, where, data);
 }
 
@@ -162,7 +196,9 @@ describe('createAccommodation', () => {
     const place = createPlace(testDb, trip.id, { name: 'City Hotel' }) as any;
 
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as any;
 
     const reservation = await linkedReservation(accom.id);
@@ -180,7 +216,9 @@ describe('createAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
 
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: null as unknown as number, start_day_id: day.id, end_day_id: day.id,
+      place_id: null as unknown as number,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as any;
 
     expect(accom.place_name).toBeNull();
@@ -196,7 +234,7 @@ describe('getAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const accom = createDayAccommodation(testDb, trip.id, place.id, day.id, day.id) as any;
-    const found = await svc.getAccommodation(accom.id, trip.id) as any;
+    const found = (await svc.getAccommodation(accom.id, trip.id)) as any;
     expect(found).toBeDefined();
     expect(found.id).toBe(accom.id);
   });
@@ -214,7 +252,12 @@ describe('updateAccommodation', () => {
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id, { name: 'Hotel' });
-    await svc.createAccommodation(trip.id, { place_id: place.id, start_day_id: day.id, end_day_id: day.id, check_in: '14:00' });
+    await svc.createAccommodation(trip.id, {
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '14:00',
+    });
     const { id } = (await findRow(await orm(), DayAccommodations, { trip: trip.id }))!;
     const existing = (await svc.getAccommodation(id, trip.id))!;
     const reservations = await createTestReservationsRepo(testDb);
@@ -232,14 +275,18 @@ describe('updateAccommodation', () => {
     const day = createDay(testDb, trip.id) as { id: number };
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as { id: number };
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as { accommodation: { id: number } };
     const before = await linkedReservation(accom.id);
     await updateRows(await orm(), Reservations, { id: before.id }, { metadata: '{not json' });
 
     const existing = await svc.getAccommodation(accom.id, trip.id);
     if (!existing) throw new Error('accommodation not found');
-    await svc.updateAccommodation(accom.id, existing as Parameters<typeof svc.updateAccommodation>[1], { check_in: '16:00' });
+    await svc.updateAccommodation(accom.id, existing as Parameters<typeof svc.updateAccommodation>[1], {
+      check_in: '16:00',
+    });
 
     expect(JSON.parse((await linkedReservation(accom.id)).metadata)).toEqual({ check_in_time: '16:00' });
   });
@@ -250,11 +297,16 @@ describe('updateAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as any;
 
     const existing = (await svc.getAccommodation(accom.id, trip.id))!;
-    const { accommodation: updated } = (await svc.updateAccommodation(accom.id, existing as any, { check_in: '16:00', check_out: '12:00' })) as any;
+    const { accommodation: updated } = (await svc.updateAccommodation(accom.id, existing as any, {
+      check_in: '16:00',
+      check_out: '12:00',
+    })) as any;
     expect(updated).toBeDefined();
 
     // Verify linked reservation metadata was synced
@@ -271,14 +323,16 @@ describe('updateAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
       confirmation: 'ABC123',
     })) as any;
 
     const existing = (await svc.getAccommodation(accom.id, trip.id))!;
     await svc.updateAccommodation(accom.id, existing as any, { check_in: '14:00' });
 
-    const row = await svc.getAccommodation(accom.id, trip.id) as any;
+    const row = (await svc.getAccommodation(accom.id, trip.id)) as any;
     expect(row.confirmation).toBe('ABC123');
   });
 
@@ -293,7 +347,9 @@ describe('updateAccommodation', () => {
     const accom = createDayAccommodation(testDb, trip.id, place.id, day.id, day.id) as any;
 
     const existing = (await svc.getAccommodation(accom.id, trip.id))!;
-    const { accommodation: updated } = (await svc.updateAccommodation(accom.id, existing as any, { check_in: '15:00' })) as any;
+    const { accommodation: updated } = (await svc.updateAccommodation(accom.id, existing as any, {
+      check_in: '15:00',
+    })) as any;
 
     expect(updated.check_in).toBe('15:00');
     expect(await linkedCount(accom.id)).toMatchObject({ n: 0 });
@@ -308,7 +364,10 @@ describe('updateAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id, check_in: '15:00',
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '15:00',
     })) as any;
 
     const existing = (await svc.getAccommodation(accom.id, trip.id))!;
@@ -316,7 +375,9 @@ describe('updateAccommodation', () => {
 
     const reservation = (await linkedReservation(accom.id))!;
     expect(JSON.parse(reservation.metadata)).toEqual({
-      check_in_time: '15:00', check_in_end_time: '20:00', check_out_time: '11:00',
+      check_in_time: '15:00',
+      check_in_end_time: '20:00',
+      check_out_time: '11:00',
     });
   });
 
@@ -328,9 +389,16 @@ describe('updateAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as any;
-    await updateRows(await orm(), Reservations, { accommodation_id: legacyBoundIntegerText(accom.id) }, { confirmation_number: 'RES-9' });
+    await updateRows(
+      await orm(),
+      Reservations,
+      { accommodation_id: legacyBoundIntegerText(accom.id) },
+      { confirmation_number: 'RES-9' },
+    );
 
     const existing = (await svc.getAccommodation(accom.id, trip.id))!;
     await svc.updateAccommodation(accom.id, existing as any, { check_in: '15:00' });
@@ -339,18 +407,25 @@ describe('updateAccommodation', () => {
     expect(reservation.confirmation_number).toBe('RES-9');
   });
 
-  it('H1 (Plan 3h Task 7 review): a new confirmation on the stay OVERRIDES the linked reservation\'s existing, different confirmation — the new value wins, matching legacy COALESCE(?, confirmation_number)', async () => {
+  it("H1 (Plan 3h Task 7 review): a new confirmation on the stay OVERRIDES the linked reservation's existing, different confirmation — the new value wins, matching legacy COALESCE(?, confirmation_number)", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as any;
     // The linked reservation already carries a DIFFERENT, non-null confirmation —
     // if the stay-side update used `coalesceParam`'s (existing-wins) direction
     // instead of `coalesceOverride`'s (new-wins), it would keep this value.
-    await updateRows(await orm(), Reservations, { accommodation_id: legacyBoundIntegerText(accom.id) }, { confirmation_number: 'RES-OLD' });
+    await updateRows(
+      await orm(),
+      Reservations,
+      { accommodation_id: legacyBoundIntegerText(accom.id) },
+      { confirmation_number: 'RES-OLD' },
+    );
 
     const existing = (await svc.getAccommodation(accom.id, trip.id))!;
     await svc.updateAccommodation(accom.id, existing as any, { confirmation: 'ACC-CHANGED' });
@@ -367,7 +442,9 @@ describe('deleteAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as any;
 
     const reservation = (await linkedReservation(accom.id))!;
@@ -406,7 +483,9 @@ describe('deleteAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as any;
 
     const reservation = (await linkedReservation(accom.id))!;
@@ -419,7 +498,13 @@ describe('deleteAccommodation', () => {
       deletedBudgetItemId: budgetItemId,
       linkedReservationIds: [reservation.id],
       deletedBudgetItemIds: [budgetItemId],
-      mirror: { created: null, moved: null, updated: [], removed: [{ id: expect.any(Number), dayId: day.id }], stamped: null },
+      mirror: {
+        created: null,
+        moved: null,
+        updated: [],
+        removed: [{ id: expect.any(Number), dayId: day.id }],
+        stamped: null,
+      },
     });
     expect(await findRow(await orm(), BudgetItems, { id: budgetItemId })).toBeNull();
   });
@@ -432,11 +517,14 @@ describe('deleteAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as any;
     const first = (await linkedReservation(accom.id))!;
     const second = await addSecondBooking(trip.id, accom.id);
-    const expense = (reservationId: number | null, name: string) => addExpense(trip.id, name, 'accommodation', 50, reservationId);
+    const expense = (reservationId: number | null, name: string) =>
+      addExpense(trip.id, name, 'accommodation', 50, reservationId);
     const room = await expense(first.id, 'Room');
     const breakfast = await expense(first.id, 'Breakfast');
     const parking = await expense(second, 'Parking');
@@ -446,7 +534,9 @@ describe('deleteAccommodation', () => {
 
     expect(result.deletedBudgetItemIds).toEqual([room, breakfast, parking]);
     expect(result.deletedBudgetItemId).toBe(room);
-    expect((await findRows(await orm(), BudgetItems, { trip: trip.id }, { id: 'asc' })).map(row => ({ id: row.id }))).toEqual([{ id: unrelated }]);
+    expect(
+      (await findRows(await orm(), BudgetItems, { trip: trip.id }, { id: 'asc' })).map((row) => ({ id: row.id })),
+    ).toEqual([{ id: unrelated }]);
   });
 
   it('ACC-010 — a second booking pointed at the same stay goes too, instead of being orphaned', async () => {
@@ -458,7 +548,9 @@ describe('deleteAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as any;
 
     const first = (await linkedReservation(accom.id))!;
@@ -477,12 +569,17 @@ describe('deleteAccommodation', () => {
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as any;
     await addSecondBooking(trip.id, accom.id);
 
     const existing = (await findRow(await orm(), DayAccommodations, { id: accom.id }))!;
-    await svc.updateAccommodation(accom.id, existing as Parameters<typeof svc.updateAccommodation>[1], { check_in: '15:00', check_out: '11:00' });
+    await svc.updateAccommodation(accom.id, existing as Parameters<typeof svc.updateAccommodation>[1], {
+      check_in: '15:00',
+      check_out: '11:00',
+    });
 
     const rows = await linkedReservations(accom.id);
     expect(rows).toHaveLength(2);
@@ -499,7 +596,7 @@ describe('listAccommodations', () => {
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id, { name: 'Ryokan' });
     createDayAccommodation(testDb, trip.id, place.id, day.id, day.id);
-    const rows = await svc.listAccommodations(trip.id) as { place_name: string }[];
+    const rows = (await svc.listAccommodations(trip.id)) as { place_name: string }[];
     expect(rows).toHaveLength(1);
     expect(rows[0].place_name).toBe('Ryokan');
   });
@@ -512,7 +609,9 @@ describe('quirk fixes', () => {
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id, { name: 'Hotel' });
     const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
     })) as { accommodation: { id: number } };
     testDb.exec("CREATE TRIGGER boom BEFORE DELETE ON day_accommodations BEGIN SELECT RAISE(ABORT, 'boom'); END");
     try {
@@ -539,7 +638,7 @@ describe('route-facing delegators', () => {
     createDayAccommodation(testDb, trip.id, place.id, day.id, day.id);
 
     expect(await svc.list(String(trip.id))).toEqual(await svc.listAccommodations(trip.id));
-    expect((await svc.list(trip.id) as any[])[0].place_name).toBe('Pension Alpen');
+    expect(((await svc.list(trip.id)) as any[])[0].place_name).toBe('Pension Alpen');
   });
 
   it('ACC-011 — validateRefs() returns the same errors validateAccommodationRefs() does', async () => {
@@ -550,7 +649,9 @@ describe('route-facing delegators', () => {
 
     expect(await svc.validateRefs(trip.id, place.id, day.id, day.id)).toHaveLength(0);
     // The controller 404s with errors[0].message, so the shape matters, not just the count.
-    expect(await svc.validateRefs(trip.id, 99999, day.id, day.id)).toEqual([{ field: 'place_id', message: 'Place not found' }]);
+    expect(await svc.validateRefs(trip.id, 99999, day.id, day.id)).toEqual([
+      { field: 'place_id', message: 'Place not found' },
+    ]);
   });
 
   it('ACC-012 — create() writes the stay, get() reads it back trip-scoped', async () => {
@@ -562,7 +663,10 @@ describe('route-facing delegators', () => {
 
     // Both ids arrive from the route as strings.
     const { accommodation: created } = (await svc.create(String(trip.id), {
-      place_id: place.id, start_day_id: day.id, end_day_id: day.id, confirmation: 'XY-1',
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      confirmation: 'XY-1',
     })) as any;
 
     expect(await svc.get(String(created.id), String(trip.id))).toMatchObject({ id: created.id, confirmation: 'XY-1' });
@@ -577,10 +681,17 @@ describe('route-facing delegators', () => {
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
-    const { accommodation: accom } = (await svc.create(trip.id, { place_id: place.id, start_day_id: day.id, end_day_id: day.id })) as any;
+    const { accommodation: accom } = (await svc.create(trip.id, {
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+    })) as any;
 
     const existing = (await svc.get(accom.id, trip.id))!;
-    const { accommodation: updated } = (await svc.update(String(accom.id), existing as any, { check_in: '16:00', notes: 'late arrival' })) as any;
+    const { accommodation: updated } = (await svc.update(String(accom.id), existing as any, {
+      check_in: '16:00',
+      notes: 'late arrival',
+    })) as any;
 
     expect(updated).toMatchObject({ check_in: '16:00', notes: 'late arrival' });
     const reservation = (await linkedReservation(accom.id))!;
@@ -592,7 +703,11 @@ describe('route-facing delegators', () => {
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id) as any;
     const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as any;
-    const { accommodation: accom } = (await svc.create(trip.id, { place_id: place.id, start_day_id: day.id, end_day_id: day.id })) as any;
+    const { accommodation: accom } = (await svc.create(trip.id, {
+      place_id: place.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+    })) as any;
     const reservation = (await linkedReservation(accom.id))!;
 
     // The controller broadcasts reservation:deleted off this return value.
@@ -601,7 +716,13 @@ describe('route-facing delegators', () => {
       deletedBudgetItemId: null,
       linkedReservationIds: [reservation.id],
       deletedBudgetItemIds: [],
-      mirror: { created: null, moved: null, updated: [], removed: [{ id: expect.any(Number), dayId: day.id }], stamped: null },
+      mirror: {
+        created: null,
+        moved: null,
+        updated: [],
+        removed: [{ id: expect.any(Number), dayId: day.id }],
+        stamped: null,
+      },
     });
     expect(await svc.get(accom.id, trip.id)).toBeUndefined();
   });
@@ -652,7 +773,10 @@ describe('trip access and edit permission', () => {
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
-    const permissions = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
+    const permissions = new PermissionsService(
+      await createTestAppSettingsRepo(testDb),
+      await createTestUnitOfWork(testDb),
+    );
 
     try {
       await permissions.savePermissions({ day_edit: 'trip_owner' });
@@ -688,11 +812,19 @@ describe('trip access and edit permission', () => {
  */
 describe('the day stop a booking implies', () => {
   const stopsOn = async (dayId: number) =>
-    (await findRows(await orm(), DayAssignments, { day: dayId }, { order_index: 'asc' }))
-      .map(row => ({ id: row.id, place_id: row.place_id, order_index: row.order_index, accommodation_id: row.accommodation_id ?? null }));
+    (await findRows(await orm(), DayAssignments, { day: dayId }, { order_index: 'asc' })).map((row) => ({
+      id: row.id,
+      place_id: row.place_id,
+      order_index: row.order_index,
+      accommodation_id: row.accommodation_id ?? null,
+    }));
 
   const book = async (tripId: number, placeId: number | null, startDayId: number, endDayId: number) =>
-    (await svc.createAccommodation(tripId, { place_id: placeId as number, start_day_id: startDayId, end_day_id: endDayId })) as any;
+    (await svc.createAccommodation(tripId, {
+      place_id: placeId as number,
+      start_day_id: startDayId,
+      end_day_id: endDayId,
+    })) as any;
 
   it('ACC-021 the booked night puts its place on the check-in day and marks the stop as its own', async () => {
     const { user } = createUser(testDb);
@@ -702,7 +834,7 @@ describe('the day stop a booking implies', () => {
 
     const { accommodation, mirror } = await book(trip.id, place.id, day.id, day.id);
 
-    const stops = (await stopsOn(day.id));
+    const stops = await stopsOn(day.id);
     expect(stops).toHaveLength(1);
     expect(stops[0]).toMatchObject({ place_id: place.id, accommodation_id: accommodation.id });
     expect(mirror.created).toMatchObject({ id: stops[0].id, day_id: day.id, place_id: place.id });
@@ -726,8 +858,8 @@ describe('the day stop a booking implies', () => {
 
     await book(trip.id, hotel.id, day.id, day.id);
 
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([hotel.id, museum.id]);
-    expect((await stopsOn(day.id)).map(a => a.order_index)).toEqual([0, 1]);
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([hotel.id, museum.id]);
+    expect((await stopsOn(day.id)).map((a) => a.order_index)).toEqual([0, 1]);
   });
 
   it('ACC-022b a check-in puts the night before whatever is pinned to a later hour', async () => {
@@ -740,9 +872,14 @@ describe('the day stop a booking implies', () => {
     const pinned = createDayAssignment(testDb, day.id, afternoon.id);
     await setStops({ id: pinned.id }, { assignment_time: '16:00' });
 
-    await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '11:00' });
+    await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '11:00',
+    });
 
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([hotel.id, afternoon.id]);
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([hotel.id, afternoon.id]);
   });
 
   it('ACC-022c a stop pinned to an earlier hour stays ahead of the check-in', async () => {
@@ -754,9 +891,14 @@ describe('the day stop a booking implies', () => {
     const pinned = createDayAssignment(testDb, day.id, morning.id);
     await setStops({ id: pinned.id }, { assignment_time: '09:00' });
 
-    await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '18:00' });
+    await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '18:00',
+    });
 
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([morning.id, hotel.id]);
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([morning.id, hotel.id]);
   });
 
   it('ACC-022d a stop without an hour of its own follows the night, whatever the check-in', async () => {
@@ -772,9 +914,14 @@ describe('the day stop a booking implies', () => {
     createDayAssignment(testDb, day.id, fuel.id);
     createDayAssignment(testDb, day.id, farm.id);
 
-    await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '10:00' });
+    await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '10:00',
+    });
 
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([hotel.id, fuel.id, farm.id]);
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([hotel.id, fuel.id, farm.id]);
   });
 
   it('ACC-022f the night goes behind the last stop whose own hour is at or before the check-in', async () => {
@@ -783,45 +930,61 @@ describe('the day stop a booking implies', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
-    const [early, loose, late, hotel] = ['Aral', 'Hafen', 'Museum', 'Rostock'].map(name => createPlace(testDb, trip.id, { name }));
+    const [early, loose, late, hotel] = ['Aral', 'Hafen', 'Museum', 'Rostock'].map((name) =>
+      createPlace(testDb, trip.id, { name }),
+    );
     const first = createDayAssignment(testDb, day.id, early.id);
     createDayAssignment(testDb, day.id, loose.id);
     const third = createDayAssignment(testDb, day.id, late.id);
     await setStops({ id: first.id }, { assignment_time: '08:00' });
     await setStops({ id: third.id }, { assignment_time: '14:00' });
 
-    await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '10:00' });
+    await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '10:00',
+    });
 
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([early.id, hotel.id, loose.id, late.id]);
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([early.id, hotel.id, loose.id, late.id]);
   });
 
   it('ACC-022g a new check-in seats the night afresh, a change of notes leaves a dragged night alone', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
-    const [harbour, market, hotel] = ['Hafen', 'Markt', 'Rostock'].map(name => createPlace(testDb, trip.id, { name }));
+    const [harbour, market, hotel] = ['Hafen', 'Markt', 'Rostock'].map((name) =>
+      createPlace(testDb, trip.id, { name }),
+    );
     createDayAssignment(testDb, day.id, harbour.id);
     createDayAssignment(testDb, day.id, market.id);
-    const { accommodation } = (await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id })) as any;
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([hotel.id, harbour.id, market.id]);
+    const { accommodation } = (await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+    })) as any;
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([hotel.id, harbour.id, market.id]);
 
     // Dragged to the end of the day by hand.
-    const own = (await stopsOn(day.id)).find(a => a.place_id === hotel.id)!;
-    for (const later of await findRows(await orm(), DayAssignments, { day: day.id, order_index: { $gt: own.order_index } })) {
+    const own = (await stopsOn(day.id)).find((a) => a.place_id === hotel.id)!;
+    for (const later of await findRows(await orm(), DayAssignments, {
+      day: day.id,
+      order_index: { $gt: own.order_index },
+    })) {
       await setStops({ id: later.id }, { order_index: later.order_index - 1 });
     }
     await setStops({ id: own.id }, { order_index: 2 });
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([harbour.id, market.id, hotel.id]);
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([harbour.id, market.id, hotel.id]);
 
     let existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
     const quiet = (await svc.updateAccommodation(accommodation.id, existing, { notes: 'late arrival' })) as any;
     expect(quiet.mirror.moved).toBeNull();
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([harbour.id, market.id, hotel.id]);
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([harbour.id, market.id, hotel.id]);
 
     existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
     const reseated = (await svc.updateAccommodation(accommodation.id, existing, { check_in: '10:00' })) as any;
     expect(reseated.mirror.moved).toMatchObject({ oldDayId: day.id, assignment: { id: own.id } });
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([hotel.id, harbour.id, market.id]);
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([hotel.id, harbour.id, market.id]);
   });
 
   it('ACC-022e moving the check-in later re-seats the night', async () => {
@@ -833,28 +996,46 @@ describe('the day stop a booking implies', () => {
     const pinned = createDayAssignment(testDb, day.id, afternoon.id);
     await setStops({ id: pinned.id }, { assignment_time: '16:00' });
     const { accommodation } = (await svc.createAccommodation(trip.id, {
-      place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '11:00',
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '11:00',
     })) as any;
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([hotel.id, afternoon.id]);
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([hotel.id, afternoon.id]);
 
     const existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
     await svc.updateAccommodation(accommodation.id, existing, { check_in: '20:00' });
 
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([afternoon.id, hotel.id]);
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([afternoon.id, hotel.id]);
   });
 
   it('ACC-022i a second night on the day counts by its check-in', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
-    const [noon, morning] = ['Rue de Paris', 'Brandenburger Tor'].map(name => createPlace(testDb, trip.id, { name }));
-    await svc.createAccommodation(trip.id, { place_id: noon.id, start_day_id: day.id, end_day_id: day.id, check_in: '12:00' });
-    await svc.createAccommodation(trip.id, { place_id: morning.id, start_day_id: day.id, end_day_id: day.id, check_in: '10:00' });
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([morning.id, noon.id]);
+    const [noon, morning] = ['Rue de Paris', 'Brandenburger Tor'].map((name) => createPlace(testDb, trip.id, { name }));
+    await svc.createAccommodation(trip.id, {
+      place_id: noon.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '12:00',
+    });
+    await svc.createAccommodation(trip.id, {
+      place_id: morning.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '10:00',
+    });
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([morning.id, noon.id]);
 
     const evening = createPlace(testDb, trip.id, { name: 'Late' });
-    await svc.createAccommodation(trip.id, { place_id: evening.id, start_day_id: day.id, end_day_id: day.id, check_in: '18:00' });
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([morning.id, noon.id, evening.id]);
+    await svc.createAccommodation(trip.id, {
+      place_id: evening.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '18:00',
+    });
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([morning.id, noon.id, evening.id]);
   });
 
   it('ACC-022h an edit that leaves the check-in alone still corrects a night the clocks contradict', async () => {
@@ -865,28 +1046,39 @@ describe('the day stop a booking implies', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
-    const [harbour, museum, hotel] = ['Hafen', 'Museum', 'Rostock'].map(name => createPlace(testDb, trip.id, { name }));
+    const [harbour, museum, hotel] = ['Hafen', 'Museum', 'Rostock'].map((name) =>
+      createPlace(testDb, trip.id, { name }),
+    );
     createDayAssignment(testDb, day.id, harbour.id);
     const pinned = createDayAssignment(testDb, day.id, museum.id);
     await setStops({ id: pinned.id }, { assignment_time: '14:00' });
-    const { accommodation } = (await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '10:00' })) as any;
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([hotel.id, harbour.id, museum.id]);
-    const own = (await stopsOn(day.id)).find(a => a.place_id === hotel.id)!;
+    const { accommodation } = (await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '10:00',
+    })) as any;
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([hotel.id, harbour.id, museum.id]);
+    const own = (await stopsOn(day.id)).find((a) => a.place_id === hotel.id)!;
 
     // Behind the harbour only: allowed, and left alone.
     await setStops({ day: day.id, place: harbour.id }, { order_index: 0 });
     await setStops({ id: own.id }, { order_index: 1 });
     let existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
-    expect(((await svc.updateAccommodation(accommodation.id, existing, { notes: 'late' })) as any).mirror.moved).toBeNull();
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([harbour.id, hotel.id, museum.id]);
+    expect(
+      ((await svc.updateAccommodation(accommodation.id, existing, { notes: 'late' })) as any).mirror.moved,
+    ).toBeNull();
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([harbour.id, hotel.id, museum.id]);
 
     // Behind the afternoon: contradicted by the clocks, and seated afresh, which is
     // the front, ahead of the harbour that has no hour of its own.
     await setStops({ day: day.id, place: museum.id }, { order_index: 1 });
     await setStops({ id: own.id }, { order_index: 2 });
     existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
-    expect(((await svc.updateAccommodation(accommodation.id, existing, { notes: 'later' })) as any).mirror.moved).not.toBeNull();
-    expect((await stopsOn(day.id)).map(a => a.place_id)).toEqual([hotel.id, harbour.id, museum.id]);
+    expect(
+      ((await svc.updateAccommodation(accommodation.id, existing, { notes: 'later' })) as any).mirror.moved,
+    ).not.toBeNull();
+    expect((await stopsOn(day.id)).map((a) => a.place_id)).toEqual([hotel.id, harbour.id, museum.id]);
   });
 
   it('ACC-022j two nights with the same check-in settle by their booking and stay settled through a change of notes', async () => {
@@ -896,44 +1088,74 @@ describe('the day stop a booking implies', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
-    const [first, second] = ['Adlon', 'Mercure'].map(name => createPlace(testDb, trip.id, { name }));
-    const a = await svc.createAccommodation(trip.id, { place_id: first.id, start_day_id: day.id, end_day_id: day.id, check_in: '15:00' }) as any;
-    const b = await svc.createAccommodation(trip.id, { place_id: second.id, start_day_id: day.id, end_day_id: day.id, check_in: '15:00' }) as any;
-    expect((await stopsOn(day.id)).map(s => s.place_id)).toEqual([first.id, second.id]);
-    const between = await insertRow(await orm(), RoadtripVias, { day: day.id, after_order_index: 0, sequence: 0, lat: 52.5, lng: 13.4 });
+    const [first, second] = ['Adlon', 'Mercure'].map((name) => createPlace(testDb, trip.id, { name }));
+    const a = (await svc.createAccommodation(trip.id, {
+      place_id: first.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '15:00',
+    })) as any;
+    const b = (await svc.createAccommodation(trip.id, {
+      place_id: second.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '15:00',
+    })) as any;
+    expect((await stopsOn(day.id)).map((s) => s.place_id)).toEqual([first.id, second.id]);
+    const between = await insertRow(await orm(), RoadtripVias, {
+      day: day.id,
+      after_order_index: 0,
+      sequence: 0,
+      lat: 52.5,
+      lng: 13.4,
+    });
 
     for (const booked of [a, b]) {
       const existing = (await svc.getAccommodation(booked.accommodation.id, trip.id))!;
-      const quiet = await svc.updateAccommodation(booked.accommodation.id, existing, { notes: 'late arrival' }) as any;
+      const quiet = (await svc.updateAccommodation(booked.accommodation.id, existing, {
+        notes: 'late arrival',
+      })) as any;
       expect(quiet.mirror.moved).toBeNull();
       expect(quiet.mirror.vias).toBeUndefined();
     }
-    expect((await stopsOn(day.id)).map(s => s.place_id)).toEqual([first.id, second.id]);
-    expect({ after_order_index: (await findRow(await orm(), RoadtripVias, { id: between }))!.after_order_index }).toEqual({ after_order_index: 0 });
+    expect((await stopsOn(day.id)).map((s) => s.place_id)).toEqual([first.id, second.id]);
+    expect({
+      after_order_index: (await findRow(await orm(), RoadtripVias, { id: between }))!.after_order_index,
+    }).toEqual({ after_order_index: 0 });
 
     // Dragged the other way round on purpose: an equal clock is no contradiction.
     await setStops({ day: day.id, place: first.id }, { order_index: 1 });
     await setStops({ day: day.id, place: { $ne: first.id } }, { order_index: 0 });
     for (const booked of [a, b]) {
       const existing = (await svc.getAccommodation(booked.accommodation.id, trip.id))!;
-      expect((await svc.updateAccommodation(booked.accommodation.id, existing, { notes: 'later' }) as any).mirror.moved).toBeNull();
+      expect(
+        ((await svc.updateAccommodation(booked.accommodation.id, existing, { notes: 'later' })) as any).mirror.moved,
+      ).toBeNull();
     }
-    expect((await stopsOn(day.id)).map(s => s.place_id)).toEqual([second.id, first.id]);
+    expect((await stopsOn(day.id)).map((s) => s.place_id)).toEqual([second.id, first.id]);
   });
 
   it('ACC-022k two nights without a check-in: the earlier booking leads', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
-    const [museum, first, second] = ['Pergamon', 'Adlon', 'Mercure'].map(name => createPlace(testDb, trip.id, { name }));
+    const [museum, first, second] = ['Pergamon', 'Adlon', 'Mercure'].map((name) =>
+      createPlace(testDb, trip.id, { name }),
+    );
     createDayAssignment(testDb, day.id, museum.id);
     await svc.createAccommodation(trip.id, { place_id: first.id, start_day_id: day.id, end_day_id: day.id });
-    const b = await svc.createAccommodation(trip.id, { place_id: second.id, start_day_id: day.id, end_day_id: day.id }) as any;
+    const b = (await svc.createAccommodation(trip.id, {
+      place_id: second.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+    })) as any;
 
-    expect((await stopsOn(day.id)).map(s => s.place_id)).toEqual([first.id, second.id, museum.id]);
+    expect((await stopsOn(day.id)).map((s) => s.place_id)).toEqual([first.id, second.id, museum.id]);
     const existing = (await svc.getAccommodation(b.accommodation.id, trip.id))!;
-    expect((await svc.updateAccommodation(b.accommodation.id, existing, { notes: 'late' }) as any).mirror.moved).toBeNull();
-    expect((await stopsOn(day.id)).map(s => s.place_id)).toEqual([first.id, second.id, museum.id]);
+    expect(
+      ((await svc.updateAccommodation(b.accommodation.id, existing, { notes: 'late' })) as any).mirror.moved,
+    ).toBeNull();
+    expect((await stopsOn(day.id)).map((s) => s.place_id)).toEqual([first.id, second.id, museum.id]);
   });
 
   it('ACC-022l a night on a day dragged out of clock order is settled where a fresh seat puts it', async () => {
@@ -943,17 +1165,22 @@ describe('the day stop a booking implies', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
-    const [late, early, hotel] = ['Museum', 'Aral', 'Rostock'].map(name => createPlace(testDb, trip.id, { name }));
+    const [late, early, hotel] = ['Museum', 'Aral', 'Rostock'].map((name) => createPlace(testDb, trip.id, { name }));
     await setStops({ id: createDayAssignment(testDb, day.id, late.id).id }, { assignment_time: '14:00' });
     await setStops({ id: createDayAssignment(testDb, day.id, early.id).id }, { assignment_time: '08:00' });
-    const { accommodation } = await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '10:00' }) as any;
-    expect((await stopsOn(day.id)).map(s => s.place_id)).toEqual([late.id, early.id, hotel.id]);
+    const { accommodation } = (await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '10:00',
+    })) as any;
+    expect((await stopsOn(day.id)).map((s) => s.place_id)).toEqual([late.id, early.id, hotel.id]);
 
     const existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
-    const quiet = await svc.updateAccommodation(accommodation.id, existing, { notes: 'late arrival' }) as any;
+    const quiet = (await svc.updateAccommodation(accommodation.id, existing, { notes: 'late arrival' })) as any;
 
     expect(quiet.mirror.moved).toBeNull();
-    expect((await stopsOn(day.id)).map(s => s.place_id)).toEqual([late.id, early.id, hotel.id]);
+    expect((await stopsOn(day.id)).map((s) => s.place_id)).toEqual([late.id, early.id, hotel.id]);
   });
 
   it('ACC-023 the place is typed as lodging, so the rail draws it as a service stop', async () => {
@@ -996,7 +1223,7 @@ describe('the day stop a booking implies', () => {
 
     const { mirror } = await book(trip.id, place.id, day.id, day.id);
 
-    expect((await stopsOn(day.id))).toEqual([expect.objectContaining({ id: own.id, accommodation_id: null })]);
+    expect(await stopsOn(day.id)).toEqual([expect.objectContaining({ id: own.id, accommodation_id: null })]);
     expect(mirror.created).toBeNull();
   });
 
@@ -1012,9 +1239,9 @@ describe('the day stop a booking implies', () => {
 
     await book(trip.id, place.id, arrive.id, leave.id);
 
-    expect((await stopsOn(arrive.id))).toHaveLength(1);
-    expect((await stopsOn(middle.id))).toHaveLength(0);
-    expect((await stopsOn(leave.id))).toHaveLength(0);
+    expect(await stopsOn(arrive.id)).toHaveLength(1);
+    expect(await stopsOn(middle.id)).toHaveLength(0);
+    expect(await stopsOn(leave.id)).toHaveLength(0);
   });
 
   it('ACC-027 a stay with no place writes no stop instead of throwing', async () => {
@@ -1027,7 +1254,7 @@ describe('the day stop a booking implies', () => {
     const { mirror } = await book(trip.id, null, day.id, day.id);
 
     expect(mirror).toEqual({ created: null, moved: null, updated: [], removed: [], stamped: null });
-    expect((await stopsOn(day.id))).toHaveLength(0);
+    expect(await stopsOn(day.id)).toHaveLength(0);
   });
 
   it('ACC-028 moving the booking to another day moves its stop with it', async () => {
@@ -1040,12 +1267,17 @@ describe('the day stop a booking implies', () => {
     const before = (await stopsOn(day1.id))[0];
 
     const existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
-    const { mirror } = (await svc.updateAccommodation(accommodation.id, existing, { start_day_id: day2.id, end_day_id: day2.id })) as any;
+    const { mirror } = (await svc.updateAccommodation(accommodation.id, existing, {
+      start_day_id: day2.id,
+      end_day_id: day2.id,
+    })) as any;
 
-    expect((await stopsOn(day1.id))).toHaveLength(0);
+    expect(await stopsOn(day1.id)).toHaveLength(0);
     // The same row, carried over. Not a delete and a fresh insert: everything the
     // traveller hung on this stop is keyed by its id.
-    expect((await stopsOn(day2.id))).toEqual([expect.objectContaining({ id: before.id, place_id: place.id, accommodation_id: accommodation.id })]);
+    expect(await stopsOn(day2.id)).toEqual([
+      expect.objectContaining({ id: before.id, place_id: place.id, accommodation_id: accommodation.id }),
+    ]);
     expect(mirror.removed).toEqual([]);
     expect(mirror.created).toBeNull();
     expect(mirror.moved).toMatchObject({ oldDayId: day1.id, assignment: { id: before.id, day_id: day2.id } });
@@ -1065,7 +1297,12 @@ describe('the day stop a booking implies', () => {
     await svc.updateAccommodation(accommodation.id, existing, { start_day_id: day2.id, end_day_id: day2.id });
 
     const after = (await findRow(await orm(), DayAssignments, { id: stop.id }))!;
-    expect(after).toMatchObject({ day_id: day2.id, notes: 'ask for the quiet side', assignment_time: '15:30', end_day: 1 });
+    expect(after).toMatchObject({
+      day_id: day2.id,
+      notes: 'ask for the quiet side',
+      assignment_time: '15:30',
+      end_day: 1,
+    });
   });
 
   it('ACC-028c moving the booking keeps the people assigned to the stop', async () => {
@@ -1083,7 +1320,9 @@ describe('the day stop a booking implies', () => {
     const existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
     await svc.updateAccommodation(accommodation.id, existing, { start_day_id: day2.id, end_day_id: day2.id });
 
-    const kept = (await findRows(await orm(), AssignmentParticipants, { assignment: stop.id })).map(row => ({ user_id: row.user_id }));
+    const kept = (await findRows(await orm(), AssignmentParticipants, { assignment: stop.id })).map((row) => ({
+      user_id: row.user_id,
+    }));
     expect(kept).toEqual([{ user_id: user.id }]);
   });
 
@@ -1098,9 +1337,12 @@ describe('the day stop a booking implies', () => {
     const byHand = createDayAssignment(testDb, day2.id, place.id) as { id: number };
 
     const existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
-    const { mirror } = (await svc.updateAccommodation(accommodation.id, existing, { start_day_id: day2.id, end_day_id: day2.id })) as any;
+    const { mirror } = (await svc.updateAccommodation(accommodation.id, existing, {
+      start_day_id: day2.id,
+      end_day_id: day2.id,
+    })) as any;
 
-    expect((await stopsOn(day1.id))).toHaveLength(0);
+    expect(await stopsOn(day1.id)).toHaveLength(0);
     expect((await stopsOn(day2.id)).map((row: { id: number }) => row.id)).toEqual([byHand.id]);
     expect(mirror.removed).toEqual([{ id: own.id, dayId: day1.id }]);
     expect(mirror.moved).toBeNull();
@@ -1128,12 +1370,12 @@ describe('the day stop a booking implies', () => {
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id, { name: 'Hotel Adlon' });
     const { accommodation } = await book(trip.id, place.id, day.id, day.id);
-    const before = (await stopsOn(day.id));
+    const before = await stopsOn(day.id);
 
     const existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
     const { mirror } = (await svc.updateAccommodation(accommodation.id, existing, { check_in: '16:00' })) as any;
 
-    expect((await stopsOn(day.id))).toEqual(before);
+    expect(await stopsOn(day.id)).toEqual(before);
     expect(mirror).toEqual({ created: null, moved: null, updated: [], removed: [], stamped: null });
   });
 
@@ -1178,8 +1420,8 @@ describe('the day stop a booking implies', () => {
     const existing = (await svc.getAccommodation(stay.id, trip.id))!;
     await svc.updateAccommodation(stay.id, existing, { start_day_id: second.id, end_day_id: second.id });
 
-    expect((await stopsOn(second.id))).toEqual([]);
-    expect((await stopsOn(day.id))).toEqual([expect.objectContaining({ place_id: place.id, accommodation_id: null })]);
+    expect(await stopsOn(second.id)).toEqual([]);
+    expect(await stopsOn(day.id)).toEqual([expect.objectContaining({ place_id: place.id, accommodation_id: null })]);
   });
 
   it('ACC-031 cancelling a booking takes back its own stop and leaves the other one', async () => {
@@ -1190,11 +1432,11 @@ describe('the day stop a booking implies', () => {
     const museum = createPlace(testDb, trip.id, { name: 'Pergamon' });
     const own = createDayAssignment(testDb, day.id, museum.id);
     const { accommodation } = await book(trip.id, hotel.id, day.id, day.id);
-    const mirrored = (await stopsOn(day.id)).find(a => a.place_id === hotel.id)!;
+    const mirrored = (await stopsOn(day.id)).find((a) => a.place_id === hotel.id)!;
 
     const { mirror } = await svc.deleteAccommodation(accommodation.id);
 
-    expect((await stopsOn(day.id))).toEqual([expect.objectContaining({ id: own.id })]);
+    expect(await stopsOn(day.id)).toEqual([expect.objectContaining({ id: own.id })]);
     expect(mirror.removed).toEqual([{ id: mirrored.id, dayId: day.id }]);
   });
 
@@ -1210,7 +1452,7 @@ describe('the day stop a booking implies', () => {
 
     const { mirror } = await svc.deleteAccommodation(accommodation.id);
 
-    expect((await stopsOn(day.id))).toEqual([expect.objectContaining({ id: own.id })]);
+    expect(await stopsOn(day.id)).toEqual([expect.objectContaining({ id: own.id })]);
     expect(mirror.removed).toEqual([]);
   });
 
@@ -1228,7 +1470,9 @@ describe('the day stop a booking implies', () => {
     const { mirror } = await svc.deleteAccommodation(accommodation.id, { keepStop: true });
 
     // Still there, and now unmarked: nothing may move or delete it on the next edit.
-    expect((await stopsOn(day.id))).toEqual([expect.objectContaining({ id: mirrored.id, place_id: place.id, accommodation_id: null })]);
+    expect(await stopsOn(day.id)).toEqual([
+      expect.objectContaining({ id: mirrored.id, place_id: place.id, accommodation_id: null }),
+    ]);
     // Nothing to announce either — no session has to take a stop off its day plan.
     expect(mirror.removed).toEqual([]);
     expect(await findRow(await orm(), DayAccommodations, { id: accommodation.id })).toBeNull();
@@ -1243,37 +1487,52 @@ describe('the day stop a booking implies', () => {
 
     await svc.remove(accommodation.id, { keepStop: true });
 
-    expect((await stopsOn(day.id))).toEqual([expect.objectContaining({ place_id: place.id, accommodation_id: null })]);
+    expect(await stopsOn(day.id)).toEqual([expect.objectContaining({ place_id: place.id, accommodation_id: null })]);
   });
 
   it('ACC-033 announceMirror sends the removal before the arrival', async () => {
     // Order matters on a move: the day plan would briefly hold the place twice if the
     // arrival went first.
     const sent: string[] = [];
-    await svc.announceMirror(5, {
-      created: { id: 78, day_id: 11 } as never,
-      moved: null,
-      updated: [],
-      removed: [{ id: 77, dayId: 10 }],
-      stamped: { id: 3 } as never,
-    }, event => { sent.push(event); });
+    await svc.announceMirror(
+      5,
+      {
+        created: { id: 78, day_id: 11 } as never,
+        moved: null,
+        updated: [],
+        removed: [{ id: 77, dayId: 10 }],
+        stamped: { id: 3 } as never,
+      },
+      (event) => {
+        sent.push(event);
+      },
+    );
     // The two days whose order changed follow, arrival first (see touchedDays).
     expect(sent).toEqual([
-      'assignment:deleted', 'assignment:created', 'place:updated',
-      'assignment:reordered', 'assignment:reordered',
+      'assignment:deleted',
+      'assignment:created',
+      'place:updated',
+      'assignment:reordered',
+      'assignment:reordered',
     ]);
   });
 
   it('ACC-033b announceMirror reports a move as one event, not a delete and a create', async () => {
     const sent: Array<{ event: string; payload: unknown }> = [];
-    await svc.announceMirror(5, {
-      created: null,
-      moved: { assignment: { id: 78, day_id: 11 } as never, oldDayId: 10 },
-      updated: [],
-      removed: [],
-      stamped: null,
-    }, (event, payload) => { sent.push({ event, payload }); });
-    expect(sent.map(e => e.event)).toEqual(['assignment:moved', 'assignment:reordered', 'assignment:reordered']);
+    await svc.announceMirror(
+      5,
+      {
+        created: null,
+        moved: { assignment: { id: 78, day_id: 11 } as never, oldDayId: 10 },
+        updated: [],
+        removed: [],
+        stamped: null,
+      },
+      (event, payload) => {
+        sent.push({ event, payload });
+      },
+    );
+    expect(sent.map((e) => e.event)).toEqual(['assignment:moved', 'assignment:reordered', 'assignment:reordered']);
     expect(sent[0].payload).toMatchObject({ oldDayId: 10, newDayId: 11 });
   });
 
@@ -1291,7 +1550,9 @@ describe('the day stop a booking implies', () => {
     // the old row keeps the place invisible on a day it is standing on.
     expect(mirror.updated).toEqual([expect.objectContaining({ id: stop.id, accommodation_id: null })]);
     const sent: string[] = [];
-    await svc.announceMirror(trip.id, mirror, event => { sent.push(event); });
+    await svc.announceMirror(trip.id, mirror, (event) => {
+      sent.push(event);
+    });
     expect(sent).toContain('assignment:updated');
   });
 });
@@ -1302,15 +1563,30 @@ describe('the drawn roads a booking moves', () => {
   // it, and every road drawn behind those stops has to move with them, or the
   // detour is driven on the wrong leg for everyone.
   const stopsOn = async (dayId: number) =>
-    (await findRows(await orm(), DayAssignments, { day: dayId }, { order_index: 'asc' })).map(row => row.place_id);
+    (await findRows(await orm(), DayAssignments, { day: dayId }, { order_index: 'asc' })).map((row) => row.place_id);
   const addVia = async (dayId: number, afterOrderIndex: number): Promise<number> =>
-    insertRow(await orm(), RoadtripVias, { day: dayId, after_order_index: afterOrderIndex, sequence: 0, lat: 48.1, lng: 11.5 });
+    insertRow(await orm(), RoadtripVias, {
+      day: dayId,
+      after_order_index: afterOrderIndex,
+      sequence: 0,
+      lat: 48.1,
+      lng: 11.5,
+    });
   const viaAnchors = async (dayId: number) =>
-    (await findRows(await orm(), RoadtripVias, { day: dayId }, { id: 'asc' })).map(row => ({ id: row.id, after_order_index: row.after_order_index }));
+    (await findRows(await orm(), RoadtripVias, { day: dayId }, { id: 'asc' })).map((row) => ({
+      id: row.id,
+      after_order_index: row.after_order_index,
+    }));
   /** The day's roads as the route reads them: leg by leg, and in order within a leg. */
   const legOrder = async (dayId: number) =>
-    (await findRows(await orm(), RoadtripVias, { day: dayId }, { after_order_index: 'asc', sequence: 'asc', id: 'asc' }))
-      .map(row => ({ id: row.id, after_order_index: row.after_order_index, sequence: row.sequence }));
+    (
+      await findRows(
+        await orm(),
+        RoadtripVias,
+        { day: dayId },
+        { after_order_index: 'asc', sequence: 'asc', id: 'asc' },
+      )
+    ).map((row) => ({ id: row.id, after_order_index: row.after_order_index, sequence: row.sequence }));
   const pin = (assignmentId: number, time: string) => setStops({ id: assignmentId }, { assignment_time: time });
 
   /** A(0) pinned to nine, B(1) pinned to noon, C(2): the day a check-in at eleven lands in the middle of. */
@@ -1318,7 +1594,9 @@ describe('the drawn roads a booking moves', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
-    const [a, b, c, hotel] = ['Harbour', 'Mercure', 'Museum', 'Billstedt'].map(name => createPlace(testDb, trip.id, { name }));
+    const [a, b, c, hotel] = ['Harbour', 'Mercure', 'Museum', 'Billstedt'].map((name) =>
+      createPlace(testDb, trip.id, { name }),
+    );
     await pin(createDayAssignment(testDb, day.id, a.id).id, '09:00');
     await pin(createDayAssignment(testDb, day.id, b.id).id, '12:00');
     createDayAssignment(testDb, day.id, c.id);
@@ -1333,24 +1611,31 @@ describe('the drawn roads a booking moves', () => {
     // still last, rather than being dropped as a leg C never had.
     const intoTomorrow = await addVia(day.id, 2);
 
-    const { mirror } = (await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '11:00' })) as any;
+    const { mirror } = (await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '11:00',
+    })) as any;
 
-    expect((await stopsOn(day.id))).toEqual([a.id, hotel.id, b.id, c.id]);
-    expect((await viaAnchors(day.id))).toEqual([
+    expect(await stopsOn(day.id)).toEqual([a.id, hotel.id, b.id, c.id]);
+    expect(await viaAnchors(day.id)).toEqual([
       { id: afterA, after_order_index: 0 },
       { id: afterB, after_order_index: 2 },
       { id: intoTomorrow, after_order_index: 3 },
     ]);
     // Reported on the mirror in the shape the road trip broadcasts, so every planner
     // routes the new anchors against the new order.
-    expect(mirror.vias).toEqual([{
-      dayId: day.id,
-      vias: [
-        expect.objectContaining({ id: afterA, day_id: day.id, after_order_index: 0 }),
-        expect.objectContaining({ id: afterB, day_id: day.id, after_order_index: 2 }),
-        expect.objectContaining({ id: intoTomorrow, day_id: day.id, after_order_index: 3 }),
-      ],
-    }]);
+    expect(mirror.vias).toEqual([
+      {
+        dayId: day.id,
+        vias: [
+          expect.objectContaining({ id: afterA, day_id: day.id, after_order_index: 0 }),
+          expect.objectContaining({ id: afterB, day_id: day.id, after_order_index: 2 }),
+          expect.objectContaining({ id: intoTomorrow, day_id: day.id, after_order_index: 3 }),
+        ],
+      },
+    ]);
   });
 
   it('ACC-034b a night seated behind every drawn road moves none and reports none', async () => {
@@ -1358,10 +1643,18 @@ describe('the drawn roads a booking moves', () => {
     const afterA = await addVia(day.id, 0);
     const afterB = await addVia(day.id, 1);
 
-    const { mirror } = (await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '18:00' })) as any;
+    const { mirror } = (await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '18:00',
+    })) as any;
 
-    expect((await stopsOn(day.id))).toEqual([a.id, b.id, hotel.id, c.id]);
-    expect((await viaAnchors(day.id))).toEqual([{ id: afterA, after_order_index: 0 }, { id: afterB, after_order_index: 1 }]);
+    expect(await stopsOn(day.id)).toEqual([a.id, b.id, hotel.id, c.id]);
+    expect(await viaAnchors(day.id)).toEqual([
+      { id: afterA, after_order_index: 0 },
+      { id: afterB, after_order_index: 1 },
+    ]);
     expect(mirror.vias).toBeUndefined();
   });
 
@@ -1369,8 +1662,13 @@ describe('the drawn roads a booking moves', () => {
     const { trip, day, a, b, c, hotel } = await afternoonDay();
     // C pinned to the afternoon as well, so an evening check-in puts the night last.
     await setStops({ day: day.id, place: c.id }, { assignment_time: '15:00' });
-    const { accommodation } = (await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '11:00' })) as any;
-    expect((await stopsOn(day.id))).toEqual([a.id, hotel.id, b.id, c.id]);
+    const { accommodation } = (await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '11:00',
+    })) as any;
+    expect(await stopsOn(day.id)).toEqual([a.id, hotel.id, b.id, c.id]);
     const afterA = await addVia(day.id, 0);
     const afterHotel = await addVia(day.id, 1);
     const afterB = await addVia(day.id, 2);
@@ -1383,26 +1681,33 @@ describe('the drawn roads a booking moves', () => {
     // behind B follows it one number up. The one behind C was the drive into the next
     // day, which leaves from the hotel now, so it goes as well rather than bending the
     // drive from C to the hotel through a point on the road to tomorrow.
-    expect((await stopsOn(day.id))).toEqual([a.id, b.id, c.id, hotel.id]);
-    expect((await viaAnchors(day.id))).toEqual([
+    expect(await stopsOn(day.id)).toEqual([a.id, b.id, c.id, hotel.id]);
+    expect(await viaAnchors(day.id)).toEqual([
       { id: afterA, after_order_index: 0 },
       { id: afterB, after_order_index: 1 },
     ]);
-    expect((await viaAnchors(day.id)).map(via => via.id)).not.toContain(afterHotel);
-    expect((await viaAnchors(day.id)).map(via => via.id)).not.toContain(afterC);
+    expect((await viaAnchors(day.id)).map((via) => via.id)).not.toContain(afterHotel);
+    expect((await viaAnchors(day.id)).map((via) => via.id)).not.toContain(afterC);
     expect(mirror.moved).not.toBeNull();
-    expect(mirror.vias).toEqual([{ dayId: day.id, vias: expect.arrayContaining([expect.objectContaining({ id: afterB, after_order_index: 1 })]) }]);
+    expect(mirror.vias).toEqual([
+      { dayId: day.id, vias: expect.arrayContaining([expect.objectContaining({ id: afterB, after_order_index: 1 })]) },
+    ]);
   });
 
   it('ACC-034d cancelling the booking takes its stop out and re-pins the roads behind it', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
-    const [a, b, hotel] = ['Harbour', 'Mercure', 'Billstedt'].map(name => createPlace(testDb, trip.id, { name }));
+    const [a, b, hotel] = ['Harbour', 'Mercure', 'Billstedt'].map((name) => createPlace(testDb, trip.id, { name }));
     await pin(createDayAssignment(testDb, day.id, a.id).id, '09:00');
     await pin(createDayAssignment(testDb, day.id, b.id).id, '12:00');
-    const { accommodation } = (await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '11:00' })) as any;
-    expect((await stopsOn(day.id))).toEqual([a.id, hotel.id, b.id]);
+    const { accommodation } = (await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '11:00',
+    })) as any;
+    expect(await stopsOn(day.id)).toEqual([a.id, hotel.id, b.id]);
     // The road out of the hotel is drawn first: by id alone it would lead the leg
     // it ends up sharing with A's road.
     const afterHotel = await addVia(day.id, 1);
@@ -1411,20 +1716,25 @@ describe('the drawn roads a booking moves', () => {
 
     const { mirror } = await svc.deleteAccommodation(accommodation.id);
 
-    expect((await stopsOn(day.id))).toEqual([a.id, b.id]);
+    expect(await stopsOn(day.id)).toEqual([a.id, b.id]);
     // The two legs around the hotel are one leg now, A to B, and the road out of the
     // hotel joins A's road on it, behind it: the drive runs A's point first, then the
     // hotel's, then B. The drive into the next day stays behind B, which is still last.
-    expect((await legOrder(day.id))).toEqual([
+    expect(await legOrder(day.id)).toEqual([
       { id: afterA, after_order_index: 0, sequence: 0 },
       { id: afterHotel, after_order_index: 0, sequence: 1 },
       { id: intoTomorrow, after_order_index: 1, sequence: 0 },
     ]);
-    expect(mirror.vias).toEqual([{ dayId: day.id, vias: [
-      expect.objectContaining({ id: afterA, after_order_index: 0, sequence: 0 }),
-      expect.objectContaining({ id: afterHotel, after_order_index: 0, sequence: 1 }),
-      expect.objectContaining({ id: intoTomorrow, after_order_index: 1 }),
-    ] }]);
+    expect(mirror.vias).toEqual([
+      {
+        dayId: day.id,
+        vias: [
+          expect.objectContaining({ id: afterA, after_order_index: 0, sequence: 0 }),
+          expect.objectContaining({ id: afterHotel, after_order_index: 0, sequence: 1 }),
+          expect.objectContaining({ id: intoTomorrow, after_order_index: 1 }),
+        ],
+      },
+    ]);
   });
 
   it('ACC-034e moving the booking to another day re-pins the roads on both days', async () => {
@@ -1432,39 +1742,54 @@ describe('the drawn roads a booking moves', () => {
     const trip = createTrip(testDb, user.id);
     const day1 = createDay(testDb, trip.id);
     const day2 = createDay(testDb, trip.id);
-    const [a, b, c, hotel] = ['Harbour', 'Mercure', 'Museum', 'Billstedt'].map(name => createPlace(testDb, trip.id, { name }));
+    const [a, b, c, hotel] = ['Harbour', 'Mercure', 'Museum', 'Billstedt'].map((name) =>
+      createPlace(testDb, trip.id, { name }),
+    );
     await pin(createDayAssignment(testDb, day1.id, a.id).id, '09:00');
     await pin(createDayAssignment(testDb, day1.id, b.id).id, '12:00');
     await pin(createDayAssignment(testDb, day2.id, c.id).id, '14:00');
-    const { accommodation } = (await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day1.id, end_day_id: day1.id, check_in: '11:00' })) as any;
-    expect((await stopsOn(day1.id))).toEqual([a.id, hotel.id, b.id]);
+    const { accommodation } = (await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day1.id,
+      end_day_id: day1.id,
+      check_in: '11:00',
+    })) as any;
+    expect(await stopsOn(day1.id)).toEqual([a.id, hotel.id, b.id]);
     const afterA = await addVia(day1.id, 0);
     const afterHotel = await addVia(day1.id, 1);
     const outOfC = await addVia(day2.id, 0);
 
     const existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
-    const { mirror } = (await svc.updateAccommodation(accommodation.id, existing, { start_day_id: day2.id, end_day_id: day2.id })) as any;
+    const { mirror } = (await svc.updateAccommodation(accommodation.id, existing, {
+      start_day_id: day2.id,
+      end_day_id: day2.id,
+    })) as any;
 
-    expect((await stopsOn(day1.id))).toEqual([a.id, b.id]);
-    expect((await stopsOn(day2.id))).toEqual([hotel.id, c.id]);
+    expect(await stopsOn(day1.id)).toEqual([a.id, b.id]);
+    expect(await stopsOn(day2.id)).toEqual([hotel.id, c.id]);
     // The hotel's road on day one joins A's on the leg that is left, behind it.
-    expect((await legOrder(day1.id))).toEqual([
+    expect(await legOrder(day1.id)).toEqual([
       { id: afterA, after_order_index: 0, sequence: 0 },
       { id: afterHotel, after_order_index: 0, sequence: 1 },
     ]);
     // C is still the last stop of its day, one number further on.
-    expect((await viaAnchors(day2.id))).toEqual([{ id: outOfC, after_order_index: 1 }]);
+    expect(await viaAnchors(day2.id)).toEqual([{ id: outOfC, after_order_index: 1 }]);
     expect(mirror.vias.map((day: { dayId: number }) => day.dayId).sort()).toEqual([day1.id, day2.id].sort());
   });
 
   it('ACC-034f a stop the booking hands to the traveller moves no road', async () => {
     const { trip, day, hotel } = await afternoonDay();
-    const { accommodation } = (await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '11:00' })) as any;
+    const { accommodation } = (await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '11:00',
+    })) as any;
     const afterB = await addVia(day.id, 2);
 
     const { mirror } = await svc.deleteAccommodation(accommodation.id, { keepStop: true });
 
-    expect((await viaAnchors(day.id))).toEqual([{ id: afterB, after_order_index: 2 }]);
+    expect(await viaAnchors(day.id)).toEqual([{ id: afterB, after_order_index: 2 }]);
     expect(mirror.vias).toBeUndefined();
   });
 
@@ -1473,8 +1798,18 @@ describe('the drawn roads a booking moves', () => {
     // one comes back, and the day's roads are re-pinned at each step. What the mirror
     // reports is the state that was left behind, not both steps.
     const { trip, day, a, b, c, hotel } = await afternoonDay();
-    const { accommodation } = (await svc.createAccommodation(trip.id, { place_id: hotel.id, start_day_id: day.id, end_day_id: day.id, check_in: '11:00' })) as any;
-    await insertRow(await orm(), DayAssignments, { day: day.id, place: hotel.id, order_index: 4, accommodation_id: accommodation.id });
+    const { accommodation } = (await svc.createAccommodation(trip.id, {
+      place_id: hotel.id,
+      start_day_id: day.id,
+      end_day_id: day.id,
+      check_in: '11:00',
+    })) as any;
+    await insertRow(await orm(), DayAssignments, {
+      day: day.id,
+      place: hotel.id,
+      order_index: 4,
+      accommodation_id: accommodation.id,
+    });
     const afterA = await addVia(day.id, 0);
     const afterHotel = await addVia(day.id, 1);
     const afterB = await addVia(day.id, 2);
@@ -1483,30 +1818,41 @@ describe('the drawn roads a booking moves', () => {
     const existing = (await svc.getAccommodation(accommodation.id, trip.id))!;
     const { mirror } = (await svc.updateAccommodation(accommodation.id, existing, { notes: 'late arrival' })) as any;
 
-    expect((await stopsOn(day.id))).toEqual([a.id, hotel.id, b.id, c.id]);
+    expect(await stopsOn(day.id)).toEqual([a.id, hotel.id, b.id, c.id]);
     expect(mirror.removed).toHaveLength(2);
     expect(mirror.created).not.toBeNull();
     // Both stops went, so the hotel's road joined A's; then the night came back
     // behind A, and B's road moved up with B. C's road was the last stop's leg
     // once the second stop was gone, and stayed gone.
-    expect(mirror.vias).toEqual([{ dayId: day.id, vias: [
-      expect.objectContaining({ id: afterA, after_order_index: 0, sequence: 0 }),
-      expect.objectContaining({ id: afterHotel, after_order_index: 0, sequence: 1 }),
-      expect.objectContaining({ id: afterB, after_order_index: 2 }),
-    ] }]);
+    expect(mirror.vias).toEqual([
+      {
+        dayId: day.id,
+        vias: [
+          expect.objectContaining({ id: afterA, after_order_index: 0, sequence: 0 }),
+          expect.objectContaining({ id: afterHotel, after_order_index: 0, sequence: 1 }),
+          expect.objectContaining({ id: afterB, after_order_index: 2 }),
+        ],
+      },
+    ]);
   });
 
   it('ACC-034g announceMirror sends the re-pinned roads behind the day order', async () => {
     const sent: Array<{ event: string; payload: unknown }> = [];
-    await svc.announceMirror(5, {
-      created: { id: 78, day_id: 11 } as never,
-      moved: null,
-      updated: [],
-      removed: [],
-      stamped: null,
-      vias: [{ dayId: 11, vias: [] }],
-    }, (event, payload) => { sent.push({ event, payload }); });
-    expect(sent.map(e => e.event)).toEqual(['assignment:created', 'assignment:reordered', 'roadtripVia:changed']);
+    await svc.announceMirror(
+      5,
+      {
+        created: { id: 78, day_id: 11 } as never,
+        moved: null,
+        updated: [],
+        removed: [],
+        stamped: null,
+        vias: [{ dayId: 11, vias: [] }],
+      },
+      (event, payload) => {
+        sent.push({ event, payload });
+      },
+    );
+    expect(sent.map((e) => e.event)).toEqual(['assignment:created', 'assignment:reordered', 'roadtripVia:changed']);
     expect(sent[2].payload).toEqual({ dayId: 11, vias: [] });
   });
 });
@@ -1533,7 +1879,7 @@ describe('AccommodationsService wiring', () => {
     // The whole point of the split: PlacesModule imports this one, so a path back to
     // places from here would be the loop it exists to avoid.
     const imports = (Reflect.getMetadata('imports', AccommodationsDomainModule) as { name?: string }[]) ?? [];
-    expect(imports.map(m => m?.name)).not.toContain('PlacesModule');
+    expect(imports.map((m) => m?.name)).not.toContain('PlacesModule');
   });
 
   it('ACC-002: it does not import the days or reservations modules', () => {

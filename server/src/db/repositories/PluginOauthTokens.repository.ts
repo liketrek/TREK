@@ -1,7 +1,7 @@
-import type { PluginOauthTokens } from '../entities/PluginOauthTokens.entity';
 import { currentTimestampKysely } from '../dialect/kysely-functions';
-import { TrekRepository } from './_shared/trek-repository';
+import type { PluginOauthTokens } from '../entities/PluginOauthTokens.entity';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /**
  * Plan 3j Task 2 note: this repository's ONLY method today is the uninstall
@@ -38,14 +38,26 @@ export class PluginOauthTokensRepository extends TrekRepository<PluginOauthToken
 
   /** PO2 (`status`) — `SELECT 1 FROM plugin_oauth_tokens WHERE plugin_id = ? AND user_id = ? AND access_token IS NOT NULL`, as a boolean existence check. */
   async hasAccessToken(pluginId: string, userId: number): Promise<boolean> {
-    const row = await this.findOne({ plugin_id: pluginId, user_id: userId, access_token: { $ne: null } }, { fields: ['plugin_id'] });
+    const row = await this.findOne(
+      { plugin_id: pluginId, user_id: userId, access_token: { $ne: null } },
+      { fields: ['plugin_id'] },
+    );
     return row !== null;
   }
 
   /** PO8 (`getAccessToken`) — `SELECT access_token, refresh_token, expires_at FROM plugin_oauth_tokens WHERE plugin_id = ? AND user_id = ?`. */
   async findTokenRow(pluginId: string, userId: number): Promise<PluginOauthTokenRow | null> {
-    const row = await this.findOne({ plugin_id: pluginId, user_id: userId }, { fields: ['access_token', 'refresh_token', 'expires_at'] });
-    return row ? { access_token: row.access_token ?? null, refresh_token: row.refresh_token ?? null, expires_at: row.expires_at ?? null } : null;
+    const row = await this.findOne(
+      { plugin_id: pluginId, user_id: userId },
+      { fields: ['access_token', 'refresh_token', 'expires_at'] },
+    );
+    return row
+      ? {
+          access_token: row.access_token ?? null,
+          refresh_token: row.refresh_token ?? null,
+          expires_at: row.expires_at ?? null,
+        }
+      : null;
   }
 
   /** PO9 (`disconnect`) — `DELETE FROM plugin_oauth_tokens WHERE plugin_id = ? AND user_id = ?`. */
@@ -104,7 +116,8 @@ export class PluginOauthTokensRepository extends TrekRepository<PluginOauthToken
       .onConflict((oc) =>
         oc.columns(['plugin_id', 'user_id']).doUpdateSet({
           access_token: (eb) => eb.ref('excluded.access_token'),
-          refresh_token: (eb) => eb.fn.coalesce(eb.ref('excluded.refresh_token'), eb.ref('plugin_oauth_tokens.refresh_token')),
+          refresh_token: (eb) =>
+            eb.fn.coalesce(eb.ref('excluded.refresh_token'), eb.ref('plugin_oauth_tokens.refresh_token')),
           expires_at: (eb) => eb.ref('excluded.expires_at'),
           scope: (eb) => eb.ref('excluded.scope'),
           updated_at: () => currentTimestampKysely(platform),

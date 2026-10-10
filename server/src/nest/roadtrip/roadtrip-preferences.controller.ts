@@ -24,7 +24,11 @@ export class RoadtripPreferencesController {
 
   @Put()
   @RequirePermission('day_edit')
-  async update(@Param('tripId') tripId: string, @Body() patch: PreferencesDto, @Headers('x-socket-id') socketId?: string) {
+  async update(
+    @Param('tripId') tripId: string,
+    @Body() patch: PreferencesDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     return { tripId: Number(tripId), preferences: await this.preferences.update(Number(tripId), patch, socketId) };
   }
 }

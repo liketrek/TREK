@@ -1,7 +1,7 @@
-import type { TripAlbumLinks } from '../entities/TripAlbumLinks.entity';
 import { currentTimestamp } from '../dialect/sql-functions';
-import { TrekRepository } from './_shared/trek-repository';
+import type { TripAlbumLinks } from '../entities/TripAlbumLinks.entity';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** MA7/MA8's shared row shape — album_id always needed, passphrase only by the sync path (MA8). */
 export interface TripAlbumLinkSyncRow {
@@ -81,10 +81,24 @@ export class TripAlbumLinksRepository extends TrekRepository<TripAlbumLinks> {
    * equivalent of the legacy `OR IGNORE`. Returns whether a row was actually
    * inserted (legacy `result.changes === 0` drove the "already linked" 409).
    */
-  async insertIgnore(row: { trip_id: number | string; user_id: number; provider: string; album_id: string; album_name: string; passphrase: string | null }): Promise<boolean> {
+  async insertIgnore(row: {
+    trip_id: number | string;
+    user_id: number;
+    provider: string;
+    album_id: string;
+    album_name: string;
+    passphrase: string | null;
+  }): Promise<boolean> {
     const result = await this.kysely<TripAlbumLinksInsertKyselyDB>()
       .insertInto('trip_album_links')
-      .values({ trip_id: row.trip_id as number, user_id: row.user_id, provider: row.provider, album_id: row.album_id, album_name: row.album_name, passphrase: row.passphrase })
+      .values({
+        trip_id: row.trip_id as number,
+        user_id: row.user_id,
+        provider: row.provider,
+        album_id: row.album_id,
+        album_name: row.album_name,
+        passphrase: row.passphrase,
+      })
       .onConflict((oc) => oc.columns(['trip_id', 'user_id', 'provider', 'album_id']).doNothing())
       .executeTakeFirst();
     return (result?.numInsertedOrUpdatedRows ?? 0n) > 0n;

@@ -179,7 +179,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Il trasferimento non è andato a buon fine.',
 
   'docsync.error.unknown_provider': 'Questo provider non è disponibile su questa istanza.',
-  'docsync.error.provider_disabled': 'In pausa: un amministratore ha disattivato questo provider. La sincronizzazione riprende appena viene riattivato.',
+  'docsync.error.provider_disabled':
+    'In pausa: un amministratore ha disattivato questo provider. La sincronizzazione riprende appena viene riattivato.',
   'docsync.binding.reconnect': 'Riconnetti',
 };
 

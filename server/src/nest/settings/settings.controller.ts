@@ -1,5 +1,15 @@
+import type { User } from '../../types';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
+import { AdminGuard } from '../auth-core/admin.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { isManagedLockedKey, splitManagedKeys } from '../common/managed';
+import { ResponseContract } from '../common/response-contract';
+import { AdminDefaultUserSettingsDto, SettingUpsertDto, SettingsBulkDto } from './settings.dto';
+import { SettingsService, isAdminOnlyEndpointSetting } from './settings.service';
 import { Body, Controller, Get, HttpCode, HttpException, Post, Put, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
 import {
   MASKED_SETTING_VALUE,
   adminDefaultUserSettingsResponseSchema,
@@ -7,17 +17,8 @@ import {
   settingsBulkResponseSchema,
   settingsListResponseSchema,
 } from '@trek/shared';
-import type { User } from '../../types';
-import { SettingsService, isAdminOnlyEndpointSetting } from './settings.service';
-import { AdminDefaultUserSettingsDto, SettingUpsertDto, SettingsBulkDto } from './settings.dto';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { AdminGuard } from '../auth-core/admin.guard';
-import { AuditService } from '../audit/audit.service';
-import { getClientIp } from '../audit/client-ip';
-import { CurrentUser } from '../auth-core/current-user.decorator';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { isManagedLockedKey, splitManagedKeys } from '../common/managed';
-import { ResponseContract } from '../common/response-contract';
+
+import type { Request } from 'express';
 
 /**
  * /api/settings — per-user key/value preferences: get-all, single upsert
@@ -130,10 +131,7 @@ export class AdminDefaultUserSettingsController {
       // with the raw defaults map the admin panel renders from, so an extra
       // field would sit inside the key namespace. The audit row below and the
       // client's capability filter carry the message instead.
-      const { allowed } = splitManagedKeys(
-        body as unknown as Record<string, unknown>,
-        this.env.isManaged(),
-      );
+      const { allowed } = splitManagedKeys(body as unknown as Record<string, unknown>, this.env.isManaged());
       await this.settings.setAdminUserDefaults(allowed);
       await this.audit.writeAudit({
         userId: user.id,

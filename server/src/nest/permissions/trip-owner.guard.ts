@@ -1,11 +1,12 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { EntityManager } from '@mikro-orm/core';
-import type { Request } from 'express';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
-import { TRIP_REQUEST_KEY } from './trip-access.guard';
 import type { User } from '../../types';
+import { TRIP_REQUEST_KEY } from './trip-access.guard';
+import { EntityManager } from '@mikro-orm/core';
+import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+
+import type { Request } from 'express';
 
 /** Metadata `@RequireTripOwner()` writes and the guard reads. */
 export const TRIP_OWNER_KEY = 'trekTripOwner';
@@ -71,10 +72,10 @@ export class TripOwnerGuard implements CanActivate {
     // `user.id` off undefined and turn a wiring mistake into a 500.
     if (!user) throw new HttpException({ error: 'Unauthorized' }, 401);
 
-    const meta = this.reflector.getAllAndOverride<{ message: string; param?: string } | undefined>(
-      TRIP_OWNER_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const meta = this.reflector.getAllAndOverride<{ message: string; param?: string } | undefined>(TRIP_OWNER_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     const message = meta?.message ?? 'Only the trip owner can do this';
 
     // Reuse the row TripAccessGuard already resolved when the route carries both,
@@ -82,7 +83,9 @@ export class TripOwnerGuard implements CanActivate {
     let trip = request[TRIP_REQUEST_KEY];
     if (!trip) {
       const tripId = Number((request.params as Record<string, string>)?.[meta?.param ?? 'tripId']);
-      trip = Number.isFinite(tripId) ? (await this.em.getRepository(Trips).findAccessible(tripId, user.id)) ?? undefined : undefined;
+      trip = Number.isFinite(tripId)
+        ? ((await this.em.getRepository(Trips).findAccessible(tripId, user.id)) ?? undefined)
+        : undefined;
       if (trip) request[TRIP_REQUEST_KEY] = trip;
     }
     if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);

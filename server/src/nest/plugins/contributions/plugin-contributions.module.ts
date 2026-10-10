@@ -1,36 +1,36 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { PluginsRuntimeModule } from '../plugins-runtime.module';
-import { AddonsModule } from '../../addons/addons.module';
-import { JourneyDomainModule } from '../../journey/journey-domain.module';
-import { JourneyEntries } from '../../../db/entities/JourneyEntries.entity';
-import { Plugins } from '../../../db/entities/Plugins.entity';
 import { Days } from '../../../db/entities/Days.entity';
+import { JourneyEntries } from '../../../db/entities/JourneyEntries.entity';
 import { Places } from '../../../db/entities/Places.entity';
+import { Plugins } from '../../../db/entities/Plugins.entity';
 import { Trips } from '../../../db/entities/Trips.entity';
+import { AddonsModule } from '../../addons/addons.module';
+import { DemoModule } from '../../common/demo.module';
+import { JourneyDomainModule } from '../../journey/journey-domain.module';
+import { TripMembershipModule } from '../../trip-membership/trip-membership.module';
+import { PluginsRuntimeModule } from '../plugins-runtime.module';
+import { AtlasLayersController } from './atlas-layers.controller';
+import { DayScheduleController } from './day-schedule.controller';
+import { DayTintsController } from './day-tints.controller';
+import { JournalEntryRowsController } from './journal-entry-rows.controller';
+import { MapLayersController } from './map-layers.controller';
+import { MapMarkersController } from './map-markers.controller';
+import { PdfSectionsController } from './pdf-sections.controller';
 import { PlaceDetailsController } from './place-details.controller';
-import { PluginSearchController } from './plugin-search.controller';
-import { TripWarningsController } from './trip-warnings.controller';
-import { TripWarningsMcp } from './trip-warnings.mcp';
-import { PluginSearchMcp } from './plugin-search.mcp';
+import { PluginCalendarController } from './plugin-calendar.controller';
+import { PluginMcpToolsService } from './plugin-mcp-tools.service';
+import { PluginPhotosController } from './plugin-photos.controller';
 import { PluginPoisController } from './plugin-pois.controller';
 import { PluginPoisMcp } from './plugin-pois.mcp';
 import { PluginPoisService } from './plugin-pois.service';
-import { PluginMcpToolsService } from './plugin-mcp-tools.service';
-import { ViewContributionsController } from './view-contributions.controller';
-import { TripCardContributionsController } from './trip-card-contributions.controller';
-import { PluginPhotosController } from './plugin-photos.controller';
-import { PluginCalendarController } from './plugin-calendar.controller';
-import { MapMarkersController } from './map-markers.controller';
-import { MapLayersController } from './map-layers.controller';
 import { PluginRoutesController } from './plugin-routes.controller';
-import { DayScheduleController } from './day-schedule.controller';
-import { DayTintsController } from './day-tints.controller';
-import { PdfSectionsController } from './pdf-sections.controller';
-import { AtlasLayersController } from './atlas-layers.controller';
-import { JournalEntryRowsController } from './journal-entry-rows.controller';
-import { DemoModule } from '../../common/demo.module';
-import { TripMembershipModule } from '../../trip-membership/trip-membership.module';
+import { PluginSearchController } from './plugin-search.controller';
+import { PluginSearchMcp } from './plugin-search.mcp';
+import { TripCardContributionsController } from './trip-card-contributions.controller';
+import { TripWarningsController } from './trip-warnings.controller';
+import { TripWarningsMcp } from './trip-warnings.mcp';
+import { ViewContributionsController } from './view-contributions.controller';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * The read-only surface plugins contribute to the app: photos, calendar events,
@@ -64,7 +64,14 @@ import { TripMembershipModule } from '../../trip-membership/trip-membership.modu
  * dependency unresolved.
  */
 @Module({
-  imports: [TripMembershipModule, PluginsRuntimeModule, AddonsModule, JourneyDomainModule, DemoModule, MikroOrmModule.forFeature([JourneyEntries, Plugins, Days, Places, Trips])],
+  imports: [
+    TripMembershipModule,
+    PluginsRuntimeModule,
+    AddonsModule,
+    JourneyDomainModule,
+    DemoModule,
+    MikroOrmModule.forFeature([JourneyEntries, Plugins, Days, Places, Trips]),
+  ],
   controllers: [
     PlaceDetailsController,
     PluginSearchController,

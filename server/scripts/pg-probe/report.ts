@@ -2,7 +2,6 @@
  * Turns what the Postgres probe saw into counts, a console log and the
  * Markdown the CI job writes to its step summary.
  */
-
 import { countsTowardRatchet, type BaselineVerdict } from './baseline';
 import type { HelperResult } from './helper-cases';
 import type { StatementRecord } from './recorder';
@@ -77,7 +76,10 @@ export function summarize(results: readonly MethodResult[]): ProbeSummary {
       summary.timedOut += 1;
       summary.uncovered.set(result.key, 'timed out');
     } else if (result.statements.length === 0) {
-      summary.uncovered.set(result.key, result.threw === undefined ? 'sent no SQL' : `threw before any statement: ${result.threw}`);
+      summary.uncovered.set(
+        result.key,
+        result.threw === undefined ? 'sent no SQL' : `threw before any statement: ${result.threw}`,
+      );
     }
     if (result.statements.length === 0) summary.withoutSql += 1;
     const seen = new Set<string>();
@@ -93,7 +95,13 @@ export function summarize(results: readonly MethodResult[]): ProbeSummary {
       if (!('code' in outcome)) continue;
       const dialect = countsTowardRatchet(outcome.code);
       if (dialect) counted += 1;
-      summary.failedStatements.push({ method: result.key, code: outcome.code, message: outcome.message, sql: statement.sql, counted: dialect });
+      summary.failedStatements.push({
+        method: result.key,
+        code: outcome.code,
+        message: outcome.message,
+        sql: statement.sql,
+        counted: dialect,
+      });
       summary.failuresByCode.set(outcome.code, (summary.failuresByCode.get(outcome.code) ?? 0) + 1);
     }
     summary.failingByMethod.set(result.key, counted);
@@ -102,7 +110,10 @@ export function summarize(results: readonly MethodResult[]): ProbeSummary {
 }
 
 /** Refused statements the ratchet holds (dialect errors) and the ones it only reports. */
-export function splitRefusals(summary: Pick<ProbeSummary, 'failedStatements'>): { counted: FailedStatement[]; reported: FailedStatement[] } {
+export function splitRefusals(summary: Pick<ProbeSummary, 'failedStatements'>): {
+  counted: FailedStatement[];
+  reported: FailedStatement[];
+} {
   return {
     counted: summary.failedStatements.filter((failed) => failed.counted),
     reported: summary.failedStatements.filter((failed) => !failed.counted),
@@ -163,11 +174,16 @@ export function formatConsole(input: ReportInput): string {
   const { summary, verdict } = input;
   const lines: string[] = [];
   const failures = helperFailures(input.helpers);
-  lines.push(`Dialect helpers: ${input.helpers.length - failures.length}/${input.helpers.length} cases pass on SQLite and Postgres.`);
+  lines.push(
+    `Dialect helpers: ${input.helpers.length - failures.length}/${input.helpers.length} cases pass on SQLite and Postgres.`,
+  );
   for (const failure of failures) lines.push(`  FAIL  [${failure.engine}] ${failure.name}: ${failure.failure}`);
   if (input.schemaFailures.length > 0) {
-    lines.push(`Schema: ${input.schemaFailures.length} DDL statement(s) Postgres refused (their tables are missing below):`);
-    for (const failure of input.schemaFailures) lines.push(`  ${failure.message}  <-  ${oneLine(failure.statement, 120)}`);
+    lines.push(
+      `Schema: ${input.schemaFailures.length} DDL statement(s) Postgres refused (their tables are missing below):`,
+    );
+    for (const failure of input.schemaFailures)
+      lines.push(`  ${failure.message}  <-  ${oneLine(failure.statement, 120)}`);
   }
   lines.push(
     `Repositories: ${summary.methods} methods, ${summary.called} called, ${summary.unprobeable} unprobeable, ` +
@@ -187,10 +203,13 @@ export function formatConsole(input: ReportInput): string {
   }
   if (summary.uncovered.size > 0) {
     lines.push(`Unmeasured: ${summary.uncovered.size} method(s) whose SQL the probe did not see:`);
-    for (const [method, why] of [...summary.uncovered.entries()].sort(([a], [b]) => a.localeCompare(b))) lines.push(`  ${method}: ${why}`);
+    for (const [method, why] of [...summary.uncovered.entries()].sort(([a], [b]) => a.localeCompare(b)))
+      lines.push(`  ${method}: ${why}`);
   }
   if (probedNothing(summary)) {
-    lines.push(`FAIL  No repository method was called (${summary.methods} planned); there is nothing to hold to the baseline.`);
+    lines.push(
+      `FAIL  No repository method was called (${summary.methods} planned); there is nothing to hold to the baseline.`,
+    );
   }
   if (verdict.unseeded) {
     lines.push(
@@ -202,7 +221,9 @@ export function formatConsole(input: ReportInput): string {
     lines.push(`FAIL  ${entry.method} sends ${entry.now} statement(s) Postgres refuses, ${entry.allowed} allowed.`);
   }
   for (const entry of verdict.stale) {
-    lines.push(`FAIL  ${entry.method} is held at ${entry.allowed} failing statement(s) but fails ${entry.now} now; lower the baseline.`);
+    lines.push(
+      `FAIL  ${entry.method} is held at ${entry.allowed} failing statement(s) but fails ${entry.now} now; lower the baseline.`,
+    );
   }
   for (const method of verdict.newlyUncovered) {
     lines.push(
@@ -223,16 +244,21 @@ export function formatMarkdown(input: ReportInput): string {
   const out: string[] = ['## Postgres probe', ''];
   out.push(passed(input) ? 'Result: **passed**' : 'Result: **failed**', '');
   out.push('| | |', '|---|---|');
-  out.push(`| Dialect helper cases (SQLite and Postgres) | ${input.helpers.length - failures.length} of ${input.helpers.length} pass |`);
+  out.push(
+    `| Dialect helper cases (SQLite and Postgres) | ${input.helpers.length - failures.length} of ${input.helpers.length} pass |`,
+  );
   out.push(`| Schema statements refused | ${input.schemaFailures.length} |`);
   const refusals = splitRefusals(summary);
-  out.push(`| Repository methods | ${summary.methods} (${summary.called} called, ${summary.unprobeable} unprobeable) |`);
+  out.push(
+    `| Repository methods | ${summary.methods} (${summary.called} called, ${summary.unprobeable} unprobeable) |`,
+  );
   out.push(`| Methods whose SQL the probe did not see | ${summary.uncovered.size} |`);
   out.push(`| Distinct statements | ${summary.statements} |`);
   out.push(`| Refused by Postgres as SQL (held) | ${refusals.counted.length} |`);
   out.push(`| Refused over a sample value or the empty tables (reported only) | ${refusals.reported.length} |`);
   out.push('');
-  if (probedNothing(summary)) out.push('No repository method was called, so there is nothing to hold to the baseline.', '');
+  if (probedNothing(summary))
+    out.push('No repository method was called, so there is nothing to hold to the baseline.', '');
   if (verdict.unseeded) {
     out.push(
       'The baseline has not been measured yet, which fails the run. Commit `pg-probe-baseline.json` from the `pg-probe-baseline` artifact as `server/scripts/pg-probe-baseline.json`.',
@@ -241,33 +267,50 @@ export function formatMarkdown(input: ReportInput): string {
   }
   if (verdict.grown.length > 0 || verdict.stale.length > 0) {
     out.push('### Ratchet', '', '| Method | Allowed | Now |', '|---|---|---|');
-    for (const entry of [...verdict.grown, ...verdict.stale]) out.push(`| ${cell(entry.method)} | ${entry.allowed} | ${entry.now} |`);
+    for (const entry of [...verdict.grown, ...verdict.stale])
+      out.push(`| ${cell(entry.method)} | ${entry.allowed} | ${entry.now} |`);
     out.push('');
   }
   if (verdict.newlyUncovered.length > 0 || verdict.nowCovered.length > 0) {
     out.push('### Coverage ratchet', '', '| Method | Baseline | Now |', '|---|---|---|');
-    for (const method of verdict.newlyUncovered) out.push(`| ${cell(method)} | measured | ${cell(summary.uncovered.get(method) ?? 'unmeasured')} |`);
+    for (const method of verdict.newlyUncovered)
+      out.push(`| ${cell(method)} | measured | ${cell(summary.uncovered.get(method) ?? 'unmeasured')} |`);
     for (const method of verdict.nowCovered) out.push(`| ${cell(method)} | uncovered | measured or gone |`);
     out.push('');
   }
   if (failures.length > 0) {
     out.push('### Helper cases that failed', '', '| Engine | Case | Why |', '|---|---|---|');
-    for (const failure of failures) out.push(`| ${failure.engine} | ${cell(failure.name)} | ${cell(failure.failure ?? '')} |`);
+    for (const failure of failures)
+      out.push(`| ${failure.engine} | ${cell(failure.name)} | ${cell(failure.failure ?? '')} |`);
     out.push('');
   }
   if (summary.failuresByCode.size > 0) {
     out.push('### Refused statements by SQLSTATE', '', '| SQLSTATE | Statements |', '|---|---|');
-    for (const [code, count] of [...summary.failuresByCode.entries()].sort((a, b) => b[1] - a[1])) out.push(`| ${code} | ${count} |`);
+    for (const [code, count] of [...summary.failuresByCode.entries()].sort((a, b) => b[1] - a[1]))
+      out.push(`| ${code} | ${count} |`);
     out.push('');
-    out.push('<details><summary>Every refused statement</summary>', '', '| Method | SQLSTATE | Held | Message |', '|---|---|---|---|');
+    out.push(
+      '<details><summary>Every refused statement</summary>',
+      '',
+      '| Method | SQLSTATE | Held | Message |',
+      '|---|---|---|---|',
+    );
     for (const failed of summary.failedStatements) {
-      out.push(`| ${cell(failed.method)} | ${failed.code} | ${failed.counted ? 'yes' : 'no'} | ${cell(failed.message)} |`);
+      out.push(
+        `| ${cell(failed.method)} | ${failed.code} | ${failed.counted ? 'yes' : 'no'} | ${cell(failed.message)} |`,
+      );
     }
     out.push('', '</details>', '');
   }
   if (summary.uncovered.size > 0) {
-    out.push('<details><summary>Methods whose SQL the probe did not see</summary>', '', '| Method | Why |', '|---|---|');
-    for (const [method, why] of [...summary.uncovered.entries()].sort(([a], [b]) => a.localeCompare(b))) out.push(`| ${cell(method)} | ${cell(why)} |`);
+    out.push(
+      '<details><summary>Methods whose SQL the probe did not see</summary>',
+      '',
+      '| Method | Why |',
+      '|---|---|',
+    );
+    for (const [method, why] of [...summary.uncovered.entries()].sort(([a], [b]) => a.localeCompare(b)))
+      out.push(`| ${cell(method)} | ${cell(why)} |`);
     out.push('', '</details>', '');
   }
   return `${out.join('\n')}\n`;

@@ -1,6 +1,3 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { WebSocketServer } from 'ws';
-import type { TrekWsPayload, TrekWsUserEventName } from '@trek/shared';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import {
   InMemoryRoomRegistry,
@@ -11,6 +8,10 @@ import {
   type TrekWebSocket,
 } from '../../../src/nest/realtime/ws-state';
 import type { User } from '../../../src/types';
+import type { TrekWsPayload, TrekWsUserEventName } from '@trek/shared';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { WebSocketServer } from 'ws';
 
 /**
  * The facade over the socket registry, exercised against the real ws-state
@@ -90,7 +91,7 @@ describe('RealtimeService', () => {
     expect(other.sent()).toEqual([{ type: 'day:updated', tripId: 7, day: null }]);
   });
 
-  it('RTSVC-003: broadcast with onlyUserId reaches only that user\'s sockets in the room', () => {
+  it("RTSVC-003: broadcast with onlyUserId reaches only that user's sockets in the room", () => {
     const owner = connect(4);
     const member = connect(5);
     joinRoom(owner.ws, 7);

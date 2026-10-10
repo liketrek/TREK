@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': '选择模板...',
   'settings.mapDefaultHint': '留空则使用 OpenStreetMap（默认）',
   'settings.routingBase': '自建路径规划服务',
-  'settings.routingBaseHint': '你自己的 OSRM 实例。留空则使用公共服务器，约每秒一个请求 — 单日够用，长途自驾则吃紧。需重启服务器后生效。',
+  'settings.routingBaseHint':
+    '你自己的 OSRM 实例。留空则使用公共服务器，约每秒一个请求 — 单日够用，长途自驾则吃紧。需重启服务器后生效。',
   'settings.valhallaBase': '自建 Valhalla 实例',
   'settings.valhallaBaseHint':
     'TREK 默认使用 FOSSGIS 的公共 Valhalla 来避开收费道路、高速公路和渡轮。若要改用自己的 Valhalla，请在此输入网址。如果只配置了自己的路线规划服务器，就不会使用公共 Valhalla。输入自己的网址后，请重启服务器并重新加载页面。',
@@ -42,7 +43,8 @@ const settings: TranslationStrings = {
   'settings.mapCartoKey': 'CARTO API 密钥',
   'settings.mapCartoKeyHint': '没有密钥时 CARTO 底图会显示水印。免费且无需账户，来自',
   'settings.mapCartoKeyLink': 'carto.com 底图 API 密钥',
-  'settings.mapCartoKeyMissing': '此模板是 CARTO 底图。没有密钥时，CARTO 会在每个瓦片上打上 "API KEY REQUIRED"。 在输入密钥之前，TREK 会显示默认底图。',
+  'settings.mapCartoKeyMissing':
+    '此模板是 CARTO 底图。没有密钥时，CARTO 会在每个瓦片上打上 "API KEY REQUIRED"。 在输入密钥之前，TREK 会显示默认底图。',
   'settings.mapStyle': '地图样式',
   'settings.mapStylePlaceholder': '选择 Mapbox 样式',
   'settings.mapStyleHint': '预设或您自己的 mapbox://styles/USER/ID URL',

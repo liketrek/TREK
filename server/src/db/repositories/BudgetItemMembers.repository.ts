@@ -1,7 +1,7 @@
 import type { BudgetItemMembers } from '../entities/BudgetItemMembers.entity';
+import type { DB } from '../kysely/db';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /** A bare `budget_item_members` row — every scalar column, incl. the two `persist(false)` relation mirrors. */
 export interface BudgetItemMemberRow {
@@ -43,7 +43,13 @@ export class BudgetItemMembersRepository extends TrekRepository<BudgetItemMember
     return await this.kysely<BudgetItemMembersKyselyDB>()
       .selectFrom('budget_item_members as bm')
       .innerJoin('users as u', 'u.id', 'bm.user_id')
-      .select(['bm.user_id', 'bm.paid', 'bm.amount', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'), 'u.avatar'])
+      .select([
+        'bm.user_id',
+        'bm.paid',
+        'bm.amount',
+        (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'),
+        'u.avatar',
+      ])
       .where('bm.budget_item_id', '=', budget_item_id)
       .execute();
   }
@@ -54,7 +60,14 @@ export class BudgetItemMembersRepository extends TrekRepository<BudgetItemMember
     return await this.kysely<BudgetItemMembersKyselyDB>()
       .selectFrom('budget_item_members as bm')
       .innerJoin('users as u', 'u.id', 'bm.user_id')
-      .select(['bm.budget_item_id', 'bm.user_id', 'bm.paid', 'bm.amount', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'), 'u.avatar'])
+      .select([
+        'bm.budget_item_id',
+        'bm.user_id',
+        'bm.paid',
+        'bm.amount',
+        (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'),
+        'u.avatar',
+      ])
       .where('bm.budget_item_id', 'in', budget_item_ids)
       .execute();
   }
@@ -79,12 +92,22 @@ export class BudgetItemMembersRepository extends TrekRepository<BudgetItemMember
   }
 
   /** BG73 (`calculateSettlement`'s member read) — the `budget_item_id IN (SELECT id FROM budget_items WHERE trip_id = ?)` subquery, re-expressed as a join (rule 23) — same result set. No `paid` column — unlike {@link listForItem}, this legacy statement never selected it. */
-  async listForTripWithUsers(trip_id: number | string): Promise<{ budget_item_id: number; user_id: number; amount: number | null; username: string; avatar: string | null }[]> {
+  async listForTripWithUsers(
+    trip_id: number | string,
+  ): Promise<
+    { budget_item_id: number; user_id: number; amount: number | null; username: string; avatar: string | null }[]
+  > {
     return await this.kysely<BudgetItemMembersKyselyDB & Pick<DB, 'budget_items'>>()
       .selectFrom('budget_item_members as bm')
       .innerJoin('budget_items as b', 'b.id', 'bm.budget_item_id')
       .innerJoin('users as u', 'u.id', 'bm.user_id')
-      .select(['bm.budget_item_id', 'bm.user_id', 'bm.amount', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'), 'u.avatar'])
+      .select([
+        'bm.budget_item_id',
+        'bm.user_id',
+        'bm.amount',
+        (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'),
+        'u.avatar',
+      ])
       .where('b.trip_id', '=', trip_id as number)
       .execute();
   }
@@ -96,12 +119,21 @@ export class BudgetItemMembersRepository extends TrekRepository<BudgetItemMember
    * bm.budget_item_id = bi.id JOIN users u ON bm.user_id = u.id WHERE
    * bi.trip_id = ?`. Like {@link listForTripWithUsers}, plus `paid`.
    */
-  async listForTripWithUsersAndPaid(trip_id: number | string): Promise<(BudgetItemMemberWithUserRow & { budget_item_id: number })[]> {
+  async listForTripWithUsersAndPaid(
+    trip_id: number | string,
+  ): Promise<(BudgetItemMemberWithUserRow & { budget_item_id: number })[]> {
     return await this.kysely<BudgetItemMembersKyselyDB & Pick<DB, 'budget_items'>>()
       .selectFrom('budget_item_members as bm')
       .innerJoin('budget_items as bi', 'bi.id', 'bm.budget_item_id')
       .innerJoin('users as u', 'u.id', 'bm.user_id')
-      .select(['bm.budget_item_id', 'bm.user_id', 'bm.amount', 'bm.paid', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'), 'u.avatar'])
+      .select([
+        'bm.budget_item_id',
+        'bm.user_id',
+        'bm.amount',
+        'bm.paid',
+        (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'),
+        'u.avatar',
+      ])
       .where('bi.trip_id', '=', trip_id as number)
       .execute();
   }
@@ -114,12 +146,15 @@ export class BudgetItemMembersRepository extends TrekRepository<BudgetItemMember
       .distinct()
       .where('user_id', '=', user_id)
       .execute();
-    return rows.map(r => r.budget_item_id);
+    return rows.map((r) => r.budget_item_id);
   }
 
   /** BG65 — `DELETE FROM budget_item_members WHERE user_id = ?`. */
   async deleteForUser(user_id: number): Promise<void> {
-    await this.kysely<BudgetItemMembersKyselyDB>().deleteFrom('budget_item_members').where('user_id', '=', user_id).execute();
+    await this.kysely<BudgetItemMembersKyselyDB>()
+      .deleteFrom('budget_item_members')
+      .where('user_id', '=', user_id)
+      .execute();
   }
 
   /** BG66 (`removeUserFromBudgetItems`'s per-item recount, looped) — `SELECT COUNT(*) AS count FROM budget_item_members WHERE budget_item_id = ?`. */
@@ -133,11 +168,19 @@ export class BudgetItemMembersRepository extends TrekRepository<BudgetItemMember
   }
 
   /** BG70 (`toggleMemberPaid`'s re-select) — `SELECT bm.user_id, bm.paid, COALESCE(u.display_name, u.username) AS username, u.avatar FROM budget_item_members bm JOIN users u WHERE bm.budget_item_id = ? AND bm.user_id = ?`. No `amount` column — unlike {@link listForItem}, this legacy statement never selected it. */
-  async findMemberWithUser(budget_item_id: number, user_id: number): Promise<{ user_id: number; paid: number; username: string; avatar: string | null } | undefined> {
+  async findMemberWithUser(
+    budget_item_id: number,
+    user_id: number,
+  ): Promise<{ user_id: number; paid: number; username: string; avatar: string | null } | undefined> {
     return await this.kysely<BudgetItemMembersKyselyDB>()
       .selectFrom('budget_item_members as bm')
       .innerJoin('users as u', 'u.id', 'bm.user_id')
-      .select(['bm.user_id', 'bm.paid', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'), 'u.avatar'])
+      .select([
+        'bm.user_id',
+        'bm.paid',
+        (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'),
+        'u.avatar',
+      ])
       .where('bm.budget_item_id', '=', budget_item_id)
       .where('bm.user_id', '=', user_id)
       .executeTakeFirst();
@@ -155,7 +198,10 @@ export class BudgetItemMembersRepository extends TrekRepository<BudgetItemMember
 
   /** BG35/BG38/BG59 — `DELETE FROM budget_item_members WHERE budget_item_id = ?` (replace-all before a re-insert). */
   async deleteForItem(budget_item_id: number): Promise<void> {
-    await this.kysely<BudgetItemMembersKyselyDB>().deleteFrom('budget_item_members').where('budget_item_id', '=', budget_item_id).execute();
+    await this.kysely<BudgetItemMembersKyselyDB>()
+      .deleteFrom('budget_item_members')
+      .where('budget_item_id', '=', budget_item_id)
+      .execute();
   }
 
   /**
@@ -168,10 +214,20 @@ export class BudgetItemMembersRepository extends TrekRepository<BudgetItemMember
    * with no `amount` column at all — `paid`/`amount` default here to the
    * 0/`NULL` shape the omitting call sites bound literally).
    */
-  async insertIgnore(row: { budget_item_id: number; user_id: number; paid?: number; amount?: number | null }): Promise<void> {
+  async insertIgnore(row: {
+    budget_item_id: number;
+    user_id: number;
+    paid?: number;
+    amount?: number | null;
+  }): Promise<void> {
     await this.kysely<BudgetItemMembersWriteKyselyDB>()
       .insertInto('budget_item_members')
-      .values({ budget_item_id: row.budget_item_id, user_id: row.user_id, paid: row.paid ?? 0, amount: row.amount ?? null })
+      .values({
+        budget_item_id: row.budget_item_id,
+        user_id: row.user_id,
+        paid: row.paid ?? 0,
+        amount: row.amount ?? null,
+      })
       .onConflict((oc) => oc.doNothing())
       .execute();
   }

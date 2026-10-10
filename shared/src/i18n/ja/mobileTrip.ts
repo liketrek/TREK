@@ -51,7 +51,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.viewDetails': '詳細を表示',
   'mobileTrip.transportsEmpty': '移動手段はまだありません',
   'mobileTrip.rtInfoTitle': '走行データ',
-  'mobileTrip.rtDesktopNote': 'これらの数値はデスクトップで設定します。デスクトップでは、別のルートを比べたり、読み込んだトラックにその日を沿わせたりもできます。',
+  'mobileTrip.rtDesktopNote':
+    'これらの数値はデスクトップで設定します。デスクトップでは、別のルートを比べたり、読み込んだトラックにその日を沿わせたりもできます。',
   'mobileTrip.rtPlanOnDesktop': '計画はデスクトップで行います。1日に場所が2か所そろうと、TREKが走行を計算します。',
   'mobileTrip.rtSearchOffline': '接続が必要です：この検索は先のルートを読み取ります。',
   'mobileTrip.rtBehind': '予定より {time} 遅れ',

@@ -1,10 +1,10 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
 import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
 import { Plugins } from '../../../src/db/entities/Plugins.entity';
 import { dbNow } from '../../../src/db/types/db-timestamp.type';
 import type { FactoryOrm } from './context';
 import { createRow, findRow, insertRow, upsertRow } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type PluginRow = EntityDTO<Plugins>;
 
@@ -27,7 +27,12 @@ export function makePluginSettingsField(
   fieldKey: string,
   overrides: EntityData<PluginSettingsFields> = {},
 ): Promise<EntityDTO<PluginSettingsFields>> {
-  return createRow(orm, PluginSettingsFields, { plugin_id: pluginId, field_key: fieldKey, label: fieldKey, ...overrides });
+  return createRow(orm, PluginSettingsFields, {
+    plugin_id: pluginId,
+    field_key: fieldKey,
+    label: fieldKey,
+    ...overrides,
+  });
 }
 
 /** Stores the user's config for the plugin as JSON, replacing any earlier one. */

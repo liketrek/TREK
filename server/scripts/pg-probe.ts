@@ -50,16 +50,30 @@
  * Exit codes: 0 passed, 1 a helper case or the ratchet failed, 2 the probe
  * could not run (no database, a database that is not empty, a crash).
  */
+import { planRepositories, readCompilerOptions, type MethodPlan } from './pg-probe/arg-samples';
+import { compareWithBaseline, formatBaseline, lowerBaseline, readBaseline } from './pg-probe/baseline';
+import {
+  connectProbeOrm,
+  connectSetupOrm,
+  postgresHelperEngine,
+  prepareDatabase,
+  probeRepositories,
+  sqliteHelperEngine,
+} from './pg-probe/engines';
+import { runHelperCases, type HelperResult } from './pg-probe/helper-cases';
+import { StatementRecorder } from './pg-probe/recorder';
+import {
+  formatConsole,
+  formatMarkdown,
+  passed,
+  probedNothing,
+  summarize,
+  type MethodResult,
+  type ReportInput,
+} from './pg-probe/report';
 
 import { appendFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-
-import { planRepositories, readCompilerOptions, type MethodPlan } from './pg-probe/arg-samples';
-import { compareWithBaseline, formatBaseline, lowerBaseline, readBaseline } from './pg-probe/baseline';
-import { connectProbeOrm, connectSetupOrm, postgresHelperEngine, prepareDatabase, probeRepositories, sqliteHelperEngine } from './pg-probe/engines';
-import { runHelperCases, type HelperResult } from './pg-probe/helper-cases';
-import { StatementRecorder } from './pg-probe/recorder';
-import { formatConsole, formatMarkdown, passed, probedNothing, summarize, type MethodResult, type ReportInput } from './pg-probe/report';
 
 const SERVER_ROOT = path.join(__dirname, '..');
 export const BASELINE_PATH = path.join(SERVER_ROOT, 'scripts', 'pg-probe-baseline.json');
@@ -87,7 +101,9 @@ export function parseArgs(argv: readonly string[], env: Readonly<Record<string, 
     summary: env.GITHUB_STEP_SUMMARY || null,
   };
   for (const arg of argv) {
-    const [flag, value] = arg.includes('=') ? [arg.slice(0, arg.indexOf('=')), arg.slice(arg.indexOf('=') + 1)] : [arg, ''];
+    const [flag, value] = arg.includes('=')
+      ? [arg.slice(0, arg.indexOf('=')), arg.slice(arg.indexOf('=') + 1)]
+      : [arg, ''];
     if (flag === '--update' && value === '') args.update = true;
     else if (flag === '--url' && value) args.url = value;
     else if (flag === '--next-baseline' && value) args.nextBaseline = value;
@@ -96,7 +112,9 @@ export function parseArgs(argv: readonly string[], env: Readonly<Record<string, 
     else throw new Error(`pg-probe: unknown argument ${arg}`);
   }
   if (!/^postgres(ql)?:\/\//.test(args.url)) {
-    throw new Error('pg-probe: no Postgres URL. Set TREK_PG_PROBE_URL or pass --url=postgres://user:password@host:port/database.');
+    throw new Error(
+      'pg-probe: no Postgres URL. Set TREK_PG_PROBE_URL or pass --url=postgres://user:password@host:port/database.',
+    );
   }
   return args;
 }
@@ -147,7 +165,9 @@ async function main(): Promise<number> {
   try {
     const schema = await timed('derive the schema from the entities', () => prepareDatabase(setup));
     schemaFailures = schema.failures;
-    console.log(`   ${schema.statements} DDL statements, ${schema.adjusted} columns adjusted, ${schema.failures.length} refused`);
+    console.log(
+      `   ${schema.statements} DDL statements, ${schema.adjusted} columns adjusted, ${schema.failures.length} refused`,
+    );
 
     helpers = await timed('dialect helpers on SQLite and Postgres', async () => {
       const sqlite = sqliteHelperEngine();
@@ -159,14 +179,20 @@ async function main(): Promise<number> {
     });
 
     const plans: MethodPlan[] = await timed('plan the repository calls', async () =>
-      planRepositories(repositoryFiles(REPOSITORIES_DIR), readCompilerOptions(path.join(SERVER_ROOT, 'tsconfig.json')), SERVER_ROOT),
+      planRepositories(
+        repositoryFiles(REPOSITORIES_DIR),
+        readCompilerOptions(path.join(SERVER_ROOT, 'tsconfig.json')),
+        SERVER_ROOT,
+      ),
     );
     console.log(`   ${plans.length} public repository methods`);
 
     const recorder = new StatementRecorder();
     const probe = await connectProbeOrm(args.url, recorder, STATEMENT_TIMEOUT_MS);
     try {
-      results = await timed('call every repository method', () => probeRepositories(probe, recorder, plans, SERVER_ROOT, METHOD_TIMEOUT_MS));
+      results = await timed('call every repository method', () =>
+        probeRepositories(probe, recorder, plans, SERVER_ROOT, METHOD_TIMEOUT_MS),
+      );
     } finally {
       await probe.close(true);
     }
@@ -201,7 +227,10 @@ async function main(): Promise<number> {
     annotate('error', `pg-probe helper case [${failure.engine}] ${failure.name}: ${failure.failure}`);
   }
   for (const entry of verdict.grown) {
-    annotate('error', `pg-probe: ${entry.method} sends ${entry.now} statement(s) Postgres refuses, ${entry.allowed} allowed.`);
+    annotate(
+      'error',
+      `pg-probe: ${entry.method} sends ${entry.now} statement(s) Postgres refuses, ${entry.allowed} allowed.`,
+    );
   }
   for (const entry of verdict.stale) {
     annotate(
@@ -218,9 +247,13 @@ async function main(): Promise<number> {
     );
   }
   for (const method of verdict.nowCovered) {
-    annotate('error', `pg-probe: ${method} is listed as uncovered but is measured now (or gone). Drop it (--update, or the pg-probe-baseline artifact).`);
+    annotate(
+      'error',
+      `pg-probe: ${method} is listed as uncovered but is measured now (or gone). Drop it (--update, or the pg-probe-baseline artifact).`,
+    );
   }
-  if (probedNothing(summary)) annotate('error', `pg-probe: no repository method was called (${summary.methods} planned).`);
+  if (probedNothing(summary))
+    annotate('error', `pg-probe: no repository method was called (${summary.methods} planned).`);
   if (verdict.unseeded) {
     annotate(
       'error',
@@ -236,12 +269,17 @@ if (require.main === module) {
   // A method abandoned after its timeout may still reject later; that is
   // already counted as a timeout and must not take the whole run down.
   process.on('unhandledRejection', (reason: unknown) => {
-    annotate('warning', `pg-probe: a rejection nobody awaited: ${reason instanceof Error ? reason.message.split('\n')[0] : String(reason)}`);
+    annotate(
+      'warning',
+      `pg-probe: a rejection nobody awaited: ${reason instanceof Error ? reason.message.split('\n')[0] : String(reason)}`,
+    );
   });
   main().then(
     (code) => process.exit(code),
     (error: unknown) => {
-      console.error(`pg-probe could not run: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`);
+      console.error(
+        `pg-probe could not run: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
+      );
       process.exit(2);
     },
   );

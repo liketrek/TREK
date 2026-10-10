@@ -1,14 +1,14 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import jwt from 'jsonwebtoken';
-import type { Request, Response } from 'express';
-
-vi.mock('../../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
-
+import type { AuditService } from '../../../../src/nest/audit/audit.service';
 import { SessionsController } from '../../../../src/nest/auth/sessions.controller';
 import type { SessionsService } from '../../../../src/nest/sessions/sessions.service';
-import type { AuditService } from '../../../../src/nest/audit/audit.service';
 import type { User } from '../../../../src/types';
+import { HttpException } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+
+vi.mock('../../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
 
 const SID = '0b7c6f3e-2a51-4c8e-9d43-5f1e2b7a9c10';
 const OTHER = '9f0e1d2c-3b4a-4c5d-8e6f-7a8b9c0d1e2f';
@@ -56,7 +56,12 @@ describe('SessionsController', () => {
 
     expect(await c.revokeOthers(user, reqWith(SID))).toEqual({ success: true, revoked: 3 });
     expect(sessions.revokeAll).toHaveBeenCalledWith(7, SID);
-    expect(writeAudit).toHaveBeenCalledWith({ userId: 7, action: 'user.sessions_revoke_others', ip: '1.2.3.4', details: { revoked: 3 } });
+    expect(writeAudit).toHaveBeenCalledWith({
+      userId: 7,
+      action: 'user.sessions_revoke_others',
+      ip: '1.2.3.4',
+      details: { revoked: 3 },
+    });
   });
 
   it('DELETE ends another session and leaves this cookie alone', async () => {
@@ -66,7 +71,12 @@ describe('SessionsController', () => {
     expect(await c.revoke(user, { id: OTHER }, reqWith(SID), res)).toEqual({ success: true });
     expect(sessions.revoke).toHaveBeenCalledWith(7, OTHER);
     expect(res.clearCookie).not.toHaveBeenCalled();
-    expect(writeAudit).toHaveBeenCalledWith({ userId: 7, action: 'user.session_revoke', ip: '1.2.3.4', resource: OTHER });
+    expect(writeAudit).toHaveBeenCalledWith({
+      userId: 7,
+      action: 'user.session_revoke',
+      ip: '1.2.3.4',
+      resource: OTHER,
+    });
   });
 
   it('DELETE of the current session clears the cookie too', async () => {
@@ -94,11 +104,19 @@ describe('SessionsController on a demo instance', () => {
   it('GET shows the shared demo account only the session it was called with', async () => {
     vi.stubEnv('DEMO_MODE', 'true');
     const mine = { id: SID, created_at: 'a', last_seen_at: 'b', expires_at: 'c', user_agent: 'Mine', current: true };
-    const theirs = { id: OTHER, created_at: 'a', last_seen_at: 'b', expires_at: 'c', user_agent: 'Another visitor', current: false };
+    const theirs = {
+      id: OTHER,
+      created_at: 'a',
+      last_seen_at: 'b',
+      expires_at: 'c',
+      user_agent: 'Another visitor',
+      current: false,
+    };
     // Flags `current` from the id it is handed, as SessionsService.list does:
     // a request without a tracked token has no current session at all.
     const list = vi.fn((_userId: number, currentId?: string) =>
-      Promise.resolve([theirs, mine].map((session) => ({ ...session, current: session.id === currentId }))));
+      Promise.resolve([theirs, mine].map((session) => ({ ...session, current: session.id === currentId }))),
+    );
     const { c } = controller({ list });
 
     expect(await c.list(demo, reqWith(SID))).toEqual({ sessions: [mine], current_tracked: true });
@@ -109,7 +127,10 @@ describe('SessionsController on a demo instance', () => {
     vi.stubEnv('DEMO_MODE', 'true');
     const { c, sessions } = controller({ revoke: vi.fn(), revokeAll: vi.fn() });
 
-    for (const call of [() => c.revokeOthers(demo, reqWith(SID)), () => c.revoke(demo, { id: OTHER }, reqWith(SID), resStub())]) {
+    for (const call of [
+      () => c.revokeOthers(demo, reqWith(SID)),
+      () => c.revoke(demo, { id: OTHER }, reqWith(SID), resStub()),
+    ]) {
       const err = await call().catch((e: unknown) => e);
       expect(err).toBeInstanceOf(HttpException);
       expect((err as HttpException).getStatus()).toBe(403);

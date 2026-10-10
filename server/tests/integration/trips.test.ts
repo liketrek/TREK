@@ -2,31 +2,8 @@
  * Trips API integration tests.
  * Covers TRIP-001 through TRIP-022.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Step 1: Bare in-memory DB — schema applied in beforeAll after mocks register
-// ─────────────────────────────────────────────────────────────────────────────
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-import { db as testDb } from '../../src/db/database';
-import { MikroORM } from '@mikro-orm/core';
 import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import type { FactoryOrm } from '../helpers/factories/context';
-import { createUser, createAdmin, createTrip, addTripMember, createPlace, createReservation, createTag, createDayAccommodation, createBudgetItem, createPackingItem, createDayNote, createDayAssignment } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { countRows, findRow, findRows, insertRow, insertRows, updateRows } from '../helpers/factories/rows';
-import { readTripDays } from '../helpers/factories/trips';
-import { readUser } from '../helpers/factories/users';
-import { setAppSetting } from '../helpers/factories/settings';
-import { tagPlace } from '../helpers/factories/places';
+import { db as testDb } from '../../src/db/database';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { BudgetCategoryOrder } from '../../src/db/entities/BudgetCategoryOrder.entity';
 import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
@@ -43,6 +20,42 @@ import { TripMembers } from '../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
+import { authCookie } from '../helpers/auth';
+import {
+  createUser,
+  createAdmin,
+  createTrip,
+  addTripMember,
+  createPlace,
+  createReservation,
+  createTag,
+  createDayAccommodation,
+  createBudgetItem,
+  createPackingItem,
+  createDayNote,
+  createDayAssignment,
+} from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { tagPlace } from '../helpers/factories/places';
+import { countRows, findRow, findRows, insertRow, insertRows, updateRows } from '../helpers/factories/rows';
+import { setAppSetting } from '../helpers/factories/settings';
+import { readTripDays } from '../helpers/factories/trips';
+import { readUser } from '../helpers/factories/users';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Step 1: Bare in-memory DB — schema applied in beforeAll after mocks register
+// ─────────────────────────────────────────────────────────────────────────────
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 let nestApp: INestApplication;
 let app: Application;
@@ -168,10 +181,7 @@ describe('Create trip', () => {
     await insertRow(orm, AppSettings, { key: 'perm_trip_create', value: 'admin' });
     await invalidatePermissionsCache();
 
-    const res = await request(app)
-      .post('/api/trips')
-      .set('Cookie', authCookie(admin.id))
-      .send({ title: 'Admin Trip' });
+    const res = await request(app).post('/api/trips').set('Cookie', authCookie(admin.id)).send({ title: 'Admin Trip' });
 
     expect(res.status).toBe(201);
   });
@@ -199,18 +209,14 @@ describe('List trips', () => {
     // Add member to one of stranger's trips
     addTripMember(testDb, memberTrip.id, member.id);
 
-    const ownerRes = await request(app)
-      .get('/api/trips')
-      .set('Cookie', authCookie(owner.id));
+    const ownerRes = await request(app).get('/api/trips').set('Cookie', authCookie(owner.id));
 
     expect(ownerRes.status).toBe(200);
     const ownerTripIds = ownerRes.body.trips.map((t: any) => t.id);
     expect(ownerTripIds).toContain(ownTrip.id);
     expect(ownerTripIds).not.toContain(memberTrip.id);
 
-    const memberRes = await request(app)
-      .get('/api/trips')
-      .set('Cookie', authCookie(member.id));
+    const memberRes = await request(app).get('/api/trips').set('Cookie', authCookie(member.id));
 
     expect(memberRes.status).toBe(200);
     const memberTripIds = memberRes.body.trips.map((t: any) => t.id);
@@ -227,9 +233,7 @@ describe('List trips', () => {
     // Archive the second trip directly in the DB
     await updateRows(orm, Trips, { id: archivedTrip.id }, { is_archived: 1 });
 
-    const res = await request(app)
-      .get('/api/trips')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/trips').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     const tripIds = res.body.trips.map((t: any) => t.id);
@@ -245,9 +249,7 @@ describe('List trips', () => {
 
     await updateRows(orm, Trips, { id: archivedTrip.id }, { is_archived: 1 });
 
-    const res = await request(app)
-      .get('/api/trips?archived=1')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/trips?archived=1').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     const tripIds = res.body.trips.map((t: any) => t.id);
@@ -265,9 +267,7 @@ describe('Get trip', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'My Trip', description: 'A lovely trip' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.trip).toBeDefined();
@@ -281,9 +281,7 @@ describe('Get trip', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: "Owner's Trip" });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}`)
-      .set('Cookie', authCookie(other.id));
+    const res = await request(app).get(`/api/trips/${trip.id}`).set('Cookie', authCookie(other.id));
 
     expect(res.status).toBe(404);
     expect(res.body.error).toMatch(/not found/i);
@@ -295,9 +293,7 @@ describe('Get trip', () => {
     const trip = createTrip(testDb, owner.id, { title: 'Shared Trip' });
     addTripMember(testDb, trip.id, member.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}`)
-      .set('Cookie', authCookie(member.id));
+    const res = await request(app).get(`/api/trips/${trip.id}`).set('Cookie', authCookie(member.id));
 
     expect(res.status).toBe(200);
     expect(res.body.trip.id).toBe(trip.id);
@@ -307,9 +303,7 @@ describe('Get trip', () => {
   it('TRIP-006 — GET /api/trips/:id for non-existent trip returns 404', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/trips/999999')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/trips/999999').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(404);
   });
@@ -347,9 +341,7 @@ describe('Update trip', () => {
     expect(archiveRes.body.trip.is_archived).toBe(1);
 
     // Should not appear in the normal list
-    const listRes = await request(app)
-      .get('/api/trips')
-      .set('Cookie', authCookie(user.id));
+    const listRes = await request(app).get('/api/trips').set('Cookie', authCookie(user.id));
 
     const tripIds = listRes.body.trips.map((t: any) => t.id);
     expect(tripIds).not.toContain(trip.id);
@@ -372,9 +364,7 @@ describe('Update trip', () => {
     expect(unarchiveRes.body.trip.is_archived).toBe(0);
 
     // Should appear in the normal list again
-    const listRes = await request(app)
-      .get('/api/trips')
-      .set('Cookie', authCookie(user.id));
+    const listRes = await request(app).get('/api/trips').set('Cookie', authCookie(user.id));
 
     const tripIds = listRes.body.trips.map((t: any) => t.id);
     expect(tripIds).toContain(trip.id);
@@ -449,7 +439,13 @@ describe('Update trip', () => {
 
     const daysAfter = await readTripDays(orm, trip.id);
     expect(daysAfter).toHaveLength(5);
-    expect(daysAfter.map(d => d.date)).toEqual(['2026-08-11', '2026-08-12', '2026-08-13', '2026-08-14', '2026-08-15']);
+    expect(daysAfter.map((d) => d.date)).toEqual([
+      '2026-08-11',
+      '2026-08-12',
+      '2026-08-13',
+      '2026-08-14',
+      '2026-08-15',
+    ]);
 
     const assignmentsAfter = await findRow(orm, DayAssignments, { id: assignment.id });
     expect(assignmentsAfter).not.toBeNull();
@@ -479,7 +475,7 @@ describe('Update trip', () => {
 
     const daysAfter = await readTripDays(orm, trip.id);
     expect(daysAfter).toHaveLength(3);
-    expect(daysAfter.every(d => d.date !== null)).toBe(true);
+    expect(daysAfter.every((d) => d.date !== null)).toBe(true);
 
     // Overflow days and their assignments deleted
     const all = await findRows(orm, DayAssignments, { id: { $in: [a4.id, a5.id] } });
@@ -494,7 +490,11 @@ describe('Update trip', () => {
     const days = await readTripDays(orm, trip.id);
     const place = createPlace(testDb, trip.id, { name: 'Harbour Hotel' });
     const stay = createDayAccommodation(testDb, trip.id, place.id, days[3].id, days[5].id);
-    const booking = createReservation(testDb, trip.id, { title: 'Harbour Hotel booking', type: 'hotel', day_id: days[3].id });
+    const booking = createReservation(testDb, trip.id, {
+      title: 'Harbour Hotel booking',
+      type: 'hotel',
+      day_id: days[3].id,
+    });
     await updateRows(orm, Reservations, { id: booking.id }, { accommodation_id: String(stay.id) });
     const sightseeing = createDayAssignment(testDb, days[5].id, place.id);
 
@@ -505,7 +505,7 @@ describe('Update trip', () => {
 
     expect(res.status).toBe(200);
     const daysAfter = await readTripDays(orm, trip.id);
-    expect(daysAfter.map(d => d.id)).toEqual(days.slice(0, 5).map(d => d.id));
+    expect(daysAfter.map((d) => d.id)).toEqual(days.slice(0, 5).map((d) => d.id));
     expect(daysAfter.at(-1)!.date).toBe('2026-09-05');
     expect(await findRow(orm, DayAccommodations, { id: stay.id })).toBeNull();
     expect(await findRow(orm, DayAssignments, { id: sightseeing.id })).toBeNull();
@@ -523,17 +523,13 @@ describe('Delete trip', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'To Delete' });
 
-    const deleteRes = await request(app)
-      .delete(`/api/trips/${trip.id}`)
-      .set('Cookie', authCookie(user.id));
+    const deleteRes = await request(app).delete(`/api/trips/${trip.id}`).set('Cookie', authCookie(user.id));
 
     expect(deleteRes.status).toBe(200);
     expect(deleteRes.body.success).toBe(true);
 
     // Trip should no longer be accessible
-    const getRes = await request(app)
-      .get(`/api/trips/${trip.id}`)
-      .set('Cookie', authCookie(user.id));
+    const getRes = await request(app).get(`/api/trips/${trip.id}`).set('Cookie', authCookie(user.id));
 
     expect(getRes.status).toBe(404);
   });
@@ -543,9 +539,7 @@ describe('Delete trip', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: "Owner's Trip" });
 
-    const res = await request(app)
-      .delete(`/api/trips/${trip.id}`)
-      .set('Cookie', authCookie(other.id));
+    const res = await request(app).delete(`/api/trips/${trip.id}`).set('Cookie', authCookie(other.id));
 
     // 404, not 403: someone with no access at all must not be able to tell an
     // existing trip from a missing one by walking sequential ids. A member who
@@ -563,9 +557,7 @@ describe('Delete trip', () => {
     const trip = createTrip(testDb, owner.id, { title: 'Shared Trip' });
     addTripMember(testDb, trip.id, member.id);
 
-    const res = await request(app)
-      .delete(`/api/trips/${trip.id}`)
-      .set('Cookie', authCookie(member.id));
+    const res = await request(app).delete(`/api/trips/${trip.id}`).set('Cookie', authCookie(member.id));
 
     expect(res.status).toBe(403);
     expect(res.body.error).toMatch(/permission/i);
@@ -579,9 +571,7 @@ describe('Delete trip', () => {
     createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
     createReservation(testDb, trip.id, { title: 'Hotel Booking', type: 'hotel' });
 
-    const deleteRes = await request(app)
-      .delete(`/api/trips/${trip.id}`)
-      .set('Cookie', authCookie(user.id));
+    const deleteRes = await request(app).delete(`/api/trips/${trip.id}`).set('Cookie', authCookie(user.id));
 
     expect(deleteRes.status).toBe(200);
     expect(deleteRes.body.success).toBe(true);
@@ -599,9 +589,7 @@ describe('Delete trip', () => {
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: "User's Trip" });
 
-    const res = await request(app)
-      .delete(`/api/trips/${trip.id}`)
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).delete(`/api/trips/${trip.id}`).set('Cookie', authCookie(admin.id));
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -610,9 +598,7 @@ describe('Delete trip', () => {
   it('TRIP-018 — DELETE /api/trips/:id for non-existent trip returns 404', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .delete('/api/trips/999999')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete('/api/trips/999999').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(404);
   });
@@ -629,9 +615,7 @@ describe('Trip members', () => {
     const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
     addTripMember(testDb, trip.id, member.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/members`)
-      .set('Cookie', authCookie(owner.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/members`).set('Cookie', authCookie(owner.id));
 
     expect(res.status).toBe(200);
     expect(res.body.owner).toBeDefined();
@@ -765,7 +749,7 @@ describe('Trip members', () => {
 
     const row = await findRow(orm, Trips, { id: trip.id });
     expect(row?.user_id).toBe(member.id);
-    const memberRows = (await findRows(orm, TripMembers, { trip: trip.id })).map(r => r.user_id);
+    const memberRows = (await findRows(orm, TripMembers, { trip: trip.id })).map((r) => r.user_id);
     expect(memberRows).toContain(owner.id);
     expect(memberRows).not.toContain(member.id);
   });
@@ -831,8 +815,8 @@ describe('Trip members', () => {
     const tripA = createTrip(testDb, owner.id, { title: 'Trip A' });
     const tripB = createTrip(testDb, owner.id, { title: 'Trip B' });
 
-    const addJake = (tripId: number) => request(app)
-      .post(`/api/trips/${tripId}/guests`).set('Cookie', authCookie(owner.id)).send({ name: 'Jake' });
+    const addJake = (tripId: number) =>
+      request(app).post(`/api/trips/${tripId}/guests`).set('Cookie', authCookie(owner.id)).send({ name: 'Jake' });
 
     const a = await addJake(tripA.id);
     const b = await addJake(tripB.id);
@@ -925,9 +909,7 @@ describe('Trip members', () => {
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: 'Private Trip' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/members`)
-      .set('Cookie', authCookie(stranger.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/members`).set('Cookie', authCookie(stranger.id));
 
     expect(res.status).toBe(404);
   });
@@ -942,10 +924,7 @@ describe('Copy trip', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Original Trip', description: 'Desc' });
 
-    const res = await request(app)
-      .post(`/api/trips/${trip.id}/copy`)
-      .set('Cookie', authCookie(user.id))
-      .send({});
+    const res = await request(app).post(`/api/trips/${trip.id}/copy`).set('Cookie', authCookie(user.id)).send({});
 
     expect(res.status).toBe(201);
     expect(res.body.trip).toBeDefined();
@@ -972,10 +951,7 @@ describe('Copy trip', () => {
     const trip = createTrip(testDb, owner.id, { title: 'Shared Trip' });
     addTripMember(testDb, trip.id, member.id);
 
-    const res = await request(app)
-      .post(`/api/trips/${trip.id}/copy`)
-      .set('Cookie', authCookie(member.id))
-      .send({});
+    const res = await request(app).post(`/api/trips/${trip.id}/copy`).set('Cookie', authCookie(member.id)).send({});
 
     expect(res.status).toBe(201);
     const newTrip = await findRow(orm, Trips, { id: res.body.trip.id });
@@ -987,10 +963,7 @@ describe('Copy trip', () => {
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: 'Private Trip' });
 
-    const res = await request(app)
-      .post(`/api/trips/${trip.id}/copy`)
-      .set('Cookie', authCookie(stranger.id))
-      .send({});
+    const res = await request(app).post(`/api/trips/${trip.id}/copy`).set('Cookie', authCookie(stranger.id)).send({});
 
     expect(res.status).toBe(404);
   });
@@ -998,10 +971,7 @@ describe('Copy trip', () => {
   it('TRIP-024 — copy of non-existent trip returns 404', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .post('/api/trips/999999/copy')
-      .set('Cookie', authCookie(user.id))
-      .send({});
+    const res = await request(app).post('/api/trips/999999/copy').set('Cookie', authCookie(user.id)).send({});
 
     expect(res.status).toBe(404);
   });
@@ -1016,9 +986,7 @@ describe('ICS export', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Calendar Trip' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/export.ics`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/export.ics`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/text\/calendar/);
@@ -1031,9 +999,7 @@ describe('ICS export', () => {
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: 'Private Trip' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/export.ics`)
-      .set('Cookie', authCookie(stranger.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/export.ics`).set('Cookie', authCookie(stranger.id));
 
     expect(res.status).toBe(404);
   });
@@ -1087,7 +1053,12 @@ describe('Copy trip with data', () => {
     await tagPlace(orm, place.id, [tag.id]);
 
     // Day assignment
-    await insertRow(orm, DayAssignments, { day: days[0].id, place: place.id, order_index: 0, notes: 'Visit in morning' });
+    await insertRow(orm, DayAssignments, {
+      day: days[0].id,
+      place: place.id,
+      order_index: 0,
+      notes: 'Visit in morning',
+    });
 
     // Accommodation spanning days 0→1
     createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
@@ -1161,10 +1132,23 @@ describe('Copy trip with data', () => {
 
     // Two todos: one checked and assigned — both should arrive unchecked and unassigned
     await insertRow(orm, TodoItems, {
-      trip: trip.id, name: 'Buy tickets', checked: 0, category: 'Transport', sort_order: 0, due_date: '2026-06-01', description: 'Check Ryanair', priority: 1,
+      trip: trip.id,
+      name: 'Buy tickets',
+      checked: 0,
+      category: 'Transport',
+      sort_order: 0,
+      due_date: '2026-06-01',
+      description: 'Check Ryanair',
+      priority: 1,
     });
     await insertRow(orm, TodoItems, {
-      trip: trip.id, name: 'Book hotel', checked: 1, category: 'Accommodation', sort_order: 1, assignedUser: user.id, priority: 0,
+      trip: trip.id,
+      name: 'Book hotel',
+      checked: 1,
+      category: 'Accommodation',
+      sort_order: 1,
+      assignedUser: user.id,
+      priority: 0,
     });
 
     // Two budget category order rows
@@ -1212,9 +1196,7 @@ describe('Trip bundle', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-07-01', end_date: '2026-07-03' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/bundle`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/bundle`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.trip).toBeDefined();
@@ -1232,9 +1214,7 @@ describe('Trip bundle', () => {
   it('BUNDLE-002 — returns 404 for trip that does not exist', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/trips/999999/bundle')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/trips/999999/bundle').set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(404);
   });
@@ -1244,9 +1224,7 @@ describe('Trip bundle', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/bundle`)
-      .set('Cookie', authCookie(other.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/bundle`).set('Cookie', authCookie(other.id));
 
     expect(res.status).toBe(404);
   });
@@ -1257,9 +1235,7 @@ describe('Trip bundle', () => {
     const trip = createTrip(testDb, owner.id);
     await insertRow(orm, TripMembers, { trip: trip.id, user: member.id });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/bundle`)
-      .set('Cookie', authCookie(member.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/bundle`).set('Cookie', authCookie(member.id));
 
     expect(res.status).toBe(200);
     expect(res.body.trip.id).toBe(trip.id);
@@ -1274,13 +1250,20 @@ describe('Trip bundle', () => {
     expect(res.status).toBe(401);
   });
 
-  it('BUNDLE-006 — packingItems are scoped to the viewer: another member\'s private item stays out (#858)', async () => {
+  it("BUNDLE-006 — packingItems are scoped to the viewer: another member's private item stays out (#858)", async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
     await insertRow(orm, TripMembers, { trip: trip.id, user: member.id });
     await insertRow(orm, PackingItems, { trip: trip.id, name: 'Tent', checked: 0, sort_order: 0 });
-    await insertRow(orm, PackingItems, { trip: trip.id, name: 'Secret gift', checked: 0, sort_order: 1, is_private: 1, owner: owner.id });
+    await insertRow(orm, PackingItems, {
+      trip: trip.id,
+      name: 'Secret gift',
+      checked: 0,
+      sort_order: 1,
+      is_private: 1,
+      owner: owner.id,
+    });
 
     const ownerView = await request(app).get(`/api/trips/${trip.id}/bundle`).set('Cookie', authCookie(owner.id));
     expect(ownerView.body.packingItems.map((i: { name: string }) => i.name).sort()).toEqual(['Secret gift', 'Tent']);
@@ -1341,9 +1324,7 @@ describe('Trip cover upload parity', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const res = await request(app)
-      .post(`/api/trips/${trip.id}/cover`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).post(`/api/trips/${trip.id}/cover`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('No image uploaded');
   });

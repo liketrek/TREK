@@ -1,3 +1,24 @@
+// ---------------------------------------------------------------------------
+// Imports (after mocks)
+// ---------------------------------------------------------------------------
+import { db as testDb } from '../../../src/db/database';
+import { McpTokens } from '../../../src/db/entities/McpTokens.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { revokeUserSessions } from '../../../src/mcp/sessionManager';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
+import { createEphemeralToken } from '../../../src/nest/auth-core/ephemeral-tokens';
+import { TokenService } from '../../../src/nest/tokens/token.service';
+import { TokensModule } from '../../../src/nest/tokens/tokens.module';
+import { asLegacyResult } from '../../helpers/domain-error';
+import { createUser } from '../../helpers/factories';
+import { countRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestMcpTokensRepo, createTestUsersRepo } from '../../helpers/test-uow';
+import { sharedTestOrm } from '../../helpers/test-uow';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
 /**
  * token.service.test.ts
  *
@@ -12,7 +33,6 @@
 // ---------------------------------------------------------------------------
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -22,33 +42,12 @@ vi.mock('../../../src/db/database', async () => {
     canAccessTrip: () => undefined,
     isOwner: () => false,
   };
-    return mock;
+  return mock;
 });
-
 
 vi.mock('../../../src/nest/auth-core/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 
-// ---------------------------------------------------------------------------
-// Imports (after mocks)
-// ---------------------------------------------------------------------------
-
-import { asLegacyResult } from '../../helpers/domain-error';
-import { db as testDb } from '../../../src/db/database';
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { TokenService } from '../../../src/nest/tokens/token.service';
-import { TokensModule } from '../../../src/nest/tokens/tokens.module';
-import { createEphemeralToken } from '../../../src/nest/auth-core/ephemeral-tokens';
-import { revokeUserSessions } from '../../../src/mcp/sessionManager';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
-import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
-import { createTestMcpTokensRepo, createTestUsersRepo } from '../../helpers/test-uow';
-import { sharedTestOrm } from '../../helpers/test-uow';
-import { countRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
-import { McpTokens } from '../../../src/db/entities/McpTokens.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
 /** The token row, or null once it is gone. */
 async function tokenRow(id: number | string) {
   return findRow(await sharedTestOrm(testDb), McpTokens, { id: Number(id) });
@@ -61,7 +60,11 @@ async function tokenRow(id: number | string) {
 let svc: TokenService;
 
 beforeAll(async () => {
-  svc = new TokenService(await createTestMcpTokensRepo(testDb), await createTestUsersRepo(testDb), new EphemeralTokenService());
+  svc = new TokenService(
+    await createTestMcpTokensRepo(testDb),
+    await createTestUsersRepo(testDb),
+    new EphemeralTokenService(),
+  );
 });
 
 beforeEach(() => {
@@ -100,7 +103,12 @@ describe('MCP token service', () => {
   it('AUTH-DB-044: createMcpToken returns 400 when user has 10 tokens already', async () => {
     const { user } = createUser(testDb);
     for (let i = 0; i < 10; i++) {
-      await insertRow(await sharedTestOrm(testDb), McpTokens, { user: user.id, name: `Token ${i}`, token_hash: `hash${i}`, token_prefix: `trek_prefix${i}` });
+      await insertRow(await sharedTestOrm(testDb), McpTokens, {
+        user: user.id,
+        name: `Token ${i}`,
+        token_hash: `hash${i}`,
+        token_prefix: `trek_prefix${i}`,
+      });
     }
     const result = await asLegacyResult(svc.createMcpToken(user.id, 'One More'));
     expect(result.status).toBe(400);
@@ -128,7 +136,9 @@ describe('MCP token service', () => {
     const { user } = createUser(testDb);
     const created = await asLegacyResult(svc.createMcpToken(user.id, 'sweep-down'));
     const tokenId = String((created.token as { id: number }).id);
-    vi.mocked(revokeUserSessions).mockImplementationOnce(() => { throw new Error('sweep down'); });
+    vi.mocked(revokeUserSessions).mockImplementationOnce(() => {
+      throw new Error('sweep down');
+    });
 
     expect(await asLegacyResult(svc.deleteMcpToken(user.id, tokenId))).toEqual({ success: true });
     expect(await tokenRow(tokenId)).toBeNull();
@@ -140,7 +150,7 @@ describe('MCP token service', () => {
     await asLegacyResult(svc.createMcpToken(user.id, 'mine'));
     await asLegacyResult(svc.createMcpToken(other.id, 'theirs'));
 
-    const mine = await svc.listMcpTokens(user.id) as Record<string, unknown>[];
+    const mine = (await svc.listMcpTokens(user.id)) as Record<string, unknown>[];
     expect(mine).toHaveLength(1);
     expect(mine[0].name).toBe('mine');
     expect(mine[0]).not.toHaveProperty('token_hash');
@@ -152,7 +162,10 @@ describe('MCP token service', () => {
     const created = await asLegacyResult(svc.createMcpToken(other.id, 'not-yours'));
     const tokenId = String((created.token as { id: number }).id);
 
-    expect(await asLegacyResult(svc.deleteMcpToken(user.id, tokenId))).toEqual({ error: 'Token not found', status: 404 });
+    expect(await asLegacyResult(svc.deleteMcpToken(user.id, tokenId))).toEqual({
+      error: 'Token not found',
+      status: 404,
+    });
     expect(await tokenRow(tokenId)).not.toBeNull();
   });
 
@@ -163,7 +176,10 @@ describe('MCP token service', () => {
 
   it('TOKEN-018: deleteMcpToken 404s on a hex-shaped id — Number("0x10") is 16, a safe integer a bare Number() conversion would accept, but SQLite affinity never would (Plan 3b Task 2 review, F1)', async () => {
     const { user } = createUser(testDb);
-    expect(await asLegacyResult(svc.deleteMcpToken(user.id, '0x10'))).toEqual({ error: 'Token not found', status: 404 });
+    expect(await asLegacyResult(svc.deleteMcpToken(user.id, '0x10'))).toEqual({
+      error: 'Token not found',
+      status: 404,
+    });
   });
 });
 
@@ -199,8 +215,8 @@ describe('API key service', () => {
     await asLegacyResult(svc.createMcpToken(user.id, 'claude'));
     await asLegacyResult(svc.createApiToken(user.id, 'dawarich'));
 
-    const mcp = await svc.listMcpTokens(user.id) as Record<string, unknown>[];
-    const api = await svc.listApiTokens(user.id) as Record<string, unknown>[];
+    const mcp = (await svc.listMcpTokens(user.id)) as Record<string, unknown>[];
+    const api = (await svc.listApiTokens(user.id)) as Record<string, unknown>[];
     expect(mcp.map((t) => t.name)).toEqual(['claude']);
     expect(api.map((t) => t.name)).toEqual(['dawarich']);
   });
@@ -242,11 +258,11 @@ describe('API key service', () => {
     const { user } = createUser(testDb);
     const raw = (await asLegacyResult(svc.createApiToken(user.id, 'dawarich'))).token!.raw_token as string;
 
-    const before = await svc.listApiTokens(user.id) as Record<string, unknown>[];
+    const before = (await svc.listApiTokens(user.id)) as Record<string, unknown>[];
     expect(before[0].last_used_at).toBeNull();
 
     await svc.verifyApiToken(raw);
-    const after = await svc.listApiTokens(user.id) as Record<string, unknown>[];
+    const after = (await svc.listApiTokens(user.id)) as Record<string, unknown>[];
     expect(after[0].last_used_at).not.toBeNull();
   });
 });
@@ -260,13 +276,13 @@ describe('API key service', () => {
 
 describe('MCP token service (admin view)', () => {
   it('ADMIN-SVC-068 — listAllMcpTokens returns empty array initially', async () => {
-    const result = await svc.listAllMcpTokens() as any[];
+    const result = (await svc.listAllMcpTokens()) as any[];
     expect(Array.isArray(result)).toBe(true);
     expect(result).toHaveLength(0);
   });
 
   it('ADMIN-SVC-069 — adminDeleteMcpToken returns 404 for non-existent token', async () => {
-    const result = await asLegacyResult(svc.adminDeleteMcpToken('99999')) as any;
+    const result = (await asLegacyResult(svc.adminDeleteMcpToken('99999'))) as any;
     expect(result.status).toBe(404);
     expect(result.error).toBeDefined();
   });
@@ -284,8 +300,8 @@ describe('MCP token service (admin view)', () => {
     // `unknown` return type).
     const all = await svc.listAllMcpTokens();
     expect(all).toHaveLength(2);
-    expect(all.every(t => typeof t.username === 'string')).toBe(true);
-    expect(all.every(t => !('token_hash' in t))).toBe(true);
+    expect(all.every((t) => typeof t.username === 'string')).toBe(true);
+    expect(all.every((t) => !('token_hash' in t))).toBe(true);
   });
 
   it('TOKEN-004: adminDeleteMcpToken removes any user token and revokes that user', async () => {
@@ -389,7 +405,7 @@ describe('verifyMcpToken', () => {
     const created = await asLegacyResult(svc.createMcpToken(user.id, 'lean'));
     const raw = (created.token as { raw_token: string }).raw_token;
 
-    const resolved = await svc.verifyMcpToken(raw) as unknown as Record<string, unknown>;
+    const resolved = (await svc.verifyMcpToken(raw)) as unknown as Record<string, unknown>;
     expect(Object.keys(resolved).sort()).toEqual(['email', 'id', 'role', 'username']);
   });
 });

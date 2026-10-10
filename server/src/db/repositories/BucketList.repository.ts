@@ -1,8 +1,8 @@
 import { lowerTrim, lowerTrimParam } from '../dialect/sql-functions';
 import type { BucketList } from '../entities/BucketList.entity';
+import type { DB } from '../kysely/db';
 import { presenceSet } from './_shared/presence-set';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /** `bucket_list` — every scalar column, `AT30`/`AT33`/`AT34`'s `SELECT *` shape. */
 export interface BucketListRow {
@@ -67,7 +67,12 @@ export class BucketListRepository extends TrekRepository<BucketList> {
 
   /** AT30 (`bucketList`) — `SELECT * FROM bucket_list WHERE user_id = ? ORDER BY created_at DESC`. */
   async listForUser(userId: number): Promise<BucketListRow[]> {
-    return await this.readDb().selectFrom('bucket_list').selectAll().where('user_id', '=', userId).orderBy('created_at', 'desc').execute();
+    return await this.readDb()
+      .selectFrom('bucket_list')
+      .selectAll()
+      .where('user_id', '=', userId)
+      .orderBy('created_at', 'desc')
+      .execute();
   }
 
   /**
@@ -128,18 +133,31 @@ export class BucketListRepository extends TrekRepository<BucketList> {
     target_date: string | null;
     region_code: string | null;
   }): Promise<number> {
-    const inserted = await this.insertDb().insertInto('bucket_list').values(row).returning('id').executeTakeFirstOrThrow();
+    const inserted = await this.insertDb()
+      .insertInto('bucket_list')
+      .values(row)
+      .returning('id')
+      .executeTakeFirstOrThrow();
     return inserted.id;
   }
 
   /** AT33 (`createBucketItem`'s post-insert re-select, NOT user-scoped — the legacy statement's own shape) — `SELECT * FROM bucket_list WHERE id = ?`. */
   async findById(id: number | string): Promise<BucketListRow | undefined> {
-    return await this.readDb().selectFrom('bucket_list').selectAll().where('id', '=', id as number).executeTakeFirst();
+    return await this.readDb()
+      .selectFrom('bucket_list')
+      .selectAll()
+      .where('id', '=', id as number)
+      .executeTakeFirst();
   }
 
   /** AT34/AT36/AT37 (`updateBucketItem`'s guard, its post-update re-select, `deleteBucketItem`'s guard — identical text, three call sites) — `SELECT * FROM bucket_list WHERE id = ? AND user_id = ?`. */
   async findForUser(id: number | string, userId: number): Promise<BucketListRow | undefined> {
-    return await this.readDb().selectFrom('bucket_list').selectAll().where('id', '=', id as number).where('user_id', '=', userId).executeTakeFirst();
+    return await this.readDb()
+      .selectFrom('bucket_list')
+      .selectAll()
+      .where('id', '=', id as number)
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
   }
 
   /**
@@ -181,12 +199,21 @@ export class BucketListRepository extends TrekRepository<BucketList> {
       target_date: string | null;
     }>(write);
     if (Object.keys(data).length === 0) return;
-    await this.writeDb().updateTable('bucket_list').set(data).where('id', '=', id as number).where('user_id', '=', userId).execute();
+    await this.writeDb()
+      .updateTable('bucket_list')
+      .set(data)
+      .where('id', '=', id as number)
+      .where('user_id', '=', userId)
+      .execute();
   }
 
   /** AT38 (`deleteBucketItem`) — `DELETE FROM bucket_list WHERE id = ? AND user_id = ?`. */
   async deleteForUser(id: number | string, userId: number): Promise<void> {
-    await this.writeDb().deleteFrom('bucket_list').where('id', '=', id as number).where('user_id', '=', userId).execute();
+    await this.writeDb()
+      .deleteFrom('bucket_list')
+      .where('id', '=', id as number)
+      .where('user_id', '=', userId)
+      .execute();
   }
 
   // ---------------------------------------------------------------------------
@@ -216,7 +243,9 @@ export class BucketListRepository extends TrekRepository<BucketList> {
    * created_at DESC, id DESC`. The boolean-expression `ORDER BY` key is
    * portable SQL — no dialect helper needed.
    */
-  async listForScan(userId: number): Promise<{ id: number; name: string; lat: number | null; lng: number | null; visited_at: string | null }[]> {
+  async listForScan(
+    userId: number,
+  ): Promise<{ id: number; name: string; lat: number | null; lng: number | null; visited_at: string | null }[]> {
     return await this.readDb()
       .selectFrom('bucket_list')
       .select(['id', 'name', 'lat', 'lng', 'visited_at'])

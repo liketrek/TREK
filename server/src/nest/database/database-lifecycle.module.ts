@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
 import { DatabaseLifecycle } from './database-lifecycle.service';
+import { Module } from '@nestjs/common';
 
 /**
  * Provides `DatabaseLifecycle`. Not global: the backup port and the app root

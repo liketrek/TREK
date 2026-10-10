@@ -1,5 +1,6 @@
-import type { Expression, ExpressionBuilder, ExpressionWrapper, SqlBool } from 'kysely';
 import type { DB } from '../../kysely/db';
+
+import type { Expression, ExpressionBuilder, ExpressionWrapper, SqlBool } from 'kysely';
 
 /**
  * The per-actor visibility predicate packing's three-tier sharing model
@@ -111,10 +112,7 @@ import type { DB } from '../../kysely/db';
 
 export function packingVisibleToActorCondition(actorId: number | undefined) {
   return {
-    $or: [
-      { is_private: 0 },
-      ...(actorId != null ? [{ owner_id: actorId }, { packing_item_recipients: actorId }] : []),
-    ],
+    $or: [{ is_private: 0 }, ...(actorId != null ? [{ owner_id: actorId }, { packing_item_recipients: actorId }] : [])],
   };
 }
 

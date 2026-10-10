@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { MikroORM } from '@mikro-orm/core';
 import { closeDb, getRawConnection, registerReinitializeHook, reinitialize } from '../../db/database';
 import { resolveDbPath } from '../../db/db-path';
 import { runSchemaBootstrap } from '../../db/orm';
+import { MikroORM } from '@mikro-orm/core';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The one owner of the core database connection's lifecycle: open, close and

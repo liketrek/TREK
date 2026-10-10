@@ -1,5 +1,5 @@
-import type { JourneyEntry } from '../../types';
 import { JOURNEY_ENTRY_PROS_CONS, JOURNEY_ENTRY_TAGS } from '../../db/json-columns';
+import type { JourneyEntry } from '../../types';
 import { decodeJson } from '../../utils/json-column';
 
 /**
@@ -28,7 +28,10 @@ import { decodeJson } from '../../utils/json-column';
  * the reason the JSON does, so that a client comparing it with `=== true` is
  * comparing against something that can be true on every path.
  */
-export interface JourneyEntryWire extends Omit<JourneyEntry, 'tags' | 'pros_cons' | 'stats_excluded' | 'dismissed' | 'is_draft'> {
+export interface JourneyEntryWire extends Omit<
+  JourneyEntry,
+  'tags' | 'pros_cons' | 'stats_excluded' | 'dismissed' | 'is_draft'
+> {
   tags: string[];
   pros_cons: { pros: string[]; cons: string[] } | null;
   stats_excluded: boolean;
@@ -42,7 +45,11 @@ export function decodeEntryRow(row: JourneyEntry): JourneyEntryWire {
   return {
     ...rest,
     tags: decodeJson(JOURNEY_ENTRY_TAGS, tags, `journey entry ${row.id}`),
-    pros_cons: decodeJson(JOURNEY_ENTRY_PROS_CONS, pros_cons, `journey entry ${row.id}`) as JourneyEntryWire['pros_cons'],
+    pros_cons: decodeJson(
+      JOURNEY_ENTRY_PROS_CONS,
+      pros_cons,
+      `journey entry ${row.id}`,
+    ) as JourneyEntryWire['pros_cons'],
     stats_excluded: !!stats_excluded,
     dismissed: !!dismissed,
     is_draft: !!is_draft,

@@ -1,10 +1,10 @@
-import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import { ADDON_IDS } from '../../addons';
 import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams } from '../../nest-rpc/rpc-errors';
-import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
+import { asPayload, num } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
-import { ADDON_IDS } from '../../addons';
 import { CollabService } from './collab.service';
 
 const COLLAB_EDIT_ACTION = 'collab_edit';
@@ -72,8 +72,10 @@ export class CollabRpc {
     const tripId = num(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'collab poll');
     const input = asPayload(params.input);
-    if (typeof input.question !== 'string' || input.question.trim() === '') throw new BadParams('poll question is required');
-    if (!Array.isArray(input.options) || input.options.length < 2) throw new BadParams('a poll needs at least two options');
+    if (typeof input.question !== 'string' || input.question.trim() === '')
+      throw new BadParams('poll question is required');
+    if (!Array.isArray(input.options) || input.options.length < 2)
+      throw new BadParams('a poll needs at least two options');
     await this.guards.requireTripEdit(tripId, actor, COLLAB_EDIT_ACTION);
     await this.requireCollabAddon();
     const poll = await this.collab.createPoll(String(tripId), actor, input as never);
@@ -87,7 +89,12 @@ export class CollabRpc {
     const actor = this.guards.requireActor(ctx, 'collab poll');
     await this.guards.requireTripEdit(tripId, actor, COLLAB_EDIT_ACTION);
     await this.requireCollabAddon();
-    const result = await this.collab.votePoll(String(tripId), String(num(params.pollId, 'pollId')), actor, num(params.optionIndex, 'optionIndex'));
+    const result = await this.collab.votePoll(
+      String(tripId),
+      String(num(params.pollId, 'pollId')),
+      actor,
+      num(params.optionIndex, 'optionIndex'),
+    );
     // The service reports its own validation failures rather than throwing.
     if (result.error) throw new BadParams(result.error);
     this.realtime.broadcast(tripId, 'collab:poll:voted', { poll: result.poll }, undefined);

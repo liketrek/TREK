@@ -1,19 +1,19 @@
-import { RateLimitModule } from '../common/rate-limit.module';
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { TransitController } from './transit.controller';
-import { TransitService } from './transit.service';
-import { TransitMcp } from './transit.mcp';
-import { GoogleTransitProvider } from './google-transit.provider';
-import { DaysModule } from '../days/days.module';
-import { ReservationsModule } from '../reservations/reservations.module';
-import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { Users } from '../../db/entities/Users.entity';
 import { Trips } from '../../db/entities/Trips.entity';
-import { GoogleQuotaModule } from '../google-quota/google-quota.module';
+import { Users } from '../../db/entities/Users.entity';
 import { AppConfigModule } from '../app-config/app-config.module';
+import { RateLimitModule } from '../common/rate-limit.module';
+import { DaysModule } from '../days/days.module';
+import { GoogleQuotaModule } from '../google-quota/google-quota.module';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { ReservationsModule } from '../reservations/reservations.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { GoogleTransitProvider } from './google-transit.provider';
+import { TransitController } from './transit.controller';
+import { TransitMcp } from './transit.mcp';
+import { TransitService } from './transit.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Transit domain (#1065) — the Transitous/MOTIS proxy, with the optional
@@ -33,7 +33,16 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
  */
 @Module({
   // DaysModule + ReservationsModule: TransitMcp's create_transit_journey injects both.
-  imports: [TripMembershipModule, AppConfigModule, McpSharedModule, RateLimitModule, DaysModule, ReservationsModule, MikroOrmModule.forFeature([AppSettings, Users, Trips]), GoogleQuotaModule],
+  imports: [
+    TripMembershipModule,
+    AppConfigModule,
+    McpSharedModule,
+    RateLimitModule,
+    DaysModule,
+    ReservationsModule,
+    MikroOrmModule.forFeature([AppSettings, Users, Trips]),
+    GoogleQuotaModule,
+  ],
   controllers: [TransitController],
   providers: [TransitService, TransitMcp, GoogleTransitProvider],
   exports: [TransitService],

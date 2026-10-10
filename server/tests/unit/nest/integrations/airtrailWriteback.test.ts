@@ -1,8 +1,19 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+
 // ATC-TX-001 reads Nest's own emitted constructor-param metadata (the same
 // mechanism `discovery.test.ts` uses) — needs the polyfill `src/index.ts`
 // normally provides, absent from the vitest entrypoint.
 import 'reflect-metadata';
+
+import { db } from '../../../../src/db/database';
+import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
+import { Users } from '../../../../src/db/entities/Users.entity';
+import { UserAirtrailRepository } from '../../../../src/db/repositories/UserAirtrail.repository';
+import { AuditService } from '../../../../src/nest/audit/audit.service';
+import { AirtrailClient } from '../../../../src/nest/integrations/airtrail.client';
+import { AirtrailService } from '../../../../src/nest/integrations/airtrail.service';
+import { createUser } from '../../../helpers/factories';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 
 // Avoid any real DNS/network from the SSRF guard during saveSettings.
 vi.mock('../../../../src/utils/ssrfGuard', () => ({
@@ -10,21 +21,15 @@ vi.mock('../../../../src/utils/ssrfGuard', () => ({
   safeFetch: vi.fn(),
 }));
 
-import { db } from '../../../../src/db/database';
-import { createUser } from '../../../helpers/factories';
-import { AirtrailService } from '../../../../src/nest/integrations/airtrail.service';
-import { AirtrailClient } from '../../../../src/nest/integrations/airtrail.client';
-import { AuditService } from '../../../../src/nest/audit/audit.service';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
-import { Users } from '../../../../src/db/entities/Users.entity';
-import { UserAirtrailRepository } from '../../../../src/db/repositories/UserAirtrail.repository';
-
 // The free functions became methods with the airtrail fold; same SQL, same
 // behaviour, one instance over the same db handle.
 let svc: AirtrailService;
-let getConnectionSettings: (...args: Parameters<AirtrailService['getConnectionSettings']>) => ReturnType<AirtrailService['getConnectionSettings']>;
-let isAirtrailWriteEnabled: (...args: Parameters<AirtrailService['isAirtrailWriteEnabled']>) => ReturnType<AirtrailService['isAirtrailWriteEnabled']>;
+let getConnectionSettings: (
+  ...args: Parameters<AirtrailService['getConnectionSettings']>
+) => ReturnType<AirtrailService['getConnectionSettings']>;
+let isAirtrailWriteEnabled: (
+  ...args: Parameters<AirtrailService['isAirtrailWriteEnabled']>
+) => ReturnType<AirtrailService['isAirtrailWriteEnabled']>;
 let saveSettings: (...args: Parameters<AirtrailService['saveSettings']>) => ReturnType<AirtrailService['saveSettings']>;
 let t: TestOrm;
 
@@ -78,7 +83,11 @@ describe('airtrail saveSettings preserves its pre-existing NO-transaction asymme
     // touch `saveSettings`'s body.
     const paramTypes = Reflect.getMetadata('design:paramtypes', AirtrailService) as unknown[] | undefined;
     expect(paramTypes).toBeDefined();
-    expect(paramTypes!.map((p) => (p as { name?: string })?.name)).toEqual(['UserAirtrailRepository', 'AuditService', 'AirtrailClient']);
+    expect(paramTypes!.map((p) => (p as { name?: string })?.name)).toEqual([
+      'UserAirtrailRepository',
+      'AuditService',
+      'AirtrailClient',
+    ]);
   });
 
   it('ATC-TX-002: the URL-cleared branch performs its two writes as genuinely separate repository calls, not one atomic statement', async () => {

@@ -7,12 +7,26 @@
  * Uses a real in-memory SQLite DB; apiKeyCrypto is mocked to a passthrough
  * so we don't need real encryption for most tests.
  */
+import { db as testDb } from '../../../src/db/database';
+import { Settings } from '../../../src/db/entities/Settings.entity';
+import { SettingsService } from '../../../src/nest/settings/settings.service';
+import { createUser } from '../../helpers/factories';
+import { findRows } from '../../helpers/factories/rows';
+import { readUserSetting, setAppSetting, setUserSetting } from '../../helpers/factories/settings';
+import { resetTestDb } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import {
+  sharedTestOrm,
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestSettingsRepo,
+} from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB + apiKeyCrypto mock ────────────────────────────────────────────────────
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -23,7 +37,7 @@ vi.mock('../../../src/db/database', async () => {
     canAccessTrip: () => null,
     isOwner: () => false,
   };
-    return mock;
+  return mock;
 });
 
 // Passthrough crypto — value comes back unchanged for most tests
@@ -31,16 +45,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   maybe_encrypt_api_key: (v: string) => v,
   decrypt_api_key: (v: string) => v,
 }));
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import type { TestOrm } from '../../helpers/test-orm';
-import { SettingsService } from '../../../src/nest/settings/settings.service';
-import { sharedTestOrm, createTestUnitOfWork, createTestAppSettingsRepo, createTestSettingsRepo } from '../../helpers/test-uow';
-import { findRows } from '../../helpers/factories/rows';
-import { Settings } from '../../../src/db/entities/Settings.entity';
-import { readUserSetting, setAppSetting, setUserSetting } from '../../helpers/factories/settings';
 
 let svc: SettingsService;
 let t: TestOrm;
@@ -324,8 +328,8 @@ describe('bulkUpsertSettings', () => {
     const { user: b } = createUser(testDb);
     await svc.bulkUpsertSettings(a.id, { shared_key: 'from-a' });
     await svc.bulkUpsertSettings(b.id, { shared_key: 'from-b' });
-    expect((await svc.getUserSettings(a.id) as any).shared_key).toBe('from-a');
-    expect((await svc.getUserSettings(b.id) as any).shared_key).toBe('from-b');
+    expect(((await svc.getUserSettings(a.id)) as any).shared_key).toBe('from-a');
+    expect(((await svc.getUserSettings(b.id)) as any).shared_key).toBe('from-b');
   });
 
   // Was a `vi.spyOn(testDb, 'prepare').mockImplementationOnce(...)` targeting

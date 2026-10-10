@@ -10,22 +10,20 @@
  * key, decrypt_api_key returns null on the next read, and the instance quietly
  * behaves as if no key were configured. This pins the copy instead.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { INSTANCE_API_KEY_NAMES } from '../../../src/nest/settings/instance-api-keys';
+import { storageSecretFields } from '@trek/shared';
+
+import Database from 'better-sqlite3';
 import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import Database from 'better-sqlite3';
-import { INSTANCE_API_KEY_NAMES } from '../../../src/nest/settings/instance-api-keys';
-import { storageSecretFields } from '@trek/shared';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 const SERVER_ROOT = path.join(__dirname, '..', '..', '..');
 
-const script = fs.readFileSync(
-  path.join(__dirname, '..', '..', '..', 'scripts', 'migrate-encryption.ts'),
-  'utf8',
-);
+const script = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'scripts', 'migrate-encryption.ts'), 'utf8');
 
 // The app_settings loop only, so a name that happens to appear elsewhere in the
 // script (a users column of the same name, a comment) cannot satisfy the test.
@@ -146,7 +144,7 @@ describe('migrate-encryption.ts app_settings parity', () => {
     expect(script).toContain('access_token');
     expect(script).toContain('refresh_token');
     expect(script).toContain('plugin_settings_fields');
-    expect(script).toContain("UPDATE plugins SET config = ?");
+    expect(script).toContain('UPDATE plugins SET config = ?');
     expect(script).toContain('plugin_user_config');
   });
 
@@ -196,10 +194,9 @@ describe('migrate-encryption.ts storage.backends: malformed shape', () => {
     `);
     // Valid JSON, but not an array — the malformed shape the fix must not
     // silently skip.
-    seed.prepare('INSERT INTO app_settings (key, value) VALUES (?, ?)').run(
-      'storage.backends',
-      JSON.stringify({ not: 'an array' }),
-    );
+    seed
+      .prepare('INSERT INTO app_settings (key, value) VALUES (?, ?)')
+      .run('storage.backends', JSON.stringify({ not: 'an array' }));
     seed.close();
 
     let output: string;
@@ -288,24 +285,24 @@ describe('migrate-encryption.ts rotates the stores the app writes', () => {
     const seed = new Database(dbPath);
     seed.exec(BASE_SCHEMA);
     seed.prepare('INSERT INTO users (id, airtrail_api_key) VALUES (1, ?)').run(encryptWith('old-key', 'at-token'));
-    seed.prepare('INSERT INTO settings (user_id, key, value) VALUES (1, ?, ?)').run('llm_api_key', encryptWith('old-key', 'sk-llm'));
-    seed.prepare('INSERT INTO plugins (id, config) VALUES (?, ?)').run(
-      'koffi',
-      JSON.stringify({ api_key: encryptWith('old-key', 'plugin-secret'), server: 'https://h' }),
-    );
-    seed.prepare('INSERT INTO plugin_settings_fields (plugin_id, field_key, scope, secret) VALUES (?, ?, ?, ?)').run('koffi', 'api_key', 'instance', 1);
-    seed.prepare('INSERT INTO plugin_settings_fields (plugin_id, field_key, scope, secret) VALUES (?, ?, ?, ?)').run('koffi', 'token', 'user', 1);
-    seed.prepare('INSERT INTO plugin_user_config (plugin_id, user_id, config) VALUES (?, ?, ?)').run(
-      'koffi',
-      1,
-      JSON.stringify({ token: encryptWith('old-key', 'user-secret') }),
-    );
-    seed.prepare('INSERT INTO plugin_oauth_tokens (plugin_id, user_id, access_token, refresh_token) VALUES (?, ?, ?, ?)').run(
-      'koffi',
-      1,
-      encryptWith('old-key', 'access'),
-      encryptWith('old-key', 'refresh'),
-    );
+    seed
+      .prepare('INSERT INTO settings (user_id, key, value) VALUES (1, ?, ?)')
+      .run('llm_api_key', encryptWith('old-key', 'sk-llm'));
+    seed
+      .prepare('INSERT INTO plugins (id, config) VALUES (?, ?)')
+      .run('koffi', JSON.stringify({ api_key: encryptWith('old-key', 'plugin-secret'), server: 'https://h' }));
+    seed
+      .prepare('INSERT INTO plugin_settings_fields (plugin_id, field_key, scope, secret) VALUES (?, ?, ?, ?)')
+      .run('koffi', 'api_key', 'instance', 1);
+    seed
+      .prepare('INSERT INTO plugin_settings_fields (plugin_id, field_key, scope, secret) VALUES (?, ?, ?, ?)')
+      .run('koffi', 'token', 'user', 1);
+    seed
+      .prepare('INSERT INTO plugin_user_config (plugin_id, user_id, config) VALUES (?, ?, ?)')
+      .run('koffi', 1, JSON.stringify({ token: encryptWith('old-key', 'user-secret') }));
+    seed
+      .prepare('INSERT INTO plugin_oauth_tokens (plugin_id, user_id, access_token, refresh_token) VALUES (?, ?, ?, ?)')
+      .run('koffi', 1, encryptWith('old-key', 'access'), encryptWith('old-key', 'refresh'));
     seed.close();
 
     execFileSync(process.execPath, ['--import', 'tsx', 'scripts/migrate-encryption.ts'], {
@@ -330,12 +327,16 @@ describe('migrate-encryption.ts rotates the stores the app writes', () => {
     expect(decryptWith('new-key', tokens.access_token)).toBe('access');
     expect(decryptWith('new-key', tokens.refresh_token)).toBe('refresh');
 
-    const pluginConfig = JSON.parse((after.prepare("SELECT config AS v FROM plugins WHERE id = 'koffi'").get() as { v: string }).v);
+    const pluginConfig = JSON.parse(
+      (after.prepare("SELECT config AS v FROM plugins WHERE id = 'koffi'").get() as { v: string }).v,
+    );
     expect(decryptWith('new-key', pluginConfig.api_key)).toBe('plugin-secret');
     // A non-secret field is left exactly as it was.
     expect(pluginConfig.server).toBe('https://h');
 
-    const userConfig = JSON.parse((after.prepare('SELECT config AS v FROM plugin_user_config').get() as { v: string }).v);
+    const userConfig = JSON.parse(
+      (after.prepare('SELECT config AS v FROM plugin_user_config').get() as { v: string }).v,
+    );
     expect(decryptWith('new-key', userConfig.token)).toBe('user-secret');
     after.close();
   }, 30000);
@@ -352,15 +353,17 @@ describe('migrate-encryption.ts rotates the stores the app writes', () => {
     seed.exec(BASE_SCHEMA);
     seed.exec(DOC_SYNC_SCHEMA);
     const connectionBlob = JSON.stringify({ token: 'paperless-token', deviceId: 'dsm-device' });
-    seed.prepare('INSERT INTO document_connections (id, secrets) VALUES (1, ?)').run(encryptWith('old-key', connectionBlob));
+    seed
+      .prepare('INSERT INTO document_connections (id, secrets) VALUES (1, ?)')
+      .run(encryptWith('old-key', connectionBlob));
     // A second run over a half-rotated database must not touch a row that is
     // already readable under the new key, let alone re-encrypt it under the old.
     const alreadyRotated = encryptWith('new-key', JSON.stringify({ token: 'nextcloud-app-password' }));
     seed.prepare('INSERT INTO document_connections (id, secrets) VALUES (2, ?)').run(alreadyRotated);
     seed.prepare('INSERT INTO document_connections (id, secrets) VALUES (3, NULL)').run();
-    seed.prepare('INSERT INTO trip_document_links (id, webhook_secret) VALUES (1, ?)').run(
-      encryptWith('old-key', JSON.stringify({ webhook: 'hook-secret' })),
-    );
+    seed
+      .prepare('INSERT INTO trip_document_links (id, webhook_secret) VALUES (1, ?)')
+      .run(encryptWith('old-key', JSON.stringify({ webhook: 'hook-secret' })));
     seed.close();
 
     const output = execFileSync(process.execPath, ['--import', 'tsx', 'scripts/migrate-encryption.ts'], {
@@ -372,17 +375,27 @@ describe('migrate-encryption.ts rotates the stores the app writes', () => {
     });
 
     const after = new Database(dbPath, { readonly: true });
-    const rotated = (after.prepare('SELECT secrets AS v FROM document_connections WHERE id = 1').get() as { v: string }).v;
+    const rotated = (after.prepare('SELECT secrets AS v FROM document_connections WHERE id = 1').get() as { v: string })
+      .v;
     expect(decryptWith('old-key', rotated)).toBeNull();
-    expect(JSON.parse(decryptWith('new-key', rotated) ?? 'null')).toEqual({ token: 'paperless-token', deviceId: 'dsm-device' });
+    expect(JSON.parse(decryptWith('new-key', rotated) ?? 'null')).toEqual({
+      token: 'paperless-token',
+      deviceId: 'dsm-device',
+    });
 
-    const untouched = (after.prepare('SELECT secrets AS v FROM document_connections WHERE id = 2').get() as { v: string }).v;
+    const untouched = (
+      after.prepare('SELECT secrets AS v FROM document_connections WHERE id = 2').get() as { v: string }
+    ).v;
     expect(untouched).toBe(alreadyRotated);
 
-    const empty = (after.prepare('SELECT secrets AS v FROM document_connections WHERE id = 3').get() as { v: string | null }).v;
+    const empty = (
+      after.prepare('SELECT secrets AS v FROM document_connections WHERE id = 3').get() as { v: string | null }
+    ).v;
     expect(empty).toBeNull();
 
-    const webhook = (after.prepare('SELECT webhook_secret AS v FROM trip_document_links WHERE id = 1').get() as { v: string }).v;
+    const webhook = (
+      after.prepare('SELECT webhook_secret AS v FROM trip_document_links WHERE id = 1').get() as { v: string }
+    ).v;
     expect(JSON.parse(decryptWith('new-key', webhook) ?? 'null')).toEqual({ webhook: 'hook-secret' });
     after.close();
 
@@ -392,14 +405,13 @@ describe('migrate-encryption.ts rotates the stores the app writes', () => {
     expect(output).toContain('All secrets successfully re-encrypted.');
   }, 30000);
 
-  it("ROTPAR-013: re-encrypts the AI Parsing addon key and moves the key file to the new key", () => {
+  it('ROTPAR-013: re-encrypts the AI Parsing addon key and moves the key file to the new key', () => {
     const seed = new Database(dbPath);
     seed.exec(BASE_SCHEMA);
     seed.exec('CREATE TABLE addons (id TEXT PRIMARY KEY, config TEXT)');
-    seed.prepare('INSERT INTO addons (id, config) VALUES (?, ?)').run(
-      'llm_parse',
-      JSON.stringify({ provider: 'openai', apiKey: encryptWith('old-key', 'sk-addon') }),
-    );
+    seed
+      .prepare('INSERT INTO addons (id, config) VALUES (?, ?)')
+      .run('llm_parse', JSON.stringify({ provider: 'openai', apiKey: encryptWith('old-key', 'sk-addon') }));
     seed.prepare('INSERT INTO addons (id, config) VALUES (?, ?)').run('packing', '{"x":1}');
     seed.close();
     const keyFile = path.join(path.dirname(dbPath), '.encryption_key');
@@ -414,7 +426,9 @@ describe('migrate-encryption.ts rotates the stores the app writes', () => {
     });
 
     const after = new Database(dbPath, { readonly: true });
-    const llm = JSON.parse((after.prepare("SELECT config AS v FROM addons WHERE id = 'llm_parse'").get() as { v: string }).v);
+    const llm = JSON.parse(
+      (after.prepare("SELECT config AS v FROM addons WHERE id = 'llm_parse'").get() as { v: string }).v,
+    );
     expect(decryptWith('new-key', llm.apiKey)).toBe('sk-addon');
     expect(llm.provider).toBe('openai');
     const other = (after.prepare("SELECT config AS v FROM addons WHERE id = 'packing'").get() as { v: string }).v;

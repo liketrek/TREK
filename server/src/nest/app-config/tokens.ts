@@ -17,8 +17,8 @@
  *   constructor(@Inject(storageConfig.KEY) private readonly storage: ConfigType<typeof storageConfig>) {}
  * or, for the pre-init Express layer in bootstrap.ts, `app.get(httpConfig.KEY)`.
  */
-import { registerAs } from '@nestjs/config';
 import { BOOT_DERIVERS } from '../../app-config/boot-derive';
+import { registerAs } from '@nestjs/config';
 
 /**
  * The pre-init Express layer (trust proxy, HSTS) reads this once per built app

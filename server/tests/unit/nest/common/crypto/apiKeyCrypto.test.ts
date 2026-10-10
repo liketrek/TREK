@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'vitest';
-
 import {
   encrypt_api_key,
   decrypt_api_key,
   maybe_encrypt_api_key,
   is_encrypted_api_key,
 } from '../../../../../src/nest/common/crypto/apiKeyCrypto';
+
+import { describe, it, expect } from 'vitest';
 
 describe('apiKeyCrypto', () => {
   const PLAINTEXT_KEY = 'my-secret-api-key-12345';

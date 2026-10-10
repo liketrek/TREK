@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
 import { PlaceShadowController } from '../../../src/nest/place-shadow/place-shadow.controller';
-import type { PlaceShadowService } from '../../../src/nest/place-shadow/place-shadow.service';
 import type { PlaceShadowPickDto } from '../../../src/nest/place-shadow/place-shadow.dto';
+import type { PlaceShadowService } from '../../../src/nest/place-shadow/place-shadow.service';
+
+import { describe, it, expect, vi } from 'vitest';
 
 function makeController(svc: Partial<PlaceShadowService>) {
   return new PlaceShadowController(svc as PlaceShadowService);

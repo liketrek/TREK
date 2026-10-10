@@ -1,5 +1,5 @@
-import type { Plugins } from '../entities/Plugins.entity';
 import { currentTimestamp } from '../dialect/sql-functions';
+import type { Plugins } from '../entities/Plugins.entity';
 import { TrekRepository } from './_shared/trek-repository';
 
 /**
@@ -128,7 +128,12 @@ export class PluginsRepository extends TrekRepository<Plugins> {
   /** PR15/PR16/PR25 — `SELECT id, version, enabled, dependencies FROM plugins` (identical text, three call sites: `installedDepRows`, `deactivateForDisabledAddon`, `deactivateWithDependents`). */
   async listDepRows(): Promise<PluginDepListRow[]> {
     const rows = await this.find({}, { fields: ['id', 'version', 'enabled', 'dependencies'] });
-    return rows.map((r) => ({ id: r.id ?? '', version: r.version ?? null, enabled: r.enabled, dependencies: r.dependencies ?? null }));
+    return rows.map((r) => ({
+      id: r.id ?? '',
+      version: r.version ?? null,
+      enabled: r.enabled,
+      dependencies: r.dependencies ?? null,
+    }));
   }
 
   // -----------------------------------------------------------------------
@@ -137,7 +142,10 @@ export class PluginsRepository extends TrekRepository<Plugins> {
 
   /** PR17 — `SELECT permissions, granted_permissions, dependencies, trek_range, api_version FROM plugins WHERE id = ?`. */
   async findActivationGate(id: string): Promise<PluginActivationGateRow | null> {
-    const row = await this.findOne({ id }, { fields: ['permissions', 'granted_permissions', 'dependencies', 'trek_range', 'api_version'] });
+    const row = await this.findOne(
+      { id },
+      { fields: ['permissions', 'granted_permissions', 'dependencies', 'trek_range', 'api_version'] },
+    );
     return row
       ? {
           permissions: row.permissions ?? '[]',
@@ -195,7 +203,9 @@ export class PluginsRepository extends TrekRepository<Plugins> {
   /** PR26 — `SELECT enabled, granted_permissions, version FROM plugins WHERE id = ?`. */
   async findPreUpdateSnapshot(id: string): Promise<PluginPreUpdateRow | null> {
     const row = await this.findOne({ id }, { fields: ['enabled', 'granted_permissions', 'version'] });
-    return row ? { enabled: row.enabled, granted_permissions: row.granted_permissions ?? '', version: row.version ?? null } : null;
+    return row
+      ? { enabled: row.enabled, granted_permissions: row.granted_permissions ?? '', version: row.version ?? null }
+      : null;
   }
 
   // -----------------------------------------------------------------------
@@ -344,9 +354,27 @@ export class PluginsRepository extends TrekRepository<Plugins> {
       {},
       {
         fields: [
-          'id', 'name', 'description', 'type', 'icon', 'version', 'status', 'enabled', 'last_error', 'reviewed_at', 'source_repo',
-          'permissions', 'capabilities', 'dependencies', 'operator_egress', 'trek_range', 'author_pubkey',
-          'update_block_code', 'update_block_detail', 'update_block_version', 'update_hold',
+          'id',
+          'name',
+          'description',
+          'type',
+          'icon',
+          'version',
+          'status',
+          'enabled',
+          'last_error',
+          'reviewed_at',
+          'source_repo',
+          'permissions',
+          'capabilities',
+          'dependencies',
+          'operator_egress',
+          'trek_range',
+          'author_pubkey',
+          'update_block_code',
+          'update_block_detail',
+          'update_block_version',
+          'update_hold',
         ],
         orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
       },
@@ -470,7 +498,10 @@ export class PluginsRepository extends TrekRepository<Plugins> {
 
   /** SG1 — `UPDATE plugins SET update_block_code = ?, update_block_detail = ?, update_block_version = ? WHERE id = ?` (`setUpdateBlock`, a signature-verification failure). */
   async setUpdateBlockColumns(id: string, code: string, detail: string, version: string | null): Promise<void> {
-    await this.nativeUpdate({ id }, { update_block_code: code, update_block_detail: detail, update_block_version: version });
+    await this.nativeUpdate(
+      { id },
+      { update_block_code: code, update_block_detail: detail, update_block_version: version },
+    );
   }
 
   /** SG2 — `UPDATE plugins SET update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL WHERE id = ?` (`clearUpdateBlock`, the inverse — a successful install/update). */
@@ -485,8 +516,17 @@ export class PluginsRepository extends TrekRepository<Plugins> {
   // -----------------------------------------------------------------------
 
   /** RG2 (`install`'s post-discover provenance write) — `UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ? WHERE id = ?`. */
-  async setInstallProvenance(id: string, sourceRepo: string, sourceCommit: string, sha256: string, reviewedAt: string | null): Promise<void> {
-    await this.nativeUpdate({ id }, { source_repo: sourceRepo, source_commit: sourceCommit, sha256, reviewed_at: reviewedAt });
+  async setInstallProvenance(
+    id: string,
+    sourceRepo: string,
+    sourceCommit: string,
+    sha256: string,
+    reviewedAt: string | null,
+  ): Promise<void> {
+    await this.nativeUpdate(
+      { id },
+      { source_repo: sourceRepo, source_commit: sourceCommit, sha256, reviewed_at: reviewedAt },
+    );
   }
 
   /** RG3 (`install`'s TOFU pin) — `UPDATE plugins SET author_pubkey = ? WHERE id = ?`. Security-sensitive: only ever called with a key the artifact just verified under (see `registry.service.ts#install`'s own docstring) — never cleared to NULL by this method. */
@@ -534,7 +574,9 @@ export class PluginsRepository extends TrekRepository<Plugins> {
   }
 
   /** RG11 (`assertRetrustable`) — `SELECT source_repo, author_pubkey FROM plugins WHERE id = ?`. */
-  async findSourceRepoAndAuthorPubkey(id: string): Promise<{ source_repo: string | null; author_pubkey: string | null } | null> {
+  async findSourceRepoAndAuthorPubkey(
+    id: string,
+  ): Promise<{ source_repo: string | null; author_pubkey: string | null } | null> {
     const row = await this.findOne({ id }, { fields: ['source_repo', 'author_pubkey'] });
     return row ? { source_repo: row.source_repo ?? null, author_pubkey: row.author_pubkey ?? null } : null;
   }
@@ -556,7 +598,10 @@ export class PluginsRepository extends TrekRepository<Plugins> {
   async findActiveFeedRows(): Promise<PluginFeedRow[]> {
     const rows = await this.find(
       { status: 'active' },
-      { fields: ['id', 'name', 'type', 'icon', 'capabilities', 'granted_permissions'], orderBy: [{ sort_order: 'asc' }, { name: 'asc' }] },
+      {
+        fields: ['id', 'name', 'type', 'icon', 'capabilities', 'granted_permissions'],
+        orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
+      },
     );
     return rows.map((r) => ({
       id: r.id ?? '',

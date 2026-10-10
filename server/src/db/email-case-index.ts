@@ -31,8 +31,15 @@ export async function ensureEmailCaseIndex(connection: Connection): Promise<void
   }
 
   await connection.transactional(async (trx) => {
-    await connection.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users (lower(email))', [], 'run', trx);
+    await connection.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users (lower(email))',
+      [],
+      'run',
+      trx,
+    );
     await connection.execute('DELETE FROM app_settings WHERE key = ?', [PENDING_KEY], 'run', trx);
   });
-  console.log('[DB] Every account has its own email address now; created the case-insensitive unique index on users.email');
+  console.log(
+    '[DB] Every account has its own email address now; created the case-insensitive unique index on users.email',
+  );
 }

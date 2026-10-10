@@ -37,7 +37,11 @@ const mockLookup = vi.mocked(dns.lookup);
 const agentOptions = () => AgentMock.mock.calls.at(-1)?.[0] as Record<string, unknown>;
 
 /** A real platform Response, as undici hands it back, with the url it would carry. */
-function upstream(body: ConstructorParameters<typeof Response>[0], init: ResponseInit = {}, url = 'https://photos.example/a.jpg'): Response {
+function upstream(
+  body: ConstructorParameters<typeof Response>[0],
+  init: ResponseInit = {},
+  url = 'https://photos.example/a.jpg',
+): Response {
   const res = new Response(body, init);
   Object.defineProperty(res, 'url', { value: url });
   return res;

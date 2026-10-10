@@ -1,14 +1,15 @@
-import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { pluginsEnabled } from './kill-switch';
-import { PluginsService, MissingRequiredSettingError } from './plugins.service';
-import { PluginRuntimeService } from './plugin-runtime.service';
 import { Plugins } from '../../db/entities/Plugins.entity';
 import type { PluginsRepository } from '../../db/repositories/Plugins.repository';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { pluginsEnabled } from './kill-switch';
+import { PluginRuntimeService } from './plugin-runtime.service';
 import { PluginUserSettingsUpdateDto } from './plugins.dto';
+import { PluginsService, MissingRequiredSettingError } from './plugins.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { PluginActionDescriptor, PluginActionResult } from '@trek/shared';
+
+import type { Request } from 'express';
 
 /**
  * GET/POST /api/plugin-settings/:id — a USER's own `scope:'user'` settings for a
@@ -36,13 +37,17 @@ export class PluginUserSettingsController {
   }
 
   @Get(':id')
-  async get(@Param('id') id: string, @Req() req: Request & { user?: { id: number } }): Promise<{
+  async get(
+    @Param('id') id: string,
+    @Req() req: Request & { user?: { id: number } },
+  ): Promise<{
     fields: unknown[];
     config: Record<string, unknown>;
     actions: PluginActionDescriptor[];
   }> {
     const userId = req.user?.id;
-    if (!pluginsEnabled() || userId == null || !(await this.activeWithUserFields(id))) return { fields: [], config: {}, actions: [] };
+    if (!pluginsEnabled() || userId == null || !(await this.activeWithUserFields(id)))
+      return { fields: [], config: {}, actions: [] };
     return {
       fields: await this.plugins.userSettingsFields(id),
       config: await this.plugins.getUserConfig(id, userId),

@@ -6,17 +6,58 @@
  * in a unit test. What is under test is the step between the two: which stops the link
  * yields, which of them get geocoded, and what a partly readable link leaves behind.
  */
+import { db as testDb } from '../../../src/db/database';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import type { MapsService } from '../../../src/nest/maps/maps.service';
+import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { PlacesService } from '../../../src/nest/places/places.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
+import { accommodationsOver } from '../../helpers/accommodations-service';
 import { asLegacyResult } from '../../helpers/domain-error';
+import { createUser, createTrip, createPlace } from '../../helpers/factories';
+import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
+import {
+  createTestJourneysRepo,
+  createTestJourneyContributorsRepo,
+  createTestJourneyTripsRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyPhotosRepo,
+  createTestJourneyEntryPhotosRepo,
+} from '../../helpers/journey-repos';
+import { buildPlaceImportService } from '../../helpers/place-import';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestUsersRepo,
+  createTestTagsRepo,
+  createTestPlaceRatingsRepo,
+  createTestAssignmentParticipantsRepo,
+  createTestPlacesRepo,
+  createTestTripMembersRepo,
+  createTestDayAssignmentsRepo,
+  createTestCategoriesRepo,
+  createTestTripsRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+import { createTestCollectionPlacesRepo } from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   // The joined place read goes through PlacesRepository now; the module only hands out the handle.
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
-
 
 const { checkSsrf, safeFetchFollow } = vi.hoisted(() => ({
   checkSsrf: vi.fn(async () => ({ allowed: true, resolvedIp: '1.2.3.4' })),
@@ -29,39 +70,22 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class SsrfBlockedError extends Error {},
 }));
 
-import { db as testDb } from '../../../src/db/database';
-import { createUser, createTrip, createPlace } from '../../helpers/factories';
-import { accommodationsOver } from '../../helpers/accommodations-service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { PlacesService } from '../../../src/nest/places/places.service';
-import { buildPlaceImportService } from '../../helpers/place-import';
-import type { MapsService } from '../../../src/nest/maps/maps.service';
-import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
-import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestUsersRepo, createTestTagsRepo, createTestPlaceRatingsRepo, createTestAssignmentParticipantsRepo, createTestPlacesRepo, createTestTripMembersRepo, createTestDayAssignmentsRepo, createTestCategoriesRepo, createTestTripsRepo, sharedTestOrm } from '../../helpers/test-uow';
-import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import { createTestCollectionPlacesRepo } from '../../helpers/test-uow';
-import {
-  createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
-
 const photoCacheStub = { removeIfUnreferenced: vi.fn() } as unknown as PlacePhotoCacheService;
 const storageFx = makeStorageFixture('');
 
 /** Nominatim's answer shape, cut to the fields this path reads. */
 const hit = (name: string, lat: number, lng: number) => ({
-  google_place_id: null, google_ftid: null, osm_id: `node:${name}`, name, address: name,
-  lat, lng, rating: null, website: null, phone: null, source: 'openstreetmap' as const,
+  google_place_id: null,
+  google_ftid: null,
+  osm_id: `node:${name}`,
+  name,
+  address: name,
+  lat,
+  lng,
+  rating: null,
+  website: null,
+  phone: null,
+  source: 'openstreetmap' as const,
 });
 
 async function svc(searchNominatim: OsmClient['searchNominatim']): Promise<PlacesService> {
@@ -74,8 +98,9 @@ async function svc(searchNominatim: OsmClient['searchNominatim']): Promise<Place
   const maps = {
     searchNominatim,
     geocodeQuery: async (query: string) => {
-      const hit = (await searchNominatim(query, undefined, 'background'))
-        .find((h: { lat: number | null; lng: number | null }) => h.lat !== null && h.lng !== null);
+      const hit = (await searchNominatim(query, undefined, 'background')).find(
+        (h: { lat: number | null; lng: number | null }) => h.lat !== null && h.lng !== null,
+      );
       return hit ? { lat: hit.lat as number, lng: hit.lng as number } : null;
     },
     reverseGeocode: vi.fn(async () => null),
@@ -84,40 +109,62 @@ async function svc(searchNominatim: OsmClient['searchNominatim']): Promise<Place
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     new RealtimeService(),
     maps,
-    new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
-    new UnsplashService(await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), new RuntimeEnvService(), storageFx.storage),
+    new QueryHelpersService(
+      await createTestTagsRepo(testDb),
+      await createTestPlaceRatingsRepo(testDb),
+      await createTestAssignmentParticipantsRepo(testDb),
+    ),
+    new UnsplashService(
+      await createTestAppSettingsRepo(testDb),
+      await createTestUsersRepo(testDb),
+      new RuntimeEnvService(),
+      storageFx.storage,
+    ),
     photoCacheStub,
     new JourneyDomainService(
-      new RealtimeService(), new TrekPhotoRegistrationService((await sharedTestOrm(testDb)).repo(TrekPhotos), (await sharedTestOrm(testDb)).repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)), await createTestUnitOfWork(testDb),
-      await createTestJourneysRepo(testDb), await createTestJourneyContributorsRepo(testDb),
-      await createTestJourneyTripsRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestTripsRepo(testDb),
+      new RealtimeService(),
+      new TrekPhotoRegistrationService(
+        (await sharedTestOrm(testDb)).repo(TrekPhotos),
+        (await sharedTestOrm(testDb)).repo(TripPhotos),
+        await createTestJourneyPhotosRepo(testDb),
+      ),
+      await createTestUnitOfWork(testDb),
+      await createTestJourneysRepo(testDb),
+      await createTestJourneyContributorsRepo(testDb),
+      await createTestJourneyTripsRepo(testDb),
+      await createTestJourneyEntriesRepo(testDb),
+      await createTestTripsRepo(testDb),
       // Plan 3g Task 2 constructor-ripple: JourneyPhotosRepository/JourneyEntryPhotosRepository/PlacesRepository.
-      await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
+      await createTestJourneyPhotosRepo(testDb),
+      await createTestJourneyEntryPhotosRepo(testDb),
+      await createTestPlacesRepo(testDb),
     ),
     storageFx.storage,
-    await accommodationsOver(testDb), await createTestUnitOfWork(testDb),
+    await accommodationsOver(testDb),
+    await createTestUnitOfWork(testDb),
     await createTestPlacesRepo(testDb),
     await createTestTagsRepo(testDb),
     await createTestPlaceRatingsRepo(testDb),
     await createTestTripMembersRepo(testDb),
     await createTestDayAssignmentsRepo(testDb),
     await createTestCategoriesRepo(testDb),
-  await createTestTripsRepo(testDb),
-  await createTestBudgetItemsRepo(testDb),
-  await createTestCollectionPlacesRepo(testDb),
+    await createTestTripsRepo(testDb),
+    await createTestBudgetItemsRepo(testDb),
+    await createTestCollectionPlacesRepo(testDb),
     buildPlaceImportService(),
   );
 }
 
-const geocoder = () => vi.fn(async (query: string) => {
-  const known: Record<string, [number, number]> = {
-    Berlin: [52.52, 13.405],
-    Dresden: [51.05, 13.737],
-    Prague: [50.075, 14.437],
-  };
-  const found = known[query];
-  return found ? [hit(query, found[0], found[1])] : [];
-}) as unknown as OsmClient['searchNominatim'];
+const geocoder = () =>
+  vi.fn(async (query: string) => {
+    const known: Record<string, [number, number]> = {
+      Berlin: [52.52, 13.405],
+      Dresden: [51.05, 13.737],
+      Prague: [50.075, 14.437],
+    };
+    const found = known[query];
+    return found ? [hit(query, found[0], found[1])] : [];
+  }) as unknown as OsmClient['searchNominatim'];
 
 let tripId: string;
 
@@ -137,8 +184,9 @@ beforeEach(() => {
 describe('PlacesService.importGoogleDirections', () => {
   it('PLACES-DIR-001: a link whose blob carries every stop needs no geocoder at all', async () => {
     const search = geocoder();
-    const url = 'https://www.google.com/maps/dir/Berlin/Dresden/@51.5,13.5,8z/'
-      + 'data=!4m14!1m5!1m1!1s0x0:0x0!2m2!1d13.404954!2d52.520008!1m5!1m1!1s0x0:0x0!2m2!1d13.737262!2d51.050409';
+    const url =
+      'https://www.google.com/maps/dir/Berlin/Dresden/@51.5,13.5,8z/' +
+      'data=!4m14!1m5!1m1!1s0x0:0x0!2m2!1d13.404954!2d52.520008!1m5!1m1!1s0x0:0x0!2m2!1d13.737262!2d51.050409';
     const result = await asLegacyResult((await svc(search)).importGoogleDirections(tripId, url));
 
     expect('error' in result).toBe(false);
@@ -151,10 +199,9 @@ describe('PlacesService.importGoogleDirections', () => {
 
   it('PLACES-DIR-002: a stop that is only a name is geocoded, and keeps the name from the link', async () => {
     const search = geocoder();
-    const result = await asLegacyResult((await svc(search)).importGoogleDirections(
-      tripId,
-      'https://www.google.com/maps/dir/Berlin/Dresden/Prague',
-    ));
+    const result = await asLegacyResult(
+      (await svc(search)).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden/Prague'),
+    );
 
     expect('error' in result).toBe(false);
     if ('error' in result) return;
@@ -164,10 +211,12 @@ describe('PlacesService.importGoogleDirections', () => {
 
   it('PLACES-DIR-003: a stop nobody can place is left out, not made up, and is counted', async () => {
     const search = geocoder();
-    const result = await asLegacyResult((await svc(search)).importGoogleDirections(
-      tripId,
-      'https://www.google.com/maps/dir/Berlin/Somewhere+Nobody+Knows/Prague',
-    ));
+    const result = await asLegacyResult(
+      (await svc(search)).importGoogleDirections(
+        tripId,
+        'https://www.google.com/maps/dir/Berlin/Somewhere+Nobody+Knows/Prague',
+      ),
+    );
 
     expect('error' in result).toBe(false);
     if ('error' in result) return;
@@ -182,7 +231,9 @@ describe('PlacesService.importGoogleDirections', () => {
       if (query === 'Dresden') throw new Error('Nominatim 429');
       return [hit(query, 52.52, 13.405)];
     }) as unknown as OsmClient['searchNominatim'];
-    const result = await asLegacyResult((await svc(search)).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden/Prague'));
+    const result = await asLegacyResult(
+      (await svc(search)).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden/Prague'),
+    );
 
     expect('error' in result).toBe(false);
     if ('error' in result) return;
@@ -192,8 +243,9 @@ describe('PlacesService.importGoogleDirections', () => {
 
   it('PLACES-DIR-005: a stop already on the trip is skipped rather than doubled', async () => {
     createPlace(testDb, Number(tripId), { name: 'Berlin', lat: 52.520008, lng: 13.404954 });
-    const url = 'https://www.google.com/maps/dir/Berlin/Dresden/@51.5,13.5,8z/'
-      + 'data=!4m14!1m5!1m1!1s0x0:0x0!2m2!1d13.404954!2d52.520008!1m5!1m1!1s0x0:0x0!2m2!1d13.737262!2d51.050409';
+    const url =
+      'https://www.google.com/maps/dir/Berlin/Dresden/@51.5,13.5,8z/' +
+      'data=!4m14!1m5!1m1!1s0x0:0x0!2m2!1d13.404954!2d52.520008!1m5!1m1!1s0x0:0x0!2m2!1d13.737262!2d51.050409';
     const result = await asLegacyResult((await svc(geocoder())).importGoogleDirections(tripId, url));
 
     expect('error' in result).toBe(false);
@@ -202,8 +254,10 @@ describe('PlacesService.importGoogleDirections', () => {
     expect(result.skipped).toBe(1);
   });
 
-  it('PLACES-DIR-006: a link that is not Google\'s is refused after it is resolved', async () => {
-    const result = await asLegacyResult((await svc(geocoder())).importGoogleDirections(tripId, 'https://evil.example.com/maps/dir/Berlin/Dresden'));
+  it("PLACES-DIR-006: a link that is not Google's is refused after it is resolved", async () => {
+    const result = await asLegacyResult(
+      (await svc(geocoder())).importGoogleDirections(tripId, 'https://evil.example.com/maps/dir/Berlin/Dresden'),
+    );
     expect(result).toEqual({ error: 'That link is not a Google Maps link.', status: 400 });
   });
 
@@ -211,7 +265,9 @@ describe('PlacesService.importGoogleDirections', () => {
     safeFetchFollow.mockResolvedValue({
       url: 'https://www.google.com/maps/dir/Berlin/Dresden',
     } as unknown as Response);
-    const result = await asLegacyResult((await svc(geocoder())).importGoogleDirections(tripId, 'https://maps.app.goo.gl/abc123'));
+    const result = await asLegacyResult(
+      (await svc(geocoder())).importGoogleDirections(tripId, 'https://maps.app.goo.gl/abc123'),
+    );
 
     expect(safeFetchFollow).toHaveBeenCalledTimes(1);
     expect('error' in result).toBe(false);
@@ -221,12 +277,16 @@ describe('PlacesService.importGoogleDirections', () => {
 
   it('PLACES-DIR-008: a blocked URL never reaches the parser', async () => {
     checkSsrf.mockResolvedValue({ allowed: false } as never);
-    const result = await asLegacyResult((await svc(geocoder())).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden'));
+    const result = await asLegacyResult(
+      (await svc(geocoder())).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden'),
+    );
     expect(result).toEqual({ error: 'URL is not allowed', status: 400 });
   });
 
   it('PLACES-DIR-009: a link with nothing to read says what to do instead', async () => {
-    const result = await asLegacyResult((await svc(geocoder())).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin'));
+    const result = await asLegacyResult(
+      (await svc(geocoder())).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin'),
+    );
     expect(result).toMatchObject({ status: 400 });
     expect((result as { error: string }).error).toMatch(/Share button/);
   });
@@ -264,7 +324,9 @@ describe('PlacesService.importGoogleDirections', () => {
       url: 'https://www.google.com/maps/dir/52.52,13.405/51.05,13.74',
     } as never);
 
-    const result = await asLegacyResult((await svc(geocoder())).importGoogleList(tripId, 'https://maps.app.goo.gl/aBcDeF12345'));
+    const result = await asLegacyResult(
+      (await svc(geocoder())).importGoogleList(tripId, 'https://maps.app.goo.gl/aBcDeF12345'),
+    );
 
     expect('error' in result).toBe(false);
     if ('error' in result) return;

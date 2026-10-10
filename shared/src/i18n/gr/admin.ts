@@ -53,7 +53,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNotificationsHint':
     'Διαμορφώστε ποια κανάλια παραδίδουν ειδοποιήσεις μόνο για διαχειριστές (π.χ. ειδοποιήσεις έκδοσης).',
   'admin.notificationDefaults.title': 'Προεπιλογές για χρήστες',
-  'admin.notificationDefaults.hint': 'Πώς ξεκινούν οι ειδοποιήσεις κάθε χρήστη. Το «Ανενεργό» μπορεί να το ενεργοποιήσει ο ίδιος, το «Αποκλεισμένο» το απενεργοποιεί για όλους και εμφανίζεται κλειδωμένο στις ρυθμίσεις τους. Ισχύει για όσους δεν άλλαξαν το κελί.',
+  'admin.notificationDefaults.hint':
+    'Πώς ξεκινούν οι ειδοποιήσεις κάθε χρήστη. Το «Ανενεργό» μπορεί να το ενεργοποιήσει ο ίδιος, το «Αποκλεισμένο» το απενεργοποιεί για όλους και εμφανίζεται κλειδωμένο στις ρυθμίσεις τους. Ισχύει για όσους δεν άλλαξαν το κελί.',
   'admin.notificationDefaults.on': 'Ενεργό',
   'admin.notificationDefaults.off': 'Ανενεργό',
   'admin.notificationDefaults.blocked': 'Αποκλεισμένο',
@@ -146,43 +147,31 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Οι χρήστες χωρίς 2FA πρέπει να ολοκληρώσουν τη ρύθμιση στις Ρυθμίσεις πριν χρησιμοποιήσουν την εφαρμογή.',
   'admin.apiKeys': 'Κλειδιά API',
-  'admin.apiKeysHint': 'Από πού προέρχονται τα δεδομένα τόπων. Το ευρετήριο του TREK δεν χρειάζεται κλειδί· οι δύο πάροχοι παρακάτω είναι προαιρετικοί.',
+  'admin.apiKeysHint':
+    'Από πού προέρχονται τα δεδομένα τόπων. Το ευρετήριο του TREK δεν χρειάζεται κλειδί· οι δύο πάροχοι παρακάτω είναι προαιρετικοί.',
   'admin.trekApi.badgeDefault': 'Προτεινόμενη προεπιλογή',
   'admin.googleCaveat.badge': 'Δεν συνιστάται',
   'admin.googleCaveat.body':
     'Το TREK είναι ανοιχτού κώδικα και εδώ δεν είμαστε ουδέτεροι. Σε αυτή την κλίμακα, βαθμολογίες και φωτογραφίες συνηθισμένων καταστημάτων υπάρχουν μόνο στη Google, και αυτό είναι μονοπώλιο. Το πεδίο υπάρχει ελλείψει εναλλακτικής, όχι επειδή το συνιστούμε. Τότε κάθε αναζήτηση πηγαίνει στη Google.',
   'admin.trekApi.tagline':
     'Το δικό του ευρετήριο τόπων του TREK. Αναζήτηση χωρίς κλειδί Google, χωρίς όριο και χωρίς να μετράει κανείς τις αναζητήσεις σας.',
-  'admin.trekApi.factPlaces':
-    '73,6 εκατομμύρια τόποι παγκοσμίως',
-  'admin.trekApi.factNoKey':
-    'Χωρίς κλειδί, χωρίς όριο',
-  'admin.trekApi.factOffline':
-    'Τα πακέτα χωρών δουλεύουν και εκτός σύνδεσης',
-  'admin.trekApi.factPrivacy':
-    'Οι αναζητήσεις δεν καταγράφονται ποτέ',
-  'admin.trekApi.more':
-    'Τι περιλαμβάνει',
-  'admin.trekApi.fieldPhone':
-    'Τηλέφωνο',
-  'admin.trekApi.fieldStableId':
-    'Σταθερό αναγνωριστικό',
+  'admin.trekApi.factPlaces': '73,6 εκατομμύρια τόποι παγκοσμίως',
+  'admin.trekApi.factNoKey': 'Χωρίς κλειδί, χωρίς όριο',
+  'admin.trekApi.factOffline': 'Τα πακέτα χωρών δουλεύουν και εκτός σύνδεσης',
+  'admin.trekApi.factPrivacy': 'Οι αναζητήσεις δεν καταγράφονται ποτέ',
+  'admin.trekApi.more': 'Τι περιλαμβάνει',
+  'admin.trekApi.fieldPhone': 'Τηλέφωνο',
+  'admin.trekApi.fieldStableId': 'Σταθερό αναγνωριστικό',
   'admin.trekApi.includedNote':
     'Οι περιγραφές έρχονται από τον ιστότοπο του ίδιου του τόπου, οι ώρες λειτουργίας από το OpenStreetMap όπου έχουν καταχωρηθεί.',
-  'admin.trekApi.notRatings':
-    'Βαθμολογίες',
-  'admin.trekApi.notPhotos':
-    'Φωτογραφίες συνηθισμένων καταστημάτων',
+  'admin.trekApi.notRatings': 'Βαθμολογίες',
+  'admin.trekApi.notPhotos': 'Φωτογραφίες συνηθισμένων καταστημάτων',
   'admin.trekApi.notIncludedNote':
     'Καμία ανοιχτή πηγή δεν έχει ούτε το ένα ούτε το άλλο, σε καμία τιμή. Για αυτά τα δύο το κλειδί Google παραμένει ο μόνος δρόμος.',
-  'admin.trekApi.sourcesLabel':
-    'Πηγές',
-  'admin.trekApi.sourcesNote':
-    'Κάθε πεδίο μιας απάντησης λέει από ποια από αυτές προέρχεται.',
-  'admin.trekApi.included':
-    'Περιλαμβάνεται',
-  'admin.trekApi.notIncluded':
-    'Δεν περιλαμβάνεται',
+  'admin.trekApi.sourcesLabel': 'Πηγές',
+  'admin.trekApi.sourcesNote': 'Κάθε πεδίο μιας απάντησης λέει από ποια από αυτές προέρχεται.',
+  'admin.trekApi.included': 'Περιλαμβάνεται',
+  'admin.trekApi.notIncluded': 'Δεν περιλαμβάνεται',
   'admin.mapsKey': 'Google Maps API Key',
   'admin.mapsKeyHint': 'Απαιτείται για αναζήτηση τόπων. Λάβετε το από console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -203,7 +192,8 @@ const admin: TranslationStrings = {
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'Ο επιλεγμένος πάροχος δεν έχει ρυθμισμένο κλειδί API, οπότε στην αναζήτηση τόπων απαντούν μόνο το ευρετήριο του TREK και το OpenStreetMap.',
+  'admin.placesProvider.missingKey':
+    'Ο επιλεγμένος πάροχος δεν έχει ρυθμισμένο κλειδί API, οπότε στην αναζήτηση τόπων απαντούν μόνο το ευρετήριο του TREK και το OpenStreetMap.',
   'admin.placesProvider.saved': 'Ο πάροχος αναζήτησης τοποθεσιών αποθηκεύτηκε',
   'admin.validateKey': 'Δοκιμή',
   'admin.keyValid': 'Συνδέθηκε',
@@ -238,11 +228,15 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Εμφανίζει εικόνες και περιγραφή κατά την προσθήκη τοποθεσίας. Η Wikipedia και το OpenStreetMap χρησιμοποιούνται πάντα· η Google προστίθεται όταν είναι ενεργές οι Φωτογραφίες ή οι Λεπτομέρειες τοποθεσίας.',
   'admin.placesGoogleOnly.title': 'Αναζήτηση μόνο με Google',
-  'admin.placesGoogleOnly.subtitle': 'Κάθε αναζήτηση και κάθε πρόταση πηγαίνει στο Google Places. Απενεργοποιημένο, απαντούν πρώτα το ευρετήριο του TREK και το OpenStreetMap, και το Google ρωτιέται μόνο αν δεν βρουν τίποτα.',
-  'admin.placesGoogleOnly.missingKey': 'Χρειάζεται κλειδί Google Maps API. Χωρίς αυτό η αναζήτηση τρέχει στο ευρετήριο του TREK και στο OpenStreetMap, όπως κι αν είναι ο διακόπτης.',
-  'admin.placesGoogleOnly.otherProvider': 'Χρειάζεται το Google ως πάροχο τοποθεσιών. Με επιλεγμένο Amap ή OpenStreetMap καμία αναζήτηση δεν πηγαίνει στο Google, ό,τι κι αν λέει αυτός ο διακόπτης.',
+  'admin.placesGoogleOnly.subtitle':
+    'Κάθε αναζήτηση και κάθε πρόταση πηγαίνει στο Google Places. Απενεργοποιημένο, απαντούν πρώτα το ευρετήριο του TREK και το OpenStreetMap, και το Google ρωτιέται μόνο αν δεν βρουν τίποτα.',
+  'admin.placesGoogleOnly.missingKey':
+    'Χρειάζεται κλειδί Google Maps API. Χωρίς αυτό η αναζήτηση τρέχει στο ευρετήριο του TREK και στο OpenStreetMap, όπως κι αν είναι ο διακόπτης.',
+  'admin.placesGoogleOnly.otherProvider':
+    'Χρειάζεται το Google ως πάροχο τοποθεσιών. Με επιλεγμένο Amap ή OpenStreetMap καμία αναζήτηση δεν πηγαίνει στο Google, ό,τι κι αν λέει αυτός ο διακόπτης.',
   'admin.googleQuota.title': 'Ημερήσιο όριο κλήσεων Google',
-  'admin.googleQuota.subtitle': 'Όταν συμπληρωθεί, το TREK σταματά τις κλήσεις στη Google ως την επόμενη μέρα (UTC) και αναζητά με το OpenStreetMap. Κενό σημαίνει χωρίς όριο.',
+  'admin.googleQuota.subtitle':
+    'Όταν συμπληρωθεί, το TREK σταματά τις κλήσεις στη Google ως την επόμενη μέρα (UTC) και αναζητά με το OpenStreetMap. Κενό σημαίνει χωρίς όριο.',
   'admin.googleQuota.placeholder': 'Χωρίς όριο',
   'admin.googleQuota.usedToday': 'Σήμερα: {used}',
   'admin.googleQuota.usedOfLimit': 'Σήμερα: {used} από {limit}',
@@ -252,10 +246,14 @@ const admin: TranslationStrings = {
   'admin.transitProvider.subtitle': 'Ποια υπηρεσία απαντά στην αναζήτηση μέσων μεταφοράς.',
   'admin.transitProvider.transitous': 'Transitous (δωρεάν)',
   'admin.transitProvider.google': 'Google',
-  'admin.transitProvider.transitousHint': 'Κοινοτικές ροές GTFS. Δωρεάν και χωρίς κλειδί, με την καλύτερη κάλυψη στην Ευρώπη.',
-  'admin.transitProvider.googleHint': 'Χρησιμοποιεί το παραπάνω κλειδί Google, για περιοχές χωρίς δεδομένα στο Transitous. Χρεώνεται ανά αναζήτηση — όσο δεν υπάρχει κλειδί, χρησιμοποιείται το Transitous.',
-  'admin.transitProvider.noKeyWarning': 'Έχει επιλεγεί το Google, αλλά δεν έχει ρυθμιστεί κλειδί Google — η αναζήτηση μέσων μεταφοράς εξακολουθεί να χρησιμοποιεί το Transitous. Προσθέστε κλειδί στα Κλειδιά API παραπάνω.',
-  'admin.transitProvider.personalKeyWarning': 'Έχει οριστεί μόνο το δικό σας κλειδί Google, οπότε η αναζήτηση των υπόλοιπων μελών επιστρέφει στο Transitous. Αποθηκεύστε το κλειδί παραπάνω ως διαχειριστής για να ισχύει σε όλη την εγκατάσταση.',
+  'admin.transitProvider.transitousHint':
+    'Κοινοτικές ροές GTFS. Δωρεάν και χωρίς κλειδί, με την καλύτερη κάλυψη στην Ευρώπη.',
+  'admin.transitProvider.googleHint':
+    'Χρησιμοποιεί το παραπάνω κλειδί Google, για περιοχές χωρίς δεδομένα στο Transitous. Χρεώνεται ανά αναζήτηση — όσο δεν υπάρχει κλειδί, χρησιμοποιείται το Transitous.',
+  'admin.transitProvider.noKeyWarning':
+    'Έχει επιλεγεί το Google, αλλά δεν έχει ρυθμιστεί κλειδί Google — η αναζήτηση μέσων μεταφοράς εξακολουθεί να χρησιμοποιεί το Transitous. Προσθέστε κλειδί στα Κλειδιά API παραπάνω.',
+  'admin.transitProvider.personalKeyWarning':
+    'Έχει οριστεί μόνο το δικό σας κλειδί Google, οπότε η αναζήτηση των υπόλοιπων μελών επιστρέφει στο Transitous. Αποθηκεύστε το κλειδί παραπάνω ως διαχειριστής για να ισχύει σε όλη την εγκατάσταση.',
   'admin.placeShadow.title': 'Αρχείο αναζητήσεων τόπων',
   'admin.placeShadow.subtitle':
     'Καταγραφή του ποιο αποτέλεσμα αναζήτησης επιλέχθηκε, ώστε ένα διαφορετικό ευρετήριο τόπων να μετρηθεί αργότερα με πραγματικές αναζητήσεις. Τίποτα δεν φεύγει από αυτήν την εγκατάσταση και ένας διαχειριστής μπορεί ανά πάσα στιγμή να εξαγάγει ή να διαγράψει το αρχείο.',
@@ -478,7 +476,8 @@ const admin: TranslationStrings = {
     'Χρωματική σήμανση ημερών στο πλάνο της ημέρας (π.χ. σε ποιο σκέλος του ταξιδιού ανήκει μια ημέρα)',
   'admin.plugins.cap.mcpTools': 'Δημοσιεύει εργαλεία AI',
   'admin.plugins.mcpToolsTitle': 'Δημοσιευμένα εργαλεία AI',
-  'admin.plugins.mcpToolsHint': 'Ένας βοηθός μπορεί να τα εκτελέσει εκ μέρους ενός χρήστη. Καθένα ενεργεί με τα δικαιώματα που δόθηκαν παραπάνω.',
+  'admin.plugins.mcpToolsHint':
+    'Ένας βοηθός μπορεί να τα εκτελέσει εκ μέρους ενός χρήστη. Καθένα ενεργεί με τα δικαιώματα που δόθηκαν παραπάνω.',
   'admin.plugins.poiCategoriesTitle': 'Κατηγορίες χάρτη που προσθέτει',
   'admin.plugins.perm.mcp:tools':
     'Δημοσίευση εργαλείων που μπορεί να εκτελέσει ένας βοηθός AI εκ μέρους σας (ενεργεί με τα δικαιώματα που δίνετε εδώ στο πρόσθετο, όχι με τα δικά του)',
@@ -585,7 +584,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Αλλαγή έκδοσης…',
   'admin.plugins.noVersions': 'Δεν βρέθηκαν δημοσιευμένες εκδόσεις στο μητρώο.',
   'admin.plugins.downgradeTitle': 'Επαναφορά αυτού του πρόσθετου;',
-  'admin.plugins.downgradeBody': 'Μετάβαση από v{from} σε v{to}: τα δεδομένα της νεότερης έκδοσης παραμένουν, και η παλαιότερη έκδοση ίσως να μην τα κατανοεί.',
+  'admin.plugins.downgradeBody':
+    'Μετάβαση από v{from} σε v{to}: τα δεδομένα της νεότερης έκδοσης παραμένουν, και η παλαιότερη έκδοση ίσως να μην τα κατανοεί.',
   'admin.plugins.downgradeConfirm': 'Επαναφορά',
   'admin.plugins.updatesHeld': 'Οι ενημερώσεις είναι σε παύση στην v{version}',
   'admin.plugins.resumeUpdates': 'Συνέχιση ενημερώσεων',
@@ -660,8 +660,7 @@ const admin: TranslationStrings = {
     'Το «{name}» δηλώνει υποστήριξη για TREK {range}, ενώ αυτός ο διακομιστής εκτελεί {host}. Το TREK το επιτρέπει μόνο επειδή είναι ορισμένο το TREK_PLUGINS_IGNORE_TREK_RANGE. Ο δημιουργός δεν έχει ενημερώσει το εύρος εκδόσεων του πρόσθετου για αυτό το TREK, οπότε δεν υπάρχει εγγύηση ότι λειτουργεί — και σε σπάνιες περιπτώσεις ένα ασύμβατο πρόσθετο μπορεί να καταστρέψει δεδομένα του TREK. Συνεχίστε μόνο αν αποδέχεστε αυτόν τον κίνδυνο.',
   'admin.plugins.rangeBypass.bodyUnknown':
     'Το «{name}» δεν δηλώνει ποιες εκδόσεις TREK υποστηρίζει· αυτός ο διακομιστής εκτελεί {host}. Το TREK το επιτρέπει μόνο επειδή είναι ορισμένο το TREK_PLUGINS_IGNORE_TREK_RANGE. Τίποτα δεν δείχνει ότι ο δημιουργός το δοκίμασε σε αυτό το TREK, οπότε δεν υπάρχει εγγύηση ότι λειτουργεί — και σε σπάνιες περιπτώσεις ένα ασύμβατο πρόσθετο μπορεί να καταστρέψει δεδομένα του TREK. Συνεχίστε μόνο αν αποδέχεστε αυτόν τον κίνδυνο.',
-  'admin.plugins.dep.trekBypassed':
-    'Εκτός του εύρους TREK του ({range}) — έλεγχοι έκδοσης απενεργοποιημένοι',
+  'admin.plugins.dep.trekBypassed': 'Εκτός του εύρους TREK του ({range}) — έλεγχοι έκδοσης απενεργοποιημένοι',
   'admin.plugins.dep.trekBypassedUnknown': 'Δεν δηλώνει εύρος TREK — έλεγχοι έκδοσης απενεργοποιημένοι',
   'admin.plugins.incompatible': 'Μη συμβατό',
   'admin.plugins.accessTitle': 'Σε τι έχει πρόσβαση',
@@ -690,7 +689,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': 'Σημειώσεις, ψηφοφορίες, συνομιλία και προτάσεις για κοινό σχεδιασμό',
   'admin.addons.catalog.roadtrip.name': 'Οδικό ταξίδι',
-  'admin.addons.catalog.roadtrip.description': 'Σχεδιάστε διαδρομές με στάσεις — οι χρόνοι οδήγησης και άφιξης υπολογίζονται ξανά αυτόματα',
+  'admin.addons.catalog.roadtrip.description':
+    'Σχεδιάστε διαδρομές με στάσεις — οι χρόνοι οδήγησης και άφιξης υπολογίζονται ξανά αυτόματα',
   'admin.addons.catalog.memories.name': 'Φωτογραφίες (Immich)',
   'admin.addons.catalog.memories.description':
     'Μοιραστείτε φωτογραφίες ταξιδιού μέσω της δικής σας εγκατάστασης Immich',
@@ -707,12 +707,15 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'Ανάγνωση επισκέψεων και καταγεγραμμένων διαδρομών από μια εγκατάσταση Dawarich που συνδέει ο κάθε χρήστης μόνος του',
   'admin.addons.catalog.llm_parsing.name': 'Ανάλυση με τεχνητή νοημοσύνη',
-  'admin.addons.catalog.llm_parsing.description': 'Διαβάζει κρατήσεις που δεν καταλαβαίνει ο ενσωματωμένος αναλυτής, με μοντέλο ΤΝ της επιλογής σας',
+  'admin.addons.catalog.llm_parsing.description':
+    'Διαβάζει κρατήσεις που δεν καταλαβαίνει ο ενσωματωμένος αναλυτής, με μοντέλο ΤΝ της επιλογής σας',
   'admin.addons.llm.vision.auto': 'Αυτόματα',
   'admin.addons.llm.vision.on': 'Ναι',
   'admin.addons.llm.vision.off': 'Όχι',
-  'admin.addons.llm.vision.hintLocal': 'Η επιλογή Αυτόματα ρωτά τον διακομιστή Ollama αν αυτό το μοντέλο διαβάζει εικόνες.',
-  'admin.addons.llm.vision.hintCloud': 'Για μοντέλο στο cloud, η επιλογή Αυτόματα σημαίνει όχι. Επιλέξτε Ναι αν αυτό το μοντέλο διαβάζει εικόνες.',
+  'admin.addons.llm.vision.hintLocal':
+    'Η επιλογή Αυτόματα ρωτά τον διακομιστή Ollama αν αυτό το μοντέλο διαβάζει εικόνες.',
+  'admin.addons.llm.vision.hintCloud':
+    'Για μοντέλο στο cloud, η επιλογή Αυτόματα σημαίνει όχι. Επιλέξτε Ναι αν αυτό το μοντέλο διαβάζει εικόνες.',
   'admin.addons.enabled': 'Ενεργοποιημένο',
   'admin.addons.disabled': 'Απενεργοποιημένο',
   'admin.addons.type.trip': 'Ταξίδι',
@@ -817,7 +820,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.description':
     'Παρακολούθηση ταξιδιών & ημερολόγιο ταξιδιών με αφίξεις, φωτογραφίες και καθημερινές ιστορίες',
   'admin.addons.catalog.collections.name': 'Συλλογές',
-  'admin.addons.catalog.collections.description': 'Συγκεντρώστε τοποθεσίες από κάθε ταξίδι σε λίστες με όνομα και χρησιμοποιήστε τις ξανά',
+  'admin.addons.catalog.collections.description':
+    'Συγκεντρώστε τοποθεσίες από κάθε ταξίδι σε λίστες με όνομα και χρησιμοποιήστε τις ξανά',
   'admin.passkey.title': 'Σύνδεση με passkey',
   'admin.passkey.cardHint':
     'Επιτρέψτε στους χρήστες να συνδέονται με passkeys (WebAuthn). Απενεργοποιημένο από προεπιλογή.',
@@ -863,7 +867,8 @@ const admin: TranslationStrings = {
   'admin.invite.tripHint': 'Ο νέος χρήστης προστίθεται αυτόματα σε αυτό το ταξίδι όταν εγγραφεί μέσω του συνδέσμου.',
   'admin.invite.boundTo': 'προσθήκη στο {trip}',
   'admin.placesUsageTitle': 'Σε τι χρησιμοποιείται το κλειδί',
-  'admin.mapsKeyHintShort': 'Προσθέτει φωτογραφίες, βαθμολογίες και ώρες λειτουργίας. Κάθε αναζήτηση πηγαίνει τότε στη Google.',
+  'admin.mapsKeyHintShort':
+    'Προσθέτει φωτογραφίες, βαθμολογίες και ώρες λειτουργίας. Κάθε αναζήτηση πηγαίνει τότε στη Google.',
   'admin.amapKeyHintShort': 'Για αναζήτηση τόπων στην ηπειρωτική Κίνα. Χρειάζεται κλειδί web service, όχι JS API.',
   'admin.collab.links.subtitle': 'Κοινόχρηστοι σύνδεσμοι και σελιδοδείκτες',
 };

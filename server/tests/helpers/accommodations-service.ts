@@ -1,26 +1,41 @@
-import type { Database } from 'better-sqlite3';
+import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../src/db/entities/TripPhotos.entity';
 import { AccommodationsService } from '../../src/nest/accommodations/accommodations.service';
 import { AssignmentsService } from '../../src/nest/assignments/assignments.service';
 import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { TrekPhotoRegistrationService } from '../../src/nest/photos/trek-photo-registration.service';
 import { QueryHelpersService } from '../../src/nest/query-helpers/query-helpers.service';
 import { RealtimeService } from '../../src/nest/realtime/realtime.service';
-import { TrekPhotoRegistrationService } from '../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../src/db/entities/TripPhotos.entity';
-import {
-  createTestUnitOfWork, createTestAppSettingsRepo, createTestTagsRepo, createTestPlaceRatingsRepo,
-  createTestAssignmentParticipantsRepo, createTestDayAssignmentsRepo, createTestDaysRepo, createTestPlacesRepo,
-  createTestTripMembersRepo, createTestRoadtripViasRepo, createTestDayAccommodationsRepo, createTestReservationsRepo,
-  sharedTestOrm, createTestTripsRepo,
-} from './test-uow';
+import { TripAccessService } from '../../src/nest/trip-membership/trip-access.service';
 import { createTestBudgetItemsRepo } from './files-repos';
 import {
-  createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
+  createTestJourneysRepo,
+  createTestJourneyContributorsRepo,
+  createTestJourneyTripsRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyPhotosRepo,
+  createTestJourneyEntryPhotosRepo,
 } from './journey-repos';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestTagsRepo,
+  createTestPlaceRatingsRepo,
+  createTestAssignmentParticipantsRepo,
+  createTestDayAssignmentsRepo,
+  createTestDaysRepo,
+  createTestPlacesRepo,
+  createTestTripMembersRepo,
+  createTestRoadtripViasRepo,
+  createTestDayAccommodationsRepo,
+  createTestReservationsRepo,
+  sharedTestOrm,
+  createTestTripsRepo,
+} from './test-uow';
 import { createTestToursRepo } from './tours-repos';
-import { TripAccessService } from '../../src/nest/trip-membership/trip-access.service';
+
+import type { Database } from 'better-sqlite3';
 
 /**
  * AccommodationsService over a test connection.
@@ -57,14 +72,27 @@ export async function accommodationsOver(
   const permissions = new PermissionsService(await createTestAppSettingsRepo(conn), await createTestUnitOfWork(conn));
   const t = await sharedTestOrm(conn);
   const assignments = new AssignmentsService(
-    new TripAccessService(await createTestTripsRepo(conn)), permissions, realtime,
-    new QueryHelpersService(await createTestTagsRepo(conn), await createTestPlaceRatingsRepo(conn), await createTestAssignmentParticipantsRepo(conn)),
+    new TripAccessService(await createTestTripsRepo(conn)),
+    permissions,
+    realtime,
+    new QueryHelpersService(
+      await createTestTagsRepo(conn),
+      await createTestPlaceRatingsRepo(conn),
+      await createTestAssignmentParticipantsRepo(conn),
+    ),
     new JourneyDomainService(
-      realtime, new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), await createTestJourneyPhotosRepo(conn)), await createTestUnitOfWork(conn),
-      await createTestJourneysRepo(conn), await createTestJourneyContributorsRepo(conn),
-      await createTestJourneyTripsRepo(conn), await createTestJourneyEntriesRepo(conn), await createTestTripsRepo(conn),
+      realtime,
+      new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), await createTestJourneyPhotosRepo(conn)),
+      await createTestUnitOfWork(conn),
+      await createTestJourneysRepo(conn),
+      await createTestJourneyContributorsRepo(conn),
+      await createTestJourneyTripsRepo(conn),
+      await createTestJourneyEntriesRepo(conn),
+      await createTestTripsRepo(conn),
       // Plan 3g Task 2 constructor-ripple: JourneyPhotosRepository/JourneyEntryPhotosRepository/PlacesRepository.
-      await createTestJourneyPhotosRepo(conn), await createTestJourneyEntryPhotosRepo(conn), await createTestPlacesRepo(conn),
+      await createTestJourneyPhotosRepo(conn),
+      await createTestJourneyEntryPhotosRepo(conn),
+      await createTestPlacesRepo(conn),
     ),
     await createTestUnitOfWork(conn),
     await createTestDayAssignmentsRepo(conn),
@@ -76,7 +104,10 @@ export async function accommodationsOver(
     await createTestToursRepo(conn),
   );
   return new AccommodationsService(
-    permissions, realtime, assignments, await createTestUnitOfWork(conn),
+    permissions,
+    realtime,
+    assignments,
+    await createTestUnitOfWork(conn),
     // Plan 4 Task 2 — AccommodationsService's own canAccessTrip delegate is now
     // TripsRepository.findAccessible. Plan 4 Task 3 — stampLodging's
     // getPlaceWithTags is PlacesRepository.findWithTagsAndRatings directly

@@ -1,15 +1,22 @@
-import {
-  McpController, Tool, Resource, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  errorResult, ok,
-} from '../../nest-mcp';
-import { z } from 'zod';
-import { idSchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
-import { AtlasService, BucketItemExistsError } from './atlas.service';
+import {
+  McpController,
+  Tool,
+  Resource,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { AtlasService, BucketItemExistsError } from './atlas.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 /** Legacy registrar gate: the whole atlas surface (tools AND resources) rides
  *  the atlas addon — unlike the REST controller, which is deliberately ungated
@@ -23,11 +30,13 @@ function bucketDuplicateResult() {
 
 function jsonContent(uri: string, data: unknown) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify(data, null, 2),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
   };
 }
 
@@ -76,14 +85,36 @@ export class AtlasMcp {
       // "same place, different date" case the report calls for was unreachable.
       // update_bucket_list_item has had the field all along.
       target_date: z.string().nullable().optional().describe('When you plan to go, e.g. "2027-05"'),
-      region_code: z.string().regex(/^[A-Za-z]{2}-[A-Za-z0-9]{1,8}$/).optional().describe('ISO 3166-2 code of a state or province on the wish list, e.g. "US-CA"; needs country_code and has to belong to it. Hatches that region on the Atlas map'),
+      region_code: z
+        .string()
+        .regex(/^[A-Za-z]{2}-[A-Za-z0-9]{1,8}$/)
+        .optional()
+        .describe(
+          'ISO 3166-2 code of a state or province on the wish list, e.g. "US-CA"; needs country_code and has to belong to it. Hatches that region on the Atlas map',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: atlasAddonOn,
     access: { group: 'atlas', mode: 'write' },
   })
   async createBucketListItem(
-    { name, lat, lng, country_code, notes, target_date, region_code }: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string; target_date?: string | null; region_code?: string },
+    {
+      name,
+      lat,
+      lng,
+      country_code,
+      notes,
+      target_date,
+      region_code,
+    }: {
+      name: string;
+      lat?: number;
+      lng?: number;
+      country_code?: string;
+      notes?: string;
+      target_date?: string | null;
+      region_code?: string;
+    },
     ctx: McpContext,
   ) {
     // The same rule the REST contract enforces: a region comes with its own country.
@@ -91,7 +122,15 @@ export class AtlasMcp {
       return errorResult('region_code must belong to country_code.');
     }
     try {
-      const item = await this.atlas.createBucketItem(ctx.userId, { name, lat, lng, country_code, notes, target_date, region_code });
+      const item = await this.atlas.createBucketItem(ctx.userId, {
+        name,
+        lat,
+        lng,
+        country_code,
+        notes,
+        target_date,
+        region_code,
+      });
       return ok({ item });
     } catch (err) {
       if (err instanceof BucketItemExistsError) return bucketDuplicateResult();
@@ -157,7 +196,9 @@ export class AtlasMcp {
       include_coords: z
         .boolean()
         .optional()
-        .describe('Also return the coordinate of every saved place, as the dashboard map plots them. Off by default: it is one entry per place.'),
+        .describe(
+          'Also return the coordinate of every saved place, as the dashboard map plots them. Off by default: it is one entry per place.',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: atlasAddonOn,
@@ -212,7 +253,8 @@ export class AtlasMcp {
 
   @Tool({
     name: 'mark_region_visited',
-    description: 'Mark a sub-country region as visited. When you only know a place or a coordinate, get the codes from locate_atlas_region first.',
+    description:
+      'Mark a sub-country region as visited. When you only know a place or a coordinate, get the codes from locate_atlas_region first.',
     inputSchema: {
       regionCode: z.string().describe('ISO region code e.g. US-CA'),
       regionName: z.string(),
@@ -257,7 +299,7 @@ export class AtlasMcp {
 
   @Tool({
     name: 'get_country_atlas_places',
-    description: 'Get places saved in the user\'s atlas for a specific country.',
+    description: "Get places saved in the user's atlas for a specific country.",
     inputSchema: {
       countryCode: z.string().describe('ISO 3166-1 alpha-2 country code'),
     },
@@ -289,7 +331,15 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async updateBucketListItem(
-    { itemId, name, notes, lat, lng, country_code, target_date }: {
+    {
+      itemId,
+      name,
+      notes,
+      lat,
+      lng,
+      country_code,
+      target_date,
+    }: {
       itemId: number;
       name?: string;
       notes?: string;
@@ -302,7 +352,14 @@ export class AtlasMcp {
   ) {
     let item: unknown;
     try {
-      item = await this.atlas.updateBucketItem(ctx.userId, itemId, { name, notes, lat, lng, country_code, target_date });
+      item = await this.atlas.updateBucketItem(ctx.userId, itemId, {
+        name,
+        notes,
+        lat,
+        lng,
+        country_code,
+        target_date,
+      });
     } catch (err) {
       if (err instanceof BucketItemExistsError) return bucketDuplicateResult();
       throw err;

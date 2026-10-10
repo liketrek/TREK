@@ -5,21 +5,34 @@
  * SQLite database the helper cases are compared on, and the loop that calls
  * every repository method.
  */
-
-import path from 'node:path';
-
-import { RequestContext, type Configuration, type EntityManager, type EntityProperty } from '@mikro-orm/core';
-import { MikroORM, PostgreSqlConnection, PostgreSqlDriver, type Options } from '@mikro-orm/postgresql';
-import { SqlitePlatform } from '@mikro-orm/sql';
-import Database from 'better-sqlite3';
-import { DummyDriver, Kysely, SqliteAdapter, SqliteIntrospector, SqliteQueryCompiler, type PostgresDialect } from 'kysely';
-
 import { ALL_ENTITIES } from '../../src/db/entities';
 import type { MethodPlan } from './arg-samples';
-import { VALUES_TABLE, VALUES_TABLE_DDL, type HelperEngine, type KyselySelect, type RawSelect, type ValuesDB, type ValuesRow } from './helper-cases';
+import {
+  VALUES_TABLE,
+  VALUES_TABLE_DDL,
+  type HelperEngine,
+  type KyselySelect,
+  type RawSelect,
+  type ValuesDB,
+  type ValuesRow,
+} from './helper-cases';
 import { ProbePostgresDialect, type StatementRecorder } from './recorder';
 import type { MethodResult } from './report';
 import { adjustColumns, NOCASE_COLLATION_SQL, splitStatements, type ColumnMeta } from './schema';
+import { RequestContext, type Configuration, type EntityManager, type EntityProperty } from '@mikro-orm/core';
+import { MikroORM, PostgreSqlConnection, PostgreSqlDriver, type Options } from '@mikro-orm/postgresql';
+import { SqlitePlatform } from '@mikro-orm/sql';
+
+import Database from 'better-sqlite3';
+import {
+  DummyDriver,
+  Kysely,
+  SqliteAdapter,
+  SqliteIntrospector,
+  SqliteQueryCompiler,
+  type PostgresDialect,
+} from 'kysely';
+import path from 'node:path';
 
 /** Marks a database the probe built, so a rerun may drop what it finds there and nothing else. */
 const MARKER_TABLE = 'trek_pg_probe_marker';
@@ -42,9 +55,14 @@ export function connectSetupOrm(url: string): Promise<MikroORM> {
 }
 
 /** A Postgres driver whose Kysely dialect records every statement (see recorder.ts). */
-export function createProbeDriverClass(recorder: StatementRecorder, statementTimeoutMs: number): typeof PostgreSqlDriver {
+export function createProbeDriverClass(
+  recorder: StatementRecorder,
+  statementTimeoutMs: number,
+): typeof PostgreSqlDriver {
   class ProbeConnection extends PostgreSqlConnection {
-    override createKyselyDialect(overrides: Parameters<PostgreSqlConnection['createKyselyDialect']>[0]): PostgresDialect {
+    override createKyselyDialect(
+      overrides: Parameters<PostgreSqlConnection['createKyselyDialect']>[0],
+    ): PostgresDialect {
       return new ProbePostgresDialect(super.createKyselyDialect(overrides), recorder, statementTimeoutMs);
     }
   }
@@ -58,7 +76,11 @@ export function createProbeDriverClass(recorder: StatementRecorder, statementTim
   };
 }
 
-export function connectProbeOrm(url: string, recorder: StatementRecorder, statementTimeoutMs: number): Promise<MikroORM> {
+export function connectProbeOrm(
+  url: string,
+  recorder: StatementRecorder,
+  statementTimeoutMs: number,
+): Promise<MikroORM> {
   return MikroORM.init({ ...baseOptions(url), driver: createProbeDriverClass(recorder, statementTimeoutMs) });
 }
 
@@ -74,7 +96,9 @@ async function resetDatabase(orm: MikroORM): Promise<void> {
   );
   const names = tables.map((row) => row.table_name);
   if (names.length > 0 && !names.includes(MARKER_TABLE)) {
-    throw new Error(`refusing to run: the database holds ${names.length} table(s) the probe did not create. Point it at an empty database.`);
+    throw new Error(
+      `refusing to run: the database holds ${names.length} table(s) the probe did not create. Point it at an empty database.`,
+    );
   }
   if (names.length > 0) {
     await connection.execute('drop schema public cascade');
@@ -89,7 +113,9 @@ export interface SchemaFailure {
 }
 
 /** Resets the database and builds the probe schema; returns the DDL statements Postgres refused. */
-export async function prepareDatabase(orm: MikroORM): Promise<{ failures: SchemaFailure[]; adjusted: number; statements: number }> {
+export async function prepareDatabase(
+  orm: MikroORM,
+): Promise<{ failures: SchemaFailure[]; adjusted: number; statements: number }> {
   await resetDatabase(orm);
   const connection = orm.em.getConnection();
   const failures: SchemaFailure[] = [];
@@ -128,7 +154,10 @@ export function postgresHelperEngine(orm: MikroORM): HelperEngine {
     },
     async selectKysely(select: KyselySelect) {
       const platform = orm.em.getPlatform();
-      const row = await kysely.selectFrom(VALUES_TABLE).select((eb) => select(platform, eb).as('v')).executeTakeFirst();
+      const row = await kysely
+        .selectFrom(VALUES_TABLE)
+        .select((eb) => select(platform, eb).as('v'))
+        .executeTakeFirst();
       return row?.v;
     },
   };
@@ -153,7 +182,13 @@ export function sqliteHelperEngine(): HelperEngine & { close(): void } {
     platform,
     async writeRow(row: ValuesRow) {
       db.prepare(`delete from ${VALUES_TABLE}`).run();
-      db.prepare(`insert into ${VALUES_TABLE} (id, a, b, n, x) values (?, ?, ?, ?, ?)`).run(row.id, row.a, row.b, row.n, row.x);
+      db.prepare(`insert into ${VALUES_TABLE} (id, a, b, n, x) values (?, ?, ?, ?, ?)`).run(
+        row.id,
+        row.a,
+        row.b,
+        row.n,
+        row.x,
+      );
     },
     async selectRaw(select: RawSelect) {
       const sql = `select ${select.sql}${select.column ? '' : ' as v'} from ${VALUES_TABLE}`;
@@ -161,7 +196,10 @@ export function sqliteHelperEngine(): HelperEngine & { close(): void } {
       return row?.[select.column ?? 'v'];
     },
     async selectKysely(select: KyselySelect) {
-      const compiled = compiler.selectFrom(VALUES_TABLE).select((eb) => select(platform, eb).as('v')).compile();
+      const compiled = compiler
+        .selectFrom(VALUES_TABLE)
+        .select((eb) => select(platform, eb).as('v'))
+        .compile();
       const row = db.prepare(compiled.sql).get(...compiled.parameters.map(bind)) as Record<string, unknown> | undefined;
       return row?.v;
     },
@@ -172,7 +210,11 @@ export function sqliteHelperEngine(): HelperEngine & { close(): void } {
 type RepositoryFactory = (em: EntityManager) => object;
 
 /** How to reach each repository class: through its entity, or `new X(em)` for the two that have none. */
-function repositoryFactories(orm: MikroORM, plans: readonly MethodPlan[], serverRoot: string): Map<string, RepositoryFactory | string> {
+function repositoryFactories(
+  orm: MikroORM,
+  plans: readonly MethodPlan[],
+  serverRoot: string,
+): Map<string, RepositoryFactory | string> {
   const byEntity = new Map<string, RepositoryFactory>();
   for (const meta of orm.getMetadata().getAll().values()) {
     const repository = meta.repository?.();

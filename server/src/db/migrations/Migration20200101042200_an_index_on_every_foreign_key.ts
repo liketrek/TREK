@@ -54,10 +54,16 @@ export class Migration20200101042200_an_index_on_every_foreign_key extends Migra
     this.addSql('CREATE INDEX IF NOT EXISTS idx_collab_message_reactions_user_id ON collab_message_reactions(user_id)');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_invite_tokens_trip_id ON invite_tokens(trip_id)');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_invite_tokens_created_by ON invite_tokens(created_by)');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_packing_category_assignees_user_id ON packing_category_assignees(user_id)');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_packing_category_assignees_user_id ON packing_category_assignees(user_id)',
+    );
     this.addSql('CREATE INDEX IF NOT EXISTS idx_packing_templates_created_by ON packing_templates(created_by)');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_packing_template_categories_template_id ON packing_template_categories(template_id)');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_packing_template_items_category_id ON packing_template_items(category_id)');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_packing_template_categories_template_id ON packing_template_categories(template_id)',
+    );
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_packing_template_items_category_id ON packing_template_items(category_id)',
+    );
     this.addSql('CREATE INDEX IF NOT EXISTS idx_packing_bags_user_id ON packing_bags(user_id)');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_packing_bags_trip_id ON packing_bags(trip_id)');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_bucket_list_user_id ON bucket_list(user_id)');
@@ -84,22 +90,38 @@ export class Migration20200101042200_an_index_on_every_foreign_key extends Migra
     this.addSql('CREATE INDEX IF NOT EXISTS idx_day_accommodations_place_id ON day_accommodations(place_id)');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_journey_photos_photo_id ON journey_photos(photo_id)');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_budget_item_payers_user_id ON budget_item_payers(user_id)');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_budget_settlements_created_by_user_id ON budget_settlements(created_by_user_id)');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_budget_settlements_created_by_user_id ON budget_settlements(created_by_user_id)',
+    );
     this.addSql('CREATE INDEX IF NOT EXISTS idx_budget_settlements_to_user_id ON budget_settlements(to_user_id)');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_budget_settlements_from_user_id ON budget_settlements(from_user_id)');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_packing_item_contributors_user_id ON packing_item_contributors(user_id)');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_packing_item_contributors_user_id ON packing_item_contributors(user_id)',
+    );
     this.addSql('CREATE INDEX IF NOT EXISTS idx_trip_invite_tokens_created_by ON trip_invite_tokens(created_by)');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_journey_books_updated_by ON journey_books(updated_by)');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_journey_books_created_by ON journey_books(created_by)');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_collab_links_user_id ON collab_links(user_id)');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_dawarich_visit_suggestions_matched_bucket_list_item_id ON dawarich_visit_suggestions(matched_bucket_list_item_id)');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_dawarich_visit_suggestions_accepted_bucket_list_item_id ON dawarich_visit_suggestions(accepted_bucket_list_item_id)');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_dawarich_visit_suggestions_accepted_place_id ON dawarich_visit_suggestions(accepted_place_id)');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_dawarich_visit_suggestions_matched_bucket_list_item_id ON dawarich_visit_suggestions(matched_bucket_list_item_id)',
+    );
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_dawarich_visit_suggestions_accepted_bucket_list_item_id ON dawarich_visit_suggestions(accepted_bucket_list_item_id)',
+    );
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_dawarich_visit_suggestions_accepted_place_id ON dawarich_visit_suggestions(accepted_place_id)',
+    );
     this.addSql('CREATE INDEX IF NOT EXISTS idx_document_connections_provider_id ON document_connections(provider_id)');
     this.addSql('CREATE INDEX IF NOT EXISTS idx_trip_document_links_created_by ON trip_document_links(created_by)');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_trip_document_links_connection_id ON trip_document_links(connection_id)');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_trip_document_links_connection_id ON trip_document_links(connection_id)',
+    );
     this.addSql('CREATE INDEX IF NOT EXISTS idx_document_sync_items_file_id ON document_sync_items(file_id)');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_roadtrip_day_boundaries_to_assignment_id ON roadtrip_day_boundaries(to_assignment_id)');
-    this.addSql('CREATE INDEX IF NOT EXISTS idx_roadtrip_day_boundaries_from_assignment_id ON roadtrip_day_boundaries(from_assignment_id)');
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_roadtrip_day_boundaries_to_assignment_id ON roadtrip_day_boundaries(to_assignment_id)',
+    );
+    this.addSql(
+      'CREATE INDEX IF NOT EXISTS idx_roadtrip_day_boundaries_from_assignment_id ON roadtrip_day_boundaries(from_assignment_id)',
+    );
   }
 }

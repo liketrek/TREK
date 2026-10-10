@@ -1,32 +1,32 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { Collections } from '../../db/entities/Collections.entity';
-import { CollectionMembers } from '../../db/entities/CollectionMembers.entity';
-import { CollectionLabels } from '../../db/entities/CollectionLabels.entity';
-import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
-import { CollectionPlaceRatings } from '../../db/entities/CollectionPlaceRatings.entity';
 import { Categories } from '../../db/entities/Categories.entity';
-import { Users } from '../../db/entities/Users.entity';
-import { Trips } from '../../db/entities/Trips.entity';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import { Places } from '../../db/entities/Places.entity';
+import { CollectionLabels } from '../../db/entities/CollectionLabels.entity';
+import { CollectionMembers } from '../../db/entities/CollectionMembers.entity';
+import { CollectionPlaceRatings } from '../../db/entities/CollectionPlaceRatings.entity';
+import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
+import { Collections } from '../../db/entities/Collections.entity';
 import { PlaceRatings } from '../../db/entities/PlaceRatings.entity';
+import { Places } from '../../db/entities/Places.entity';
 import { Tags } from '../../db/entities/Tags.entity';
-import { CollectionsController } from './collections.controller';
-import { CollectionsService } from './collections.service';
-import { CollectionsRpc } from './collections.rpc';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
 import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
-import { AppConfigModule } from '../app-config/app-config.module';
-import { CollectionsMcp } from './collections.mcp';
 import { AddonsModule } from '../addons/addons.module';
-import { PermissionsModule } from '../permissions/permissions.module';
+import { AppConfigModule } from '../app-config/app-config.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { MulterModule } from '@nestjs/platform-express';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { PlaceImportModule } from '../place-import/place-import.module';
+import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
-import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
+import { CollectionsController } from './collections.controller';
 import { MAX_COVER_SIZE } from './collections.controller';
-import { PlaceImportModule } from '../place-import/place-import.module';
+import { CollectionsMcp } from './collections.mcp';
+import { CollectionsRpc } from './collections.rpc';
+import { CollectionsService } from './collections.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
+import { MulterModule } from '@nestjs/platform-express';
 
 /** Collections domain (saved-places library). Registered in AppModule.
  *  Exports CollectionsService for in-container consumers (PluginsModule's
@@ -48,11 +48,27 @@ import { PlaceImportModule } from '../place-import/place-import.module';
         }),
     }),
     StorageModule,
-    NotificationsModule, AddonsModule, PermissionsModule, AppConfigModule, PluginGuardsModule, PlaceImportModule,
+    NotificationsModule,
+    AddonsModule,
+    PermissionsModule,
+    AppConfigModule,
+    PluginGuardsModule,
+    PlaceImportModule,
     MikroOrmModule.forFeature([
-      Collections, CollectionMembers, CollectionLabels, CollectionPlaces, CollectionPlaceRatings,
-      Categories, Users, Trips, TripMembers, Places, PlaceRatings, Tags,
-    ])],
+      Collections,
+      CollectionMembers,
+      CollectionLabels,
+      CollectionPlaces,
+      CollectionPlaceRatings,
+      Categories,
+      Users,
+      Trips,
+      TripMembers,
+      Places,
+      PlaceRatings,
+      Tags,
+    ]),
+  ],
   controllers: [CollectionsController],
   providers: [CollectionsService, CollectionsMcp, CollectionsRpc],
   exports: [CollectionsService],

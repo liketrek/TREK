@@ -7,18 +7,23 @@
  *   - disable() tears the child down.
  * The child runs its own process — its crash/throw can never reach this test.
  */
-import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import { PluginDataDb } from '../../../src/nest/plugins/host/plugin-data.service';
+import { PluginRpcHost, type HostDeps } from '../../../src/nest/plugins/host/rpc-host';
+import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
+import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import {
+  PluginSupervisor,
+  type SupervisorHooks,
+  type SupervisorTuning,
+} from '../../../src/nest/plugins/supervisor/plugin-supervisor';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import Database from 'better-sqlite3';
-import { PluginSupervisor, type SupervisorHooks, type SupervisorTuning } from '../../../src/nest/plugins/supervisor/plugin-supervisor';
-import { PluginRpcHost, type HostDeps } from '../../../src/nest/plugins/host/rpc-host';
-import { PluginDataDb } from '../../../src/nest/plugins/host/plugin-data.service';
-import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
-import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
-import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 
 /**
  * DbRpc also carries `settings.get`, which needs the per-user settings store. No
@@ -40,16 +45,26 @@ function writePlugin(id: string, source: string): void {
   fs.writeFileSync(path.join(dir, 'index.js'), source);
 }
 
-function makeSupervisor(events: Array<{ topic: string; data: unknown }>, tuning: SupervisorTuning = {}): PluginSupervisor {
+function makeSupervisor(
+  events: Array<{ topic: string; data: unknown }>,
+  tuning: SupervisorTuning = {},
+): PluginSupervisor {
   const createRpcHost = (id: string, granted: ReadonlySet<string>): PluginRpcHost => {
     const deps: HostDeps = {
       data: new PluginDataDb(id),
       callPlugin: async () => undefined,
-      emitPluginEvent: async (event, payload) => { broadcasts.push({ id, event, payload }); },
+      emitPluginEvent: async (event, payload) => {
+        broadcasts.push({ id, event, payload });
+      },
     };
     // Only db.* is exercised from a child here; the rest of the surface has its own
     // unit suites and would drag every domain service into this integration test.
-    return new PluginRpcHost(id, granted, deps, createTestPluginRegistry([new DbRpc(stubUserSettings as PluginUserSettingsService)]));
+    return new PluginRpcHost(
+      id,
+      granted,
+      deps,
+      createTestPluginRegistry([new DbRpc(stubUserSettings as PluginUserSettingsService)]),
+    );
   };
   const hooks: SupervisorHooks = {
     onEvent: (_id, topic, data) => events.push({ topic, data }),
@@ -144,7 +159,12 @@ describe('PluginSupervisor — isolated runtime', () => {
     await sup.activate('provider', new Set(['hook:place-detail-provider', 'events:subscribe']), {});
 
     // host->plugin hook: the child runs getDetails(7, ctx) and returns its result
-    const hookRes = await sup.invoke('provider', 'invoke.hook', { hook: 'placeDetailProvider', fn: 'getDetails', args: [7] }, { actingUserId: 5 });
+    const hookRes = await sup.invoke(
+      'provider',
+      'invoke.hook',
+      { hook: 'placeDetailProvider', fn: 'getDetails', args: [7] },
+      { actingUserId: 5 },
+    );
     expect(hookRes).toEqual([{ label: 'placeId', value: '7' }]);
 
     // host->plugin event: ONLY the matching subscription runs (the 'other:thing' one throws if hit)

@@ -3,12 +3,13 @@
  * next to NotificationPreferencesService, which owns it. The 'admin' scope argument
  * they always passed is now written once, at the only place that uses it.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { NotificationPreferencesService } from '../../../src/nest/notifications/notification-preferences.service';
 import { AdminNotificationPreferencesController } from '../../../src/nest/notifications/notifications.controller';
 import { NotificationsModule } from '../../../src/nest/notifications/notifications.module';
-import type { NotificationPreferencesService } from '../../../src/nest/notifications/notification-preferences.service';
 import type { User } from '../../../src/types';
 import { expectRegisteredController } from '../../helpers/module-providers';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const admin = { id: 1, role: 'admin' } as User;
 
@@ -37,7 +38,9 @@ describe('AdminNotificationPreferencesController', () => {
     const { c, prefs } = controller();
     // The admin panel renders straight from this response, so returning the write
     // result instead of a fresh read would leave it showing stale rows.
-    expect(await c.set(admin, { trip_reminder: { email: true } } as never)).toEqual({ rows: [{ event: 'trip_reminder' }] });
+    expect(await c.set(admin, { trip_reminder: { email: true } } as never)).toEqual({
+      rows: [{ event: 'trip_reminder' }],
+    });
     expect(prefs.setAdminPreferences).toHaveBeenCalledWith(1, { trip_reminder: { email: true } });
     expect(prefs.getPreferencesMatrix).toHaveBeenCalledWith(1, 'admin', 'admin');
   });
@@ -52,7 +55,9 @@ describe('AdminNotificationPreferencesController', () => {
     const { c, prefs } = controller();
     expect(await c.getDefaults(admin)).toEqual({ defaults: { trip_invite: { email: 'off' } } });
     expect(prefs.getInstanceDefaults).toHaveBeenCalledWith(1);
-    expect(await c.setDefaults(admin, { defaults: { trip_invite: { email: 'off' } } } as never)).toEqual({ defaults: { trip_invite: { email: 'off' } } });
+    expect(await c.setDefaults(admin, { defaults: { trip_invite: { email: 'off' } } } as never)).toEqual({
+      defaults: { trip_invite: { email: 'off' } },
+    });
     expect(prefs.setInstanceDefaults).toHaveBeenCalledWith({ trip_invite: { email: 'off' } });
   });
 

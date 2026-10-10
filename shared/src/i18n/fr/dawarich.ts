@@ -61,7 +61,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Le module Dawarich est désactivé sur cette instance.',
   'dawarich.error.offline': 'Cela demande une connexion — TREK est hors ligne pour le moment.',
   'dawarich.error.invalid_url': 'TREK ne peut pas utiliser cette adresse.',
-  'dawarich.warning.private_ip': 'Cette adresse pointe vers une IP privée ({ip}). Vérifiez que c’est voulu — le serveur peut avoir besoin de ALLOW_INTERNAL_NETWORK=true pour l’atteindre.',
+  'dawarich.warning.private_ip':
+    'Cette adresse pointe vers une IP privée ({ip}). Vérifiez que c’est voulu — le serveur peut avoir besoin de ALLOW_INTERNAL_NETWORK=true pour l’atteindre.',
   'dawarich.error.unknown': 'Un problème est survenu lors de l’échange avec Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -86,8 +87,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.pending': '{count} en attente',
   'dawarich.suggestions.pending.one': '{count} en attente',
   'dawarich.suggestions.loading': 'Lecture de Dawarich…',
-  'dawarich.suggestions.notConnected':
-    'Connectez Dawarich dans les Paramètres pour voir vos séjours ici.',
+  'dawarich.suggestions.notConnected': 'Connectez Dawarich dans les Paramètres pour voir vos séjours ici.',
   'dawarich.suggestions.unavailable': 'Dawarich n’a pas pu être lu.',
   'dawarich.suggestions.allHandled': 'Tout ce qui a été enregistré ici a été traité.',
   'dawarich.suggestions.asJournal': 'Écrire une entrée de journal',
@@ -154,8 +154,7 @@ const dawarich: TranslationStrings = {
   'dawarich.bucket.confirmed.one': '{count} souhait coché',
   'dawarich.bucket.skipped': '{count} entrées n’ont pas de coordonnées et n’ont pas pu être vérifiées.',
   'dawarich.bucket.skipped.one': '{count} entrée n’a pas de coordonnées et n’a pas pu être vérifiée.',
-  'dawarich.bucket.truncated':
-    'Seules les premières entrées ont été vérifiées. Relancez pour traiter le reste.',
+  'dawarich.bucket.truncated': 'Seules les premières entrées ont été vérifiées. Relancez pour traiter le reste.',
   'dawarich.bucket.visitedFrom': 'Coché à partir de vos enregistrements Dawarich',
   'dawarich.bucket.clearVisit': 'Annuler',
 
@@ -190,7 +189,6 @@ const dawarich: TranslationStrings = {
   'dawarich.bucket.rule.one': 'Une envie est atteinte à moins de {meters} m et après {count} minute sur place.',
   'dawarich.journey.dayStays.other': '{count} séjours issus de Dawarich',
   'dawarich.journey.dayStays.one': '{count} séjour issu de Dawarich',
-
 };
 
 export default dawarich;

@@ -6,13 +6,14 @@
  * trip they may not read (nothing that distinguishes it from one that does not
  * exist).
  */
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { Request } from 'express';
-import { PUBLIC_API_INCLUDES, PUBLIC_API_SCOPES, type PublicApiGrant } from '@trek/shared';
+import type { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { PublicApiController } from '../../../src/nest/public-api/public-api.controller';
 import type { PublicApiService } from '../../../src/nest/public-api/public-api.service';
-import type { RateLimitService } from '../../../src/nest/common/rate-limit.service';
+import { HttpException } from '@nestjs/common';
+import { PUBLIC_API_INCLUDES, PUBLIC_API_SCOPES, type PublicApiGrant } from '@trek/shared';
+
+import type { Request } from 'express';
+import { describe, it, expect, vi } from 'vitest';
 
 const TRIP = {
   id: 12,
@@ -80,7 +81,9 @@ describe('PublicApiController', () => {
 
     it('counts against the same rate budget as everything else', async () => {
       const listBucketList = vi.fn();
-      expect((await thrownAsync(() => makeController({ listBucketList }, false).listBucketList(req(7)))).status).toBe(429);
+      expect((await thrownAsync(() => makeController({ listBucketList }, false).listBucketList(req(7)))).status).toBe(
+        429,
+      );
       expect(listBucketList).not.toHaveBeenCalled();
     });
   });
@@ -148,7 +151,7 @@ describe('PublicApiController', () => {
       ['a float', '1.5'],
       ['an empty id', ''],
       ['whitespace', ' 12 '],
-      ['a sql fragment', "1 OR 1=1"],
+      ['a sql fragment', '1 OR 1=1'],
       ['an id past the safe integer range', '9007199254740993'],
     ])('400s on %s without touching the service', async (_label, raw) => {
       const getTrip = vi.fn();
@@ -178,7 +181,9 @@ describe('PublicApiController', () => {
 
     it('429s the detail route the same way', async () => {
       const getTrip = vi.fn();
-      expect((await thrownAsync(() => makeController({ getTrip }, false).getTrip(req(7), '12', undefined))).status).toBe(429);
+      expect(
+        (await thrownAsync(() => makeController({ getTrip }, false).getTrip(req(7), '12', undefined))).status,
+      ).toBe(429);
       expect(getTrip).not.toHaveBeenCalled();
     });
   });

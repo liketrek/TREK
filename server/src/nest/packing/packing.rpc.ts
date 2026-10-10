@@ -1,12 +1,12 @@
-import { packingCreateItemRequestSchema, packingUpdateItemRequestSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
-import { asPayload, num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
+import { asPayload, num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { isUpdateConflict } from '../common/conflictResult';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PackingService, isInvalidBagRef } from './packing.service';
-import { isUpdateConflict } from '../common/conflictResult';
+import { packingCreateItemRequestSchema, packingUpdateItemRequestSchema } from '@trek/shared';
 
 /** Packing rides on the app's own 'packing_edit' permission, exactly like the REST path. */
 const PACKING_EDIT_ACTION = 'packing_edit';
@@ -47,7 +47,7 @@ export class PackingRpc {
     const parsed = packingCreateItemRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid packing item: ${schemaMessage(parsed.error)}`);
     await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
-    const item = await this.packing.createItem(String(tripId), parsed.data as never, actor) as PrivacyItem;
+    const item = (await this.packing.createItem(String(tripId), parsed.data as never, actor)) as PrivacyItem;
     // A referenced bag must exist on this trip (#2154), as on the REST route.
     if (isInvalidBagRef(item)) throw new BadParams(`no packing bag ${parsed.data.bag_id} on trip ${tripId}`);
     this.packing.emitToViewers(String(tripId), 'packing:created', { item }, item, undefined);
@@ -68,13 +68,20 @@ export class PackingRpc {
     const input = parsed.data as Record<string, unknown>;
     // Plan 4 Task 8b (U6) — itemId is already a real row id (num() above);
     // PackingService.updateItem's id param no longer needs the String() wrapper.
-    const updated = await this.packing.updateItem(String(tripId), itemId, input as never, Object.keys(input), undefined, actor);
+    const updated = await this.packing.updateItem(
+      String(tripId),
+      itemId,
+      input as never,
+      Object.keys(input),
+      undefined,
+      actor,
+    );
     if (!updated) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
     if (isUpdateConflict(updated)) throw new BadParams('packing item was modified concurrently');
     // A referenced bag must exist on this trip (#2154), as on the REST route.
     if (isInvalidBagRef(updated)) throw new BadParams(`no packing bag ${parsed.data.bag_id} on trip ${tripId}`);
     this.packing.broadcastUpdate(String(tripId), itemId, updated as PrivacyItem, !!before?.is_private, undefined);
-    if (['weight_grams', 'quantity', 'bag_id'].some(k => Object.keys(input).includes(k))) {
+    if (['weight_grams', 'quantity', 'bag_id'].some((k) => Object.keys(input).includes(k))) {
       this.packing.broadcastBagTotals(String(tripId));
     }
     return updated;
@@ -87,7 +94,7 @@ export class PackingRpc {
     const actor = this.guards.requireActor(ctx, 'packing item');
     await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
     // Plan 4 Task 8b (U6) — same drop of itemId's String() wrapper as update above.
-    const deleted = await this.packing.deleteItem(String(tripId), itemId, actor) as PrivacyItem | null;
+    const deleted = (await this.packing.deleteItem(String(tripId), itemId, actor)) as PrivacyItem | null;
     if (!deleted) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
     this.packing.emitToViewers(String(tripId), 'packing:deleted', { itemId }, deleted, undefined);
     this.packing.broadcastBagTotals(String(tripId));
@@ -98,7 +105,11 @@ export class PackingRpc {
   async listBags(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown[]> {
     // Note the permission: the envelope really does gate this READ on the write
     // grant. The decorator makes the oddity visible instead of burying it.
-    return await this.guards.tripRead(params, ctx, async () => (await this.packing.listBags(String(num(params.tripId, 'tripId')))) as unknown[]);
+    return await this.guards.tripRead(
+      params,
+      ctx,
+      async () => (await this.packing.listBags(String(num(params.tripId, 'tripId')))) as unknown[],
+    );
   }
 
   @PluginMethod('packing.createBag', { permission: 'db:write:packing' })

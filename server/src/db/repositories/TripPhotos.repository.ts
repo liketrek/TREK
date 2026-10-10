@@ -1,6 +1,6 @@
 import type { TripPhotos } from '../entities/TripPhotos.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /**
  * `trip_photos`'s single-table writes and lookups (Plan 3e Task 7,
@@ -58,7 +58,13 @@ export class TripPhotosRepository extends TrekRepository<TripPhotos> {
     const row = await this.qb('tp')
       .select(['tp.id'])
       .join('tp.photo', 'tkp')
-      .where({ 'tp.user': user_id, 'tp.trip': trip_id, 'tp.shared': 1, 'tkp.asset_id': asset_id, 'tkp.provider': provider })
+      .where({
+        'tp.user': user_id,
+        'tp.trip': trip_id,
+        'tp.shared': 1,
+        'tkp.asset_id': asset_id,
+        'tkp.provider': provider,
+      })
       .execute<{ id: number } | undefined>('get', false);
     return !!row;
   }
@@ -98,10 +104,22 @@ export class TripPhotosRepository extends TrekRepository<TripPhotos> {
    * is Kysely's dialect-general affected-row count, 0 when the conflict
    * target already existed and the insert was ignored.
    */
-  async insertIgnore(row: { trip_id: number | string; user_id: number; photo_id: number; shared: number; album_link_id: number | string | null }): Promise<boolean> {
+  async insertIgnore(row: {
+    trip_id: number | string;
+    user_id: number;
+    photo_id: number;
+    shared: number;
+    album_link_id: number | string | null;
+  }): Promise<boolean> {
     const result = await this.kysely<TripPhotosInsertKyselyDB>()
       .insertInto('trip_photos')
-      .values({ trip_id: row.trip_id as number, user_id: row.user_id, photo_id: row.photo_id, shared: row.shared, album_link_id: row.album_link_id as number })
+      .values({
+        trip_id: row.trip_id as number,
+        user_id: row.user_id,
+        photo_id: row.photo_id,
+        shared: row.shared,
+        album_link_id: row.album_link_id as number,
+      })
       .onConflict((oc) => oc.columns(['trip_id', 'user_id', 'photo_id']).doNothing())
       .executeTakeFirst();
     return (result?.numInsertedOrUpdatedRows ?? 0n) > 0n;
@@ -158,7 +176,11 @@ export class TripPhotosRepository extends TrekRepository<TripPhotos> {
    * this is ever reached); the early return here is defensive, matching an
    * `IN ()` that can never match any row.
    */
-  async listForTrip(trip_id: number | string, user_id: number, enabled_providers: string[]): Promise<TripPhotoListRow[]> {
+  async listForTrip(
+    trip_id: number | string,
+    user_id: number,
+    enabled_providers: string[],
+  ): Promise<TripPhotoListRow[]> {
     if (enabled_providers.length === 0) return [];
     const rows = await this.kysely<TripPhotosListKyselyDB>()
       .selectFrom('trip_photos as tp')

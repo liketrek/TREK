@@ -6,6 +6,25 @@
  * pair is never regenerated, and a broken environment pair falls back on
  * neither a stored nor a new one. And the `sub` contact.
  */
+import { db as testDb } from '../../../../src/db/database';
+import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
+import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
+import { decrypt_api_key, encrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto';
+import type { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import {
+  FALLBACK_VAPID_SUBJECT,
+  PushUnavailableError,
+  VAPID_PRIVATE_KEY_SETTING,
+  VAPID_PUBLIC_KEY_SETTING,
+  VapidKeysService,
+} from '../../../../src/nest/notifications/push/vapid-keys.service';
+import { generateVapidKeyPair, isVapidKeyPair } from '../../../../src/nest/notifications/push/web-push-crypto';
+import { insertRows, updateRows } from '../../../helpers/factories/rows';
+import { readAppSetting } from '../../../helpers/factories/settings';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestAppSettingsRepo, createTestUnitOfWork, sharedTestOrm } from '../../../helpers/test-uow';
+import type { MikroORM } from '@mikro-orm/core';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
 // One snapshot connection per file, created inside the factory so nothing has
@@ -30,25 +49,6 @@ vi.mock('../../../../src/nest/audit/audit-log.logger', () => ({
   logError,
   logWarn: vi.fn(),
 }));
-
-import { db as testDb } from '../../../../src/db/database';
-import type { MikroORM } from '@mikro-orm/core';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestAppSettingsRepo, createTestUnitOfWork, sharedTestOrm } from '../../../helpers/test-uow';
-import { insertRows, updateRows } from '../../../helpers/factories/rows';
-import { readAppSetting } from '../../../helpers/factories/settings';
-import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
-import type { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
-import { decrypt_api_key, encrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto';
-import {
-  FALLBACK_VAPID_SUBJECT,
-  PushUnavailableError,
-  VAPID_PRIVATE_KEY_SETTING,
-  VAPID_PUBLIC_KEY_SETTING,
-  VapidKeysService,
-} from '../../../../src/nest/notifications/push/vapid-keys.service';
-import { generateVapidKeyPair, isVapidKeyPair } from '../../../../src/nest/notifications/push/web-push-crypto';
 
 // The service's three providers, resolved once on this file's handle: the
 // app_settings repository, the UnitOfWork its create runs in, and the ORM the

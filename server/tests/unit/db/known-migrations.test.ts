@@ -1,9 +1,10 @@
+import { knownMigrationNames, unknownMigrations } from '../../../src/db/known-migrations';
+import { refuseNewerDatabase } from '../../../src/db/legacy-baseline';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { knownMigrationNames, unknownMigrations } from '../../../src/db/known-migrations';
-import { refuseNewerDatabase } from '../../../src/db/legacy-baseline';
 
 describe('known migrations', () => {
   it('KNOWNMIG-001: lists every migration this build ships, by its recorded name', () => {
@@ -16,7 +17,12 @@ describe('known migrations', () => {
   it('KNOWNMIG-002: reads compiled files too, and ignores maps, declarations and strangers', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-known-migrations-'));
     try {
-      for (const file of ['Migration20200101000000_a.js', 'Migration20200101000000_a.js.map', 'Migration20200101000100_b.d.ts', 'README.md']) {
+      for (const file of [
+        'Migration20200101000000_a.js',
+        'Migration20200101000000_a.js.map',
+        'Migration20200101000100_b.d.ts',
+        'README.md',
+      ]) {
         fs.writeFileSync(path.join(dir, file), '');
       }
       expect([...knownMigrationNames(dir)]).toEqual(['Migration20200101000000_a']);

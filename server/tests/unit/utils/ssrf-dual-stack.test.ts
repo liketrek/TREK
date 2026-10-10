@@ -1,8 +1,11 @@
-import { describe, it, expect, vi, afterEach, beforeAll, afterAll } from 'vitest';
+import { safeFetchAdminConfigured, SsrfBlockedError } from '../../../src/utils/ssrfGuard';
+
+import dns from 'dns/promises';
 import http from 'node:http';
 import net from 'node:net';
-import os from 'node:os';
 import type { AddressInfo } from 'node:net';
+import os from 'node:os';
+import { describe, it, expect, vi, afterEach, beforeAll, afterAll } from 'vitest';
 
 // Only the resolver is stubbed. undici and net are the real thing, because the
 // point of these cases is what the socket does with the list it is handed.
@@ -10,9 +13,6 @@ vi.mock('dns/promises', () => ({
   default: { lookup: vi.fn() },
   lookup: vi.fn(),
 }));
-
-import dns from 'dns/promises';
-import { safeFetchAdminConfigured, SsrfBlockedError } from '../../../src/utils/ssrfGuard';
 
 const mockLookup = vi.mocked(dns.lookup);
 
@@ -193,8 +193,14 @@ describe('the strict guard, ALLOW_INTERNAL_NETWORK on, with metadata records in 
 
   it('SEC-DUAL-107: a metadata record next to an fe80:: one is refused and no socket is opened', async () => {
     for (const answer of [
-      [{ address: 'fe80::1', family: 6 }, { address: 'fd00:ec2::254', family: 6 }],
-      [{ address: 'fe80::1', family: 6 }, { address: '100.100.100.200', family: 4 }],
+      [
+        { address: 'fe80::1', family: 6 },
+        { address: 'fd00:ec2::254', family: 6 },
+      ],
+      [
+        { address: 'fe80::1', family: 6 },
+        { address: '100.100.100.200', family: 4 },
+      ],
       [{ address: '::169.254.169.254', family: 6 }],
     ]) {
       const { guard, lookup } = await strictGuard();

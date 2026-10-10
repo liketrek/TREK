@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { mapReservations } from '../../../../src/nest/booking-import/kitinerary-mapper';
+
+import { describe, it, expect } from 'vitest';
 
 const airport = (iata: string, lat: number, lng: number) => ({
   iataCode: iata,
@@ -21,22 +22,25 @@ const flight = (pnr: string, dep: any, arr: any, depTime: string, arrTime: strin
 });
 
 const FRA = airport('FRA', 50.04, 8.57);
-const BER = airport('BER', 52.36, 13.50);
+const BER = airport('BER', 52.36, 13.5);
 const HND = airport('HND', 35.55, 139.78);
 
 describe('kitinerary mapper — multi-leg flight grouping', () => {
   it('groups two connecting same-PNR legs into one multi-leg booking', () => {
-    const { items } = mapReservations([
-      flight('ABC123', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 100'),
-      flight('ABC123', BER, HND, '2026-06-11T14:30:00', '2026-06-11T23:30:00', 'LH 200'),
-    ] as any, 'test.json');
+    const { items } = mapReservations(
+      [
+        flight('ABC123', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 100'),
+        flight('ABC123', BER, HND, '2026-06-11T14:30:00', '2026-06-11T23:30:00', 'LH 200'),
+      ] as any,
+      'test.json',
+    );
 
     expect(items).toHaveLength(1);
     const booking = items[0];
     expect(booking.type).toBe('flight');
     expect(booking.endpoints).toHaveLength(3);
-    expect(booking.endpoints!.map(e => e.role)).toEqual(['from', 'stop', 'to']);
-    expect(booking.endpoints!.map(e => e.sequence)).toEqual([0, 1, 2]);
+    expect(booking.endpoints!.map((e) => e.role)).toEqual(['from', 'stop', 'to']);
+    expect(booking.endpoints!.map((e) => e.sequence)).toEqual([0, 1, 2]);
     const meta = booking.metadata as any;
     expect(meta.legs).toHaveLength(2);
     expect(meta.legs[0]).toMatchObject({ from: 'FRA', to: 'BER', flight_number: 'LH 100' });
@@ -48,10 +52,13 @@ describe('kitinerary mapper — multi-leg flight grouping', () => {
   });
 
   it('keeps a round trip (same PNR, multi-day gap) as two separate bookings', () => {
-    const { items } = mapReservations([
-      flight('RT999', FRA, HND, '2026-06-11T10:00:00', '2026-06-11T20:00:00', 'LH 700'),
-      flight('RT999', HND, FRA, '2026-06-20T10:00:00', '2026-06-20T18:00:00', 'LH 701'),
-    ] as any, 'test.json');
+    const { items } = mapReservations(
+      [
+        flight('RT999', FRA, HND, '2026-06-11T10:00:00', '2026-06-11T20:00:00', 'LH 700'),
+        flight('RT999', HND, FRA, '2026-06-20T10:00:00', '2026-06-20T18:00:00', 'LH 701'),
+      ] as any,
+      'test.json',
+    );
 
     expect(items).toHaveLength(2);
     expect((items[0].metadata as any).legs).toBeUndefined();
@@ -59,9 +66,10 @@ describe('kitinerary mapper — multi-leg flight grouping', () => {
   });
 
   it('leaves a single flight unchanged (two endpoints, no legs array)', () => {
-    const { items } = mapReservations([
-      flight('S1', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 1'),
-    ] as any, 'test.json');
+    const { items } = mapReservations(
+      [flight('S1', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 1')] as any,
+      'test.json',
+    );
 
     expect(items).toHaveLength(1);
     expect(items[0].endpoints).toHaveLength(2);
@@ -74,9 +82,10 @@ describe('kitinerary mapper — printed 12-hour clocks (#2094)', () => {
     // Before the fix the endpoint carried '01:11', because splitIso sliced
     // characters 11..16 out of '2026-06-11T01:11 PM'. The hour survived and the
     // arrival landed twelve hours early.
-    const { items } = mapReservations([
-      flight('PM1', FRA, BER, '2026-06-11T09:51 am', '2026-06-11T01:11 pm', 'LH 300'),
-    ] as any, 'meridiem.json');
+    const { items } = mapReservations(
+      [flight('PM1', FRA, BER, '2026-06-11T09:51 am', '2026-06-11T01:11 pm', 'LH 300')] as any,
+      'meridiem.json',
+    );
 
     expect(items).toHaveLength(1);
     const [dep, arr] = items[0].endpoints!;
@@ -87,9 +96,10 @@ describe('kitinerary mapper — printed 12-hour clocks (#2094)', () => {
   });
 
   it('leaves a 24-hour document byte for byte where it was', () => {
-    const { items } = mapReservations([
-      flight('H24', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 400'),
-    ] as any, 'plain.json');
+    const { items } = mapReservations(
+      [flight('H24', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 400')] as any,
+      'plain.json',
+    );
 
     expect(items[0].reservation_time).toBe('2026-06-11T10:00:00');
     expect(items[0].endpoints![1].local_time).toBe('12:00');
@@ -99,10 +109,13 @@ describe('kitinerary mapper — printed 12-hour clocks (#2094)', () => {
     // sameConnection does `new Date(value).getTime()`, which is NaN for a
     // printed meridiem, and both of its comparisons are false against NaN, so
     // the guard fell through and merged unrelated legs into one booking.
-    const { items } = mapReservations([
-      flight('SAME', FRA, BER, '2026-06-11T09:00 am', '2026-06-11T10:00 am', 'LH 500'),
-      flight('SAME', HND, FRA, '2026-06-18T09:00 am', '2026-06-18T05:00 pm', 'LH 600'),
-    ] as any, 'two-legs.json');
+    const { items } = mapReservations(
+      [
+        flight('SAME', FRA, BER, '2026-06-11T09:00 am', '2026-06-11T10:00 am', 'LH 500'),
+        flight('SAME', HND, FRA, '2026-06-18T09:00 am', '2026-06-18T05:00 pm', 'LH 600'),
+      ] as any,
+      'two-legs.json',
+    );
 
     expect(items).toHaveLength(2);
   });
@@ -117,40 +130,44 @@ describe('kitinerary mapper — printed 12-hour clocks (#2094)', () => {
  */
 describe('kitinerary mapper — a recognised type that cannot be mapped (#2375)', () => {
   it('warns instead of dropping a lodging whose reservationFor carries no name', () => {
-    const { items, warnings } = mapReservations([
-      { '@type': 'LodgingReservation', reservationNumber: 'HMTRSX', reservationFor: {} },
-    ] as any, 'airbnb.pdf');
+    const { items, warnings } = mapReservations(
+      [{ '@type': 'LodgingReservation', reservationNumber: 'HMTRSX', reservationFor: {} }] as any,
+      'airbnb.pdf',
+    );
 
     expect(items).toHaveLength(0);
-    expect(warnings).toEqual([
-      'Incomplete LodgingReservation in airbnb.pdf[0] (no name in reservationFor) — skipped',
-    ]);
+    expect(warnings).toEqual(['Incomplete LodgingReservation in airbnb.pdf[0] (no name in reservationFor) — skipped']);
   });
 
   it('warns for a flight that carries no reservationFor at all', () => {
-    const { items, warnings } = mapReservations([
-      { '@type': 'FlightReservation', reservationNumber: 'ABC123' },
-    ] as any, 'ticket.eml');
+    const { items, warnings } = mapReservations(
+      [{ '@type': 'FlightReservation', reservationNumber: 'ABC123' }] as any,
+      'ticket.eml',
+    );
 
     expect(items).toHaveLength(0);
-    expect(warnings).toEqual([
-      'Incomplete FlightReservation in ticket.eml[0] (no reservationFor) — skipped',
-    ]);
+    expect(warnings).toEqual(['Incomplete FlightReservation in ticket.eml[0] (no reservationFor) — skipped']);
   });
 
   it('names the type it could not map, TouristAttractionVisit included', () => {
-    const { warnings } = mapReservations([
-      { '@type': 'TouristAttractionVisit', reservationFor: {} },
-    ] as any, 'museum.pdf');
+    const { warnings } = mapReservations(
+      [{ '@type': 'TouristAttractionVisit', reservationFor: {} }] as any,
+      'museum.pdf',
+    );
 
-    expect(warnings[0]).toBe('Incomplete TouristAttractionVisit in museum.pdf[0] (no name in reservationFor) — skipped');
+    expect(warnings[0]).toBe(
+      'Incomplete TouristAttractionVisit in museum.pdf[0] (no name in reservationFor) — skipped',
+    );
   });
 
   it('keeps the bookings it could map and warns only about the weak one', () => {
-    const { items, warnings } = mapReservations([
-      flight('MIX1', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 800'),
-      { '@type': 'LodgingReservation', reservationFor: {} },
-    ] as any, 'trip.eml');
+    const { items, warnings } = mapReservations(
+      [
+        flight('MIX1', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 800'),
+        { '@type': 'LodgingReservation', reservationFor: {} },
+      ] as any,
+      'trip.eml',
+    );
 
     expect(items).toHaveLength(1);
     expect(warnings).toHaveLength(1);
@@ -158,9 +175,10 @@ describe('kitinerary mapper — a recognised type that cannot be mapped (#2375)'
   });
 
   it('still warns exactly once for an unknown type', () => {
-    const { items, warnings } = mapReservations([
-      { '@type': 'RocketLaunchReservation', reservationFor: { name: 'Starbase' } },
-    ] as any, 'mars.eml');
+    const { items, warnings } = mapReservations(
+      [{ '@type': 'RocketLaunchReservation', reservationFor: { name: 'Starbase' } }] as any,
+      'mars.eml',
+    );
 
     expect(items).toHaveLength(0);
     expect(warnings).toEqual(['Unknown type "RocketLaunchReservation" in mars.eml[0] — skipped']);
@@ -174,20 +192,23 @@ describe('kitinerary mapper — a recognised type that cannot be mapped (#2375)'
  */
 describe('kitinerary mapper: a prompt-shaped AI lodging (#2477)', () => {
   it('maps a LodgingReservation with reservationFor.name to one hotel with its stay and price', () => {
-    const { items, warnings } = mapReservations([
-      {
-        '@type': 'LodgingReservation',
-        checkinTime: '2026-09-06T13:00:00',
-        checkoutTime: '2026-09-07T11:00:00',
-        price: 89.35,
-        priceCurrency: 'EUR',
-        reservationFor: {
-          name: 'Harbour View Inn',
-          address: 'Example Road 1, 1000 Sample Town',
-          telephone: '+00 000 000 000',
+    const { items, warnings } = mapReservations(
+      [
+        {
+          '@type': 'LodgingReservation',
+          checkinTime: '2026-09-06T13:00:00',
+          checkoutTime: '2026-09-07T11:00:00',
+          price: 89.35,
+          priceCurrency: 'EUR',
+          reservationFor: {
+            name: 'Harbour View Inn',
+            address: 'Example Road 1, 1000 Sample Town',
+            telephone: '+00 000 000 000',
+          },
         },
-      },
-    ] as Parameters<typeof mapReservations>[0], 'Bestätigung_1.pdf');
+      ] as Parameters<typeof mapReservations>[0],
+      'Bestätigung_1.pdf',
+    );
 
     expect(warnings).toEqual([]);
     expect(items).toHaveLength(1);

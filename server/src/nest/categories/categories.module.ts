@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { AppConfigModule } from '../app-config/app-config.module';
-import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { Categories } from '../../db/entities/Categories.entity';
+import { AppConfigModule } from '../app-config/app-config.module';
+import { DemoModule } from '../common/demo.module';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { CategoriesController } from './categories.controller';
 import { CategoriesMcp } from './categories.mcp';
-import { CategoriesService } from './categories.service';
 import { CategoriesRpc } from './categories.rpc';
-import { DemoModule } from '../common/demo.module';
+import { CategoriesService } from './categories.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /** Categories domain (L4 leaf module). Registered in AppModule. */
 @Module({

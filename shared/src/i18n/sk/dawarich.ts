@@ -202,7 +202,6 @@ const dawarich: TranslationStrings = {
   'dawarich.journey.dayStays.other': '{count} pobytov z Dawarichu',
   'dawarich.journey.dayStays.one': '{count} pobyt z Dawarichu',
   'dawarich.journey.dayStays.few': '{count} pobyty z Dawarichu',
-
 };
 
 export default dawarich;

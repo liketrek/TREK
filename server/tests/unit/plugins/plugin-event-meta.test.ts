@@ -4,30 +4,49 @@
  * ONLY from a per-family whitelist, so a non-entity id (e.g. a userId) can never
  * leak, and reorder/bulk/sub-entity payloads yield no id.
  */
-import { describe, it, expect } from 'vitest';
 import { pluginEventMeta } from '../../../src/plugin-event-sink';
+
+import { describe, it, expect } from 'vitest';
 
 describe('pluginEventMeta', () => {
   it('reads the nested object id and the flat *Id key per family', () => {
     // nested-object payloads additionally yield a snapshot (covered below)
     expect(pluginEventMeta('place:created', { place: { id: 7 } })).toMatchObject({ entity: 'place', entityId: 7 });
     expect(pluginEventMeta('place:deleted', { placeId: 12 })).toEqual({ entity: 'place', entityId: 12 });
-    expect(pluginEventMeta('reservation:updated', { reservation: { id: 40 } })).toMatchObject({ entity: 'reservation', entityId: 40 });
-    expect(pluginEventMeta('reservation:deleted', { reservationId: 40 })).toEqual({ entity: 'reservation', entityId: 40 });
+    expect(pluginEventMeta('reservation:updated', { reservation: { id: 40 } })).toMatchObject({
+      entity: 'reservation',
+      entityId: 40,
+    });
+    expect(pluginEventMeta('reservation:deleted', { reservationId: 40 })).toEqual({
+      entity: 'reservation',
+      entityId: 40,
+    });
     expect(pluginEventMeta('day:updated', { day: { id: 3 } })).toMatchObject({ entity: 'day', entityId: 3 });
-    expect(pluginEventMeta('accommodation:deleted', { accommodationId: 9 })).toEqual({ entity: 'accommodation', entityId: 9 });
+    expect(pluginEventMeta('accommodation:deleted', { accommodationId: 9 })).toEqual({
+      entity: 'accommodation',
+      entityId: 9,
+    });
     expect(pluginEventMeta('file:created', { file: { id: 5 } })).toMatchObject({ entity: 'file', entityId: 5 });
-    expect(pluginEventMeta('assignment:created', { assignment: { id: 30 } })).toMatchObject({ entity: 'assignment', entityId: 30 });
+    expect(pluginEventMeta('assignment:created', { assignment: { id: 30 } })).toMatchObject({
+      entity: 'assignment',
+      entityId: 30,
+    });
     expect(pluginEventMeta('packing:deleted', { itemId: 2 })).toEqual({ entity: 'packing', entityId: 2 });
     expect(pluginEventMeta('budget:updated', { item: { id: 8 } })).toMatchObject({ entity: 'budget', entityId: 8 });
   });
 
   it('picks the ENTITY id, not a parent id and never a non-entity id', () => {
     // A day-note's own id is the note, not its parent day.
-    expect(pluginEventMeta('dayNote:created', { dayId: 3, note: { id: 50 } })).toMatchObject({ entity: 'dayNote', entityId: 50 });
+    expect(pluginEventMeta('dayNote:created', { dayId: 3, note: { id: 50 } })).toMatchObject({
+      entity: 'dayNote',
+      entityId: 50,
+    });
     expect(pluginEventMeta('dayNote:deleted', { noteId: 50, dayId: 3 })).toEqual({ entity: 'dayNote', entityId: 50 });
     // THE LEAK TEST: this event carries a userId — the mapper must surface itemId, NEVER userId.
-    expect(pluginEventMeta('budget:member-paid-updated', { itemId: 8, userId: 99, paid: 1 })).toEqual({ entity: 'budget', entityId: 8 });
+    expect(pluginEventMeta('budget:member-paid-updated', { itemId: 8, userId: 99, paid: 1 })).toEqual({
+      entity: 'budget',
+      entityId: 8,
+    });
   });
 
   it('reads trip via `id` / `trip.id`', () => {
@@ -55,25 +74,35 @@ describe('pluginEventMeta', () => {
 
   describe('snapshot (wave 9)', () => {
     it('whitelists the entity fields of created/updated payloads', () => {
-      const m = pluginEventMeta('day:updated', { day: { id: 3, trip_id: 7, day_number: 1, date: '2027-01-01', title: 'Kyoto', notes: 'x' } });
+      const m = pluginEventMeta('day:updated', {
+        day: { id: 3, trip_id: 7, day_number: 1, date: '2027-01-01', title: 'Kyoto', notes: 'x' },
+      });
       expect(m?.snapshot).toEqual({ id: 3, trip_id: 7, day_number: 1, date: '2027-01-01', title: 'Kyoto', notes: 'x' });
       // reservations keep their endpoints (transport legs carry no user data)
-      const r = pluginEventMeta('reservation:created', { reservation: { id: 40, title: 'Flight', endpoints: [{ role: 'from', name: 'HND' }] } });
+      const r = pluginEventMeta('reservation:created', {
+        reservation: { id: 40, title: 'Flight', endpoints: [{ role: 'from', name: 'HND' }] },
+      });
       expect(r?.snapshot).toMatchObject({ id: 40, title: 'Flight', endpoints: [{ role: 'from', name: 'HND' }] });
     });
 
     it('never surfaces a user id, a foreign whitelist field or trips.feed_token', () => {
       // budget rows may arrive hydrated (paid_by/members/payers) — none of it travels
-      const b = pluginEventMeta('budget:created', { item: { id: 8, name: 'Hotel', total_price: 100, paid_by: 99, members: [{ user_id: 99 }], payers: [99] } });
+      const b = pluginEventMeta('budget:created', {
+        item: { id: 8, name: 'Hotel', total_price: 100, paid_by: 99, members: [{ user_id: 99 }], payers: [99] },
+      });
       expect(b?.snapshot).toEqual({ id: 8, name: 'Hotel', total_price: 100 });
       // the trip owner + the secret calendar feed token stay host-side
       const t = pluginEventMeta('trip:updated', { trip: { id: 1, title: 'Japan', user_id: 5, feed_token: 'sekret' } });
       expect(t?.snapshot).toEqual({ id: 1, title: 'Japan' });
       // files: uploaded_by / disk filename are not in the whitelist
-      const f = pluginEventMeta('file:created', { file: { id: 5, original_name: 'visa.pdf', filename: 'ab12.pdf', uploaded_by: 9 } });
+      const f = pluginEventMeta('file:created', {
+        file: { id: 5, original_name: 'visa.pdf', filename: 'ab12.pdf', uploaded_by: 9 },
+      });
       expect(f?.snapshot).toEqual({ id: 5, original_name: 'visa.pdf' });
       // assignments: participants (user ids) never travel
-      const a = pluginEventMeta('assignment:created', { assignment: { id: 30, day_id: 3, place_id: 7, participants: [{ user_id: 9 }] } });
+      const a = pluginEventMeta('assignment:created', {
+        assignment: { id: 30, day_id: 3, place_id: 7, participants: [{ user_id: 9 }] },
+      });
       expect(a?.snapshot).toEqual({ id: 30, day_id: 3, place_id: 7 });
     });
 

@@ -2,8 +2,14 @@
  * Unit tests for the get_trip_warnings MCP tool (src/nest/plugins/contributions/
  * trip-warnings.mcp.ts), the MCP counterpart of GET /api/trip-warnings/:tripId.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+import { addTripMember, createTrip, createUser } from '../../helpers/factories';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { pluginsEnabled } = vi.hoisted(() => ({
   pluginsEnabled: vi.fn(() => true),
@@ -15,12 +21,6 @@ vi.mock('../../../src/db/database', async () => {
 });
 // The admin kill switch reads live env; drive it from the test instead of the process.
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
-
-import { addTripMember, createTrip, createUser } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -43,13 +43,13 @@ afterAll(() => {
   testDb.close();
 });
 
-async function withHarness(
-  userId: number,
-  fn: (h: McpHarness) => Promise<void>,
-  scopes?: string[] | null,
-) {
+async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes?: string[] | null) {
   const h = await createMcpHarness({ realtime, userId, withResources: false, scopes: scopes ?? null });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 interface WarningsPayload {
@@ -170,15 +170,23 @@ describe('get_trip_warnings access', () => {
   it('rides trips:read: present with it, absent without it', async () => {
     const { user } = createUser(testDb);
 
-    await withHarness(user.id, async (h) => {
-      const names = (await h.client.listTools()).tools.map(t => t.name);
-      expect(names).toContain('get_trip_warnings');
-    }, ['trips:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const names = (await h.client.listTools()).tools.map((t) => t.name);
+        expect(names).toContain('get_trip_warnings');
+      },
+      ['trips:read'],
+    );
 
-    await withHarness(user.id, async (h) => {
-      const names = (await h.client.listTools()).tools.map(t => t.name);
-      expect(names).not.toContain('get_trip_warnings');
-    }, ['places:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const names = (await h.client.listTools()).tools.map((t) => t.name);
+        expect(names).not.toContain('get_trip_warnings');
+      },
+      ['places:read'],
+    );
   });
 });
 
@@ -279,9 +287,7 @@ describe('get_trip_warnings caps', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     providersOfMock.mockReturnValue(['a', 'b']);
-    tripWarningsMock.mockResolvedValue(
-      Array.from({ length: 50 }, (_v, i) => ({ level: 'info', message: `w${i}` })),
-    );
+    tripWarningsMock.mockResolvedValue(Array.from({ length: 50 }, (_v, i) => ({ level: 'info', message: `w${i}` })));
 
     await withHarness(user.id, async (h) => {
       const payload = parseToolResult(await call(h, trip.id)) as WarningsPayload;

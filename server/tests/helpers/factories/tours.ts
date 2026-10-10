@@ -1,8 +1,8 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { TourWaypoints } from '../../../src/db/entities/TourWaypoints.entity';
 import { Tours } from '../../../src/db/entities/Tours.entity';
 import type { FactoryOrm } from './context';
 import { findRow, insertRow, insertRows } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type TourRow = EntityDTO<Tours>;
 
@@ -32,6 +32,12 @@ export async function addTourWaypoints(
   await insertRows(
     orm,
     TourWaypoints,
-    points.map((p, sequence) => ({ place: placeId, lat: p.lat, lng: p.lng, role: p.role ?? roleAt(sequence), sequence })),
+    points.map((p, sequence) => ({
+      place: placeId,
+      lat: p.lat,
+      lng: p.lng,
+      role: p.role ?? roleAt(sequence),
+      sequence,
+    })),
   );
 }

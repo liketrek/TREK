@@ -3,7 +3,7 @@ import type { TranslationStrings } from '../types';
 const trip: TranslationStrings = {
   'trip.tabs.plan': 'แผน',
   'trip.tabs.transports': 'การขนส่ง',
-  'trip.tabs.reservations': "การจอง",
+  'trip.tabs.reservations': 'การจอง',
   'trip.tabs.reservationsShort': 'จอง',
   'trip.tabs.packing': 'รายการจัดกระเป๋า',
   'trip.tabs.packingShort': 'จัดกระเป๋า',
@@ -88,8 +88,10 @@ const trip: TranslationStrings = {
   'transit.walkLabel': 'เดิน',
   'transit.searchHint': 'ค้นหาการเชื่อมต่อจริงและเพิ่มโดยตรงไปยังวัน — ข้อมูลผ่าน Transitous',
   'trip.confirm.deletePlaceNight': 'การดำเนินการนี้จะลบการพักที่จองไว้ที่ “{name}” ด้วย',
-  'trip.confirm.deletePlaceBooked': 'การดำเนินการนี้จะลบการพักที่จองไว้ที่ “{name}” การจอง “{booking}” และค่าใช้จ่ายที่ผูกไว้ด้วย',
-  'trip.confirm.deletePlaceBookedSame': 'การดำเนินการนี้จะลบการพักที่จองไว้ที่ “{name}” รวมถึงการจองและค่าใช้จ่ายที่ผูกไว้ด้วย',
+  'trip.confirm.deletePlaceBooked':
+    'การดำเนินการนี้จะลบการพักที่จองไว้ที่ “{name}” การจอง “{booking}” และค่าใช้จ่ายที่ผูกไว้ด้วย',
+  'trip.confirm.deletePlaceBookedSame':
+    'การดำเนินการนี้จะลบการพักที่จองไว้ที่ “{name}” รวมถึงการจองและค่าใช้จ่ายที่ผูกไว้ด้วย',
   'trip.toast.loadError': 'ไม่สามารถโหลดทริปได้',
   'transit.noResultsVia': 'ไม่พบเส้นทางผ่าน {provider} ลองเปลี่ยนเวลาหรือตัวกรอง',
 };

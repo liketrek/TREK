@@ -1,9 +1,9 @@
-import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import { ADDON_IDS } from '../../addons';
 import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
-import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { ADDON_IDS } from '../../addons';
+import { asPayload, num } from '../../nest-rpc/rpc-params';
 import { AtlasService, BucketItemExistsError } from './atlas.service';
 
 /**
@@ -61,9 +61,10 @@ export class AtlasRpc {
   async markRegion(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireAtlasUser(ctx, 'writes');
     // A missing name falls back to the code, so the row is never nameless.
-    const regionName = typeof params.regionName === 'string' && params.regionName
-      ? params.regionName.slice(0, 128)
-      : String(params.regionCode ?? '');
+    const regionName =
+      typeof params.regionName === 'string' && params.regionName
+        ? params.regionName.slice(0, 128)
+        : String(params.regionCode ?? '');
     const regionCode = this.code(params.regionCode, 'regionCode');
     const countryCode = this.code(params.countryCode, 'countryCode');
     await this.requireAtlasAddon();

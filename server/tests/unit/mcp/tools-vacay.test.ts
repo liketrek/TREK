@@ -13,32 +13,32 @@
  * trek://vacay/holidays/{year} — these ride the registry too (attached inside
  * registerTools), so `withTools` must stay on even for resource reads.
  */
-import { DomainError } from '../../../src/nest/common/domain-error';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import { db as testDb } from '../../../src/db/database';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-// share_vacay_calendar fires a user notification after inserting; stub it out
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { setAddonEnabled } from '../../helpers/test-db';
 import { ADDON_IDS } from '../../../src/addons';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { VacayService } from '../../../src/nest/vacay/vacay.service';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { findRow, insertRow } from '../../helpers/factories/rows';
+import { db as testDb } from '../../../src/db/database';
 import { VacayEntries } from '../../../src/db/entities/VacayEntries.entity';
 import { VacayHolidayCalendars } from '../../../src/db/entities/VacayHolidayCalendars.entity';
 import { VacayPlanMembers } from '../../../src/db/entities/VacayPlanMembers.entity';
 import { VacayPlans } from '../../../src/db/entities/VacayPlans.entity';
 import { VacayShares } from '../../../src/db/entities/VacayShares.entity';
 import { VacayUserSettings } from '../../../src/db/entities/VacayUserSettings.entity';
+import { DomainError } from '../../../src/nest/common/domain-error';
+import { VacayService } from '../../../src/nest/vacay/vacay.service';
+import { createUser } from '../../helpers/factories';
+import { findRow, insertRow } from '../../helpers/factories/rows';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+// share_vacay_calendar fires a user notification after inserting; stub it out
+
+import { resetTestDb } from '../../helpers/test-db';
+import { setAddonEnabled } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
+
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -62,7 +62,14 @@ const realUpdatePlan = VacayService.prototype.updatePlan;
 // the registry constructs a real instance, so spy on the prototype — the
 // successor of the legacy path-level partial mock of services/vacayService).
 const updatePlanSpy = vi.spyOn(VacayService.prototype, 'updatePlan').mockResolvedValue({
-  plan: { id: 1, block_weekends: true, holidays_enabled: false, company_holidays_enabled: false, carry_over_enabled: false, holiday_calendars: [] },
+  plan: {
+    id: 1,
+    block_weekends: true,
+    holidays_enabled: false,
+    company_holidays_enabled: false,
+    carry_over_enabled: false,
+    holiday_calendars: [],
+  },
 } as never);
 vi.spyOn(VacayService.prototype, 'getCountries').mockResolvedValue({ data: [{ code: 'US', name: 'United States' }] });
 vi.spyOn(VacayService.prototype, 'getHolidays').mockResolvedValue({ data: [{ date: '2025-01-01', name: 'New Year' }] });
@@ -92,12 +99,20 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: true });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 function errorText(result: Awaited<ReturnType<McpHarness['client']['callTool']>>): string {
@@ -221,7 +236,13 @@ describe('Tool: get_vacay_year_settings', () => {
 
   it('returns a stored fiscal window', async () => {
     const { user } = createUser(testDb);
-    await insertRow(orm, VacayUserSettings, { user: user.id, year_type: 'fiscal', year_start_month: 4, year_start_day: 6, hire_date: null });
+    await insertRow(orm, VacayUserSettings, {
+      user: user.id,
+      year_type: 'fiscal',
+      year_start_month: 4,
+      year_start_day: 6,
+      hire_date: null,
+    });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_vacay_year_settings', arguments: {} });
       const data = parseToolResult(result) as any;
@@ -357,7 +378,10 @@ describe('Tool: toggle_vacay_entry', () => {
   it('logs a half day', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'toggle_vacay_entry', arguments: { date: '2025-06-16', fraction: 0.5 } });
+      const result = await h.client.callTool({
+        name: 'toggle_vacay_entry',
+        arguments: { date: '2025-06-16', fraction: 0.5 },
+      });
       const data = parseToolResult(result) as any;
       expect(data.action).toBe('added');
 
@@ -381,15 +405,24 @@ describe('Tool: toggle_vacay_entry', () => {
     const { user } = createUser(testDb);
     const row = () => findRow(orm, VacayEntries, { user: user.id, date: '2025-06-18' });
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'toggle_vacay_entry', arguments: { date: '2025-06-18', fraction: 0.5, kind: 'comp' } });
+      await h.client.callTool({
+        name: 'toggle_vacay_entry',
+        arguments: { date: '2025-06-18', fraction: 0.5, kind: 'comp' },
+      });
       expect((await row())!.fraction).toBe(0.5);
 
-      const converted = await h.client.callTool({ name: 'toggle_vacay_entry', arguments: { date: '2025-06-18', fraction: 1, kind: 'comp' } });
+      const converted = await h.client.callTool({
+        name: 'toggle_vacay_entry',
+        arguments: { date: '2025-06-18', fraction: 1, kind: 'comp' },
+      });
       expect((parseToolResult(converted) as any).action).toBe('updated');
       expect((await row())!.fraction).toBe(1);
       expect((await row())!.kind).toBe('comp');
 
-      const cleared = await h.client.callTool({ name: 'toggle_vacay_entry', arguments: { date: '2025-06-18', fraction: 1, kind: 'comp' } });
+      const cleared = await h.client.callTool({
+        name: 'toggle_vacay_entry',
+        arguments: { date: '2025-06-18', fraction: 1, kind: 'comp' },
+      });
       expect((parseToolResult(cleared) as any).action).toBe('removed');
       expect(await row()).toBeNull();
     });
@@ -430,7 +463,10 @@ describe('Tool: toggle_vacay_entry', () => {
   it('refuses a fraction the contract does not allow', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'toggle_vacay_entry', arguments: { date: '2025-06-21', fraction: 0.25 } });
+      const result = await h.client.callTool({
+        name: 'toggle_vacay_entry',
+        arguments: { date: '2025-06-21', fraction: 0.25 },
+      });
       expect(result.isError).toBe(true);
       expect(await findRow(orm, VacayEntries, { date: '2025-06-21' })).toBeNull();
     });
@@ -439,7 +475,10 @@ describe('Tool: toggle_vacay_entry', () => {
   it('refuses a leave kind the contract does not allow', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'toggle_vacay_entry', arguments: { date: '2025-06-22', kind: 'sabbatical' } });
+      const result = await h.client.callTool({
+        name: 'toggle_vacay_entry',
+        arguments: { date: '2025-06-22', kind: 'sabbatical' },
+      });
       expect(result.isError).toBe(true);
       expect(await findRow(orm, VacayEntries, { date: '2025-06-22' })).toBeNull();
     });
@@ -475,9 +514,12 @@ describe('Tool: toggle_company_holiday', () => {
   it('makes a half company holiday like the REST route (#2439)', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const data = parseToolResult(await h.client.callTool({
-        name: 'toggle_company_holiday', arguments: { date: '2025-12-24', half: true },
-      })) as any;
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'toggle_company_holiday',
+          arguments: { date: '2025-12-24', half: true },
+        }),
+      ) as any;
       expect(data).toMatchObject({ action: 'added', fraction: 0.5 });
     });
   });
@@ -515,7 +557,10 @@ describe('Tool: update_vacay_stats', () => {
   it('updates vacation days allowance and returns success', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_vacay_stats', arguments: { year: 2025, vacationDays: 25 } });
+      const result = await h.client.callTool({
+        name: 'update_vacay_stats',
+        arguments: { year: 2025, vacationDays: 25 },
+      });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
     });
@@ -525,7 +570,10 @@ describe('Tool: update_vacay_stats', () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_vacay_stats', arguments: { year: 2025, vacationDays: 20 } });
+      const result = await h.client.callTool({
+        name: 'update_vacay_stats',
+        arguments: { year: 2025, vacationDays: 20 },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -578,7 +626,10 @@ describe('Tool: add_holiday_calendar', () => {
   it('refuses a calendar type outside the contract', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'add_holiday_calendar', arguments: { region: 'DE', type: 'bank_holiday' } });
+      const result = await h.client.callTool({
+        name: 'add_holiday_calendar',
+        arguments: { region: 'DE', type: 'bank_holiday' },
+      });
       expect(result.isError).toBe(true);
       expect(await findRow(orm, VacayHolidayCalendars, { region: 'DE' })).toBeNull();
     });
@@ -624,7 +675,10 @@ describe('Tool: update_holiday_calendar', () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_holiday_calendar', arguments: { calendarId: 1, label: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_holiday_calendar',
+        arguments: { calendarId: 1, label: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -755,7 +809,10 @@ describe('Tool: list_school_holidays', () => {
     const { user } = createUser(testDb);
     schoolHolidaysSpy.mockRejectedValueOnce(new DomainError(502, 'Failed to fetch school holidays'));
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'list_school_holidays', arguments: { country: 'DE', year: 2025 } });
+      const result = await h.client.callTool({
+        name: 'list_school_holidays',
+        arguments: { country: 'DE', year: 2025 },
+      });
       expect(result.isError).toBe(true);
       expect(errorText(result)).toBe('Failed to fetch school holidays');
     });
@@ -764,7 +821,10 @@ describe('Tool: list_school_holidays', () => {
   it('refuses a non-numeric year', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'list_school_holidays', arguments: { country: 'DE', year: '2025' } });
+      const result = await h.client.callTool({
+        name: 'list_school_holidays',
+        arguments: { country: 'DE', year: '2025' },
+      });
       expect(result.isError).toBe(true);
       expect(schoolHolidaysSpy).not.toHaveBeenCalled();
     });
@@ -803,8 +863,12 @@ describe('Tool: get_shareable_vacay_users', () => {
     await fusePlan(fusedOwner.id, fusedMember.id);
 
     await withHarness(user.id, async (h) => {
-      const shareable = parseToolResult(await h.client.callTool({ name: 'get_shareable_vacay_users', arguments: {} })) as any;
-      const fusable = parseToolResult(await h.client.callTool({ name: 'get_available_vacay_users', arguments: {} })) as any;
+      const shareable = parseToolResult(
+        await h.client.callTool({ name: 'get_shareable_vacay_users', arguments: {} }),
+      ) as any;
+      const fusable = parseToolResult(
+        await h.client.callTool({ name: 'get_available_vacay_users', arguments: {} }),
+      ) as any;
 
       const shareableIds = shareable.users.map((u: any) => u.id);
       expect(shareableIds).toContain(fusedOwner.id);
@@ -821,12 +885,16 @@ describe('Tool: get_shareable_vacay_users', () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const before = parseToolResult(await h.client.callTool({ name: 'get_shareable_vacay_users', arguments: {} })) as any;
+      const before = parseToolResult(
+        await h.client.callTool({ name: 'get_shareable_vacay_users', arguments: {} }),
+      ) as any;
       expect(before.users.map((u: any) => u.id)).toEqual([other.id]);
 
       await h.client.callTool({ name: 'share_vacay_calendar', arguments: { targetUserId: other.id } });
 
-      const after = parseToolResult(await h.client.callTool({ name: 'get_shareable_vacay_users', arguments: {} })) as any;
+      const after = parseToolResult(
+        await h.client.callTool({ name: 'get_shareable_vacay_users', arguments: {} }),
+      ) as any;
       expect(after.users).toEqual([]);
     });
   });
@@ -979,7 +1047,10 @@ describe('Tool: decline_vacay_invite', () => {
       await h.client.callTool({ name: 'send_vacay_invite', arguments: { targetUserId: invitee.id } });
     });
     await withHarness(invitee.id, async (h) => {
-      const result = await h.client.callTool({ name: 'decline_vacay_invite', arguments: { planId: await invitedPlanId(invitee.id) } });
+      const result = await h.client.callTool({
+        name: 'decline_vacay_invite',
+        arguments: { planId: await invitedPlanId(invitee.id) },
+      });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
     });
@@ -1034,7 +1105,10 @@ describe('Tool: list_school_holiday_regions (the codes a calendar can be built f
   it('walks nested children, which the provider uses for sub-regions', async () => {
     const { user } = createUser(testDb);
     schoolRegionsSpy.mockResolvedValueOnce({
-      data: { groups: [], subdivisions: [{ code: 'CH-BE', children: [{ code: 'CH-BE-1' }, { code: 'CH-BE-2', children: null }] }] },
+      data: {
+        groups: [],
+        subdivisions: [{ code: 'CH-BE', children: [{ code: 'CH-BE-1' }, { code: 'CH-BE-2', children: null }] }],
+      },
     });
     const data = await regionsFor(user.id, 'CH');
     expect(data.calendar_regions.map((r: any) => r.region)).toEqual(['CH-BE', 'CH-BE-1', 'CH-BE-2']);

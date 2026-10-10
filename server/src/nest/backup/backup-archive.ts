@@ -1,9 +1,10 @@
-import fs from 'fs';
-import path from 'path';
-import unzipper from 'unzipper';
 import { readEnv } from '../../app-config';
 import { openDatabase } from '../../db/connection';
 import { unknownMigrations } from '../../db/known-migrations';
+
+import fs from 'fs';
+import path from 'path';
+import unzipper from 'unzipper';
 
 /**
  * Reading a backup archive, without touching the live database.
@@ -105,13 +106,16 @@ export function checkBackupDatabase(extractDir: string): ArchiveRefusal | null {
     }
 
     const requiredTables = ['users', 'trips', 'trip_members', 'places', 'days'];
-    const existingTables = uploadedDb
-      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
-      .all() as { name: string }[];
-    const tableNames = new Set(existingTables.map(t => t.name));
+    const existingTables = uploadedDb.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as {
+      name: string;
+    }[];
+    const tableNames = new Set(existingTables.map((t) => t.name));
     for (const table of requiredTables) {
       if (!tableNames.has(table)) {
-        return { error: `Uploaded database is missing required table: ${table}. This does not appear to be a TREK backup.`, status: 400 };
+        return {
+          error: `Uploaded database is missing required table: ${table}. This does not appear to be a TREK backup.`,
+          status: 400,
+        };
       }
     }
     // A backup a newer TREK made would be swapped in and then refused at boot
@@ -119,7 +123,7 @@ export function checkBackupDatabase(extractDir: string): ArchiveRefusal | null {
     // current database is still in place.
     if (tableNames.has('mikro_orm_migrations')) {
       const executed = uploadedDb.prepare('SELECT name FROM mikro_orm_migrations').all() as { name: string }[];
-      const unknown = unknownMigrations(executed.map(row => row.name));
+      const unknown = unknownMigrations(executed.map((row) => row.name));
       if (unknown.length > 0) {
         return { error: 'This backup was made by a newer TREK version. Update TREK before restoring it.', status: 400 };
       }

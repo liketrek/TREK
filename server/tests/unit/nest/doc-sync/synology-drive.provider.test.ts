@@ -13,9 +13,25 @@
  * failure rather than a mock returning undefined on command, and the size cap
  * is the one that ships.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type {
+  DocumentConnectionRef,
+  DocumentProvider,
+  DocumentScopeRef,
+  PushRequest,
+} from '../../../../src/nest/doc-sync/document-provider';
+import {
+  isValidSynoName,
+  isWithinScope,
+  normalizeBaseUrl,
+  normalizeSynoPath,
+  snapshotVersion,
+  SynologyDriveClient,
+} from '../../../../src/nest/doc-sync/providers/synology-drive.client';
+import { SynologyDriveDocumentProvider } from '../../../../src/nest/doc-sync/providers/synology-drive.provider';
+
 import { createHash } from 'node:crypto';
 import { Readable } from 'node:stream';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { safeFetchMock, SsrfBlockedErrorMock } = vi.hoisted(() => {
   class SsrfBlockedError extends Error {
@@ -30,22 +46,6 @@ vi.mock('../../../../src/utils/ssrfGuard', () => ({
   safeFetch: safeFetchMock,
   SsrfBlockedError: SsrfBlockedErrorMock,
 }));
-
-import { SynologyDriveDocumentProvider } from '../../../../src/nest/doc-sync/providers/synology-drive.provider';
-import {
-  isValidSynoName,
-  isWithinScope,
-  normalizeBaseUrl,
-  normalizeSynoPath,
-  snapshotVersion,
-  SynologyDriveClient,
-} from '../../../../src/nest/doc-sync/providers/synology-drive.client';
-import type {
-  DocumentConnectionRef,
-  DocumentProvider,
-  DocumentScopeRef,
-  PushRequest,
-} from '../../../../src/nest/doc-sync/document-provider';
 
 const BASE_URL = 'https://nas.example.org:5001';
 const SCOPE = '/trek/japan-2026';
@@ -75,7 +75,10 @@ type Handler = (call: Recorded) => Reply | Promise<Reply>;
 let calls: Recorded[] = [];
 let routes: Record<string, Handler> = {};
 
-function reply(body: unknown, opts: { status?: number; raw?: string; contentType?: string; headers?: Record<string, string> } = {}): Reply {
+function reply(
+  body: unknown,
+  opts: { status?: number; raw?: string; contentType?: string; headers?: Record<string, string> } = {},
+): Reply {
   const status = opts.status ?? 200;
   const text = opts.raw ?? JSON.stringify(body);
   return {
@@ -316,7 +319,7 @@ describe('SynologyDriveDocumentProvider: login', () => {
     expect(result).toMatchObject({ success: false, error: { code: 'provider_error' } });
   });
 
-  it('SYNO-PROVIDER-013: a wrong password is unauthorized and keeps DSM\'s own code', async () => {
+  it("SYNO-PROVIDER-013: a wrong password is unauthorized and keeps DSM's own code", async () => {
     route({ 'SYNO.API.Auth:login': fail(400) });
     const result = await provider.probe(connection());
     expect(result).toMatchObject({ success: false, error: { code: 'unauthorized', detail: 'syno_code=400' } });
@@ -341,7 +344,7 @@ describe('SynologyDriveDocumentProvider: login', () => {
     expect(result).toMatchObject({ success: true });
   });
 
-  it('SYNO-PROVIDER-016: DSM\'s auto-block (407) is rate_limited, not a credential problem', async () => {
+  it("SYNO-PROVIDER-016: DSM's auto-block (407) is rate_limited, not a credential problem", async () => {
     route({ 'SYNO.API.Auth:login': fail(407) });
     const result = await provider.probe(connection());
     expect(result).toMatchObject({ success: false, error: { code: 'rate_limited', detail: 'syno_code=407' } });
@@ -501,7 +504,7 @@ describe('SynologyDriveDocumentProvider: device tokens', () => {
     vi.useRealTimers();
   });
 
-  it('SYNO-PROVIDER-025: another trip on the same account cannot log in on this trip\'s token', async () => {
+  it("SYNO-PROVIDER-025: another trip on the same account cannot log in on this trip's token", async () => {
     route({ 'SYNO.API.Auth:login': twoFactorNas(), 'SYNO.FileStation.Info:get': ok({ hostname: 'nas' }) });
     expect(await provider.probe(connection(withCode('111111')))).toMatchObject({ success: true });
 
@@ -566,13 +569,21 @@ describe('SynologyDriveDocumentProvider: device tokens', () => {
 
     await provider.probe(connection({ secrets: { password: 'rotated', otp_code: '111111' } }));
     await provider.probe(connection({ secrets: { password: 'rotated' } }));
-    expect(logins().slice(1).map((call) => call.params.device_id)).toEqual(['DEVICE-111111', 'DEVICE-111111']);
+    expect(
+      logins()
+        .slice(1)
+        .map((call) => call.params.device_id),
+    ).toEqual(['DEVICE-111111', 'DEVICE-111111']);
 
     // The same connection repointed at another NAS, or at another account on
     // this one, has passed nobody's second factor there.
     await provider.probe(connection({ baseUrl: 'https://other-nas.example.org:5001' }));
     await provider.probe(connection({ settings: { username: 'someone-else', base_path: '/trek' } }));
-    expect(logins().slice(3).map((call) => call.params.device_id)).toEqual([undefined, undefined]);
+    expect(
+      logins()
+        .slice(3)
+        .map((call) => call.params.device_id),
+    ).toEqual([undefined, undefined]);
   });
 
   it('SYNO-PROVIDER-029: a code tested before the form was saved carries over to the saved connection', async () => {
@@ -682,7 +693,9 @@ describe('SynologyDriveDocumentProvider: device tokens', () => {
       ...picker,
     });
     restart();
-    expect(await provider.probe(connection({ secrets: { ...store, otp_code: '222222' } }))).toMatchObject({ success: true });
+    expect(await provider.probe(connection({ secrets: { ...store, otp_code: '222222' } }))).toMatchObject({
+      success: true,
+    });
     expect(logins().map((call) => [call.params.device_id, call.params.otp_code])).toEqual([
       ['DEVICE-111111', undefined],
       [undefined, '222222'],
@@ -754,7 +767,9 @@ describe('SynologyDriveDocumentProvider: device tokens', () => {
 describe('SynologyDriveDocumentProvider: scopes', () => {
   it('SYNO-PROVIDER-030: offers the shares and the folders under the base path', async () => {
     route({
-      'SYNO.FileStation.List:list_share': ok({ shares: [entry('/trek', { dir: true }), entry('/photo', { dir: true })] }),
+      'SYNO.FileStation.List:list_share': ok({
+        shares: [entry('/trek', { dir: true }), entry('/photo', { dir: true })],
+      }),
       'SYNO.FileStation.List:list': ok({
         total: 3,
         files: [
@@ -790,7 +805,9 @@ describe('SynologyDriveDocumentProvider: scopes', () => {
 
   it('SYNO-PROVIDER-032: the picker query filters on label and path', async () => {
     route({
-      'SYNO.FileStation.List:list_share': ok({ shares: [entry('/trek', { dir: true }), entry('/photo', { dir: true })] }),
+      'SYNO.FileStation.List:list_share': ok({
+        shares: [entry('/trek', { dir: true }), entry('/photo', { dir: true })],
+      }),
       'SYNO.FileStation.List:list': ok({ total: 1, files: [entry('/trek/japan-2026', { dir: true })] }),
     });
     const result = await provider.listScopes(connection(), 'japan');
@@ -801,7 +818,10 @@ describe('SynologyDriveDocumentProvider: scopes', () => {
     route({ 'SYNO.FileStation.CreateFolder:create': ok({ folders: [entry('/trek/kyoto', { dir: true })] }) });
     const result = await provider.createScope(connection(), '  kyoto  ');
 
-    expect(result).toMatchObject({ success: true, data: { scopeKey: 'path:/trek/kyoto', remoteRootPath: '/trek/kyoto' } });
+    expect(result).toMatchObject({
+      success: true,
+      data: { scopeKey: 'path:/trek/kyoto', remoteRootPath: '/trek/kyoto' },
+    });
     expect(paramsOf(1)).toMatchObject({
       api: 'SYNO.FileStation.CreateFolder',
       version: '2',
@@ -819,7 +839,10 @@ describe('SynologyDriveDocumentProvider: scopes', () => {
 
   it('SYNO-PROVIDER-035: a missing share is scope_missing, because force_parent cannot create one', async () => {
     route({ 'SYNO.FileStation.CreateFolder:create': fail(408) });
-    const result = await provider.createScope(connection({ settings: { username: 'trek', base_path: '/nope' } }), 'kyoto');
+    const result = await provider.createScope(
+      connection({ settings: { username: 'trek', base_path: '/nope' } }),
+      'kyoto',
+    );
     expect(result).toMatchObject({ success: false, error: { code: 'scope_missing' } });
   });
 
@@ -847,7 +870,11 @@ describe('SynologyDriveDocumentProvider: scopes', () => {
 describe('SynologyDriveDocumentProvider: list', () => {
   it('SYNO-PROVIDER-040: walks sub-folders, skips the bin and maps each file', async () => {
     const byFolder: Record<string, unknown[]> = {
-      [SCOPE]: [entry(`${SCOPE}/boarding.pdf`, { size: 12, mtime: 1_700_000_500 }), entry(`${SCOPE}/leg-2`, { dir: true }), entry(`${SCOPE}/.trek-trash`, { dir: true })],
+      [SCOPE]: [
+        entry(`${SCOPE}/boarding.pdf`, { size: 12, mtime: 1_700_000_500 }),
+        entry(`${SCOPE}/leg-2`, { dir: true }),
+        entry(`${SCOPE}/.trek-trash`, { dir: true }),
+      ],
       [`${SCOPE}/leg-2`]: [entry(`${SCOPE}/leg-2/hotel.pdf`)],
     };
     route({
@@ -891,9 +918,7 @@ describe('SynologyDriveDocumentProvider: list', () => {
         return ok({
           total: 3,
           offset,
-          files: offset === 0
-            ? [entry(`${SCOPE}/a.pdf`), entry(`${SCOPE}/b.pdf`)]
-            : [entry(`${SCOPE}/c.pdf`)],
+          files: offset === 0 ? [entry(`${SCOPE}/a.pdf`), entry(`${SCOPE}/b.pdf`)] : [entry(`${SCOPE}/c.pdf`)],
         });
       },
     });
@@ -971,7 +996,9 @@ describe('SynologyDriveDocumentProvider: list', () => {
 describe('SynologyDriveDocumentProvider: fetch', () => {
   it('SYNO-PROVIDER-050: reads the version before the bytes and streams them', async () => {
     route({
-      'SYNO.FileStation.List:getinfo': ok({ files: [entry(`${SCOPE}/a.pdf`, { size: BYTES.length, mtime: 1_700_000_300 })] }),
+      'SYNO.FileStation.List:getinfo': ok({
+        files: [entry(`${SCOPE}/a.pdf`, { size: BYTES.length, mtime: 1_700_000_300 })],
+      }),
       'SYNO.FileStation.Download:download': binary(BYTES),
     });
     const result = await provider.fetch(connection(), scope(), `${SCOPE}/a.pdf`);
@@ -1010,7 +1037,12 @@ describe('SynologyDriveDocumentProvider: fetch', () => {
 
   it('SYNO-PROVIDER-053: a path that walks out of the scope never reaches the NAS', async () => {
     route({});
-    for (const escape of [`${SCOPE}/../../payroll/2026.pdf`, '/payroll/2026.pdf', SCOPE, `${SCOPE}/.trek-trash/a.pdf`]) {
+    for (const escape of [
+      `${SCOPE}/../../payroll/2026.pdf`,
+      '/payroll/2026.pdf',
+      SCOPE,
+      `${SCOPE}/.trek-trash/a.pdf`,
+    ]) {
       const result = await provider.fetch(connection(), scope(), escape);
       expect(result).toMatchObject({ success: false, error: { code: 'not_found' } });
     }
@@ -1178,7 +1210,9 @@ describe('SynologyDriveDocumentProvider: push', () => {
 describe('SynologyDriveDocumentProvider: rename and trash', () => {
   it('SYNO-PROVIDER-070: rename sends the v2 array form and answers with the new version', async () => {
     route({
-      'SYNO.FileStation.Rename:rename': ok({ files: [entry(`${SCOPE}/gate-b12.pdf`, { size: 7, mtime: 1_700_000_777 })] }),
+      'SYNO.FileStation.Rename:rename': ok({
+        files: [entry(`${SCOPE}/gate-b12.pdf`, { size: 7, mtime: 1_700_000_777 })],
+      }),
     });
     const result = await provider.rename(connection(), scope(), `${SCOPE}/a.pdf`, ' gate-b12.pdf ');
 
@@ -1348,14 +1382,18 @@ describe('SynologyDriveDocumentProvider: how a NAS disappoints', () => {
 
   it('SYNO-PROVIDER-084: a certificate a self-hoster has to trust is named as such', async () => {
     safeFetchMock.mockImplementation(async () => {
-      throw new Error('fetch failed', { cause: Object.assign(new Error('self signed'), { code: 'DEPTH_ZERO_SELF_SIGNED_CERT' }) });
+      throw new Error('fetch failed', {
+        cause: Object.assign(new Error('self signed'), { code: 'DEPTH_ZERO_SELF_SIGNED_CERT' }),
+      });
     });
     const result = await provider.probe(connection());
     expect(result).toMatchObject({ success: false, error: { code: 'tls_untrusted' } });
   });
 
   it('SYNO-PROVIDER-085: a login portal answering HTML is a provider_error with a usable hint', async () => {
-    route({ 'SYNO.API.Auth:login': reply(null, { raw: '<!doctype html><title>Sign in</title>', contentType: 'text/html' }) });
+    route({
+      'SYNO.API.Auth:login': reply(null, { raw: '<!doctype html><title>Sign in</title>', contentType: 'text/html' }),
+    });
     const result = await provider.probe(connection());
     expect(result).toMatchObject({ success: false, error: { code: 'provider_error' } });
     expect(result.success === false && result.error.detail).toContain('DSM');
@@ -1374,7 +1412,12 @@ describe('SynologyDriveDocumentProvider: how a NAS disappoints', () => {
   });
 
   it('SYNO-PROVIDER-088: the remaining HTTP statuses a NAS or its proxy answers', async () => {
-    for (const [status, code] of [[403, 'forbidden'], [404, 'not_found'], [413, 'too_large'], [429, 'rate_limited']] as const) {
+    for (const [status, code] of [
+      [403, 'forbidden'],
+      [404, 'not_found'],
+      [413, 'too_large'],
+      [429, 'rate_limited'],
+    ] as const) {
       provider = new SynologyDriveDocumentProvider(new SynologyDriveClient());
       calls = [];
       route({ 'SYNO.API.Auth:login': reply({}, { status }) });
@@ -1542,7 +1585,21 @@ describe('synology-drive.client: paths and versions', () => {
 
   it('SYNO-CLIENT-093: the names DSM refuses are refused here', () => {
     expect(isValidSynoName('boarding.pdf')).toBe(true);
-    for (const name of ['', '.', '..', 'a/b', 'a\\b', 'a:b', 'a*b', 'a?b', 'a"b', 'a<b', 'a>b', 'a|b', 'a'.repeat(256)]) {
+    for (const name of [
+      '',
+      '.',
+      '..',
+      'a/b',
+      'a\\b',
+      'a:b',
+      'a*b',
+      'a?b',
+      'a"b',
+      'a<b',
+      'a>b',
+      'a|b',
+      'a'.repeat(256),
+    ]) {
       expect(isValidSynoName(name), name).toBe(false);
     }
   });

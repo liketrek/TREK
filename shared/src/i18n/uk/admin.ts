@@ -100,43 +100,31 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     'Користувачі без 2FA повинні завершити налаштування в розділі «Налаштування» перед використанням програми.',
   'admin.apiKeys': 'API-ключі',
-  'admin.apiKeysHint': "Звідки беруться дані про місця. Покажчику TREK ключ не потрібен; два постачальники нижче необов'язкові.",
+  'admin.apiKeysHint':
+    "Звідки беруться дані про місця. Покажчику TREK ключ не потрібен; два постачальники нижче необов'язкові.",
   'admin.trekApi.badgeDefault': 'Рекомендоване джерело',
   'admin.googleCaveat.badge': 'Не рекомендовано',
   'admin.googleCaveat.body':
     'TREK має відкритий код, і ми тут не нейтральні. У такому масштабі відгуки та світлини звичайних закладів є лише в Google, і це і є монополія. Поле тут через брак альтернативи, а не тому, що ми його радимо. Тоді кожен запит іде до Google.',
   'admin.trekApi.tagline':
     'Власний покажчик місць TREK. Пошук без ключа Google, без квоти й без того, щоб хтось рахував ваші запити.',
-  'admin.trekApi.factPlaces':
-    '73,6 мільйона місць у світі',
-  'admin.trekApi.factNoKey':
-    'Без ключа, без квоти',
-  'admin.trekApi.factOffline':
-    'Пакети країн працюють офлайн',
-  'admin.trekApi.factPrivacy':
-    'Запити ніколи не записуються',
-  'admin.trekApi.more':
-    'Що всередині',
-  'admin.trekApi.fieldPhone':
-    'Телефон',
-  'admin.trekApi.fieldStableId':
-    'Стала позначка',
+  'admin.trekApi.factPlaces': '73,6 мільйона місць у світі',
+  'admin.trekApi.factNoKey': 'Без ключа, без квоти',
+  'admin.trekApi.factOffline': 'Пакети країн працюють офлайн',
+  'admin.trekApi.factPrivacy': 'Запити ніколи не записуються',
+  'admin.trekApi.more': 'Що всередині',
+  'admin.trekApi.fieldPhone': 'Телефон',
+  'admin.trekApi.fieldStableId': 'Стала позначка',
   'admin.trekApi.includedNote':
     'Описи беруться із сайту самого місця, години роботи — з OpenStreetMap там, де їх зазначено.',
-  'admin.trekApi.notRatings':
-    'Відгуки',
-  'admin.trekApi.notPhotos':
-    'Світлини звичайних закладів',
+  'admin.trekApi.notRatings': 'Відгуки',
+  'admin.trekApi.notPhotos': 'Світлини звичайних закладів',
   'admin.trekApi.notIncludedNote':
     'Ані того, ані іншого немає в жодному відкритому джерелі за жодну ціну. До цих двох ключ Google лишається єдиним шляхом.',
-  'admin.trekApi.sourcesLabel':
-    'Джерела',
-  'admin.trekApi.sourcesNote':
-    'Кожне поле у відповіді вказує, з якого з них воно походить.',
-  'admin.trekApi.included':
-    'Входить',
-  'admin.trekApi.notIncluded':
-    'Не входить',
+  'admin.trekApi.sourcesLabel': 'Джерела',
+  'admin.trekApi.sourcesNote': 'Кожне поле у відповіді вказує, з якого з них воно походить.',
+  'admin.trekApi.included': 'Входить',
+  'admin.trekApi.notIncluded': 'Не входить',
   'admin.mapsKey': 'API-ключ Google Maps',
   'admin.mapsKeyHint': 'Необхідний для пошуку місць. Отримайте на console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -157,7 +145,8 @@ const admin: TranslationStrings = {
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'Для обраного постачальника не задано ключ API, тому на пошук місць відповідають лише індекс TREK і OpenStreetMap.',
+  'admin.placesProvider.missingKey':
+    'Для обраного постачальника не задано ключ API, тому на пошук місць відповідають лише індекс TREK і OpenStreetMap.',
   'admin.placesProvider.saved': 'Постачальника пошуку місць збережено',
   'admin.validateKey': 'Перевірити',
   'admin.keyValid': 'Підключено',
@@ -191,11 +180,15 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Показує зображення та опис під час додавання місця. Wikipedia та OpenStreetMap використовуються завжди; Google додається, якщо ввімкнено «Фото місць» або «Деталі місць».',
   'admin.placesGoogleOnly.title': 'Шукати лише через Google',
-  'admin.placesGoogleOnly.subtitle': 'Кожен пошук і кожна підказка йдуть до Google Places. Вимкнено: спершу відповідають індекс TREK та OpenStreetMap, Google запитується лише тоді, коли вони нічого не знайшли.',
-  'admin.placesGoogleOnly.missingKey': 'Потрібен ключ Google Maps API. Без нього пошук іде через індекс TREK та OpenStreetMap незалежно від цього перемикача.',
-  'admin.placesGoogleOnly.otherProvider': 'Потрібен Google як постачальник місць. Якщо вибрано Amap або OpenStreetMap, жоден пошук не йде до Google, хай як стоїть цей перемикач.',
+  'admin.placesGoogleOnly.subtitle':
+    'Кожен пошук і кожна підказка йдуть до Google Places. Вимкнено: спершу відповідають індекс TREK та OpenStreetMap, Google запитується лише тоді, коли вони нічого не знайшли.',
+  'admin.placesGoogleOnly.missingKey':
+    'Потрібен ключ Google Maps API. Без нього пошук іде через індекс TREK та OpenStreetMap незалежно від цього перемикача.',
+  'admin.placesGoogleOnly.otherProvider':
+    'Потрібен Google як постачальник місць. Якщо вибрано Amap або OpenStreetMap, жоден пошук не йде до Google, хай як стоїть цей перемикач.',
   'admin.googleQuota.title': 'Денний ліміт запитів до Google',
-  'admin.googleQuota.subtitle': 'Коли ліміт вичерпано, TREK не звертається до Google до наступного дня (UTC) і шукає через OpenStreetMap. Порожньо означає без ліміту.',
+  'admin.googleQuota.subtitle':
+    'Коли ліміт вичерпано, TREK не звертається до Google до наступного дня (UTC) і шукає через OpenStreetMap. Порожньо означає без ліміту.',
   'admin.googleQuota.placeholder': 'Без ліміту',
   'admin.googleQuota.usedToday': 'Сьогодні: {used}',
   'admin.googleQuota.usedOfLimit': 'Сьогодні: {used} з {limit}',
@@ -205,10 +198,14 @@ const admin: TranslationStrings = {
   'admin.transitProvider.subtitle': 'Яка служба відповідає на пошук громадського транспорту.',
   'admin.transitProvider.transitous': 'Transitous (безкоштовно)',
   'admin.transitProvider.google': 'Google',
-  'admin.transitProvider.transitousHint': 'Спільнотні GTFS-стрічки. Безкоштовно та без ключа, з найкращим покриттям у Європі.',
-  'admin.transitProvider.googleHint': 'Використовує наведений вище ключ Google для регіонів, де Transitous не має даних. Оплата за кожен пошук — доки ключ не задано, використовується Transitous.',
-  'admin.transitProvider.noKeyWarning': 'Вибрано Google, але ключ Google не налаштовано — пошук транспорту досі використовує Transitous. Додайте ключ у розділі «Ключі API» вище.',
-  'admin.transitProvider.personalKeyWarning': 'Задано лише ваш власний ключ Google, тож пошук інших учасників усе одно повертається до Transitous. Збережіть ключ вище як адміністратор, щоб він діяв для всієї інсталяції.',
+  'admin.transitProvider.transitousHint':
+    'Спільнотні GTFS-стрічки. Безкоштовно та без ключа, з найкращим покриттям у Європі.',
+  'admin.transitProvider.googleHint':
+    'Використовує наведений вище ключ Google для регіонів, де Transitous не має даних. Оплата за кожен пошук — доки ключ не задано, використовується Transitous.',
+  'admin.transitProvider.noKeyWarning':
+    'Вибрано Google, але ключ Google не налаштовано — пошук транспорту досі використовує Transitous. Додайте ключ у розділі «Ключі API» вище.',
+  'admin.transitProvider.personalKeyWarning':
+    'Задано лише ваш власний ключ Google, тож пошук інших учасників усе одно повертається до Transitous. Збережіть ключ вище як адміністратор, щоб він діяв для всієї інсталяції.',
   'admin.placeShadow.title': 'Журнал пошуку місць',
   'admin.placeShadow.subtitle':
     'Записувати, який результат пошуку було обрано, щоб згодом оцінити інший індекс місць на справжніх запитах. Ніщо не залишає цей сервер, і адміністратор будь-коли може вивантажити або видалити журнал.',
@@ -537,7 +534,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Змінити версію…',
   'admin.plugins.noVersions': 'У реєстрі не знайдено опублікованих версій.',
   'admin.plugins.downgradeTitle': 'Відкотити цей плагін?',
-  'admin.plugins.downgradeBody': 'Перехід з v{from} на v{to}: дані, записані новішою версією, залишаються, і старіша версія може їх не розуміти.',
+  'admin.plugins.downgradeBody':
+    'Перехід з v{from} на v{to}: дані, записані новішою версією, залишаються, і старіша версія може їх не розуміти.',
   'admin.plugins.downgradeConfirm': 'Відкотити',
   'admin.plugins.updatesHeld': 'Оновлення призупинено на v{version}',
   'admin.plugins.resumeUpdates': 'Відновити оновлення',
@@ -616,8 +614,7 @@ const admin: TranslationStrings = {
     '«{name}» заявляє підтримку TREK {range}, а цей сервер працює на {host}. TREK пропускає його лише тому, що задано TREK_PLUGINS_IGNORE_TREK_RANGE. Автор не оновив діапазон версій плагіна для цього TREK, тож працездатність не гарантується — а в рідкісних випадках несумісний плагін може пошкодити дані TREK. Продовжуйте, лише якщо приймаєте цей ризик.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '«{name}» не вказує, які версії TREK він підтримує; цей сервер працює на {host}. TREK пропускає його лише тому, що задано TREK_PLUGINS_IGNORE_TREK_RANGE. Ніщо не свідчить, що автор тестував його на цьому TREK, тож працездатність не гарантується — а в рідкісних випадках несумісний плагін може пошкодити дані TREK. Продовжуйте, лише якщо приймаєте цей ризик.',
-  'admin.plugins.dep.trekBypassed':
-    'Поза своїм діапазоном TREK ({range}) — перевірки версії вимкнено',
+  'admin.plugins.dep.trekBypassed': 'Поза своїм діапазоном TREK ({range}) — перевірки версії вимкнено',
   'admin.plugins.dep.trekBypassedUnknown': 'Діапазон TREK не вказано — перевірки версії вимкнено',
   'admin.plugins.incompatible': 'Несумісно',
   'admin.plugins.accessTitle': 'До чого має доступ',
@@ -648,7 +645,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': 'Нотатки, опитування, чат і підказки для спільного планування',
   'admin.addons.catalog.roadtrip.name': 'Автоподорож',
-  'admin.addons.catalog.roadtrip.description': 'Плануйте поїздки із зупинками — час у дорозі та прибуття перераховуються автоматично',
+  'admin.addons.catalog.roadtrip.description':
+    'Плануйте поїздки із зупинками — час у дорозі та прибуття перераховуються автоматично',
   'admin.addons.subtitleBefore': 'Увімкніть або вимкніть функції для налаштування ',
   'admin.addons.subtitleAfter': ' під себе.',
   'admin.addons.catalog.naver_list_import.name': 'Naver List Import',
@@ -659,12 +657,14 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'Читає перебування та записані маршрути із сервера Dawarich, який кожен користувач підключає сам',
   'admin.addons.catalog.llm_parsing.name': 'Розбір за допомогою ШІ',
-  'admin.addons.catalog.llm_parsing.description': 'Читає бронювання, які не розпізнає вбудований аналізатор, за допомогою обраної вами моделі ШІ',
+  'admin.addons.catalog.llm_parsing.description':
+    'Читає бронювання, які не розпізнає вбудований аналізатор, за допомогою обраної вами моделі ШІ',
   'admin.addons.llm.vision.auto': 'Автоматично',
   'admin.addons.llm.vision.on': 'Так',
   'admin.addons.llm.vision.off': 'Ні',
   'admin.addons.llm.vision.hintLocal': '«Автоматично» запитує сервер Ollama, чи читає ця модель зображення.',
-  'admin.addons.llm.vision.hintCloud': 'Для хмарної моделі «Автоматично» означає «ні». Виберіть «Так», якщо ця модель читає зображення.',
+  'admin.addons.llm.vision.hintCloud':
+    'Для хмарної моделі «Автоматично» означає «ні». Виберіть «Так», якщо ця модель читає зображення.',
   'admin.addons.enabled': 'Увімкнено',
   'admin.addons.disabled': 'Вимкнено',
   'admin.addons.type.trip': 'Поїздка',
@@ -806,7 +806,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNotificationsHint':
     'Налаштуйте, які канали доставляють сповіщення адміністратора (наприклад, повідомлення про версії). Вебхук надсилається автоматично, якщо задано URL вебхука адміністратора.',
   'admin.notificationDefaults.title': 'Типові налаштування для користувачів',
-  'admin.notificationDefaults.hint': 'Так починаються сповіщення кожного користувача. «Вимк.» користувач може ввімкнути сам, «Заблоковано» вимикає для всіх і показується із замком у їхніх налаштуваннях. Діє для всіх, хто не змінював клітинку сам.',
+  'admin.notificationDefaults.hint':
+    'Так починаються сповіщення кожного користувача. «Вимк.» користувач може ввімкнути сам, «Заблоковано» вимикає для всіх і показується із замком у їхніх налаштуваннях. Діє для всіх, хто не змінював клітинку сам.',
   'admin.notificationDefaults.on': 'Увімк.',
   'admin.notificationDefaults.off': 'Вимк.',
   'admin.notificationDefaults.blocked': 'Заблоковано',
@@ -821,7 +822,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.description':
     'Відстеження поїздок і щоденник подорожей з позначками, фото та щоденними історіями',
   'admin.addons.catalog.collections.name': 'Колекції',
-  'admin.addons.catalog.collections.description': 'Збирайте місця з будь-яких подорожей у іменовані списки та використовуйте їх знову',
+  'admin.addons.catalog.collections.description':
+    'Збирайте місця з будь-яких подорожей у іменовані списки та використовуйте їх знову',
   'admin.passkey.title': 'Вхід за допомогою passkey',
   'admin.passkey.cardHint':
     'Дозволити користувачам входити за допомогою passkey (WebAuthn). За замовчуванням вимкнено.',

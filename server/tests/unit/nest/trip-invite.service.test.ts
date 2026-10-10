@@ -4,6 +4,24 @@
  * Per-trip invite links (#1143): one rotating token, optional expiry, resolve.
  * Uses a real in-memory SQLite DB so SQL logic is exercised faithfully.
  */
+import { db as testDb } from '../../../src/db/database';
+import { TripInviteTokens } from '../../../src/db/entities/TripInviteTokens.entity';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { TripInviteService } from '../../../src/nest/trip-invite/trip-invite.service';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+import { createUser, createTrip } from '../../helpers/factories';
+import { countRows, updateRows } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestTripsRepo,
+  createTestTripMembersRepo,
+  createTestTripInviteTokensRepo,
+} from '../../helpers/test-uow';
+import { sharedTestOrm } from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -20,18 +38,6 @@ vi.mock('../../../src/db/database', async () => {
     isOwner: () => false,
   };
 });
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import { TripInviteService } from '../../../src/nest/trip-invite/trip-invite.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo, createTestTripMembersRepo, createTestTripInviteTokensRepo } from '../../helpers/test-uow';
-import { sharedTestOrm } from '../../helpers/test-uow';
-import { countRows, updateRows } from '../../helpers/factories/rows';
-import { TripInviteTokens } from '../../../src/db/entities/TripInviteTokens.entity';
-import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 let svc: TripInviteService;
 beforeAll(async () => {
@@ -92,14 +98,24 @@ describe('TripInviteService', () => {
     // Use the exact ISO-8601 format the service writes, one hour in the past —
     // this catches the lexicographic-SQL-comparison bug where a same-UTC-day
     // expiry would otherwise still resolve.
-    await updateRows(await sharedTestOrm(testDb), TripInviteTokens, { trip: trip.id }, { expires_at: new Date(Date.now() - 3600_000).toISOString() });
+    await updateRows(
+      await sharedTestOrm(testDb),
+      TripInviteTokens,
+      { trip: trip.id },
+      { expires_at: new Date(Date.now() - 3600_000).toISOString() },
+    );
     expect(await svc.resolve(info.token)).toBeNull();
   });
 
   it('TRIP-INVITE-005b: a not-yet-expired token still resolves', async () => {
     const { owner, trip } = setup();
     const info = await svc.createOrRotate(trip.id, owner.id);
-    await updateRows(await sharedTestOrm(testDb), TripInviteTokens, { trip: trip.id }, { expires_at: new Date(Date.now() + 3600_000).toISOString() });
+    await updateRows(
+      await sharedTestOrm(testDb),
+      TripInviteTokens,
+      { trip: trip.id },
+      { expires_at: new Date(Date.now() + 3600_000).toISOString() },
+    );
     expect(await svc.resolve(info.token)).toEqual({ trip_id: trip.id, title: trip.title });
   });
 

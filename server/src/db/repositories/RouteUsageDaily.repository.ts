@@ -1,7 +1,7 @@
-import type { RouteUsageDaily } from '../entities/RouteUsageDaily.entity';
 import { nowDateOffset } from '../dialect/sql-functions';
-import { TrekRepository } from './_shared/trek-repository';
+import type { RouteUsageDaily } from '../entities/RouteUsageDaily.entity';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /**
  * A `route_usage_daily` row exactly as `SELECT *` reads it (RU3's shape,

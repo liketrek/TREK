@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { ValidationError } from '@mikro-orm/core';
 import { AuditLog } from '../../db/entities/AuditLog.entity';
-import type { AuditLogRepository } from '../../db/repositories/AuditLog.repository';
 import { Users } from '../../db/entities/Users.entity';
+import type { AuditLogRepository } from '../../db/repositories/AuditLog.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { logInfo, logDebug, logError } from './audit-log.logger';
+import { ValidationError } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 const ACTION_LABELS: Record<string, string> = {
   'user.register': 'registered',

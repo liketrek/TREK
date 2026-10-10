@@ -1,6 +1,6 @@
 import type { JourneyContributors } from '../entities/JourneyContributors.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** JG18's contributor-list row (`getJourneyFull`) — the junction plus the joined username/avatar. */
 export interface JourneyContributorListRow {

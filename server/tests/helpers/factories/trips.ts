@@ -1,10 +1,10 @@
-import type { EntityDTO } from '@mikro-orm/core';
 import { Days } from '../../../src/db/entities/Days.entity';
 import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { inContext, nextSeq, type FactoryOrm } from './context';
 import { createRow, findRows, insertRows } from './rows';
+import type { EntityDTO } from '@mikro-orm/core';
 
 export type TripRow = EntityDTO<Trips>;
 export type DayRow = EntityDTO<Days>;

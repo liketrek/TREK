@@ -1,16 +1,16 @@
+import { ADDON_IDS } from '../../addons';
+import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
+import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { CollectionsService } from './collections.service';
 import {
   collectionCopyToTripRequestSchema,
   collectionCreateRequestSchema,
   collectionSavePlaceRequestSchema,
   collectionUpdateRequestSchema,
 } from '@trek/shared';
-import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
-import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
-import { num, schemaMessage } from '../../nest-rpc/rpc-params';
-import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { ADDON_IDS } from '../../addons';
-import { CollectionsService } from './collections.service';
 
 /**
  * The collections surface a plugin may reach (#plugins).
@@ -61,7 +61,9 @@ export class CollectionsRpc {
     const userId = this.requireCollectionsUser(ctx, 'writes');
     const id = num(params.id, 'id');
     await this.requireCollectionsAddon();
-    return this.mapCollectionError(() => this.collections.updateCollection(userId, id, parsed.data as never, undefined));
+    return this.mapCollectionError(() =>
+      this.collections.updateCollection(userId, id, parsed.data as never, undefined),
+    );
   }
 
   @PluginMethod('collections.savePlace', { permission: 'db:write:collections' })

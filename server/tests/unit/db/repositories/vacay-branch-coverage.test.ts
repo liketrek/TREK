@@ -6,11 +6,18 @@
  * NULL needs to land on a column the ORM itself would never write (the
  * entity's own default keeps every normal write non-null).
  */
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { VacayCompanyHolidays } from '../../../../src/db/entities/VacayCompanyHolidays.entity';
+import { VacayHolidayCalendars } from '../../../../src/db/entities/VacayHolidayCalendars.entity';
+import { VacayPlanMembers } from '../../../../src/db/entities/VacayPlanMembers.entity';
+import { VacayPlans } from '../../../../src/db/entities/VacayPlans.entity';
+import { VacayUserColors } from '../../../../src/db/entities/VacayUserColors.entity';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
 import { createUser } from '../../../helpers/factories';
+import { insertRow, updateRows } from '../../../helpers/factories/rows';
+import { addVacayPlanMember, makeVacayPlan } from '../../../helpers/factories/vacay';
 import { createTestVacayHolidayCalendarsRepo } from '../../../helpers/school-holidays-repos';
+import { resetTestDb } from '../../../helpers/test-db';
+import { sharedTestOrm } from '../../../helpers/test-uow';
 import {
   createTestVacayPlansRepo,
   createTestVacayPlanMembersRepo,
@@ -18,14 +25,8 @@ import {
   createTestVacayCompanyHolidaysRepo,
   createTestVacaySharesRepo,
 } from '../../../helpers/vacay-repos';
-import { sharedTestOrm } from '../../../helpers/test-uow';
-import { insertRow, updateRows } from '../../../helpers/factories/rows';
-import { addVacayPlanMember, makeVacayPlan } from '../../../helpers/factories/vacay';
-import { VacayCompanyHolidays } from '../../../../src/db/entities/VacayCompanyHolidays.entity';
-import { VacayHolidayCalendars } from '../../../../src/db/entities/VacayHolidayCalendars.entity';
-import { VacayPlanMembers } from '../../../../src/db/entities/VacayPlanMembers.entity';
-import { VacayPlans } from '../../../../src/db/entities/VacayPlans.entity';
-import { VacayUserColors } from '../../../../src/db/entities/VacayUserColors.entity';
+
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 const orm = () => sharedTestOrm(testDb);
@@ -45,7 +46,9 @@ describe('VacayCompanyHolidaysRepository — note ?? null (VC29/VC67/VC112)', ()
     await insertRow(await orm(), VacayCompanyHolidays, { plan: planId, date: '2026-12-25', note: null });
 
     expect(await repo.listForPlan(planId)).toEqual([{ date: '2026-12-25', note: null, fraction: 1 }]);
-    expect(await repo.listForRange(planId, '2026-12-01', '2027-01-01')).toMatchObject([{ date: '2026-12-25', note: null }]);
+    expect(await repo.listForRange(planId, '2026-12-01', '2027-01-01')).toMatchObject([
+      { date: '2026-12-25', note: null },
+    ]);
   });
 });
 
@@ -77,7 +80,11 @@ describe('VacayHolidayCalendarsRepository — findById/findScopedForPlan not-fou
     const planId = await makePlan(user.id);
     const otherPlanId = await makePlan(createUser(testDb).user.id);
     const id = await insertRow(await orm(), VacayHolidayCalendars, {
-      plan: planId, type: 'public_holiday', region: 'US', color: '#fecaca', sort_order: 0,
+      plan: planId,
+      type: 'public_holiday',
+      region: 'US',
+      color: '#fecaca',
+      sort_order: 0,
     });
     expect((await repo.findScopedForPlan(id, planId))?.id).toBe(id);
     expect(await repo.findScopedForPlan(id, otherPlanId)).toBeNull();

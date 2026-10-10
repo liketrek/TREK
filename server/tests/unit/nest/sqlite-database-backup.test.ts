@@ -7,21 +7,27 @@
  * is a stand-in, because closing and reopening the process's own connection is
  * DatabaseLifecycle's business (tests/unit/nest/database/).
  */
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import Database from 'better-sqlite3';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-const logMock = vi.hoisted(() => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logWarn: vi.fn(), logError: vi.fn(), logDebug: vi.fn() }));
-vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
-
+import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
 import { SqliteDatabaseBackup } from '../../../src/nest/backup/sqlite-database-backup';
 import { DatabaseConnectionLostError } from '../../../src/nest/database/database-backup.interface';
-import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
 import type { DatabaseLifecycle } from '../../../src/nest/database/database-lifecycle.service';
 import { withRequestContext } from '../../../src/nest/database/request-context';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import Database from 'better-sqlite3';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const logMock = vi.hoisted(() => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logWarn: vi.fn(),
+  logError: vi.fn(),
+  logDebug: vi.fn(),
+}));
+vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
 
 let dir: string;
 let liveFile: string;
@@ -32,7 +38,10 @@ function maintenanceStub() {
 }
 
 function portWith(maintenance: { walCheckpoint: unknown; vacuumInto: unknown }): SqliteDatabaseBackup {
-  return new SqliteDatabaseBackup(lifecycle as unknown as DatabaseLifecycle, maintenance as unknown as MaintenanceRepository);
+  return new SqliteDatabaseBackup(
+    lifecycle as unknown as DatabaseLifecycle,
+    maintenance as unknown as MaintenanceRepository,
+  );
 }
 
 function writeDb(file: string, label: string): void {
@@ -138,7 +147,10 @@ describe('SqliteDatabaseBackup', () => {
   });
 
   it('SQLBK-007: verify refuses an unpacked archive without a database', () => {
-    expect(portWith(maintenanceStub()).verify(dir)).toEqual({ error: 'Invalid backup: travel.db not found', status: 400 });
+    expect(portWith(maintenanceStub()).verify(dir)).toEqual({
+      error: 'Invalid backup: travel.db not found',
+      status: 400,
+    });
   });
 
   it('SQLBK-008: keeps a copy of the database a restore replaces next to it, and says where', async () => {
@@ -159,7 +171,9 @@ describe('SqliteDatabaseBackup', () => {
 
     await expect(portWith(maintenance).keepCopyBeforeRestore()).resolves.toBeNull();
 
-    expect(logMock.logWarn).toHaveBeenCalledWith('Restore: could not keep a copy of the current database (database disk image is malformed)');
+    expect(logMock.logWarn).toHaveBeenCalledWith(
+      'Restore: could not keep a copy of the current database (database disk image is malformed)',
+    );
   });
 
   describe('replace', () => {
@@ -234,7 +248,9 @@ describe('SqliteDatabaseBackup', () => {
       const lost = thrown as DatabaseConnectionLostError;
       expect((lost.swapError as Error).message).toMatch(/ENOENT/);
       expect(lost.cause).toBe(reopenFailure);
-      expect(lost.message).toMatch(/could not be replaced \(ENOENT.*\) and the connection could not be reopened \(database is locked\)\. Restart the server\.$/);
+      expect(lost.message).toMatch(
+        /could not be replaced \(ENOENT.*\) and the connection could not be reopened \(database is locked\)\. Restart the server\.$/,
+      );
       expect(lifecycle.reopen).toHaveBeenCalledTimes(1);
       expect(readLabel(liveFile)).toBe('live');
     });

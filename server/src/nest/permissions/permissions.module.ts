@@ -1,10 +1,10 @@
-import { Module, type OnModuleDestroy } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { PermissionsCacheStore, permissionsCacheSlot, processPermissionsCache } from './permissions-cache';
 import { PermissionsService } from './permissions.service';
 import { TripAccessGuard } from './trip-access.guard';
 import { TripOwnerGuard } from './trip-owner.guard';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { PermissionsCacheStore, permissionsCacheSlot, processPermissionsCache } from './permissions-cache';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module, type OnModuleDestroy } from '@nestjs/common';
 
 /** Cross-cutting permissions domain (Wave 2). No controller/MCP surface of its
  *  own — the admin HTTP surface stays with AdminModule. Exports

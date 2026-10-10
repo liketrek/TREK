@@ -35,7 +35,10 @@ const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
 const domains = new Map();
 for (const [file, entry] of Object.entries(summary)) {
   if (file === 'total') continue;
-  const match = file.split('\\').join('/').match(/\/src\/nest\/([a-z0-9-]+)\//);
+  const match = file
+    .split('\\')
+    .join('/')
+    .match(/\/src\/nest\/([a-z0-9-]+)\//);
   if (!match) continue;
   const totals = domains.get(match[1]) ?? new Map(METRICS.map(([k]) => [k, { covered: 0, total: 0 }]));
   for (const [key, metric] of METRICS) {

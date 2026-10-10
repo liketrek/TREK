@@ -14,9 +14,7 @@
  * method unprobeable: the report lists it instead of guessing, and the
  * baseline's `uncovered` list must name it, so a new one fails the run.
  */
-
 import path from 'node:path';
-
 import ts from 'typescript';
 
 export type Sample = { ok: true; value: unknown } | { ok: false; reason: string };
@@ -118,7 +116,13 @@ function sampleObjectType(checker: ts.TypeChecker, type: ts.ObjectType, name: st
   return sampleObject(checker, type, name, depth);
 }
 
-function sampleCollection(checker: ts.TypeChecker, type: ts.ObjectType, kind: string, name: string, depth: number): Sample {
+function sampleCollection(
+  checker: ts.TypeChecker,
+  type: ts.ObjectType,
+  kind: string,
+  name: string,
+  depth: number,
+): Sample {
   const args = checker.getTypeArguments(type as ts.TypeReference);
   const samples = args.map((arg, i) => sampleFor(checker, arg, i === 0 ? singular(name) : name, depth + 1));
   const failed = samples.find((sample) => !sample.ok);
@@ -152,7 +156,10 @@ function isPublicMethod(member: ts.ClassElement): member is ts.MethodDeclaration
 }
 
 /** The sample argument list for one method, or why there is none. */
-export function planMethod(checker: ts.TypeChecker, method: ts.MethodDeclaration): { args: unknown[] } | { unprobeable: string } {
+export function planMethod(
+  checker: ts.TypeChecker,
+  method: ts.MethodDeclaration,
+): { args: unknown[] } | { unprobeable: string } {
   const args: unknown[] = [];
   for (const parameter of method.parameters) {
     const name = ts.isIdentifier(parameter.name) ? parameter.name.text : 'options';
@@ -169,7 +176,11 @@ export function planMethod(checker: ts.TypeChecker, method: ts.MethodDeclaration
 }
 
 /** Every public method of every exported class declared in `files`, with its sample arguments. */
-export function planRepositories(files: readonly string[], compilerOptions: ts.CompilerOptions, root: string): MethodPlan[] {
+export function planRepositories(
+  files: readonly string[],
+  compilerOptions: ts.CompilerOptions,
+  root: string,
+): MethodPlan[] {
   const program = ts.createProgram({ rootNames: [...files], options: { ...compilerOptions, noEmit: true } });
   const checker = program.getTypeChecker();
   const wanted = new Set(files.map((file) => path.resolve(file)));
@@ -186,7 +197,11 @@ export function planRepositories(files: readonly string[], compilerOptions: ts.C
         if (!isPublicMethod(member)) continue;
         const method = (member.name as ts.Identifier).text;
         const plan = planMethod(checker, member);
-        plans.push('args' in plan ? { className, file, method, args: plan.args } : { className, file, method, unprobeable: plan.unprobeable });
+        plans.push(
+          'args' in plan
+            ? { className, file, method, args: plan.args }
+            : { className, file, method, unprobeable: plan.unprobeable },
+        );
       }
     }
   }

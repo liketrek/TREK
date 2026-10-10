@@ -1,5 +1,6 @@
-import { createZodDto } from 'nestjs-zod';
 import { createCategoryRequestSchema, updateCategoryRequestSchema } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * createZodDto wrappers over the @trek/shared category contracts.

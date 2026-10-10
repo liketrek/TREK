@@ -1,18 +1,23 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import jwt from 'jsonwebtoken';
-
+import { JWT_SECRET, SESSION_DURATION_REMEMBER_SECONDS, SESSION_DURATION_SECONDS } from '../../../../src/config';
+import { UserSessions } from '../../../../src/db/entities/UserSessions.entity';
+import { Users } from '../../../../src/db/entities/Users.entity';
+import { verifyJwtAndLoadUser } from '../../../../src/nest/auth-core/jwt-verify';
+import {
+  SessionsService,
+  USER_AGENT_MAX_LENGTH,
+  legacySessionId,
+  sessionClientFrom,
+} from '../../../../src/nest/sessions/sessions.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { createUser } from '../../../helpers/factories';
 import { countRows, findRow, findRows } from '../../../helpers/factories/rows';
-import { UserSessions } from '../../../../src/db/entities/UserSessions.entity';
-import { SessionsService, USER_AGENT_MAX_LENGTH, legacySessionId, sessionClientFrom } from '../../../../src/nest/sessions/sessions.service';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { userSessionIdSchema } from '@trek/shared';
-import { verifyJwtAndLoadUser } from '../../../../src/nest/auth-core/jwt-verify';
-import { Users } from '../../../../src/db/entities/Users.entity';
+
 import type { Request } from 'express';
-import { JWT_SECRET, SESSION_DURATION_REMEMBER_SECONDS, SESSION_DURATION_SECONDS } from '../../../../src/config';
+import jwt from 'jsonwebtoken';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -22,11 +27,26 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   svc = new SessionsService(t.repo(UserSessions));
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterEach(() => { vi.useRealTimers(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
-interface Claims { id: number; pv: number; jti: string; iat: number; exp: number; remember?: boolean }
+interface Claims {
+  id: number;
+  pv: number;
+  jti: string;
+  iat: number;
+  exp: number;
+  remember?: boolean;
+}
 
 function claimsOf(token: string): Claims {
   return jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as Claims;
@@ -42,7 +62,9 @@ function textOf(seconds: number): string {
 
 describe('sessionClientFrom', () => {
   it('reads the User-Agent header', () => {
-    expect(sessionClientFrom({ headers: { 'user-agent': 'Firefox/130' } } as unknown as Request)).toEqual({ userAgent: 'Firefox/130' });
+    expect(sessionClientFrom({ headers: { 'user-agent': 'Firefox/130' } } as unknown as Request)).toEqual({
+      userAgent: 'Firefox/130',
+    });
   });
 
   it('is null without one, or with an empty one', () => {
@@ -52,7 +74,7 @@ describe('sessionClientFrom', () => {
 });
 
 describe('SessionsService.issue', () => {
-  it('SESS-001: signs a token with a fresh jti and records its session with the token\'s own times', async () => {
+  it("SESS-001: signs a token with a fresh jti and records its session with the token's own times", async () => {
     const { user } = createUser(testDb);
     const token = await svc.issue({ id: user.id, pv: 2 }, undefined, { userAgent: 'Firefox/130' });
     const claims = claimsOf(token);
@@ -110,12 +132,14 @@ describe('SessionsService.renew', () => {
     expect(claims.jti).toBe(first.jti);
     expect(claims.remember).toBe(false);
     expect(claims.exp).toBeGreaterThan(first.exp);
-    expect(await rowOf(first.jti)).toEqual(expect.objectContaining({
-      expires_at: textOf(claims.exp),
-      last_seen_at: textOf(Date.parse('2026-10-08T00:00:00Z') / 1000 + SESSION_DURATION_SECONDS * 0.75),
-      created_at: '2026-10-08 00:00:00',
-      user_agent: null,
-    }));
+    expect(await rowOf(first.jti)).toEqual(
+      expect.objectContaining({
+        expires_at: textOf(claims.exp),
+        last_seen_at: textOf(Date.parse('2026-10-08T00:00:00Z') / 1000 + SESSION_DURATION_SECONDS * 0.75),
+        created_at: '2026-10-08 00:00:00',
+        user_agent: null,
+      }),
+    );
     expect(await countRows(t, UserSessions)).toBe(1);
   });
 
@@ -135,7 +159,9 @@ describe('SessionsService.renew', () => {
 
     expect(claims.pv).toBe(0);
     expect(claims.remember).toBe(true);
-    expect(await rowOf(claims.jti)).toEqual(expect.objectContaining({ user_id: user.id, user_agent: 'Safari', revoked_at: null }));
+    expect(await rowOf(claims.jti)).toEqual(
+      expect.objectContaining({ user_id: user.id, user_agent: 'Safari', revoked_at: null }),
+    );
   });
 });
 
@@ -151,7 +177,8 @@ describe('SessionsService.renew of a token from before tracking', () => {
 
     // Every request of the load carries the same cookie and renews it.
     const renewed: (string | null)[] = [];
-    for (let i = 0; i < 5; i++) renewed.push(await svc.renew({ id: user.id, pv: 0, token: legacy }, { userAgent: 'Page load' }));
+    for (let i = 0; i < 5; i++)
+      renewed.push(await svc.renew({ id: user.id, pv: 0, token: legacy }, { userAgent: 'Page load' }));
 
     const ids = new Set(renewed.map((token) => claimsOf(token!).jti));
     expect(ids).toEqual(new Set([legacySessionId(legacy)]));
@@ -194,7 +221,10 @@ describe('SessionsService.renew of a token from before tracking', () => {
   it('SESS-018: the derived session is kept at least as long as the old token lives', async () => {
     const { user } = createUser(testDb);
     // An old token with a longer life than the one it is renewed into.
-    const legacy = jwt.sign({ id: user.id, pv: 0 }, JWT_SECRET, { algorithm: 'HS256', expiresIn: SESSION_DURATION_REMEMBER_SECONDS });
+    const legacy = jwt.sign({ id: user.id, pv: 0 }, JWT_SECRET, {
+      algorithm: 'HS256',
+      expiresIn: SESSION_DURATION_REMEMBER_SECONDS,
+    });
     const renewed = claimsOf((await svc.renew({ id: user.id, pv: 0, token: legacy }))!);
 
     expect(renewed.exp - renewed.iat).toBe(SESSION_DURATION_SECONDS);
@@ -204,7 +234,9 @@ describe('SessionsService.renew of a token from before tracking', () => {
   it('SESS-014: two different tokens of the same user stay two sessions', async () => {
     const { user } = createUser(testDb);
     const a = claimsOf((await svc.renew({ id: user.id, pv: 0, token: untracked(user.id) }))!);
-    const b = claimsOf((await svc.renew({ id: user.id, pv: 0, token: jwt.sign({ id: user.id, pv: 0, n: 2 }, JWT_SECRET) }))!);
+    const b = claimsOf(
+      (await svc.renew({ id: user.id, pv: 0, token: jwt.sign({ id: user.id, pv: 0, n: 2 }, JWT_SECRET) }))!,
+    );
     expect(a.jti).not.toBe(b.jti);
   });
 });
@@ -234,7 +266,10 @@ describe('SessionsService list and revoke', () => {
 
     const listed = await svc.list(user.id, here.jti);
     expect(listed.map((s) => [s.id, s.user_agent, s.current]).sort()).toEqual(
-      [[here.jti, 'here', true], [there.jti, 'there', false]].sort(),
+      [
+        [here.jti, 'here', true],
+        [there.jti, 'there', false],
+      ].sort(),
     );
     expect((await svc.list(user.id)).every((s) => !s.current)).toBe(true);
   });
@@ -305,7 +340,8 @@ describe('SessionsService as the session check', () => {
     await svc.touchLastSeen(live.jti, '2030-01-01 00:00:00');
     expect((await rowOf(live.jti))?.last_seen_at).toBe('2030-01-01 00:00:00');
 
-    const sign = (jti: string) => jwt.sign({ id: user.id, pv: 0 }, JWT_SECRET, { algorithm: 'HS256', expiresIn: 600, jwtid: jti });
+    const sign = (jti: string) =>
+      jwt.sign({ id: user.id, pv: 0 }, JWT_SECRET, { algorithm: 'HS256', expiresIn: 600, jwtid: jti });
     expect((await verifyJwtAndLoadUser(sign(live.jti), t.repo(Users), svc))?.id).toBe(user.id);
     expect(await verifyJwtAndLoadUser(sign(ended.jti), t.repo(Users), svc)).toBeNull();
   });

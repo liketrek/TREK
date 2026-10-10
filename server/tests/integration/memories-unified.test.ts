@@ -5,11 +5,22 @@
  *
  * No real HTTP is made — safeFetch is mocked to never be called.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
+import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../src/db/entities/TripPhotos.entity';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, addTripMember, addTripPhoto, addAlbumLink } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { findRow, findRows, updateRows } from '../helpers/factories/rows';
+import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── Hoisted DB mock ──────────────────────────────────────────────────────────
 
@@ -25,17 +36,6 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
     safeFetch: vi.fn().mockRejectedValue(new Error('safeFetch should not be called in unified tests')),
   };
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
-import { createUser, createTrip, addTripMember, addTripPhoto, addAlbumLink } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { findRow, findRows, updateRows } from '../helpers/factories/rows';
-import type { FactoryOrm } from '../helpers/factories/context';
-import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
-import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../src/db/entities/TripPhotos.entity';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -82,7 +82,9 @@ afterAll(async () => {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function photosUrl(tripId: number) { return `${BASE}/trips/${tripId}/photos`; }
+function photosUrl(tripId: number) {
+  return `${BASE}/trips/${tripId}/photos`;
+}
 function albumLinksUrl(tripId: number, linkId?: number) {
   return linkId ? `${BASE}/trips/${tripId}/album-links/${linkId}` : `${BASE}/trips/${tripId}/album-links`;
 }
@@ -100,9 +102,7 @@ describe('Unified photo management', () => {
     addTripPhoto(testDb, trip.id, owner.id, 'asset-own', 'immich', { shared: false });
     addTripPhoto(testDb, trip.id, member.id, 'asset-shared', 'immich', { shared: true });
 
-    const res = await request(app)
-      .get(photosUrl(trip.id))
-      .set('Cookie', authCookie(owner.id));
+    const res = await request(app).get(photosUrl(trip.id)).set('Cookie', authCookie(owner.id));
 
     expect(res.status).toBe(200);
     const ids = (res.body.photos as any[]).map((p: any) => p.asset_id);
@@ -110,7 +110,7 @@ describe('Unified photo management', () => {
     expect(ids).toContain('asset-shared');
   });
 
-  it('UNIFIED-002 — GET photos excludes other members\' private photos', async () => {
+  it("UNIFIED-002 — GET photos excludes other members' private photos", async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
@@ -118,9 +118,7 @@ describe('Unified photo management', () => {
 
     addTripPhoto(testDb, trip.id, member.id, 'asset-private', 'immich', { shared: false });
 
-    const res = await request(app)
-      .get(photosUrl(trip.id))
-      .set('Cookie', authCookie(owner.id));
+    const res = await request(app).get(photosUrl(trip.id)).set('Cookie', authCookie(owner.id));
 
     expect(res.status).toBe(200);
     const ids = (res.body.photos as any[]).map((p: any) => p.asset_id);
@@ -132,9 +130,7 @@ describe('Unified photo management', () => {
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
 
-    const res = await request(app)
-      .get(photosUrl(trip.id))
-      .set('Cookie', authCookie(stranger.id));
+    const res = await request(app).get(photosUrl(trip.id)).set('Cookie', authCookie(stranger.id));
 
     expect(res.status).toBe(404);
   });
@@ -163,10 +159,7 @@ describe('Unified photo management', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const res = await request(app)
-      .post(photosUrl(trip.id))
-      .set('Cookie', authCookie(user.id))
-      .send({ selections: [] });
+    const res = await request(app).post(photosUrl(trip.id)).set('Cookie', authCookie(user.id)).send({ selections: [] });
 
     expect(res.status).toBe(400);
   });
@@ -320,9 +313,7 @@ describe('Unified album-link management', () => {
     // Disable the immich provider
     await updateRows(orm(), PhotoProviders, { id: 'immich' }, { enabled: 0 });
 
-    const res = await request(app)
-      .get(albumLinksUrl(trip.id))
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(albumLinksUrl(trip.id)).set('Cookie', authCookie(user.id));
 
     // Re-enable for future tests
     await updateRows(orm(), PhotoProviders, { id: 'immich' }, { enabled: 1 });
@@ -337,9 +328,7 @@ describe('Unified album-link management', () => {
 
     setAddonEnabled(testDb, 'journey', false);
 
-    const res = await request(app)
-      .get(albumLinksUrl(trip.id))
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(albumLinksUrl(trip.id)).set('Cookie', authCookie(user.id));
 
     setAddonEnabled(testDb, 'journey', true);
 

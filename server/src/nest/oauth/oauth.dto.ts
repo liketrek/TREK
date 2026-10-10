@@ -1,6 +1,7 @@
+import { oauthConsentRequestSchema } from '@trek/shared';
+
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { oauthConsentRequestSchema } from '@trek/shared';
 
 /**
  * Server-side createZodDto wrappers for the OAuth bodies.

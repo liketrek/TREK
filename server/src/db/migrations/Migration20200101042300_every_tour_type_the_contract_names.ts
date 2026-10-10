@@ -1,5 +1,5 @@
-import { Migration } from '@mikro-orm/migrations';
 import { columnNames } from '../migration-utils';
+import { Migration } from '@mikro-orm/migrations';
 
 /**
  * `tour_types` holds every key the shared `tourTypeKeySchema` accepts. Only

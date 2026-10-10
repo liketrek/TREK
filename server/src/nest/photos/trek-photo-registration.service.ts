@@ -1,13 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import type { TrekPhoto } from '../../types';
-import { TrekPhotos } from '../../db/entities/TrekPhotos.entity';
-import type { TrekPhotosRepository } from '../../db/repositories/TrekPhotos.repository';
-import { TripPhotos } from '../../db/entities/TripPhotos.entity';
-import type { TripPhotosRepository } from '../../db/repositories/TripPhotos.repository';
 import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
+import { TrekPhotos } from '../../db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../db/entities/TripPhotos.entity';
 import type { JourneyPhotosRepository } from '../../db/repositories/JourneyPhotos.repository';
+import type { TrekPhotosRepository } from '../../db/repositories/TrekPhotos.repository';
+import type { TripPhotosRepository } from '../../db/repositories/TripPhotos.repository';
+import type { TrekPhoto } from '../../types';
+import { encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The `trek_photos` table: register a photo, look one up, retarget it, drop it

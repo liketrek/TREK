@@ -37,7 +37,17 @@ const HEADER = `-- Legacy-runner install at schema_version 244: the ${TAG} relea
 
 function bootRelease(tmp) {
   const archive = path.join(tmp, 'src.tar');
-  execFileSync('git', ['-C', REPO, 'archive', '-o', archive, TAG, 'server/src', 'server/package.json', 'server/tsconfig.json']);
+  execFileSync('git', [
+    '-C',
+    REPO,
+    'archive',
+    '-o',
+    archive,
+    TAG,
+    'server/src',
+    'server/package.json',
+    'server/tsconfig.json',
+  ]);
   // Relative names: GNU tar reads a drive letter as a remote host.
   execFileSync('tar', ['-xf', 'src.tar'], { cwd: tmp });
   fs.rmSync(archive);
@@ -70,14 +80,38 @@ function seed(db) {
 
   db.prepare(`UPDATE users SET password_hash = 'fixture-login-disabled' WHERE id = 1`).run();
   // Mixed case on purpose: the case-insensitive email index must accept it.
-  ins('users', { id: 2, username: 'alice', email: 'Alice.Traveller@Example.test', password_hash: 'fixture-login-disabled', display_name: 'Alice' });
+  ins('users', {
+    id: 2,
+    username: 'alice',
+    email: 'Alice.Traveller@Example.test',
+    password_hash: 'fixture-login-disabled',
+    display_name: 'Alice',
+  });
   ins('users', { id: 3, username: 'bob', email: 'bob@example.test', password_hash: 'fixture-login-disabled' });
   ins('settings', { user_id: 2, key: 'temperature_unit', value: 'celsius' });
   ins('settings', { user_id: 3, key: 'language', value: 'de' });
 
   // Trip 1 is upcoming and shared; trip 2 lies in the past with a reminder long due.
-  ins('trips', { id: 1, user_id: 2, title: 'Lisbon long weekend', description: 'Synthetic upgrade fixture trip', start_date: '2027-05-10', end_date: '2027-05-12', currency: 'EUR', reminder_days: 3 });
-  ins('trips', { id: 2, user_id: 3, title: 'Alps hiking', start_date: '2026-03-01', end_date: '2026-03-02', currency: 'CHF', reminder_days: 1, is_archived: 1 });
+  ins('trips', {
+    id: 1,
+    user_id: 2,
+    title: 'Lisbon long weekend',
+    description: 'Synthetic upgrade fixture trip',
+    start_date: '2027-05-10',
+    end_date: '2027-05-12',
+    currency: 'EUR',
+    reminder_days: 3,
+  });
+  ins('trips', {
+    id: 2,
+    user_id: 3,
+    title: 'Alps hiking',
+    start_date: '2026-03-01',
+    end_date: '2026-03-02',
+    currency: 'CHF',
+    reminder_days: 1,
+    is_archived: 1,
+  });
   ins('trip_members', { trip_id: 1, user_id: 3, invited_by: 2 });
 
   for (const [id, trip_id, day_number, date, title] of [
@@ -90,16 +124,59 @@ function seed(db) {
     ins('days', { id, trip_id, day_number, date, title });
   }
 
-  ins('places', { id: 1, trip_id: 1, name: 'Hotel Alfama', lat: 38.7115, lng: -9.13, address: 'Rua dos Remedios 1, Lisboa', category_id: 1 });
-  ins('places', { id: 2, trip_id: 1, name: 'Torre de Belem', lat: 38.6916, lng: -9.216, address: 'Av. Brasilia, Lisboa', category_id: 3, price: 12.5, currency: 'EUR', notes: 'Book online' });
-  ins('places', { id: 3, trip_id: 1, name: 'Time Out Market', lat: 38.7069, lng: -9.1459, category_id: 2, place_time: '19:30' });
+  ins('places', {
+    id: 1,
+    trip_id: 1,
+    name: 'Hotel Alfama',
+    lat: 38.7115,
+    lng: -9.13,
+    address: 'Rua dos Remedios 1, Lisboa',
+    category_id: 1,
+  });
+  ins('places', {
+    id: 2,
+    trip_id: 1,
+    name: 'Torre de Belem',
+    lat: 38.6916,
+    lng: -9.216,
+    address: 'Av. Brasilia, Lisboa',
+    category_id: 3,
+    price: 12.5,
+    currency: 'EUR',
+    notes: 'Book online',
+  });
+  ins('places', {
+    id: 3,
+    trip_id: 1,
+    name: 'Time Out Market',
+    lat: 38.7069,
+    lng: -9.1459,
+    category_id: 2,
+    place_time: '19:30',
+  });
   ins('places', { id: 4, trip_id: 2, name: 'Gornergrat', lat: 45.9833, lng: 7.7847, category_id: 3 });
-  ins('places', { id: 5, trip_id: 1, name: 'Fado bar', lat: 38.7110, lng: -9.1290, category_id: 2 });
+  ins('places', { id: 5, trip_id: 1, name: 'Fado bar', lat: 38.711, lng: -9.129, category_id: 2 });
 
   // The canaries tests/helpers/legacy-upgrade-suite.ts asserts on, as in legacy-v242:
   // user-set times on assignments 1 to 3 of day 2, and the booked night after them.
-  ins('day_accommodations', { id: 1, trip_id: 1, place_id: 1, start_day_id: 1, end_day_id: 3, check_in: '15:00', check_out: '11:00', confirmation: 'HTL-4242' });
-  ins('day_assignments', { id: 1, day_id: 2, place_id: 2, order_index: 0, assignment_time: '09:00', assignment_end_time: '12:00' });
+  ins('day_accommodations', {
+    id: 1,
+    trip_id: 1,
+    place_id: 1,
+    start_day_id: 1,
+    end_day_id: 3,
+    check_in: '15:00',
+    check_out: '11:00',
+    confirmation: 'HTL-4242',
+  });
+  ins('day_assignments', {
+    id: 1,
+    day_id: 2,
+    place_id: 2,
+    order_index: 0,
+    assignment_time: '09:00',
+    assignment_end_time: '12:00',
+  });
   ins('day_assignments', { id: 2, day_id: 2, place_id: 3, order_index: 1, assignment_time: '18:00' });
   ins('day_assignments', { id: 3, day_id: 2, place_id: 5, order_index: 2, assignment_time: '20:00' });
   ins('day_assignments', { id: 4, day_id: 2, place_id: 1, order_index: 3, accommodation_id: 1 });
@@ -107,36 +184,203 @@ function seed(db) {
   ins('day_assignments', { id: 6, day_id: 4, place_id: 4, order_index: 0 });
   ins('day_notes', { day_id: 2, trip_id: 1, text: 'Tram 15 to Belem', time: '09:30', sort_order: 0 });
 
-  ins('reservations', { id: 1, trip_id: 1, day_id: 1, title: 'TP 1351 Frankfurt to Lisbon', reservation_time: '2027-05-10T08:15', reservation_end_time: '2027-05-10T10:05', confirmation_number: 'ABC123', status: 'confirmed', type: 'flight' });
-  ins('reservation_endpoints', { reservation_id: 1, role: 'from', sequence: 0, name: 'Frankfurt', code: 'FRA', lat: 50.0379, lng: 8.5622, timezone: 'Europe/Berlin', local_time: '08:15', local_date: '2027-05-10' });
-  ins('reservation_endpoints', { reservation_id: 1, role: 'to', sequence: 1, name: 'Lisbon', code: 'LIS', lat: 38.7742, lng: -9.1342, timezone: 'Europe/Lisbon', local_time: '10:05', local_date: '2027-05-10' });
-  ins('reservations', { id: 2, trip_id: 1, day_id: 1, end_day_id: 3, place_id: 1, accommodation_id: 1, title: 'Hotel Alfama', confirmation_number: 'HTL-4242', status: 'confirmed', type: 'hotel' });
+  ins('reservations', {
+    id: 1,
+    trip_id: 1,
+    day_id: 1,
+    title: 'TP 1351 Frankfurt to Lisbon',
+    reservation_time: '2027-05-10T08:15',
+    reservation_end_time: '2027-05-10T10:05',
+    confirmation_number: 'ABC123',
+    status: 'confirmed',
+    type: 'flight',
+  });
+  ins('reservation_endpoints', {
+    reservation_id: 1,
+    role: 'from',
+    sequence: 0,
+    name: 'Frankfurt',
+    code: 'FRA',
+    lat: 50.0379,
+    lng: 8.5622,
+    timezone: 'Europe/Berlin',
+    local_time: '08:15',
+    local_date: '2027-05-10',
+  });
+  ins('reservation_endpoints', {
+    reservation_id: 1,
+    role: 'to',
+    sequence: 1,
+    name: 'Lisbon',
+    code: 'LIS',
+    lat: 38.7742,
+    lng: -9.1342,
+    timezone: 'Europe/Lisbon',
+    local_time: '10:05',
+    local_date: '2027-05-10',
+  });
+  ins('reservations', {
+    id: 2,
+    trip_id: 1,
+    day_id: 1,
+    end_day_id: 3,
+    place_id: 1,
+    accommodation_id: 1,
+    title: 'Hotel Alfama',
+    confirmation_number: 'HTL-4242',
+    status: 'confirmed',
+    type: 'hotel',
+  });
 
-  ins('budget_items', { id: 1, trip_id: 1, category: 'Accommodation', name: 'Hotel Alfama, two nights', total_price: 312.4, persons: 2, days: 2, paid_by_user_id: 2, expense_date: '2027-05-10', reservation_id: 2, currency: 'EUR' });
+  ins('budget_items', {
+    id: 1,
+    trip_id: 1,
+    category: 'Accommodation',
+    name: 'Hotel Alfama, two nights',
+    total_price: 312.4,
+    persons: 2,
+    days: 2,
+    paid_by_user_id: 2,
+    expense_date: '2027-05-10',
+    reservation_id: 2,
+    currency: 'EUR',
+  });
   ins('budget_item_members', { budget_item_id: 1, user_id: 2, paid: 1, amount: 156.2 });
   ins('budget_item_members', { budget_item_id: 1, user_id: 3, paid: 0, amount: 156.2 });
-  ins('budget_items', { id: 2, trip_id: 1, category: 'Food', name: 'Dinner at the market', total_price: 64, persons: 2, paid_by_user_id: 3, currency: 'EUR' });
+  ins('budget_items', {
+    id: 2,
+    trip_id: 1,
+    category: 'Food',
+    name: 'Dinner at the market',
+    total_price: 64,
+    persons: 2,
+    paid_by_user_id: 3,
+    currency: 'EUR',
+  });
 
-  ins('packing_bags', { id: 1, trip_id: 1, name: 'Carry-on', color: '#3b82f6', weight_limit_grams: 8000, sort_order: 0, user_id: 2 });
-  ins('packing_items', { trip_id: 1, name: 'Passport', checked: 1, category: 'Documents', sort_order: 0, bag_id: 1, quantity: 1 });
-  ins('packing_items', { trip_id: 1, name: 'Sunscreen', checked: 0, category: 'Toiletries', sort_order: 1, weight_grams: 150, quantity: 1 });
-  ins('packing_items', { trip_id: 1, name: 'Private charger', checked: 0, category: 'Tech', sort_order: 2, is_private: 1, owner_id: 3, quantity: 1 });
+  ins('packing_bags', {
+    id: 1,
+    trip_id: 1,
+    name: 'Carry-on',
+    color: '#3b82f6',
+    weight_limit_grams: 8000,
+    sort_order: 0,
+    user_id: 2,
+  });
+  ins('packing_items', {
+    trip_id: 1,
+    name: 'Passport',
+    checked: 1,
+    category: 'Documents',
+    sort_order: 0,
+    bag_id: 1,
+    quantity: 1,
+  });
+  ins('packing_items', {
+    trip_id: 1,
+    name: 'Sunscreen',
+    checked: 0,
+    category: 'Toiletries',
+    sort_order: 1,
+    weight_grams: 150,
+    quantity: 1,
+  });
+  ins('packing_items', {
+    trip_id: 1,
+    name: 'Private charger',
+    checked: 0,
+    category: 'Tech',
+    sort_order: 2,
+    is_private: 1,
+    owner_id: 3,
+    quantity: 1,
+  });
 
-  ins('todo_items', { trip_id: 1, name: 'Buy Lisboa Card', checked: 0, category: 'Tickets', sort_order: 0, due_date: '2027-05-01', assigned_user_id: 3, priority: 1 });
-  ins('collab_notes', { trip_id: 1, user_id: 2, category: 'Ideas', title: 'Fado evening', content: 'Ask the hotel for a tip' });
+  ins('todo_items', {
+    trip_id: 1,
+    name: 'Buy Lisboa Card',
+    checked: 0,
+    category: 'Tickets',
+    sort_order: 0,
+    due_date: '2027-05-01',
+    assigned_user_id: 3,
+    priority: 1,
+  });
+  ins('collab_notes', {
+    trip_id: 1,
+    user_id: 2,
+    category: 'Ideas',
+    title: 'Fado evening',
+    content: 'Ask the hotel for a tip',
+  });
 
-  ins('trip_files', { id: 1, trip_id: 1, reservation_id: 1, filename: 'fixture-boarding-pass.pdf', original_name: 'Boarding pass.pdf', file_size: 48213, mime_type: 'application/pdf', uploaded_by: 2 });
-  ins('trip_files', { id: 2, trip_id: 1, place_id: 2, filename: 'fixture-tickets.pdf', original_name: 'Tickets.pdf', file_size: 1024, mime_type: 'application/pdf', uploaded_by: 3, starred: 1 });
+  ins('trip_files', {
+    id: 1,
+    trip_id: 1,
+    reservation_id: 1,
+    filename: 'fixture-boarding-pass.pdf',
+    original_name: 'Boarding pass.pdf',
+    file_size: 48213,
+    mime_type: 'application/pdf',
+    uploaded_by: 2,
+  });
+  ins('trip_files', {
+    id: 2,
+    trip_id: 1,
+    place_id: 2,
+    filename: 'fixture-tickets.pdf',
+    original_name: 'Tickets.pdf',
+    file_size: 1024,
+    mime_type: 'application/pdf',
+    uploaded_by: 3,
+    starred: 1,
+  });
 
   ins('tags', { id: 1, user_id: 2, name: 'Must see', color: '#ef4444' });
   ins('place_tags', { place_id: 2, tag_id: 1 });
 
-  ins('journeys', { id: 1, user_id: 2, title: 'Portugal 2027', subtitle: 'Three days by the river', status: 'draft', created_at: T, updated_at: T });
+  ins('journeys', {
+    id: 1,
+    user_id: 2,
+    title: 'Portugal 2027',
+    subtitle: 'Three days by the river',
+    status: 'draft',
+    created_at: T,
+    updated_at: T,
+  });
   ins('journey_trips', { journey_id: 1, trip_id: 1, added_at: T });
   ins('journey_contributors', { journey_id: 1, user_id: 3, role: 'editor', added_at: T });
-  ins('journey_entries', { id: 1, journey_id: 1, source_trip_id: 1, source_place_id: 2, author_id: 2, type: 'entry', title: 'Belem in the sun', story: 'Pasteis first, tower second.', entry_date: '2027-05-11', entry_time: '11:00', location_name: 'Belem', location_lat: 38.6916, location_lng: -9.216, mood: 'amazing', visibility: 'shared', sort_order: 0, created_at: T, updated_at: T });
+  ins('journey_entries', {
+    id: 1,
+    journey_id: 1,
+    source_trip_id: 1,
+    source_place_id: 2,
+    author_id: 2,
+    type: 'entry',
+    title: 'Belem in the sun',
+    story: 'Pasteis first, tower second.',
+    entry_date: '2027-05-11',
+    entry_time: '11:00',
+    location_name: 'Belem',
+    location_lat: 38.6916,
+    location_lng: -9.216,
+    mood: 'amazing',
+    visibility: 'shared',
+    sort_order: 0,
+    created_at: T,
+    updated_at: T,
+  });
 
-  ins('notifications', { type: 'simple', scope: 'trip', target: 1, sender_id: 2, recipient_id: 3, title_key: 'notif.test.title', text_key: 'notif.test.text', is_read: 0 });
+  ins('notifications', {
+    type: 'simple',
+    scope: 'trip',
+    target: 1,
+    sender_id: 2,
+    recipient_id: 3,
+    title_key: 'notif.test.title',
+    text_key: 'notif.test.text',
+    is_read: 0,
+  });
 }
 
 /** Every timestamp the runner or a column default wrote is "now"; pin them so a rebuild is byte-stable. */

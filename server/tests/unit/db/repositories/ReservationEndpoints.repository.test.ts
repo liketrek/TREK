@@ -4,14 +4,15 @@
  * test file). ONE seeded world, one `toEqual(<legacy raw>)` test per read
  * method.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { ReservationEndpoints } from '../../../../src/db/entities/ReservationEndpoints.entity';
+import type { ReservationEndpointsRepository } from '../../../../src/db/repositories/ReservationEndpoints.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createReservation, createTrip, createUser } from '../../../helpers/factories';
+import { insertRow } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createReservation, createTrip, createUser } from '../../../helpers/factories';
-import { ReservationEndpoints } from '../../../../src/db/entities/ReservationEndpoints.entity';
-import { insertRow } from '../../../helpers/factories/rows';
-import type { ReservationEndpointsRepository } from '../../../../src/db/repositories/ReservationEndpoints.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -21,14 +22,28 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(ReservationEndpoints);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 const insertEndpoint = async (
   reservationId: number,
   role: string,
   sequence: number,
-  overrides: Partial<{ name: string; code: string | null; lat: number; lng: number; timezone: string | null; local_time: string | null; local_date: string | null }> = {},
+  overrides: Partial<{
+    name: string;
+    code: string | null;
+    lat: number;
+    lng: number;
+    timezone: string | null;
+    local_time: string | null;
+    local_date: string | null;
+  }> = {},
 ) => {
   await insertRow(t, ReservationEndpoints, {
     reservation: reservationId,
@@ -64,20 +79,28 @@ describe('ReservationEndpointsRepository — fully seeded world', () => {
   it('RS3 listForTrip — matches the legacy JOIN reservations statement, ordered by reservation then sequence, scoped by trip', async () => {
     const { trip, flight, otherFlight } = await seed();
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT e.* FROM reservation_endpoints e JOIN reservations r ON e.reservation_id = r.id
-      WHERE r.trip_id = ? ORDER BY e.reservation_id, e.sequence`).all(trip.id);
+      WHERE r.trip_id = ? ORDER BY e.reservation_id, e.sequence`,
+      )
+      .all(trip.id);
     const typed = await repo.listForTrip(trip.id);
     expect(typed).toEqual(legacy);
     expect(typed.map((e) => [e.reservation_id, e.sequence])).toEqual([
-      [flight.id, 0], [flight.id, 1], [otherFlight.id, 0],
+      [flight.id, 0],
+      [flight.id, 1],
+      [otherFlight.id, 0],
     ]);
   });
 
   it('RR2 listForReservation — matches the legacy statement, ordered by sequence, scoped to one reservation', async () => {
     const { flight } = await seed();
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-    const legacy = testDb.prepare('SELECT * FROM reservation_endpoints WHERE reservation_id = ? ORDER BY sequence').all(flight.id);
+    const legacy = testDb
+      .prepare('SELECT * FROM reservation_endpoints WHERE reservation_id = ? ORDER BY sequence')
+      .all(flight.id);
     const typed = await repo.listForReservation(flight.id);
     expect(typed).toEqual(legacy);
     expect(typed.map((e) => e.role)).toEqual(['from', 'to']);
@@ -86,7 +109,9 @@ describe('ReservationEndpointsRepository — fully seeded world', () => {
   it('DY17 listIdAndDate — matches the legacy statement', async () => {
     const { flight } = await seed();
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-    const legacy = testDb.prepare('SELECT id, local_date FROM reservation_endpoints WHERE reservation_id = ?').all(flight.id);
+    const legacy = testDb
+      .prepare('SELECT id, local_date FROM reservation_endpoints WHERE reservation_id = ?')
+      .all(flight.id);
     const typed = await repo.listIdAndDate(flight.id);
     expect(typed).toEqual(legacy);
     expect(typed.every((r) => r.local_date === '2026-09-01')).toBe(true);
@@ -95,13 +120,19 @@ describe('ReservationEndpointsRepository — fully seeded world', () => {
   it('RPL6 listRoadtripTerminals — matches the legacy JOIN reservations statement, ordered by reservation then sequence, scoped by trip', async () => {
     const { trip, flight, otherFlight } = await seed();
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT e.reservation_id, e.role, e.sequence, e.name, e.code, e.lat, e.lng FROM reservation_endpoints e
-      JOIN reservations r ON r.id = e.reservation_id WHERE r.trip_id = ? ORDER BY e.reservation_id, e.sequence`).all(trip.id);
+      JOIN reservations r ON r.id = e.reservation_id WHERE r.trip_id = ? ORDER BY e.reservation_id, e.sequence`,
+      )
+      .all(trip.id);
     const typed = await repo.listRoadtripTerminals(trip.id);
     expect(typed).toEqual(legacy);
     expect(typed.map((e) => [e.reservation_id, e.sequence])).toEqual([
-      [flight.id, 0], [flight.id, 1], [otherFlight.id, 0],
+      [flight.id, 0],
+      [flight.id, 1],
+      [otherFlight.id, 0],
     ]);
   });
 });

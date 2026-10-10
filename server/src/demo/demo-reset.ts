@@ -1,13 +1,18 @@
-import fs from 'fs';
-import path from 'path';
-import { RequestContext, type EntityManager } from '@mikro-orm/core';
 import { readEnv } from '../app-config';
 import { resolveDataPaths } from '../app-config/data-paths';
-import { DemoRepository, type DemoAdminCredentialsRow, type DemoInstanceKeyRow } from '../db/repositories/DemoRepository';
-import { DatabaseConnectionLostError, type DatabaseBackupStrategy } from '../nest/database/database-backup.interface';
-import type { CarriedUserSessionRow } from '../db/repositories/UserSessions.repository';
 import { UserSessions } from '../db/entities/UserSessions.entity';
+import {
+  DemoRepository,
+  type DemoAdminCredentialsRow,
+  type DemoInstanceKeyRow,
+} from '../db/repositories/DemoRepository';
+import type { CarriedUserSessionRow } from '../db/repositories/UserSessions.repository';
 import { dbNow } from '../db/types';
+import { DatabaseConnectionLostError, type DatabaseBackupStrategy } from '../nest/database/database-backup.interface';
+import { RequestContext, type EntityManager } from '@mikro-orm/core';
+
+import fs from 'fs';
+import path from 'path';
 
 const baselinePath = path.join(resolveDataPaths().dataDir, 'travel-baseline.db');
 

@@ -9,27 +9,31 @@
  * touch: a stored mapbox_access_token must not appear in a read, and neither
  * that key nor llm_api_key nor an unknown name may be written.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { Settings } from '../../../src/db/entities/Settings.entity';
+import { encrypt_api_key } from '../../../src/nest/common/crypto/apiKeyCrypto';
+import { MANAGED_LOCKED_SETTING_KEYS } from '../../../src/nest/common/managed';
+import { DISPLAY_PREFERENCE_KEYS } from '../../../src/nest/settings/settings.mcp';
+import {
+  isAdminOnlyEndpointSetting,
+  ENCRYPTED_SETTING_KEYS,
+  MASKED_SETTING_KEYS,
+} from '../../../src/nest/settings/settings.service';
+import { createUser } from '../../helpers/factories';
+import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
+import { setUserSetting } from '../../helpers/factories/settings';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { MASKED_SETTING_VALUE } from '@trek/shared';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createUser } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
-import { setUserSetting } from '../../helpers/factories/settings';
-import { Settings } from '../../../src/db/entities/Settings.entity';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
-import { encrypt_api_key } from '../../../src/nest/common/crypto/apiKeyCrypto';
-import { MASKED_SETTING_VALUE } from '@trek/shared';
-import { DISPLAY_PREFERENCE_KEYS } from '../../../src/nest/settings/settings.mcp';
-import { MANAGED_LOCKED_SETTING_KEYS } from '../../../src/nest/common/managed';
-import { isAdminOnlyEndpointSetting, ENCRYPTED_SETTING_KEYS, MASKED_SETTING_KEYS } from '../../../src/nest/settings/settings.service';
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -66,12 +70,20 @@ function countSettings(userId: number): Promise<number> {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 async function withScopedHarness(userId: number, scopes: string[] | null, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false, scopes });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 async function update(h: McpHarness, settings: Record<string, unknown>) {
@@ -175,7 +187,7 @@ describe('Tool: get_display_settings', () => {
     });
   });
 
-  it('does not leak another user\'s preferences', async () => {
+  it("does not leak another user's preferences", async () => {
     const { user: mine } = createUser(testDb);
     const { user: theirs } = createUser(testDb);
     await setSetting(theirs.id, 'temperature_unit', '"fahrenheit"');
@@ -292,7 +304,7 @@ describe('Tool: update_display_settings', () => {
     });
   });
 
-  it('accepts an empty default_currency, which falls back to each trip\'s own', async () => {
+  it("accepts an empty default_currency, which falls back to each trip's own", async () => {
     const { user } = createUser(testDb);
     await setSetting(user.id, 'default_currency', '"USD"');
     await withHarness(user.id, async (h) => {
@@ -489,27 +501,33 @@ describe('Display-preference allow-list', () => {
     // Here the two lists must simply not overlap, which is what makes the
     // managed lock unreachable rather than merely duplicated.
     const overlap = DISPLAY_PREFERENCE_KEYS.filter((key) =>
-      (MANAGED_LOCKED_SETTING_KEYS as readonly string[]).includes(key));
+      (MANAGED_LOCKED_SETTING_KEYS as readonly string[]).includes(key),
+    );
     expect(overlap).toEqual([]);
   });
 
   it('holds no key assertMayWriteInstanceEndpoint would have to refuse', () => {
     // isAdminOnlyEndpointSetting is value-dependent, so probe it with the values
     // that trip it rather than matching on the key name.
-    const offenders = DISPLAY_PREFERENCE_KEYS.filter((key) =>
-      isAdminOnlyEndpointSetting(key, 'http://127.0.0.1:11434') || isAdminOnlyEndpointSetting(key, 'local'));
+    const offenders = DISPLAY_PREFERENCE_KEYS.filter(
+      (key) => isAdminOnlyEndpointSetting(key, 'http://127.0.0.1:11434') || isAdminOnlyEndpointSetting(key, 'local'),
+    );
     expect(offenders).toEqual([]);
   });
 
   // Against the live sets, not a copy of them: a sixth encrypted key added to
   // the service has to fail here, which is the whole point of the allow-list.
   it('holds no key that is encrypted at rest', () => {
-    const overlap = [...ENCRYPTED_SETTING_KEYS].filter(key => (DISPLAY_PREFERENCE_KEYS as readonly string[]).includes(key));
+    const overlap = [...ENCRYPTED_SETTING_KEYS].filter((key) =>
+      (DISPLAY_PREFERENCE_KEYS as readonly string[]).includes(key),
+    );
     expect(overlap).toEqual([]);
   });
 
   it('holds no key that is masked on the way out', () => {
-    const overlap = [...MASKED_SETTING_KEYS].filter(key => (DISPLAY_PREFERENCE_KEYS as readonly string[]).includes(key));
+    const overlap = [...MASKED_SETTING_KEYS].filter((key) =>
+      (DISPLAY_PREFERENCE_KEYS as readonly string[]).includes(key),
+    );
     expect(overlap).toEqual([]);
   });
 });

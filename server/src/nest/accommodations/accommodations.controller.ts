@@ -1,10 +1,10 @@
-import { Body, Controller, Delete, Query, Get, Headers, Param, Post, Put, UseGuards } from '@nestjs/common';
 import type { User } from '../../types';
-import { AccommodationsService, type StayInput } from './accommodations.service';
-import { AccommodationCreateDto, AccommodationUpdateDto } from './accommodations.dto';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { AccommodationCreateDto, AccommodationUpdateDto } from './accommodations.dto';
+import { AccommodationsService, type StayInput } from './accommodations.service';
+import { Body, Controller, Delete, Query, Get, Headers, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 /**
  * /api/trips/:tripId/accommodations — trip-scoped lodging blocks.
@@ -45,7 +45,11 @@ export class AccommodationsController {
     @Body() rawBody: AccommodationCreateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const { accommodation, mirror } = await this.accommodations.createStay(tripId, rawBody as StayInput, this.accommodations.restWriter(tripId, user, socketId));
+    const { accommodation, mirror } = await this.accommodations.createStay(
+      tripId,
+      rawBody as StayInput,
+      this.accommodations.restWriter(tripId, user, socketId),
+    );
     // The stop rides in the answer as well, for the session that booked the night
     // with its socket down: over the socket it would already have it.
     return { accommodation, assignment: mirror.created };
@@ -60,8 +64,18 @@ export class AccommodationsController {
     @Body() rawBody: AccommodationUpdateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const { accommodation, mirror } = await this.accommodations.updateStay(tripId, id, rawBody as StayInput, this.accommodations.restWriter(tripId, user, socketId));
-    return { accommodation, assignment: mirror.created, movedAssignment: mirror.moved, removedAssignments: mirror.removed };
+    const { accommodation, mirror } = await this.accommodations.updateStay(
+      tripId,
+      id,
+      rawBody as StayInput,
+      this.accommodations.restWriter(tripId, user, socketId),
+    );
+    return {
+      accommodation,
+      assignment: mirror.created,
+      movedAssignment: mirror.moved,
+      removedAssignments: mirror.removed,
+    };
   }
 
   @RequirePermission('day_edit')
@@ -76,7 +90,12 @@ export class AccommodationsController {
     // Turning a night back into a pause in road trip mode: the booking goes, the
     // stop stays and becomes the traveller's. Everywhere else a cancelled booking
     // takes the stop it brought with it.
-    const { mirror } = await this.accommodations.deleteStay(tripId, id, this.accommodations.restWriter(tripId, user, socketId), { keepStop: keepStop === 'true' });
+    const { mirror } = await this.accommodations.deleteStay(
+      tripId,
+      id,
+      this.accommodations.restWriter(tripId, user, socketId),
+      { keepStop: keepStop === 'true' },
+    );
     return { success: true, removedAssignments: mirror.removed, updatedAssignments: mirror.updated };
   }
 }

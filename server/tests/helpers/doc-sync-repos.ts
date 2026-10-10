@@ -16,22 +16,23 @@
  * explains why a second ORM instance is a real, if subtle, bug: two
  * identity maps and two Kysely clients, neither closed).
  */
-import type Database from 'better-sqlite3';
-import { sharedTestOrm } from './test-uow';
 import { DocumentConnections } from '../../src/db/entities/DocumentConnections.entity';
-import type { DocumentConnectionsRepository } from '../../src/db/repositories/DocumentConnections.repository';
-import { DocumentProviders } from '../../src/db/entities/DocumentProviders.entity';
-import type { DocumentProvidersRepository } from '../../src/db/repositories/DocumentProviders.repository';
 import { DocumentProviderFields } from '../../src/db/entities/DocumentProviderFields.entity';
-import type { DocumentProviderFieldsRepository } from '../../src/db/repositories/DocumentProviderFields.repository';
-import { TripDocumentLinks } from '../../src/db/entities/TripDocumentLinks.entity';
-import type { TripDocumentLinksRepository } from '../../src/db/repositories/TripDocumentLinks.repository';
+import { DocumentProviders } from '../../src/db/entities/DocumentProviders.entity';
 import { DocumentSyncItems } from '../../src/db/entities/DocumentSyncItems.entity';
-import type { DocumentSyncItemsRepository } from '../../src/db/repositories/DocumentSyncItems.repository';
-import { TripFiles } from '../../src/db/entities/TripFiles.entity';
-import type { TripFilesRepository } from '../../src/db/repositories/TripFiles.repository';
 import { FileLinks } from '../../src/db/entities/FileLinks.entity';
+import { TripDocumentLinks } from '../../src/db/entities/TripDocumentLinks.entity';
+import { TripFiles } from '../../src/db/entities/TripFiles.entity';
+import type { DocumentConnectionsRepository } from '../../src/db/repositories/DocumentConnections.repository';
+import type { DocumentProviderFieldsRepository } from '../../src/db/repositories/DocumentProviderFields.repository';
+import type { DocumentProvidersRepository } from '../../src/db/repositories/DocumentProviders.repository';
+import type { DocumentSyncItemsRepository } from '../../src/db/repositories/DocumentSyncItems.repository';
 import type { FileLinksRepository } from '../../src/db/repositories/FileLinks.repository';
+import type { TripDocumentLinksRepository } from '../../src/db/repositories/TripDocumentLinks.repository';
+import type { TripFilesRepository } from '../../src/db/repositories/TripFiles.repository';
+import { sharedTestOrm } from './test-uow';
+
+import type Database from 'better-sqlite3';
 
 const documentConnectionsPerHandle = new WeakMap<Database.Database, Promise<DocumentConnectionsRepository>>();
 const documentProvidersPerHandle = new WeakMap<Database.Database, Promise<DocumentProvidersRepository>>();

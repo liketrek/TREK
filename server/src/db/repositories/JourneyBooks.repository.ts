@@ -84,7 +84,11 @@ export class JourneyBooksRepository extends TrekRepository<JourneyBooks> {
    * means a conflict — the service re-reads via {@link findById} for the
    * `{conflict}` response, it does not throw.
    */
-  async casUpdate(id: number, baseVersion: number, data: { title: string; document: string; updatedBy: number }): Promise<number> {
+  async casUpdate(
+    id: number,
+    baseVersion: number,
+    data: { title: string; document: string; updatedBy: number },
+  ): Promise<number> {
     const platform = this.getEntityManager().getPlatform();
     return await this.nativeUpdate(
       { id, version: baseVersion },

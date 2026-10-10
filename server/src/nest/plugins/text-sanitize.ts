@@ -32,7 +32,10 @@ export function stripEmoji(s: string): string {
   // run is only ever walked from its own start — plugin text must not make ` +$` restart
   // inside every space of a long one.
   if (stripped === s) return s;
-  return stripped.replace(/[^\S\r\n]{2,}/g, ' ').replace(/(^|[^ ]) +$/gm, '$1').trim();
+  return stripped
+    .replace(/[^\S\r\n]{2,}/g, ' ')
+    .replace(/(^|[^ ]) +$/gm, '$1')
+    .trim();
 }
 
 /** True if the string contains at least one emoji — used by the dev/validate warnings. */

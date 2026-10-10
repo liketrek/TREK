@@ -9,6 +9,16 @@
  * The rule that makes this safe: it may describe, it may not illustrate, and it
  * must say what it is describing.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
+import { readBrandIdentity } from '../../../src/nest/maps/maps.service';
+import type { MapsService } from '../../../src/nest/maps/maps.service';
+import type { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
+import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
+import type { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
+import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Rebuilt on PlaceDetailsCacheRepository/AppSettingsRepository (Plan 3c Task
@@ -17,8 +27,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // calling two named repository methods instead.
 const { mockGetValue, mockFindEntry, mockUpsertEntry } = vi.hoisted(() => ({
   mockGetValue: vi.fn(async (_key: string): Promise<string | null> => null),
-  mockFindEntry: vi.fn(async (..._args: unknown[]): Promise<{ payload_json: string; fetched_at: number } | null> => null),
-  mockUpsertEntry: vi.fn(async (_row: { place_id: string; lang: string; expanded: number; payload_json: string; fetched_at: number }): Promise<void> => {}),
+  mockFindEntry: vi.fn(
+    async (..._args: unknown[]): Promise<{ payload_json: string; fetched_at: number } | null> => null,
+  ),
+  mockUpsertEntry: vi.fn(
+    async (_row: {
+      place_id: string;
+      lang: string;
+      expanded: number;
+      payload_json: string;
+      fetched_at: number;
+    }): Promise<void> => {},
+  ),
 }));
 
 vi.mock('../../../src/utils/ssrfGuard', () => ({
@@ -27,19 +47,9 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
-import { readBrandIdentity } from '../../../src/nest/maps/maps.service';
-import type { MapsService } from '../../../src/nest/maps/maps.service';
-import type { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
-import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
-import type { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
-
 /** Every seam enrichment reaches: the maps orchestrator and the outbound clients it injects beside it. */
 type Seams<T> = { [K in keyof T]: T[K] };
 type EnrichmentSeams = Seams<MapsService> & Seams<GooglePlacesClient> & Seams<OsmClient> & Seams<WikimediaClient>;
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 
 const REQ = { lat: 54.088, lng: 12.1409, name: "L'Osteria Rostock", placeId: 'ChIJosteria', lang: 'de' };
 
@@ -72,14 +82,19 @@ function mapsStub(over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) {
     fetchWikiExtract: vi.fn(async () => null as typeof CHAIN_EXTRACT | null),
     fetchWikiExtractFor: vi.fn(async () => null as typeof CHAIN_EXTRACT | null),
     fetchWikidataSitelinks: vi.fn(async () => ({}) as Record<string, string>),
-    resolveOsmIdentity: vi.fn(async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null),
+    resolveOsmIdentity: vi.fn(
+      async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null,
+    ),
     details: vi.fn(async () => ({ place: null })),
     ...over,
   } as unknown as EnrichmentSeams;
 }
 
 const cacheStub = () =>
-  ({ get: vi.fn(() => null), put: vi.fn(async () => ({ photoUrl: '/x', filePath: '/x', attribution: null })) }) as unknown as PlacePhotoCacheService;
+  ({
+    get: vi.fn(() => null),
+    put: vi.fn(async () => ({ photoUrl: '/x', filePath: '/x', attribution: null })),
+  }) as unknown as PlacePhotoCacheService;
 
 function appSettingsStub(): AppSettingsRepository {
   return { getValue: mockGetValue } as unknown as AppSettingsRepository;
@@ -89,7 +104,16 @@ function cacheRepoStub(): PlaceDetailsCacheRepository {
   return { findEntry: mockFindEntry, upsertEntry: mockUpsertEntry } as unknown as PlaceDetailsCacheRepository;
 }
 
-const make = (maps: EnrichmentSeams) => new PlaceEnrichmentService(cacheRepoStub(), appSettingsStub(), maps as unknown as MapsService, cacheStub(), maps as unknown as GooglePlacesClient, maps as unknown as OsmClient, maps as unknown as WikimediaClient);
+const make = (maps: EnrichmentSeams) =>
+  new PlaceEnrichmentService(
+    cacheRepoStub(),
+    appSettingsStub(),
+    maps as unknown as MapsService,
+    cacheStub(),
+    maps as unknown as GooglePlacesClient,
+    maps as unknown as OsmClient,
+    maps as unknown as WikimediaClient,
+  );
 
 /** A place whose own identity is empty but that belongs to a chain. */
 const branchOfAChain = (over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) =>

@@ -225,7 +225,9 @@ function main(argv) {
 
 // Compared by real path, so the check still runs when the script is started through a symlink.
 const isCli =
-  Boolean(process.argv[1]) && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  Boolean(process.argv[1]) &&
+  existsSync(process.argv[1]) &&
+  realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isCli) {
   try {
     process.exitCode = main(process.argv.slice(2));

@@ -1,10 +1,17 @@
-import { idSchema } from '@trek/shared';
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext, type McpTextResult } from '../../../nest-mcp';
 import { noAccess } from '../../../mcp/tools/_shared';
+import {
+  McpController,
+  Tool,
+  TOOL_ANNOTATIONS_READONLY,
+  ok,
+  type McpContext,
+  type McpTextResult,
+} from '../../../nest-mcp';
+import { TripAccessService } from '../../trip-membership/trip-access.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
-import { TripAccessService } from '../../trip-membership/trip-access.service';
+import { idSchema } from '@trek/shared';
 
 /**
  * The MCP half of GET /api/trip-warnings/:tripId (#1429).
@@ -45,7 +52,8 @@ export class TripWarningsMcp {
 
   @Tool({
     name: 'get_trip_warnings',
-    description: 'Problems installed plugins report about a trip: a plugin flagging that something is wrong with the itinerary, such as an accommodation with no check-out, a day that cannot be travelled in the time it allows, or a place closed on the day it is planned for. get_trip_summary returns the trip\'s stored data and never these verdicts, so call this as well before reviewing a trip, reporting on it, or telling the user it looks fine. Returns an empty list when no installed plugin contributes warnings, which is the normal case.',
+    description:
+      "Problems installed plugins report about a trip: a plugin flagging that something is wrong with the itinerary, such as an accommodation with no check-out, a day that cannot be travelled in the time it allows, or a place closed on the day it is planned for. get_trip_summary returns the trip's stored data and never these verdicts, so call this as well before reviewing a trip, reporting on it, or telling the user it looks fine. Returns an empty list when no installed plugin contributes warnings, which is the normal case.",
     inputSchema: {
       tripId: idSchema,
     },

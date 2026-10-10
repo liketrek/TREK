@@ -1,8 +1,8 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { CollabMessages } from '../../../src/db/entities/CollabMessages.entity';
 import { CollabNotes } from '../../../src/db/entities/CollabNotes.entity';
 import type { FactoryOrm } from './context';
 import { createRow } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type CollabNoteRow = EntityDTO<CollabNotes>;
 export type CollabMessageRow = EntityDTO<CollabMessages>;

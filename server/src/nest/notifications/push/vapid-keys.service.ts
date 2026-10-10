@@ -1,6 +1,3 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { MikroORM } from '@mikro-orm/core';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { decodeBase64Url, isVapidSubject, readEnv, stripTrailingSlashes } from '../../../app-config';
 import { AppSettings } from '../../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../../db/repositories/AppSettings.repository';
@@ -9,6 +6,9 @@ import { decrypt_api_key, encrypt_api_key } from '../../common/crypto/apiKeyCryp
 import { withRequestContext } from '../../database/request-context';
 import { UnitOfWork } from '../../database/unit-of-work';
 import { generateVapidKeyPair, isVapidKeyPair, type VapidKeyPair } from './web-push-crypto';
+import { MikroORM } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /** app_settings rows holding the generated pair. The private half is stored encrypted. */
 export const VAPID_PUBLIC_KEY_SETTING = 'web_push_vapid_public_key';
@@ -40,9 +40,7 @@ export class PushUnavailableError extends Error {
 type UnusableReason = 'incomplete' | 'undecryptable' | 'mismatched';
 
 type StoredPair =
-  | { state: 'absent' }
-  | { state: 'usable'; keys: VapidKeyPair }
-  | { state: UnusableReason; fingerprint: string };
+  { state: 'absent' } | { state: 'usable'; keys: VapidKeyPair } | { state: UnusableReason; fingerprint: string };
 
 type PresentPair = Exclude<StoredPair, { state: 'absent' }>;
 

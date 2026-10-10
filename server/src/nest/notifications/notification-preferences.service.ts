@@ -1,13 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { NOTIFICATION_DEFAULTS, type NotificationDefault } from '@trek/shared';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { NotificationChannelPreferences } from '../../db/entities/NotificationChannelPreferences.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { NotificationChannelPreferencesRepository } from '../../db/repositories/NotificationChannelPreferences.repository';
+import { readAppSetting } from '../common/app-settings.registry';
 import { UnitOfWork } from '../database/unit-of-work';
-import { MailerService } from './mailer/mailer.service';
 import { listChannels } from './channel-registry';
+import { MailerService } from './mailer/mailer.service';
 import {
   ADMIN_SCOPED_EVENTS,
   ALL_EVENT_TYPES,
@@ -19,7 +17,9 @@ import {
   type NotifChannel,
   type NotifEventType,
 } from './notification-events';
-import { readAppSetting } from '../common/app-settings.registry';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { NOTIFICATION_DEFAULTS, type NotificationDefault } from '@trek/shared';
 
 export interface PreferencesMatrix {
   preferences: Partial<Record<NotifEventType, Partial<Record<NotifChannel, boolean>>>>;
@@ -66,7 +66,8 @@ export class NotificationPreferencesService {
     private readonly mailer: MailerService,
     private readonly uow: UnitOfWork,
     @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
-    @InjectRepository(NotificationChannelPreferences) private readonly channelPrefs: NotificationChannelPreferencesRepository,
+    @InjectRepository(NotificationChannelPreferences)
+    private readonly channelPrefs: NotificationChannelPreferencesRepository,
   ) {}
 
   /**
@@ -74,7 +75,7 @@ export class NotificationPreferencesService {
    * decide for themselves (today: everything except `synology_session_cleared`).
    */
   async combosFor(event: NotifEventType): Promise<NotifChannel[]> {
-    return [INAPP_CHANNEL, ...(await listChannels()).filter(c => c.supportsEvent(event)).map(c => c.id)];
+    return [INAPP_CHANNEL, ...(await listChannels()).filter((c) => c.supportsEvent(event)).map((c) => c.id)];
   }
 
   private async allCombos(): Promise<Record<string, NotifChannel[]>> {
@@ -97,10 +98,16 @@ export class NotificationPreferencesService {
    * would silently drop any that were).
    */
   async getActiveChannels(): Promise<NotifChannel[]> {
-    const raw = (await readAppSetting(this.appSettings, 'notification_channels')) || (await readAppSetting(this.appSettings, 'notification_channel')) || 'none';
+    const raw =
+      (await readAppSetting(this.appSettings, 'notification_channels')) ||
+      (await readAppSetting(this.appSettings, 'notification_channel')) ||
+      'none';
     if (raw === 'none') return [];
-    const builtins = new Set((await listChannels()).filter(c => c.source === 'builtin').map(c => c.id));
-    return raw.split(',').map(c => c.trim()).filter(c => builtins.has(c));
+    const builtins = new Set((await listChannels()).filter((c) => c.source === 'builtin').map((c) => c.id));
+    return raw
+      .split(',')
+      .map((c) => c.trim())
+      .filter((c) => builtins.has(c));
   }
 
   /** Is this channel switched on? Plugin channels are on by virtue of being live. */
@@ -145,7 +152,7 @@ export class NotificationPreferencesService {
   }
 
   private userEventTypes(): NotifEventType[] {
-    return ALL_EVENT_TYPES.filter(e => !ADMIN_SCOPED_EVENTS.has(e));
+    return ALL_EVENT_TYPES.filter((e) => !ADMIN_SCOPED_EVENTS.has(e));
   }
 
   async getInstanceDefaults(adminId: number): Promise<InstanceDefaultsMatrix> {
@@ -154,13 +161,16 @@ export class NotificationPreferencesService {
     const defaults: InstanceDefaultsMatrix['defaults'] = {};
     for (const event of event_types) {
       defaults[event] = {};
-      for (const channel of implemented_combos[event]) defaults[event]![channel] = await this.instanceDefault(event, channel);
+      for (const channel of implemented_combos[event])
+        defaults[event]![channel] = await this.instanceDefault(event, channel);
     }
     return { defaults, channels: await this.describeChannels(adminId, 'user'), event_types, implemented_combos };
   }
 
   /** Stores the cells given; `on` removes the row, so the table only holds what differs. Unknown cells are skipped. */
-  async setInstanceDefaults(defaults: Partial<Record<string, Partial<Record<string, NotificationDefault>>>>): Promise<void> {
+  async setInstanceDefaults(
+    defaults: Partial<Record<string, Partial<Record<string, NotificationDefault>>>>,
+  ): Promise<void> {
     const userEvents = new Set<string>(this.userEventTypes());
     // The channel set is read before the transaction opens: listChannels() may
     // ask the plugin runtime, which is no work to hold the connection for.
@@ -246,7 +256,11 @@ export class NotificationPreferencesService {
    * scope='user'  — excludes admin-scoped events (for user settings page)
    * scope='admin' — returns only admin-scoped events (for admin notifications tab)
    */
-  async getPreferencesMatrix(userId: number, userRole: string, scope: 'user' | 'admin' = 'user'): Promise<PreferencesMatrix> {
+  async getPreferencesMatrix(
+    userId: number,
+    userRole: string,
+    scope: 'user' | 'admin' = 'user',
+  ): Promise<PreferencesMatrix> {
     const rows = await this.channelPrefs.listForUser(userId);
 
     // Build a lookup from stored rows
@@ -282,16 +296,20 @@ export class NotificationPreferencesService {
     }
 
     // Filter event types by scope
-    const event_types = scope === 'admin'
-      ? ALL_EVENT_TYPES.filter(e => ADMIN_SCOPED_EVENTS.has(e))
-      : ALL_EVENT_TYPES.filter(e => !ADMIN_SCOPED_EVENTS.has(e));
+    const event_types =
+      scope === 'admin'
+        ? ALL_EVENT_TYPES.filter((e) => ADMIN_SCOPED_EVENTS.has(e))
+        : ALL_EVENT_TYPES.filter((e) => !ADMIN_SCOPED_EVENTS.has(e));
 
     return {
       preferences,
       channels: await this.describeChannels(userId, scope),
       event_types,
       implemented_combos,
-      ...(scope === 'user' && { defaults: { ntfyServer: (await readAppSetting(this.appSettings, 'admin_ntfy_server')) || null }, locked }),
+      ...(scope === 'user' && {
+        defaults: { ntfyServer: (await readAppSetting(this.appSettings, 'admin_ntfy_server')) || null },
+        locked,
+      }),
     };
   }
 
@@ -307,7 +325,11 @@ export class NotificationPreferencesService {
     return val !== '0';
   }
 
-  private async setAdminGlobalPref(event: NotifEventType, channel: AdminGlobalChannel, enabled: boolean): Promise<void> {
+  private async setAdminGlobalPref(
+    event: NotifEventType,
+    channel: AdminGlobalChannel,
+    enabled: boolean,
+  ): Promise<void> {
     await this.appSettings.setValue(`admin_notif_pref_${event}_${channel}`, enabled ? '1' : '0');
   }
 
@@ -338,7 +360,7 @@ export class NotificationPreferencesService {
    */
   async setPreferences(
     userId: number,
-    prefs: Partial<Record<string, Partial<Record<string, boolean>>>>
+    prefs: Partial<Record<string, Partial<Record<string, boolean>>>>,
   ): Promise<void> {
     await this.uow.transactional(async () => {
       await this.applyUserChannelPrefs(userId, prefs);
@@ -352,7 +374,7 @@ export class NotificationPreferencesService {
    */
   async setAdminPreferences(
     userId: number,
-    prefs: Partial<Record<string, Partial<Record<string, boolean>>>>
+    prefs: Partial<Record<string, Partial<Record<string, boolean>>>>,
   ): Promise<void> {
     // Split global (email/webhook) from per-user (inapp) prefs
     const globalPrefs: Partial<Record<string, Partial<Record<string, boolean>>>> = {};

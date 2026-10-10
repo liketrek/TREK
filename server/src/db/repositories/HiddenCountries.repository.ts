@@ -1,6 +1,6 @@
 import type { HiddenCountries } from '../entities/HiddenCountries.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 type HiddenCountriesKyselyDB = Pick<DB, 'hidden_countries'>;
 
@@ -17,7 +17,11 @@ export class HiddenCountriesRepository extends TrekRepository<HiddenCountries> {
 
   /** AT11 (`getHiddenCountries`) — `SELECT country_code FROM hidden_countries WHERE user_id = ?`. */
   async listForUser(userId: number): Promise<string[]> {
-    const rows = await this.db().selectFrom('hidden_countries').select('country_code').where('user_id', '=', userId).execute();
+    const rows = await this.db()
+      .selectFrom('hidden_countries')
+      .select('country_code')
+      .where('user_id', '=', userId)
+      .execute();
     return rows.map((r) => r.country_code);
   }
 
@@ -32,6 +36,10 @@ export class HiddenCountriesRepository extends TrekRepository<HiddenCountries> {
 
   /** AT13/AT20 (`markCountry`'s and `markRegion`'s "lift a prior removal" delete — identical text, two call sites) — `DELETE FROM hidden_countries WHERE user_id = ? AND country_code = ?`. */
   async unhide(userId: number, countryCode: string): Promise<void> {
-    await this.db().deleteFrom('hidden_countries').where('user_id', '=', userId).where('country_code', '=', countryCode).execute();
+    await this.db()
+      .deleteFrom('hidden_countries')
+      .where('user_id', '=', userId)
+      .where('country_code', '=', countryCode)
+      .execute();
   }
 }

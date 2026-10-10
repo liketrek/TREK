@@ -6,10 +6,24 @@
  * column the statement never selects would go unnoticed there. These run the statement.
  */
 import { db } from '../../../src/db/database';
+import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
+import { Places } from '../../../src/db/entities/Places.entity';
+import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import type { McpContext } from '../../../src/nest-mcp';
+import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
 import { RoadtripPlanService } from '../../../src/nest/roadtrip/roadtrip-plan.service';
 import { RoadtripPlanningMcp } from '../../../src/nest/roadtrip/roadtrip-planning.mcp';
-import { createDay, createDayAccommodation, createDayAssignment, createPlace, createTrip, createUser } from '../../helpers/factories';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
+import {
+  createDay,
+  createDayAccommodation,
+  createDayAssignment,
+  createPlace,
+  createTrip,
+  createUser,
+} from '../../helpers/factories';
+import { findRow, insertRow, updateRows } from '../../helpers/factories/rows';
 import { resetTestDb } from '../../helpers/test-db';
 import {
   createTestTripsRepo,
@@ -21,41 +35,42 @@ import {
   createTestReservationDayPositionsRepo,
 } from '../../helpers/test-uow';
 import { sharedTestOrm } from '../../helpers/test-uow';
-import { findRow, insertRow, updateRows } from '../../helpers/factories/rows';
-import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
-import { Places } from '../../../src/db/entities/Places.entity';
-import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
-import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import type { RoadtripPreferences } from '@trek/shared';
 import { bookendAssignmentId, type RoadtripStop } from '@trek/shared/roadtrip';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
-import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 /** Every leg an hour and 60 km, whatever it joins. */
 function hourlyRouter() {
   return {
     profiles: () => ['driving'],
-    route: vi.fn(async (_user: number, _trip: number, _day: number, points: { lat: number; lng: number }[], _profile?: string) => ({
-      parts: points.slice(1).map(() => ({ distance: 60000, duration: 3600 })),
-      avoidMissed: [],
-      leg: {
-        line: points.map((p) => [p.lat, p.lng]),
-        vias: [],
-        seg: {
-          from: [points[0].lat, points[0].lng],
-          to: [points[points.length - 1].lat, points[points.length - 1].lng],
-          mid: [points[0].lat, points[0].lng],
-          distance: 60000 * (points.length - 1),
-          duration: 3600 * (points.length - 1),
-          mode: 'driving',
-          distanceText: '',
-          drivingText: '',
-          walkingText: '',
+    route: vi.fn(
+      async (
+        _user: number,
+        _trip: number,
+        _day: number,
+        points: { lat: number; lng: number }[],
+        _profile?: string,
+      ) => ({
+        parts: points.slice(1).map(() => ({ distance: 60000, duration: 3600 })),
+        avoidMissed: [],
+        leg: {
+          line: points.map((p) => [p.lat, p.lng]),
+          vias: [],
+          seg: {
+            from: [points[0].lat, points[0].lng],
+            to: [points[points.length - 1].lat, points[points.length - 1].lng],
+            mid: [points[0].lat, points[0].lng],
+            distance: 60000 * (points.length - 1),
+            duration: 3600 * (points.length - 1),
+            mode: 'driving',
+            distanceText: '',
+            drivingText: '',
+            walkingText: '',
+          },
         },
-      },
-    })),
+      }),
+    ),
   };
 }
 
@@ -73,7 +88,10 @@ async function planRepos() {
 }
 
 /** Sets columns on one day assignment. */
-async function setVisit(id: number, fields: Partial<Pick<DayAssignments, 'assignment_time' | 'assignment_end_time' | 'accommodation_id'>>) {
+async function setVisit(
+  id: number,
+  fields: Partial<Pick<DayAssignments, 'assignment_time' | 'assignment_end_time' | 'accommodation_id'>>,
+) {
   await updateRows(await sharedTestOrm(db), DayAssignments, { id }, fields);
 }
 
@@ -90,8 +108,15 @@ async function dayOf(assignmentId: number): Promise<{ day_id: number }> {
 
 /** Adds a booking and returns its id. */
 async function addReservation(fields: {
-  trip: number; title: string; type: string; day?: number | null; endDay?: number | null;
-  reservation_time?: string; reservation_end_time?: string; accommodation_id?: number; day_plan_position?: number;
+  trip: number;
+  title: string;
+  type: string;
+  day?: number | null;
+  endDay?: number | null;
+  reservation_time?: string;
+  reservation_end_time?: string;
+  accommodation_id?: number;
+  day_plan_position?: number;
 }): Promise<number> {
   const { accommodation_id, ...rest } = fields;
   return insertRow(await sharedTestOrm(db), Reservations, {
@@ -101,7 +126,15 @@ async function addReservation(fields: {
 }
 
 /** Adds one located terminal to a booking. */
-async function addEndpoint(reservation: number, role: string, sequence: number, name: string, code: string | null, lat: number, lng: number) {
+async function addEndpoint(
+  reservation: number,
+  role: string,
+  sequence: number,
+  name: string,
+  code: string | null,
+  lat: number,
+  lng: number,
+) {
   await insertRow(await sharedTestOrm(db), ReservationEndpoints, { reservation, role, sequence, name, code, lat, lng });
 }
 
@@ -135,7 +168,9 @@ describe('a visit end time on the road trip', () => {
   it('is read from the visit, and from the place when the visit has none', async () => {
     const { user, trip, visits, plans } = await setup();
     await setVisit(visits[1].id, { assignment_end_time: '14:00' });
-    await setPlace((await findRow(await sharedTestOrm(db), DayAssignments, { id: visits[2].id }))!.place_id, { end_time: '18:00' });
+    await setPlace((await findRow(await sharedTestOrm(db), DayAssignments, { id: visits[2].id }))!.place_id, {
+      end_time: '18:00',
+    });
 
     const context = await plans.context(trip.id, user.id);
 
@@ -223,10 +258,19 @@ describe('a booked night on the road trip (#2410)', () => {
 });
 
 describe('a booking the traveller rides (#2428)', () => {
-  async function withFlight(dayId: number, tripId: number, over: { end_day_id?: number; dep?: string; arr?: string } = {}) {
+  async function withFlight(
+    dayId: number,
+    tripId: number,
+    over: { end_day_id?: number; dep?: string; arr?: string } = {},
+  ) {
     const id = await addReservation({
-      trip: tripId, title: 'LH 2020 HAM → MUC', type: 'flight', day: dayId, endDay: over.end_day_id ?? dayId,
-      reservation_time: over.dep ?? '13:20', reservation_end_time: over.arr ?? '14:30',
+      trip: tripId,
+      title: 'LH 2020 HAM → MUC',
+      type: 'flight',
+      day: dayId,
+      endDay: over.end_day_id ?? dayId,
+      reservation_time: over.dep ?? '13:20',
+      reservation_end_time: over.arr ?? '14:30',
     });
     await addEndpoint(id, 'from', 0, 'Hamburg Airport', 'HAM', 53.63, 9.99);
     await addEndpoint(id, 'to', 1, 'Munich Airport', 'MUC', 48.35, 11.78);
@@ -249,7 +293,13 @@ describe('a booking the traveller rides (#2428)', () => {
     expect(context.carriers[0].endpoints).toHaveLength(2);
     const card = calculated.days[0];
     // Behind Lueneburg (10:00), before Celle (15:30): the day plan's own seat.
-    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual(['Hamburg', 'Lueneburg', 'departure', 'arrival', 'Celle']);
+    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual([
+      'Hamburg',
+      'Lueneburg',
+      'departure',
+      'arrival',
+      'Celle',
+    ]);
     const departure = card.stops[2];
     expect(departure.carrier).toMatchObject({ reservationId: flightId, type: 'flight', code: 'HAM', at: '13:20' });
     expect(departure.assignmentId).toBeLessThan(-2_000_000_000);
@@ -279,7 +329,13 @@ describe('a booking the traveller rides (#2428)', () => {
     const { user, trip, visits, plans } = await setup();
     const day = await dayOf(visits[0].id);
     await addReservation({ trip: trip.id, title: 'Hire car', type: 'car', day: day.day_id });
-    await addReservation({ trip: trip.id, title: 'Somewhere', type: 'train', day: day.day_id, reservation_time: '11:00' });
+    await addReservation({
+      trip: trip.id,
+      title: 'Somewhere',
+      type: 'train',
+      day: day.day_id,
+      reservation_time: '11:00',
+    });
     await addReservation({ trip: trip.id, title: 'Cab', type: 'taxi', day: day.day_id, reservation_time: '11:00' });
 
     const { context, calculated } = await plans.calculate(trip.id, user.id);
@@ -294,7 +350,13 @@ describe('a booking the traveller rides (#2428)', () => {
     await setVisit(visits[2].id, { assignment_time: '12:00' });
     const day = await dayOf(visits[0].id);
     const carId = await addReservation({
-      trip: trip.id, title: 'Sixt', type: 'car', day: day.day_id, endDay: day.day_id, reservation_time: '08:00', reservation_end_time: '18:00',
+      trip: trip.id,
+      title: 'Sixt',
+      type: 'car',
+      day: day.day_id,
+      endDay: day.day_id,
+      reservation_time: '08:00',
+      reservation_end_time: '18:00',
     });
     await addEndpoint(carId, 'from', 0, 'Sixt Hauptbahnhof', null, 53.55, 10.0);
     await addEndpoint(carId, 'to', 1, 'Sixt Airport', 'HAM', 53.63, 9.99);
@@ -311,7 +373,13 @@ describe('a booking the traveller rides (#2428)', () => {
     const { calculated } = await service.calculate(trip.id, user.id);
 
     const card = calculated.days[0];
-    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual(['pickup', 'Hamburg', 'Lueneburg', 'Celle', 'return']);
+    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual([
+      'pickup',
+      'Hamburg',
+      'Lueneburg',
+      'Celle',
+      'return',
+    ]);
     expect(card.stops[0].carrier).toMatchObject({ reservationId: carId, type: 'car', at: '08:00' });
     expect(card.stops[4].carrier).toMatchObject({ role: 'return', code: 'HAM', at: '18:00' });
     // One road, desk to desk: no ride, no seam, one routing run.
@@ -353,7 +421,13 @@ describe('a ferry across the day, and one on no day (#2461)', () => {
 
   async function withFerry(tripId: number, dayId: number | null, title: string, located = true): Promise<number> {
     const id = await addReservation({
-      trip: tripId, title, type: 'ferry', day: dayId, endDay: dayId, reservation_time: '09:30', reservation_end_time: '15:00',
+      trip: tripId,
+      title,
+      type: 'ferry',
+      day: dayId,
+      endDay: dayId,
+      reservation_time: '09:30',
+      reservation_end_time: '15:00',
     });
     if (located) {
       await addEndpoint(id, 'from', 0, 'IJmuiden', null, 52.4581, 4.5879);
@@ -371,7 +445,12 @@ describe('a ferry across the day, and one on no day (#2461)', () => {
     const card = calculated.days[0];
     // By the clock alone the ferry closed the day: Amsterdam to Newcastle overland, back
     // to IJmuiden, and only then the crossing.
-    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual(['Amsterdam', 'departure', 'arrival', 'Newcastle']);
+    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual([
+      'Amsterdam',
+      'departure',
+      'arrival',
+      'Newcastle',
+    ]);
     expect(card.legs.map((l) => l?.mode)).toEqual(['driving', 'ferry', 'driving']);
     // Two roads, one to each side of the crossing, and nothing between the two cities.
     expect(router.route).toHaveBeenCalledTimes(2);
@@ -514,13 +593,20 @@ describe('a booked night at both ends of its days', () => {
 
     // calculate_roadtrip hands the assistant the same stops.
     const tool = new RoadtripPlanningMcp(plans, {} as never, {} as never);
-    const answer = await tool.calculate({ tripId: created.id, includeGeometry: false }, { userId: user.id } as McpContext);
+    const answer = await tool.calculate({ tripId: created.id, includeGeometry: false }, {
+      userId: user.id,
+    } as McpContext);
     const body = JSON.parse(answer.content[0].text as string);
     expect(body.days[1].stops[0].bookend).toMatchObject({ phase: 'morning', accommodationId: stayA.id });
   });
 
   it('asks the router nothing for a night spent at one hotel when the days are connected', async () => {
-    const { user, trip: created, router, plans } = await cam({ roadtrip_hotel_bookends: true, roadtrip_connect_days: true });
+    const {
+      user,
+      trip: created,
+      router,
+      plans,
+    } = await cam({ roadtrip_hotel_bookends: true, roadtrip_connect_days: true });
 
     const { calculated } = await plans.calculate(created.id, user.id);
 
@@ -540,7 +626,11 @@ describe('a booked night at both ends of its days', () => {
       [`morning:${stay.id}`, 'P3', 'P4', `evening:${stay.id}`],
       [`morning:${stay.id}`, 'P5', 'P6', `evening:${stay.id}`],
     ]);
-    expect(calculated.days[1].stops[0].bookend).toMatchObject({ checkingOut: false, checkingIn: false, checkOut: null });
+    expect(calculated.days[1].stops[0].bookend).toMatchObject({
+      checkingOut: false,
+      checkingIn: false,
+      checkOut: null,
+    });
     // The evening keeps the index the next stored stop would have.
     expect(calculated.days[1].stops[3].ownerIndex).toBe(2);
     expect(calculated.days.map((d) => d.dayId)).not.toContain(days[3].id);
@@ -551,7 +641,12 @@ describe('a booked night at both ends of its days', () => {
   it('drives out of the morning hotel the way the first place is reached from it, as the browser and the day plan do', async () => {
     const { user, trip: created, router, plans } = await simeon();
     const p3 = (await findRow(await sharedTestOrm(db), Places, { trip: created.id, name: 'P3' }))!;
-    await updateRows(await sharedTestOrm(db), DayAssignments, { place: p3.id }, { incoming_leg_transport_mode: 'walking' });
+    await updateRows(
+      await sharedTestOrm(db),
+      DayAssignments,
+      { place: p3.id },
+      { incoming_leg_transport_mode: 'walking' },
+    );
 
     const { calculated } = await plans.calculate(created.id, user.id);
 
@@ -596,7 +691,12 @@ describe('a booked night at both ends of its days', () => {
     ]);
 
     const preview = await off.plans.calculate(off.trip.id, off.user.id, { roadtrip_hotel_bookends: true });
-    expect(preview.calculated.days[1].stops.map((s) => s.bookend?.phase ?? null)).toEqual(['morning', null, null, 'evening']);
+    expect(preview.calculated.days[1].stops.map((s) => s.bookend?.phase ?? null)).toEqual([
+      'morning',
+      null,
+      null,
+      'evening',
+    ]);
     expect(preview.preferences.roadtrip_hotel_bookends).toBe(true);
 
     const on = await simeon();
@@ -662,8 +762,14 @@ describe('a booked night at both ends of its days', () => {
     const hamburgStay = createDayAccommodation(db, t.trip.id, atlantic.place.id, days[0].id, days[2].id, stays);
     createDayAccommodation(db, t.trip.id, munich.place.id, days[2].id, days[4].id, stays);
     const flight = await addReservation({
-      trip: t.trip.id, title: 'LH 2078 HAM-MUC', type: 'flight', day: days[2].id, endDay: days[2].id,
-      reservation_time: '2026-11-04T15:15', reservation_end_time: '2026-11-04T17:20', day_plan_position: 0.5,
+      trip: t.trip.id,
+      title: 'LH 2078 HAM-MUC',
+      type: 'flight',
+      day: days[2].id,
+      endDay: days[2].id,
+      reservation_time: '2026-11-04T15:15',
+      reservation_end_time: '2026-11-04T17:20',
+      day_plan_position: 0.5,
     });
     await addEndpoint(flight, 'from', 0, 'Hamburg (HAM)', 'HAM', 53.630402, 9.98823);
     await addEndpoint(flight, 'to', 1, 'Munich (MUC)', 'MUC', 48.353802, 11.7861);
@@ -699,7 +805,14 @@ describe('a booked night at both ends of its days', () => {
 
   it('drives no road between two stays on a day a flight saved without its airports moves the traveller (#2476)', async () => {
     const { user, trip: created, router, plans, days, stayA } = await cam();
-    await addReservation({ trip: created.id, title: 'Flight', type: 'flight', day: days[1].id, endDay: days[1].id, reservation_time: '12:00' });
+    await addReservation({
+      trip: created.id,
+      title: 'Flight',
+      type: 'flight',
+      day: days[1].id,
+      endDay: days[1].id,
+      reservation_time: '12:00',
+    });
 
     const { calculated, failures } = await plans.calculate(created.id, user.id);
 

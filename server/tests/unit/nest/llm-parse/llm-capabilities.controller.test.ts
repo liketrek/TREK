@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-import { GUARDS_METADATA } from '@nestjs/common/constants';
-import { LlmCapabilitiesController } from '../../../../src/nest/llm-parse/llm-capabilities.controller';
 import { JwtAuthGuard } from '../../../../src/nest/auth-core/jwt-auth.guard';
+import { LlmCapabilitiesController } from '../../../../src/nest/llm-parse/llm-capabilities.controller';
 import type { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
 import type { User } from '../../../../src/types';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+
+import { describe, it, expect, vi } from 'vitest';
 
 describe('LlmCapabilitiesController', () => {
   it("answers whether the caller's model reads images", async () => {

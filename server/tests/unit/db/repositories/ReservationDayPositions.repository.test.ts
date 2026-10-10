@@ -5,14 +5,15 @@
  * read method (RS19); RS31 (`upsertScoped`, a write) already has coverage
  * through `reservations.service.test.ts`'s `updatePositions` cases.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { ReservationDayPositions } from '../../../../src/db/entities/ReservationDayPositions.entity';
+import type { ReservationDayPositionsRepository } from '../../../../src/db/repositories/ReservationDayPositions.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createDay, createReservation, createTrip, createUser } from '../../../helpers/factories';
+import { insertRow } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createDay, createReservation, createTrip, createUser } from '../../../helpers/factories';
-import { ReservationDayPositions } from '../../../../src/db/entities/ReservationDayPositions.entity';
-import { insertRow } from '../../../helpers/factories/rows';
-import type { ReservationDayPositionsRepository } from '../../../../src/db/repositories/ReservationDayPositions.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -22,8 +23,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(ReservationDayPositions);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('ReservationDayPositionsRepository — fully seeded world', () => {
   const seed = async () => {
@@ -46,13 +53,20 @@ describe('ReservationDayPositionsRepository — fully seeded world', () => {
   it('RS19 listForTrip — matches the legacy JOIN statement, scoped by trip, both persist(false) mirror columns present', async () => {
     const { trip, multiDay, day1, day2 } = await seed();
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT rdp.reservation_id, rdp.day_id, rdp.position FROM reservation_day_positions rdp
-      JOIN reservations r ON rdp.reservation_id = r.id WHERE r.trip_id = ?`).all(trip.id);
+      JOIN reservations r ON rdp.reservation_id = r.id WHERE r.trip_id = ?`,
+      )
+      .all(trip.id);
     const typed = await repo.listForTrip(trip.id);
     expect(typed).toEqual(legacy);
     expect(typed.map((r) => [r.reservation_id, r.day_id, r.position]).sort()).toEqual(
-      [[multiDay.id, day1.id, 0], [multiDay.id, day2.id, 1]].sort(),
+      [
+        [multiDay.id, day1.id, 0],
+        [multiDay.id, day2.id, 1],
+      ].sort(),
     );
   });
 

@@ -9,8 +9,11 @@
  * Every timestamp is written with an explicit offset (`Z` or `+HH:MM`) so the
  * cases mean the same thing on a CI runner in UTC and on a laptop in Berlin.
  */
-import { describe, it, expect } from 'vitest';
-
+import type {
+  DawarichSlimPoint,
+  DawarichTrackFeature,
+  DawarichVisitRaw,
+} from '../../../src/nest/integrations/dawarich.client';
 import {
   bucketPointsByDay,
   bucketTracksByDay,
@@ -29,12 +32,9 @@ import {
   toNumber,
   visitHash,
 } from '../../../src/nest/integrations/dawarich.helpers';
-import type {
-  DawarichSlimPoint,
-  DawarichTrackFeature,
-  DawarichVisitRaw,
-} from '../../../src/nest/integrations/dawarich.client';
 import type { DawarichTrackDay } from '@trek/shared';
+
+import { describe, it, expect } from 'vitest';
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -454,27 +454,66 @@ describe('distanceMeters', () => {
 
 describe('simplify', () => {
   it('DAWARICH-GEO-006: a straight line collapses to its two ends', () => {
-    expect(simplify([[0, 0], [0, 0.5], [0, 1]], 0.00005)).toEqual([[0, 0], [0, 1]]);
+    expect(
+      simplify(
+        [
+          [0, 0],
+          [0, 0.5],
+          [0, 1],
+        ],
+        0.00005,
+      ),
+    ).toEqual([
+      [0, 0],
+      [0, 1],
+    ]);
   });
 
   it('DAWARICH-GEO-007: a long straight run collapses no matter how many points it has', () => {
     const straight: Array<[number, number]> = Array.from({ length: 500 }, (_, i) => [0, i / 500]);
-    expect(simplify(straight, 0.00005)).toEqual([[0, 0], [0, 499 / 500]]);
+    expect(simplify(straight, 0.00005)).toEqual([
+      [0, 0],
+      [0, 499 / 500],
+    ]);
   });
 
   it('DAWARICH-GEO-008: a corner survives', () => {
-    expect(simplify([[0, 0], [0, 1], [1, 1]], 0.00005)).toEqual([[0, 0], [0, 1], [1, 1]]);
+    expect(
+      simplify(
+        [
+          [0, 0],
+          [0, 1],
+          [1, 1],
+        ],
+        0.00005,
+      ),
+    ).toEqual([
+      [0, 0],
+      [0, 1],
+      [1, 1],
+    ]);
   });
 
   it('DAWARICH-GEO-009: a deviation under the tolerance is dropped, one over it is kept', () => {
-    const jitter: Array<[number, number]> = [[0, 0], [0.00001, 0.5], [0, 1]];
-    const corner: Array<[number, number]> = [[0, 0], [0.001, 0.5], [0, 1]];
+    const jitter: Array<[number, number]> = [
+      [0, 0],
+      [0.00001, 0.5],
+      [0, 1],
+    ];
+    const corner: Array<[number, number]> = [
+      [0, 0],
+      [0.001, 0.5],
+      [0, 1],
+    ];
     expect(simplify(jitter, 0.00005)).toHaveLength(2);
     expect(simplify(corner, 0.00005)).toHaveLength(3);
   });
 
   it('DAWARICH-GEO-010: two points or fewer are returned untouched', () => {
-    const pair: Array<[number, number]> = [[0, 0], [1, 1]];
+    const pair: Array<[number, number]> = [
+      [0, 0],
+      [1, 1],
+    ];
     expect(simplify(pair, 0.00005)).toBe(pair);
     expect(simplify([], 0.00005)).toEqual([]);
   });
@@ -485,10 +524,26 @@ describe('simplify', () => {
     // not exist there, so the distance has to fall back to "how far is this
     // point from that one". Without it the division is 0/0 and every detour on
     // a round trip would simplify away as NaN.
-    const loop: Array<[number, number]> = [[0, 0], [0, 1], [0, 0]];
+    const loop: Array<[number, number]> = [
+      [0, 0],
+      [0, 1],
+      [0, 0],
+    ];
     expect(simplify(loop, 0.00005)).toEqual(loop);
     // And the same shape, a metre wide instead of a degree, still collapses.
-    expect(simplify([[0, 0], [0, 0.00001], [0, 0]], 0.00005)).toEqual([[0, 0], [0, 0]]);
+    expect(
+      simplify(
+        [
+          [0, 0],
+          [0, 0.00001],
+          [0, 0],
+        ],
+        0.00005,
+      ),
+    ).toEqual([
+      [0, 0],
+      [0, 0],
+    ]);
   });
 
   it('DAWARICH-GEO-025: an unreadable latitude cannot collapse the longitude scale', () => {
@@ -497,11 +552,29 @@ describe('simplify', () => {
     // gives no cosine at all, and the fallback keeps the scale at 1 rather
     // than multiplying every longitude by nothing. The bad point measures as
     // no deviation and is dropped; the ends of the line still come back.
-    expect(simplify([[0, 0], [NaN, 0.5], [0, 1]], 0.00005)).toEqual([[0, 0], [0, 1]]);
+    expect(
+      simplify(
+        [
+          [0, 0],
+          [NaN, 0.5],
+          [0, 1],
+        ],
+        0.00005,
+      ),
+    ).toEqual([
+      [0, 0],
+      [0, 1],
+    ]);
   });
 
   it('DAWARICH-GEO-011: the first and last point are always kept', () => {
-    const zigzag: Array<[number, number]> = [[0, 0], [1, 0.25], [0, 0.5], [1, 0.75], [0, 1]];
+    const zigzag: Array<[number, number]> = [
+      [0, 0],
+      [1, 0.25],
+      [0, 0.5],
+      [1, 0.75],
+      [0, 1],
+    ];
     const out = simplify(zigzag, 0.00005);
     expect(out[0]).toEqual([0, 0]);
     expect(out[out.length - 1]).toEqual([0, 1]);
@@ -512,14 +585,28 @@ describe('simplify', () => {
 
 describe('capPoints', () => {
   it('DAWARICH-GEO-012: a line already under the cap is untouched', () => {
-    const line: Array<[number, number]> = [[0, 0], [1, 1], [2, 2]];
+    const line: Array<[number, number]> = [
+      [0, 0],
+      [1, 1],
+      [2, 2],
+    ];
     expect(capPoints(line, 5)).toBe(line);
     expect(capPoints(line, 3)).toBe(line);
   });
 
   it('DAWARICH-GEO-013: thins to the cap on an even stride', () => {
-    const line: Array<[number, number]> = [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4]];
-    expect(capPoints(line, 3)).toEqual([[0, 0], [2, 2], [4, 4]]);
+    const line: Array<[number, number]> = [
+      [0, 0],
+      [1, 1],
+      [2, 2],
+      [3, 3],
+      [4, 4],
+    ];
+    expect(capPoints(line, 3)).toEqual([
+      [0, 0],
+      [2, 2],
+      [4, 4],
+    ]);
   });
 
   it('DAWARICH-GEO-014: the line still starts and ends where the day did', () => {
@@ -531,7 +618,13 @@ describe('capPoints', () => {
   });
 
   it('DAWARICH-GEO-015: a cap below two is refused rather than producing a degenerate line', () => {
-    const line: Array<[number, number]> = [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4]];
+    const line: Array<[number, number]> = [
+      [0, 0],
+      [1, 1],
+      [2, 2],
+      [3, 3],
+      [4, 4],
+    ];
     expect(capPoints(line, 1)).toBe(line);
     expect(capPoints(line, 0)).toBe(line);
   });
@@ -553,12 +646,33 @@ describe('geoJsonToLatLng', () => {
   });
 
   it('DAWARICH-GEO-019: skips pairs that are not numbers', () => {
-    expect(geoJsonToLatLng([['east', 'north'], [null, 52.5], [13.4, undefined]])).toEqual([]);
+    expect(
+      geoJsonToLatLng([
+        ['east', 'north'],
+        [null, 52.5],
+        [13.4, undefined],
+      ]),
+    ).toEqual([]);
   });
 
   it('DAWARICH-GEO-020: keeps the exact range limits and drops anything past them', () => {
-    expect(geoJsonToLatLng([[180, 90], [-180, -90]])).toEqual([[90, 180], [-90, -180]]);
-    expect(geoJsonToLatLng([[180.1, 10], [-180.1, 10], [10, 90.1], [10, -90.1]])).toEqual([]);
+    expect(
+      geoJsonToLatLng([
+        [180, 90],
+        [-180, -90],
+      ]),
+    ).toEqual([
+      [90, 180],
+      [-90, -180],
+    ]);
+    expect(
+      geoJsonToLatLng([
+        [180.1, 10],
+        [-180.1, 10],
+        [10, 90.1],
+        [10, -90.1],
+      ]),
+    ).toEqual([]);
   });
 
   it('DAWARICH-GEO-021: keeps the usable pairs out of a mixed list', () => {
@@ -604,15 +718,19 @@ describe('bucketPointsByDay', () => {
     const previousLast = days[0]!.segments[0]!.points.at(-1);
     // The stitched point is drawn but does not move the day's own times.
     expect(days[1]!.segments[0]!.points[0]).toEqual(previousLast);
-    expect(days[1]!.segments[0]!.points).toEqual([[10, 11], [11, 11], [11, 12]]);
+    expect(days[1]!.segments[0]!.points).toEqual([
+      [10, 11],
+      [11, 11],
+      [11, 12],
+    ]);
   });
 
   it('DAWARICH-BUCKET-003: the first day is not stitched to anything', () => {
-    const days = bucketPointsByDay(
-      [point('2024-06-15T10:00:00Z', 10, 10), point('2024-06-15T12:00:00Z', 10, 11)],
-      0,
-    );
-    expect(days[0]!.segments[0]!.points).toEqual([[10, 10], [10, 11]]);
+    const days = bucketPointsByDay([point('2024-06-15T10:00:00Z', 10, 10), point('2024-06-15T12:00:00Z', 10, 11)], 0);
+    expect(days[0]!.segments[0]!.points).toEqual([
+      [10, 10],
+      [10, 11],
+    ]);
   });
 
   it('DAWARICH-BUCKET-004: the offset decides the day — an early UTC point is still yesterday in New York', () => {
@@ -627,10 +745,7 @@ describe('bucketPointsByDay', () => {
   });
 
   it('DAWARICH-BUCKET-005: a positive offset pushes a late UTC point into tomorrow', () => {
-    const days = bucketPointsByDay(
-      [point('2024-06-15T22:00:00Z', 10, 10), point('2024-06-15T23:00:00Z', 11, 11)],
-      540,
-    );
+    const days = bucketPointsByDay([point('2024-06-15T22:00:00Z', 10, 10), point('2024-06-15T23:00:00Z', 11, 11)], 540);
     expect(days.map((d) => d.date)).toEqual(['2024-06-16']);
   });
 
@@ -686,10 +801,7 @@ describe('bucketPointsByDay', () => {
   });
 
   it('DAWARICH-BUCKET-010: a recorded day carries no mode and no measured distance', () => {
-    const days = bucketPointsByDay(
-      [point('2024-06-15T10:00:00Z', 10, 10), point('2024-06-15T12:00:00Z', 10, 11)],
-      0,
-    );
+    const days = bucketPointsByDay([point('2024-06-15T10:00:00Z', 10, 10), point('2024-06-15T12:00:00Z', 10, 11)], 0);
     expect(days[0]!.segments[0]!.mode).toBeNull();
     expect(days[0]!.segments[0]!.distanceMeters).toBeNull();
   });
@@ -700,10 +812,19 @@ describe('bucketPointsByDay', () => {
 describe('bucketTracksByDay', () => {
   it('DAWARICH-TRACK-001: a track inside one day stays whole and keeps its measured distance', () => {
     const days = bucketTracksByDay([
-      track('2024-06-15T10:00:00Z', '2024-06-15T12:00:00Z', [[10, 10], [11, 11], [11, 12]], {
-        distance: 4321,
-        dominant_mode: 'car',
-      }),
+      track(
+        '2024-06-15T10:00:00Z',
+        '2024-06-15T12:00:00Z',
+        [
+          [10, 10],
+          [11, 11],
+          [11, 12],
+        ],
+        {
+          distance: 4321,
+          dominant_mode: 'car',
+        },
+      ),
     ]);
     expect(days).toEqual([
       {
@@ -711,7 +832,11 @@ describe('bucketTracksByDay', () => {
         segments: [
           {
             // GeoJSON [lng, lat] in, TREK [lat, lng] out.
-            points: [[10, 10], [11, 11], [12, 11]],
+            points: [
+              [10, 10],
+              [11, 11],
+              [12, 11],
+            ],
             mode: 'car',
             startedAt: '2024-06-15T10:00:00Z',
             endedAt: '2024-06-15T12:00:00Z',
@@ -726,7 +851,11 @@ describe('bucketTracksByDay', () => {
     // 00:30+02:00 is still 22:30Z the day before, but the recording user saw
     // the 16th, which is the day TREK must file it under.
     const days = bucketTracksByDay([
-      track('2024-06-16T00:30:00+02:00', '2024-06-16T01:30:00+02:00', [[10, 10], [11, 11], [11, 12]]),
+      track('2024-06-16T00:30:00+02:00', '2024-06-16T01:30:00+02:00', [
+        [10, 10],
+        [11, 11],
+        [11, 12],
+      ]),
     ]);
     expect(days.map((d) => d.date)).toEqual(['2024-06-16']);
   });
@@ -736,7 +865,13 @@ describe('bucketTracksByDay', () => {
       track(
         '2024-06-15T23:00:00Z',
         '2024-06-16T01:00:00Z',
-        [[10, 10], [10.5, 10.5], [11, 11], [11.5, 10.5], [12, 11]],
+        [
+          [10, 10],
+          [10.5, 10.5],
+          [11, 11],
+          [11.5, 10.5],
+          [12, 11],
+        ],
         { distance: 9000, dominant_mode: 'walk' },
       ),
     ]);
@@ -759,7 +894,13 @@ describe('bucketTracksByDay', () => {
       track(
         '2024-06-15T23:00:00Z',
         '2024-06-16T01:00:00Z',
-        [[10, 10], [10.5, 10.5], [11, 11], [11.5, 10.5], [12, 11]],
+        [
+          [10, 10],
+          [10.5, 10.5],
+          [11, 11],
+          [11.5, 10.5],
+          [12, 11],
+        ],
         { distance: 9000 },
       ),
     ]);
@@ -771,13 +912,19 @@ describe('bucketTracksByDay', () => {
       track(
         '2024-06-15T12:00:00Z',
         '2024-06-17T12:00:00Z',
-        [[10, 10], [10.5, 11], [11, 10], [11.5, 11], [12, 10], [12.5, 11], [13, 10]],
+        [
+          [10, 10],
+          [10.5, 11],
+          [11, 10],
+          [11.5, 11],
+          [12, 10],
+          [12.5, 11],
+          [13, 10],
+        ],
         { distance: 100 },
       ),
     ]);
-    expect(
-      days.map((d) => ({ date: d.date, from: d.segments[0]!.startedAt, to: d.segments[0]!.endedAt })),
-    ).toEqual([
+    expect(days.map((d) => ({ date: d.date, from: d.segments[0]!.startedAt, to: d.segments[0]!.endedAt }))).toEqual([
       { date: '2024-06-15', from: '2024-06-15T12:00:00.000Z', to: '2024-06-16T00:00:00.000Z' },
       { date: '2024-06-16', from: '2024-06-16T00:00:00.000Z', to: '2024-06-17T00:00:00.000Z' },
       { date: '2024-06-17', from: '2024-06-17T00:00:00.000Z', to: '2024-06-17T12:00:00Z' },
@@ -786,18 +933,42 @@ describe('bucketTracksByDay', () => {
 
   it('DAWARICH-TRACK-006: days come back in calendar order however the features arrived', () => {
     const days = bucketTracksByDay([
-      track('2024-06-17T08:00:00Z', '2024-06-17T09:00:00Z', [[10, 10], [11, 11], [11, 12]]),
-      track('2024-06-15T18:00:00Z', '2024-06-15T19:00:00Z', [[20, 20], [21, 21], [21, 22]]),
-      track('2024-06-16T06:00:00Z', '2024-06-16T07:00:00Z', [[30, 30], [31, 31], [31, 32]]),
+      track('2024-06-17T08:00:00Z', '2024-06-17T09:00:00Z', [
+        [10, 10],
+        [11, 11],
+        [11, 12],
+      ]),
+      track('2024-06-15T18:00:00Z', '2024-06-15T19:00:00Z', [
+        [20, 20],
+        [21, 21],
+        [21, 22],
+      ]),
+      track('2024-06-16T06:00:00Z', '2024-06-16T07:00:00Z', [
+        [30, 30],
+        [31, 31],
+        [31, 32],
+      ]),
     ]);
     expect(days.map((d) => d.date)).toEqual(['2024-06-15', '2024-06-16', '2024-06-17']);
   });
 
   it('DAWARICH-TRACK-007: segments within a day come back in start order', () => {
     const days = bucketTracksByDay([
-      track('2024-06-15T18:00:00Z', '2024-06-15T19:00:00Z', [[20, 20], [21, 21], [21, 22]]),
-      track('2024-06-15T06:00:00Z', '2024-06-15T07:00:00Z', [[30, 30], [31, 31], [31, 32]]),
-      track('2024-06-15T12:00:00Z', '2024-06-15T13:00:00Z', [[40, 40], [41, 41], [41, 42]]),
+      track('2024-06-15T18:00:00Z', '2024-06-15T19:00:00Z', [
+        [20, 20],
+        [21, 21],
+        [21, 22],
+      ]),
+      track('2024-06-15T06:00:00Z', '2024-06-15T07:00:00Z', [
+        [30, 30],
+        [31, 31],
+        [31, 32],
+      ]),
+      track('2024-06-15T12:00:00Z', '2024-06-15T13:00:00Z', [
+        [40, 40],
+        [41, 41],
+        [41, 42],
+      ]),
     ]);
     expect(days).toHaveLength(1);
     expect(days[0]!.segments.map((s) => s.startedAt)).toEqual([
@@ -809,9 +980,25 @@ describe('bucketTracksByDay', () => {
 
   it('DAWARICH-TRACK-008: a track without both timestamps is skipped', () => {
     const days = bucketTracksByDay([
-      track(undefined, '2024-06-15T12:00:00Z', [[10, 10], [11, 11], [11, 12]]),
-      track('2024-06-15T10:00:00Z', undefined, [[10, 10], [11, 11], [11, 12]]),
-      { geometry: { coordinates: [[10, 10], [11, 11]] }, properties: null },
+      track(undefined, '2024-06-15T12:00:00Z', [
+        [10, 10],
+        [11, 11],
+        [11, 12],
+      ]),
+      track('2024-06-15T10:00:00Z', undefined, [
+        [10, 10],
+        [11, 11],
+        [11, 12],
+      ]),
+      {
+        geometry: {
+          coordinates: [
+            [10, 10],
+            [11, 11],
+          ],
+        },
+        properties: null,
+      },
     ]);
     expect(days).toEqual([]);
   });
@@ -827,9 +1014,18 @@ describe('bucketTracksByDay', () => {
 
   it('DAWARICH-TRACK-010: a backwards or zero-length track is treated as whole, on its start day', () => {
     const days = bucketTracksByDay([
-      track('2024-06-16T01:00:00Z', '2024-06-15T23:00:00Z', [[10, 10], [11, 11], [11, 12]], {
-        distance: 50,
-      }),
+      track(
+        '2024-06-16T01:00:00Z',
+        '2024-06-15T23:00:00Z',
+        [
+          [10, 10],
+          [11, 11],
+          [11, 12],
+        ],
+        {
+          distance: 50,
+        },
+      ),
     ]);
     expect(days.map((d) => d.date)).toEqual(['2024-06-16']);
     expect(days[0]!.segments[0]!.distanceMeters).toBe(50);
@@ -841,7 +1037,15 @@ describe('bucketTracksByDay', () => {
     // the whole track goes on the day it started, with its real times intact —
     // the split is declined rather than faked.
     const days = bucketTracksByDay([
-      track('2024-06-15T23:00:00Z', '2024-06-16T01:00:00Z', [[10, 10], [11, 12]], { distance: 100 }),
+      track(
+        '2024-06-15T23:00:00Z',
+        '2024-06-16T01:00:00Z',
+        [
+          [10, 10],
+          [11, 12],
+        ],
+        { distance: 100 },
+      ),
     ]);
     expect(days.map((d) => d.date)).toEqual(['2024-06-15']);
     expect(days[0]!.segments[0]!.endedAt).toBe('2024-06-16T01:00:00Z');
@@ -853,17 +1057,19 @@ describe('bucketTracksByDay', () => {
     // The counterpart to 011: three segments over one midnight leave both days
     // a drawable line, so the approximation is applied.
     const days = bucketTracksByDay([
-      track('2024-06-15T22:00:00Z', '2024-06-16T02:00:00Z', [[10, 10], [10.5, 10.5], [11, 11], [11.5, 11.5]]),
+      track('2024-06-15T22:00:00Z', '2024-06-16T02:00:00Z', [
+        [10, 10],
+        [10.5, 10.5],
+        [11, 11],
+        [11.5, 11.5],
+      ]),
     ]);
     expect(days.map((d) => d.date)).toEqual(['2024-06-15', '2024-06-16']);
     for (const day of days) expect(day.segments[0]!.points.length).toBeGreaterThanOrEqual(2);
   });
 
   it('DAWARICH-TRACK-012: honours the per-day cap and the tolerance', () => {
-    const zigzag = Array.from(
-      { length: 40 },
-      (_, i): [number, number] => [10 + i / 10, i % 2 === 0 ? 10 : 11],
-    );
+    const zigzag = Array.from({ length: 40 }, (_, i): [number, number] => [10 + i / 10, i % 2 === 0 ? 10 : 11]);
     const days = bucketTracksByDay([track('2024-06-15T10:00:00Z', '2024-06-15T12:00:00Z', zigzag)], {
       maxPointsPerDay: 5,
       epsilon: 0.00005,
@@ -877,14 +1083,27 @@ describe('bucketTracksByDay', () => {
     // is not a line: the loop stops there rather than pushing a tail piece that
     // would render as nothing and carry a start after its own end.
     const days = bucketTracksByDay([
-      track('2024-06-15T00:00:00Z', '2024-06-16T00:30:00Z', [[10, 10], [11, 12], [12, 10]], {
-        distance: 7000,
-      }),
+      track(
+        '2024-06-15T00:00:00Z',
+        '2024-06-16T00:30:00Z',
+        [
+          [10, 10],
+          [11, 12],
+          [12, 10],
+        ],
+        {
+          distance: 7000,
+        },
+      ),
     ]);
 
     expect(days.map((d) => d.date)).toEqual(['2024-06-15']);
     const segment = days[0]!.segments[0]!;
-    expect(segment.points).toEqual([[10, 10], [12, 11], [10, 12]]);
+    expect(segment.points).toEqual([
+      [10, 10],
+      [12, 11],
+      [10, 12],
+    ]);
     expect(segment.startedAt).toBe('2024-06-15T00:00:00.000Z');
     expect(segment.endedAt).toBe('2024-06-16T00:00:00.000Z');
     // It was cut, even though only one piece came out, so the measured distance
@@ -917,14 +1136,38 @@ describe('countPoints', () => {
   });
 
   it('DAWARICH-COUNT-002: sums every segment of every day', () => {
-    const days = [day([[0, 0], [1, 1]], [[0, 0], [1, 1], [2, 2]]), day([[0, 0], [1, 1]])];
+    const days = [
+      day(
+        [
+          [0, 0],
+          [1, 1],
+        ],
+        [
+          [0, 0],
+          [1, 1],
+          [2, 2],
+        ],
+      ),
+      day([
+        [0, 0],
+        [1, 1],
+      ]),
+    ];
     expect(countPoints(days)).toBe(7);
   });
 
   it('DAWARICH-COUNT-003: agrees with what the bucketing actually produced', () => {
     const days = bucketTracksByDay([
-      track('2024-06-15T10:00:00Z', '2024-06-15T12:00:00Z', [[10, 10], [11, 11], [11, 12]]),
-      track('2024-06-16T10:00:00Z', '2024-06-16T12:00:00Z', [[20, 20], [21, 21], [21, 22]]),
+      track('2024-06-15T10:00:00Z', '2024-06-15T12:00:00Z', [
+        [10, 10],
+        [11, 11],
+        [11, 12],
+      ]),
+      track('2024-06-16T10:00:00Z', '2024-06-16T12:00:00Z', [
+        [20, 20],
+        [21, 21],
+        [21, 22],
+      ]),
     ]);
     expect(countPoints(days)).toBe(6);
   });
@@ -973,7 +1216,13 @@ describe('visited cities over a long range', () => {
     const merged = mergeVisitedCountries([
       [{ country: 'Germany', cities: [{ city: 'Rostock', points: 10, stayed_for: 90, timestamp: 1_700_000_000 }] }],
       [
-        { country: 'Germany', cities: [{ city: 'Rostock', points: 5, stayed_for: 60, timestamp: 1_702_000_000 }, { city: 'Berlin', stayed_for: 120 }] },
+        {
+          country: 'Germany',
+          cities: [
+            { city: 'Rostock', points: 5, stayed_for: 60, timestamp: 1_702_000_000 },
+            { city: 'Berlin', stayed_for: 120 },
+          ],
+        },
         { country: 'Poland', cities: [{ city: 'Szczecin', stayed_for: 75, timestamp: 1_701_000_000 }] },
       ],
     ]);
@@ -992,11 +1241,7 @@ describe('visited cities over a long range', () => {
 
   it('DAWARICH-CITIES-006: an unvalidated payload loses its unnamed entries, not its countries', () => {
     const merged = mergeVisitedCountries([
-      [
-        null as never,
-        { country: 42 as never, cities: [] },
-        { country: 'Denmark', cities: null as never },
-      ],
+      [null as never, { country: 42 as never, cities: [] }, { country: 'Denmark', cities: null as never }],
       [{ country: 'Denmark', cities: [null as never, {} as never, { city: 'Gedser', points: '7' as never }] }],
     ]);
 

@@ -1,5 +1,6 @@
-import tzlookup from 'tz-lookup';
 import { readEnv } from '../../app-config';
+
+import tzlookup from 'tz-lookup';
 
 /** Local calendar date and clock time for an instant in an IANA timezone. */
 export function localParts(iso: string | null, timezone: string | null): { date: string | null; time: string | null } {
@@ -45,4 +46,3 @@ export function appClock(now: Date = new Date()): { date: string; time: string }
   const { date, time } = localParts(now.toISOString(), readEnv().app.tz || null);
   return { date: date ?? now.toISOString().slice(0, 10), time: time ?? now.toISOString().slice(11, 16) };
 }
-

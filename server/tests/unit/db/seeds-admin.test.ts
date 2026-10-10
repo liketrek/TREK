@@ -10,12 +10,12 @@
  * has to warn — and a partial config (only one of the two) must warn too instead
  * of quietly falling back to a generated password.
  */
+import { Users } from '../../../src/db/entities/Users.entity';
 import { AdminSeeder } from '../../../src/db/seeders/AdminSeeder';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { countRows, findRow } from '../../helpers/factories/rows';
 import { makeAdmin } from '../../helpers/factories/users';
-import { Users } from '../../../src/db/entities/Users.entity';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 
 import type Database from 'better-sqlite3';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';

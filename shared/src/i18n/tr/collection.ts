@@ -174,7 +174,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'Bir listeye ekle',
   'collections.file.targetExistingHint': 'Zaten sahip olduğun bir listeye',
   'collections.file.searchLists': 'Listelerde ara',
-  'collections.file.intoHint': 'Listede zaten bulunan yerler olduğu gibi kalır, adı ve rengi de öyle. Dosyadaki etiketler eklenir.',
+  'collections.file.intoHint':
+    'Listede zaten bulunan yerler olduğu gibi kalır, adı ve rengi de öyle. Dosyadaki etiketler eklenir.',
   'collections.file.confirmInto': 'Listeye ekle',
   'collections.file.doneInto': '{name} listesine {count} yer eklendi',
   'collections.file.doneInto.one': '{name} listesine {count} yer eklendi',

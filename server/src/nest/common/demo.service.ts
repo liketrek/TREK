@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/core';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { Users } from '../../db/entities/Users.entity';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { isDemoEmail } from './demo';
+import { EntityManager } from '@mikro-orm/core';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Plan 3i Task 3 — `common/demo-write.ts#isDemoUserId(env, db, userId)`

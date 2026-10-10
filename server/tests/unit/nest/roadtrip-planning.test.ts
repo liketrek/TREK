@@ -1,15 +1,15 @@
 import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../../src/mcp/nest-mcp-policy';
 import type { McpContext } from '../../../src/nest-mcp';
 import { createTestRegistry } from '../../../src/nest-mcp';
-import { callGatedTool } from '../../helpers/mcp-gate';
+import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { PlacesMcp } from '../../../src/nest/places/places.mcp';
 import { RoadtripPlanService } from '../../../src/nest/roadtrip/roadtrip-plan.service';
 import { RoadtripPlanningMcp } from '../../../src/nest/roadtrip/roadtrip-planning.mcp';
 import { RoadtripPreferencesMcp } from '../../../src/nest/roadtrip/roadtrip-preferences.mcp';
 import { RoadtripPreferencesService } from '../../../src/nest/roadtrip/roadtrip-preferences.service';
 import { RoadtripMcp } from '../../../src/nest/roadtrip/roadtrip.mcp';
+import { callGatedTool } from '../../helpers/mcp-gate';
 import { roadtripPreferencesUpdateSchema } from '@trek/shared';
-import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 
 import { describe, it, expect, vi } from 'vitest';
 
@@ -140,9 +140,14 @@ describe('roadtrip preferences', () => {
     await s.preferences.update(10, { roadtrip_day_start: '06:00', roadtrip_day_end: '09:00' });
     // The fourth argument is the socket that saved, so the tab that made the
     // change is left out of its own echo. Undefined here: no header was sent.
-    expect(s.realtime.broadcast).toHaveBeenCalledWith('10', 'roadtripPreferences:changed', {
-      preferences: await s.preferences.read(10),
-    }, undefined);
+    expect(s.realtime.broadcast).toHaveBeenCalledWith(
+      '10',
+      'roadtripPreferences:changed',
+      {
+        preferences: await s.preferences.read(10),
+      },
+      undefined,
+    );
     expect((await s.preferences.read(10)).roadtrip_range_km).toBe(100);
   });
   it.each([
@@ -159,12 +164,7 @@ describe('roadtrip preferences', () => {
     const s = setup();
     await s.preferences.update(10, { roadtrip_day_start: '', roadtrip_range_km: 0 });
     expect((await s.preferences.read(10)).roadtrip_day_start).toBe('');
-    const mcp = new RoadtripPreferencesMcp(
-      s.preferences,
-      {} as never,
-      s.tripsRepo as never,
-      {} as never,
-    );
+    const mcp = new RoadtripPreferencesMcp(s.preferences, {} as never, s.tripsRepo as never, {} as never);
     s.preferenceDb.upsertValue.mockClear();
     await callGatedTool(mcp, 'update', { tripId: 10, settings: { roadtrip_range_km: 300 } }, ctx, async () => true);
     expect(s.preferenceDb.upsertValue).not.toHaveBeenCalled();
@@ -238,7 +238,10 @@ describe('browser-independent roadtrip calculation', () => {
 
     const preview = await s.plans.calculate(10, 5, { roadtrip_hotel_bookends: true });
     const hotel = preview.calculated.days.flatMap((d) => d.stops).find((stop) => stop.bookend);
-    expect(hotel).toMatchObject({ name: 'Tonight', bookend: { phase: 'evening', accommodationId: 7, checkingIn: true } });
+    expect(hotel).toMatchObject({
+      name: 'Tonight',
+      bookend: { phase: 'evening', accommodationId: 7, checkingIn: true },
+    });
     expect((await s.preferences.read(10)).roadtrip_hotel_bookends).toBeUndefined();
     expect(s.preferenceDb.upsertValue).not.toHaveBeenCalled();
   });
@@ -263,9 +266,14 @@ describe('browser-independent roadtrip calculation', () => {
     s.tripsRepo.findAccessible.mockResolvedValue(false);
     expect(reason(await mcp.context({ tripId: 20 }, ctx))).toEqual([true, 'Trip not found']);
     expect(reason(await mcp.calculate({ tripId: 20, includeGeometry: false }, ctx))).toEqual([true, 'Trip not found']);
-    expect(reason(await mcp.corridor({ tripId: 20, dayNumber: 1, category: 'fuel', widthKm: 5, offset: 0 } as never, ctx))).toEqual([true, 'Trip not found']);
+    expect(
+      reason(await mcp.corridor({ tripId: 20, dayNumber: 1, category: 'fuel', widthKm: 5, offset: 0 } as never, ctx)),
+    ).toEqual([true, 'Trip not found']);
     s.tripsRepo.findAccessible.mockResolvedValue(true);
-    const window = await mcp.calculate({ tripId: 10, includeGeometry: false, settings: { roadtrip_day_start: '18:00', roadtrip_day_end: '08:00' } }, ctx);
+    const window = await mcp.calculate(
+      { tripId: 10, includeGeometry: false, settings: { roadtrip_day_start: '18:00', roadtrip_day_end: '08:00' } },
+      ctx,
+    );
     expect(reason(window)).toEqual([true, 'Day end must be later than day start.']);
     expect(s.router.route).not.toHaveBeenCalled();
   });
@@ -323,7 +331,9 @@ describe('browser-independent roadtrip calculation', () => {
     // real tables in roadtrip-plan.service.test.ts; this pins the field and the words for it.
     const s = setup();
     const mcp = new RoadtripPlanningMcp(s.plans, {} as never, {} as never);
-    const body = JSON.parse((await mcp.calculate({ tripId: 10, includeGeometry: false }, ctx)).content[0].text as string);
+    const body = JSON.parse(
+      (await mcp.calculate({ tripId: 10, includeGeometry: false }, ctx)).content[0].text as string,
+    );
     expect(body.undatedRides).toEqual([]);
     expect(body.days.length).toBeGreaterThan(0);
     // And the tool says what the field is, or an assistant has no reason to read it.
@@ -411,7 +421,12 @@ describe('Roadtrip MCP registration and search', () => {
     const s = setup();
     const registry = createTestRegistry(
       [
-        new RoadtripPreferencesMcp(s.preferences, { isAddonEnabled: () => true } as never, s.tripsRepo as never, {} as never),
+        new RoadtripPreferencesMcp(
+          s.preferences,
+          { isAddonEnabled: () => true } as never,
+          s.tripsRepo as never,
+          {} as never,
+        ),
         new RoadtripPlanningMcp(s.plans, {} as never, { isAddonEnabled: () => true } as never),
       ],
       { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess },
@@ -426,7 +441,9 @@ describe('Roadtrip MCP registration and search', () => {
       { ...ctx, scopes: null },
     );
     expect(descriptions.get_roadtrip_settings).toContain('Missing roadtrip_hotel_bookends means off.');
-    expect(descriptions.update_roadtrip_settings).toContain('Set roadtrip_hotel_bookends true to start and end each day at the stay');
+    expect(descriptions.update_roadtrip_settings).toContain(
+      'Set roadtrip_hotel_bookends true to start and end each day at the stay',
+    );
     expect(descriptions.calculate_roadtrip).toContain('With roadtrip_hotel_bookends switched on (missing means off)');
     expect(descriptions.calculate_roadtrip).toContain('{roadtrip_hotel_bookends:true}');
     expect(descriptions.get_roadtrip_context).toContain('stays lists every booked stay');
@@ -455,7 +472,8 @@ describe('Roadtrip MCP registration and search', () => {
     const maps = {
       search: vi.fn(async () => ({
         pois: [{ osm_id: 'n1', name: 'Fuel', brand: 'Example', lat: 48, lng: 10.05, category: 'fuel' }],
-        sources: ['trek-places'], failedSources: [],
+        sources: ['trek-places'],
+        failedSources: [],
         truncated: true,
         clamped: false,
       })),
@@ -569,7 +587,12 @@ describe('RoadtripMcp — non-member refusal, one case per tool (Plan 3d Task 7 
 describe('MCP trip preferences authorization', () => {
   it('reads shared preferences and refuses inaccessible trips', async () => {
     const s = setup();
-    const tool = new RoadtripPreferencesMcp(s.preferences, {} as never, s.tripsRepo as never, { hasTripPermission: () => true } as never);
+    const tool = new RoadtripPreferencesMcp(
+      s.preferences,
+      {} as never,
+      s.tripsRepo as never,
+      { hasTripPermission: () => true } as never,
+    );
     expect(JSON.stringify(await tool.read({ tripId: 10 }, ctx))).toContain('100');
     s.tripsRepo.findAccessible.mockResolvedValue(false);
     expect((await tool.read({ tripId: 10 }, ctx)).isError).toBe(true);
@@ -582,7 +605,12 @@ describe('MCP trip preferences authorization', () => {
   it('update_roadtrip_settings refuses a non-member trip on its own, without a prior read call', async () => {
     const s = setup();
     s.tripsRepo.findAccessible.mockResolvedValue(false);
-    const tool = new RoadtripPreferencesMcp(s.preferences, {} as never, s.tripsRepo as never, { hasTripPermission: () => true } as never);
+    const tool = new RoadtripPreferencesMcp(
+      s.preferences,
+      {} as never,
+      s.tripsRepo as never,
+      { hasTripPermission: () => true } as never,
+    );
     const res = await tool.update({ tripId: 10, settings: { roadtrip_range_km: 50 } }, ctx);
     expect(res.isError).toBe(true);
     expect(JSON.stringify(res)).toContain('access denied');
@@ -591,23 +619,76 @@ describe('MCP trip preferences authorization', () => {
     const s = setup();
     const guards = { hasTripPermission: vi.fn(() => false) };
     const tool = new RoadtripPreferencesMcp(s.preferences, {} as never, s.tripsRepo as never, guards as never);
-    expect(await callGatedTool(tool, 'update', { tripId: 10, settings: {} }, ctx, async () => true)).toMatchObject({ isError: true });
+    expect(await callGatedTool(tool, 'update', { tripId: 10, settings: {} }, ctx, async () => true)).toMatchObject({
+      isError: true,
+    });
     expect((await tool.update({ tripId: 10, settings: {} }, ctx)).isError).toBe(true);
     guards.hasTripPermission.mockReturnValue(true);
-    expect(JSON.stringify(await tool.update({ tripId: 10, settings: { roadtrip_range_km: 120 } }, ctx))).toContain('120');
+    expect(JSON.stringify(await tool.update({ tripId: 10, settings: { roadtrip_range_km: 120 } }, ctx))).toContain(
+      '120',
+    );
   });
 });
 describe('corridor filtering', () => {
   const input = { tripId: 10, dayNumber: 1, category: 'charging' as const, widthKm: 5, offset: 0 };
   function tool() {
-    const plan = { failures: [] as unknown[], omittedVisits: [] as number[], calculated: { dayWindowIssue: null as string | null, days: [{ dayNumber: 1, stops: [], geometry: [[48, 10], [48, 10.1]] }] } };
-    const maps = { search: vi.fn(async () => ({ pois: [
-      { osm_id: 'a', name: 'Fast', lat: 48, lng: 10.03, category: 'charging', charging: { sockets: [{ type: 'type2', kw: 150 }] } },
-      { osm_id: 'b', name: 'Slow', lat: 48, lng: 10.07, category: 'charging', charging: { sockets: [{ type: 'type2', kw: 11 }] } },
-      { osm_id: 'c', name: 'Unknown', lat: 48, lng: 10.05, category: 'charging', charging: { sockets: [{ type: 'ccs', kw: null }] } },
-      { osm_id: 'd', name: 'Far', lat: 50, lng: 12, category: 'charging' },
-    ], sources: ['osm'], failedSources: ['plugin'], truncated: false, clamped: false })) };
-    return { plan, maps, mcp: new RoadtripPlanningMcp({ calculate: async () => plan } as never, maps as never, {} as never) };
+    const plan = {
+      failures: [] as unknown[],
+      omittedVisits: [] as number[],
+      calculated: {
+        dayWindowIssue: null as string | null,
+        days: [
+          {
+            dayNumber: 1,
+            stops: [],
+            geometry: [
+              [48, 10],
+              [48, 10.1],
+            ],
+          },
+        ],
+      },
+    };
+    const maps = {
+      search: vi.fn(async () => ({
+        pois: [
+          {
+            osm_id: 'a',
+            name: 'Fast',
+            lat: 48,
+            lng: 10.03,
+            category: 'charging',
+            charging: { sockets: [{ type: 'type2', kw: 150 }] },
+          },
+          {
+            osm_id: 'b',
+            name: 'Slow',
+            lat: 48,
+            lng: 10.07,
+            category: 'charging',
+            charging: { sockets: [{ type: 'type2', kw: 11 }] },
+          },
+          {
+            osm_id: 'c',
+            name: 'Unknown',
+            lat: 48,
+            lng: 10.05,
+            category: 'charging',
+            charging: { sockets: [{ type: 'ccs', kw: null }] },
+          },
+          { osm_id: 'd', name: 'Far', lat: 50, lng: 12, category: 'charging' },
+        ],
+        sources: ['osm'],
+        failedSources: ['plugin'],
+        truncated: false,
+        clamped: false,
+      })),
+    };
+    return {
+      plan,
+      maps,
+      mcp: new RoadtripPlanningMcp({ calculate: async () => plan } as never, maps as never, {} as never),
+    };
   }
   it('refuses failed routes, absent days and reversed search ranges', async () => {
     const s = tool();
@@ -626,8 +707,11 @@ describe('corridor filtering', () => {
   });
   it('filters sockets, power, name and along-route bounds without hiding source failures', async () => {
     const s = tool();
-    const read = async (over: Partial<Parameters<RoadtripPlanningMcp['corridor']>[0]>) => JSON.parse((await s.mcp.corridor({ ...input, ...over }, ctx)).content[0].text as string);
-    expect((await read({ socket: 'type2', minKw: 100 })).hits.map((h: { poi: { name: string } }) => h.poi.name)).toEqual(['Fast']);
+    const read = async (over: Partial<Parameters<RoadtripPlanningMcp['corridor']>[0]>) =>
+      JSON.parse((await s.mcp.corridor({ ...input, ...over }, ctx)).content[0].text as string);
+    expect(
+      (await read({ socket: 'type2', minKw: 100 })).hits.map((h: { poi: { name: string } }) => h.poi.name),
+    ).toEqual(['Fast']);
     expect((await read({ name: 'unknown' })).hits).toHaveLength(1);
     expect((await read({ fromKm: 100 })).hits).toHaveLength(0);
     expect((await read({ toKm: 0 })).hits).toHaveLength(0);
@@ -650,23 +734,49 @@ describe('corridor filtering', () => {
         days: [
           {
             dayNumber: 1,
-            stops: [{ lat: 48, lng: 10 }, terminal('departure', 48, 10.1), terminal('arrival', 50, 12), { lat: 50, lng: 12.1 }],
-            geometry: [[48, 10], [48, 10.1], [50, 12], [50, 12.1]],
+            stops: [
+              { lat: 48, lng: 10 },
+              terminal('departure', 48, 10.1),
+              terminal('arrival', 50, 12),
+              { lat: 50, lng: 12.1 },
+            ],
+            geometry: [
+              [48, 10],
+              [48, 10.1],
+              [50, 12],
+              [50, 12.1],
+            ],
           },
         ],
       },
     };
     const underTheFlight = { lat: 49, lng: 11 };
     type Box = { south: number; north: number; west: number; east: number };
-    const maps = { search: vi.fn(async (_query: { bbox: Box }) => ({ pois: [
-      { osm_id: 'road', name: 'On the road', lat: 48, lng: 10.05, category: 'fuel' },
-      { osm_id: 'field', name: 'Under the flight', ...underTheFlight, category: 'fuel' },
-    ], sources: ['osm'], failedSources: [], truncated: false, clamped: false })) };
+    const maps = {
+      search: vi.fn(async (_query: { bbox: Box }) => ({
+        pois: [
+          { osm_id: 'road', name: 'On the road', lat: 48, lng: 10.05, category: 'fuel' },
+          { osm_id: 'field', name: 'Under the flight', ...underTheFlight, category: 'fuel' },
+        ],
+        sources: ['osm'],
+        failedSources: [],
+        truncated: false,
+        clamped: false,
+      })),
+    };
     const mcp = new RoadtripPlanningMcp({ calculate: async () => plan } as never, maps as never, {} as never);
     const body = JSON.parse((await mcp.corridor({ ...input, category: 'fuel' }, ctx)).content[0].text as string);
     const asked = maps.search.mock.calls.map(([query]) => query.bbox);
     expect(asked.length).toBeGreaterThan(0);
-    expect(asked.some((b) => b.south <= underTheFlight.lat && b.north >= underTheFlight.lat && b.west <= underTheFlight.lng && b.east >= underTheFlight.lng)).toBe(false);
+    expect(
+      asked.some(
+        (b) =>
+          b.south <= underTheFlight.lat &&
+          b.north >= underTheFlight.lat &&
+          b.west <= underTheFlight.lng &&
+          b.east >= underTheFlight.lng,
+      ),
+    ).toBe(false);
     expect(body.hits.map((h: { poi: { osm_id: string } }) => h.poi.osm_id)).toEqual(['road']);
     expect(body.totalAreas).toBe(asked.length);
     expect(body.complete).toBe(true);

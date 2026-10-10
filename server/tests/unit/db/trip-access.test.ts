@@ -7,14 +7,15 @@
  * silently fell back to 'EUR', inflating balances on every non-EUR trip that
  * had a foreign-currency expense (#1543).
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { addTripMember, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { CAN_ACCESS_TRIP_SQL, buildDbMock, resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { makeUser } from '../../helpers/factories/users';
-import { addTripMember, makeTrip } from '../../helpers/factories/trips';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -24,8 +25,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   trips = t.repo(Trips);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 async function seedUser(username: string): Promise<number> {
   return (await makeUser(t, { username, email: `${username}@example.test` })).user.id;

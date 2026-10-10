@@ -1,8 +1,8 @@
+import { readEnv } from '../../../app-config';
+import { safeFetchLlm } from '../../../utils/ssrfGuard';
+import { parseLenientJson, toReservationList } from '../lenient-json';
 import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
 import { isNuExtractModel, buildNuExtractUserText, nuExtractToKiReservations } from './nuextract';
-import { parseLenientJson, toReservationList } from '../lenient-json';
-import { safeFetchLlm } from '../../../utils/ssrfGuard';
-import { readEnv } from '../../../app-config';
 
 const MAX_TOKENS = 4096;
 
@@ -40,8 +40,7 @@ interface RequestShape {
  * exactly as it does today.
  */
 function rejectsTemperature(detail: string): boolean {
-  return /temperature/i.test(detail)
-    && /unsupported|not supported|does not support|only the default/i.test(detail);
+  return /temperature/i.test(detail) && /unsupported|not supported|does not support|only the default/i.test(detail);
 }
 
 /** The `response_format` the given attempt carried, by its type. */
@@ -137,7 +136,12 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
       };
     };
 
-    const shape: RequestShape = { tokenParam: 'max_tokens', jsonObject: false, noResponseFormat: false, omitTemperature: false };
+    const shape: RequestShape = {
+      tokenParam: 'max_tokens',
+      jsonObject: false,
+      noResponseFormat: false,
+      omitTemperature: false,
+    };
     const tried = { tokenParam: false, temperature: false, jsonObject: false, noResponseFormat: false };
 
     let res = await this.send(url, buildBody(shape), input.apiKey);

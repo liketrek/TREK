@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { CollectionMembers } from '../../../../../src/db/entities/CollectionMembers.entity';
+import { Collections } from '../../../../../src/db/entities/Collections.entity';
+import { resolveCollectionRole, type CollectionRole } from '../../../../../src/db/repositories/_shared/collection-role';
 import { createSnapshotTestDb } from '../../../../helpers/db-mock';
+import { createUser } from '../../../../helpers/factories';
+import { addCollectionMember, makeCollection } from '../../../../helpers/factories/collections';
 import { resetTestDb } from '../../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
-import { createUser } from '../../../../helpers/factories';
-import { Collections } from '../../../../../src/db/entities/Collections.entity';
-import { CollectionMembers } from '../../../../../src/db/entities/CollectionMembers.entity';
-import { resolveCollectionRole, type CollectionRole } from '../../../../../src/db/repositories/_shared/collection-role';
-import { addCollectionMember, makeCollection } from '../../../../helpers/factories/collections';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * Plan 3h Task 1, R6 — the collections cluster's shared collection-role
@@ -43,9 +44,17 @@ import { addCollectionMember, makeCollection } from '../../../../helpers/factori
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
 
-beforeAll(async () => { t = await createTestOrm(testDb); });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 type Actor = 'owner' | 'admin' | 'editor' | 'viewer' | 'pending' | 'stranger';
 
@@ -68,7 +77,14 @@ async function seedFixture() {
 
   return {
     collectionId: collectionId as number,
-    userIds: { owner: owner.id, admin: admin.id, editor: editor.id, viewer: viewer.id, pending: pending.id, stranger: stranger.id } as Record<Actor, number>,
+    userIds: {
+      owner: owner.id,
+      admin: admin.id,
+      editor: editor.id,
+      viewer: viewer.id,
+      pending: pending.id,
+      stranger: stranger.id,
+    } as Record<Actor, number>,
   };
 }
 
@@ -91,7 +107,10 @@ function assertCanDeleteLike(role: CollectionRole): 'ok' | 404 | 403 {
   return 'ok';
 }
 
-const EXPECTED: Record<Actor, { role: CollectionRole; access: 'ok' | 404; edit: 'ok' | 404 | 403; del: 'ok' | 404 | 403 }> = {
+const EXPECTED: Record<
+  Actor,
+  { role: CollectionRole; access: 'ok' | 404; edit: 'ok' | 404 | 403; del: 'ok' | 404 | 403 }
+> = {
   owner: { role: 'owner', access: 'ok', edit: 'ok', del: 'ok' },
   admin: { role: 'admin', access: 'ok', edit: 'ok', del: 'ok' },
   editor: { role: 'editor', access: 'ok', edit: 'ok', del: 403 },

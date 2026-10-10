@@ -7,12 +7,23 @@
  * unguarded download's own token auth), trip-access 404, permission 403, the
  * photo id/access guards and status codes.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+import { TripFiles } from '../../src/db/entities/TripFiles.entity';
+import { Trips } from '../../src/db/entities/Trips.entity';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { FilesModule } from '../../src/nest/files/files.module';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { PhotosModule } from '../../src/nest/photos/photos.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { deleteRows, insertRow, updateRows } from '../helpers/factories/rows';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -54,11 +65,13 @@ const { db } = vi.hoisted(() => {
 
 const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
 vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
+  db,
+  canAccessTrip,
+  getPlaceWithTags: vi.fn(),
+  closeDb: () => {},
+  reinitialize: () => {},
 }));
 vi.mock('../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
@@ -82,23 +95,21 @@ vi.mock('../../src/nest/memories/memories-access.service', async (importOriginal
   return actual;
 });
 
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { FilesModule } from '../../src/nest/files/files.module';
-import { PhotosModule } from '../../src/nest/photos/photos.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { deleteRows, insertRow, updateRows } from '../helpers/factories/rows';
-import { Trips } from '../../src/db/entities/Trips.entity';
-import { TripFiles } from '../../src/db/entities/TripFiles.entity';
-
 describe('Files + photos e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
   let orm: TestOrm;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, FilesModule, PhotosModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        FilesModule,
+        PhotosModule,
+      ],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -110,8 +121,21 @@ describe('Files + photos e2e (real auth guard + temp SQLite)', () => {
     seedUser(db as never, { id: 1 });
     orm = await createTestOrm(db);
     await insertRow(orm, Trips, { id: 5, user: 1, title: 'Trip' });
-    await insertRow(orm, TripFiles, { id: 1, trip: 5, filename: 'stored-a.pdf', original_name: 'a.pdf', uploadedByRef: 1 });
-    await insertRow(orm, TripFiles, { id: 9, trip: 5, filename: 'stored-b.pdf', original_name: 'b.pdf', uploadedByRef: 1, starred: 0 });
+    await insertRow(orm, TripFiles, {
+      id: 1,
+      trip: 5,
+      filename: 'stored-a.pdf',
+      original_name: 'a.pdf',
+      uploadedByRef: 1,
+    });
+    await insertRow(orm, TripFiles, {
+      id: 9,
+      trip: 5,
+      filename: 'stored-b.pdf',
+      original_name: 'b.pdf',
+      uploadedByRef: 1,
+      starred: 0,
+    });
     app = await build();
     checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
     server = app.getHttpServer();

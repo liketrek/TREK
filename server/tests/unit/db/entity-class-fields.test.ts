@@ -1,12 +1,13 @@
-import { EntityRepositoryType, ReferenceKind } from '@mikro-orm/core';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ALL_ENTITIES } from '../../../src/db/entities';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { IdempotencyKeys } from '../../../src/db/entities/IdempotencyKeys.entity';
-import { createUser, createTrip } from '../../helpers/factories';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser, createTrip } from '../../helpers/factories';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { EntityRepositoryType, ReferenceKind } from '@mikro-orm/core';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * Permanent guard for `task-4-review-shape.md` Important finding 1: a
@@ -135,7 +136,7 @@ describe('[EntityRepositoryType] marker is excluded from the class-field census 
  * `created_at` on `IdempotencyKeys`) — the whole point is that a caller
  * should never have to.
  */
-describe('insert probes (task-4-review-shape.md, the reviewer\'s exact repro)', () => {
+describe("insert probes (task-4-review-shape.md, the reviewer's exact repro)", () => {
   const testDb = createSnapshotTestDb();
   let t: TestOrm;
 
@@ -164,7 +165,9 @@ describe('insert probes (task-4-review-shape.md, the reviewer\'s exact repro)', 
     await t.em.persist(created).flush();
 
     // test-sql-allow: reads the stored columns behind the ORM to prove what its own insert wrote.
-    const row = testDb.prepare('SELECT persons, days, place_id, reservation_id FROM budget_items WHERE id = ?').get(created.id);
+    const row = testDb
+      .prepare('SELECT persons, days, place_id, reservation_id FROM budget_items WHERE id = ?')
+      .get(created.id);
     expect(row).toEqual({ persons: null, days: null, place_id: null, reservation_id: null });
   });
 

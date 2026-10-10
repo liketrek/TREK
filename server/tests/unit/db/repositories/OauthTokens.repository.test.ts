@@ -1,16 +1,17 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
-import { OauthTokens } from '../../../../src/db/entities/OauthTokens.entity';
 import { OauthClients } from '../../../../src/db/entities/OauthClients.entity';
 import { OauthConsents } from '../../../../src/db/entities/OauthConsents.entity';
-import { deleteRows, findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
+import { OauthTokens } from '../../../../src/db/entities/OauthTokens.entity';
 import type { OauthTokensRepository } from '../../../../src/db/repositories/OauthTokens.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
-import { withRequestContext } from '../../../../src/nest/database/request-context';
 import { dbNow } from '../../../../src/db/types';
+import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { deleteRows, findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -29,7 +30,10 @@ beforeEach(async () => {
   await deleteRows(t, OauthConsents);
   await deleteRows(t, OauthClients);
 });
-afterAll(async () => { await t.close(); testDb.close(); });
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 async function seedClient(userId: number, clientId: string, name = 'Client'): Promise<void> {
   await insertRow(t, OauthClients, {
@@ -56,8 +60,17 @@ async function revokedAtOf(id: number) {
 
 async function seedToken(
   overrides: Partial<{
-    id: number; clientId: string; userId: number; accessHash: string; refreshHash: string; scopes: string;
-    audience: string | null; accessExpiresAt: string; refreshExpiresAt: string; revokedAt: string | null; parentId: number | null;
+    id: number;
+    clientId: string;
+    userId: number;
+    accessHash: string;
+    refreshHash: string;
+    scopes: string;
+    audience: string | null;
+    accessExpiresAt: string;
+    refreshExpiresAt: string;
+    revokedAt: string | null;
+    parentId: number | null;
   }> = {},
 ): Promise<number> {
   const id = await insertRow(t, OauthTokens, {
@@ -115,8 +128,15 @@ describe('OauthTokensRepository', () => {
       await seedClient(user.id, 'proto-2');
       const parentId = await seedToken({ clientId: 'proto-2', userId: user.id });
       await tokens.insertToken({
-        client_id: 'proto-2', user_id: user.id, access_token_hash: 'a2', refresh_token_hash: 'r2', scopes: '[]', audience: null,
-        access_token_expires_at: dbNow(), refresh_token_expires_at: dbNow(), parent_token_id: parentId,
+        client_id: 'proto-2',
+        user_id: user.id,
+        access_token_hash: 'a2',
+        refresh_token_hash: 'r2',
+        scopes: '[]',
+        audience: null,
+        access_token_expires_at: dbNow(),
+        refresh_token_expires_at: dbNow(),
+        parent_token_id: parentId,
       });
       const row = await findRow(t, OauthTokens, { access_token_hash: 'a2' });
       expect(row?.parent_token_id).toBe(parentId);
@@ -131,12 +151,16 @@ describe('OauthTokensRepository', () => {
       const idB = await seedToken({ clientId: 'proto-3', userId: user.id });
 
       await tokens.revokeAllForClient('proto-3'); // legacy: datetime('now')
-      await tokens.revokeById(idB);               // legacy: CURRENT_TIMESTAMP
+      await tokens.revokeById(idB); // legacy: CURRENT_TIMESTAMP
 
       // test-sql-allow: the stored text of revoked_at is under test, which DbTimestampType would normalise on read.
-      const rowA = testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idA) as { revoked_at: unknown };
+      const rowA = testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idA) as {
+        revoked_at: unknown;
+      };
       // test-sql-allow: the stored text of revoked_at is under test, which DbTimestampType would normalise on read.
-      const rowB = testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idB) as { revoked_at: unknown };
+      const rowB = testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idB) as {
+        revoked_at: unknown;
+      };
       expect(typeof rowA.revoked_at).toBe('string');
       expect(typeof rowB.revoked_at).toBe('string');
       expect(rowA.revoked_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
@@ -153,22 +177,34 @@ describe('OauthTokensRepository', () => {
 
       await tokens.revokeAllForClient('proto-4');
 
-      expect((await revokedAtOf(idOther))).toBeNull();
-      expect((await revokedAtOf(idAlready))).toBe('2020-01-01 00:00:00');
-      expect((await revokedAtOf(idLive))).not.toBeNull();
+      expect(await revokedAtOf(idOther)).toBeNull();
+      expect(await revokedAtOf(idAlready)).toBe('2020-01-01 00:00:00');
+      expect(await revokedAtOf(idLive)).not.toBeNull();
     });
   });
 
   describe('findByAccessTokenHashWithUser (OA16)', () => {
-    it('OAUTHTOKREPO-005: joins the token owner\'s username/email/role', async () => {
+    it("OAUTHTOKREPO-005: joins the token owner's username/email/role", async () => {
       const { user } = createUser(testDb, { username: 'bearer-user', email: 'bearer@example.test' });
       await seedClient(user.id, 'proto-5');
-      await seedToken({ clientId: 'proto-5', userId: user.id, accessHash: 'bearer-hash', scopes: '["trips:read"]', audience: 'aud' });
+      await seedToken({
+        clientId: 'proto-5',
+        userId: user.id,
+        accessHash: 'bearer-hash',
+        scopes: '["trips:read"]',
+        audience: 'aud',
+      });
 
       const row = await tokens.findByAccessTokenHashWithUser('bearer-hash');
       expect(row).toMatchObject({
-        scopes: '["trips:read"]', audience: 'aud', revoked_at: null, user_id: user.id, client_id: 'proto-5',
-        username: 'bearer-user', email: 'bearer@example.test', role: 'user',
+        scopes: '["trips:read"]',
+        audience: 'aud',
+        revoked_at: null,
+        user_id: user.id,
+        client_id: 'proto-5',
+        username: 'bearer-user',
+        email: 'bearer@example.test',
+        role: 'user',
       });
     });
 
@@ -205,14 +241,18 @@ describe('OauthTokensRepository', () => {
       const sibChild = await seedToken({ clientId: 'proto-8', userId: user.id, parentId: sibRoot });
 
       // test-sql-allow: the legacy recursive statement is the oracle the repository read is held to.
-      const legacyRows = testDb.prepare(`
+      const legacyRows = testDb
+        .prepare(
+          `
         WITH RECURSIVE chain(id) AS (
           SELECT id FROM oauth_tokens WHERE id = ?
           UNION ALL
           SELECT t.id FROM oauth_tokens t JOIN chain c ON t.parent_token_id = c.id
         )
         SELECT id FROM chain
-      `).all(id1) as Array<{ id: number }>;
+      `,
+        )
+        .all(id1) as Array<{ id: number }>;
       const legacyIds = legacyRows.map((r) => r.id).sort((a, b) => a - b);
 
       const ids = (await tokens.collectChainIds(id1)).sort((a, b) => a - b);
@@ -242,10 +282,10 @@ describe('OauthTokensRepository', () => {
 
       await tokens.revokeByIds([idLive1, idLive2, idAlready]);
 
-      expect((await revokedAtOf(idLive1))).not.toBeNull();
-      expect((await revokedAtOf(idLive2))).not.toBeNull();
-      expect((await revokedAtOf(idAlready))).toBe('2020-01-01 00:00:00'); // untouched, not re-stamped
-      expect((await revokedAtOf(idUntouched))).toBeNull();
+      expect(await revokedAtOf(idLive1)).not.toBeNull();
+      expect(await revokedAtOf(idLive2)).not.toBeNull();
+      expect(await revokedAtOf(idAlready)).toBe('2020-01-01 00:00:00'); // untouched, not re-stamped
+      expect(await revokedAtOf(idUntouched)).toBeNull();
     });
 
     it('OAUTHTOKREPO-011: an empty array is a no-op (matches the legacy `if (ids.length > 0)` guard)', async () => {
@@ -270,7 +310,9 @@ describe('OauthTokensRepository', () => {
             throw new Error('force rollback');
           });
         });
-      } catch (e) { caught = e; }
+      } catch (e) {
+        caught = e;
+      }
       expect((caught as Error).message).toBe('force rollback');
 
       const rows = await findRows(t, OauthTokens, { id: { $in: [rootId, childId] } });
@@ -318,12 +360,24 @@ describe('OauthTokensRepository', () => {
       const { user } = createUser(testDb);
       await seedClient(user.id, 'proto-16');
       const parentId = await seedToken({ clientId: 'proto-16', userId: user.id });
-      const id = await seedToken({ clientId: 'proto-16', userId: user.id, refreshHash: 'refresh-16', parentId, audience: 'aud-16' });
+      const id = await seedToken({
+        clientId: 'proto-16',
+        userId: user.id,
+        refreshHash: 'refresh-16',
+        parentId,
+        audience: 'aud-16',
+      });
 
       const row = await tokens.findByRefreshTokenHash('refresh-16');
       expect(row).toEqual({
-        id, client_id: 'proto-16', user_id: user.id, scopes: '["trips:read"]', audience: 'aud-16',
-        refresh_token_expires_at: expect.any(String), revoked_at: null, parent_token_id: parentId,
+        id,
+        client_id: 'proto-16',
+        user_id: user.id,
+        scopes: '["trips:read"]',
+        audience: 'aud-16',
+        refresh_token_expires_at: expect.any(String),
+        revoked_at: null,
+        parent_token_id: parentId,
       });
     });
 
@@ -339,8 +393,8 @@ describe('OauthTokensRepository', () => {
       const idA = await seedToken({ clientId: 'proto-18', userId: user.id });
       const idB = await seedToken({ clientId: 'proto-18', userId: user.id });
       await tokens.revokeById(idA);
-      expect((await revokedAtOf(idA))).not.toBeNull();
-      expect((await revokedAtOf(idB))).toBeNull();
+      expect(await revokedAtOf(idA)).not.toBeNull();
+      expect(await revokedAtOf(idB)).toBeNull();
     });
   });
 
@@ -364,14 +418,19 @@ describe('OauthTokensRepository', () => {
     it('OAUTHTOKREPO-021: revokeByAccessOrRefreshHashAndClient revokes by either hash, scoped to the client', async () => {
       const { user } = createUser(testDb);
       await seedClient(user.id, 'proto-21');
-      const id = await seedToken({ clientId: 'proto-21', userId: user.id, accessHash: 'acc-21', refreshHash: 'ref-21' });
+      const id = await seedToken({
+        clientId: 'proto-21',
+        userId: user.id,
+        accessHash: 'acc-21',
+        refreshHash: 'ref-21',
+      });
       await tokens.revokeByAccessOrRefreshHashAndClient('acc-21', 'proto-21');
-      expect((await revokedAtOf(id))).not.toBeNull();
+      expect(await revokedAtOf(id)).not.toBeNull();
     });
   });
 
   describe('listActiveByUser (OA26) — QueryBuilder join on the real oauth_clients.client_id column', () => {
-    it('OAUTHTOKREPO-022: lists only this user\'s non-revoked, non-expired-refresh sessions, newest first, with the client name joined in', async () => {
+    it("OAUTHTOKREPO-022: lists only this user's non-revoked, non-expired-refresh sessions, newest first, with the client name joined in", async () => {
       const { user } = createUser(testDb);
       const { user: other } = createUser(testDb);
       await seedClient(user.id, 'proto-22a', 'Client A');
@@ -411,7 +470,7 @@ describe('OauthTokensRepository', () => {
       expect(await tokens.findOwnedById(id, user.id)).toEqual({ id, client_id: 'proto-23' });
     });
 
-    it('OAUTHTOKREPO-024: 404-shape null for another user\'s session', async () => {
+    it("OAUTHTOKREPO-024: 404-shape null for another user's session", async () => {
       const { user } = createUser(testDb);
       const { user: other } = createUser(testDb);
       await seedClient(other.id, 'proto-24');
@@ -471,10 +530,10 @@ describe('OauthTokensRepository', () => {
 
       await tokens.revokeAllForUser(user.id);
 
-      expect((await revokedAtOf(idA))).not.toBeNull();
-      expect((await revokedAtOf(idB))).not.toBeNull();
-      expect((await revokedAtOf(idAlready))).toBe('2020-01-01 00:00:00');
-      expect((await revokedAtOf(idOther))).toBeNull();
+      expect(await revokedAtOf(idA)).not.toBeNull();
+      expect(await revokedAtOf(idB)).not.toBeNull();
+      expect(await revokedAtOf(idAlready)).toBe('2020-01-01 00:00:00');
+      expect(await revokedAtOf(idOther)).toBeNull();
     });
   });
 
@@ -491,8 +550,15 @@ describe('OauthTokensRepository', () => {
       const id = await seedToken({ clientId: 'proto-30', userId: user.id });
 
       const em = t.orm.em.fork();
-      const qb = em.getRepository(OauthTokens).qb('ot').innerJoin('ot.client', 'oc').select(['ot.id', 'oc.name as client_name']).where({ 'ot.id': id });
-      expect(qb.getFormattedQuery()).toContain('inner join `oauth_clients` as `oc` on `ot`.`client_id` = `oc`.`client_id`');
+      const qb = em
+        .getRepository(OauthTokens)
+        .qb('ot')
+        .innerJoin('ot.client', 'oc')
+        .select(['ot.id', 'oc.name as client_name'])
+        .where({ 'ot.id': id });
+      expect(qb.getFormattedQuery()).toContain(
+        'inner join `oauth_clients` as `oc` on `ot`.`client_id` = `oc`.`client_id`',
+      );
       const row = await qb.execute<{ id: number; client_name: string }>('get', false);
       expect(row).toEqual({ id, client_name: 'Client Thirty' });
     });
@@ -521,7 +587,12 @@ describe('OauthTokensRepository', () => {
       const id = await seedToken({ clientId: 'proto-31-real', userId: user.id });
 
       const em = t.orm.em.fork();
-      const qb = em.getRepository(OauthTokens).qb('ot').innerJoin('ot.client', 'oc').select(['ot.id', 'oc.name as client_name']).where({ 'ot.id': id });
+      const qb = em
+        .getRepository(OauthTokens)
+        .qb('ot')
+        .innerJoin('ot.client', 'oc')
+        .select(['ot.id', 'oc.name as client_name'])
+        .where({ 'ot.id': id });
       const row = await qb.execute<{ id: number; client_name: string }>('get', false);
       expect(row).toEqual({ id, client_name: 'Real Client' });
 
@@ -538,7 +609,12 @@ describe('OauthTokensRepository', () => {
     it('OAUTHTOKREPO-029: findByRefreshTokenHash (projection A) then findParent (projection B) then revokeById inside uow.transactional — the write survives', async () => {
       const { user } = createUser(testDb);
       await seedClient(user.id, 'proto-29');
-      const id = await seedToken({ clientId: 'proto-29', userId: user.id, refreshHash: 'refresh-29', scopes: '["kept-scope"]' });
+      const id = await seedToken({
+        clientId: 'proto-29',
+        userId: user.id,
+        refreshHash: 'refresh-29',
+        scopes: '["kept-scope"]',
+      });
 
       await withRequestContext(t.orm, async () => {
         // Projection A — a wide fields set (id, client, user, scopes, audience, refresh_token_expires_at, revoked_at, parentToken).
@@ -565,8 +641,19 @@ describe('OauthTokensRepository', () => {
     it('OAUTHTOKREPO-040: deletes a whole expired chain, parents after their children', async () => {
       const { user } = createUser(testDb);
       await seedClient(user.id, 'ret-1');
-      const root = await seedToken({ clientId: 'ret-1', userId: user.id, refreshExpiresAt: longAgo, revokedAt: longAgo });
-      const mid = await seedToken({ clientId: 'ret-1', userId: user.id, refreshExpiresAt: longAgo, revokedAt: longAgo, parentId: root });
+      const root = await seedToken({
+        clientId: 'ret-1',
+        userId: user.id,
+        refreshExpiresAt: longAgo,
+        revokedAt: longAgo,
+      });
+      const mid = await seedToken({
+        clientId: 'ret-1',
+        userId: user.id,
+        refreshExpiresAt: longAgo,
+        revokedAt: longAgo,
+        parentId: root,
+      });
       await seedToken({ clientId: 'ret-1', userId: user.id, refreshExpiresAt: longAgo, parentId: mid });
 
       expect(await withRequestContext(t.orm, () => tokens.deleteExpiredBefore(cutoff))).toBe(3);
@@ -576,7 +663,12 @@ describe('OauthTokensRepository', () => {
     it('OAUTHTOKREPO-041: keeps an expired parent while a live token still names it', async () => {
       const { user } = createUser(testDb);
       await seedClient(user.id, 'ret-2');
-      const root = await seedToken({ clientId: 'ret-2', userId: user.id, refreshExpiresAt: longAgo, revokedAt: longAgo });
+      const root = await seedToken({
+        clientId: 'ret-2',
+        userId: user.id,
+        refreshExpiresAt: longAgo,
+        revokedAt: longAgo,
+      });
       const live = await seedToken({ clientId: 'ret-2', userId: user.id, parentId: root });
       const unrelated = await seedToken({ clientId: 'ret-2', userId: user.id, refreshExpiresAt: longAgo });
 
@@ -586,4 +678,3 @@ describe('OauthTokensRepository', () => {
     });
   });
 });
-

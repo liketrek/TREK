@@ -6,6 +6,22 @@
  * paths themselves are covered by budget.service.db.test.ts (real :memory: DB)
  * and budget.service.calc.test.ts (settlement math over a stubbed database).
  */
+import type { BudgetCategoryOrderRepository } from '../../../src/db/repositories/BudgetCategoryOrder.repository';
+import type { BudgetItemMembersRepository } from '../../../src/db/repositories/BudgetItemMembers.repository';
+import type { BudgetItemPayersRepository } from '../../../src/db/repositories/BudgetItemPayers.repository';
+import type { BudgetItemsRepository } from '../../../src/db/repositories/BudgetItems.repository';
+import type { BudgetSettlementsRepository } from '../../../src/db/repositories/BudgetSettlements.repository';
+import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
+import type { ReservationsRepository } from '../../../src/db/repositories/Reservations.repository';
+import type { TripMembersRepository } from '../../../src/db/repositories/TripMembers.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+// Constructor-injected ExchangeRatesService stub (as in the pre-fold wrapper).
+import type { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the data + side-effect dependencies the service reaches into directly.
@@ -18,28 +34,12 @@ vi.mock('../../../src/db/database', () => ({
   getPlaceWithTags: () => null,
   isOwner: () => false,
 }));
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 
 const checkPermission = vi.fn(() => true);
 const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
-// Constructor-injected ExchangeRatesService stub (as in the pre-fold wrapper).
-import type { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 const getRates = vi.fn();
 const exchangeRatesStub = { getRates } as unknown as ExchangeRatesService;
-
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
-import type { BudgetItemsRepository } from '../../../src/db/repositories/BudgetItems.repository';
-import type { BudgetItemMembersRepository } from '../../../src/db/repositories/BudgetItemMembers.repository';
-import type { BudgetItemPayersRepository } from '../../../src/db/repositories/BudgetItemPayers.repository';
-import type { BudgetSettlementsRepository } from '../../../src/db/repositories/BudgetSettlements.repository';
-import type { BudgetCategoryOrderRepository } from '../../../src/db/repositories/BudgetCategoryOrder.repository';
-import type { ReservationsRepository } from '../../../src/db/repositories/Reservations.repository';
-import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { TripMembersRepository } from '../../../src/db/repositories/TripMembers.repository';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcast = realtime.broadcastMock;
@@ -77,7 +77,10 @@ function svc(
   budgetItemsRepo: BudgetItemsRepository = {} as unknown as BudgetItemsRepository,
 ) {
   return new BudgetService(
-    permissionsStub, exchangeRatesStub, realtime, uowStub,
+    permissionsStub,
+    exchangeRatesStub,
+    realtime,
+    uowStub,
     budgetItemsRepo,
     {} as unknown as BudgetItemMembersRepository,
     {} as unknown as BudgetItemPayersRepository,
@@ -144,7 +147,7 @@ describe('BudgetService', () => {
   });
 
   describe('settlement', () => {
-    it('upper-cases the explicit base and converts with the trip currency\'s own quote (#2525)', async () => {
+    it("upper-cases the explicit base and converts with the trip currency's own quote (#2525)", async () => {
       const s = svc();
       const calcSpy = vi.spyOn(s, 'calculateSettlement').mockResolvedValue({ transfers: [] } as never);
       getRates.mockResolvedValue({ EUR: 1, USD: 1.1 });
@@ -154,7 +157,7 @@ describe('BudgetService', () => {
       expect(calcSpy).toHaveBeenCalledWith('5', { base: 'USD', rates: { EUR: 1, USD: 1.1 }, tripCurrency: 'EUR' });
     });
 
-    it('stands in the display currency\'s quote when the trip\'s cannot be fetched', async () => {
+    it("stands in the display currency's quote when the trip's cannot be fetched", async () => {
       const s = svc();
       const calcSpy = vi.spyOn(s, 'calculateSettlement').mockResolvedValue({ transfers: [] } as never);
       getRates.mockImplementation(async (b: string) => (b === 'USD' ? { USD: 1, EUR: 0.9 } : null));
@@ -218,9 +221,10 @@ describe('BudgetService', () => {
     // `TripMembersRepository.rosterUserIds` directly — a stub repository
     // with `rosterUserIds` mocked directly, same fix as `verifyTripAccess`'s
     // test above.
-    const rosterHas = (...userIds: number[]) => ({
-      rosterUserIds: vi.fn().mockResolvedValue(new Set(userIds)),
-    } as unknown as TripMembersRepository);
+    const rosterHas = (...userIds: number[]) =>
+      ({
+        rosterUserIds: vi.fn().mockResolvedValue(new Set(userIds)),
+      }) as unknown as TripMembersRepository;
 
     it('createSettlement freezes the FX rate (await) before the raw insert', async () => {
       const s = svc(rosterHas(1, 2));
@@ -242,7 +246,12 @@ describe('BudgetService', () => {
       await s.updateSettlement(7, '5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' });
       // the settlement's stored currency is threaded through so an unchanged-currency edit keeps the frozen rate (#1445)
       expect(getSpy).toHaveBeenCalledWith(7, '5');
-      expect(freezeSpy).toHaveBeenCalledWith('5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' }, undefined, 'USD');
+      expect(freezeSpy).toHaveBeenCalledWith(
+        '5',
+        { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' },
+        undefined,
+        'USD',
+      );
       expect(applySpy).toHaveBeenCalledWith(7, '5', { from_user_id: 1, to_user_id: 2, amount: 12, currency: 'USD' });
     });
 
@@ -272,7 +281,12 @@ describe('BudgetService', () => {
       await svc().syncReservationPrice('5', 42, 250, 'sock');
       expect(reservationsRepo.setMetadata.mock.calls[0][0]).toBe(42);
       expect(writtenMetadata()).toEqual({ vendor: 'ACME', price: '250' });
-      expect(broadcast).toHaveBeenCalledWith('5', 'reservation:updated', { reservation: { id: 42, metadata: '{"vendor":"ACME","price":"250"}' } }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith(
+        '5',
+        'reservation:updated',
+        { reservation: { id: 42, metadata: '{"vendor":"ACME","price":"250"}' } },
+        'sock',
+      );
     });
 
     it('starts from an empty object when the reservation has no metadata', async () => {
@@ -297,14 +311,20 @@ describe('BudgetService', () => {
     });
 
     it('drops a stored currency when the expense is in the trip currency (null)', async () => {
-      reservationsRepo.getIdAndMetadata.mockResolvedValueOnce({ id: 42, metadata: '{"price":"10","priceCurrency":"CNY"}' });
+      reservationsRepo.getIdAndMetadata.mockResolvedValueOnce({
+        id: 42,
+        metadata: '{"price":"10","priceCurrency":"CNY"}',
+      });
       reservationsRepo.getFull.mockResolvedValueOnce({ id: 42 });
       await svc().syncReservationPrice('5', 42, 12, undefined, null);
       expect(writtenMetadata()).toEqual({ price: '12' });
     });
 
     it('leaves a stored currency alone when none is passed at all', async () => {
-      reservationsRepo.getIdAndMetadata.mockResolvedValueOnce({ id: 42, metadata: '{"price":"10","priceCurrency":"CNY"}' });
+      reservationsRepo.getIdAndMetadata.mockResolvedValueOnce({
+        id: 42,
+        metadata: '{"price":"10","priceCurrency":"CNY"}',
+      });
       reservationsRepo.getFull.mockResolvedValueOnce({ id: 42 });
       await svc().syncReservationPrice('5', 42, 12, undefined);
       expect(writtenMetadata()).toEqual({ price: '12', priceCurrency: 'CNY' });
@@ -328,7 +348,9 @@ describe('BudgetService', () => {
     }
 
     it('resyncs the linked booking when the total changes', async () => {
-      expect(await resynced(undefined, { reservation_id: 42 }, { total_price: 250 }, 'sock')).toEqual([['5', 42, 'sock']]);
+      expect(await resynced(undefined, { reservation_id: 42 }, { total_price: 250 }, 'sock')).toEqual([
+        ['5', 42, 'sock'],
+      ]);
     });
 
     it('resyncs the linked booking on an edit that names neither the total nor the link', async () => {
@@ -343,7 +365,10 @@ describe('BudgetService', () => {
     });
 
     it('resyncs both the booking left and the booking joined on a re-link', async () => {
-      expect(await resynced(42, { reservation_id: 43 }, { reservation_id: 43 }, 'sock')).toEqual([['5', 42, 'sock'], ['5', 43, 'sock']]);
+      expect(await resynced(42, { reservation_id: 43 }, { reservation_id: 43 }, 'sock')).toEqual([
+        ['5', 42, 'sock'],
+        ['5', 43, 'sock'],
+      ]);
     });
 
     it('resyncs only the booking left on an unlink', async () => {
@@ -351,11 +376,15 @@ describe('BudgetService', () => {
     });
 
     it('resyncs only the booking joined when the expense had none before', async () => {
-      expect(await resynced(null, { reservation_id: 43 }, { reservation_id: 43, total_price: 10 })).toEqual([['5', 43, undefined]]);
+      expect(await resynced(null, { reservation_id: 43 }, { reservation_id: 43, total_price: 10 })).toEqual([
+        ['5', 43, undefined],
+      ]);
     });
 
     it('resyncs a booking once when the expense is re-linked to the one it already had', async () => {
-      expect(await resynced(42, { reservation_id: 42 }, { reservation_id: 42, total_price: 10 })).toEqual([['5', 42, undefined]]);
+      expect(await resynced(42, { reservation_id: 42 }, { reservation_id: 42, total_price: 10 })).toEqual([
+        ['5', 42, undefined],
+      ]);
     });
 
     it('ignores the stored link when the body does not name one', async () => {

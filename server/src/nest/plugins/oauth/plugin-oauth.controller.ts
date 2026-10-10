@@ -1,11 +1,12 @@
-import { Controller, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { InjectRepository } from '@mikro-orm/nestjs';
+import { Plugins } from '../../../db/entities/Plugins.entity';
+import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginOAuthService } from './plugin-oauth.service';
-import { Plugins } from '../../../db/entities/Plugins.entity';
-import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Controller, Get, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 /**
  * Host-brokered outbound OAuth endpoints (#plugins). All are gated by JwtAuthGuard —
@@ -28,14 +29,21 @@ export class PluginOAuthController {
   }
 
   @Get(':id/status')
-  async status(@Param('id') id: string, @Req() req: Request & { user?: { id: number } }): Promise<{ configured: boolean; connected: boolean }> {
+  async status(
+    @Param('id') id: string,
+    @Req() req: Request & { user?: { id: number } },
+  ): Promise<{ configured: boolean; connected: boolean }> {
     const userId = req.user?.id;
-    if (!pluginsEnabled() || userId == null || !(await this.isActive(id))) return { configured: false, connected: false };
+    if (!pluginsEnabled() || userId == null || !(await this.isActive(id)))
+      return { configured: false, connected: false };
     return await this.oauth.status(id, userId);
   }
 
   @Post(':id/connect')
-  async connect(@Param('id') id: string, @Req() req: Request & { user?: { id: number } }): Promise<{ authorizeUrl: string }> {
+  async connect(
+    @Param('id') id: string,
+    @Req() req: Request & { user?: { id: number } },
+  ): Promise<{ authorizeUrl: string }> {
     const userId = req.user?.id;
     if (!pluginsEnabled() || userId == null || !(await this.isActive(id))) throw new Error('plugin not available');
     return { authorizeUrl: await this.oauth.startConnect(id, userId, Date.now()) };
@@ -63,7 +71,10 @@ export class PluginOAuthController {
   }
 
   @Post(':id/disconnect')
-  async disconnect(@Param('id') id: string, @Req() req: Request & { user?: { id: number } }): Promise<{ connected: false }> {
+  async disconnect(
+    @Param('id') id: string,
+    @Req() req: Request & { user?: { id: number } },
+  ): Promise<{ connected: false }> {
     const userId = req.user?.id;
     if (userId != null) await this.oauth.disconnect(id, userId);
     return { connected: false };

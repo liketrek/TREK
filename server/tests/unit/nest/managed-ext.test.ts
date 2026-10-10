@@ -7,10 +7,11 @@
  * carries none of them. A stray controller or provider slipping in would be
  * invisible in review and obvious only to whoever it shipped to.
  */
-import { describe, it, expect } from 'vitest';
+import { ManagedExtModule } from '../../../src/nest/managed/managed-ext.module';
 import { MODULE_METADATA } from '@nestjs/common/constants';
 import { Test } from '@nestjs/testing';
-import { ManagedExtModule } from '../../../src/nest/managed/managed-ext.module';
+
+import { describe, it, expect } from 'vitest';
 
 const meta = (key: string): unknown[] => (Reflect.getMetadata(key, ManagedExtModule) as unknown[]) ?? [];
 

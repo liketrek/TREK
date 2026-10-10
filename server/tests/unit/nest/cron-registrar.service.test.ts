@@ -5,6 +5,23 @@
  * the old job, unregister is idempotent, and onApplicationShutdown stops
  * everything the registrar owns.
  */
+import { SchedulerLeases } from '../../../src/db/entities/SchedulerLeases.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { SchedulerLeasesRepository } from '../../../src/db/repositories/SchedulerLeases.repository';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { currentCorrelation, type Correlation } from '../../../src/nest/common/request-correlation';
+import {
+  CronRegistrarService,
+  LEASE_HEARTBEAT_MS,
+  LEASE_OWNER,
+  LEASE_SETTLE_MS,
+  LEASE_TTL_MS,
+} from '../../../src/nest/scheduling/cron-registrar.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { findRow, insertRow, updateRows } from '../../helpers/factories/rows';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const h = vi.hoisted(() => ({
@@ -50,23 +67,6 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
   logError: logErrorMock,
   logWarn: vi.fn(),
 }));
-
-import { SchedulerRegistry } from '@nestjs/schedule';
-import {
-  CronRegistrarService,
-  LEASE_HEARTBEAT_MS,
-  LEASE_OWNER,
-  LEASE_SETTLE_MS,
-  LEASE_TTL_MS,
-} from '../../../src/nest/scheduling/cron-registrar.service';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { SchedulerLeasesRepository } from '../../../src/db/repositories/SchedulerLeases.repository';
-import { SchedulerLeases } from '../../../src/db/entities/SchedulerLeases.entity';
-import { findRow, insertRow, updateRows } from '../../helpers/factories/rows';
-import { currentCorrelation, type Correlation } from '../../../src/nest/common/request-correlation';
 
 function makeRegistrar(isTest: boolean) {
   const registry = new SchedulerRegistry();
@@ -162,12 +162,12 @@ describe('CronRegistrarService', () => {
     registrar.register('a', '0 2 * * *', () => {});
     registrar.register('b', '0 4 * * *', () => {});
     registrar.onApplicationShutdown();
-    expect(h.jobs.every(j => j.stopped)).toBe(true);
+    expect(h.jobs.every((j) => j.stopped)).toBe(true);
     expect(registry.getCronJobs().size).toBe(0);
     expect(registrar.jobCount).toBe(0);
   });
 
-  it("CRONREG-009 — shutdown tolerates the orchestrator having already cleared the registry", () => {
+  it('CRONREG-009 — shutdown tolerates the orchestrator having already cleared the registry', () => {
     // @nestjs/schedule v6 deletes every registry cron job in its own
     // beforeApplicationShutdown, which runs before our onApplicationShutdown.
     const { registrar, registry } = makeRegistrar(false);
@@ -263,7 +263,11 @@ describe('CronRegistrarService', () => {
     });
 
     it('CRONREG-015: each tick runs under its own cron correlation id', async () => {
-      const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+      const registrar = new CronRegistrarService(
+        new SchedulerRegistry(),
+        { isTest: () => false } as RuntimeEnvService,
+        t.orm,
+      );
       const seen: Array<Correlation | undefined> = [];
       registrar.register('job', '0 2 * * *', () => {
         seen.push(currentCorrelation());
@@ -276,7 +280,11 @@ describe('CronRegistrarService', () => {
 
     it('CRONREG-016: a failed tick is logged once, by the trace, and the error handler does not repeat it', async () => {
       logErrorMock.mockClear();
-      const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+      const registrar = new CronRegistrarService(
+        new SchedulerRegistry(),
+        { isTest: () => false } as RuntimeEnvService,
+        t.orm,
+      );
       const boom = new Error('kaput');
       registrar.register('job', '0 2 * * *', () => {
         throw boom;
@@ -306,7 +314,11 @@ describe('CronRegistrarService', () => {
     it('CRONREG-017: a tick another process holds does not run here', async () => {
       const name = 'lease-held-elsewhere';
       await insertRow(t, SchedulerLeases, { name, owner: 'other-host:1:peer', expires_at: Date.now() + 60_000 });
-      const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+      const registrar = new CronRegistrarService(
+        new SchedulerRegistry(),
+        { isTest: () => false } as RuntimeEnvService,
+        t.orm,
+      );
       let ran = false;
       registrar.register(name, '* * * * *', () => {
         ran = true;
@@ -319,12 +331,17 @@ describe('CronRegistrarService', () => {
     it('CRONREG-021: a tick lost to another process is traced as skipped, and a tick run here as ok', async () => {
       const name = 'lease-trace-line';
       await insertRow(t, SchedulerLeases, { name, owner: 'other-host:1:peer', expires_at: Date.now() + 60_000 });
-      const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+      const registrar = new CronRegistrarService(
+        new SchedulerRegistry(),
+        { isTest: () => false } as RuntimeEnvService,
+        t.orm,
+      );
       registrar.register(name, '* * * * *', () => undefined);
       logDebugMock.mockClear();
       await h.jobs[0].onTick();
       await vi.waitFor(() => expect(logDebugMock).toHaveBeenCalled());
-      const lines = () => logDebugMock.mock.calls.map((call) => String(call[0])).filter((line) => line.startsWith(`cron ${name} `));
+      const lines = () =>
+        logDebugMock.mock.calls.map((call) => String(call[0])).filter((line) => line.startsWith(`cron ${name} `));
       expect(lines()).toHaveLength(1);
       expect(lines()[0]).toMatch(new RegExp(`^cron ${name} skipped \\d+ms: lease held by another process$`));
 
@@ -338,7 +355,11 @@ describe('CronRegistrarService', () => {
     it('CRONREG-018: a lapsed lease is taken over, and held for the settle window after the tick', async () => {
       const name = 'lease-lapsed';
       await insertRow(t, SchedulerLeases, { name, owner: 'crashed-host:9:gone', expires_at: Date.now() - 1 });
-      const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+      const registrar = new CronRegistrarService(
+        new SchedulerRegistry(),
+        { isTest: () => false } as RuntimeEnvService,
+        t.orm,
+      );
       let ran = false;
       registrar.register(name, '* * * * *', () => {
         ran = true;
@@ -354,7 +375,11 @@ describe('CronRegistrarService', () => {
 
     it('CRONREG-019: this process runs its own next tick even while it still holds the lease', async () => {
       const name = 'lease-own-next-tick';
-      const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+      const registrar = new CronRegistrarService(
+        new SchedulerRegistry(),
+        { isTest: () => false } as RuntimeEnvService,
+        t.orm,
+      );
       let runs = 0;
       registrar.register(name, '* * * * *', () => {
         runs++;
@@ -367,7 +392,11 @@ describe('CronRegistrarService', () => {
     it('CRONREG-020: a long tick renews its lease while it runs', async () => {
       vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
       const name = 'lease-long-tick';
-      const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+      const registrar = new CronRegistrarService(
+        new SchedulerRegistry(),
+        { isTest: () => false } as RuntimeEnvService,
+        t.orm,
+      );
       let finish!: () => void;
       let started!: () => void;
       const running = new Promise<void>((resolve) => {
@@ -392,7 +421,11 @@ describe('CronRegistrarService', () => {
       vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
       logErrorMock.mockClear();
       const name = 'lease-heartbeat-fails';
-      const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+      const registrar = new CronRegistrarService(
+        new SchedulerRegistry(),
+        { isTest: () => false } as RuntimeEnvService,
+        t.orm,
+      );
       let finish!: () => void;
       let started!: () => void;
       const running = new Promise<void>((resolve) => {
@@ -406,7 +439,9 @@ describe('CronRegistrarService', () => {
         });
         completed = true;
       });
-      const extend = vi.spyOn(SchedulerLeasesRepository.prototype, 'extend').mockRejectedValueOnce(new Error('database is locked'));
+      const extend = vi
+        .spyOn(SchedulerLeasesRepository.prototype, 'extend')
+        .mockRejectedValueOnce(new Error('database is locked'));
       try {
         const tick = h.jobs[0].onTick();
         await running;
@@ -427,7 +462,11 @@ describe('CronRegistrarService', () => {
     it('CRONREG-023: a failed settle extend is logged but never replaces the tick outcome', async () => {
       logErrorMock.mockClear();
       const name = 'lease-settle-fails';
-      const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+      const registrar = new CronRegistrarService(
+        new SchedulerRegistry(),
+        { isTest: () => false } as RuntimeEnvService,
+        t.orm,
+      );
       let ran = false;
       registrar.register(name, '* * * * *', () => {
         ran = true;
@@ -447,12 +486,18 @@ describe('CronRegistrarService', () => {
     it('CRONREG-024: a tick that throws keeps its own error when the settle extend also fails', async () => {
       logErrorMock.mockClear();
       const name = 'lease-settle-fails-after-throw';
-      const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+      const registrar = new CronRegistrarService(
+        new SchedulerRegistry(),
+        { isTest: () => false } as RuntimeEnvService,
+        t.orm,
+      );
       const boom = new Error('backup target unreachable');
       registrar.register(name, '* * * * *', () => {
         throw boom;
       });
-      const extend = vi.spyOn(SchedulerLeasesRepository.prototype, 'extend').mockRejectedValueOnce(new Error('disk I/O error'));
+      const extend = vi
+        .spyOn(SchedulerLeasesRepository.prototype, 'extend')
+        .mockRejectedValueOnce(new Error('disk I/O error'));
       try {
         await expect(h.jobs[0].onTick()).rejects.toBe(boom);
         await vi.waitFor(() =>
@@ -466,7 +511,11 @@ describe('CronRegistrarService', () => {
 
     it('CRONREG-025: a non-Error failure that reaches the cron error handler is logged with its string form', () => {
       logErrorMock.mockClear();
-      const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+      const registrar = new CronRegistrarService(
+        new SchedulerRegistry(),
+        { isTest: () => false } as RuntimeEnvService,
+        t.orm,
+      );
       registrar.register('lease-string-failure', '* * * * *', () => undefined);
       // A primitive can never be marked as traced, so the handler always logs it.
       h.jobs[0].errorHandler!('quota exceeded');
@@ -505,9 +554,7 @@ describe('CronRegistrarService', () => {
         fnRan = true;
       });
       expect(fnRan).toBe(false);
-      expect(logErrorMock).toHaveBeenCalledWith(
-        expect.stringMatching(/runOnBoot: no MikroORM available.*boot-sweep/),
-      );
+      expect(logErrorMock).toHaveBeenCalledWith(expect.stringMatching(/runOnBoot: no MikroORM available.*boot-sweep/));
     });
   });
 });

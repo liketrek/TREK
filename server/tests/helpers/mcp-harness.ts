@@ -9,17 +9,16 @@
  *   const result = await harness.client.callTool({ name: 'create_trip', arguments: { title: 'Test' } });
  *   await harness.cleanup();
  */
-
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-import { Client } from '@modelcontextprotocol/sdk/client/index';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
 import { registerTools } from '../../src/mcp/tools';
 import type { McpAttachOptions } from '../../src/nest-mcp';
-import { MikroORM } from '@mikro-orm/core';
 import { withRequestContext } from '../../src/nest/database/request-context';
+import type { RealtimeService } from '../../src/nest/realtime/realtime.service';
 import { createMcpTestRegistry } from './mcp-test-controllers';
 import { bootTestApp } from './test-app';
-import type { RealtimeService } from '../../src/nest/realtime/realtime.service';
+import { MikroORM } from '@mikro-orm/core';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
 export interface McpHarness {
   client: Client;
@@ -60,7 +59,15 @@ export interface McpHarnessOptions {
 }
 
 export async function createMcpHarness(options: McpHarnessOptions): Promise<McpHarness> {
-  const { userId, withTools = true, scopes = null, isStaticToken = false, getDeprecationNotice, dynamicTools, realtime } = options;
+  const {
+    userId,
+    withTools = true,
+    scopes = null,
+    isStaticToken = false,
+    getDeprecationNotice,
+    dynamicTools,
+    realtime,
+  } = options;
 
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
 
@@ -72,9 +79,20 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
     // call through the registry's `around` seam, as the transport's requests do.
     const orm = (await bootTestApp(realtime)).get(MikroORM);
     const registry = await createMcpTestRegistry(realtime);
-    const around = (_info: { kind: string; name: string }, call: () => unknown): unknown => withRequestContext(orm, call);
+    const around = (_info: { kind: string; name: string }, call: () => unknown): unknown =>
+      withRequestContext(orm, call);
     await withRequestContext(orm, () =>
-      registerTools(registry, server, userId, scopes ?? null, isStaticToken, getDeprecationNotice, undefined, dynamicTools, around),
+      registerTools(
+        registry,
+        server,
+        userId,
+        scopes ?? null,
+        isStaticToken,
+        getDeprecationNotice,
+        undefined,
+        dynamicTools,
+        around,
+      ),
     );
   }
 
@@ -86,8 +104,16 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
   await client.connect(clientTransport);
 
   const cleanup = async () => {
-    try { await client.close(); } catch { /* ignore */ }
-    try { await server.close(); } catch { /* ignore */ }
+    try {
+      await client.close();
+    } catch {
+      /* ignore */
+    }
+    try {
+      await server.close();
+    } catch {
+      /* ignore */
+    }
   };
 
   return { client, server, cleanup };

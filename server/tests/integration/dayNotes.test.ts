@@ -2,21 +2,21 @@
  * Day Notes integration tests.
  * Covers NOTE-001 to NOTE-006.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, createDay, addTripMember } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createDay, addTripMember } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -110,9 +110,7 @@ describe('List day notes', () => {
       .set('Cookie', authCookie(user.id))
       .send({ text: 'Note B' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/days/${day.id}/notes`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/days/${day.id}/notes`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.notes).toHaveLength(2);
   });

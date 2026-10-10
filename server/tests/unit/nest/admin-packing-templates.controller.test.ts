@@ -4,15 +4,16 @@
  * envelope, same create-201 split, same audit actions — these cases came over from
  * admin.controller.test.ts with the routes.
  */
+import type { AuditService } from '../../../src/nest/audit/audit.service';
 import { DomainError } from '../../../src/nest/common/domain-error';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HttpException } from '@nestjs/common';
 import { AdminPackingTemplatesController } from '../../../src/nest/packing/admin-packing-templates.controller';
 import { PackingModule } from '../../../src/nest/packing/packing.module';
 import type { PackingService } from '../../../src/nest/packing/packing.service';
-import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { User } from '../../../src/types';
 import { expectRegisteredController } from '../../helpers/module-providers';
+import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const user = { id: 1, role: 'admin' } as User;
 const req = { headers: {}, socket: {} } as never;
@@ -55,13 +56,24 @@ describe('AdminPackingTemplatesController', () => {
   });
 
   it('PACKTPL-002 a service refusal becomes that HTTP status, not a 200 body', async () => {
-    const { c } = controller({ getPackingTemplate: vi.fn(async () => { throw new DomainError(404, 'not found'); }) });
+    const { c } = controller({
+      getPackingTemplate: vi.fn(async () => {
+        throw new DomainError(404, 'not found');
+      }),
+    });
     expect(await thrown(() => c.get('9'))).toEqual({ status: 404, body: { error: 'not found' } });
   });
 
   it('PACKTPL-003 a 400 refusal keeps its status and text', async () => {
-    const { c } = controller({ createTemplateCategory: vi.fn(async () => { throw new DomainError(400, 'Category name is required'); }) });
-    expect(await thrown(() => c.createCategory('1', { name: '' }))).toEqual({ status: 400, body: { error: 'Category name is required' } });
+    const { c } = controller({
+      createTemplateCategory: vi.fn(async () => {
+        throw new DomainError(400, 'Category name is required');
+      }),
+    });
+    expect(await thrown(() => c.createCategory('1', { name: '' }))).toEqual({
+      status: 400,
+      body: { error: 'Category name is required' },
+    });
   });
 
   it('PACKTPL-004 create audits with the new template id', async () => {

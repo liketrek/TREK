@@ -1,19 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { ReservationsService } from '../reservations/reservations.service';
-import { addDays } from '../days/days.service';
-import { resolveTimeZone } from '../common/timezoneService';
-import { NotFoundError } from '../common/domain-errors';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository } from '../../db/repositories/Days.repository';
 import { DayNotes } from '../../db/entities/DayNotes.entity';
-import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
+import { Days } from '../../db/entities/Days.entity';
 import { Reservations } from '../../db/entities/Reservations.entity';
-import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import { Trips } from '../../db/entities/Trips.entity';
 import { RESERVATION_METADATA } from '../../db/json-columns';
+import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
+import type { DaysRepository } from '../../db/repositories/Days.repository';
+import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { decodeJson } from '../../utils/json-column';
+import { NotFoundError } from '../common/domain-errors';
+import { resolveTimeZone } from '../common/timezoneService';
+import { addDays } from '../days/days.service';
+import { ReservationsService } from '../reservations/reservations.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /** The VCALENDAR preamble every TREK calendar starts with, single-trip or merged. */
 export const CALENDAR_HEADER =
@@ -102,7 +102,10 @@ function offsetFormatter(zone: string): Intl.DateTimeFormat {
 
 /** The zone's UTC offset at instant `ms`, in minutes east of UTC. */
 function offsetMinutesAt(zone: string, ms: number): number {
-  const raw = offsetFormatter(zone).formatToParts(new Date(ms)).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT';
+  const raw =
+    offsetFormatter(zone)
+      .formatToParts(new Date(ms))
+      .find((p) => p.type === 'timeZoneName')?.value ?? 'GMT';
   const m = raw.match(/GMT([+-])(\d{2}):?(\d{2})?/);
   if (!m) return 0; // "GMT" (UTC) has no offset digits
   return (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] ?? 0));
@@ -257,12 +260,13 @@ export class CalendarService {
     // Joining them here is what lets a stay span its whole range (#1586).
     const reservations = await this.reservationsRepo.listForCalendar(trip.id);
 
-    const esc = (s: string) => s
-      .replaceAll(/\\/g, '\\\\')
-      .replaceAll(';', '\\;')
-      .replaceAll(',', '\\,')
-      .replace(/\r?\n/g, '\\n')
-      .replaceAll(/\r/g, '');
+    const esc = (s: string) =>
+      s
+        .replaceAll(/\\/g, '\\\\')
+        .replaceAll(';', '\\;')
+        .replaceAll(',', '\\,')
+        .replace(/\r?\n/g, '\\n')
+        .replaceAll(/\r/g, '');
     const fmtDate = (d: string) => d.replaceAll('-', '');
     const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     const uid = (id: number, type: string) => `trek-${type}-${id}@trek`;
@@ -296,12 +300,7 @@ export class CalendarService {
     // Emit a DTSTART/DTEND line, attaching TZID when the event's zone is known so
     // subscribers see the time in TREK's zone. Falls back to a floating local time
     // (unchanged behavior) when no zone resolves or the value is not a date-time.
-    const dtLine = (
-      prop: 'DTSTART' | 'DTEND',
-      wallClock: string,
-      zone: string | null,
-      refDate?: string,
-    ): string => {
+    const dtLine = (prop: 'DTSTART' | 'DTEND', wallClock: string, zone: string | null, refDate?: string): string => {
       const val = fmtDateTime(wallClock, refDate);
       if (zone && isValidTimeZone(zone) && /^\d{8}T\d{6}$/.test(val)) {
         const day = val.slice(0, 8);
@@ -344,8 +343,8 @@ export class CalendarService {
       const assignments = stopsByDay.get(day.id) ?? [];
       const notes = notesByDay.get(day.id) ?? [];
 
-      const timed = assignments.filter(a => a.effective_time);
-      const untimed = assignments.filter(a => !a.effective_time);
+      const timed = assignments.filter((a) => a.effective_time);
+      const untimed = assignments.filter((a) => !a.effective_time);
 
       // Timed assignments → individual events
       for (const a of timed) {
@@ -376,19 +375,25 @@ export class CalendarService {
 
         let desc = '';
         if (untimed.length > 0) {
-          desc += untimed.map(a => {
-            let line = `• ${a.place_name}`;
-            if (a.place_address) line += ` (${a.place_address})`;
-            if (a.notes) line += ` — ${a.notes}`;
-            return line;
-          }).join('\n');
+          desc += untimed
+            .map((a) => {
+              let line = `• ${a.place_name}`;
+              if (a.place_address) line += ` (${a.place_address})`;
+              if (a.notes) line += ` — ${a.notes}`;
+              return line;
+            })
+            .join('\n');
         }
         if (notes.length > 0) {
           if (desc) desc += '\n\n';
-          desc += 'Notes:\n' + notes.map(n => {
-            const line = n.time ? `${n.time} — ${n.text}` : `• ${n.text}`;
-            return line;
-          }).join('\n');
+          desc +=
+            'Notes:\n' +
+            notes
+              .map((n) => {
+                const line = n.time ? `${n.time} — ${n.text}` : `• ${n.text}`;
+                return line;
+              })
+              .join('\n');
         }
         if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
         ev += `END:VEVENT\r\n`;
@@ -456,11 +461,12 @@ export class CalendarService {
       // its block.
       const markersCover = stayCarriedByMarkers.get(Number(r.accommodation_id)) === r;
       if (isDate(r.stay_start_date) && !markersCover) {
-        const lastDay = isDate(r.stay_end_date) && r.stay_end_date >= r.stay_start_date
-          ? r.stay_end_date
-          : r.stay_start_date;
-        return `DTSTART;VALUE=DATE:${fmtDate(r.stay_start_date)}\r\n` +
-          `DTEND;VALUE=DATE:${fmtDate(addDays(lastDay, 1))}\r\n`;
+        const lastDay =
+          isDate(r.stay_end_date) && r.stay_end_date >= r.stay_start_date ? r.stay_end_date : r.stay_start_date;
+        return (
+          `DTSTART;VALUE=DATE:${fmtDate(r.stay_start_date)}\r\n` +
+          `DTEND;VALUE=DATE:${fmtDate(addDays(lastDay, 1))}\r\n`
+        );
       }
       // A fully timed stay is carried by its markers alone, so the booking row
       // itself has nothing left to place.
@@ -515,8 +521,10 @@ export class CalendarService {
         // used, because DTSTART;VALUE=DATE and a timed DTEND may not be mixed.
         const endDatePart = r.reservation_end_time ? String(r.reservation_end_time).split('T')[0] : '';
         if (isDate(endDatePart) && endDatePart >= r.reservation_time) {
-          return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n` +
-            `DTEND;VALUE=DATE:${fmtDate(addDays(endDatePart, 1))}\r\n`;
+          return (
+            `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n` +
+            `DTEND;VALUE=DATE:${fmtDate(addDays(endDatePart, 1))}\r\n`
+          );
         }
         return `DTSTART;VALUE=DATE:${fmtDate(r.reservation_time)}\r\n`;
       }
@@ -534,8 +542,7 @@ export class CalendarService {
       // out of the subscribed calendar entirely (#2068).
       if (isDate(r.day_date)) {
         const lastDay = isDate(r.end_day_date) && r.end_day_date >= r.day_date ? r.end_day_date : r.day_date;
-        return `DTSTART;VALUE=DATE:${fmtDate(r.day_date)}\r\n` +
-          `DTEND;VALUE=DATE:${fmtDate(addDays(lastDay, 1))}\r\n`;
+        return `DTSTART;VALUE=DATE:${fmtDate(r.day_date)}\r\n` + `DTEND;VALUE=DATE:${fmtDate(addDays(lastDay, 1))}\r\n`;
       }
       return null;
     };
@@ -567,7 +574,11 @@ export class CalendarService {
       };
     };
 
-    interface WindowSide { date: string; time: string | null; zone: string | null }
+    interface WindowSide {
+      date: string;
+      time: string | null;
+      zone: string | null;
+    }
 
     // Which endpoint is which side. The ROLE decides, because an import can drop
     // one (failed geocoding) and a surviving return endpoint must not masquerade
@@ -577,8 +588,8 @@ export class CalendarService {
     const windowSidesOf = (r: any): { start: WindowSide | null; end: WindowSide | null } => {
       const eps = endpointsMap.get(r.id);
       const ordered = eps && eps.length > 0 ? [...eps].sort((a, b) => a.sequence - b.sequence) : [];
-      const roleFrom = ordered.find(e => e.role === 'from');
-      const roleTo = ordered.find(e => e.role === 'to');
+      const roleFrom = ordered.find((e) => e.role === 'from');
+      const roleTo = ordered.find((e) => e.role === 'to');
       const noRoles = !roleFrom && !roleTo;
       const startEp = roleFrom ?? (noRoles && ordered.length > 1 ? ordered[0] : undefined);
       const endEp = roleTo ?? (noRoles && ordered.length > 1 ? ordered[ordered.length - 1] : undefined);
@@ -589,19 +600,24 @@ export class CalendarService {
           : null;
 
       const placeZone = resolveTimeZone(r.place_lat, r.place_lng);
-      const start = fromEp(startEp) ?? (() => {
-        const date = dateOf(r.reservation_time) ?? (isDate(r.day_date) ? r.day_date : null);
-        return date ? { date, time: timeOf(r.reservation_time), zone: placeZone } : null;
-      })();
-      const end = fromEp(endEp) ?? (() => {
-        const date = dateOf(r.reservation_end_time)
-          ?? (isDate(r.end_day_date) ? r.end_day_date : null)
-          ?? (timeOf(r.reservation_end_time) ? start?.date ?? null : null);
-        // The return side rarely carries a zone of its own. Inheriting the
-        // pickup's is what the single block did, and letting it float instead
-        // renders it in the subscriber's zone rather than the trip's (#1453).
-        return date ? { date, time: timeOf(r.reservation_end_time), zone: placeZone ?? start?.zone ?? null } : null;
-      })();
+      const start =
+        fromEp(startEp) ??
+        (() => {
+          const date = dateOf(r.reservation_time) ?? (isDate(r.day_date) ? r.day_date : null);
+          return date ? { date, time: timeOf(r.reservation_time), zone: placeZone } : null;
+        })();
+      const end =
+        fromEp(endEp) ??
+        (() => {
+          const date =
+            dateOf(r.reservation_end_time) ??
+            (isDate(r.end_day_date) ? r.end_day_date : null) ??
+            (timeOf(r.reservation_end_time) ? (start?.date ?? null) : null);
+          // The return side rarely carries a zone of its own. Inheriting the
+          // pickup's is what the single block did, and letting it float instead
+          // renders it in the subscriber's zone rather than the trip's (#1453).
+          return date ? { date, time: timeOf(r.reservation_end_time), zone: placeZone ?? start?.zone ?? null } : null;
+        })();
       return { start, end };
     };
 
@@ -624,7 +640,14 @@ export class CalendarService {
     // booking has one per airport or station, and floats otherwise.
     const dayDate = new Map<number, string>();
     for (const d of days) if (isDate(d.date)) dayDate.set(Number(d.id), d.date);
-    interface LegTimes { from: string | null; to: string | null; label: string | null; confirmation: string | null; dep: { date: string; time: string; zone: string | null }; arr: { date: string; time: string; zone: string | null } | null }
+    interface LegTimes {
+      from: string | null;
+      to: string | null;
+      label: string | null;
+      confirmation: string | null;
+      dep: { date: string; time: string; zone: string | null };
+      arr: { date: string; time: string; zone: string | null } | null;
+    }
     const legsOf = (r: any): LegTimes[] | null => {
       if (r.type !== 'flight' && r.type !== 'train' && r.type !== 'cruise') return null;
       const meta = decodeJson(RESERVATION_METADATA, r.metadata, `reservation ${r.id}`);
@@ -668,7 +691,13 @@ export class CalendarService {
           ev += dtLine('DTSTART', leg.dep.time, leg.dep.zone, `${leg.dep.date}T00:00`);
           if (leg.arr) ev += dtLine('DTEND', leg.arr.time, leg.arr.zone ?? leg.dep.zone, `${leg.arr.date}T00:00`);
           ev += `SUMMARY:${esc([r.title, route].filter(Boolean).join(': '))}\r\n`;
-          const legLines = [leg.label, leg.confirmation ? `Confirmation: ${leg.confirmation}` : null, `Leg ${i + 1} of ${legs.length}`].filter(Boolean).join('\n');
+          const legLines = [
+            leg.label,
+            leg.confirmation ? `Confirmation: ${leg.confirmation}` : null,
+            `Leg ${i + 1} of ${legs.length}`,
+          ]
+            .filter(Boolean)
+            .join('\n');
           ev += `DESCRIPTION:${esc([legLines, desc].filter(Boolean).join('\n'))}\r\n`;
           if (leg.from) ev += `LOCATION:${esc(leg.from)}\r\n`;
           ev += `END:VEVENT\r\n`;
@@ -719,14 +748,17 @@ export class CalendarService {
         // Endpoint-based transport without route metadata: derive it from endpoints.
         const eps = endpointsMap.get(r.id);
         if (eps && eps.length > 1) {
-          const stops = [...eps].sort((a, b) => a.sequence - b.sequence).map(e => e.code || e.name).filter(Boolean);
+          const stops = [...eps]
+            .sort((a, b) => a.sequence - b.sequence)
+            .map((e) => e.code || e.name)
+            .filter(Boolean);
           if (stops.length > 1) desc += `\nRoute: ${stops.join(' → ')}`;
         }
       }
       if (meta.train_number) desc += `\nTrain: ${meta.train_number}`;
       if (r.notes) desc += `\n${r.notes}`;
       return desc;
-    };
+    }
 
     // Check-in and check-out as their own timed events, when the stay records the
     // clock (#1586). They are separate from the all-day stay above on purpose: an

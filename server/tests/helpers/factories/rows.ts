@@ -1,3 +1,5 @@
+import { toRow } from '../../../src/db/repositories/_shared/rows';
+import { inContext, type FactoryOrm } from './context';
 import type {
   EntityClass,
   EntityManager,
@@ -9,8 +11,6 @@ import type {
   RequiredEntityData,
   UpsertOptions,
 } from '@mikro-orm/core';
-import { toRow } from '../../../src/db/repositories/_shared/rows';
-import { inContext, type FactoryOrm } from './context';
 
 /**
  * Typed row access for tests, through MikroORM instead of raw SQL.

@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Sablon kiválasztása...',
   'settings.mapDefaultHint': 'Hagyd üresen az OpenStreetMap használatához (alapértelmezett)',
   'settings.routingBase': 'Saját útvonaltervező',
-  'settings.routingBaseHint': 'Saját OSRM-példány. Üresen hagyva a nyilvános kiszolgálókat használja, amelyek másodpercenként körülbelül egy kérést engednek — egy napra elég, egy autós útra kevés. A kiszolgáló újraindítása után lép életbe.',
+  'settings.routingBaseHint':
+    'Saját OSRM-példány. Üresen hagyva a nyilvános kiszolgálókat használja, amelyek másodpercenként körülbelül egy kérést engednek — egy napra elég, egy autós útra kevés. A kiszolgáló újraindítása után lép életbe.',
   'settings.valhallaBase': 'Saját Valhalla-példány',
   'settings.valhallaBaseHint':
     'A TREK alapértelmezés szerint a FOSSGIS nyilvános Valhalláját használja a fizetős utak, autópályák és kompok elkerüléséhez. Itt megadhatja saját Valhallája URL-jét, hogy azt használja helyette. Ha csak saját útvonaltervező van beállítva, a nyilvános Valhalla nem használatos. Saját URL megadása után indítsa újra a szervert, és töltse újra az oldalt.',
@@ -82,7 +83,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'A hét első napja minden dátumválasztóban. A Vacay saját beállítást használ.',
   'settings.preferredNavApp': 'Helyek megnyitása itt',
   'settings.preferredNavAppAsk': 'Mindig kérdezzen',
-  'settings.preferredNavAppHint': 'Ha van kiválasztott app, a navigáció gomb azonnal azt nyitja meg, és nem kínálja fel az összes térképappot.',
+  'settings.preferredNavAppHint':
+    'Ha van kiválasztott app, a navigáció gomb azonnal azt nyitja meg, és nem kínálja fel az összes térképappot.',
   'settings.blurBookingCodes': 'Foglalási kódok elrejtése',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -354,7 +356,8 @@ const settings: TranslationStrings = {
   'settings.currencyTrip': 'Az utazás pénzneme',
   'settings.placeLanguage': 'Helynevek',
   'settings.placeLanguageApp': 'Ugyanaz, mint az alkalmazás',
-  'settings.placeLanguageHint': 'Ezen a nyelven válaszol a helykeresés, a javaslatok és a címek. Ha egy helynek nincs neve ezen a nyelven, a helyi neve jelenik meg.',
+  'settings.placeLanguageHint':
+    'Ezen a nyelven válaszol a helykeresés, a javaslatok és a címek. Ha egy helynek nincs neve ezen a nyelven, a helyi neve jelenik meg.',
   'settings.passkey.title': 'Passkey-k',
   'settings.passkey.description':
     'Jelentkezz be gyorsabban és adathalászat-állóan egy passkey-jel — ujjlenyomattal, arccal, PIN-kóddal vagy hardveres kulccsal. A jelszavad tartalékként megmarad.',
@@ -502,8 +505,10 @@ const settings: TranslationStrings = {
   'settings.general.startup': 'Indítás',
   'settings.dayDateFirst': 'Dátum elöl a napok fejlécében',
   'settings.compactUnplanned': 'Kompakt jelölők a nem tervezett helyekhez',
-  'settings.compactUnplannedHint': 'Az egyik napra sem beosztott helyek kis, fotó nélküli jelölőként jelennek meg, így a tervezett megállók kiemelkednek.',
-  'settings.dayDateFirstHint': 'Minden nap a naptári dátumával kezdődik, mellette pedig az „1. nap” felirat vagy a nap saját címe látható.',
+  'settings.compactUnplannedHint':
+    'Az egyik napra sem beosztott helyek kis, fotó nélküli jelölőként jelennek meg, így a tervezett megállók kiemelkednek.',
+  'settings.dayDateFirstHint':
+    'Minden nap a naptári dátumával kezdődik, mellette pedig az „1. nap” felirat vagy a nap saját címe látható.',
   'settings.startPage': 'Kezdőoldal',
   'settings.startPageDashboard': 'Irányítópult',
   'settings.startPageActiveTrip': 'Aktív utazás',
@@ -542,12 +547,14 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripFinished': 'Befejezve. Csak akkor mentjük, ha bekapcsolod.',
   'settings.offline.notice.stored': '{count} utazás mentve ezen az eszközön',
   'settings.offline.notice.stored.one': '{count} utazás mentve ezen az eszközön',
-  'settings.offline.notice.nothing': 'Nincs mit menteni. Kapcsold be azokat az utazásokat, amelyeket meg szeretnél tartani.',
+  'settings.offline.notice.nothing':
+    'Nincs mit menteni. Kapcsold be azokat az utazásokat, amelyeket meg szeretnél tartani.',
   'settings.offline.notice.busy': 'Már fut egy szinkronizálás. Próbáld újra egy pillanat múlva.',
   'settings.offline.notice.offline': 'Nincs kapcsolat. Csatlakozz, hogy offline menthesd az utazásokat.',
   'settings.offline.notice.signedOut': 'A munkamenet lejárt. Jelentkezz be újra a szinkronizáláshoz.',
   'settings.offline.notice.failed': 'A letöltés nem fejeződött be. Ellenőrizd a kapcsolatot, és próbáld újra.',
-  'settings.offline.notice.loadFailed': 'Nem sikerült olvasni az eszköz offline tárhelyét. Általában segít a gyorsítótár törlése.',
+  'settings.offline.notice.loadFailed':
+    'Nem sikerült olvasni az eszköz offline tárhelyét. Általában segít a gyorsítótár törlése.',
   'settings.offline.clear': 'Gyorsítótár törlése',
   'settings.offline.clearConfirm':
     'Törlöd az összes offline utazási adatot? Online állapotban bármikor újraszinkronizálhatsz.',
@@ -616,7 +623,8 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Kívánságlista',
   'settings.apiScopes.stats': 'Összesítések',
   'settings.apiKeys.title': 'API-kulcsok',
-  'settings.apiKeys.description': 'Kulcsok a nyilvános API-hoz, hogy más szoftverek olvashassák az utazásaidat. Csak olvasható: a kulcs semmit nem módosít és nem töröl.',
+  'settings.apiKeys.description':
+    'Kulcsok a nyilvános API-hoz, hogy más szoftverek olvashassák az utazásaidat. Csak olvasható: a kulcs semmit nem módosít és nem töröl.',
   'settings.apiKeys.create': 'Kulcs létrehozása',
   'settings.apiKeys.empty': 'Még nincs kulcs. Hozz létre egyet más szoftver csatlakoztatásához.',
   'settings.apiKeys.createdAt': 'létrehozva',
@@ -627,7 +635,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.deleteFailed': 'A kulcsot nem sikerült törölni',
   'settings.apiKeys.createFailed': 'A kulcsot nem sikerült létrehozni',
   'settings.apiKeys.copy': 'Másolás',
-  'settings.apiKeys.docsHint': 'Küldd a kulcsot "Authorization: Bearer ..." vagy "X-API-Key: ..." fejlécként a /api/v1 címre.',
+  'settings.apiKeys.docsHint':
+    'Küldd a kulcsot "Authorization: Bearer ..." vagy "X-API-Key: ..." fejlécként a /api/v1 címre.',
   'settings.apiKeys.endpoint': 'Végpont',
   'settings.apiKeys.neverUsed': 'még nem használt',
   'settings.apiKeys.loadFailed': 'Nem sikerült betölteni a kulcsaidat. Töltsd újra az oldalt, és próbáld újra.',

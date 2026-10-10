@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { Plugins } from '../../../db/entities/Plugins.entity';
-import { PluginOauthTokens } from '../../../db/entities/PluginOauthTokens.entity';
 import { PluginOauthState } from '../../../db/entities/PluginOauthState.entity';
+import { PluginOauthTokens } from '../../../db/entities/PluginOauthTokens.entity';
 import { PluginSettingsFields } from '../../../db/entities/PluginSettingsFields.entity';
+import { Plugins } from '../../../db/entities/Plugins.entity';
 import { PluginOAuthController } from './plugin-oauth.controller';
 import { PluginOAuthService } from './plugin-oauth.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Host-brokered outbound OAuth for plugins: the host runs the authorization code

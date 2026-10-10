@@ -12,29 +12,6 @@
  * (`db/orm.ts:59`) already gives it in production (the TRAP: "direct-call
  * tests need withRequestContext").
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type Database from 'better-sqlite3';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm } from '../../helpers/test-orm';
-import { withRequestContext } from '../../../src/nest/database/request-context';
-
-// Baseline handling is demo-reset's job and touches the file system.
-vi.mock('../../../src/demo/demo-reset', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../src/demo/demo-reset')>();
-  return {
-    ...actual,
-    saveBaseline: vi.fn(),
-    hasBaseline: vi.fn(() => true),
-    resetDemoUser: vi.fn(),
-  };
-});
-
-import { seedDemoData } from '../../../src/demo/demo-seed';
-import { takeExampleTripsSeeded } from '../../../src/demo/demo-reset';
-import type { EntityClass } from '@mikro-orm/core';
-import { countRows, findRows } from '../../helpers/factories/rows';
-import { readAppSetting } from '../../helpers/factories/settings';
-import { readUser } from '../../helpers/factories/users';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
@@ -46,6 +23,29 @@ import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { takeExampleTripsSeeded } from '../../../src/demo/demo-reset';
+import { seedDemoData } from '../../../src/demo/demo-seed';
+import { withRequestContext } from '../../../src/nest/database/request-context';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { countRows, findRows } from '../../helpers/factories/rows';
+import { readAppSetting } from '../../helpers/factories/settings';
+import { readUser } from '../../helpers/factories/users';
+import { createTestOrm } from '../../helpers/test-orm';
+import type { EntityClass } from '@mikro-orm/core';
+
+import type Database from 'better-sqlite3';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Baseline handling is demo-reset's job and touches the file system.
+vi.mock('../../../src/demo/demo-reset', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/demo/demo-reset')>();
+  return {
+    ...actual,
+    saveBaseline: vi.fn(),
+    hasBaseline: vi.fn(() => true),
+    resetDemoUser: vi.fn(),
+  };
+});
 
 describe('demo seeding', () => {
   let db: Database.Database;
@@ -108,8 +108,17 @@ describe('demo seeding', () => {
     // demo joined as a member alongside the admin owner).
     const orm = await createTestOrm(db);
     const tables = {
-      users: Users, trips: Trips, days: Days, places: Places, day_assignments: DayAssignments, packing_items: PackingItems,
-      budget_items: BudgetItems, reservations: Reservations, day_notes: DayNotes, trip_members: TripMembers, app_settings: AppSettings,
+      users: Users,
+      trips: Trips,
+      days: Days,
+      places: Places,
+      day_assignments: DayAssignments,
+      packing_items: PackingItems,
+      budget_items: BudgetItems,
+      reservations: Reservations,
+      day_notes: DayNotes,
+      trip_members: TripMembers,
+      app_settings: AppSettings,
     } as const;
     const count = (table: keyof typeof tables): Promise<number> => countRows(orm, tables[table] as EntityClass<object>);
     expect(await count('users')).toBe(2); // admin + demo
@@ -129,7 +138,11 @@ describe('demo seeding', () => {
     const admin = await readUser(orm, adminId);
     expect(admin.role).toBe('admin');
     const demoUser = await readUser(orm, demoId);
-    expect({ username: demoUser.username, email: demoUser.email, role: demoUser.role }).toEqual({ username: 'demo', email: 'demo@trek.app', role: 'user' });
+    expect({ username: demoUser.username, email: demoUser.email, role: demoUser.role }).toEqual({
+      username: 'demo',
+      email: 'demo@trek.app',
+      role: 'user',
+    });
 
     const tripTitles = (await findRows(orm, Trips, {}, { id: 'asc' })).map((r) => r.title);
     expect(tripTitles).toEqual(['Tokyo & Kyoto', 'Barcelona Long Weekend', 'New York City']);

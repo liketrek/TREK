@@ -1,16 +1,11 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { PLUGIN_SEARCH_SUGGEST_MAX } from '@trek/shared';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
-import {
-  collectHits,
-  interleave,
-  limitFrom,
-  searchRequestFrom,
-  type SearchHit,
-} from './plugin-search.helpers';
+import { collectHits, interleave, limitFrom, searchRequestFrom, type SearchHit } from './plugin-search.helpers';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { PLUGIN_SEARCH_SUGGEST_MAX } from '@trek/shared';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/plugin-search — places found by plugins implementing `searchProvider` (#2221).

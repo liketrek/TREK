@@ -1,8 +1,8 @@
 import type { BudgetSettlements } from '../entities/BudgetSettlements.entity';
+import type { DB } from '../kysely/db';
+import { presenceSet } from './_shared/presence-set';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import { presenceSet } from './_shared/presence-set';
-import type { DB } from '../kysely/db';
 
 /** A bare `budget_settlements` row — every scalar column, incl. the `persist(false)` relation mirrors. */
 export interface BudgetSettlementRow {
@@ -50,10 +50,21 @@ export class BudgetSettlementsRepository extends TrekRepository<BudgetSettlement
       .innerJoin('users as fu', 'fu.id', 's.from_user_id')
       .innerJoin('users as tu', 'tu.id', 's.to_user_id')
       .select([
-        's.id', 's.trip_id', 's.from_user_id', 's.to_user_id', 's.amount', 's.currency', 's.exchange_rate',
-        's.created_at', 's.settled_at', 's.note', 's.created_by_user_id',
-        (eb) => eb.fn.coalesce('fu.display_name', 'fu.username').as('from_username'), 'fu.avatar as from_avatar',
-        (eb) => eb.fn.coalesce('tu.display_name', 'tu.username').as('to_username'), 'tu.avatar as to_avatar',
+        's.id',
+        's.trip_id',
+        's.from_user_id',
+        's.to_user_id',
+        's.amount',
+        's.currency',
+        's.exchange_rate',
+        's.created_at',
+        's.settled_at',
+        's.note',
+        's.created_by_user_id',
+        (eb) => eb.fn.coalesce('fu.display_name', 'fu.username').as('from_username'),
+        'fu.avatar as from_avatar',
+        (eb) => eb.fn.coalesce('tu.display_name', 'tu.username').as('to_username'),
+        'tu.avatar as to_avatar',
       ]);
   }
 
@@ -98,14 +109,28 @@ export class BudgetSettlementsRepository extends TrekRepository<BudgetSettlement
    * `insert` — collides with `TrekRepository`'s own same-named method.
    */
   async insertSettlement(row: {
-    trip_id: number | string; from_user_id: number; to_user_id: number; amount: number;
-    currency: string | null; exchange_rate: number; settled_at: string | null; note: string | null; created_by_user_id: number | null;
+    trip_id: number | string;
+    from_user_id: number;
+    to_user_id: number;
+    amount: number;
+    currency: string | null;
+    exchange_rate: number;
+    settled_at: string | null;
+    note: string | null;
+    created_by_user_id: number | null;
   }): Promise<number> {
     const inserted = await this.kysely<BudgetSettlementsWriteKyselyDB>()
       .insertInto('budget_settlements')
       .values({
-        trip_id: row.trip_id as number, from_user_id: row.from_user_id, to_user_id: row.to_user_id, amount: row.amount,
-        currency: row.currency, exchange_rate: row.exchange_rate, settled_at: row.settled_at, note: row.note, created_by_user_id: row.created_by_user_id,
+        trip_id: row.trip_id as number,
+        from_user_id: row.from_user_id,
+        to_user_id: row.to_user_id,
+        amount: row.amount,
+        currency: row.currency,
+        exchange_rate: row.exchange_rate,
+        settled_at: row.settled_at,
+        note: row.note,
+        created_by_user_id: row.created_by_user_id,
       })
       .returning('id')
       .executeTakeFirstOrThrow();
@@ -119,14 +144,24 @@ export class BudgetSettlementsRepository extends TrekRepository<BudgetSettlement
    * shape `BudgetItemsRepository.update` (BG33) lands.
    */
   /** `id: number`, same Plan 4 Task 8b narrowing as {@link findWithUsers} (its one caller, `applySettlementUpdate`, is only reached with a `toRowId`-parsed id). */
-  async update(id: number, write: {
-    from_user_id: number; to_user_id: number; amount: number;
-    currency?: [present: boolean, value: string | null];
-    exchange_rate?: [present: boolean, value: number];
-    settled_at?: [present: boolean, value: string | null];
-    note?: [present: boolean, value: string | null];
-  }): Promise<void> {
-    const data = presenceSet<{ currency: string | null; exchange_rate: number; settled_at: string | null; note: string | null }>({
+  async update(
+    id: number,
+    write: {
+      from_user_id: number;
+      to_user_id: number;
+      amount: number;
+      currency?: [present: boolean, value: string | null];
+      exchange_rate?: [present: boolean, value: number];
+      settled_at?: [present: boolean, value: string | null];
+      note?: [present: boolean, value: string | null];
+    },
+  ): Promise<void> {
+    const data = presenceSet<{
+      currency: string | null;
+      exchange_rate: number;
+      settled_at: string | null;
+      note: string | null;
+    }>({
       currency: write.currency,
       exchange_rate: write.exchange_rate,
       settled_at: write.settled_at,
@@ -177,7 +212,7 @@ export class BudgetSettlementsRepository extends TrekRepository<BudgetSettlement
       .where('trip_id', '=', trip_id as number)
       .where('currency', 'is not', null)
       .execute();
-    return rows.map(r => r.currency as string);
+    return rows.map((r) => r.currency as string);
   }
 
   /**
@@ -196,9 +231,11 @@ export class BudgetSettlementsRepository extends TrekRepository<BudgetSettlement
       .where('currency', 'is not', null)
       .where('currency', '!=', '')
       .where((eb) => eb(eb.fn<string>('upper', ['currency']), '!=', trip_currency))
-      .where((eb) => eb.or([eb('exchange_rate', 'is', null), eb('exchange_rate', '<=', 0), eb('exchange_rate', '=', 1)]))
+      .where((eb) =>
+        eb.or([eb('exchange_rate', 'is', null), eb('exchange_rate', '<=', 0), eb('exchange_rate', '=', 1)]),
+      )
       .execute();
-    return rows.map(r => r.cur);
+    return rows.map((r) => r.cur);
   }
 
   /** BG91's `budget_settlements` half (`freezeMissingRates`) — `SELECT id FROM budget_settlements WHERE trip_id = ? AND UPPER(currency) = ? AND (exchange_rate IS NULL OR exchange_rate <= 0 OR exchange_rate = 1)`. */
@@ -208,9 +245,11 @@ export class BudgetSettlementsRepository extends TrekRepository<BudgetSettlement
       .select('id')
       .where('trip_id', '=', trip_id as number)
       .where((eb) => eb(eb.fn<string>('upper', ['currency']), '=', currency))
-      .where((eb) => eb.or([eb('exchange_rate', 'is', null), eb('exchange_rate', '<=', 0), eb('exchange_rate', '=', 1)]))
+      .where((eb) =>
+        eb.or([eb('exchange_rate', 'is', null), eb('exchange_rate', '<=', 0), eb('exchange_rate', '=', 1)]),
+      )
       .execute();
-    return rows.map(r => r.id);
+    return rows.map((r) => r.id);
   }
 
   /** BG92's `budget_settlements` half (`freezeMissingRates`) — `UPDATE budget_settlements SET exchange_rate = ? WHERE trip_id = ? AND UPPER(currency) = ? AND (exchange_rate IS NULL OR exchange_rate <= 0 OR exchange_rate = 1)`, the compare-and-set write. */
@@ -220,7 +259,9 @@ export class BudgetSettlementsRepository extends TrekRepository<BudgetSettlement
       .set({ exchange_rate })
       .where('trip_id', '=', trip_id as number)
       .where((eb) => eb(eb.fn<string>('upper', ['currency']), '=', currency))
-      .where((eb) => eb.or([eb('exchange_rate', 'is', null), eb('exchange_rate', '<=', 0), eb('exchange_rate', '=', 1)]))
+      .where((eb) =>
+        eb.or([eb('exchange_rate', 'is', null), eb('exchange_rate', '<=', 0), eb('exchange_rate', '=', 1)]),
+      )
       .execute();
   }
 

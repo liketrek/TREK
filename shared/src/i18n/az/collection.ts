@@ -174,7 +174,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'Siyahıya əlavə et',
   'collections.file.targetExistingHint': 'Mövcud siyahılarınızdan birinə',
   'collections.file.searchLists': 'Siyahıları axtar',
-  'collections.file.intoHint': 'Siyahıda artıq olan məkanlar, siyahının adı və rəngi dəyişdirilmir. Fayldakı yeni etiketlər əlavə edilir.',
+  'collections.file.intoHint':
+    'Siyahıda artıq olan məkanlar, siyahının adı və rəngi dəyişdirilmir. Fayldakı yeni etiketlər əlavə edilir.',
   'collections.file.confirmInto': 'Siyahıya əlavə et',
   'collections.file.doneInto': '{count} məkan {name} siyahısına əlavə edildi',
   'collections.file.doneInto.one': '{count} məkan {name} siyahısına əlavə edildi',
@@ -200,11 +201,13 @@ const collection: TranslationStrings = {
   'collections.file.formatGpxHint': 'OsmAnd, Organic Maps, Garmin və digər xəritə tətbiqləri üçün yol nöqtələri',
   'collections.file.gpxOmitted': '{count} məkanın koordinatları olmadığı üçün GPX faylına daxil edilmədi',
   'collections.file.gpxOmitted.one': '{count} məkanın koordinatları olmadığı üçün GPX faylına daxil edilmədi',
-  'collections.file.gpxNothing': 'Bu məkanların heç birinin koordinatları yoxdur, buna görə GPX faylına əlavə ediləcək heç nə yoxdur.',
+  'collections.file.gpxNothing':
+    'Bu məkanların heç birinin koordinatları yoxdur, buna görə GPX faylına əlavə ediləcək heç nə yoxdur.',
   'collections.file.reading': 'Fayl oxunur…',
   'collections.file.gpxSkipped': 'İstifadəyə yararlı koordinatları olmayan {count} yol nöqtəsi daxil edilmir.',
   'collections.file.gpxSkipped.one': 'İstifadəyə yararlı koordinatları olmayan {count} yol nöqtəsi daxil edilmir.',
-  'collections.file.gpxTrack': 'Bu faylda həmçinin {count} iz nöqtəsi var. İzlər deyil, yalnız yol nöqtələri idxal edilir.',
+  'collections.file.gpxTrack':
+    'Bu faylda həmçinin {count} iz nöqtəsi var. İzlər deyil, yalnız yol nöqtələri idxal edilir.',
   'collections.file.gpxTrack.one':
     'Bu faylda həmçinin {count} iz nöqtəsi var. İzlər deyil, yalnız yol nöqtələri idxal edilir.',
   'collections.file.gpxEmpty': 'Bu GPX faylında yol nöqtəsi yoxdur, buna görə idxal ediləcək heç nə yoxdur.',
@@ -230,7 +233,8 @@ const collection: TranslationStrings = {
   'collections.share.memberHint': 'Yalnız siyahının sahibi insanları dəvət edə və ya çıxara bilər.',
   'collections.share.cancel': 'Ləğv et',
   'collections.share.leave': 'Siyahıdan ayrıl',
-  'collections.share.leaveConfirm': 'Bu paylaşılan siyahıdan ayrılasınız? Yenidən dəvət edilənədək giriş icazənizi itirəcəksiniz.',
+  'collections.share.leaveConfirm':
+    'Bu paylaşılan siyahıdan ayrılasınız? Yenidən dəvət edilənədək giriş icazənizi itirəcəksiniz.',
   'collections.share.left': 'Siyahıdan ayrıldınız',
   'collections.share.remove': 'Çıxar',
 

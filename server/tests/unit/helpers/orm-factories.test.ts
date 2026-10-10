@@ -5,20 +5,42 @@
  * with its defaults and overrides, against the real migrated schema, and that
  * the readers and the read-only-column guard behave as the README says.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import bcrypt from 'bcryptjs';
-import { Days } from '../../../src/db/entities/Days.entity';
-import { PackingBags } from '../../../src/db/entities/PackingBags.entity';
+import { Addons } from '../../../src/db/entities/Addons.entity';
 import { Categories } from '../../../src/db/entities/Categories.entity';
+import { Days } from '../../../src/db/entities/Days.entity';
+import { JourneyContributors } from '../../../src/db/entities/JourneyContributors.entity';
+import { JourneyTrips } from '../../../src/db/entities/JourneyTrips.entity';
+import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
+import { PackingBags } from '../../../src/db/entities/PackingBags.entity';
+import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
 import { Tags } from '../../../src/db/entities/Tags.entity';
+import { TourWaypoints } from '../../../src/db/entities/TourWaypoints.entity';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
 import { decryptMfaSecret } from '../../../src/nest/common/crypto/mfaCrypto';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { makeBucketListItem, markCountryVisited } from '../../helpers/factories/atlas';
+import { addBudgetItemMember, makeBudgetItem } from '../../helpers/factories/budget';
+import { makeCollabMessage, makeCollabNote } from '../../helpers/factories/collab';
+import { addCollectionMember, makeCollection, makeCollectionPlace } from '../../helpers/factories/collections';
 import { inContext } from '../../helpers/factories/context';
+import { linkFile, makeTripFile } from '../../helpers/factories/files';
+import { makeDayAssignment, makeDayNote } from '../../helpers/factories/itinerary';
+import {
+  addJourneyContributor,
+  linkTripToJourney,
+  makeJourney,
+  makeJourneyEntry,
+} from '../../helpers/factories/journeys';
+import { disableNotificationPref, makeNotification } from '../../helpers/factories/notifications';
+import { addPackingBagMembers, makePackingBag, makePackingItem } from '../../helpers/factories/packing';
+import { addAlbumLink, addTripPhoto } from '../../helpers/factories/photos';
+import { makeCategory, makePlace, makeTag, tagPlace } from '../../helpers/factories/places';
+import { makePlugin, setPluginUserConfig } from '../../helpers/factories/plugins';
+import { makeReservation, makeReservationEndpoint } from '../../helpers/factories/reservations';
 import {
   countRows,
   createRow,
@@ -29,19 +51,6 @@ import {
   insertRowIgnoringConflict,
   updateRows,
 } from '../../helpers/factories/rows';
-import { KNOWN_MFA_SECRET, makeAdmin, makeUser, makeUserWithMfa, readUser } from '../../helpers/factories/users';
-import { addTripMember, datesBetween, makeDay, makeShareToken, makeTrip, readTripDays } from '../../helpers/factories/trips';
-import { makeCategory, makePlace, makeTag, tagPlace } from '../../helpers/factories/places';
-import { makeDayAssignment, makeDayNote } from '../../helpers/factories/itinerary';
-import { makeReservation, makeReservationEndpoint } from '../../helpers/factories/reservations';
-import { addBudgetItemMember, makeBudgetItem } from '../../helpers/factories/budget';
-import { addPackingBagMembers, makePackingBag, makePackingItem } from '../../helpers/factories/packing';
-import { makeTodoItem } from '../../helpers/factories/todos';
-import { linkFile, makeTripFile } from '../../helpers/factories/files';
-import { addJourneyContributor, linkTripToJourney, makeJourney, makeJourneyEntry } from '../../helpers/factories/journeys';
-import { addTourWaypoints, makeTour } from '../../helpers/factories/tours';
-import { addCollectionMember, makeCollection, makeCollectionPlace } from '../../helpers/factories/collections';
-import { disableNotificationPref, makeNotification } from '../../helpers/factories/notifications';
 import {
   readAppSetting,
   readUserSetting,
@@ -49,20 +58,24 @@ import {
   setAppSetting,
   setUserSetting,
 } from '../../helpers/factories/settings';
-import { makePlugin, setPluginUserConfig } from '../../helpers/factories/plugins';
+import { makeTodoItem } from '../../helpers/factories/todos';
 import { makeInviteToken, makeMcpToken, makeOauthClient } from '../../helpers/factories/tokens';
-import { makeBucketListItem, markCountryVisited } from '../../helpers/factories/atlas';
+import { addTourWaypoints, makeTour } from '../../helpers/factories/tours';
+import {
+  addTripMember,
+  datesBetween,
+  makeDay,
+  makeShareToken,
+  makeTrip,
+  readTripDays,
+} from '../../helpers/factories/trips';
+import { KNOWN_MFA_SECRET, makeAdmin, makeUser, makeUserWithMfa, readUser } from '../../helpers/factories/users';
 import { addVacayPlanMember, makeVacayEntry, makeVacayPlan } from '../../helpers/factories/vacay';
-import { addAlbumLink, addTripPhoto } from '../../helpers/factories/photos';
-import { makeCollabMessage, makeCollabNote } from '../../helpers/factories/collab';
-import { Addons } from '../../../src/db/entities/Addons.entity';
-import { JourneyContributors } from '../../../src/db/entities/JourneyContributors.entity';
-import { JourneyTrips } from '../../../src/db/entities/JourneyTrips.entity';
-import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
-import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
-import { TourWaypoints } from '../../../src/db/entities/TourWaypoints.entity';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import bcrypt from 'bcryptjs';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let orm: TestOrm;
@@ -241,7 +254,12 @@ describe('ORM test factories: journeys, tours, collections and the rest', () => 
     await addJourneyContributor(orm, journey.id, editor.id);
     await addJourneyContributor(orm, journey.id, editor.id, 'viewer');
     const roles = (await findRows(orm, JourneyContributors, { journey: journey.id })).map((c) => [c.user_id, c.role]);
-    expect(roles).toEqual(expect.arrayContaining([[owner.id, 'owner'], [editor.id, 'editor']]));
+    expect(roles).toEqual(
+      expect.arrayContaining([
+        [owner.id, 'owner'],
+        [editor.id, 'editor'],
+      ]),
+    );
     expect(roles).toHaveLength(2);
 
     const trip = await makeTrip(orm, owner.id);
@@ -301,7 +319,9 @@ describe('ORM test factories: journeys, tours, collections and the rest', () => 
 
     expect((await makePlugin(orm, 'factory-plugin')).status).toBe('inactive');
     await setPluginUserConfig(orm, 'factory-plugin', user.id, { a: 1 });
-    expect((await findRow(orm, PluginUserConfig, { plugin_id: 'factory-plugin', user_id: user.id }))?.config).toBe('{"a":1}');
+    expect((await findRow(orm, PluginUserConfig, { plugin_id: 'factory-plugin', user_id: user.id }))?.config).toBe(
+      '{"a":1}',
+    );
 
     const { token, rawToken } = await makeMcpToken(orm, user.id);
     expect(token.token_prefix).toBe(rawToken.slice(0, 12));
@@ -323,7 +343,10 @@ describe('ORM test factories: journeys, tours, collections and the rest', () => 
     expect((await makeVacayEntry(orm, plan.id, user.id, '2026-07-01')).date).toBe('2026-07-01');
 
     const album = await addAlbumLink(orm, trip.id, user.id, 'immich', 'album-1');
-    const photo = await addTripPhoto(orm, trip.id, user.id, 'asset-1', 'immich', { shared: true, albumLinkId: album.id });
+    const photo = await addTripPhoto(orm, trip.id, user.id, 'asset-1', 'immich', {
+      shared: true,
+      albumLinkId: album.id,
+    });
     const again = await addTripPhoto(orm, await makeTrip(orm, user.id).then((t) => t.id), user.id, 'asset-1', 'immich');
     expect(photo).toMatchObject({ shared: 1, album_link_id: album.id });
     expect(again.photo_id).toBe(photo.photo_id);

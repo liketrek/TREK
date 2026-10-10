@@ -1,18 +1,10 @@
-import fs from 'node:fs';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { StorageAdminState, StorageBackend, StorageConfigPut, StorageTestResponse, StorageUsage } from '@trek/shared';
-import { UnitOfWork } from '../database/unit-of-work';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import {
-  BACKENDS_KEY,
-  CATEGORIES_KEY,
-  VERSION_KEY,
-  StorageRegistryService,
-} from './storage-registry.service';
-import { StorageService } from './storage.service';
+import { UnitOfWork } from '../database/unit-of-work';
+import { StorageJobsService } from './storage-jobs.service';
 import { getSeedConfigPath } from './storage-paths';
+import { ephemeralDriverFor, probeDriver, type ProbeTargetResult } from './storage-probe';
+import { BACKENDS_KEY, CATEGORIES_KEY, VERSION_KEY, StorageRegistryService } from './storage-registry.service';
 import {
   assertNoMaskSentinels,
   decryptBackendSecrets,
@@ -20,10 +12,20 @@ import {
   maskBackendOptions,
   unmaskStorageConfig,
 } from './storage-secrets';
-import { ephemeralDriverFor, probeDriver, type ProbeTargetResult } from './storage-probe';
-import { StorageBackendError, StorageConflictError, type StorageCategory } from './storage.types';
-import { StorageJobsService } from './storage-jobs.service';
 import { StorageStatsService } from './storage-stats.service';
+import { StorageService } from './storage.service';
+import { StorageBackendError, StorageConflictError, type StorageCategory } from './storage.types';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type {
+  StorageAdminState,
+  StorageBackend,
+  StorageConfigPut,
+  StorageTestResponse,
+  StorageUsage,
+} from '@trek/shared';
+
+import fs from 'node:fs';
 
 /**
  * Owner of the api/admin/storage read/write pipelines (spec:
@@ -138,10 +140,7 @@ export class StorageAdminService {
    * hides replica failures by design. Registry state is never touched.
    */
   async testBackend(candidate: StorageBackend): Promise<StorageTestResponse> {
-    const { backends } = unmaskStorageConfig(
-      { backends: [candidate], categories: {} },
-      await this.storedBackendsRow(),
-    );
+    const { backends } = unmaskStorageConfig({ backends: [candidate], categories: {} }, await this.storedBackendsRow());
     const backend = backends[0]!;
     const targets = this.probeTargetsFor(backend).map(decryptBackendSecrets) as Array<
       Extract<StorageBackend, { type: 'local' | 's3' }>

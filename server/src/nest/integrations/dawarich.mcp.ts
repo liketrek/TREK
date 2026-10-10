@@ -1,17 +1,21 @@
+import { ADDON_IDS } from '../../addons';
 import {
-  McpController, Tool, type McpContext,
+  McpController,
+  Tool,
+  type McpContext,
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  errorResult, ok,
+  errorResult,
+  ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
-import { idSchema } from '@trek/shared';
-import { ADDON_IDS } from '../../addons';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { AcceptError, DawarichSuggestionsService } from './dawarich-suggestions.service';
 import { DawarichTracksService } from './dawarich-tracks.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 /** Same gate as the controller's @RequireAddon(ADDON_IDS.DAWARICH): no addon, no tool. */
 const dawarichAddonOn = addonGate(ADDON_IDS.DAWARICH);
@@ -59,9 +63,16 @@ export class DawarichMcp {
       "List the stays TREK pulled from the caller's connected Dawarich instance and is holding for review: where they were, when they arrived and left, how long they stayed, and which trip the stay falls into. Each entry carries the id the accept tools take. Use it to answer what someone actually did on a trip, or to fill a travel journal from what was recorded rather than from memory. Nothing here has been added to a trip yet — accepting is a separate, explicit step.",
     inputSchema: {
       tripId: idSchema.optional().describe('Only stays that fall inside this trip'),
-      state: z.enum(['new', 'accepted', 'dismissed']).optional()
+      state: z
+        .enum(['new', 'accepted', 'dismissed'])
+        .optional()
         .describe('Default: every state. "new" is the review backlog.'),
-      limit: z.number().int().min(1).max(MAX_LIMIT).optional()
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_LIMIT)
+        .optional()
         .describe(`Maximum stays to return, most recent first (default ${DEFAULT_LIMIT}, max ${MAX_LIMIT})`),
     },
     // Reads TREK's own table; the fetch from the remote instance happens on a cron.
@@ -104,7 +115,15 @@ export class DawarichMcp {
     when: dawarichAddonOn,
   })
   async acceptAsPlace(
-    args: { suggestionId: number; tripId?: number; dayId?: number; name?: string; notes?: string; lat?: number; lng?: number },
+    args: {
+      suggestionId: number;
+      tripId?: number;
+      dayId?: number;
+      name?: string;
+      notes?: string;
+      lat?: number;
+      lng?: number;
+    },
     ctx: McpContext,
   ) {
     const { suggestionId, ...rest } = args;
@@ -120,8 +139,14 @@ export class DawarichMcp {
       journalId: idSchema.describe('The journey the entry is added to'),
       name: z.string().trim().min(1).max(255).optional().describe('Entry title; defaults to the stay name'),
       notes: z.string().max(5000).optional().describe('The story text'),
-      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-      time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+      date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+      time: z
+        .string()
+        .regex(/^\d{2}:\d{2}$/)
+        .optional(),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'journey', mode: 'write' },
@@ -138,11 +163,10 @@ export class DawarichMcp {
   @Tool({
     name: 'mark_bucket_list_item_visited_from_dawarich',
     description:
-      "Tick a bucket-list wish off because a recorded stay proves the caller got there. Call list_dawarich_suggestions first: a stay that sits on top of a wish already carries its id as matchedBucketListItemId. Use it when someone asks which of the places they wanted to see they have actually reached.",
+      'Tick a bucket-list wish off because a recorded stay proves the caller got there. Call list_dawarich_suggestions first: a stay that sits on top of a wish already carries its id as matchedBucketListItemId. Use it when someone asks which of the places they wanted to see they have actually reached.',
     inputSchema: {
       suggestionId: idSchema,
-      bucketListItemId: idSchema.optional()
-        .describe('Defaults to the wish the stay was matched to'),
+      bucketListItemId: idSchema.optional().describe('Defaults to the wish the stay was matched to'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'atlas', mode: 'write' },
@@ -169,10 +193,7 @@ export class DawarichMcp {
     access: { group: 'journey', mode: 'write' },
     when: dawarichAddonOn,
   })
-  async dismiss(
-    { suggestionId, state }: { suggestionId: number; state?: 'dismissed' | 'new' },
-    ctx: McpContext,
-  ) {
+  async dismiss({ suggestionId, state }: { suggestionId: number; state?: 'dismissed' | 'new' }, ctx: McpContext) {
     const updated = await this.suggestions.setState(ctx.userId, suggestionId, state ?? 'dismissed');
     if (!updated) return errorResult('Suggestion not found');
     return ok({ suggestion: updated });
@@ -184,18 +205,23 @@ export class DawarichMcp {
       "Fetch the route actually recorded during a trip, grouped by local day, straight from the caller's Dawarich instance. Each day carries its segments with start and end times and, where Dawarich classified it, how it was travelled. Use it to answer what route someone really took, or how a day's movement compares with what was planned. Nothing is stored in TREK — this is a live read of the recording.",
     inputSchema: {
       tripId: idSchema,
-      from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Narrow to this first day'),
-      to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Narrow to this last day'),
+      from: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe('Narrow to this first day'),
+      to: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe('Narrow to this last day'),
     },
     // Reaches a remote instance rather than TREK's own database.
     annotations: { ...TOOL_ANNOTATIONS_READONLY, openWorldHint: true },
     access: { group: 'journey', mode: 'read' },
     when: dawarichAddonOn,
   })
-  async tripTrack(
-    { tripId, from, to }: { tripId: number; from?: string; to?: string },
-    ctx: McpContext,
-  ) {
+  async tripTrack({ tripId, from, to }: { tripId: number; from?: string; to?: string }, ctx: McpContext) {
     let track;
     try {
       track = await this.tracks.forTrip(ctx.userId, tripId, from, to);

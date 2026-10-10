@@ -1,11 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Categories } from '../../../../src/db/entities/Categories.entity';
+import type { CategoriesRepository } from '../../../../src/db/repositories/Categories.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createCategory, createUser } from '../../../helpers/factories';
+import { updateRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createCategory, createUser } from '../../../helpers/factories';
-import { Categories } from '../../../../src/db/entities/Categories.entity';
-import { updateRows } from '../../../helpers/factories/rows';
-import type { CategoriesRepository } from '../../../../src/db/repositories/Categories.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -19,8 +20,14 @@ beforeAll(async () => {
 // never clears it and re-seeds the ten defaults by name, so rows created by
 // one `it` persist into the next within this file — every case below reads
 // back by the id/name it just created rather than assuming a fresh table.
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function rawCategory(id: number): unknown {
   // test-sql-allow: the row as SELECT * returns it is the oracle the repository's output is held to.
@@ -108,7 +115,12 @@ describe('CategoriesRepository', () => {
   describe('createCategory', () => {
     it('CATREPO-009: inserts and returns exactly the row the legacy re-select returned', async () => {
       const { user } = createUser(testDb);
-      const row = await categories.createCategory({ name: 'RepoCreated', color: '#ff5500', icon: '🍽️', user_id: user.id });
+      const row = await categories.createCategory({
+        name: 'RepoCreated',
+        color: '#ff5500',
+        icon: '🍽️',
+        user_id: user.id,
+      });
       expect(row).toStrictEqual(rawCategory(row.id));
       expect(row.name).toBe('RepoCreated');
       expect(row.color).toBe('#ff5500');
@@ -119,7 +131,12 @@ describe('CategoriesRepository', () => {
 
     it('CATREPO-010: writes exactly what it is given — no defaulting inside the repository', async () => {
       const { user } = createUser(testDb);
-      const row = await categories.createCategory({ name: 'RepoNoDefault', color: 'literal-color', icon: 'literal-icon', user_id: user.id });
+      const row = await categories.createCategory({
+        name: 'RepoNoDefault',
+        color: 'literal-color',
+        icon: 'literal-icon',
+        user_id: user.id,
+      });
       expect(row.color).toBe('literal-color');
       expect(row.icon).toBe('literal-icon');
     });
@@ -127,8 +144,9 @@ describe('CategoriesRepository', () => {
     it('CATREPO-010b: throws when the read-back after insert finds no row (coverage: the guard branch)', async () => {
       const { user } = createUser(testDb);
       const spy = vi.spyOn(categories, 'findById').mockResolvedValueOnce(null);
-      await expect(categories.createCategory({ name: 'Ghost', color: '#000000', icon: '👻', user_id: user.id }))
-        .rejects.toThrow('createCategory: read-back after insert found no row');
+      await expect(
+        categories.createCategory({ name: 'Ghost', color: '#000000', icon: '👻', user_id: user.id }),
+      ).rejects.toThrow('createCategory: read-back after insert found no row');
       spy.mockRestore();
     });
   });
@@ -227,7 +245,7 @@ describe('CategoriesRepository', () => {
     });
   });
 
-  describe('listIdName (Plan 3c Task 5, PL33 — PlacesService.importKmlPlaces\' folder → category lookup)', () => {
+  describe("listIdName (Plan 3c Task 5, PL33 — PlacesService.importKmlPlaces' folder → category lookup)", () => {
     it('CATREPO-021: projects only id and name, no ORDER BY guaranteed, including a fresh row', async () => {
       const created = createCategory(testDb, { name: 'RepoIdName' });
       const rows = await categories.listIdName();

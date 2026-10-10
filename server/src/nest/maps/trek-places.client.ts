@@ -11,8 +11,8 @@
  * to configure and no quota to exhaust, so the failure modes are the network
  * and the service being down, both of which fall back to what TREK did before.
  */
-import { normalizePlaceWebsite } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
+import { normalizePlaceWebsite } from '@trek/shared';
 
 /** The public instance. An operator may point at their own copy instead. */
 export const DEFAULT_TREK_PLACES_URL = 'https://places.liketrek.com';
@@ -267,8 +267,7 @@ export interface TrekOsmPlace {
 
 export type TrekSearchHit = TrekPlace | TrekOsmPlace;
 
-export const isOsmHit = (hit: TrekSearchHit): hit is TrekOsmPlace =>
-  hit.source === 'openstreetmap';
+export const isOsmHit = (hit: TrekSearchHit): hit is TrekOsmPlace => hit.source === 'openstreetmap';
 
 /**
  * Turn the layer's id into the form the rest of this service already speaks.
@@ -413,9 +412,7 @@ export async function trekPlacesById(gers: string): Promise<TrekPlace | null> {
  * for an OSM reference by code that parses it.
  */
 export function toPlaceRecord(p: TrekPlace): Record<string, unknown> {
-  const address = [p.address?.freeform, p.address?.postcode, p.address?.locality]
-    .filter(Boolean)
-    .join(', ');
+  const address = [p.address?.freeform, p.address?.postcode, p.address?.locality].filter(Boolean).join(', ');
   return {
     google_place_id: null,
     google_ftid: null,

@@ -1,27 +1,27 @@
-import { PluginController, PluginMethod } from '../../../../nest-rpc/rpc-kit/decorators';
+import { PluginCapabilityAudit } from '../../../../db/entities/PluginCapabilityAudit.entity';
+import { PluginScheduledTasks } from '../../../../db/entities/PluginScheduledTasks.entity';
+import { Trips } from '../../../../db/entities/Trips.entity';
+import { Users } from '../../../../db/entities/Users.entity';
+import type { PluginCapabilityAuditRepository } from '../../../../db/repositories/PluginCapabilityAudit.repository';
+import type { PluginScheduledTasksRepository } from '../../../../db/repositories/PluginScheduledTasks.repository';
+import type { TripsRepository } from '../../../../db/repositories/Trips.repository';
+import type { UsersRepository } from '../../../../db/repositories/Users.repository';
 import { PluginGuards } from '../../../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../../../nest-rpc/rpc-errors';
-import { asPayload, num, str } from '../../../../nest-rpc/rpc-params';
+import { PluginController, PluginMethod } from '../../../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../../../nest-rpc/rpc-kit/types';
-import { budgetFor } from '../plugin-host-state';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { PluginCapabilityAudit } from '../../../../db/entities/PluginCapabilityAudit.entity';
-import type { PluginCapabilityAuditRepository } from '../../../../db/repositories/PluginCapabilityAudit.repository';
-import { Users } from '../../../../db/entities/Users.entity';
-import type { UsersRepository } from '../../../../db/repositories/Users.repository';
-import { Trips } from '../../../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../../../db/repositories/Trips.repository';
-import { PluginScheduledTasks } from '../../../../db/entities/PluginScheduledTasks.entity';
-import type { PluginScheduledTasksRepository } from '../../../../db/repositories/PluginScheduledTasks.repository';
-import { RealtimeService } from '../../../realtime/realtime.service';
-import { NotificationsService } from '../../../notifications/notifications.service';
-import { LlmConfigResolver } from '../../../llm-parse/llm-config.resolver';
-import { createLlmClient } from '../../../llm-parse/llm-client.factory';
+import { asPayload, num, str } from '../../../../nest-rpc/rpc-params';
 import { UnreadableLlmResponse } from '../../../llm-parse/clients/openai-compatible.client';
+import { createLlmClient } from '../../../llm-parse/llm-client.factory';
 import type { ResolvedLlmConfig } from '../../../llm-parse/llm-config';
+import { LlmConfigResolver } from '../../../llm-parse/llm-config.resolver';
 import type { LlmExtractionInput } from '../../../llm-parse/llm-provider.interface';
+import { NotificationsService } from '../../../notifications/notifications.service';
+import { RealtimeService } from '../../../realtime/realtime.service';
 import { PluginOAuthService } from '../../oauth/plugin-oauth.service';
 import { stripEmoji } from '../../text-sanitize';
+import { budgetFor } from '../plugin-host-state';
+import { InjectRepository } from '@mikro-orm/nestjs';
 
 /** Caps on the persistent scheduler, bounding the abuse surface. */
 const SCHED_MAX = 100; // entries per plugin
@@ -82,7 +82,8 @@ export class HostSurfaceRpc {
     // Namespacing the event type alone does not cross the membership boundary.
     const tripId = num(params.tripId, 'tripId');
     if (ctx.actingUserId === undefined) throw new ForbiddenResource('broadcasts require an authenticated user context');
-    if (!(await this.trips.findAccessible(tripId, ctx.actingUserId))) throw new ForbiddenResource(`no access to trip ${tripId}`);
+    if (!(await this.trips.findAccessible(tripId, ctx.actingUserId)))
+      throw new ForbiddenResource(`no access to trip ${tripId}`);
     // The host forces the plugin:{id}:{event} namespace, so a plugin cannot forge a
     // core event.
     this.realtime.broadcast(tripId, `plugin:${ctx.pluginId}:${str(params.event, 'event')}`, asPayload(params.data));
@@ -149,7 +150,9 @@ export class HostSurfaceRpc {
     await this.takeAiBudget(ctx);
     const system = typeof params.system === 'string' ? params.system.slice(0, 4000) : undefined;
     const results = await this.runModel(config, {
-      prompt: system || 'You are a helpful assistant. Reply with a JSON object of the form {"text": "..."} whose "text" field holds your answer.',
+      prompt:
+        system ||
+        'You are a helpful assistant. Reply with a JSON object of the form {"text": "..."} whose "text" field holds your answer.',
       jsonSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
       model: config.model,
       baseUrl: config.baseUrl,
@@ -197,13 +200,16 @@ export class HostSurfaceRpc {
     const name = str(params.name, 'name');
     const dueAt = num(params.dueAt, 'dueAt');
     const everyMs = params.everyMs != null ? num(params.everyMs, 'everyMs') : undefined;
-    if (!name || name.length > SCHED_NAME_MAX) throw new BadParams(`scheduler name is required (max ${SCHED_NAME_MAX} chars)`);
-    if (!Number.isFinite(dueAt) || dueAt > Date.now() + SCHED_DUE_WINDOW) throw new BadParams('scheduler dueAt out of range');
+    if (!name || name.length > SCHED_NAME_MAX)
+      throw new BadParams(`scheduler name is required (max ${SCHED_NAME_MAX} chars)`);
+    if (!Number.isFinite(dueAt) || dueAt > Date.now() + SCHED_DUE_WINDOW)
+      throw new BadParams('scheduler dueAt out of range');
     if (everyMs !== undefined && (!Number.isFinite(everyMs) || everyMs < SCHED_EVERY_MIN)) {
       throw new BadParams(`recurring interval must be >= ${SCHED_EVERY_MIN} ms`);
     }
     const json = JSON.stringify(params.payload ?? null);
-    if (json.length > SCHED_PAYLOAD_MAX) throw new BadParams(`scheduler payload too large (max ${SCHED_PAYLOAD_MAX} bytes)`);
+    if (json.length > SCHED_PAYLOAD_MAX)
+      throw new BadParams(`scheduler payload too large (max ${SCHED_PAYLOAD_MAX} bytes)`);
     // HR5/HR6/HR7 — Plan 3j Task 7 fix (must-land 3): one atomic call, not
     // three separately-awaited ones (task-7-review.md's concurrent-cap-bypass).
     // Upsert by (plugin, name): re-scheduling the same name replaces it.

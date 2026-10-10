@@ -23,28 +23,28 @@
  * for that conversion, the same technique `feeds-request-context.test.ts`'s
  * SEAM-FEED-001 uses for the anonymous ICS routes.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { Reservations } from '../../src/db/entities/Reservations.entity';
+import { Users } from '../../src/db/entities/Users.entity';
+import { AirtrailLinkService } from '../../src/nest/integrations/airtrail-link.service';
+import { AirtrailSyncJob } from '../../src/nest/integrations/airtrail-sync.job';
+import { AirtrailClient, type AirtrailFlightRaw } from '../../src/nest/integrations/airtrail.client';
+import { AirtrailService } from '../../src/nest/integrations/airtrail.service';
+import { ReservationsService } from '../../src/nest/reservations/reservations.service';
+import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
+import { createTrip, createUser } from '../helpers/factories';
+import { deleteRows, insertRow } from '../helpers/factories/rows';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { MikroORM } from '@mikro-orm/core';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
-import { AirtrailSyncJob } from '../../src/nest/integrations/airtrail-sync.job';
-import { AirtrailLinkService } from '../../src/nest/integrations/airtrail-link.service';
-import { AirtrailService } from '../../src/nest/integrations/airtrail.service';
-import { AirtrailClient, type AirtrailFlightRaw } from '../../src/nest/integrations/airtrail.client';
-import { ReservationsService } from '../../src/nest/reservations/reservations.service';
-import { Users } from '../../src/db/entities/Users.entity';
-import { createTrip, createUser } from '../helpers/factories';
-import { deleteRows, insertRow } from '../helpers/factories/rows';
-import { Reservations } from '../../src/db/entities/Reservations.entity';
 
 describe('airtrail-sync cron tick runs inside a request context', () => {
   let app: INestApplication;
@@ -65,8 +65,15 @@ describe('airtrail-sync cron tick runs inside a request context', () => {
     const trip = createTrip(testDb, user.id);
 
     const reservationId = await insertRow(orm, Reservations, {
-      trip: trip.id, title: 'AirTrail Flight', type: 'flight', status: 'confirmed', external_source: 'airtrail',
-      external_id: '999', external_owner_user_id: user.id, sync_enabled: 1, external_hash: 'stale-hash',
+      trip: trip.id,
+      title: 'AirTrail Flight',
+      type: 'flight',
+      status: 'confirmed',
+      external_source: 'airtrail',
+      external_id: '999',
+      external_owner_user_id: user.id,
+      sync_enabled: 1,
+      external_hash: 'stale-hash',
     });
 
     const flight: AirtrailFlightRaw = {

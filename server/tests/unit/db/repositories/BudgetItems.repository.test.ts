@@ -8,16 +8,17 @@
  * model on budget items the way packing has) but WITH an `ORDER BY` that
  * `listAllForTrip` lacks.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createBudgetItem, createPlace, createReservation, createTrip, createUser } from '../../../helpers/factories';
-import { createTestBudgetItemsRepo } from '../../../helpers/files-repos';
-import { sharedTestOrm } from '../../../helpers/test-uow';
-import type { TestOrm } from '../../../helpers/test-orm';
-import { findRow, findRows, updateRows } from '../../../helpers/factories/rows';
 import { BudgetItems } from '../../../../src/db/entities/BudgetItems.entity';
 import type { BudgetItemsRepository } from '../../../../src/db/repositories/BudgetItems.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createBudgetItem, createPlace, createReservation, createTrip, createUser } from '../../../helpers/factories';
+import { findRow, findRows, updateRows } from '../../../helpers/factories/rows';
+import { createTestBudgetItemsRepo } from '../../../helpers/files-repos';
+import { resetTestDb } from '../../../helpers/test-db';
+import type { TestOrm } from '../../../helpers/test-orm';
+import { sharedTestOrm } from '../../../helpers/test-uow';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let budgetItemsRepo: BudgetItemsRepository;
@@ -45,18 +46,42 @@ describe('BudgetItemsRepository — share.service.ts SH14 read', () => {
 
     // Every nullable column set — sorts second by category.
     const withDetails = createBudgetItem(testDb, trip.id, { name: 'Hotel', category: 'Lodging', total_price: 250 });
-    await updateRows(orm, BudgetItems, { id: withDetails.id }, {
-      persons: 2, days: 3, note: 'non-refundable', sort_order: 4,
-      paidByUser: user.id, expense_date: '2026-09-02', reservation: reservation.id, currency: 'EUR',
-      exchange_rate: 0.92, ticket_json: '{"seat":"12A"}', place: place.id,
-    });
+    await updateRows(
+      orm,
+      BudgetItems,
+      { id: withDetails.id },
+      {
+        persons: 2,
+        days: 3,
+        note: 'non-refundable',
+        sort_order: 4,
+        paidByUser: user.id,
+        expense_date: '2026-09-02',
+        reservation: reservation.id,
+        currency: 'EUR',
+        exchange_rate: 0.92,
+        ticket_json: '{"seat":"12A"}',
+        place: place.id,
+      },
+    );
 
     // Every nullable column left null — sorts first by category.
     const bare = createBudgetItem(testDb, trip.id, { name: 'Snacks', category: 'Food', total_price: 12.5 });
-    await updateRows(orm, BudgetItems, { id: bare.id }, {
-      persons: null, days: null, note: null, paidByUser: null,
-      expense_date: null, reservation: null, currency: null, place: null,
-    });
+    await updateRows(
+      orm,
+      BudgetItems,
+      { id: bare.id },
+      {
+        persons: null,
+        days: null,
+        note: null,
+        paidByUser: null,
+        expense_date: null,
+        reservation: null,
+        currency: null,
+        place: null,
+      },
+    );
 
     // A budget item on a different trip must never leak in.
     createBudgetItem(testDb, other.id, { category: 'Other' });
@@ -83,8 +108,7 @@ describe('BudgetItemsRepository — reservations.service.ts RS49 delete', () => 
     const kept = createBudgetItem(testDb, trip.id, { name: 'Hotel' });
 
     await budgetItemsRepo.deleteByIds([first.id, second.id]);
-    expect((await findRows(orm, BudgetItems, { trip: trip.id })).map((r) => r.id))
-      .toEqual([kept.id]);
+    expect((await findRows(orm, BudgetItems, { trip: trip.id })).map((r) => r.id)).toEqual([kept.id]);
   });
 
   it('deleteByIds — an empty list deletes nothing', async () => {

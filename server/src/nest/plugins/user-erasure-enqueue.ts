@@ -1,5 +1,5 @@
-import type { PluginIdPermissionRow } from '../../db/repositories/Plugins.repository';
 import type { PluginUserErasureQueueRepository } from '../../db/repositories/PluginUserErasureQueue.repository';
+import type { PluginIdPermissionRow } from '../../db/repositories/Plugins.repository';
 
 /**
  * Enqueue a durable GDPR erasure (`INSERT OR IGNORE`, idempotent) for every

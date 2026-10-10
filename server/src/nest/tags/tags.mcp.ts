@@ -1,12 +1,18 @@
 import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  errorResult, ok,
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  errorResult,
+  ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
-import { idSchema } from '@trek/shared';
 import { TagsService } from './tags.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 /**
  * Tags MCP tools — pilot for the decorator-driven registry. Ported 1:1 from

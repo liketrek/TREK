@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Chọn mẫu...',
   'settings.mapDefaultHint': 'Để trống cho OpenStreetMap (mặc định)',
   'settings.routingBase': 'Máy chủ định tuyến riêng',
-  'settings.routingBaseHint': 'Máy chủ OSRM của riêng bạn. Để trống sẽ dùng máy chủ công cộng, cho phép khoảng một yêu cầu mỗi giây — đủ cho một ngày, chật cho chuyến đi dài. Có hiệu lực sau khi khởi động lại máy chủ.',
+  'settings.routingBaseHint':
+    'Máy chủ OSRM của riêng bạn. Để trống sẽ dùng máy chủ công cộng, cho phép khoảng một yêu cầu mỗi giây — đủ cho một ngày, chật cho chuyến đi dài. Có hiệu lực sau khi khởi động lại máy chủ.',
   'settings.valhallaBase': 'Máy chủ Valhalla riêng',
   'settings.valhallaBaseHint':
     'Theo mặc định, TREK dùng Valhalla công cộng của FOSSGIS để tránh đường thu phí, đường cao tốc và phà. Nhập URL Valhalla riêng tại đây để dùng thay thế. Nếu chỉ cấu hình máy chủ định tuyến riêng, Valhalla công cộng sẽ không được dùng. Sau khi nhập URL riêng, hãy khởi động lại máy chủ và tải lại trang.',
@@ -82,7 +83,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Ngày đầu tuần trong mọi bộ chọn ngày. Vacay có cài đặt riêng.',
   'settings.preferredNavApp': 'Mở địa điểm bằng',
   'settings.preferredNavAppAsk': 'Hỏi mỗi lần',
-  'settings.preferredNavAppHint': 'Khi đã chọn ứng dụng, nút chỉ đường sẽ mở ngay ứng dụng đó thay vì đưa ra mọi ứng dụng bản đồ.',
+  'settings.preferredNavAppHint':
+    'Khi đã chọn ứng dụng, nút chỉ đường sẽ mở ngay ứng dụng đó thay vì đưa ra mọi ứng dụng bản đồ.',
   'settings.bookingLabels': 'Nhãn lộ trình đặt chỗ',
   'settings.bookingLabelsHint': 'Hiển thị tên ga/sân bay trên bản đồ. Khi tắt, chỉ có biểu tượng được hiển thị.',
   'settings.mapPoiPill': 'Khám phá các địa điểm trên bản đồ',
@@ -357,7 +359,8 @@ const settings: TranslationStrings = {
   'settings.currencyTrip': 'Tiền tệ của chuyến đi',
   'settings.placeLanguage': 'Tên địa điểm',
   'settings.placeLanguageApp': 'Giống ứng dụng',
-  'settings.placeLanguageHint': 'Ngôn ngữ dùng cho tìm kiếm địa điểm, gợi ý và địa chỉ. Nếu địa điểm không có tên bằng ngôn ngữ đó, tên địa phương sẽ được hiển thị.',
+  'settings.placeLanguageHint':
+    'Ngôn ngữ dùng cho tìm kiếm địa điểm, gợi ý và địa chỉ. Nếu địa điểm không có tên bằng ngôn ngữ đó, tên địa phương sẽ được hiển thị.',
   'settings.passkey.title': 'Mật mã',
   'settings.passkey.description':
     'Đăng nhập nhanh hơn và chống lừa đảo bằng mật mã — vân tay, khuôn mặt, PIN hoặc khóa phần cứng của bạn. Mật khẩu của bạn vẫn là bản sao lưu.',
@@ -415,8 +418,7 @@ const settings: TranslationStrings = {
   'settings.aiParsing.apiKey': 'Khóa API',
   'settings.aiParsing.apiKeyHint': 'Được lưu trữ mã hóa. Để trống để giữ khóa hiện tại.',
   'settings.aiParsing.multimodal': 'Mô hình đọc được hình ảnh',
-  'settings.aiParsing.multimodalHint':
-    'Bật cho mô hình đọc được hình ảnh để có thể nhập hoặc quét ảnh.',
+  'settings.aiParsing.multimodalHint': 'Bật cho mô hình đọc được hình ảnh để có thể nhập hoặc quét ảnh.',
   'settings.aiParsing.toast.saved': 'Đã lưu cài đặt AI',
   'settings.aiParsing.toast.saveError': 'Không thể lưu cài đặt AI',
   'settings.tabs.appearance': 'Giao diện',
@@ -502,8 +504,10 @@ const settings: TranslationStrings = {
   'settings.general.startup': 'Khởi động',
   'settings.dayDateFirst': 'Hiện ngày tháng trước trong tiêu đề ngày',
   'settings.compactUnplanned': 'Điểm đánh dấu gọn cho địa điểm chưa lên kế hoạch',
-  'settings.compactUnplannedHint': 'Các địa điểm chưa được xếp vào ngày nào sẽ hiện thành điểm đánh dấu nhỏ không có ảnh, để các điểm dừng đã lên kế hoạch nổi bật hơn.',
-  'settings.dayDateFirstHint': 'Mở đầu mỗi ngày bằng ngày trên lịch và hiện "Ngày 1" hoặc tiêu đề riêng của ngày bên cạnh.',
+  'settings.compactUnplannedHint':
+    'Các địa điểm chưa được xếp vào ngày nào sẽ hiện thành điểm đánh dấu nhỏ không có ảnh, để các điểm dừng đã lên kế hoạch nổi bật hơn.',
+  'settings.dayDateFirstHint':
+    'Mở đầu mỗi ngày bằng ngày trên lịch và hiện "Ngày 1" hoặc tiêu đề riêng của ngày bên cạnh.',
   'settings.startPage': 'Trang khởi động',
   'settings.startPageDashboard': 'Bảng điều khiển',
   'settings.startPageActiveTrip': 'Chuyến đi đang diễn ra',
@@ -546,7 +550,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'Không có kết nối. Hãy kết nối để lưu chuyến đi ngoại tuyến.',
   'settings.offline.notice.signedOut': 'Phiên của bạn đã kết thúc. Hãy đăng nhập lại để đồng bộ.',
   'settings.offline.notice.failed': 'Không thể hoàn tất việc tải xuống. Hãy kiểm tra kết nối và thử lại.',
-  'settings.offline.notice.loadFailed': 'Không đọc được bộ nhớ ngoại tuyến của thiết bị này. Xóa bộ nhớ đệm thường khắc phục được.',
+  'settings.offline.notice.loadFailed':
+    'Không đọc được bộ nhớ ngoại tuyến của thiết bị này. Xóa bộ nhớ đệm thường khắc phục được.',
   'settings.offline.clear': 'Xóa bộ nhớ đệm',
   'settings.offline.clearConfirm':
     'Xóa tất cả dữ liệu chuyến đi ngoại tuyến? Bạn có thể đồng bộ lại bất cứ lúc nào khi trực tuyến.',
@@ -609,7 +614,8 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Danh sách mong muốn',
   'settings.apiScopes.stats': 'Tổng hợp',
   'settings.apiKeys.title': 'Khóa API',
-  'settings.apiKeys.description': 'Khóa cho API công khai, để phần mềm khác có thể đọc các chuyến đi của bạn. Chỉ đọc: khóa không thể thay đổi hay xóa bất cứ thứ gì.',
+  'settings.apiKeys.description':
+    'Khóa cho API công khai, để phần mềm khác có thể đọc các chuyến đi của bạn. Chỉ đọc: khóa không thể thay đổi hay xóa bất cứ thứ gì.',
   'settings.apiKeys.create': 'Tạo khóa',
   'settings.apiKeys.empty': 'Chưa có khóa nào. Tạo một khóa để kết nối phần mềm khác.',
   'settings.apiKeys.createdAt': 'đã tạo',
@@ -634,7 +640,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Đang tạo...',
   'settings.apiKeys.modal.create': 'Tạo',
   'settings.apiKeys.modal.createdTitle': 'Đã tạo khóa API',
-  'settings.apiKeys.modal.createdWarning': 'Hãy sao chép khóa ngay. Khóa chỉ hiện một lần và không thể lấy lại sau này.',
+  'settings.apiKeys.modal.createdWarning':
+    'Hãy sao chép khóa ngay. Khóa chỉ hiện một lần và không thể lấy lại sau này.',
   'settings.apiKeys.modal.done': 'Xong',
 };
 

@@ -1,16 +1,17 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../../helpers/db-mock';
-import { resetTestDb } from '../../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
-import { insertRow } from '../../../../helpers/factories/rows';
-import { addPackingItemRecipients } from '../../../../helpers/factories/packing';
-import { createTrip, createUser } from '../../../../helpers/factories';
 import { PackingItems } from '../../../../../src/db/entities/PackingItems.entity';
 import {
   packingVisibleToActorCondition,
   packingVisibleToActorExpr,
   type PackingVisibilityKyselyDB,
 } from '../../../../../src/db/repositories/_shared/packing-visibility';
+import { createSnapshotTestDb } from '../../../../helpers/db-mock';
+import { createTrip, createUser } from '../../../../helpers/factories';
+import { addPackingItemRecipients } from '../../../../helpers/factories/packing';
+import { insertRow } from '../../../../helpers/factories/rows';
+import { resetTestDb } from '../../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * The legacy fragment this harness proves parity against
@@ -30,9 +31,17 @@ const VISIBLE_TO_ACTOR = `(
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
 
-beforeAll(async () => { t = await createTestOrm(testDb); });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 type Tier = 'common' | 'personal' | 'shared';
 type Actor = 'owner' | 'recipient' | 'stranger' | 'no-actor';
@@ -50,14 +59,27 @@ async function seedFixture() {
   const trip = createTrip(testDb, owner.id);
 
   const common = await insertRow(t, PackingItems, { trip: trip.id, name: 'Common item', is_private: 0, owner: null });
-  const personal = await insertRow(t, PackingItems, { trip: trip.id, name: 'Personal item', is_private: 1, owner: owner.id });
-  const shared = await insertRow(t, PackingItems, { trip: trip.id, name: 'Shared item', is_private: 1, owner: owner.id });
+  const personal = await insertRow(t, PackingItems, {
+    trip: trip.id,
+    name: 'Personal item',
+    is_private: 1,
+    owner: owner.id,
+  });
+  const shared = await insertRow(t, PackingItems, {
+    trip: trip.id,
+    name: 'Shared item',
+    is_private: 1,
+    owner: owner.id,
+  });
   await addPackingItemRecipients(t, shared, [recipient.id]);
 
   return {
     tripId: trip.id as number,
     itemIds: { common, personal, shared } as Record<Tier, number>,
-    actorIds: { owner: owner.id, recipient: recipient.id, stranger: stranger.id } as Record<Exclude<Actor, 'no-actor'>, number>,
+    actorIds: { owner: owner.id, recipient: recipient.id, stranger: stranger.id } as Record<
+      Exclude<Actor, 'no-actor'>,
+      number
+    >,
   };
 }
 
@@ -159,7 +181,10 @@ describe('packing-visibility parity — 12-cell matrix (4 actor types × 3 item 
   it('PKVIS-mutation: a second, unrelated Shared item (recipient not invited) stays hidden from that recipient', async () => {
     const { tripId, itemIds, actorIds } = await seedFixture();
     const otherShared = await insertRow(t, PackingItems, {
-      trip: tripId, name: 'Second shared item, different recipients', is_private: 1, owner: actorIds.owner,
+      trip: tripId,
+      name: 'Second shared item, different recipients',
+      is_private: 1,
+      owner: actorIds.owner,
     });
     // Deliberately NOT inviting `recipient` to this second shared item —
     // only `stranger` is invited here, so `recipient`'s own visibility must

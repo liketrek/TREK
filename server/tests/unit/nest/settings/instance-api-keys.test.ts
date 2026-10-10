@@ -15,16 +15,9 @@
  * repositories `t.repo(X)` hands any other converted domain's tests, no
  * request-context wrapper needed.
  */
-
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser, createAdmin } from '../../../helpers/factories';
-import { countRows, findRow, insertRow, updateRows } from '../../../helpers/factories/rows';
 import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
 import { Users } from '../../../../src/db/entities/Users.entity';
+import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../../../src/db/repositories/Users.repository';
 import {
   readInstanceApiKey,
@@ -32,6 +25,13 @@ import {
   resolveApiKey,
   operatorKeyVariables,
 } from '../../../../src/nest/settings/instance-api-keys';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser, createAdmin } from '../../../helpers/factories';
+import { countRows, findRow, insertRow, updateRows } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -118,7 +118,10 @@ describe('instance API keys', () => {
     });
     // ...and the member gets nothing rather than the admin's, which is the whole
     // point: they used to get it, and Google answered them with a 403.
-    expect(await resolveApiKey(appSettings, users, 'maps_api_key', member.id, undefined)).toEqual({ key: null, source: null });
+    expect(await resolveApiKey(appSettings, users, 'maps_api_key', member.id, undefined)).toEqual({
+      key: null,
+      source: null,
+    });
   });
 
   it('INSTKEY-009: userId 0 asks about the instance only', async () => {
@@ -143,7 +146,10 @@ describe('instance API keys', () => {
     // the fallback finding the old value would only happen on a row nobody
     // touched — here it must not resurrect a cleared instance key for them.
     await updateRows(t, Users, { id: user.id }, { unsplash_api_key: null });
-    expect(await resolveApiKey(appSettings, users, 'unsplash_api_key', user.id, undefined)).toEqual({ key: null, source: null });
+    expect(await resolveApiKey(appSettings, users, 'unsplash_api_key', user.id, undefined)).toEqual({
+      key: null,
+      source: null,
+    });
   });
 });
 

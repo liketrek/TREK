@@ -20,9 +20,11 @@ const map: TranslationStrings = {
   'map.baseLayer.satellite': 'Satellit',
   'map.baseLayer.switchToSatellite': 'Zur Satellitenansicht wechseln',
   'map.baseLayer.switchToDefault': 'Zur Kartenansicht wechseln',
-  'map.location.denied': 'Der Standortzugriff ist blockiert. Prüfe die Geräteeinstellungen; eine installierte App hat eine eigene Standortberechtigung, unabhängig vom Browser.',
+  'map.location.denied':
+    'Der Standortzugriff ist blockiert. Prüfe die Geräteeinstellungen; eine installierte App hat eine eigene Standortberechtigung, unabhängig vom Browser.',
   'map.location.unavailable': 'Dein Standort konnte nicht ermittelt werden.',
-  'map.location.timeout': 'Die Standortbestimmung hat zu lange gedauert. Versuche es mit freier Sicht zum Himmel erneut.',
+  'map.location.timeout':
+    'Die Standortbestimmung hat zu lange gedauert. Versuche es mit freier Sicht zum Himmel erneut.',
   'map.overview.show': 'Ganze Reise anzeigen',
   'map.lock.lock': 'Kartenansicht fixieren',
   'map.lock.unlock': 'Karte der Auswahl folgen lassen',

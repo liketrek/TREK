@@ -2,27 +2,27 @@
  * Budget Planner integration tests.
  * Covers BUDGET-001 to BUDGET-010.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { AppSettings } from '../../src/db/entities/AppSettings.entity';
+import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
+import { Reservations } from '../../src/db/entities/Reservations.entity';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, createBudgetItem, addTripMember, createReservation } from '../helpers/factories';
+import { deleteRows, findRow, insertRow } from '../helpers/factories/rows';
+import { setAppSetting } from '../helpers/factories/settings';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createBudgetItem, addTripMember, createReservation } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { MikroORM } from '@mikro-orm/core';
-import { deleteRows, findRow, insertRow } from '../helpers/factories/rows';
-import { setAppSetting } from '../helpers/factories/settings';
-import { AppSettings } from '../../src/db/entities/AppSettings.entity';
-import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
-import { Reservations } from '../../src/db/entities/Reservations.entity';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -37,7 +37,11 @@ beforeAll(async () => {
 /** A hotel expense linked to the booking. */
 function seedBookedExpense(tripId: number, reservationId: number, totalPrice: number): Promise<number> {
   return insertRow(orm, BudgetItems, {
-    trip: tripId, name: 'Hotel Cost', category: 'Accommodation', total_price: totalPrice, reservation: reservationId,
+    trip: tripId,
+    name: 'Hotel Cost',
+    category: 'Accommodation',
+    total_price: totalPrice,
+    reservation: reservationId,
   });
 }
 
@@ -50,7 +54,12 @@ beforeEach(async () => {
   // the internet: slow, offline-dependent, and it makes the run take minutes
   // longer on a machine that cannot reach it. Fail closed — every assertion here
   // is single-currency, so rates never enter the arithmetic.
-  vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new Error('offline');
+    }),
+  );
 });
 
 afterAll(async () => {
@@ -112,9 +121,7 @@ describe('List budget items', () => {
     createBudgetItem(testDb, trip.id, { name: 'Flight', total_price: 300 });
     createBudgetItem(testDb, trip.id, { name: 'Hotel', total_price: 500 });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/budget`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/budget`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(2);
   });
@@ -126,9 +133,7 @@ describe('List budget items', () => {
     addTripMember(testDb, trip.id, member.id);
     createBudgetItem(testDb, trip.id, { name: 'Rental', total_price: 200 });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/budget`)
-      .set('Cookie', authCookie(member.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/budget`).set('Cookie', authCookie(member.id));
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(1);
   });
@@ -175,15 +180,11 @@ describe('Delete budget item', () => {
     const trip = createTrip(testDb, user.id);
     const item = createBudgetItem(testDb, trip.id);
 
-    const del = await request(app)
-      .delete(`/api/trips/${trip.id}/budget/${item.id}`)
-      .set('Cookie', authCookie(user.id));
+    const del = await request(app).delete(`/api/trips/${trip.id}/budget/${item.id}`).set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
-    const list = await request(app)
-      .get(`/api/trips/${trip.id}/budget`)
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get(`/api/trips/${trip.id}/budget`).set('Cookie', authCookie(user.id));
     expect(list.body.items).toHaveLength(0);
   });
 
@@ -194,9 +195,7 @@ describe('Delete budget item', () => {
 
     const itemId = await seedBookedExpense(trip.id, reservation.id, 250);
 
-    const del = await request(app)
-      .delete(`/api/trips/${trip.id}/budget/${itemId}`)
-      .set('Cookie', authCookie(user.id));
+    const del = await request(app).delete(`/api/trips/${trip.id}/budget/${itemId}`).set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
 
     const reservationAfter = await findRow(orm, Reservations, { id: reservation.id });
@@ -224,9 +223,7 @@ describe('Budget item members', () => {
     expect(res.body.members).toBeDefined();
 
     // After assigning members, list items should include them (covers loadBudgetItems member loop)
-    const listRes = await request(app)
-      .get(`/api/trips/${trip.id}/budget`)
-      .set('Cookie', authCookie(user.id));
+    const listRes = await request(app).get(`/api/trips/${trip.id}/budget`).set('Cookie', authCookie(user.id));
     expect(listRes.status).toBe(200);
     const foundItem = (listRes.body.items as any[]).find((i: any) => i.id === item.id);
     expect(foundItem).toBeDefined();
@@ -343,9 +340,7 @@ describe('Budget summary and settlement', () => {
       .set('Cookie', authCookie(user.id))
       .send({ payers: [{ user_id: user.id, amount: 60 }] });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/budget/settlement`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/budget/settlement`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.balances)).toBe(true);
     expect(Array.isArray(res.body.flows)).toBe(true);
@@ -366,9 +361,7 @@ describe('Budget summary and settlement', () => {
     const trip = createTrip(testDb, user.id);
     createBudgetItem(testDb, trip.id, { name: 'Train', total_price: 40 });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/budget/settlement`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/budget/settlement`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.balances).toEqual([]);
     expect(res.body.flows).toEqual([]);

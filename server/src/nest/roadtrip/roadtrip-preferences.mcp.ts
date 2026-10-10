@@ -11,11 +11,10 @@ import {
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { RoadtripPreferencesService } from './roadtrip-preferences.service';
-import { answeringRefusals } from './roadtrip-mcp.helpers';
-import { idSchema, roadtripPreferencesUpdateSchema, type RoadtripPreferences } from '@trek/shared';
-
 import { TripAccessService } from '../trip-membership/trip-access.service';
+import { answeringRefusals } from './roadtrip-mcp.helpers';
+import { RoadtripPreferencesService } from './roadtrip-preferences.service';
+import { idSchema, roadtripPreferencesUpdateSchema, type RoadtripPreferences } from '@trek/shared';
 
 const when = addonGate(ADDON_IDS.ROADTRIP);
 
@@ -55,6 +54,8 @@ export class RoadtripPreferencesMcp {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     // A day window that ends before it starts is refused by the service, with the reason.
-    return answeringRefusals(async () => ok({ tripId, settings: await this.preferences.update(tripId, settings), scope: 'trip' }));
+    return answeringRefusals(async () =>
+      ok({ tripId, settings: await this.preferences.update(tripId, settings), scope: 'trip' }),
+    );
   }
 }

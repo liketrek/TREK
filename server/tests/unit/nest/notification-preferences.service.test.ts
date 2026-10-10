@@ -2,10 +2,37 @@
  * Unit tests for notificationPreferencesService.
  * Covers NPREF-001 to NPREF-021.
  */
+import { db as testDb } from '../../../src/db/database';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
+import { __resetChannelsForTest } from '../../../src/nest/notifications/channel-registry';
+import { registerBuiltinChannels } from '../../../src/nest/notifications/channels/builtins';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { NotificationPreferencesService } from '../../../src/nest/notifications/notification-preferences.service';
+import { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';
+import { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
+import {
+  createUser,
+  createAdmin,
+  setAppSetting,
+  setNotificationChannels,
+  disableNotificationPref,
+} from '../../helpers/factories';
+import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
+import { makeWebPushService } from '../../helpers/notifications';
+import { createTestNotificationChannelPreferencesRepo } from '../../helpers/notifications-repos';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestSettingsRepo,
+  createTestUsersRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -16,7 +43,7 @@ vi.mock('../../../src/db/database', async () => {
     canAccessTrip: () => null,
     isOwner: () => false,
   };
-    return mock;
+  return mock;
 });
 
 vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
@@ -25,25 +52,13 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   encrypt_api_key: (v: string) => v,
 }));
 
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, setAppSetting, setNotificationChannels, disableNotificationPref } from '../../helpers/factories';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { NotificationPreferencesService } from '../../../src/nest/notifications/notification-preferences.service';
-import { registerBuiltinChannels } from '../../../src/nest/notifications/channels/builtins';
-import { NtfyService } from '../../../src/nest/notifications/transports/ntfy.service';
-import { WebhookService } from '../../../src/nest/notifications/transports/webhook.service';
-import { __resetChannelsForTest } from '../../../src/nest/notifications/channel-registry';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestSettingsRepo, createTestUsersRepo, sharedTestOrm } from '../../helpers/test-uow';
-import { createTestNotificationChannelPreferencesRepo } from '../../helpers/notifications-repos';
-import { makeWebPushService } from '../../helpers/notifications';
-import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
-import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
-
 /** The stored per-user preference row, or null when the cell is at its default. */
 async function storedPref(userId: number, eventType: string, channel: string) {
-  return findRow(await sharedTestOrm(testDb), NotificationChannelPreferences, { user: userId, event_type: eventType, channel });
+  return findRow(await sharedTestOrm(testDb), NotificationChannelPreferences, {
+    user: userId,
+    event_type: eventType,
+    channel,
+  });
 }
 
 /** The stored app setting row, or null. */
@@ -179,21 +194,21 @@ describe('getPreferencesMatrix', () => {
   it('NPREF-008 — the inapp channel is always active', async () => {
     const { user } = createUser(testDb);
     const { channels } = await getPreferencesMatrix(user.id, 'user');
-    expect(channels.find(c => c.id === 'inapp')?.active).toBe(true);
+    expect(channels.find((c) => c.id === 'inapp')?.active).toBe(true);
   });
 
   it('NPREF-009 — email is active when email is in notification_channels', async () => {
     const { user } = createUser(testDb);
     setNotificationChannels(testDb, 'email');
     const { channels } = await getPreferencesMatrix(user.id, 'user');
-    expect(channels.find(c => c.id === 'email')?.active).toBe(true);
+    expect(channels.find((c) => c.id === 'email')?.active).toBe(true);
   });
 
   it('NPREF-010 — email is inactive when email is not in notification_channels', async () => {
     const { user } = createUser(testDb);
     // No notification_channels set → defaults to none
     const { channels } = await getPreferencesMatrix(user.id, 'user');
-    expect(channels.find(c => c.id === 'email')?.active).toBe(false);
+    expect(channels.find((c) => c.id === 'email')?.active).toBe(false);
   });
 
   it('NPREF-011 — implemented_combos maps version_available to [inapp, email, webhook, ntfy]', async () => {
@@ -354,7 +369,9 @@ describe('setAdminPreferences', () => {
     const { user } = createAdmin(testDb);
     const prefsRepo = await createTestNotificationChannelPreferencesRepo(testDb);
     const spy = vi.spyOn(prefsRepo, 'upsertPreference').mockRejectedValueOnce(new Error('disk full'));
-    await expect(setAdminPreferences(user.id, { version_available: { email: false, inapp: false } })).rejects.toThrow('disk full');
+    await expect(setAdminPreferences(user.id, { version_available: { email: false, inapp: false } })).rejects.toThrow(
+      'disk full',
+    );
     expect(await storedAppSetting('admin_notif_pref_version_available_email')).toBeNull();
     spy.mockRestore();
   });
@@ -412,7 +429,10 @@ describe('instance defaults', () => {
 
   it('NPREF-031 — admin-scoped events and unknown cells are never touched by defaults', async () => {
     const { user: admin } = createAdmin(testDb);
-    await svc.setInstanceDefaults({ version_available: { inapp: 'blocked' }, trip_invite: { carrier_pigeon: 'off' } } as never);
+    await svc.setInstanceDefaults({
+      version_available: { inapp: 'blocked' },
+      trip_invite: { carrier_pigeon: 'off' },
+    } as never);
     expect(await isEnabledForEvent(admin.id, 'version_available', 'inapp')).toBe(true);
     expect(await countRows(await sharedTestOrm(testDb), AppSettings, { key: { $like: 'notif_default_%' } })).toBe(0);
   });

@@ -7,30 +7,30 @@
  * outbound `fetch` is, so what is asserted is the URL the install would really
  * have called and the setting/key state that decided it.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { AppSettings } from '../../src/db/entities/AppSettings.entity';
+import { Users } from '../../src/db/entities/Users.entity';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { clearGoogleTransitCache } from '../../src/nest/transit/google-transit.provider';
+import { TransitModule } from '../../src/nest/transit/transit.module';
+import { deleteRows, updateRows } from '../helpers/factories/rows';
+import { setAppSetting } from '../helpers/factories/settings';
+import { makeAdmin } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db } from '../../src/db/database';
-import { TransitModule } from '../../src/nest/transit/transit.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { clearGoogleTransitCache } from '../../src/nest/transit/google-transit.provider';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeAdmin } from '../helpers/factories/users';
-import { setAppSetting } from '../helpers/factories/settings';
-import { deleteRows, updateRows } from '../helpers/factories/rows';
-import { AppSettings } from '../../src/db/entities/AppSettings.entity';
-import { Users } from '../../src/db/entities/Users.entity';
 
 let orm: TestOrm;
 
@@ -49,7 +49,12 @@ describe('Transit backend switch e2e (#1699)', () => {
 
   async function build() {
     const moduleRef = await Test.createTestingModule({
-      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, TransitModule],
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        TransitModule,
+      ],
     }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -75,7 +80,10 @@ describe('Transit backend switch e2e (#1699)', () => {
     // MOTIS and Routes shapes both parse as "no itineraries", which is all this
     // suite needs — it asserts where the request went, not how it mapped.
     fetchMock.mockResolvedValue({
-      ok: true, status: 200, headers: { get: () => null }, json: async () => ({}),
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({}),
     });
     await deleteRows(orm, AppSettings);
     await updateRows(orm, Users, { id: ADMIN }, { maps_api_key: null });

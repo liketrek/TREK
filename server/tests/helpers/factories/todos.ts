@@ -1,7 +1,7 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { TodoItems } from '../../../src/db/entities/TodoItems.entity';
 import { inContext, type FactoryOrm } from './context';
 import { createRow } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type TodoItemRow = EntityDTO<TodoItems>;
 

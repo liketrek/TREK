@@ -11,14 +11,15 @@
  * the legacy SQL statement (`sn-cycle`/`rj4` reviewer probe, ported per the
  * fix-wave brief rather than imported from the reviewer's scratchpad).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser, createTrip } from '../../../helpers/factories';
-import { findRow, insertRow } from '../../../helpers/factories/rows';
 import { TodoItems } from '../../../../src/db/entities/TodoItems.entity';
 import type { TodoItemsRepository } from '../../../../src/db/repositories/TodoItems.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser, createTrip } from '../../../helpers/factories';
+import { findRow, insertRow } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;

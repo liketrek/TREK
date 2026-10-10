@@ -5,8 +5,7 @@ const members: TranslationStrings = {
   'members.inviteUser': 'İstifadəçi dəvət et',
   'members.selectUser': 'İstifadəçi seçin…',
   'members.invite': 'Dəvət et',
-  'members.allHaveAccess':
-    'Bütün istifadəçilərin artıq giriş icazəsi var.',
+  'members.allHaveAccess': 'Bütün istifadəçilərin artıq giriş icazəsi var.',
 
   'members.access': 'Giriş icazəsi',
   'members.persons': 'nəfər',
@@ -16,10 +15,8 @@ const members: TranslationStrings = {
 
   'members.leaveTrip': 'Səyahətdən ayrıl',
   'members.removeAccess': 'Giriş icazəsini ləğv et',
-  'members.confirmLeave':
-    'Səyahətdən ayrılasınız? Giriş icazənizi itirəcəksiniz.',
-  'members.confirmRemove':
-    'Bu istifadəçinin giriş icazəsi ləğv edilsin?',
+  'members.confirmLeave': 'Səyahətdən ayrılasınız? Giriş icazənizi itirəcəksiniz.',
+  'members.confirmRemove': 'Bu istifadəçinin giriş icazəsi ləğv edilsin?',
 
   'members.loadError': 'Üzvləri yükləmək mümkün olmadı',
   'members.added': 'əlavə edildi',
@@ -28,8 +25,7 @@ const members: TranslationStrings = {
   'members.removeError': 'Çıxarmaq mümkün olmadı',
 
   'members.makeOwner': 'Sahib et',
-  'members.confirmTransfer':
-    'Sahiblik {name} adlı üzvə verilsin? Siz adi üzv olacaqsınız.',
+  'members.confirmTransfer': 'Sahiblik {name} adlı üzvə verilsin? Siz adi üzv olacaqsınız.',
   'members.transferError': 'Sahibliyi ötürmək mümkün olmadı',
 
   'members.guests': 'Qonaqlar',
@@ -40,11 +36,9 @@ const members: TranslationStrings = {
   'members.guestNamePlaceholder': 'Qonağın adı',
   'members.guestAdded': 'Qonaq əlavə edildi',
   'members.guestAddError': 'Qonağı əlavə etmək mümkün olmadı',
-  'members.guestRenameError':
-    'Qonağın adını dəyişmək mümkün olmadı',
+  'members.guestRenameError': 'Qonağın adını dəyişmək mümkün olmadı',
   'members.guestRemoved': 'Qonaq çıxarıldı',
-  'members.confirmRemoveGuest':
-    'Bu qonaq çıxarılsın? Ona təyin edilmiş tapşırıqlar və xərc payları da silinəcək.',
+  'members.confirmRemoveGuest': 'Bu qonaq çıxarılsın? Ona təyin edilmiş tapşırıqlar və xərc payları da silinəcək.',
 };
 
 export default members;

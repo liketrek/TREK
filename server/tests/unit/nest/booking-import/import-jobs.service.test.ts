@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
-
+import { Users } from '../../../../src/db/entities/Users.entity';
 import { ImportJobsService } from '../../../../src/nest/booking-import/import-jobs.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { Users } from '../../../../src/db/entities/Users.entity';
 import { FakeRealtimeService } from '../../../helpers/fake-realtime';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 
 const realtime = new FakeRealtimeService();
 const broadcastToUser = realtime.broadcastToUserMock;
@@ -81,7 +81,9 @@ describe('ImportJobsService', () => {
   });
 
   it('records an error and pushes import:error when the parse throws', async () => {
-    const preview = vi.fn(async () => { throw new Error('parse boom'); });
+    const preview = vi.fn(async () => {
+      throw new Error('parse boom');
+    });
     const svc = makeService(preview);
 
     const id = svc.start('1', files(1), 'no-ai', 9);
@@ -98,7 +100,7 @@ describe('ImportJobsService', () => {
     expect(svc.get('does-not-exist', 9)).toBeUndefined();
   });
 
-  it('chains a user\'s parses so they run one at a time', async () => {
+  it("chains a user's parses so they run one at a time", async () => {
     const order: string[] = [];
     const preview = vi.fn(async (f: { originalname: string }[]) => {
       order.push(`start:${f[0].originalname}`);
@@ -119,7 +121,9 @@ describe('ImportJobsService', () => {
   it('reports a parse failure as an error job rather than losing it', async () => {
     // The catch arm had no case: a throw inside the off-request parse would have
     // left the job stuck on 'running' and the widget spinning forever.
-    const preview = vi.fn(async () => { throw new Error('kitinerary exploded'); });
+    const preview = vi.fn(async () => {
+      throw new Error('kitinerary exploded');
+    });
     const svc = makeService(preview);
 
     const id = svc.start('7', files(1), 'no-ai', 42);
@@ -129,7 +133,9 @@ describe('ImportJobsService', () => {
   });
 
   it('turns a non-Error throw into a readable message', async () => {
-    const preview = vi.fn(async () => { throw 'just a string'; });
+    const preview = vi.fn(async () => {
+      throw 'just a string';
+    });
     const svc = makeService(preview);
 
     const id = svc.start('7', files(1), 'no-ai', 42);
@@ -157,9 +163,14 @@ describe('ImportJobsService.startReceipt', () => {
     expect(eventsFor(id).find((p) => p.type === 'import:done')).toMatchObject({ result, tripId: '7' });
   });
 
-  it('queues behind the same user\'s booking parse rather than running beside it', async () => {
+  it("queues behind the same user's booking parse rather than running beside it", async () => {
     let release!: () => void;
-    const preview = vi.fn(() => new Promise((resolve) => { release = () => resolve({ items: [] }); }));
+    const preview = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ items: [] });
+        }),
+    );
     const readReceipt = vi.fn(async () => ({ receipt: null, warnings: [] }));
     const svc = makeService(preview, readReceipt);
     svc.start('7', files(1), 'force-ai', 42);

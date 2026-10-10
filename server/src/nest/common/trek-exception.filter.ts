@@ -1,8 +1,9 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
-import type { Response } from 'express';
-import { MulterError } from 'multer';
 import { DomainError } from './domain-error';
 import { ACCESS_LOG_ATTACHED, UNHANDLED_ERROR } from './request-correlation';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
+
+import type { Response } from 'express';
+import { MulterError } from 'multer';
 
 /**
  * Leave a server-side failure for the access log, which writes it together

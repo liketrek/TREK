@@ -24,11 +24,6 @@
  * use both). The counting lives in scripts/lib/tsc-errors.mjs, the baseline
  * handling in scripts/lib/ratchet.mjs at the repository root.
  */
-import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   countMap,
   lowerCounts,
@@ -40,15 +35,25 @@ import {
 } from '../../scripts/lib/ratchet.mjs';
 import { countErrors } from './lib/tsc-errors.mjs';
 
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 /** tsc over tsconfig.strict.json, as its output and exit status. */
 function runTsc(serverDir) {
   const tsc = createRequire(join(serverDir, 'package.json')).resolve('typescript/bin/tsc');
   try {
-    const output = execFileSync(process.execPath, [tsc, '-p', 'tsconfig.strict.json', '--noEmit', '--pretty', 'false'], {
-      cwd: serverDir,
-      encoding: 'utf8',
-      maxBuffer: 256 * 1024 * 1024,
-    });
+    const output = execFileSync(
+      process.execPath,
+      [tsc, '-p', 'tsconfig.strict.json', '--noEmit', '--pretty', 'false'],
+      {
+        cwd: serverDir,
+        encoding: 'utf8',
+        maxBuffer: 256 * 1024 * 1024,
+      },
+    );
     return { output, status: 0 };
   } catch (err) {
     if (typeof err.status !== 'number') throw err;

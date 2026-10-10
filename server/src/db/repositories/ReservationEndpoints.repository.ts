@@ -1,9 +1,9 @@
-import type { ReservationEndpoints } from '../entities/ReservationEndpoints.entity';
-import { type AssertRowKeys } from './_shared/rows';
 import { columnRef } from '../dialect/sql-functions';
-import { travelerOwnsExpr, type ReservationTravelersOwnsKyselyDB } from './_shared/reservation-travelers-owns';
-import { TrekRepository } from './_shared/trek-repository';
+import type { ReservationEndpoints } from '../entities/ReservationEndpoints.entity';
 import type { DB } from '../kysely/db';
+import { travelerOwnsExpr, type ReservationTravelersOwnsKyselyDB } from './_shared/reservation-travelers-owns';
+import { type AssertRowKeys } from './_shared/rows';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** A `reservation_endpoints` row exactly as `r.*`/`SELECT *` read it (every scalar column). */
 export interface ReservationEndpointRow {
@@ -117,14 +117,19 @@ export class ReservationEndpointsRepository extends TrekRepository<ReservationEn
    * `e.reservation_id, e.sequence`) — a genuinely different statement, per
    * D4.
    */
-  async listFlightEndpointsForTrip(trip_id: number): Promise<{ reservation_id: number; code: string | null; local_date: string | null; sequence: number }[]> {
+  async listFlightEndpointsForTrip(
+    trip_id: number,
+  ): Promise<{ reservation_id: number; code: string | null; local_date: string | null; sequence: number }[]> {
     const platform = this.getEntityManager().getPlatform();
     return this.qb('e')
       .join('e.reservation', 'r')
       .select([columnRef(platform, 'e.reservation_id').as('reservation_id'), 'e.code', 'e.local_date', 'e.sequence'])
       .where({ 'r.trip': trip_id, 'r.type': 'flight' })
       .orderBy({ sequence: 'asc' })
-      .execute<{ reservation_id: number; code: string | null; local_date: string | null; sequence: number }[]>('all', false);
+      .execute<{ reservation_id: number; code: string | null; local_date: string | null; sequence: number }[]>(
+        'all',
+        false,
+      );
   }
 
   // ---------------------------------------------------------------------------
@@ -155,9 +160,24 @@ export class ReservationEndpointsRepository extends TrekRepository<ReservationEn
       .selectFrom('reservation_endpoints as e')
       .innerJoin('reservations as r', 'r.id', 'e.reservation_id')
       .select((eb) => [
-        'e.id', 'e.reservation_id', 'r.trip_id', 'e.role', 'e.code', 'e.lat', 'e.lng', 'e.local_date', 'e.local_time',
-        'r.type as reservation_type', 'r.status as reservation_status',
-        eb.case().when('e.role', '=', 'to').then(eb.fn.coalesce('r.reservation_end_time', 'r.reservation_time')).else(eb.fn.coalesce('r.reservation_time', 'r.reservation_end_time')).end().as('fallback_time'),
+        'e.id',
+        'e.reservation_id',
+        'r.trip_id',
+        'e.role',
+        'e.code',
+        'e.lat',
+        'e.lng',
+        'e.local_date',
+        'e.local_time',
+        'r.type as reservation_type',
+        'r.status as reservation_status',
+        eb
+          .case()
+          .when('e.role', '=', 'to')
+          .then(eb.fn.coalesce('r.reservation_end_time', 'r.reservation_time'))
+          .else(eb.fn.coalesce('r.reservation_time', 'r.reservation_end_time'))
+          .end()
+          .as('fallback_time'),
       ])
       .distinct()
       .where('r.trip_id', 'in', tripIds)
@@ -189,9 +209,24 @@ export class ReservationEndpointsRepository extends TrekRepository<ReservationEn
       .innerJoin('trips as t', 't.id', 'r.trip_id')
       .leftJoin('trip_members as tm', 'tm.trip_id', 't.id')
       .select((eb) => [
-        'e.id', 'e.reservation_id', 'r.trip_id', 'e.role', 'e.code', 'e.lat', 'e.lng', 'e.local_date', 'e.local_time',
-        'r.type as reservation_type', 'r.status as reservation_status',
-        eb.case().when('e.role', '=', 'to').then(eb.fn.coalesce('r.reservation_end_time', 'r.reservation_time')).else(eb.fn.coalesce('r.reservation_time', 'r.reservation_end_time')).end().as('fallback_time'),
+        'e.id',
+        'e.reservation_id',
+        'r.trip_id',
+        'e.role',
+        'e.code',
+        'e.lat',
+        'e.lng',
+        'e.local_date',
+        'e.local_time',
+        'r.type as reservation_type',
+        'r.status as reservation_status',
+        eb
+          .case()
+          .when('e.role', '=', 'to')
+          .then(eb.fn.coalesce('r.reservation_end_time', 'r.reservation_time'))
+          .else(eb.fn.coalesce('r.reservation_time', 'r.reservation_end_time'))
+          .end()
+          .as('fallback_time'),
       ])
       .distinct()
       .where((eb) => eb.or([eb('t.user_id', '=', userId), eb('tm.user_id', '=', userId)]))
@@ -240,7 +275,15 @@ export class ReservationEndpointsRepository extends TrekRepository<ReservationEn
     const platform = this.getEntityManager().getPlatform();
     return this.qb('e')
       .join('e.reservation', 'r')
-      .select([columnRef(platform, 'e.reservation_id').as('reservation_id'), 'e.role', 'e.sequence', 'e.name', 'e.code', 'e.lat', 'e.lng'])
+      .select([
+        columnRef(platform, 'e.reservation_id').as('reservation_id'),
+        'e.role',
+        'e.sequence',
+        'e.name',
+        'e.code',
+        'e.lat',
+        'e.lng',
+      ])
       .where({ 'r.trip': trip_id })
       .orderBy({ 'e.reservation': 'asc', 'e.sequence': 'asc' })
       .execute<RoadtripTerminalRow[]>('all', false);
@@ -275,7 +318,8 @@ export interface TravelerOwnedEndpointRow {
 }
 
 /** {@link ReservationEndpointsRepository.listOwnedEndpointsForTrips}'s `reservation_endpoints`/`reservations`/`reservation_travelers` tables (`r` aliased for `travelerOwnsExpr`, R7). */
-type TravelerOwnedEndpointsKyselyDB = ReservationTravelersOwnsKyselyDB & Pick<DB, 'reservation_endpoints' | 'reservations'>;
+type TravelerOwnedEndpointsKyselyDB = ReservationTravelersOwnsKyselyDB &
+  Pick<DB, 'reservation_endpoints' | 'reservations'>;
 
 /** {@link ReservationEndpointsRepository.listOwnedEndpointsForUser}/{@link ReservationEndpointsRepository.listOwnedFlightLegsForUser}'s tables, adding `trips`/`trip_members` to {@link TravelerOwnedEndpointsKyselyDB}. */
 type TravelerOwnedEndpointsWithTripsKyselyDB = TravelerOwnedEndpointsKyselyDB & Pick<DB, 'trips' | 'trip_members'>;

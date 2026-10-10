@@ -1,18 +1,19 @@
-import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, MfaVerifyLoginDto } from './auth.dto';
-import { RateLimitService } from '../common/rate-limit.service';
-import { OptionalJwtGuard } from '../auth-core/optional-jwt.guard';
-import { getClientIp } from '../audit/client-ip';
-import { AuditService } from '../audit/audit.service';
-import { willDropSecureCookie } from '../common/cookie';
 import type { User } from '../../types';
-import { Public } from '../auth-core/public.decorator';
-import { MfaExempt } from '../auth-core/mfa-policy.guard';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
 import { extractToken, verifiedSessionClaims } from '../auth-core/jwt-verify';
-import { SessionsService, sessionClientFrom } from '../sessions/sessions.service';
+import { MfaExempt } from '../auth-core/mfa-policy.guard';
+import { OptionalJwtGuard } from '../auth-core/optional-jwt.guard';
+import { Public } from '../auth-core/public.decorator';
+import { willDropSecureCookie } from '../common/cookie';
 import { catchDomainError, DomainError } from '../common/domain-error';
+import { RateLimitService } from '../common/rate-limit.service';
+import { SessionsService, sessionClientFrom } from '../sessions/sessions.service';
+import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, MfaVerifyLoginDto } from './auth.dto';
+import { AuthService } from './auth.service';
+import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 const WINDOW = 15 * 60 * 1000;
 const LOGIN_MIN_LATENCY_MS = 350;
@@ -70,7 +71,12 @@ export class AuthPublicController {
   async invite(@Param('token') token: string, @Req() req: Request) {
     await this.limit('login', req, 10);
     const result = await this.auth.validateInviteToken(token);
-    return { valid: result.valid, max_uses: result.max_uses, used_count: result.used_count, expires_at: result.expires_at };
+    return {
+      valid: result.valid,
+      max_uses: result.max_uses,
+      used_count: result.used_count,
+      expires_at: result.expires_at,
+    };
   }
 
   @Post('register')
@@ -79,7 +85,12 @@ export class AuthPublicController {
   async register(@Body() body: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     await this.limit('login', req, 10);
     const result = await this.auth.registerUser(body, sessionClientFrom(req));
-    await this.audit.writeAudit({ userId: result.auditUserId!, action: 'user.register', ip: getClientIp(req), details: result.auditDetails });
+    await this.audit.writeAudit({
+      userId: result.auditUserId!,
+      action: 'user.register',
+      ip: getClientIp(req),
+      details: result.auditDetails,
+    });
     this.auth.setAuthCookie(res, result.token!, req);
     return { token: result.token, user: result.user };
   }
@@ -92,7 +103,12 @@ export class AuthPublicController {
     const started = Date.now();
     const result = await this.auth.loginUser(body, sessionClientFrom(req));
     if (result.auditAction) {
-      await this.audit.writeAudit({ userId: result.auditUserId ?? null, action: result.auditAction, ip: getClientIp(req), details: result.auditDetails });
+      await this.audit.writeAudit({
+        userId: result.auditUserId ?? null,
+        action: result.auditAction,
+        ip: getClientIp(req),
+        details: result.auditDetails,
+      });
     }
     const elapsed = Date.now() - started;
     if (elapsed < LOGIN_MIN_LATENCY_MS) await delay(LOGIN_MIN_LATENCY_MS - elapsed);
@@ -125,15 +141,35 @@ export class AuthPublicController {
     if (outcome.reason === 'issued' && outcome.tokenForDelivery && outcome.userEmail) {
       const origin = this.auth.getAppUrl();
       const url = `${origin.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(outcome.tokenForDelivery)}`;
-      await this.audit.writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { delivered: 'pending' } });
+      await this.audit.writeAudit({
+        userId: outcome.userId,
+        action: 'user.password_reset_request',
+        ip,
+        details: { delivered: 'pending' },
+      });
       try {
         const delivery = await this.auth.sendPasswordResetEmail(outcome.userEmail, url, outcome.userId);
-        await this.audit.writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { delivered: delivery.delivered } });
+        await this.audit.writeAudit({
+          userId: outcome.userId,
+          action: 'user.password_reset_request',
+          ip,
+          details: { delivered: delivery.delivered },
+        });
       } catch {
-        await this.audit.writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { delivered: 'failed' } });
+        await this.audit.writeAudit({
+          userId: outcome.userId,
+          action: 'user.password_reset_request',
+          ip,
+          details: { delivered: 'failed' },
+        });
       }
     } else {
-      await this.audit.writeAudit({ userId: outcome.userId, action: 'user.password_reset_request', ip, details: { reason: outcome.reason } });
+      await this.audit.writeAudit({
+        userId: outcome.userId,
+        action: 'user.password_reset_request',
+        ip,
+        details: { reason: outcome.reason },
+      });
     }
     const elapsed = Date.now() - started;
     if (elapsed < FORGOT_MIN_LATENCY_MS) await delay(FORGOT_MIN_LATENCY_MS - elapsed);
@@ -150,7 +186,12 @@ export class AuthPublicController {
     const ip = getClientIp(req);
     const result = await catchDomainError(() => this.auth.resetPassword(body));
     if (result instanceof DomainError) {
-      await this.audit.writeAudit({ userId: null, action: 'user.password_reset_fail', ip, details: { reason: result.publicMessage } });
+      await this.audit.writeAudit({
+        userId: null,
+        action: 'user.password_reset_fail',
+        ip,
+        details: { reason: result.publicMessage },
+      });
       throw result;
     }
     if (result.mfa_required) {
@@ -163,10 +204,19 @@ export class AuthPublicController {
   @Post('mfa/verify-login')
   @Public('second factor of a login that has no session yet')
   @HttpCode(200)
-  async verifyMfaLogin(@Body() body: MfaVerifyLoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async verifyMfaLogin(
+    @Body() body: MfaVerifyLoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.limit('mfa', req, 5);
     const result = await this.auth.verifyMfaLogin(body, sessionClientFrom(req));
-    await this.audit.writeAudit({ userId: result.auditUserId!, action: 'user.login', ip: getClientIp(req), details: { mfa: true } });
+    await this.audit.writeAudit({
+      userId: result.auditUserId!,
+      action: 'user.login',
+      ip: getClientIp(req),
+      details: { mfa: true },
+    });
     this.auth.setAuthCookie(res, result.token!, req, result.remember);
     return { token: result.token, user: result.user };
   }

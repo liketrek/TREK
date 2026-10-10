@@ -23,31 +23,31 @@
  *    the Plan 3b Rulings) — proving the wrapper is what makes PHOTOCTX-002
  *    succeed, not an accident of the test setup.
  */
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
-import request from 'supertest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { Photos } from '../../src/db/entities/Photos.entity';
+import { Users } from '../../src/db/entities/Users.entity';
+import { applyPlatformUploads } from '../../src/nest/platform/platform.routes';
+import { StorageService } from '../../src/nest/storage/storage.service';
+import { generateToken } from '../helpers/auth';
+import { createUser, createTrip } from '../helpers/factories';
+import { insertRow } from '../helpers/factories/rows';
+import { makeShareToken } from '../helpers/factories/trips';
+import { resetTestDb } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
 import express from 'express';
 import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
 import fs from 'node:fs';
 import path from 'node:path';
-import { MikroORM } from '@mikro-orm/core';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb } from '../helpers/test-db';
-import { createUser, createTrip } from '../helpers/factories';
-import { generateToken } from '../helpers/auth';
-import { applyPlatformUploads } from '../../src/nest/platform/platform.routes';
-import { StorageService } from '../../src/nest/storage/storage.service';
-import { Users } from '../../src/db/entities/Users.entity';
-import { Photos } from '../../src/db/entities/Photos.entity';
-import { insertRow } from '../helpers/factories/rows';
-import { makeShareToken } from '../helpers/factories/trips';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -68,7 +68,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await nestApp.close();
-  try { fs.unlinkSync(photoFile); } catch { /* ignore */ }
+  try {
+    fs.unlinkSync(photoFile);
+  } catch {
+    /* ignore */
+  }
 });
 
 beforeEach(() => {

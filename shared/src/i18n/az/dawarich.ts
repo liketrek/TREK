@@ -8,9 +8,11 @@ const dawarich: TranslationStrings = {
   'dawarich.url': 'İnstansiya ünvanı',
   'dawarich.apiKey': 'API açarı',
   'dawarich.apiKeyPlaceholder': 'Dawarich API açarınızı yapışdırın',
-  'dawarich.apiKeyHint': 'Dawarich-də Hesab → API açarı bölməsində yerləşir. Şifrələnmiş şəkildə saxlanılır və bir daha göstərilmir.',
+  'dawarich.apiKeyHint':
+    'Dawarich-də Hesab → API açarı bölməsində yerləşir. Şifrələnmiş şəkildə saxlanılır və bir daha göstərilmir.',
   'dawarich.allowInsecureTls': 'Öz-özünə imzalanmış sertifikata icazə ver',
-  'dawarich.allowInsecureTlsHint': 'Yalnız instansiyanız serverinizin etibar etmədiyi sertifikatdan istifadə edirsə tələb olunur.',
+  'dawarich.allowInsecureTlsHint':
+    'Yalnız instansiyanız serverinizin etibar etmədiyi sertifikatdan istifadə edirsə tələb olunur.',
   'dawarich.syncEnabled': 'Yeni dayanma qeydlərini avtomatik yoxla',
   'dawarich.syncEnabledHint': 'Deaktiv olduqda TREK Dawarich-i yalnız siz istədiyiniz zaman oxuyur.',
   'dawarich.test.button': 'Bağlantını yoxla',
@@ -59,7 +61,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Dawarich əlavəsi bu instansiya üçün deaktiv edilib.',
   'dawarich.error.offline': 'Bu əməliyyat internet bağlantısı tələb edir — TREK hazırda oflayndır.',
   'dawarich.error.invalid_url': 'TREK həmin ünvandan istifadə edə bilmir.',
-  'dawarich.warning.private_ip': 'Həmin ünvan şəxsi IP-yə ({ip}) yönəlir. Bunun nəzərdə tutduğunuz ünvan olduğuna əmin olun — serverin ona çatması üçün ALLOW_INTERNAL_NETWORK=true tələb oluna bilər.',
+  'dawarich.warning.private_ip':
+    'Həmin ünvan şəxsi IP-yə ({ip}) yönəlir. Bunun nəzərdə tutduğunuz ünvan olduğuna əmin olun — serverin ona çatması üçün ALLOW_INTERNAL_NETWORK=true tələb oluna bilər.',
   'dawarich.error.unknown': 'Dawarich ilə əlaqə zamanı xəta baş verdi.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -84,7 +87,8 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.pending': '{count} təklif sizi gözləyir',
   'dawarich.suggestions.pending.one': '{count} təklif sizi gözləyir',
   'dawarich.suggestions.loading': 'Dawarich oxunur…',
-  'dawarich.suggestions.notConnected': 'Dayanma qeydlərinizi burada görmək üçün Tənzimləmələr bölməsində Dawarich-i qoşun.',
+  'dawarich.suggestions.notConnected':
+    'Dayanma qeydlərinizi burada görmək üçün Tənzimləmələr bölməsində Dawarich-i qoşun.',
   'dawarich.suggestions.unavailable': 'Dawarich-i oxumaq mümkün olmadı.',
   'dawarich.suggestions.allHandled': 'Burada qeydə alınan hər şey nəzərdən keçirilib.',
   'dawarich.suggestions.asJournal': 'Gündəlik qeydi yaz',

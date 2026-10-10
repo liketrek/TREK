@@ -4,19 +4,19 @@
  * off-by-default behaviour, and the CSP staying intact on the docs routes.
  * Boots the real buildApp() like bootstrap.test.ts.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { apiDocsEnabled } from '../../src/nest/common/api-docs.kill-switch';
+import { resetTestDb } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { resetTestDb } from '../helpers/test-db';
-import { buildApp } from '../../src/bootstrap';
-import { apiDocsEnabled } from '../../src/nest/common/api-docs.kill-switch';
 
 describe('API-DOCS (#1412) — flag-gated OpenAPI surface', () => {
   let app: INestApplication;

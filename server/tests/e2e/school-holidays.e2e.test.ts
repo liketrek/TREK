@@ -1,36 +1,37 @@
-import { beforeAll, afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import request from 'supertest';
-import cookieParser from 'cookie-parser';
-import { Test } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
-import { MikroORM } from '@mikro-orm/core';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { db } from '../../src/db/database';
+import { SchoolHolidayCountries } from '../../src/db/entities/SchoolHolidayCountries.entity';
+import { SchoolHolidayPeriods } from '../../src/db/entities/SchoolHolidayPeriods.entity';
+import { SchoolHolidayRegions } from '../../src/db/entities/SchoolHolidayRegions.entity';
+import { VacayHolidayCalendars } from '../../src/db/entities/VacayHolidayCalendars.entity';
+import { VacayPlans } from '../../src/db/entities/VacayPlans.entity';
+import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../src/mcp/nest-mcp-policy';
+import { createTestRegistry } from '../../src/nest-mcp';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { validateBodyContracts } from '../../src/nest/common/validate-body-contracts';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 import { withRequestContext } from '../../src/nest/database/request-context';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { SchoolHolidaysMcp } from '../../src/nest/school-holidays/school-holidays.mcp';
+import { SchoolHolidaysModule } from '../../src/nest/school-holidays/school-holidays.module';
+import { SchoolHolidaysService } from '../../src/nest/school-holidays/school-holidays.service';
+import { deleteRows, findRows, insertRow, insertRowIgnoringConflict } from '../helpers/factories/rows';
+import { makeAdmin, makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { sessionCookie } from './harness';
+import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+
+import cookieParser from 'cookie-parser';
+import request from 'supertest';
+import { beforeAll, afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb } = await import('../helpers/db-mock');
   const db = createSnapshotTestDb();
   return { db, closeDb: () => {} };
 });
-import { db } from '../../src/db/database';
-import { SchoolHolidaysModule } from '../../src/nest/school-holidays/school-holidays.module';
-import { SchoolHolidaysService } from '../../src/nest/school-holidays/school-holidays.service';
-import { SchoolHolidaysMcp } from '../../src/nest/school-holidays/school-holidays.mcp';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { validateBodyContracts } from '../../src/nest/common/validate-body-contracts';
-import { createTestRegistry } from '../../src/nest-mcp';
-import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../src/mcp/nest-mcp-policy';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
-import { makeAdmin, makeUser } from '../helpers/factories/users';
-import { deleteRows, findRows, insertRow, insertRowIgnoringConflict } from '../helpers/factories/rows';
-import { SchoolHolidayCountries } from '../../src/db/entities/SchoolHolidayCountries.entity';
-import { SchoolHolidayPeriods } from '../../src/db/entities/SchoolHolidayPeriods.entity';
-import { SchoolHolidayRegions } from '../../src/db/entities/SchoolHolidayRegions.entity';
-import { VacayHolidayCalendars } from '../../src/db/entities/VacayHolidayCalendars.entity';
-import { VacayPlans } from '../../src/db/entities/VacayPlans.entity';
 
 const base = '/api/school-holiday-catalog';
 const winter = { name: 'Winter break', startDate: '2026-12-20', endDate: '2027-01-06' };
@@ -38,7 +39,14 @@ let app: INestApplication;
 let service: SchoolHolidaysService;
 let orm: MikroORM;
 beforeAll(async () => {
-  const module = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, SchoolHolidaysModule] }).compile();
+  const module = await Test.createTestingModule({
+    imports: [
+      await TestUnitOfWorkModule.forRoot(db),
+      await createTestMikroOrmModule(db),
+      RealtimeModule,
+      SchoolHolidaysModule,
+    ],
+  }).compile();
   app = module.createNestApplication();
   app.use(cookieParser());
   app.useGlobalPipes(new ZodValidationPipe());
@@ -49,7 +57,10 @@ beforeAll(async () => {
   await makeAdmin(orm, { id: 1, username: 'admin', email: 'admin@test.local' });
   await makeUser(orm, { id: 2, username: 'member', email: 'member@test.local' });
 });
-afterAll(async () => { await app.close(); db.close(); });
+afterAll(async () => {
+  await app.close();
+  db.close();
+});
 beforeEach(async () => {
   await deleteRows(orm, VacayHolidayCalendars);
   await deleteRows(orm, SchoolHolidayPeriods);
@@ -84,126 +95,198 @@ describe('global manual school holidays', () => {
       ['post', '/countries', { code: 'US', name: 'USA' }],
       ['post', '/countries/US/regions', { name: 'District', revision: 0, holidays: [] }],
       ['put', '/regions/1', { name: 'District', revision: 1, holidays: [] }],
-      ['delete', '/countries/US', {}], ['delete', '/regions/1?revision=1', {}],
+      ['delete', '/countries/US', {}],
+      ['delete', '/regions/1?revision=1', {}],
     ] as const) {
-      await request(app.getHttpServer())[method](`${base}${path}`).set('Cookie', sessionCookie(2)).send(body).expect(403);
+      await request(app.getHttpServer())
+        [method](`${base}${path}`)
+        .set('Cookie', sessionCookie(2))
+        .send(body)
+        .expect(403);
     }
     expect(() => validateBodyContracts(app)).not.toThrow();
   });
 
-  it('lets any member discover regions and read dates without external requests', () => withRequestContext(orm, async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const country = await request(app.getHttpServer()).post(`${base}/countries`).set('Cookie', sessionCookie(1)).send({ code: 'US', name: 'USA' }).expect(201);
-    expect(country.body.code).toBe('US');
-    const created = await request(app.getHttpServer()).post(`${base}/countries/US/regions`).set('Cookie', sessionCookie(1)).send({ name: 'Seattle', revision: 0, holidays: [winter] }).expect(201);
-    const catalog = await request(app.getHttpServer()).get(base).set('Cookie', sessionCookie(2)).expect(200);
-    expect(catalog.body.regions[0].code).toBe(`US-MANUAL-${created.body.id}`);
-    for (const year of [2026, 2027]) {
-      const holidays = await request(app.getHttpServer()).get(`${base}/regions/${created.body.id}/holidays/${year}`).set('Cookie', sessionCookie(2)).expect(200);
-      expect(holidays.body).toEqual([winter]);
-    }
-    expect(await service.holidays(created.body.id, '2025')).toEqual([]);
-    expect(fetchSpy).not.toHaveBeenCalled();
-    fetchSpy.mockRestore();
-  }));
+  it('lets any member discover regions and read dates without external requests', () =>
+    withRequestContext(orm, async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const country = await request(app.getHttpServer())
+        .post(`${base}/countries`)
+        .set('Cookie', sessionCookie(1))
+        .send({ code: 'US', name: 'USA' })
+        .expect(201);
+      expect(country.body.code).toBe('US');
+      const created = await request(app.getHttpServer())
+        .post(`${base}/countries/US/regions`)
+        .set('Cookie', sessionCookie(1))
+        .send({ name: 'Seattle', revision: 0, holidays: [winter] })
+        .expect(201);
+      const catalog = await request(app.getHttpServer()).get(base).set('Cookie', sessionCookie(2)).expect(200);
+      expect(catalog.body.regions[0].code).toBe(`US-MANUAL-${created.body.id}`);
+      for (const year of [2026, 2027]) {
+        const holidays = await request(app.getHttpServer())
+          .get(`${base}/regions/${created.body.id}/holidays/${year}`)
+          .set('Cookie', sessionCookie(2))
+          .expect(200);
+        expect(holidays.body).toEqual([winter]);
+      }
+      expect(await service.holidays(created.body.id, '2025')).toEqual([]);
+      expect(fetchSpy).not.toHaveBeenCalled();
+      fetchSpy.mockRestore();
+    }));
 
-  it('validates dates and body shape before writing', () => withRequestContext(orm, async () => {
-    await service.createCountry({ code: 'US', name: 'USA' });
-    for (const holidays of [[{ ...winter, endDate: '2026-01-01' }], [{ ...winter, startDate: '2026-02-30' }], [{ ...winter, name: ' ' }]]) {
-      await request(app.getHttpServer()).post(`${base}/countries/US/regions`).set('Cookie', sessionCookie(1)).send({ name: 'Seattle', revision: 0, holidays }).expect(400);
-    }
-    expect((await service.catalog()).regions).toEqual([]);
-  }));
+  it('validates dates and body shape before writing', () =>
+    withRequestContext(orm, async () => {
+      await service.createCountry({ code: 'US', name: 'USA' });
+      for (const holidays of [
+        [{ ...winter, endDate: '2026-01-01' }],
+        [{ ...winter, startDate: '2026-02-30' }],
+        [{ ...winter, name: ' ' }],
+      ]) {
+        await request(app.getHttpServer())
+          .post(`${base}/countries/US/regions`)
+          .set('Cookie', sessionCookie(1))
+          .send({ name: 'Seattle', revision: 0, holidays })
+          .expect(400);
+      }
+      expect((await service.catalog()).regions).toEqual([]);
+    }));
 
-  it('preserves ids on rename and rejects stale saves atomically', () => withRequestContext(orm, async () => {
-    const region = await seed();
-    const updated = await request(app.getHttpServer()).put(`${base}/regions/${region.id}`).set('Cookie', sessionCookie(1)).send({ name: 'Renamed', revision: 1, holidays: [] }).expect(200);
-    expect(updated.body).toMatchObject({ code: region.code, revision: 2, holidays: [] });
-    await request(app.getHttpServer()).put(`${base}/regions/${region.id}`).set('Cookie', sessionCookie(1)).send({ name: 'Stale', revision: 1, holidays: [winter] }).expect(409);
-    expect((await service.region(region.id)).name).toBe('Renamed');
-    expect((await service.region(region.id)).holidays).toEqual([]);
-    await request(app.getHttpServer()).delete(`${base}/regions/${region.id}?revision=1`).set('Cookie', sessionCookie(1)).expect(409);
-  }));
+  it('preserves ids on rename and rejects stale saves atomically', () =>
+    withRequestContext(orm, async () => {
+      const region = await seed();
+      const updated = await request(app.getHttpServer())
+        .put(`${base}/regions/${region.id}`)
+        .set('Cookie', sessionCookie(1))
+        .send({ name: 'Renamed', revision: 1, holidays: [] })
+        .expect(200);
+      expect(updated.body).toMatchObject({ code: region.code, revision: 2, holidays: [] });
+      await request(app.getHttpServer())
+        .put(`${base}/regions/${region.id}`)
+        .set('Cookie', sessionCookie(1))
+        .send({ name: 'Stale', revision: 1, holidays: [winter] })
+        .expect(409);
+      expect((await service.region(region.id)).name).toBe('Renamed');
+      expect((await service.region(region.id)).holidays).toEqual([]);
+      await request(app.getHttpServer())
+        .delete(`${base}/regions/${region.id}?revision=1`)
+        .set('Cookie', sessionCookie(1))
+        .expect(409);
+    }));
 
-  it('rejects duplicates, missing countries and nonzero initial revisions', () => withRequestContext(orm, async () => {
-    await seed();
-    await expect(service.createCountry({ code: 'US', name: 'America' })).rejects.toThrow('already exists');
-    await expect(service.createRegion('US', { name: 'SEATTLE SCHOOLS', revision: 0, holidays: [] })).rejects.toThrow('already exists');
-    await expect(service.createRegion('CA', { name: 'School', revision: 0, holidays: [] })).rejects.toThrow('not found');
-    await expect(service.createRegion('US', { name: 'School', revision: 1, holidays: [] })).rejects.toThrow('revision zero');
-    const other = await service.createRegion('US', { name: 'Other', revision: 0, holidays: [] });
-    await expect(service.updateRegion(other.id, { name: 'Seattle schools', revision: 1, holidays: [] })).rejects.toThrow('already exists');
-  }));
+  it('rejects duplicates, missing countries and nonzero initial revisions', () =>
+    withRequestContext(orm, async () => {
+      await seed();
+      await expect(service.createCountry({ code: 'US', name: 'America' })).rejects.toThrow('already exists');
+      await expect(service.createRegion('US', { name: 'SEATTLE SCHOOLS', revision: 0, holidays: [] })).rejects.toThrow(
+        'already exists',
+      );
+      await expect(service.createRegion('CA', { name: 'School', revision: 0, holidays: [] })).rejects.toThrow(
+        'not found',
+      );
+      await expect(service.createRegion('US', { name: 'School', revision: 1, holidays: [] })).rejects.toThrow(
+        'revision zero',
+      );
+      const other = await service.createRegion('US', { name: 'Other', revision: 0, holidays: [] });
+      await expect(
+        service.updateRegion(other.id, { name: 'Seattle schools', revision: 1, holidays: [] }),
+      ).rejects.toThrow('already exists');
+    }));
 
-  it('protects used regions and deletes unused regions with their periods', () => withRequestContext(orm, async () => {
-    const region = await seed();
-    await insertRowIgnoringConflict(orm, VacayPlans, { id: 1, owner: 1 });
-    await insertRow(orm, VacayHolidayCalendars, { plan: 1, type: 'school_holiday', region: region.code });
-    await request(app.getHttpServer()).delete(`${base}/regions/${region.id}?revision=1`).set('Cookie', sessionCookie(1)).expect(409);
-    await request(app.getHttpServer()).delete(`${base}/countries/US`).set('Cookie', sessionCookie(1)).expect(409);
-    await deleteRows(orm, VacayHolidayCalendars);
-    await request(app.getHttpServer()).delete(`${base}/regions/${region.id}?revision=1`).set('Cookie', sessionCookie(1)).expect(200);
-    expect(await findRows(orm, SchoolHolidayPeriods)).toEqual([]);
-    await request(app.getHttpServer()).delete(`${base}/countries/US`).set('Cookie', sessionCookie(1)).expect(200);
-    expect(await service.catalog()).toEqual({ countries: [], regions: [] });
-  }));
+  it('protects used regions and deletes unused regions with their periods', () =>
+    withRequestContext(orm, async () => {
+      const region = await seed();
+      await insertRowIgnoringConflict(orm, VacayPlans, { id: 1, owner: 1 });
+      await insertRow(orm, VacayHolidayCalendars, { plan: 1, type: 'school_holiday', region: region.code });
+      await request(app.getHttpServer())
+        .delete(`${base}/regions/${region.id}?revision=1`)
+        .set('Cookie', sessionCookie(1))
+        .expect(409);
+      await request(app.getHttpServer()).delete(`${base}/countries/US`).set('Cookie', sessionCookie(1)).expect(409);
+      await deleteRows(orm, VacayHolidayCalendars);
+      await request(app.getHttpServer())
+        .delete(`${base}/regions/${region.id}?revision=1`)
+        .set('Cookie', sessionCookie(1))
+        .expect(200);
+      expect(await findRows(orm, SchoolHolidayPeriods)).toEqual([]);
+      await request(app.getHttpServer()).delete(`${base}/countries/US`).set('Cookie', sessionCookie(1)).expect(200);
+      expect(await service.catalog()).toEqual({ countries: [], regions: [] });
+    }));
 
-  it('reports missing regions and malformed year and id parameters', () => withRequestContext(orm, async () => {
-    const region = await seed();
-    const get = async (path: string) =>
-      (await request(app.getHttpServer()).get(path).set('Cookie', sessionCookie(2))).status;
-    expect(await get(`${base}/regions/${region.id}`)).toBe(200);
-    expect(await get(`${base}/regions/999999`)).toBe(404);
-    expect(await get(`${base}/regions/invalid`)).toBe(400);
-    expect(await get(`${base}/regions/${region.id}/holidays/xx`)).toBe(400);
-    const missingCountry = await request(app.getHttpServer())
-      .delete(`${base}/countries/CA`)
-      .set('Cookie', sessionCookie(1));
-    expect(missingCountry.status).toBe(404);
-  }));
+  it('reports missing regions and malformed year and id parameters', () =>
+    withRequestContext(orm, async () => {
+      const region = await seed();
+      const get = async (path: string) =>
+        (await request(app.getHttpServer()).get(path).set('Cookie', sessionCookie(2))).status;
+      expect(await get(`${base}/regions/${region.id}`)).toBe(200);
+      expect(await get(`${base}/regions/999999`)).toBe(404);
+      expect(await get(`${base}/regions/invalid`)).toBe(400);
+      expect(await get(`${base}/regions/${region.id}/holidays/xx`)).toBe(400);
+      const missingCountry = await request(app.getHttpServer())
+        .delete(`${base}/countries/CA`)
+        .set('Cookie', sessionCookie(1));
+      expect(missingCountry.status).toBe(404);
+    }));
 
-  it('exposes the same manual catalog and periods through MCP', () => withRequestContext(orm, async () => {
-    const region = await seed();
-    const mcp = app.get(SchoolHolidaysMcp);
-    expect(() => createTestRegistry([mcp], { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess })).not.toThrow();
-    expect(JSON.stringify(await mcp.catalog())).toContain(region.code);
-    expect(JSON.stringify(await mcp.forYear({ regionId: region.id, year: 2027 }))).toContain('Winter break');
-  }));
+  it('exposes the same manual catalog and periods through MCP', () =>
+    withRequestContext(orm, async () => {
+      const region = await seed();
+      const mcp = app.get(SchoolHolidaysMcp);
+      expect(() =>
+        createTestRegistry([mcp], { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess }),
+      ).not.toThrow();
+      expect(JSON.stringify(await mcp.catalog())).toContain(region.code);
+      expect(JSON.stringify(await mcp.forYear({ regionId: region.id, year: 2027 }))).toContain('Winter break');
+    }));
 
-  it('denies every MCP mutation to normal users without changing the catalog', () => withRequestContext(orm, async () => {
-    const region = await seed();
-    const mcp = app.get(SchoolHolidaysMcp);
-    const member = { userId: 2, scopes: null, isStaticToken: false };
-    const before = await service.region(region.id);
-    const writes = [
-      () => mcp.createCountry({ code: 'CA', name: 'Canada' }, member),
-      () => mcp.createRegion({ country: 'US', name: 'Other', revision: 0, holidays: [] }, member),
-      () => mcp.updateRegion({ regionId: region.id, name: 'Changed', revision: 1, holidays: [] }, member),
-      () => mcp.deleteRegion({ regionId: region.id, revision: 1 }, member),
-      () => mcp.deleteCountry({ code: 'US' }, member),
-    ];
-    for (const write of writes) expect(await write()).toHaveProperty('isError', true);
-    expect(await service.region(region.id)).toEqual(before);
-    expect((await service.catalog()).countries).toHaveLength(1);
-    expect((await service.catalog()).regions).toHaveLength(1);
-  }));
+  it('denies every MCP mutation to normal users without changing the catalog', () =>
+    withRequestContext(orm, async () => {
+      const region = await seed();
+      const mcp = app.get(SchoolHolidaysMcp);
+      const member = { userId: 2, scopes: null, isStaticToken: false };
+      const before = await service.region(region.id);
+      const writes = [
+        () => mcp.createCountry({ code: 'CA', name: 'Canada' }, member),
+        () => mcp.createRegion({ country: 'US', name: 'Other', revision: 0, holidays: [] }, member),
+        () => mcp.updateRegion({ regionId: region.id, name: 'Changed', revision: 1, holidays: [] }, member),
+        () => mcp.deleteRegion({ regionId: region.id, revision: 1 }, member),
+        () => mcp.deleteCountry({ code: 'US' }, member),
+      ];
+      for (const write of writes) expect(await write()).toHaveProperty('isError', true);
+      expect(await service.region(region.id)).toEqual(before);
+      expect((await service.catalog()).countries).toHaveLength(1);
+      expect((await service.catalog()).regions).toHaveLength(1);
+    }));
 
-  it('supports the complete admin MCP workflow with validation and revision protection', () => withRequestContext(orm, async () => {
-    const mcp = app.get(SchoolHolidaysMcp);
-    const admin = { userId: 1, scopes: null, isStaticToken: false };
-    expect(await mcp.createCountry({ code: 'US', name: 'USA' }, admin)).not.toHaveProperty('isError', true);
-    expect(await mcp.createRegion({ country: 'US', name: 'Seattle', revision: 0, holidays: [winter] }, admin)).not.toHaveProperty('isError', true);
-    const region = (await service.catalog()).regions[0];
-    expect(JSON.stringify(await mcp.region({ regionId: region.id }))).toContain('Winter break');
-    const edit = { regionId: region.id, name: 'Seattle Public Schools', revision: 1, holidays: [{ ...winter, name: 'Winter holiday' }] };
-    expect(await mcp.updateRegion(edit, admin)).not.toHaveProperty('isError', true);
-    expect(await mcp.updateRegion(edit, admin)).toHaveProperty('isError', true);
-    expect(await mcp.updateRegion({ ...edit, revision: 2, holidays: [{ ...winter, endDate: '2025-01-01' }] }, admin)).toHaveProperty('isError', true);
-    expect(await service.region(region.id)).toMatchObject({ revision: 2, holidays: [{ ...winter, name: 'Winter holiday' }] });
-    expect(await mcp.deleteCountry({ code: 'US' }, admin)).toHaveProperty('isError', true);
-    expect(await mcp.deleteRegion({ regionId: region.id, revision: 1 }, admin)).toHaveProperty('isError', true);
-    expect(await mcp.deleteRegion({ regionId: region.id, revision: 2 }, admin)).not.toHaveProperty('isError', true);
-    expect(await mcp.deleteCountry({ code: 'US' }, admin)).not.toHaveProperty('isError', true);
-    expect(await service.catalog()).toEqual({ countries: [], regions: [] });
-  }));
+  it('supports the complete admin MCP workflow with validation and revision protection', () =>
+    withRequestContext(orm, async () => {
+      const mcp = app.get(SchoolHolidaysMcp);
+      const admin = { userId: 1, scopes: null, isStaticToken: false };
+      expect(await mcp.createCountry({ code: 'US', name: 'USA' }, admin)).not.toHaveProperty('isError', true);
+      expect(
+        await mcp.createRegion({ country: 'US', name: 'Seattle', revision: 0, holidays: [winter] }, admin),
+      ).not.toHaveProperty('isError', true);
+      const region = (await service.catalog()).regions[0];
+      expect(JSON.stringify(await mcp.region({ regionId: region.id }))).toContain('Winter break');
+      const edit = {
+        regionId: region.id,
+        name: 'Seattle Public Schools',
+        revision: 1,
+        holidays: [{ ...winter, name: 'Winter holiday' }],
+      };
+      expect(await mcp.updateRegion(edit, admin)).not.toHaveProperty('isError', true);
+      expect(await mcp.updateRegion(edit, admin)).toHaveProperty('isError', true);
+      expect(
+        await mcp.updateRegion({ ...edit, revision: 2, holidays: [{ ...winter, endDate: '2025-01-01' }] }, admin),
+      ).toHaveProperty('isError', true);
+      expect(await service.region(region.id)).toMatchObject({
+        revision: 2,
+        holidays: [{ ...winter, name: 'Winter holiday' }],
+      });
+      expect(await mcp.deleteCountry({ code: 'US' }, admin)).toHaveProperty('isError', true);
+      expect(await mcp.deleteRegion({ regionId: region.id, revision: 1 }, admin)).toHaveProperty('isError', true);
+      expect(await mcp.deleteRegion({ regionId: region.id, revision: 2 }, admin)).not.toHaveProperty('isError', true);
+      expect(await mcp.deleteCountry({ code: 'US' }, admin)).not.toHaveProperty('isError', true);
+      expect(await service.catalog()).toEqual({ countries: [], regions: [] });
+    }));
 });

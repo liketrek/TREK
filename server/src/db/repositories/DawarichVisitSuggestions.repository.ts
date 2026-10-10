@@ -1,8 +1,8 @@
 import { coalesceParam, columnRef } from '../dialect/sql-functions';
 import type { DawarichVisitSuggestions } from '../entities/DawarichVisitSuggestions.entity';
+import type { DB } from '../kysely/db';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /** `dawarich_visit_suggestions` — every scalar column, DWS6/DSY3's `SELECT *` shape. */
 export interface SuggestionRow {

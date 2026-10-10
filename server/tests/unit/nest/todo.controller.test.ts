@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
 import { TodoController } from '../../../src/nest/todo/todo.controller';
 import type { TodoService } from '../../../src/nest/todo/todo.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 const trip = { id: 5, user_id: 1 };
@@ -30,14 +31,12 @@ async function thrown(fn: () => unknown): Promise<{ status: number; body: unknow
 // The 404 "Trip not found" and 403 "No permission" cases moved to
 // trip-access.guard.test.ts with the check itself.
 describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)', () => {
-
   it('GET / returns items', async () => {
     const svc = makeService({ listItems: vi.fn().mockResolvedValue([{ id: 1 }]) } as Partial<TodoService>);
     expect(await new TodoController(svc).list(user, '5')).toEqual({ items: [{ id: 1 }] });
   });
 
   describe('POST /', () => {
-
     // The missing-name 400 moved from a bespoke controller check into the
     // ZodValidationPipe (todoCreateItemRequestSchema) — direct method calls
     // bypass parameter pipes, so that path is covered by the e2e suite and
@@ -47,7 +46,9 @@ describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)'
       const createItem = vi.fn().mockResolvedValue({ id: 9, name: 'Pack' });
       const broadcast = vi.fn();
       const svc = makeService({ createItem, broadcast } as Partial<TodoService>);
-      expect(await new TodoController(svc).create(user, '5', { name: 'Pack', priority: 2 }, 'sock')).toEqual({ item: { id: 9, name: 'Pack' } });
+      expect(await new TodoController(svc).create(user, '5', { name: 'Pack', priority: 2 }, 'sock')).toEqual({
+        item: { id: 9, name: 'Pack' },
+      });
       expect(broadcast).toHaveBeenCalledWith('5', 'todo:created', { item: { id: 9, name: 'Pack' } }, 'sock');
     });
   });
@@ -56,7 +57,8 @@ describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)'
     it('404 when item missing', async () => {
       const svc = makeService({ updateItem: vi.fn().mockResolvedValue(null) } as Partial<TodoService>);
       expect(await thrown(() => new TodoController(svc).update(user, '5', '9', { name: 'X' }))).toEqual({
-        status: 404, body: { error: 'Item not found' },
+        status: 404,
+        body: { error: 'Item not found' },
       });
     });
 
@@ -81,7 +83,8 @@ describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)'
     it('404 when item missing', async () => {
       const svc = makeService({ deleteItem: vi.fn().mockResolvedValue(false) } as Partial<TodoService>);
       expect(await thrown(() => new TodoController(svc).remove(user, '5', '9'))).toEqual({
-        status: 404, body: { error: 'Item not found' },
+        status: 404,
+        body: { error: 'Item not found' },
       });
     });
 
@@ -103,7 +106,9 @@ describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)'
 
   describe('category assignees', () => {
     it('GET returns assignees', async () => {
-      const svc = makeService({ getCategoryAssignees: vi.fn().mockResolvedValue([{ user_id: 2 }]) } as Partial<TodoService>);
+      const svc = makeService({
+        getCategoryAssignees: vi.fn().mockResolvedValue([{ user_id: 2 }]),
+      } as Partial<TodoService>);
       expect(await new TodoController(svc).categoryAssignees(user, '5')).toEqual({ assignees: [{ user_id: 2 }] });
     });
 
@@ -113,7 +118,12 @@ describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)'
       const svc = makeService({ updateCategoryAssignees, broadcast } as Partial<TodoService>);
       await new TodoController(svc).updateCategoryAssignees(user, '5', 'To%20Buy', { user_ids: [2] }, 'sock');
       expect(updateCategoryAssignees).toHaveBeenCalledWith('5', 'To Buy', [2]);
-      expect(broadcast).toHaveBeenCalledWith('5', 'todo:assignees', { category: 'To Buy', assignees: [{ user_id: 2 }] }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith(
+        '5',
+        'todo:assignees',
+        { category: 'To Buy', assignees: [{ user_id: 2 }] },
+        'sock',
+      );
     });
   });
 });

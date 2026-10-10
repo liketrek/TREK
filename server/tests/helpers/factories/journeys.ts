@@ -1,10 +1,10 @@
-import type { EntityData, EntityDTO } from '@mikro-orm/core';
 import { JourneyContributors } from '../../../src/db/entities/JourneyContributors.entity';
 import { JourneyEntries } from '../../../src/db/entities/JourneyEntries.entity';
 import { JourneyTrips } from '../../../src/db/entities/JourneyTrips.entity';
 import { Journeys } from '../../../src/db/entities/Journeys.entity';
 import { nextSeq, type FactoryOrm } from './context';
 import { createRow, insertRow, insertRowIgnoringConflict } from './rows';
+import type { EntityData, EntityDTO } from '@mikro-orm/core';
 
 export type JourneyRow = EntityDTO<Journeys>;
 export type JourneyEntryRow = EntityDTO<JourneyEntries>;
@@ -61,7 +61,12 @@ export async function addJourneyContributor(
   userId: number,
   role: 'editor' | 'viewer' = 'editor',
 ): Promise<void> {
-  await insertRowIgnoringConflict(orm, JourneyContributors, { journey: journeyId, user: userId, role, added_at: Date.now() });
+  await insertRowIgnoringConflict(orm, JourneyContributors, {
+    journey: journeyId,
+    user: userId,
+    role,
+    added_at: Date.now(),
+  });
 }
 
 /** Links the trip to the journey; linking it twice keeps the first link. */

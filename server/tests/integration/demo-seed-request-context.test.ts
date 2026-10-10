@@ -41,9 +41,11 @@
  * EntityManager" line reaches the log, and the pre-existing module-resolution
  * failure is what actually gets logged instead, unchanged by the wrap.
  */
-import { describe, it, expect, afterEach, vi } from 'vitest';
-import type { INestApplication } from '@nestjs/common';
+import { buildApp } from '../../src/bootstrap';
 import { RequestContext } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
+import { describe, it, expect, afterEach, vi } from 'vitest';
 
 /**
  * Task 0b review M2: the pre-fix version of this file only asserted "no
@@ -80,8 +82,6 @@ vi.mock('../../src/db/database', async (importOriginal) => {
   };
 });
 
-import { buildApp } from '../../src/bootstrap';
-
 describe('runDemoSeed runs inside a request context (Plan 3c Task 0b)', () => {
   let app: INestApplication | undefined;
   const prevDemo = process.env.DEMO_MODE;
@@ -103,7 +103,9 @@ describe('runDemoSeed runs inside a request context (Plan 3c Task 0b)', () => {
       // runDemoSeed ran at all (proven by SOME [Demo] line reaching the log —
       // in this environment always the pre-existing require() gap above, but
       // ANY [Demo] line proves the function was invoked, not skipped).
-      const demoLines = errSpy.mock.calls.map((args) => args.map(String).join(' ')).filter((line) => line.includes('[Demo]'));
+      const demoLines = errSpy.mock.calls
+        .map((args) => args.map(String).join(' '))
+        .filter((line) => line.includes('[Demo]'));
       expect(demoLines.length).toBeGreaterThan(0);
 
       // The one thing this task could regress: a missing request context.

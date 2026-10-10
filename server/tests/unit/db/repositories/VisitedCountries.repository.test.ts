@@ -6,14 +6,15 @@
  * exercised through the ordinary insert path, matching
  * `ShareTokens.repository.test.ts`'s shape.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { insertRows } from '../../../helpers/factories/rows';
-import { createUser } from '../../../helpers/factories';
 import { VisitedCountries } from '../../../../src/db/entities/VisitedCountries.entity';
 import type { VisitedCountriesRepository } from '../../../../src/db/repositories/VisitedCountries.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { insertRows } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -23,8 +24,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(VisitedCountries);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('VisitedCountriesRepository.listForUser (AT10)', () => {
   it('VISCOUNTRYREPO-001: matches SELECT country_code, created_at, source FROM visited_countries WHERE user_id = ? ORDER BY created_at DESC run raw, scoped to the user', async () => {
@@ -37,7 +44,11 @@ describe('VisitedCountriesRepository.listForUser (AT10)', () => {
     ]);
 
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const legacy = testDb.prepare('SELECT country_code, created_at, source FROM visited_countries WHERE user_id = ? ORDER BY created_at DESC').all(user.id);
+    const legacy = testDb
+      .prepare(
+        'SELECT country_code, created_at, source FROM visited_countries WHERE user_id = ? ORDER BY created_at DESC',
+      )
+      .all(user.id);
     const rows = await repo.listForUser(user.id);
 
     expect(rows).toEqual(legacy);

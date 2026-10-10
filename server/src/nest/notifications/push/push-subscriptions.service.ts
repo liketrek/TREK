@@ -1,5 +1,3 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { PushSubscriptions } from '../../../db/entities/PushSubscriptions.entity';
 import type {
   PushSubscriptionRow,
@@ -7,6 +5,8 @@ import type {
 } from '../../../db/repositories/PushSubscriptions.repository';
 import { UnitOfWork } from '../../database/unit-of-work';
 import type { CheckedPushSubscription } from './push-subscription.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 export type { PushSubscriptionRow } from '../../../db/repositories/PushSubscriptions.repository';
 

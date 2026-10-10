@@ -1,14 +1,20 @@
+import { adminRequired } from '../../mcp/tools/_shared';
 import {
-  McpController, Tool, Resource, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  errorResult, ok,
+  McpController,
+  Tool,
+  Resource,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  errorResult,
+  ok,
 } from '../../nest-mcp';
-import { idSchema, createCategoryRequestSchema, updateCategoryRequestSchema } from '@trek/shared';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { adminRequired } from '../../mcp/tools/_shared';
 import { CategoriesService } from './categories.service';
+import { idSchema, createCategoryRequestSchema, updateCategoryRequestSchema } from '@trek/shared';
 
 /**
  * Categories MCP surface — ported 1:1 from the legacy registrars: the
@@ -37,7 +43,8 @@ export class CategoriesMcp {
 
   @Tool({
     name: 'list_categories',
-    description: 'List all available place categories with their id, name, icon and color. Use category_id when creating or updating places.',
+    description:
+      'List all available place categories with their id, name, icon and color. Use category_id when creating or updating places.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },
@@ -49,7 +56,8 @@ export class CategoriesMcp {
 
   @Tool({
     name: 'create_category',
-    description: 'Add a new place category to the instance-wide palette. Admin only. Prefer an existing category from list_categories: this mints one every trip on the instance will see, so only reach for it when nothing in the palette fits.',
+    description:
+      'Add a new place category to the instance-wide palette. Admin only. Prefer an existing category from list_categories: this mints one every trip on the instance will see, so only reach for it when nothing in the palette fits.',
     inputSchema: {
       name: createCategoryRequestSchema.shape.name.describe('Category label, e.g. "Street food"'),
       color: createCategoryRequestSchema.shape.color.describe('Hex colour for the map marker (defaults to #6366f1)'),
@@ -67,7 +75,8 @@ export class CategoriesMcp {
 
   @Tool({
     name: 'update_category',
-    description: 'Rename an existing place category or change its colour or icon. Admin only. Every place already carrying the category follows the change, so use this to fix a palette entry rather than to reclassify places.',
+    description:
+      'Rename an existing place category or change its colour or icon. Admin only. Every place already carrying the category follows the change, so use this to fix a palette entry rather than to reclassify places.',
     inputSchema: {
       categoryId: idSchema.describe('Category ID from list_categories'),
       name: updateCategoryRequestSchema.shape.name,
@@ -77,7 +86,10 @@ export class CategoriesMcp {
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
   })
-  async updateCategory({ categoryId, name, color, icon }: { categoryId: number; name?: string; color?: string; icon?: string }, ctx: McpContext) {
+  async updateCategory(
+    { categoryId, name, color, icon }: { categoryId: number; name?: string; color?: string; icon?: string },
+    ctx: McpContext,
+  ) {
     if (!(await this.guards.isAdminUser(ctx.userId))) return adminRequired();
     if (!(await this.categories.getById(categoryId))) return errorResult('Category not found');
     const category = await this.categories.update(categoryId, name, color, icon);
@@ -86,7 +98,8 @@ export class CategoriesMcp {
 
   @Tool({
     name: 'delete_category',
-    description: 'Remove a place category from the instance-wide palette. Admin only. Places keep their data but lose the category, across every trip on the instance. Use update_category when the entry only needs fixing.',
+    description:
+      'Remove a place category from the instance-wide palette. Admin only. Places keep their data but lose the category, across every trip on the instance. Use update_category when the entry only needs fixing.',
     inputSchema: {
       categoryId: idSchema.describe('Category ID from list_categories'),
     },
@@ -109,11 +122,13 @@ export class CategoriesMcp {
   async categoriesResource(uri: URL, _ctx: McpContext) {
     const categories = await this.categories.list();
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(categories, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(categories, null, 2),
+        },
+      ],
     };
   }
 }

@@ -2,11 +2,35 @@
  * Days & Accommodations API integration tests.
  * Covers DAY-001 through DAY-013 and ACCOM-001 through ACCOM-006.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { AppSettings } from '../../src/db/entities/AppSettings.entity';
+import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
+import { DayAccommodations } from '../../src/db/entities/DayAccommodations.entity';
+import { Days } from '../../src/db/entities/Days.entity';
+import { Reservations } from '../../src/db/entities/Reservations.entity';
+import { Trips } from '../../src/db/entities/Trips.entity';
+import { legacyBoundIntegerText } from '../../src/nest/common/row-id';
+import { authCookie } from '../helpers/auth';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  addTripMember,
+  createDayAccommodation,
+  createReservation,
+} from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../helpers/factories/rows';
+import { setAppSetting } from '../helpers/factories/settings';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // In-memory DB — schema applied in beforeAll after mocks register
@@ -15,22 +39,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, addTripMember, createDayAccommodation, createReservation } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../helpers/factories/rows';
-import { setAppSetting } from '../helpers/factories/settings';
-import type { FactoryOrm } from '../helpers/factories/context';
-import { AppSettings } from '../../src/db/entities/AppSettings.entity';
-import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
-import { DayAccommodations } from '../../src/db/entities/DayAccommodations.entity';
-import { Days } from '../../src/db/entities/Days.entity';
-import { Reservations } from '../../src/db/entities/Reservations.entity';
-import { Trips } from '../../src/db/entities/Trips.entity';
-import { legacyBoundIntegerText } from '../../src/nest/common/row-id';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -41,7 +49,11 @@ const dayCount = (tripId: number) => countRows(orm(), Days, { trip: tripId });
 
 /** The trip's days in day order: id, number and date, as the reorder cases compare them. */
 const dayList = async (tripId: number) =>
-  (await findRows(orm(), Days, { trip: tripId }, { day_number: 'asc' })).map((d) => ({ id: d.id, day_number: d.day_number, date: d.date }));
+  (await findRows(orm(), Days, { trip: tripId }, { day_number: 'asc' })).map((d) => ({
+    id: d.id,
+    day_number: d.day_number,
+    date: d.date,
+  }));
 
 /** The stay's check-in and check-out days. */
 const stayDays = async (id: number) => {
@@ -52,7 +64,10 @@ beforeAll(async () => {
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
 });
-beforeEach(async () => { resetTestDb(testDb); await resetRateLimits(nestApp); });
+beforeEach(async () => {
+  resetTestDb(testDb);
+  await resetRateLimits(nestApp);
+});
 afterAll(async () => {
   await nestApp.close();
   testDb.close();
@@ -67,9 +82,7 @@ describe('List days', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Paris Trip', start_date: '2026-06-01', end_date: '2026-06-03' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/days`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.days).toBeDefined();
@@ -80,12 +93,14 @@ describe('List days', () => {
   it('DAY-001 — Member can list days for a shared trip', async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Shared Trip', start_date: '2026-07-01', end_date: '2026-07-02' });
+    const trip = createTrip(testDb, owner.id, {
+      title: 'Shared Trip',
+      start_date: '2026-07-01',
+      end_date: '2026-07-02',
+    });
     addTripMember(testDb, trip.id, member.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/days`)
-      .set('Cookie', authCookie(member.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(member.id));
 
     expect(res.status).toBe(200);
     expect(res.body.days).toHaveLength(2);
@@ -96,9 +111,7 @@ describe('List days', () => {
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: 'Private Trip' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/days`)
-      .set('Cookie', authCookie(stranger.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(stranger.id));
 
     expect(res.status).toBe(404);
   });
@@ -292,9 +305,7 @@ describe('Reorder days', () => {
       end_date: '2026-09-03',
     });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/days`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.days).toHaveLength(3);
@@ -315,9 +326,7 @@ describe('Delete day', () => {
     const day = createDay(testDb, trip.id);
     createDay(testDb, trip.id);
 
-    const res = await request(app)
-      .delete(`/api/trips/${trip.id}/days/${day.id}`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete(`/api/trips/${trip.id}/days/${day.id}`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -329,9 +338,7 @@ describe('Delete day', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Trip' });
 
-    const res = await request(app)
-      .delete(`/api/trips/${trip.id}/days/999999`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete(`/api/trips/${trip.id}/days/999999`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(404);
     expect(res.body.error).toMatch(/not found/i);
@@ -342,14 +349,15 @@ describe('Delete day', () => {
     const trip = createTrip(testDb, user.id, { title: 'Trip' });
     const [a, b, c] = [createDay(testDb, trip.id), createDay(testDb, trip.id), createDay(testDb, trip.id)];
 
-    const res = await request(app)
-      .delete(`/api/trips/${trip.id}/days/${b.id}`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete(`/api/trips/${trip.id}/days/${b.id}`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ success: true, trip: { id: trip.id, day_count: 2 } });
     const list = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id));
-    expect(list.body.days.map((d: { id: number; day_number: number }) => [d.id, d.day_number])).toEqual([[a.id, 1], [c.id, 2]]);
+    expect(list.body.days.map((d: { id: number; day_number: number }) => [d.id, d.day_number])).toEqual([
+      [a.id, 1],
+      [c.id, 2],
+    ]);
   });
 
   it('DAY-008: deleting a dated day with no day left to take the last date ends the trip a day earlier', async () => {
@@ -357,9 +365,7 @@ describe('Delete day', () => {
     const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-08-01', end_date: '2026-08-03' });
     const [first] = await dayList(trip.id);
 
-    const res = await request(app)
-      .delete(`/api/trips/${trip.id}/days/${first.id}`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete(`/api/trips/${trip.id}/days/${first.id}`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.trip).toMatchObject({ start_date: '2026-08-01', end_date: '2026-08-02' });
@@ -374,9 +380,7 @@ describe('Delete day', () => {
     const trip = createTrip(testDb, user.id, { title: 'Trip' });
     const day = createDay(testDb, trip.id);
 
-    const res = await request(app)
-      .delete(`/api/trips/${trip.id}/days/${day.id}`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete(`/api/trips/${trip.id}/days/${day.id}`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'A trip needs at least one day.' });
@@ -475,9 +479,7 @@ describe('Accommodations', () => {
     // Seed accommodation directly
     await insertRow(orm(), DayAccommodations, { trip: trip.id, place: place.id, startDay: day1.id, endDay: day2.id });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/accommodations`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/accommodations`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.accommodations).toBeDefined();
@@ -491,9 +493,7 @@ describe('Accommodations', () => {
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id, { title: 'Private Trip' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/accommodations`)
-      .set('Cookie', authCookie(stranger.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/accommodations`).set('Cookie', authCookie(stranger.id));
 
     expect(res.status).toBe(404);
   });
@@ -551,7 +551,9 @@ describe('Accommodations', () => {
     expect(res.status).toBe(201);
 
     // Linked reservation should exist
-    const reservation = await findRow(orm(), Reservations, { accommodation_id: legacyBoundIntegerText(res.body.accommodation.id) });
+    const reservation = await findRow(orm(), Reservations, {
+      accommodation_id: legacyBoundIntegerText(res.body.accommodation.id),
+    });
     expect(reservation).not.toBeNull();
     expect(reservation!.type).toBe('hotel');
     expect(reservation!.confirmation_number).toBe('CONF-XYZ');
@@ -610,7 +612,9 @@ describe('Accommodations', () => {
       .send({ place_id: place.id, start_day_id: day1.id, end_day_id: day2.id });
 
     const accommodationId = createRes.body.accommodation.id;
-    const reservationBefore = await findRow(orm(), Reservations, { accommodation_id: legacyBoundIntegerText(accommodationId) });
+    const reservationBefore = await findRow(orm(), Reservations, {
+      accommodation_id: legacyBoundIntegerText(accommodationId),
+    });
     expect(reservationBefore).not.toBeNull();
 
     const deleteRes = await request(app)
@@ -675,14 +679,12 @@ describe('Accommodations', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (Task 9 fix wave)', () => {
-  it('GET /days by the hex-spelled trip id answers the legacy-shaped miss ({ days: [] }), not the real trip\'s days', async () => {
+  it("GET /days by the hex-spelled trip id answers the legacy-shaped miss ({ days: [] }), not the real trip's days", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-03' });
     const hexTripId = '0x' + trip.id.toString(16);
 
-    const res = await request(app)
-      .get(`/api/trips/${hexTripId}/days`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${hexTripId}/days`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ days: [] });
   });
@@ -709,10 +711,7 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
     const hexTripId = '0x' + trip.id.toString(16);
     const before = await dayCount(trip.id);
 
-    const res = await request(app)
-      .post(`/api/trips/${hexTripId}/days`)
-      .set('Cookie', authCookie(user.id))
-      .send({});
+    const res = await request(app).post(`/api/trips/${hexTripId}/days`).set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
     const after = await dayCount(trip.id);
@@ -741,10 +740,7 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
     const shapedTripId = `${trip.id}.0`;
     const before = await dayCount(trip.id);
 
-    const res = await request(app)
-      .post(`/api/trips/${shapedTripId}/days`)
-      .set('Cookie', authCookie(user.id))
-      .send({});
+    const res = await request(app).post(`/api/trips/${shapedTripId}/days`).set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
     const after = await dayCount(trip.id);
@@ -773,10 +769,7 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
     const shapedTripId = `${trip.id}%20`;
     const before = await dayCount(trip.id);
 
-    const res = await request(app)
-      .post(`/api/trips/${shapedTripId}/days`)
-      .set('Cookie', authCookie(user.id))
-      .send({});
+    const res = await request(app).post(`/api/trips/${shapedTripId}/days`).set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
     const after = await dayCount(trip.id);
@@ -805,10 +798,7 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
     const shapedTripId = `%2B${trip.id}`;
     const before = await dayCount(trip.id);
 
-    const res = await request(app)
-      .post(`/api/trips/${shapedTripId}/days`)
-      .set('Cookie', authCookie(user.id))
-      .send({});
+    const res = await request(app).post(`/api/trips/${shapedTripId}/days`).set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
     const after = await dayCount(trip.id);
@@ -837,10 +827,7 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
     const shapedTripId = `${trip.id}e0`;
     const before = await dayCount(trip.id);
 
-    const res = await request(app)
-      .post(`/api/trips/${shapedTripId}/days`)
-      .set('Cookie', authCookie(user.id))
-      .send({});
+    const res = await request(app).post(`/api/trips/${shapedTripId}/days`).set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
     const after = await dayCount(trip.id);

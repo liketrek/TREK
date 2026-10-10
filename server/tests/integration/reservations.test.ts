@@ -2,28 +2,36 @@
  * Reservations integration tests.
  * Covers RESV-001 to RESV-007.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-import { db as testDb } from '../../src/db/database';
 import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createReservation, createDayAssignment, addTripMember } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { MikroORM } from '@mikro-orm/core';
-import { findRow, findRows, updateRows } from '../helpers/factories/rows';
+import { db as testDb } from '../../src/db/database';
 import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
 import { DayAccommodations } from '../../src/db/entities/DayAccommodations.entity';
 import { Days } from '../../src/db/entities/Days.entity';
 import { ReservationDayPositions } from '../../src/db/entities/ReservationDayPositions.entity';
 import { Reservations } from '../../src/db/entities/Reservations.entity';
+import { authCookie } from '../helpers/auth';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createReservation,
+  createDayAssignment,
+  addTripMember,
+} from '../helpers/factories';
+import { findRow, findRows, updateRows } from '../helpers/factories/rows';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 let orm: MikroORM;
 
@@ -136,9 +144,7 @@ describe('List reservations', () => {
     createReservation(testDb, trip.id, { title: 'Flight Out', type: 'flight' });
     createReservation(testDb, trip.id, { title: 'Hotel Stay', type: 'hotel' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.reservations).toHaveLength(2);
   });
@@ -147,9 +153,7 @@ describe('List reservations', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.reservations).toHaveLength(0);
   });
@@ -159,9 +163,7 @@ describe('List reservations', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(other.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(other.id));
     expect(res.status).toBe(404);
   });
 });
@@ -210,14 +212,25 @@ describe('Update reservation', () => {
     const created = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
       .set('Cookie', authCookie(user.id))
-      .send({ title: 'Event', type: 'event', day_id: day1.id, reservation_time: '2025-10-01T09:00', reservation_end_time: '2025-10-01T10:00' });
+      .send({
+        title: 'Event',
+        type: 'event',
+        day_id: day1.id,
+        reservation_time: '2025-10-01T09:00',
+        reservation_end_time: '2025-10-01T10:00',
+      });
     const rid = created.body.reservation.id;
 
     // Re-date to day 3 WITHOUT sending day_id (the modal omits it) — both ends follow.
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/${rid}`)
       .set('Cookie', authCookie(user.id))
-      .send({ title: 'Event', type: 'event', reservation_time: '2025-10-03T00:00', reservation_end_time: '2025-10-03T14:00' });
+      .send({
+        title: 'Event',
+        type: 'event',
+        reservation_time: '2025-10-03T00:00',
+        reservation_end_time: '2025-10-03T14:00',
+      });
     expect(res.status).toBe(200);
     expect(res.body.reservation.day_id).toBe(day3.id);
     expect(res.body.reservation.end_day_id).toBe(day3.id);
@@ -313,7 +326,7 @@ describe('Update reservation', () => {
 // behind with no error anywhere.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('H1 — a booking on a stay is restamped when the trip\'s dates change (DY23)', () => {
+describe("H1 — a booking on a stay is restamped when the trip's dates change (DY23)", () => {
   it('the accommodation_id RS28 stores is the legacy REAL-bound TEXT shape, and a later date change restamps the linked booking', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-12-01', end_date: '2026-12-03' });
@@ -426,9 +439,7 @@ describe('Delete reservation', () => {
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
-    const list = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(user.id));
     expect(list.body.reservations).toHaveLength(0);
   });
 
@@ -476,7 +487,12 @@ describe('Batch update positions', () => {
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/positions`)
       .set('Cookie', authCookie(user.id))
-      .send({ positions: [{ id: r2.id, position: 0 }, { id: r1.id, position: 1 }] });
+      .send({
+        positions: [
+          { id: r2.id, position: 0 },
+          { id: r1.id, position: 1 },
+        ],
+      });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
   });

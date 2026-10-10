@@ -97,7 +97,7 @@ import { SqlitePlatform } from '@mikro-orm/sql';
 export class NulSafeSqlitePlatform extends SqlitePlatform {
   override escape(value: unknown): string {
     if (typeof value === 'string' && value.includes('\u0000')) {
-      const literals = value.split('\u0000').map(part => super.escape(part));
+      const literals = value.split('\u0000').map((part) => super.escape(part));
       return `(${literals.join(' || char(0) || ')})`;
     }
     if (typeof value === 'number' && !Number.isFinite(value)) {

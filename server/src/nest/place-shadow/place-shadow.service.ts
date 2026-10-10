@@ -1,16 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { PlaceShadowPicks } from '../../db/entities/PlaceShadowPicks.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { PlaceShadowPicksRepository, PlaceShadowPickRow } from '../../db/repositories/PlaceShadowPicks.repository';
+import { readAppSetting } from '../common/app-settings.registry';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import type {
   PlaceShadowExportResult,
   PlaceShadowPickRequest,
   PlaceShadowRow,
   PlaceShadowSummaryResult,
 } from '@trek/shared';
-import { PlaceShadowPicks } from '../../db/entities/PlaceShadowPicks.entity';
-import type { PlaceShadowPicksRepository, PlaceShadowPickRow } from '../../db/repositories/PlaceShadowPicks.repository';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { readAppSetting } from '../common/app-settings.registry';
 
 /** Rows older than this are removed nightly. */
 export const RETENTION_DAYS = 180;
@@ -129,10 +129,10 @@ export class PlaceShadowService {
     // scrolled to result 40.
     const ranks = await this.picks.countByLiveRank();
     const counted = (test: (rank: number) => boolean): number =>
-      ranks.filter(r => test(r.live_rank)).reduce((sum, r) => sum + r.count, 0);
+      ranks.filter((r) => test(r.live_rank)).reduce((sum, r) => sum + r.count, 0);
 
-    const topOne = counted(r => r === 0);
-    const topFive = counted(r => r < 5);
+    const topOne = counted((r) => r === 0);
+    const topFive = counted((r) => r < 5);
 
     return {
       enabled,
@@ -143,9 +143,9 @@ export class PlaceShadowService {
       bySource,
       liveRankBuckets: [
         { bucket: '1', count: topOne },
-        { bucket: '2-5', count: counted(r => r >= 1 && r < 5) },
-        { bucket: '6-10', count: counted(r => r >= 5 && r < 10) },
-        { bucket: '11+', count: counted(r => r >= 10) },
+        { bucket: '2-5', count: counted((r) => r >= 1 && r < 5) },
+        { bucket: '6-10', count: counted((r) => r >= 5 && r < 10) },
+        { bucket: '11+', count: counted((r) => r >= 10) },
       ],
       liveTopOneShare: total ? topOne / total : 0,
       liveTopFiveShare: total ? topFive / total : 0,

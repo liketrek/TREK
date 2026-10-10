@@ -9,8 +9,9 @@
  * migrate to the step immediately before it, seed rows with raw SQL, apply
  * just that one migration, assert.
  */
-import { describe, it, expect } from 'vitest';
 import { createMigrationOrm, migrateTo, pendingNames, rawExec, rawQuery } from '../../helpers/migration-step';
+
+import { describe, it, expect } from 'vitest';
 
 const TARGET = 'Migration20200101031600_storage_slice_2';
 
@@ -24,7 +25,10 @@ describe('trip_files files/-prefix migration', () => {
       await migrateTo(orm, names[idx - 1]);
 
       // Minimal FK chain: user → trip → trip_files rows.
-      await rawExec(orm, "INSERT INTO users (id, username, email, password_hash) VALUES (1, 'u', 'u@example.test', 'x')");
+      await rawExec(
+        orm,
+        "INSERT INTO users (id, username, email, password_hash) VALUES (1, 'u', 'u@example.test', 'x')",
+      );
       await rawExec(orm, "INSERT INTO trips (id, user_id, title) VALUES (1, 1, 'T')");
       await rawExec(
         orm,

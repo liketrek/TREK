@@ -9,15 +9,15 @@
  * TransitService instance), so it persists across the tests in this file —
  * every case uses its own coordinates/query to stay isolated.
  */
-import { deriveTransitStats, type TransitLeg } from '../../../src/nest/transit/transit.helpers';
-import { GoogleTransitProvider } from '../../../src/nest/transit/google-transit.provider';
-import { TransitService } from '../../../src/nest/transit/transit.service';
-import { transitConfig } from '../../../src/nest/app-config/tokens';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { transitConfig } from '../../../src/nest/app-config/tokens';
+import { GoogleTransitProvider } from '../../../src/nest/transit/google-transit.provider';
+import { deriveTransitStats, type TransitLeg } from '../../../src/nest/transit/transit.helpers';
+import { TransitService } from '../../../src/nest/transit/transit.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { noGoogleQuota } from '../../helpers/google-quota';
 
 vi.mock('../../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/app-config')>();

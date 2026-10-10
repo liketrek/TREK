@@ -1,17 +1,23 @@
-import { z } from 'zod';
-import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  errorResult, ok,
-} from '../../nest-mcp';
-import { idSchema, fileLinkRequestSchema, fileUpdateRequestSchema } from '@trek/shared';
-import type { FileLinkRequest, FileUpdateRequest } from '@trek/shared';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
+import {
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { FilesService, FileContentError, FILE_CONTENT_MAX } from './files.service';
+import { contentTypeFor } from '../storage/content-type';
 import { AllowedFileTypesService } from './allowed-file-types.service';
 import { MAX_FILE_SIZE, isUploadTypeAllowed } from './files.constants';
-import { contentTypeFor } from '../storage/content-type';
+import { FilesService, FileContentError, FILE_CONTENT_MAX } from './files.service';
+import { idSchema, fileLinkRequestSchema, fileUpdateRequestSchema } from '@trek/shared';
+import type { FileLinkRequest, FileUpdateRequest } from '@trek/shared';
+
+import { z } from 'zod';
 
 const CONTENT_MAX_MB = Math.round(FILE_CONTENT_MAX / (1024 * 1024));
 
@@ -68,7 +74,8 @@ export class FilesMcp {
 
   @Tool({
     name: 'list_trip_files',
-    description: 'List the documents on a trip: name, type, size, who uploaded it, what it is attached to, whether it is starred, and when it was moved to the trash. This is the way to find a file ID; to read what is inside one, follow up with read_trip_file. Set trash to true to list the trip\'s deleted files instead of its live ones.',
+    description:
+      "List the documents on a trip: name, type, size, who uploaded it, what it is attached to, whether it is starred, and when it was moved to the trash. This is the way to find a file ID; to read what is inside one, follow up with read_trip_file. Set trash to true to list the trip's deleted files instead of its live ones.",
     inputSchema: {
       tripId: idSchema,
       trash: z.boolean().optional().default(false).describe('List the trash instead of the live files'),
@@ -120,8 +127,17 @@ export class FilesMcp {
     description: `Add a document to a trip, e.g. a booking confirmation PDF or a ticket, and optionally attach it to a booking or a place in the same call. Pass the bytes base64-encoded in content, up to ${UPLOAD_MAX_MB} MB decoded. The file name has to carry an extension the trip's file manager accepts; the type is derived from it. Returns the new file, whose ID works with read_trip_file and link_trip_file.`,
     inputSchema: {
       tripId: idSchema,
-      filename: z.string().trim().min(1).max(255).describe('File name including its extension, e.g. "hotel-confirmation.pdf"'),
-      content: z.string().min(1).max(Math.ceil(UPLOAD_MAX / 3) * 4).describe('The file bytes, base64-encoded'),
+      filename: z
+        .string()
+        .trim()
+        .min(1)
+        .max(255)
+        .describe('File name including its extension, e.g. "hotel-confirmation.pdf"'),
+      content: z
+        .string()
+        .min(1)
+        .max(Math.ceil(UPLOAD_MAX / 3) * 4)
+        .describe('The file bytes, base64-encoded'),
       description: z.string().max(1000).optional().describe('Free-text description'),
       reservation_id: idSchema.optional().describe('Booking on the same trip to attach the file to'),
       place_id: idSchema.optional().describe('Place on the same trip to attach the file to'),
@@ -130,8 +146,20 @@ export class FilesMcp {
     access: { group: 'files', mode: 'write' },
   })
   async uploadTripFile(
-    { tripId, filename, content, description, reservation_id, place_id }: {
-      tripId: number; filename: string; content: string; description?: string; reservation_id?: number; place_id?: number;
+    {
+      tripId,
+      filename,
+      content,
+      description,
+      reservation_id,
+      place_id,
+    }: {
+      tripId: number;
+      filename: string;
+      content: string;
+      description?: string;
+      reservation_id?: number;
+      place_id?: number;
     },
     ctx: McpContext,
   ) {
@@ -147,7 +175,8 @@ export class FilesMcp {
     if (!BASE64.test(clean)) return errorResult('content is not valid base64.');
     const bytes = Buffer.from(clean, 'base64');
     if (bytes.length === 0) return errorResult('The file is empty.');
-    if (bytes.length > UPLOAD_MAX) return errorResult(`File is too large (over ${UPLOAD_MAX_MB} MB). Ask the user to upload it in TREK instead.`);
+    if (bytes.length > UPLOAD_MAX)
+      return errorResult(`File is too large (over ${UPLOAD_MAX_MB} MB). Ask the user to upload it in TREK instead.`);
     const foreign = await this.files.findForeignLinkTarget(tripId, { reservation_id, place_id });
     if (foreign) return errorResult(`Linked item does not belong to this trip (${foreign}).`);
     const file = await this.files.createFileFromBytes(tripId, { originalname, mimetype, bytes }, ctx.userId, {
@@ -161,14 +190,23 @@ export class FilesMcp {
 
   @Tool({
     name: 'update_trip_file',
-    description: 'Set a file\'s description and attach it to a booking or a place. Fields left out keep their current value, null detaches. place_id and reservation_id are the file\'s primary attachment, the one the file manager shows next to it. To attach one document to several bookings or places at once, use link_trip_file instead.',
+    description:
+      "Set a file's description and attach it to a booking or a place. Fields left out keep their current value, null detaches. place_id and reservation_id are the file's primary attachment, the one the file manager shows next to it. To attach one document to several bookings or places at once, use link_trip_file instead.",
     inputSchema: {
       tripId: idSchema,
       fileId: idSchema,
-      description: fileUpdateRequestSchema.shape.description.describe('Free-text description, or an empty string to clear it'),
-      place_id: fileUpdateRequestSchema.shape.place_id.describe('Place on the same trip to attach the file to, or null to detach it'),
-      reservation_id: fileUpdateRequestSchema.shape.reservation_id.describe('Booking on the same trip to attach the file to, or null to detach it'),
-      budget_item_id: fileUpdateRequestSchema.shape.budget_item_id.describe('Expense on the same trip to attach the file to (a receipt), or null to detach it'),
+      description: fileUpdateRequestSchema.shape.description.describe(
+        'Free-text description, or an empty string to clear it',
+      ),
+      place_id: fileUpdateRequestSchema.shape.place_id.describe(
+        'Place on the same trip to attach the file to, or null to detach it',
+      ),
+      reservation_id: fileUpdateRequestSchema.shape.reservation_id.describe(
+        'Booking on the same trip to attach the file to, or null to detach it',
+      ),
+      budget_item_id: fileUpdateRequestSchema.shape.budget_item_id.describe(
+        'Expense on the same trip to attach the file to (a receipt), or null to detach it',
+      ),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'files', mode: 'write' },
@@ -200,12 +238,15 @@ export class FilesMcp {
 
   @Tool({
     name: 'link_trip_file',
-    description: 'Attach a file to one more booking, place or day assignment on the same trip, keeping every attachment it already has. Prefer update_trip_file when the document belongs to a single booking or place; use this one for a document that covers several, such as one group ticket or one rental agreement. Returns every link the file now carries.',
+    description:
+      'Attach a file to one more booking, place or day assignment on the same trip, keeping every attachment it already has. Prefer update_trip_file when the document belongs to a single booking or place; use this one for a document that covers several, such as one group ticket or one rental agreement. Returns every link the file now carries.',
     inputSchema: {
       tripId: idSchema,
       fileId: idSchema,
       reservation_id: fileLinkRequestSchema.shape.reservation_id.describe('Booking on the same trip'),
-      assignment_id: fileLinkRequestSchema.shape.assignment_id.describe('Day assignment (a place scheduled on a specific day) on the same trip'),
+      assignment_id: fileLinkRequestSchema.shape.assignment_id.describe(
+        'Day assignment (a place scheduled on a specific day) on the same trip',
+      ),
       place_id: fileLinkRequestSchema.shape.place_id.describe('Place on the same trip'),
       budget_item_id: fileLinkRequestSchema.shape.budget_item_id.describe('Expense on the same trip, for a receipt'),
     },
@@ -233,7 +274,8 @@ export class FilesMcp {
 
   @Tool({
     name: 'unlink_trip_file',
-    description: 'Remove one attachment between a file and a booking, place or day assignment. The file itself stays on the trip and its other attachments are untouched. Take linkId from list_trip_file_links, it is not the booking or place ID.',
+    description:
+      'Remove one attachment between a file and a booking, place or day assignment. The file itself stays on the trip and its other attachments are untouched. Take linkId from list_trip_file_links, it is not the booking or place ID.',
     inputSchema: {
       tripId: idSchema,
       fileId: idSchema,
@@ -258,7 +300,8 @@ export class FilesMcp {
 
   @Tool({
     name: 'list_trip_file_links',
-    description: 'List everything one file is attached to: bookings (with their title), places and day assignments, each with the linkId that unlink_trip_file needs. list_trip_files already reports the linked booking and place IDs, so reach for this one when you need the link IDs themselves.',
+    description:
+      'List everything one file is attached to: bookings (with their title), places and day assignments, each with the linkId that unlink_trip_file needs. list_trip_files already reports the linked booking and place IDs, so reach for this one when you need the link IDs themselves.',
     inputSchema: {
       tripId: idSchema,
       fileId: idSchema,

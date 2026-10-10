@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import exifr from 'exifr';
-import { PhotoResolverService } from './photo-resolver.service';
-import { StorageService } from '../storage/storage.service';
 import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.service';
+import { StorageService } from '../storage/storage.service';
 import { exifCaptureInstant } from './memories.helpers';
+import { PhotoResolverService } from './photo-resolver.service';
+import { Injectable } from '@nestjs/common';
+
+import exifr from 'exifr';
 
 /**
  * What readCapture asks exifr for.
@@ -47,8 +48,9 @@ async function readCapture(abs: string): Promise<LocalCapture | null> {
   // Each stamp has an offset tag of its own. The others stand in for a missing
   // one: a camera writes all three from the same clock.
   const { OffsetTimeOriginal: original, OffsetTimeDigitized: digitized, OffsetTime: modified } = parsed;
-  const takenAt = exifCaptureInstant(parsed.DateTimeOriginal, [original, digitized, modified])
-    ?? exifCaptureInstant(parsed.CreateDate, [digitized, original, modified]);
+  const takenAt =
+    exifCaptureInstant(parsed.DateTimeOriginal, [original, digitized, modified]) ??
+    exifCaptureInstant(parsed.CreateDate, [digitized, original, modified]);
   const lat = coordinate(parsed.latitude, 90);
   const lng = coordinate(parsed.longitude, 180);
   // A receiver without a fix can write zeros into the GPS tags instead of
@@ -165,7 +167,7 @@ export class PhotoCaptureBackfillService {
     // releaseSlot hands its slot straight to the first waiter, so the count
     // stays where it is and nobody can slip in between.
     const { waiting } = slots;
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       waiting.push(resolve);
     });
     return slots;

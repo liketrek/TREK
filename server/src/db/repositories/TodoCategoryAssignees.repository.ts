@@ -1,6 +1,6 @@
 import type { TodoCategoryAssignees } from '../entities/TodoCategoryAssignees.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** TD11/TD14's joined projection — the assignee row plus the display fields the picker needs. */
 export interface TodoCategoryAssigneeRow {

@@ -1,6 +1,6 @@
 import type { PluginCapabilityAudit } from '../entities/PluginCapabilityAudit.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /**
  * Plan 3j Task 2 note: this repository's ONLY method today is the uninstall
@@ -42,7 +42,12 @@ export class PluginCapabilityAuditRepository extends TrekRepository<PluginCapabi
       .where(
         'id',
         'not in',
-        db.selectFrom('plugin_capability_audit').select('id').where('plugin_id', '=', pluginId).orderBy('id', 'desc').limit(keep),
+        db
+          .selectFrom('plugin_capability_audit')
+          .select('id')
+          .where('plugin_id', '=', pluginId)
+          .orderBy('id', 'desc')
+          .limit(keep),
       )
       .execute();
   }
@@ -98,7 +103,14 @@ export class PluginCapabilityAuditRepository extends TrekRepository<PluginCapabi
       .orderBy('a.id', 'desc')
       .limit(limit)
       .execute();
-    return rows.map((r) => ({ ts: r.ts, plugin_id: r.plugin_id, plugin_name: r.plugin_name ?? null, method: r.method, resource: r.resource, code: r.code }));
+    return rows.map((r) => ({
+      ts: r.ts,
+      plugin_id: r.plugin_id,
+      plugin_name: r.plugin_name ?? null,
+      method: r.method,
+      resource: r.resource,
+      code: r.code,
+    }));
   }
 
   /**
@@ -111,7 +123,13 @@ export class PluginCapabilityAuditRepository extends TrekRepository<PluginCapabi
       { plugin_id: pluginId },
       { fields: ['ts', 'acting_user_id', 'method', 'resource', 'code'], orderBy: { id: 'desc' }, limit },
     );
-    return rows.map((r) => ({ ts: r.ts, acting_user_id: r.acting_user_id ?? null, method: r.method, resource: r.resource ?? null, code: r.code }));
+    return rows.map((r) => ({
+      ts: r.ts,
+      acting_user_id: r.acting_user_id ?? null,
+      method: r.method,
+      resource: r.resource ?? null,
+      code: r.code,
+    }));
   }
 
   /**

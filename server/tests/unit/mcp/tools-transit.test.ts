@@ -1,26 +1,25 @@
+import { db as testDb } from '../../../src/db/database';
+import { Days } from '../../../src/db/entities/Days.entity';
+import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import type { TransitPlace } from '../../../src/nest/transit/transit.helpers';
+import { TransitService } from '../../../src/nest/transit/transit.service';
 import { addTripMember, createDay, createTrip, createUser } from '../../helpers/factories';
+import { countRows, findRow } from '../../helpers/factories/rows';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { createTestUnitOfWork, createTestAppSettingsRepo } from '../../helpers/test-uow';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { db as testDb } from '../../../src/db/database';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import type { TransitPlace } from '../../../src/nest/transit/transit.helpers';
-import { TransitService } from '../../../src/nest/transit/transit.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo } from '../../helpers/test-uow';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow } from '../../helpers/factories/rows';
-import { Days } from '../../../src/db/entities/Days.entity';
-import { Reservations } from '../../../src/db/entities/Reservations.entity';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -32,7 +31,10 @@ const broadcastMock = realtime.broadcastMock;
 let permissionsService: PermissionsService;
 let savePermissions: typeof permissionsService.savePermissions;
 beforeAll(async () => {
-  permissionsService = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
+  permissionsService = new PermissionsService(
+    await createTestAppSettingsRepo(testDb),
+    await createTestUnitOfWork(testDb),
+  );
   savePermissions = permissionsService.savePermissions.bind(permissionsService);
 });
 

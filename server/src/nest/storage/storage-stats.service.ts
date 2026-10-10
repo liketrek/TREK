@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { STORAGE_CATEGORIES, storageUsageSchema, type StorageUsage } from '@trek/shared';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { StorageService } from './storage.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, Logger } from '@nestjs/common';
+import { STORAGE_CATEGORIES, storageUsageSchema, type StorageUsage } from '@trek/shared';
 
 export class StatsBusyError extends Error {}
 

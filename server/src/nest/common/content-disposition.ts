@@ -27,9 +27,6 @@ export function contentDisposition(filename: string, type: 'attachment' | 'inlin
   const fallback = /[0-9A-Za-z]/.test(stem) ? ascii : `download${dot > 0 ? ascii.slice(dot) : ''}`;
 
   // RFC 5987 attr-char: encodeURIComponent is close but leaves ' ( ) * bare.
-  const encoded = encodeURIComponent(name).replace(
-    /['()*]/g,
-    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
+  const encoded = encodeURIComponent(name).replace(/['()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
   return `${type}; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }

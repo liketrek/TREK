@@ -1,8 +1,8 @@
 import { currentTimestamp } from '../dialect/sql-functions';
 import type { TripFiles } from '../entities/TripFiles.entity';
+import type { DB } from '../kysely/db';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /**
  * A bare `trip_files` row — every scalar column of the entity, incl. the SIX
@@ -169,8 +169,14 @@ export class TripFilesRepository extends TrekRepository<TripFiles> {
    * calling this (matching the legacy inline ternaries) — this method just
    * writes the three final values verbatim.
    */
-  async updateFile(id: number, write: { description: string | null; place_id: number | null; reservation_id: number | null }): Promise<void> {
-    await this.nativeUpdate({ id }, { description: write.description, place: write.place_id, reservation: write.reservation_id });
+  async updateFile(
+    id: number,
+    write: { description: string | null; place_id: number | null; reservation_id: number | null },
+  ): Promise<void> {
+    await this.nativeUpdate(
+      { id },
+      { description: write.description, place: write.place_id, reservation: write.reservation_id },
+    );
   }
 
   /** FL16 (`FilesService.toggleStarred`) — `UPDATE trip_files SET starred = ? WHERE id = ?`. */
@@ -219,7 +225,11 @@ export class TripFilesRepository extends TrekRepository<TripFiles> {
    * Kysely for the same reason, so this one does too).
    */
   async findOriginalName(id: number): Promise<string | undefined> {
-    const row = await this.kysely<TripFilesKyselyDB>().selectFrom('trip_files').select('original_name').where('id', '=', id).executeTakeFirst();
+    const row = await this.kysely<TripFilesKyselyDB>()
+      .selectFrom('trip_files')
+      .select('original_name')
+      .where('id', '=', id)
+      .executeTakeFirst();
     return row?.original_name;
   }
 
@@ -230,7 +240,15 @@ export class TripFilesRepository extends TrekRepository<TripFiles> {
    * Excludes chat and note attachments — a binding mirrors the trip's
    * PAPERWORK, not its conversation.
    */
-  async listSyncableForTrip(trip_id: number): Promise<Array<{ id: number; original_name: string; file_size: number | null; mime_type: string | null; deleted_at: string | null }>> {
+  async listSyncableForTrip(trip_id: number): Promise<
+    Array<{
+      id: number;
+      original_name: string;
+      file_size: number | null;
+      mime_type: string | null;
+      deleted_at: string | null;
+    }>
+  > {
     return await this.kysely<TripFilesKyselyDB>()
       .selectFrom('trip_files')
       .select(['id', 'original_name', 'file_size', 'mime_type', 'deleted_at'])

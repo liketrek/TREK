@@ -4,21 +4,29 @@
  * days/assignments/places/share suites). Real rows through
  * `TagsRepository`/`PlaceRatingsRepository`/`AssignmentParticipantsRepository`.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { AssignmentParticipants } from '../../../src/db/entities/AssignmentParticipants.entity';
+import { PlaceRatings } from '../../../src/db/entities/PlaceRatings.entity';
+import { Tags } from '../../../src/db/entities/Tags.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { AssignmentParticipantsRepository } from '../../../src/db/repositories/AssignmentParticipants.repository';
+import type { PlaceRatingsRepository } from '../../../src/db/repositories/PlaceRatings.repository';
+import type { TagsRepository } from '../../../src/db/repositories/Tags.repository';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import {
+  createDay,
+  createDayAssignment,
+  createPlace,
+  createTag,
+  createTrip,
+  createUser,
+} from '../../helpers/factories';
+import { tagPlace } from '../../helpers/factories/places';
+import { insertRow, updateRows } from '../../helpers/factories/rows';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createDay, createDayAssignment, createPlace, createTag, createTrip, createUser } from '../../helpers/factories';
-import { Tags } from '../../../src/db/entities/Tags.entity';
-import type { TagsRepository } from '../../../src/db/repositories/Tags.repository';
-import { PlaceRatings } from '../../../src/db/entities/PlaceRatings.entity';
-import type { PlaceRatingsRepository } from '../../../src/db/repositories/PlaceRatings.repository';
-import { AssignmentParticipants } from '../../../src/db/entities/AssignmentParticipants.entity';
-import type { AssignmentParticipantsRepository } from '../../../src/db/repositories/AssignmentParticipants.repository';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { insertRow, updateRows } from '../../helpers/factories/rows';
-import { tagPlace } from '../../helpers/factories/places';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -31,8 +39,14 @@ beforeAll(async () => {
   const assignmentParticipants: AssignmentParticipantsRepository = t.repo(AssignmentParticipants);
   svc = new QueryHelpersService(tags, placeRatings, assignmentParticipants);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 async function attachTag(tagId: number, placeId: number): Promise<void> {
   await tagPlace(t, placeId, [tagId]);
@@ -72,7 +86,12 @@ describe('QueryHelpersService.loadTagsByPlaceIds', () => {
     await attachTag(tag.id, place.id);
 
     const byPlace = await svc.loadTagsByPlaceIds([place.id], { compact: true });
-    expect(byPlace[place.id][0]).toEqual({ id: tag.id, name: 'Compact', color: tag.color, created_at: expect.any(String) });
+    expect(byPlace[place.id][0]).toEqual({
+      id: tag.id,
+      name: 'Compact',
+      color: tag.color,
+      created_at: expect.any(String),
+    });
   });
 
   it('QH-004: batches across several places, grouping correctly, a place with no tags gets no key', async () => {
@@ -109,7 +128,7 @@ describe('QueryHelpersService.loadRatingsByPlaceIds', () => {
     expect(await svc.loadRatingsByPlaceIds([])).toEqual({});
   });
 
-  it('QH-006: indexes ratings by place id with the voter\'s username/avatar', async () => {
+  it("QH-006: indexes ratings by place id with the voter's username/avatar", async () => {
     const { user: owner } = createUser(testDb);
     const { user: voter } = createUser(testDb, { username: 'rater1' });
     const trip = createTrip(testDb, owner.id);

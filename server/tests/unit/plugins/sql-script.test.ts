@@ -2,8 +2,9 @@
  * splitAfterSemicolons: where a plugin's exec() script is cut into statements, so
  * the time budget can be read between them (plugin-data.service.ts).
  */
-import { describe, expect, it } from 'vitest';
 import { splitAfterSemicolons } from '../../../src/nest/plugins/host/sql-script';
+
+import { describe, expect, it } from 'vitest';
 
 describe('splitAfterSemicolons', () => {
   it('SQLSCRIPT-001 cuts after each statement and keeps every character', () => {
@@ -14,7 +15,9 @@ describe('splitAfterSemicolons', () => {
   });
 
   it('SQLSCRIPT-002 leaves the semicolons in strings, quoted identifiers and comments alone', () => {
-    expect(splitAfterSemicolons("INSERT INTO t VALUES ('a;b', 'it''s;');")).toEqual(["INSERT INTO t VALUES ('a;b', 'it''s;');"]);
+    expect(splitAfterSemicolons("INSERT INTO t VALUES ('a;b', 'it''s;');")).toEqual([
+      "INSERT INTO t VALUES ('a;b', 'it''s;');",
+    ]);
     expect(splitAfterSemicolons('SELECT "x;y", `p;q`, [r;s] FROM t;')).toEqual(['SELECT "x;y", `p;q`, [r;s] FROM t;']);
     expect(splitAfterSemicolons('SELECT 1; -- one; two\nSELECT 2;')).toEqual(['SELECT 1;', ' -- one; two\nSELECT 2;']);
     expect(splitAfterSemicolons('SELECT 1 /* a; b */;')).toEqual(['SELECT 1 /* a; b */;']);

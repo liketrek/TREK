@@ -10,12 +10,11 @@
  * store the container resolved in a slot those readers use: swapping the
  * provider changes every reader. PORTS-001 through PORTS-020.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { Test } from '@nestjs/testing';
+import { ProcessStoreSlot } from '../../../src/nest/common/process-store-slot';
 import { RateLimitModule } from '../../../src/nest/common/rate-limit.module';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { InMemoryRateLimitStore, RateLimitStore } from '../../../src/nest/common/rate-limit.store';
-import { ProcessStoreSlot } from '../../../src/nest/common/process-store-slot';
+import { OauthModule } from '../../../src/nest/oauth/oauth.module';
 import {
   InMemoryPendingCodeStore,
   MAX_PENDING_CODES,
@@ -26,7 +25,6 @@ import {
   sweepPendingCodes,
   type PendingCode,
 } from '../../../src/nest/oauth/oauth.pending-codes';
-import { OauthModule } from '../../../src/nest/oauth/oauth.module';
 import { OauthService } from '../../../src/nest/oauth/oauth.service';
 import { InMemoryOidcFlowStore, OidcFlowStore } from '../../../src/nest/oidc/oidc-flow.store';
 import { OidcModule } from '../../../src/nest/oidc/oidc.module';
@@ -40,6 +38,7 @@ import {
 } from '../../../src/nest/permissions/permissions-cache';
 import { PermissionsModule } from '../../../src/nest/permissions/permissions.module';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeGatewayModule } from '../../../src/nest/realtime/realtime-gateway.module';
 import {
   InMemoryRoomRegistry,
   RoomRegistry,
@@ -51,8 +50,10 @@ import {
   roomsSlot,
   type TrekWebSocket,
 } from '../../../src/nest/realtime/ws-state';
-import { RealtimeGatewayModule } from '../../../src/nest/realtime/realtime-gateway.module';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
+import { Test } from '@nestjs/testing';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const WINDOW = 60_000;
 
@@ -121,7 +122,15 @@ describe('OAuth pending codes', () => {
 
   it('PORTS-006: OauthService issues and redeems codes through the injected store', async () => {
     const store = new InMemoryPendingCodeStore();
-    const service = new OauthService({} as never, {} as never, {} as never, {} as never, {} as never, {} as never, store);
+    const service = new OauthService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      store,
+    );
     const issued = await service.createAuthCode({
       clientId: 'c',
       userId: 1,

@@ -1,3 +1,8 @@
+import type { User } from '../../types';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { AtlasMarkRegionDto, AtlasCreateBucketItemDto, AtlasUpdateBucketItemDto } from './atlas.dto';
+import { AtlasService, BucketItemExistsError } from './atlas.service';
 import {
   Body,
   Controller,
@@ -13,13 +18,9 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import type { AtlasLocateResponse, RegionGeo } from '@trek/shared';
-import type { User } from '../../types';
-import { AtlasService, BucketItemExistsError } from './atlas.service';
-import { AtlasMarkRegionDto, AtlasCreateBucketItemDto, AtlasUpdateBucketItemDto } from './atlas.dto';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { CurrentUser } from '../auth-core/current-user.decorator';
+
+import type { Response } from 'express';
 
 /**
  * /api/addons/atlas — visited countries/regions, region GeoJSON, bucket list.
@@ -146,7 +147,10 @@ export class AtlasController {
   }
 
   @Post('bucket-list')
-  async createBucketItem(@CurrentUser() user: User, @Body() body: AtlasCreateBucketItemDto): Promise<{ item: unknown }> {
+  async createBucketItem(
+    @CurrentUser() user: User,
+    @Body() body: AtlasCreateBucketItemDto,
+  ): Promise<{ item: unknown }> {
     // The schema's min(1) admits whitespace-only names — this trim guard keeps
     // the legacy 400 for those (missing/empty names 400 in the pipe envelope).
     if (!body.name?.trim()) {
@@ -154,7 +158,17 @@ export class AtlasController {
     }
     const { name, lat, lng, country_code, notes, target_date, region_code } = body;
     try {
-      return { item: await this.atlas.createBucketItem(user.id, { name, lat, lng, country_code, notes, target_date, region_code }) };
+      return {
+        item: await this.atlas.createBucketItem(user.id, {
+          name,
+          lat,
+          lng,
+          country_code,
+          notes,
+          target_date,
+          region_code,
+        }),
+      };
     } catch (err) {
       // #1898: the same wish twice is a conflict, not a server error. Bespoke
       // { error } body like the neighbouring 400/404s.

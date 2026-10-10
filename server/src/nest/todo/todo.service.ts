@@ -1,18 +1,18 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
+import { TodoCategoryAssignees } from '../../db/entities/TodoCategoryAssignees.entity';
+import { TodoItems } from '../../db/entities/TodoItems.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import type { TodoCategoryAssigneesRepository } from '../../db/repositories/TodoCategoryAssignees.repository';
+import type { TodoItemsRepository } from '../../db/repositories/TodoItems.repository';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
 import { UnitOfWork } from '../database/unit-of-work';
-import { TodoItems } from '../../db/entities/TodoItems.entity';
-import type { TodoItemsRepository } from '../../db/repositories/TodoItems.repository';
-import { TodoCategoryAssignees } from '../../db/entities/TodoCategoryAssignees.entity';
-import type { TodoCategoryAssigneesRepository } from '../../db/repositories/TodoCategoryAssignees.repository';
-import type { TripAccess } from '../../db/repositories/Trips.repository';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 
 type Trip = TripAccess;
 
@@ -36,7 +36,8 @@ export class TodoService {
     private readonly realtime: RealtimeService,
     private readonly uow: UnitOfWork,
     @InjectRepository(TodoItems) private readonly todoItemsRepo: TodoItemsRepository,
-    @InjectRepository(TodoCategoryAssignees) private readonly todoCategoryAssigneesRepo: TodoCategoryAssigneesRepository,
+    @InjectRepository(TodoCategoryAssignees)
+    private readonly todoCategoryAssigneesRepo: TodoCategoryAssigneesRepository,
     // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is
     // gone: this injects TripAccessService (trip-membership).
     private readonly tripsRepo: TripAccessService,
@@ -53,7 +54,12 @@ export class TodoService {
     return this.permissions.checkPermission('packing_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -61,17 +67,30 @@ export class TodoService {
     return this.todoItemsRepo.listForTrip(tripId);
   }
 
-  async createItem(tripId: string | number, data: {
-    name: string; category?: string | null; due_date?: string | null; description?: string | null; assigned_user_id?: number | null; priority?: number;
-  }) {
+  async createItem(
+    tripId: string | number,
+    data: {
+      name: string;
+      category?: string | null;
+      due_date?: string | null;
+      description?: string | null;
+      assigned_user_id?: number | null;
+      priority?: number;
+    },
+  ) {
     // The next position and the row that takes it in one transaction, so two items
     // added at once cannot both read the same MAX.
     const id = await this.uow.transactional(async () => {
       const maxOrder = await this.todoItemsRepo.maxSortOrder(tripId);
       return await this.todoItemsRepo.insertItem({
-        trip_id: tripId, name: data.name, category: data.category || null, sort_order: (maxOrder ?? -1) + 1,
-        due_date: data.due_date || null, description: data.description || null,
-        assigned_user_id: data.assigned_user_id || null, priority: data.priority || 0,
+        trip_id: tripId,
+        name: data.name,
+        category: data.category || null,
+        sort_order: (maxOrder ?? -1) + 1,
+        due_date: data.due_date || null,
+        description: data.description || null,
+        assigned_user_id: data.assigned_user_id || null,
+        priority: data.priority || 0,
       });
     });
 
@@ -94,8 +113,16 @@ export class TodoService {
   async updateItem(
     tripId: string | number,
     id: number,
-    data: { name?: string; checked?: number; category?: string | null; due_date?: string | null; description?: string | null; assigned_user_id?: number | null; priority?: number | null },
-    bodyKeys: string[]
+    data: {
+      name?: string;
+      checked?: number;
+      category?: string | null;
+      due_date?: string | null;
+      description?: string | null;
+      assigned_user_id?: number | null;
+      priority?: number | null;
+    },
+    bodyKeys: string[],
   ) {
     const item = await this.todoItemsRepo.findInTrip(id, tripId);
     if (!item) return null;
@@ -152,7 +179,8 @@ export class TodoService {
         // rejected: a copied trip carries assignee ids across before its members
         // exist, and a 400 would make the picker unusable there.
         const roster = await this.tripMembersRepo.rosterUserIds(tripId);
-        for (const uid of userIds) if (roster.has(uid)) await this.todoCategoryAssigneesRepo.insertIgnore(tripId, categoryName, uid);
+        for (const uid of userIds)
+          if (roster.has(uid)) await this.todoCategoryAssigneesRepo.insertIgnore(tripId, categoryName, uid);
       }
     });
 

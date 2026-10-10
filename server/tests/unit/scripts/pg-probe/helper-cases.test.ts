@@ -6,9 +6,16 @@
  * at the Postgres branch and not at the case. The value comparison itself is
  * pinned too, since it is what turns a Postgres answer into pass or fail.
  */
-import { describe, expect, it } from 'vitest';
 import { sqliteHelperEngine } from '../../../../scripts/pg-probe/engines';
-import { checkValue, HELPER_CASES, isoSeconds, runHelperCases, type HelperEngine } from '../../../../scripts/pg-probe/helper-cases';
+import {
+  checkValue,
+  HELPER_CASES,
+  isoSeconds,
+  runHelperCases,
+  type HelperEngine,
+} from '../../../../scripts/pg-probe/helper-cases';
+
+import { describe, expect, it } from 'vitest';
 
 const NOW = Date.parse('2026-10-08T12:00:00Z');
 
@@ -28,7 +35,8 @@ describe('pg-probe helper cases', () => {
   it('PGPROBE-051: case names are unique and every case selects through exactly one API', () => {
     const names = HELPER_CASES.map((c) => c.name);
     expect(new Set(names).size).toBe(names.length);
-    for (const helperCase of HELPER_CASES) expect(Number(Boolean(helperCase.raw)) + Number(Boolean(helperCase.kysely))).toBe(1);
+    for (const helperCase of HELPER_CASES)
+      expect(Number(Boolean(helperCase.raw)) + Number(Boolean(helperCase.kysely))).toBe(1);
   });
 
   it('PGPROBE-052: compares values the way both drivers hand them back', () => {
@@ -46,12 +54,16 @@ describe('pg-probe helper cases', () => {
     expect(checkValue({ equals: null }, 'x', 'sqlite', NOW)).toBe('expected null, got "x"');
   });
 
-  it('PGPROBE-053: holds clock values to SQLite\'s text and to the moment of the query', () => {
+  it("PGPROBE-053: holds clock values to SQLite's text and to the moment of the query", () => {
     expect(checkValue({ timestamp: 0 }, '2026-10-08 12:00:30', 'postgres', NOW)).toBeNull();
     expect(checkValue({ timestamp: 90_000 }, '2026-10-08 12:01:30', 'postgres', NOW)).toBeNull();
-    expect(checkValue({ timestamp: 0 }, '2026-10-08 12:10:00', 'postgres', NOW)).toBe('2026-10-08 12:10:00 is 600s off');
+    expect(checkValue({ timestamp: 0 }, '2026-10-08 12:10:00', 'postgres', NOW)).toBe(
+      '2026-10-08 12:10:00 is 600s off',
+    );
     expect(checkValue({ timestamp: 0 }, '2026-10-08T12:00:00Z', 'postgres', NOW)).toMatch(/expected timestamp text/);
-    expect(checkValue({ timestamp: 0 }, '2026-10-08 12:00:00.123456+00', 'postgres', NOW)).toMatch(/expected timestamp text/);
+    expect(checkValue({ timestamp: 0 }, '2026-10-08 12:00:00.123456+00', 'postgres', NOW)).toMatch(
+      /expected timestamp text/,
+    );
     expect(checkValue({ date: -400 }, '2025-09-03', 'postgres', NOW)).toBeNull();
     expect(checkValue({ date: 1 }, '2026-10-09', 'sqlite', NOW)).toBeNull();
     expect(checkValue({ date: 1 }, '2026-10-12', 'sqlite', NOW)).toBe('2026-10-12 is not 1 day(s) from today');

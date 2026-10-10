@@ -26,7 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Виберіть шаблон...',
   'settings.mapDefaultHint': 'Залиште порожнім для OpenStreetMap (за замовчуванням)',
   'settings.routingBase': 'Власний сервер маршрутів',
-  'settings.routingBaseHint': 'Власний примірник OSRM. Порожньо — використовуються публічні сервери з обмеженням близько одного запиту на секунду: на день вистачає, для автоподорожі мало. Діє після перезапуску сервера.',
+  'settings.routingBaseHint':
+    'Власний примірник OSRM. Порожньо — використовуються публічні сервери з обмеженням близько одного запиту на секунду: на день вистачає, для автоподорожі мало. Діє після перезапуску сервера.',
   'settings.valhallaBase': 'Власний сервер Valhalla',
   'settings.valhallaBaseHint':
     'За замовчуванням TREK використовує публічну Valhalla FOSSGIS для уникнення платних доріг, автомагістралей і поромів. Введіть тут URL власної Valhalla, щоб використовувати її замість публічної. Якщо налаштовано лише власний сервер маршрутизації, публічна Valhalla не використовується. Після введення власного URL перезапустіть сервер і оновіть сторінку.',
@@ -82,7 +83,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Перший день тижня в усіх виборах дати. Vacay має власне налаштування.',
   'settings.preferredNavApp': 'Відкривати місця в',
   'settings.preferredNavAppAsk': 'Питати щоразу',
-  'settings.preferredNavAppHint': 'Якщо застосунок вибрано, кнопка навігації одразу відкриває його замість списку всіх картографічних застосунків.',
+  'settings.preferredNavAppHint':
+    'Якщо застосунок вибрано, кнопка навігації одразу відкриває його замість списку всіх картографічних застосунків.',
   'settings.blurBookingCodes': 'Приховати коди бронювання',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -352,7 +354,8 @@ const settings: TranslationStrings = {
   'settings.currencyTrip': 'Валюта подорожі',
   'settings.placeLanguage': 'Назви місць',
   'settings.placeLanguageApp': 'Як у застосунку',
-  'settings.placeLanguageHint': 'Мова, якою відповідають пошук місць, підказки та адреси. Якщо місце не має назви цією мовою, показується його місцева назва.',
+  'settings.placeLanguageHint':
+    'Мова, якою відповідають пошук місць, підказки та адреси. Якщо місце не має назви цією мовою, показується його місцева назва.',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Входьте швидше та з захистом від фішингу за допомогою passkey — відбитка пальця, обличчя, PIN-коду або апаратного ключа. Ваш пароль залишається як резервний варіант.',
@@ -504,8 +507,10 @@ const settings: TranslationStrings = {
   'settings.general.startup': 'Запуск',
   'settings.dayDateFirst': 'Дата першою в заголовках днів',
   'settings.compactUnplanned': 'Компактні позначки для незапланованих місць',
-  'settings.compactUnplannedHint': 'Місця, не заплановані на жоден день, показуються маленькими позначками без фото, щоб заплановані зупинки вирізнялися.',
-  'settings.dayDateFirstHint': 'Починати кожен день з його календарної дати, а поруч показувати «День 1» або власну назву дня.',
+  'settings.compactUnplannedHint':
+    'Місця, не заплановані на жоден день, показуються маленькими позначками без фото, щоб заплановані зупинки вирізнялися.',
+  'settings.dayDateFirstHint':
+    'Починати кожен день з його календарної дати, а поруч показувати «День 1» або власну назву дня.',
   'settings.startPage': 'Стартова сторінка',
   'settings.startPageDashboard': 'Панель',
   'settings.startPageActiveTrip': 'Активна поїздка',
@@ -551,7 +556,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'Немає з’єднання. Під’єднайтеся, щоб зберегти подорожі офлайн.',
   'settings.offline.notice.signedOut': 'Сеанс завершився. Увійдіть знову, щоб синхронізувати.',
   'settings.offline.notice.failed': 'Не вдалося завершити завантаження. Перевірте з’єднання і спробуйте ще раз.',
-  'settings.offline.notice.loadFailed': 'Не вдалося прочитати офлайн-сховище цього пристрою. Зазвичай допомагає очищення кешу.',
+  'settings.offline.notice.loadFailed':
+    'Не вдалося прочитати офлайн-сховище цього пристрою. Зазвичай допомагає очищення кешу.',
   'settings.offline.clear': 'Очистити кеш',
   'settings.offline.clearConfirm':
     'Очистити всі офлайн-дані поїздок? Ви можете синхронізувати їх будь-коли в режимі онлайн.',
@@ -629,7 +635,8 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Список бажань',
   'settings.apiScopes.stats': 'Підсумки',
   'settings.apiKeys.title': 'Ключі API',
-  'settings.apiKeys.description': 'Ключі для публічного API, щоб інші програми могли читати ваші подорожі. Лише читання: ключ нічого не змінить і не видалить.',
+  'settings.apiKeys.description':
+    'Ключі для публічного API, щоб інші програми могли читати ваші подорожі. Лише читання: ключ нічого не змінить і не видалить.',
   'settings.apiKeys.create': 'Створити ключ',
   'settings.apiKeys.empty': 'Ключів ще немає. Створіть один, щоб підключити іншу програму.',
   'settings.apiKeys.createdAt': 'створено',

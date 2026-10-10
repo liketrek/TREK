@@ -9,32 +9,7 @@
  * detail route, and a trip shared by membership (which must be visible, because
  * that is TREK's access model, not an exception to it).
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
-import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
 import { db } from '../../src/db/database';
-import { RateLimitModule } from '../../src/nest/common/rate-limit.module';
-import { PublicApiModule } from '../../src/nest/public-api/public-api.module';
-import { ApiTokenGuard } from '../../src/nest/public-api/api-token.guard';
-import { TokensModule } from '../../src/nest/tokens/tokens.module';
-import { PublicStatsController } from '../../src/nest/atlas/public-stats.controller';
-import { AtlasService } from '../../src/nest/atlas/atlas.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeUser } from '../helpers/factories/users';
-import { addTripMember } from '../helpers/factories/trips';
-import { makeCategory } from '../helpers/factories/places';
-import { makeMcpToken } from '../helpers/factories/tokens';
-import { makeBucketListItem } from '../helpers/factories/atlas';
-import { findRow, insertRow } from '../helpers/factories/rows';
 import { DayAccommodations } from '../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
 import { DayNotes } from '../../src/db/entities/DayNotes.entity';
@@ -43,6 +18,31 @@ import { McpTokens } from '../../src/db/entities/McpTokens.entity';
 import { Places } from '../../src/db/entities/Places.entity';
 import { Reservations } from '../../src/db/entities/Reservations.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
+import { AtlasService } from '../../src/nest/atlas/atlas.service';
+import { PublicStatsController } from '../../src/nest/atlas/public-stats.controller';
+import { RateLimitModule } from '../../src/nest/common/rate-limit.module';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ApiTokenGuard } from '../../src/nest/public-api/api-token.guard';
+import { PublicApiModule } from '../../src/nest/public-api/public-api.module';
+import { TokensModule } from '../../src/nest/tokens/tokens.module';
+import { makeBucketListItem } from '../helpers/factories/atlas';
+import { makeCategory } from '../helpers/factories/places';
+import { findRow, insertRow } from '../helpers/factories/rows';
+import { makeMcpToken } from '../helpers/factories/tokens';
+import { addTripMember } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { Test } from '@nestjs/testing';
+
+import type { Server } from 'http';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 let orm: TestOrm;
 
@@ -102,7 +102,13 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
 
   async function build() {
     const moduleRef = await Test.createTestingModule({
-      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RateLimitModule, TokensModule, PublicApiModule],
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RateLimitModule,
+        TokensModule,
+        PublicApiModule,
+      ],
       // `/api/v1/stats` lives in atlas/ because its figures do, but it is guarded
       // and scoped by this directory's code — so it is mounted here with the real
       // guard and a stubbed AtlasService. Importing AtlasModule instead would pull
@@ -137,39 +143,92 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
 
     // Ada owns trip 1; Bob owns trip 2; trip 3 is Bob's but Ada is a member.
     await insertRow(orm, Trips, {
-      id: 1, user: 1, title: 'Toskana', description: 'Wein', start_date: '2026-06-14', end_date: '2026-06-16', currency: 'EUR',
+      id: 1,
+      user: 1,
+      title: 'Toskana',
+      description: 'Wein',
+      start_date: '2026-06-14',
+      end_date: '2026-06-16',
+      currency: 'EUR',
     });
     await insertRow(orm, Trips, { id: 2, user: 2, title: 'Bobs Secret', start_date: '2026-07-01' });
     await insertRow(orm, Trips, { id: 3, user: 2, title: 'Shared', start_date: '2026-08-01' });
     await addTripMember(orm, 3, 1);
 
-    await insertRow(orm, Days, { id: 1, trip: 1, day_number: 1, date: '2026-06-14', title: 'Ankunft', notes: 'Schlüssel beim Nachbarn abholen' });
+    await insertRow(orm, Days, {
+      id: 1,
+      trip: 1,
+      day_number: 1,
+      date: '2026-06-14',
+      title: 'Ankunft',
+      notes: 'Schlüssel beim Nachbarn abholen',
+    });
     await insertRow(orm, Days, { id: 2, trip: 1, day_number: 2, date: '2026-06-15' });
     // The migrated database ships with its seeded categories, so this one takes the next free id.
     const museum = await makeCategory(orm, { name: 'Museum' });
     await insertRow(orm, Places, {
-      id: 1, trip: 1, name: 'Uffizien', address: 'Firenze', lat: 43.76, lng: 11.25, category: museum.id,
-      place_time: '14:00', duration_minutes: 180, transport_mode: 'walking',
+      id: 1,
+      trip: 1,
+      name: 'Uffizien',
+      address: 'Firenze',
+      lat: 43.76,
+      lng: 11.25,
+      category: museum.id,
+      place_time: '14:00',
+      duration_minutes: 180,
+      transport_mode: 'walking',
     });
     await insertRow(orm, Places, { id: 2, trip: 1, name: 'Ponte Vecchio', lat: 43.76, lng: 11.24 });
     await insertRow(orm, Places, { id: 3, trip: 1, name: 'Hotel Alba' });
     // Deliberately inserted out of order to prove order_index decides the sequence.
     await insertRow(orm, DayAssignments, { day: 1, place: 2, order_index: 1 });
     // Ein Ort auf der Shortlist: Koordinaten, aber noch kein Tag.
-    await insertRow(orm, Places, { id: 4, trip: 1, name: 'Boboli-Garten', lat: 43.762, lng: 11.248, notes: 'vielleicht' });
+    await insertRow(orm, Places, {
+      id: 4,
+      trip: 1,
+      name: 'Boboli-Garten',
+      lat: 43.762,
+      lng: 11.248,
+      notes: 'vielleicht',
+    });
     // Eine Buchung, die keinen Tag (mehr) hat.
     await insertRow(orm, Reservations, {
-      trip: 1, day: null, type: 'flight', title: 'LH 1234', location: 'FRA', reservation_time: '2026-06-14T08:00', status: 'confirmed',
+      trip: 1,
+      day: null,
+      type: 'flight',
+      title: 'LH 1234',
+      location: 'FRA',
+      reservation_time: '2026-06-14T08:00',
+      status: 'confirmed',
     });
-    await makeBucketListItem(orm, 1, { name: 'Hokkaido', lat: 43.06, lng: 141.35, country_code: 'JP', notes: 'im Winter', target_date: '2027-02-01' });
+    await makeBucketListItem(orm, 1, {
+      name: 'Hokkaido',
+      lat: 43.06,
+      lng: 141.35,
+      country_code: 'JP',
+      notes: 'im Winter',
+      target_date: '2027-02-01',
+    });
     await makeBucketListItem(orm, 2, { name: 'Bobs Traumziel', lat: 1.0, lng: 2.0 });
     await insertRow(orm, DayAssignments, { day: 1, place: 1, order_index: 0 });
     await insertRow(orm, DayNotes, { day: 1, trip: 1, text: 'Tickets mitnehmen', time: '09:00', sort_order: 0 });
     await insertRow(orm, Reservations, {
-      trip: 1, day: 1, type: 'flight', title: 'LH 1234', location: 'FRA', reservation_time: '2026-06-14T08:00', status: 'confirmed',
+      trip: 1,
+      day: 1,
+      type: 'flight',
+      title: 'LH 1234',
+      location: 'FRA',
+      reservation_time: '2026-06-14T08:00',
+      status: 'confirmed',
     });
     await insertRow(orm, DayAccommodations, {
-      id: 1, trip: 1, place: 3, startDay: 1, endDay: 2, check_in: '15:00', check_out: '11:00',
+      id: 1,
+      trip: 1,
+      place: 3,
+      startDay: 1,
+      endDay: 2,
+      check_in: '15:00',
+      check_out: '11:00',
     });
     // The stop a booked night puts on its check-in day, so the route can reach the
     // hotel. It belongs to the stay, not to the day's plan.
@@ -394,7 +453,14 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
       const res = await get('/api/v1/bucket-list', ADA_TOKEN);
       expect(res.status).toBe(200);
       expect(res.body.items).toEqual([
-        { name: 'Hokkaido', lat: 43.06, lng: 141.35, country_code: 'JP', notes: 'im Winter', target_date: '2027-02-01' },
+        {
+          name: 'Hokkaido',
+          lat: 43.06,
+          lng: 141.35,
+          country_code: 'JP',
+          notes: 'im Winter',
+          target_date: '2027-02-01',
+        },
       ]);
     });
 

@@ -32,34 +32,21 @@ const perm: TranslationStrings = {
   'perm.action.collab_edit': 'Əməkdaşlıq (qeydlər, sorğular və çat)',
   'perm.action.share_manage': 'Paylaşma keçidlərini idarə etmək',
   'perm.actionHint.trip_create': 'Yeni səyahətləri kimin yarada biləcəyi',
-  'perm.actionHint.trip_edit':
-    'Səyahətin adını, tarixlərini, təsvirini və valyutasını kimin dəyişə biləcəyi',
+  'perm.actionHint.trip_edit': 'Səyahətin adını, tarixlərini, təsvirini və valyutasını kimin dəyişə biləcəyi',
   'perm.actionHint.trip_delete': 'Səyahəti kimin həmişəlik silə biləcəyi',
-  'perm.actionHint.trip_archive':
-    'Səyahəti kimin arxivləşdirə və ya arxivdən çıxara biləcəyi',
-  'perm.actionHint.trip_cover_upload':
-    'Üzlük şəklini kimin yükləyə və ya dəyişə biləcəyi',
-  'perm.actionHint.member_manage':
-    'Səyahət üzvlərini kimin dəvət edə və ya silə biləcəyi',
+  'perm.actionHint.trip_archive': 'Səyahəti kimin arxivləşdirə və ya arxivdən çıxara biləcəyi',
+  'perm.actionHint.trip_cover_upload': 'Üzlük şəklini kimin yükləyə və ya dəyişə biləcəyi',
+  'perm.actionHint.member_manage': 'Səyahət üzvlərini kimin dəvət edə və ya silə biləcəyi',
   'perm.actionHint.file_upload': 'Səyahətə faylları kimin yükləyə biləcəyi',
-  'perm.actionHint.file_edit':
-    'Fayl təsvirlərini və keçidlərini kimin redaktə edə biləcəyi',
-  'perm.actionHint.file_delete':
-    'Faylları kimin zibil qutusuna köçürə və ya həmişəlik silə biləcəyi',
-  'perm.actionHint.place_edit':
-    'Məkanları kimin əlavə edə, redaktə edə və ya silə biləcəyi',
-  'perm.actionHint.day_edit':
-    'Günləri, günlük qeydləri və məkan təyinatlarını kimin redaktə edə biləcəyi',
-  'perm.actionHint.reservation_edit':
-    'Rezervasiyaları kimin yarada, redaktə edə və ya silə biləcəyi',
-  'perm.actionHint.budget_edit':
-    'Büdcə elementlərini kimin yarada, redaktə edə və ya silə biləcəyi',
-  'perm.actionHint.packing_edit':
-    'Baqaj elementlərini və çantaları kimin idarə edə biləcəyi',
-  'perm.actionHint.collab_edit':
-    'Qeydləri və sorğuları kimin yarada və mesajları kimin göndərə biləcəyi',
-  'perm.actionHint.share_manage':
-    'Açıq paylaşma keçidlərini kimin yarada və ya silə biləcəyi',
+  'perm.actionHint.file_edit': 'Fayl təsvirlərini və keçidlərini kimin redaktə edə biləcəyi',
+  'perm.actionHint.file_delete': 'Faylları kimin zibil qutusuna köçürə və ya həmişəlik silə biləcəyi',
+  'perm.actionHint.place_edit': 'Məkanları kimin əlavə edə, redaktə edə və ya silə biləcəyi',
+  'perm.actionHint.day_edit': 'Günləri, günlük qeydləri və məkan təyinatlarını kimin redaktə edə biləcəyi',
+  'perm.actionHint.reservation_edit': 'Rezervasiyaları kimin yarada, redaktə edə və ya silə biləcəyi',
+  'perm.actionHint.budget_edit': 'Büdcə elementlərini kimin yarada, redaktə edə və ya silə biləcəyi',
+  'perm.actionHint.packing_edit': 'Baqaj elementlərini və çantaları kimin idarə edə biləcəyi',
+  'perm.actionHint.collab_edit': 'Qeydləri və sorğuları kimin yarada və mesajları kimin göndərə biləcəyi',
+  'perm.actionHint.share_manage': 'Açıq paylaşma keçidlərini kimin yarada və ya silə biləcəyi',
 };
 
 export default perm;

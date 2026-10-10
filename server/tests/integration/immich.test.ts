@@ -5,10 +5,25 @@
  * External Immich API calls are not made — tests focus on settings persistence
  * and input validation.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
+import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
+import { TripAlbumLinks } from '../../src/db/entities/TripAlbumLinks.entity';
+import { TripPhotos } from '../../src/db/entities/TripPhotos.entity';
+import { authCookie } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { addAlbumLink, addTripPhoto } from '../helpers/factories/photos';
+import { findRow, findRows, updateRows } from '../helpers/factories/rows';
+import { makeTrip } from '../helpers/factories/trips';
+import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -38,21 +53,6 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
     safeFetch: vi.fn().mockRejectedValue(new Error('safeFetch should not be called in unit tests')),
   };
 });
-
-import { db as testDb } from '../../src/db/database';
-import { MikroORM } from '@mikro-orm/core';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
-import type { FactoryOrm } from '../helpers/factories/context';
-import { createUser } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { findRow, findRows, updateRows } from '../helpers/factories/rows';
-import { makeTrip } from '../helpers/factories/trips';
-import { addAlbumLink, addTripPhoto } from '../helpers/factories/photos';
-import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
-import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
-import { TripAlbumLinks } from '../../src/db/entities/TripAlbumLinks.entity';
-import { TripPhotos } from '../../src/db/entities/TripPhotos.entity';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -85,9 +85,7 @@ describe('Immich settings', () => {
   it('IMMICH-001 — GET /api/integrations/memories/immich/settings returns current settings', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/integrations/memories/immich/settings')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/integrations/memories/immich/settings').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     // Settings may be empty initially
     expect(res.body).toBeDefined();

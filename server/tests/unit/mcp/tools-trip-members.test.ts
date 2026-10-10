@@ -4,27 +4,27 @@
  * create_trip_guest, rename_trip_guest, delete_trip_guest,
  * copy_trip, export_trip_ics, get_share_link, create_share_link, delete_share_link.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
+import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
+import { createUser, createAdmin, createTrip, addTripMember } from '../../helpers/factories';
+import { countRows, findRow } from '../../helpers/factories/rows';
+import { setAppSetting } from '../../helpers/factories/settings';
+import { makeShareToken } from '../../helpers/factories/trips';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { resetTestDb } from '../../helpers/test-db';
-import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
-import { createUser, createAdmin, createTrip, addTripMember } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow } from '../../helpers/factories/rows';
-import { setAppSetting } from '../../helpers/factories/settings';
-import { makeShareToken } from '../../helpers/factories/trips';
-import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
-import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -59,7 +59,11 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 /** Lower a configurable action the way the admin permission panel does. */
@@ -361,7 +365,11 @@ describe('Tool: leave_trip', () => {
     addTripMember(testDb, trip.id, member.id);
     await withHarness(member.id, async (h) => {
       await h.client.callTool({ name: 'leave_trip', arguments: { tripId: trip.id } });
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'member:removed', expect.objectContaining({ userId: member.id }));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'member:removed',
+        expect.objectContaining({ userId: member.id }),
+      );
     });
   });
 
@@ -493,7 +501,11 @@ describe('Tool: export_trip_ics', () => {
   // through the \s keep-class and crash the header there; it folds to _ now.
   it('folds header-hostile whitespace out of the filename', async () => {
     const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: '沖縄　4泊5日', start_date: '2025-06-01', end_date: '2025-06-05' });
+    const trip = createTrip(testDb, user.id, {
+      title: '沖縄　4泊5日',
+      start_date: '2025-06-01',
+      end_date: '2025-06-05',
+    });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'export_trip_ics', arguments: { tripId: trip.id } });
       const data = parseToolResult(result) as { filename: string };
@@ -522,7 +534,12 @@ describe('Tool: get_share_link', () => {
     const trip = createTrip(testDb, user.id);
     // Create a share link directly
     await makeShareToken(orm, trip.id, user.id, {
-      token: 'test-token-123', share_map: 1, share_bookings: 1, share_packing: 0, share_budget: 0, share_collab: 0,
+      token: 'test-token-123',
+      share_map: 1,
+      share_bookings: 1,
+      share_packing: 0,
+      share_budget: 0,
+      share_collab: 0,
     });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_share_link', arguments: { tripId: trip.id } });
@@ -552,7 +569,12 @@ describe('Tool: create_share_link', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await makeShareToken(orm, trip.id, user.id, {
-      token: 'existing-token', share_map: 1, share_bookings: 1, share_packing: 0, share_budget: 0, share_collab: 0,
+      token: 'existing-token',
+      share_map: 1,
+      share_bookings: 1,
+      share_packing: 0,
+      share_budget: 0,
+      share_collab: 0,
     });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -580,7 +602,12 @@ describe('Tool: delete_share_link', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await makeShareToken(orm, trip.id, user.id, {
-      token: 'to-delete', share_map: 1, share_bookings: 1, share_packing: 0, share_budget: 0, share_collab: 0,
+      token: 'to-delete',
+      share_map: 1,
+      share_bookings: 1,
+      share_packing: 0,
+      share_budget: 0,
+      share_collab: 0,
     });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_share_link', arguments: { tripId: trip.id } });
@@ -757,7 +784,9 @@ describe('Tool: rename_trip_guest', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, collaborator.id);
     let guestId = 0;
-    await withHarness(owner.id, async (h) => { guestId = await makeGuest(h, trip.id, 'Anna'); });
+    await withHarness(owner.id, async (h) => {
+      guestId = await makeGuest(h, trip.id, 'Anna');
+    });
     await withHarness(collaborator.id, async (h) => {
       const result = await h.client.callTool({
         name: 'rename_trip_guest',
@@ -804,7 +833,11 @@ describe('Tool: delete_trip_guest', () => {
       const guestId = await makeGuest(h, trip.id, 'Anna');
       broadcastMock.mockClear();
       await h.client.callTool({ name: 'delete_trip_guest', arguments: { tripId: trip.id, guestId } });
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'member:removed', expect.objectContaining({ userId: guestId }));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'member:removed',
+        expect.objectContaining({ userId: guestId }),
+      );
     });
   });
 
@@ -844,7 +877,9 @@ describe('Tool: delete_trip_guest', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, collaborator.id);
     let guestId = 0;
-    await withHarness(owner.id, async (h) => { guestId = await makeGuest(h, trip.id, 'Anna'); });
+    await withHarness(owner.id, async (h) => {
+      guestId = await makeGuest(h, trip.id, 'Anna');
+    });
     await withHarness(collaborator.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_trip_guest',
@@ -883,19 +918,36 @@ describe('Guest tools stay owner-only', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, collaborator.id);
     let guestId = 0;
-    await withHarness(owner.id, async (h) => { guestId = await makeGuest(h, trip.id, 'Anna'); });
+    await withHarness(owner.id, async (h) => {
+      guestId = await makeGuest(h, trip.id, 'Anna');
+    });
 
     await setPermission('member_manage', 'trip_member');
     await withHarness(collaborator.id, async (h) => {
-      expect((await h.client.callTool({
-        name: 'create_trip_guest', arguments: { tripId: trip.id, name: 'Bea' },
-      })).isError).toBe(true);
-      expect((await h.client.callTool({
-        name: 'rename_trip_guest', arguments: { tripId: trip.id, guestId, name: 'Renamed' },
-      })).isError).toBe(true);
-      expect((await h.client.callTool({
-        name: 'delete_trip_guest', arguments: { tripId: trip.id, guestId },
-      })).isError).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'create_trip_guest',
+            arguments: { tripId: trip.id, name: 'Bea' },
+          })
+        ).isError,
+      ).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'rename_trip_guest',
+            arguments: { tripId: trip.id, guestId, name: 'Renamed' },
+          })
+        ).isError,
+      ).toBe(true);
+      expect(
+        (
+          await h.client.callTool({
+            name: 'delete_trip_guest',
+            arguments: { tripId: trip.id, guestId },
+          })
+        ).isError,
+      ).toBe(true);
     });
 
     const row = await userRow(guestId);

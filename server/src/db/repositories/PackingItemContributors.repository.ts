@@ -1,6 +1,6 @@
 import type { PackingItemContributors } from '../entities/PackingItemContributors.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** PK3's contributor projection (`enrichItems`). */
 export interface PackingItemContributorRow {
@@ -42,7 +42,12 @@ export class PackingItemContributorsRepository extends TrekRepository<PackingIte
     return await this.kysely<PackingItemContributorsKyselyDB>()
       .selectFrom('packing_item_contributors as c')
       .innerJoin('users as u', 'u.id', 'c.user_id')
-      .select(['c.item_id', 'c.user_id', 'c.status', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username')])
+      .select([
+        'c.item_id',
+        'c.user_id',
+        'c.status',
+        (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'),
+      ])
       .where('c.item_id', 'in', item_ids)
       .execute();
   }

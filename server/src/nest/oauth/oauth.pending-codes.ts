@@ -1,5 +1,5 @@
-import { ProcessStoreSlot } from '../common/process-store-slot';
 import { logError } from '../audit/audit-log.logger';
+import { ProcessStoreSlot } from '../common/process-store-slot';
 
 /**
  * The short-lived authorization-code store.

@@ -1,53 +1,53 @@
+import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
 import { BudgetSettlements } from '../../db/entities/BudgetSettlements.entity';
-import { RateLimitModule } from '../common/rate-limit.module';
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { Users } from '../../db/entities/Users.entity';
-import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
-import { WebauthnChallenges } from '../../db/entities/WebauthnChallenges.entity';
 import { InviteTokens } from '../../db/entities/InviteTokens.entity';
+import { JourneyContributors } from '../../db/entities/JourneyContributors.entity';
+import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
+import { JourneyShareTokens } from '../../db/entities/JourneyShareTokens.entity';
+import { Journeys } from '../../db/entities/Journeys.entity';
 import { McpTokens } from '../../db/entities/McpTokens.entity';
 import { OauthTokens } from '../../db/entities/OauthTokens.entity';
 import { PasswordResetTokens } from '../../db/entities/PasswordResetTokens.entity';
-import { JourneyShareTokens } from '../../db/entities/JourneyShareTokens.entity';
-import { Journeys } from '../../db/entities/Journeys.entity';
-import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
-import { JourneyContributors } from '../../db/entities/JourneyContributors.entity';
-import { ShareTokens } from '../../db/entities/ShareTokens.entity';
-import { Trips } from '../../db/entities/Trips.entity';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import { Plugins } from '../../db/entities/Plugins.entity';
 import { PluginUserErasureQueue } from '../../db/entities/PluginUserErasureQueue.entity';
+import { Plugins } from '../../db/entities/Plugins.entity';
 import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
-import { TokensModule } from '../tokens/tokens.module';
-import { AuthPublicController } from './auth-public.controller';
-import { AuthController } from './auth.controller';
-import { PasskeyController } from './passkey.controller';
-import { SessionsController } from './sessions.controller';
-import { SessionsModule } from '../sessions/sessions.module';
-import { AuthService } from './auth.service';
-import { UserProfileService } from './user-profile.service';
-import { RegistrationInvitesService } from './registration-invites.service';
-import { PasskeyService } from './passkey.service';
-import { AuthMcp } from './auth.mcp';
-import { UserCleanupService } from './user-cleanup.service';
-import { WebauthnConfigService } from './webauthn-config.service';
+import { ShareTokens } from '../../db/entities/ShareTokens.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
+import { WebauthnChallenges } from '../../db/entities/WebauthnChallenges.entity';
+import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
 import { AppConfigModule } from '../app-config/app-config.module';
-import { BudgetModule } from '../budget/budget.module';
-import { MaintenanceModule } from '../database/maintenance.module';
 import { AuditModule } from '../audit/audit.module';
+import { EphemeralTokenModule } from '../auth-core/ephemeral-token.module';
+import { BudgetModule } from '../budget/budget.module';
+import { RateLimitModule } from '../common/rate-limit.module';
+import { MaintenanceModule } from '../database/maintenance.module';
+import { AllowedFileTypesModule } from '../files/allowed-file-types.module';
 import { MailerModule } from '../notifications/mailer/mailer.module';
 import { PermissionsModule } from '../permissions/permissions.module';
-import { TripMembershipModule } from '../trip-membership/trip-membership.module';
-import { EphemeralTokenModule } from '../auth-core/ephemeral-token.module';
-import { MulterModule } from '@nestjs/platform-express';
+import { SessionsModule } from '../sessions/sessions.module';
+import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
-import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
+import { TokensModule } from '../tokens/tokens.module';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { AuthPublicController } from './auth-public.controller';
+import { AuthController } from './auth.controller';
 import { AVATAR_FILE_FILTER, MAX_AVATAR_SIZE } from './auth.controller';
-import { AllowedFileTypesModule } from '../files/allowed-file-types.module';
+import { AuthMcp } from './auth.mcp';
+import { AuthService } from './auth.service';
+import { PasskeyController } from './passkey.controller';
+import { PasskeyService } from './passkey.service';
+import { RegistrationInvitesService } from './registration-invites.service';
+import { SessionsController } from './sessions.controller';
+import { UserCleanupService } from './user-cleanup.service';
+import { UserProfileService } from './user-profile.service';
+import { WebauthnConfigService } from './webauthn-config.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
+import { MulterModule } from '@nestjs/platform-express';
 
 /**
  * Auth module — public flows (login/register/reset/mfa-verify/logout) and the
@@ -86,7 +86,16 @@ import { AllowedFileTypesModule } from '../files/allowed-file-types.module';
     }),
     StorageModule,
     AllowedFileTypesModule,
-    EphemeralTokenModule, SessionsModule, RateLimitModule, AuditModule, PermissionsModule, TripMembershipModule, MailerModule, AppConfigModule, TokensModule, BudgetModule,
+    EphemeralTokenModule,
+    SessionsModule,
+    RateLimitModule,
+    AuditModule,
+    PermissionsModule,
+    TripMembershipModule,
+    MailerModule,
+    AppConfigModule,
+    TokensModule,
+    BudgetModule,
     // MaintenanceRepository: UserCleanupService's UC1 plugin-table erasure.
     MaintenanceModule,
     // AppSettings/Users: AuthService/UserProfileService each pass their own
@@ -122,9 +131,39 @@ import { AllowedFileTypesModule } from '../files/allowed-file-types.module';
     // on password change/reset (Web Push, #894), owned by `nest/notifications`.
     // UserSessions is not here: AuthService reaches the session rows through
     // SessionsService, which owns them (`nest/sessions`).
-    MikroOrmModule.forFeature([AppSettings, Users, WebauthnCredentials, WebauthnChallenges, InviteTokens, McpTokens, OauthTokens, PasswordResetTokens, BudgetItems, BudgetSettlements, JourneyShareTokens, Journeys, JourneyEntries, JourneyContributors, ShareTokens, Trips, TripMembers, Plugins, PluginUserErasureQueue, PushSubscriptions])],
+    MikroOrmModule.forFeature([
+      AppSettings,
+      Users,
+      WebauthnCredentials,
+      WebauthnChallenges,
+      InviteTokens,
+      McpTokens,
+      OauthTokens,
+      PasswordResetTokens,
+      BudgetItems,
+      BudgetSettlements,
+      JourneyShareTokens,
+      Journeys,
+      JourneyEntries,
+      JourneyContributors,
+      ShareTokens,
+      Trips,
+      TripMembers,
+      Plugins,
+      PluginUserErasureQueue,
+      PushSubscriptions,
+    ]),
+  ],
   controllers: [AuthPublicController, AuthController, PasskeyController, SessionsController],
-  providers: [AuthService, UserProfileService, RegistrationInvitesService, PasskeyService, UserCleanupService, WebauthnConfigService, AuthMcp],
+  providers: [
+    AuthService,
+    UserProfileService,
+    RegistrationInvitesService,
+    PasskeyService,
+    UserCleanupService,
+    WebauthnConfigService,
+    AuthMcp,
+  ],
   exports: [AuthService, RegistrationInvitesService, PasskeyService, UserCleanupService],
 })
 export class AuthModule {}

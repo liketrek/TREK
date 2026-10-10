@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { TrekPhotoRegistrationService } from './trek-photo-registration.service';
+import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
 import { TrekPhotos } from '../../db/entities/TrekPhotos.entity';
 import { TripPhotos } from '../../db/entities/TripPhotos.entity';
-import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
+import { TrekPhotoRegistrationService } from './trek-photo-registration.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * The trek_photos store on its own, so both halves can have it without

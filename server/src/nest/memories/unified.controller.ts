@@ -1,11 +1,12 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Put, Res, UseGuards } from '@nestjs/common';
-import type { Response } from 'express';
 import type { User } from '../../types';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { AddTripPhotosDto, CreateAlbumLinkDto, RemoveTripPhotoDto, SetTripPhotoSharingDto } from './memories.dto';
 import type { Selection } from './memories.helpers';
 import { MemoriesService } from './memories.service';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { CurrentUser } from '../auth-core/current-user.decorator';
-import { AddTripPhotosDto, CreateAlbumLinkDto, RemoveTripPhotoDto, SetTripPhotoSharingDto } from './memories.dto';
+import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Put, Res, UseGuards } from '@nestjs/common';
+
+import type { Response } from 'express';
 
 /**
  * /api/integrations/memories/unified — provider-agnostic trip photo + album-link
@@ -57,7 +58,12 @@ export class UnifiedMemoriesController {
     @Body() body: SetTripPhotoSharingDto,
     @Res() res: Response,
   ): Promise<void> {
-    const result = await this.memories.setTripPhotoSharing(tripId, user.id, Number(body?.photo_id), body?.shared as boolean);
+    const result = await this.memories.setTripPhotoSharing(
+      tripId,
+      user.id,
+      Number(body?.photo_id),
+      body?.shared as boolean,
+    );
     if ('error' in result) {
       res.status(result.error.status).json({ error: result.error.message });
       return;
@@ -81,7 +87,11 @@ export class UnifiedMemoriesController {
   }
 
   @Get('trips/:tripId/album-links')
-  async listAlbumLinks(@CurrentUser() user: User, @Param('tripId') tripId: string, @Res() res: Response): Promise<void> {
+  async listAlbumLinks(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Res() res: Response,
+  ): Promise<void> {
     const result = await this.memories.listTripAlbumLinks(tripId, user.id);
     if ('error' in result) {
       res.status(result.error.status).json({ error: result.error.message });
@@ -99,7 +109,14 @@ export class UnifiedMemoriesController {
     @Res() res: Response,
   ): Promise<void> {
     const passphrase = body?.passphrase ? String(body.passphrase) : undefined;
-    const result = await this.memories.createTripAlbumLink(tripId, user.id, body?.provider, body?.album_id, body?.album_name, passphrase);
+    const result = await this.memories.createTripAlbumLink(
+      tripId,
+      user.id,
+      body?.provider,
+      body?.album_id,
+      body?.album_name,
+      passphrase,
+    );
     if ('error' in result) {
       res.status(result.error.status).json({ error: result.error.message });
       return;

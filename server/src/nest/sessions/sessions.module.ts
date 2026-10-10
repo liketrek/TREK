@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { UserSessions } from '../../db/entities/UserSessions.entity';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { SessionPurgeJob } from './session-purge.job';
 import { SessionsService } from './sessions.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Session tokens and the rows that let them be revoked. A leaf: it imports no

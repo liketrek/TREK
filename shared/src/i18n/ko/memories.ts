@@ -56,7 +56,8 @@ const memories: TranslationStrings = {
   'memories.tripDates': '여행 날짜',
   'memories.allPhotos': '모든 사진',
   'memories.confirmShareTitle': '여행 멤버와 공유할까요?',
-  'memories.confirmShareHint': '{count}장의 사진이 이 여행의 모든 멤버에게 표시됩니다. 나중에 개별 사진을 비공개로 만들 수 있습니다.',
+  'memories.confirmShareHint':
+    '{count}장의 사진이 이 여행의 모든 멤버에게 표시됩니다. 나중에 개별 사진을 비공개로 만들 수 있습니다.',
   'memories.confirmShareButton': '사진 공유',
   'memories.error.loadAlbums': '앨범 불러오기 실패',
   'memories.error.linkAlbum': '앨범 연결 실패',

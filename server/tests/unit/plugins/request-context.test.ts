@@ -29,23 +29,24 @@
  * shared helpers use to let ordinary unit tests call a repository with no
  * request wrapper at all: that default would hide this exact bug.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createUser } from '../../helpers/factories';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
-import { PluginSupervisor } from '../../../src/nest/plugins/supervisor/plugin-supervisor';
-import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
-import { RpcRateLimiter, DEFAULT_RPC_LIMIT } from '../../../src/nest/plugins/host/rate-limit';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { setAppSetting } from '../../helpers/factories/settings';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RpcRateLimiter, DEFAULT_RPC_LIMIT } from '../../../src/nest/plugins/host/rate-limit';
 import type { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import type { RpcRequest, RpcResponse, RpcError } from '../../../src/nest/plugins/protocol/envelope';
+import { PluginSupervisor } from '../../../src/nest/plugins/supervisor/plugin-supervisor';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
+import { setAppSetting } from '../../helpers/factories/settings';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import type { EntityManager } from '@mikro-orm/core';
+
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 /** The slice of Supervisor's private `Supervised` shape a 'req' dispatch touches. */
 interface DispatchEntry {
@@ -105,7 +106,12 @@ function makeSupervisor(resolveOrm?: () => { em: EntityManager } | undefined) {
       const result = await guards.canCreateAs('trip_create', actingUserId as number);
       return { k: 'res', id: req.id, ok: true, result };
     } catch (e) {
-      return { k: 'res', id: req.id, ok: false, error: { code: 'HOST_ERROR', message: e instanceof Error ? e.message : String(e) } };
+      return {
+        k: 'res',
+        id: req.id,
+        ok: false,
+        error: { code: 'HOST_ERROR', message: e instanceof Error ? e.message : String(e) },
+      };
     }
   };
   const createRpcHost = () => ({ dispatch }) as unknown as PluginRpcHost;
@@ -120,7 +126,7 @@ function makeSupervisor(resolveOrm?: () => { em: EntityManager } | undefined) {
 }
 
 describe('PluginSupervisor request context (D6, C3)', () => {
-  it('CTX-PLUGIN-001: without a resolveOrm thunk, the dispatch THROWS (host-side visibility) but the child still gets answered first (task-6-rereview.md §5 RULING: an unanswered \'req\' hangs the plugin forever — plugin-host-entry.ts\'s pending map has no timeout)', async () => {
+  it("CTX-PLUGIN-001: without a resolveOrm thunk, the dispatch THROWS (host-side visibility) but the child still gets answered first (task-6-rereview.md §5 RULING: an unanswered 'req' hangs the plugin forever — plugin-host-entry.ts's pending map has no timeout)", async () => {
     await permissions.invalidatePermissionsCache();
     const { supervisor, sup, sent } = makeSupervisor(); // no resolveOrm — the bug's exact reproduction
     const canCreateAsSpy = vi.spyOn(guards, 'canCreateAs');

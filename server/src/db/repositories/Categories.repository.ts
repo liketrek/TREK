@@ -40,9 +40,7 @@ export class CategoriesRepository extends TrekRepository<Categories> {
    * `ORDER BY` in the legacy statement — none added here.
    */
   async listIdName(): Promise<{ id: number; name: string }[]> {
-    return this.qb('c')
-      .select(['c.id', 'c.name'])
-      .execute<{ id: number; name: string }[]>('all', false);
+    return this.qb('c').select(['c.id', 'c.name']).execute<{ id: number; name: string }[]>('all', false);
   }
 
   /**

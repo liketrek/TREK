@@ -1,3 +1,5 @@
+import { isTextLike, isPdf, extractText } from '../../../../src/nest/llm-parse/text-extract';
+
 import { describe, it, expect, vi } from 'vitest';
 
 const { getText } = vi.hoisted(() => ({ getText: vi.fn(async () => ({ text: 'Hotel X — confirmation ABC' })) }));
@@ -7,8 +9,6 @@ vi.mock('pdf-parse', () => ({
     destroy = vi.fn(async () => {});
   },
 }));
-
-import { isTextLike, isPdf, extractText } from '../../../../src/nest/llm-parse/text-extract';
 
 describe('text-extract', () => {
   it('classifies text-like and pdf extensions', () => {

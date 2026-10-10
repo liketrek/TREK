@@ -7,10 +7,32 @@
  * faithfully; email/webhook/ntfy transports are mocked at the nodemailer/fetch
  * boundary.
  */
+import { db as testDb } from '../../../src/db/database';
+import { Notifications } from '../../../src/db/entities/Notifications.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { setPluginChannelSource } from '../../../src/nest/notifications/channel-registry';
+// The channel interface lives in notification-events; channel-registry only imports
+// it for its own signatures and never re-exported it.
+import type { ExternalChannel } from '../../../src/nest/notifications/notification-events';
+import { NotificationsService, type NotificationPayload } from '../../../src/nest/notifications/notifications.service';
+import {
+  createUser,
+  createAdmin,
+  setAppSetting,
+  setNotificationChannels,
+  disableNotificationPref,
+} from '../../helpers/factories';
+import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { setUserSetting } from '../../helpers/factories/settings';
+import { addTripMember, makeTrip } from '../../helpers/factories/trips';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
+import { resetTestDb } from '../../helpers/test-db';
+import { sharedTestOrm } from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -21,7 +43,7 @@ vi.mock('../../../src/db/database', async () => {
     canAccessTrip: () => null,
     isOwner: () => false,
   };
-    return mock;
+  return mock;
 });
 
 vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
@@ -77,23 +99,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => {
   };
 });
 
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, setAppSetting, setNotificationChannels, disableNotificationPref } from '../../helpers/factories';
-import { NotificationsService, type NotificationPayload } from '../../../src/nest/notifications/notifications.service';
-import { setPluginChannelSource } from '../../../src/nest/notifications/channel-registry';
-// The channel interface lives in notification-events; channel-registry only imports
-// it for its own signatures and never re-exported it.
-import type { ExternalChannel } from '../../../src/nest/notifications/notification-events';
-import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
-import { sharedTestOrm } from '../../helpers/test-uow';
-import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
-import { setUserSetting } from '../../helpers/factories/settings';
-import { addTripMember, makeTrip } from '../../helpers/factories/trips';
-import { Notifications } from '../../../src/db/entities/Notifications.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
-
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastToUserMock;
 
@@ -129,7 +134,7 @@ async function countAllNotifications(): Promise<number> {
 
 /** Every notification's recipient, lowest id first. */
 async function recipientIds(): Promise<number[]> {
-  return (await findRows(await orm(), Notifications, {}, { recipient: 'asc' })).map(r => r.recipient_id);
+  return (await findRows(await orm(), Notifications, {}, { recipient: 'asc' })).map((r) => r.recipient_id);
 }
 
 /** A trip with just its owner, returning its id. */
@@ -175,7 +180,13 @@ describe('send() — multi-channel dispatch', () => {
 
     const tripId = await newTrip('Paris', user.id);
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) },
+    });
 
     expect(sendMailMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -191,7 +202,13 @@ describe('send() — multi-channel dispatch', () => {
 
     const tripId = await newTrip('Rome', user.id);
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) },
+    });
 
     expect(sendMailMock).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -207,7 +224,13 @@ describe('send() — multi-channel dispatch', () => {
 
     const tripId = await newTrip('Berlin', user.id);
 
-    await send({ event: 'booking_change', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Berlin', actor: 'Bob', booking: 'Hotel', type: 'hotel', tripId: String(tripId) } });
+    await send({
+      event: 'booking_change',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Berlin', actor: 'Bob', booking: 'Hotel', type: 'hotel', tripId: String(tripId) },
+    });
 
     expect(sendMailMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -228,7 +251,13 @@ describe('send() — per-user preference filtering', () => {
 
     const tripId = await newTrip('Paris', user.id);
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) },
+    });
 
     expect(sendMailMock).not.toHaveBeenCalled();
     // in-app still fires
@@ -242,7 +271,13 @@ describe('send() — per-user preference filtering', () => {
 
     const tripId = await newTrip('Trip', user.id);
 
-    await send({ event: 'collab_message', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Trip', actor: 'Alice', tripId: String(tripId) } });
+    await send({
+      event: 'collab_message',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Trip', actor: 'Alice', tripId: String(tripId) },
+    });
 
     expect(broadcastMock).not.toHaveBeenCalled();
     expect(await countAllNotifications()).toBe(0);
@@ -258,7 +293,13 @@ describe('send() — per-user preference filtering', () => {
 
     const tripId = await newTrip('Paris', user.id);
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) },
+    });
 
     expect(sendMailMock).not.toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -282,7 +323,13 @@ describe('send() — recipient resolution', () => {
     await addTripMember(await orm(), tripId, member2.id);
     await addTripMember(await orm(), tripId, actor.id);
 
-    await send({ event: 'booking_change', actorId: actor.id, scope: 'trip', targetId: tripId, params: { trip: 'Trip', actor: 'Actor', booking: 'Hotel', type: 'hotel', tripId: String(tripId) } });
+    await send({
+      event: 'booking_change',
+      actorId: actor.id,
+      scope: 'trip',
+      targetId: tripId,
+      params: { trip: 'Trip', actor: 'Actor', booking: 'Hotel', type: 'hotel', tripId: String(tripId) },
+    });
 
     // Owner, member1, member2 get it; actor is excluded
     expect(await countAllNotifications()).toBe(3);
@@ -301,16 +348,34 @@ describe('send() — recipient resolution', () => {
     const tripId = await newTrip('Trip', owner.id);
     await addTripMember(await orm(), tripId, member.id);
     // A guest joined into the trip — assignable, but has no inbox.
-    const guestId = await insertRow(await orm(), Users, { username: 'Guest', email: 'guest-x@guests.invalid', password_hash: '', role: 'user', is_guest: 1 });
+    const guestId = await insertRow(await orm(), Users, {
+      username: 'Guest',
+      email: 'guest-x@guests.invalid',
+      password_hash: '',
+      role: 'user',
+      is_guest: 1,
+    });
     await addTripMember(await orm(), tripId, guestId);
 
-    await send({ event: 'booking_change', actorId: owner.id, scope: 'trip', targetId: tripId, params: { trip: 'Trip', actor: 'Owner', booking: 'Hotel', type: 'hotel', tripId: String(tripId) } });
+    await send({
+      event: 'booking_change',
+      actorId: owner.id,
+      scope: 'trip',
+      targetId: tripId,
+      params: { trip: 'Trip', actor: 'Owner', booking: 'Hotel', type: 'hotel', tripId: String(tripId) },
+    });
     let recipients = await recipientIds();
     expect(recipients).toContain(member.id);
     expect(recipients).not.toContain(guestId);
 
     // Even a direct user-scope notification (e.g. a todo assigned to the guest) is dropped.
-    await send({ event: 'vacay_invite', actorId: owner.id, scope: 'user', targetId: guestId, params: { actor: 'owner@test.com', planId: '1' } });
+    await send({
+      event: 'vacay_invite',
+      actorId: owner.id,
+      scope: 'user',
+      targetId: guestId,
+      params: { actor: 'owner@test.com', planId: '1' },
+    });
     recipients = await recipientIds();
     expect(recipients).not.toContain(guestId);
   });
@@ -321,7 +386,13 @@ describe('send() — recipient resolution', () => {
 
     const tripId = await newTrip('Trip', owner.id);
     await addTripMember(await orm(), tripId, member.id);
-    const guestId = await insertRow(await orm(), Users, { username: 'Guest', email: 'guest-y@guests.invalid', password_hash: '', role: 'user', is_guest: 1 });
+    const guestId = await insertRow(await orm(), Users, {
+      username: 'Guest',
+      email: 'guest-y@guests.invalid',
+      password_hash: '',
+      role: 'user',
+      is_guest: 1,
+    });
     await addTripMember(await orm(), tripId, guestId);
 
     const tripRecipients = await notifications.resolveRecipients('trip', tripId);
@@ -338,7 +409,13 @@ describe('send() — recipient resolution', () => {
     const { user: other } = createUser(testDb);
     setNotificationChannels(testDb, 'none');
 
-    await send({ event: 'vacay_invite', actorId: other.id, scope: 'user', targetId: target.id, params: { actor: 'other@test.com', planId: '42' } });
+    await send({
+      event: 'vacay_invite',
+      actorId: other.id,
+      scope: 'user',
+      targetId: target.id,
+      params: { actor: 'other@test.com', planId: '42' },
+    });
 
     expect(await countAllNotifications()).toBe(1);
     const notif = (await findRow(await orm(), Notifications, {}))!;
@@ -351,7 +428,13 @@ describe('send() — recipient resolution', () => {
     createUser(testDb); // regular user — should NOT receive
     setNotificationChannels(testDb, 'none');
 
-    await send({ event: 'version_available', actorId: null, scope: 'admin', targetId: 0, params: { version: '2.0.0' } });
+    await send({
+      event: 'version_available',
+      actorId: null,
+      scope: 'admin',
+      targetId: 0,
+      params: { version: '2.0.0' },
+    });
 
     expect(await countAllNotifications()).toBe(2);
     const recipients = await recipientIds();
@@ -364,10 +447,16 @@ describe('send() — recipient resolution', () => {
     setAdminWebhookUrl();
     setNotificationChannels(testDb, 'none');
 
-    await send({ event: 'version_available', actorId: null, scope: 'admin', targetId: 0, params: { version: '2.0.0' } });
+    await send({
+      event: 'version_available',
+      actorId: null,
+      scope: 'admin',
+      targetId: 0,
+      params: { version: '2.0.0' },
+    });
 
     // Wait for fire-and-forget admin webhook
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const callUrl = fetchMock.mock.calls[0][0];
     expect(callUrl).toBe('https://hooks.test.com/admin-webhook');
@@ -379,7 +468,13 @@ describe('send() — recipient resolution', () => {
     setNotificationChannels(testDb, 'none');
     const tripId = await newTrip('Solo', owner.id);
 
-    await send({ event: 'booking_change', actorId: owner.id, scope: 'trip', targetId: tripId, params: { trip: 'Solo', actor: 'owner@test.com', booking: 'Hotel', type: 'hotel', tripId: String(tripId) } });
+    await send({
+      event: 'booking_change',
+      actorId: owner.id,
+      scope: 'trip',
+      targetId: tripId,
+      params: { trip: 'Solo', actor: 'owner@test.com', booking: 'Hotel', type: 'hotel', tripId: String(tripId) },
+    });
 
     expect(await countAllNotifications()).toBe(0);
     expect(broadcastMock).not.toHaveBeenCalled();
@@ -395,7 +490,13 @@ describe('send() — in-app notification content', () => {
     const { user } = createUser(testDb);
     setNotificationChannels(testDb, 'none');
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: '42' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: '42' },
+    });
 
     const notifs = await getInAppNotifications(user.id);
     expect(notifs.length).toBe(1);
@@ -423,7 +524,13 @@ describe('send() — in-app notification content', () => {
     const { user: admin } = createAdmin(testDb);
     setNotificationChannels(testDb, 'none');
 
-    await send({ event: 'version_available', actorId: null, scope: 'admin', targetId: 0, params: { version: '9.9.9' } });
+    await send({
+      event: 'version_available',
+      actorId: null,
+      scope: 'admin',
+      targetId: 0,
+      params: { version: '9.9.9' },
+    });
 
     const notifs = await getInAppNotifications(admin.id);
     expect(notifs.length).toBe(1);
@@ -490,7 +597,13 @@ describe('send() — email/webhook links', () => {
 
     const tripId = await newTrip('Paris', user.id);
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) },
+    });
 
     expect(sendMailMock).toHaveBeenCalledTimes(1);
     const mailArgs = sendMailMock.mock.calls[0][0];
@@ -503,7 +616,13 @@ describe('send() — email/webhook links', () => {
     await setUserWebhookUrl(user.id, 'https://hooks.test.com/generic-webhook');
     setNotificationChannels(testDb, 'webhook');
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: '55' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: '55' },
+    });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
@@ -562,7 +681,13 @@ describe('send() — channel failure resilience', () => {
 
     const tripId = await newTrip('Trip', user.id);
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Trip', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Trip', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) },
+    });
 
     // In-app and webhook still fire despite email failure
     expect(broadcastMock).toHaveBeenCalledTimes(1);
@@ -582,14 +707,19 @@ describe('send() — channel failure resilience', () => {
 
     const tripId = await newTrip('Trip', user.id);
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Trip', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Trip', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) },
+    });
 
     // In-app and email still fire despite webhook failure
     expect(broadcastMock).toHaveBeenCalledTimes(1);
     expect(sendMailMock).toHaveBeenCalledTimes(1);
     expect(await countAllNotifications()).toBe(1);
   });
-
 });
 
 describe('send() reports what it delivered', () => {
@@ -602,7 +732,13 @@ describe('send() reports what it delivered', () => {
     const tripId = await newTrip('Trip', user.id);
 
     await expect(
-      send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Trip', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) } }),
+      send({
+        event: 'trip_invite',
+        actorId: null,
+        scope: 'user',
+        targetId: user.id,
+        params: { trip: 'Trip', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) },
+      }),
     ).resolves.toEqual({ attempted: 3, delivered: 3 });
   });
 
@@ -616,7 +752,13 @@ describe('send() reports what it delivered', () => {
     const tripId = await newTrip('Trip', user.id);
 
     await expect(
-      send({ event: 'trip_reminder', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Trip', tripId: String(tripId) } }),
+      send({
+        event: 'trip_reminder',
+        actorId: null,
+        scope: 'user',
+        targetId: user.id,
+        params: { trip: 'Trip', tripId: String(tripId) },
+      }),
     ).resolves.toEqual({ attempted: 1, delivered: 0 });
   });
 
@@ -627,10 +769,22 @@ describe('send() reports what it delivered', () => {
     const tripId = await newTrip('Trip', user.id);
 
     await expect(
-      send({ event: 'collab_message', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Trip', actor: 'Alice', tripId: String(tripId) } }),
+      send({
+        event: 'collab_message',
+        actorId: null,
+        scope: 'user',
+        targetId: user.id,
+        params: { trip: 'Trip', actor: 'Alice', tripId: String(tripId) },
+      }),
     ).resolves.toEqual({ attempted: 0, delivered: 0 });
     await expect(
-      send({ event: 'booking_change', actorId: user.id, scope: 'trip', targetId: tripId, params: { trip: 'Trip', actor: 'a', booking: 'Hotel', type: 'hotel', tripId: String(tripId) } }),
+      send({
+        event: 'booking_change',
+        actorId: user.id,
+        scope: 'trip',
+        targetId: tripId,
+        params: { trip: 'Trip', actor: 'a', booking: 'Hotel', type: 'hotel', tripId: String(tripId) },
+      }),
     ).resolves.toEqual({ attempted: 0, delivered: 0 });
   });
 });
@@ -656,7 +810,13 @@ describe('send() — ntfy channel dispatch', () => {
     setNotificationChannels(testDb, 'ntfy');
     const tripId = await newTrip('Tokyo', user.id);
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Tokyo', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Tokyo', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) },
+    });
 
     const ntfyCalls = fetchMock.mock.calls.filter(([url]: [string]) => url.includes('ntfy.sh'));
     expect(ntfyCalls.length).toBeGreaterThan(0);
@@ -671,7 +831,13 @@ describe('send() — ntfy channel dispatch', () => {
     setNotificationChannels(testDb, 'none');
 
     fetchMock.mockClear();
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Paris', actor: 'Alice', invitee: 'Bob', tripId: '1' },
+    });
 
     const ntfyCalls = fetchMock.mock.calls.filter(([url]: [string]) => url.includes('ntfy.sh'));
     expect(ntfyCalls.length).toBe(0);
@@ -683,7 +849,13 @@ describe('send() — ntfy channel dispatch', () => {
     // No ntfy_topic set — resolveNtfyUrl requires a user topic, so it returns null
 
     fetchMock.mockClear();
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' },
+    });
 
     const ntfyCalls = fetchMock.mock.calls.filter(([url]: [string]) => url.includes('ntfy.sh'));
     expect(ntfyCalls.length).toBe(0);
@@ -695,7 +867,13 @@ describe('send() — ntfy channel dispatch', () => {
     setNotificationChannels(testDb, 'ntfy');
 
     fetchMock.mockClear();
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Oslo', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Oslo', actor: 'Alice', invitee: 'Bob', tripId: '1' },
+    });
 
     const ntfyCalls = fetchMock.mock.calls.filter(([url]: [string]) => url.includes('ntfy.sh'));
     expect(ntfyCalls.length).toBe(0);
@@ -707,7 +885,13 @@ describe('send() — ntfy channel dispatch', () => {
     setNotificationChannels(testDb, 'none');
 
     fetchMock.mockClear();
-    await send({ event: 'version_available', actorId: null, scope: 'admin', targetId: 0, params: { version: '3.0.0' } });
+    await send({
+      event: 'version_available',
+      actorId: null,
+      scope: 'admin',
+      targetId: 0,
+      params: { version: '3.0.0' },
+    });
 
     const ntfyCalls = fetchMock.mock.calls.filter(([url]: [string]) => url.includes('ntfy.sh'));
     expect(ntfyCalls.length).toBeGreaterThan(0);
@@ -746,7 +930,13 @@ describe('send() — plugin notification channels', () => {
     installPluginChannel();
     setNotificationChannels(testDb, 'plugin:gotify');
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' },
+    });
 
     expect(sendSpy).toHaveBeenCalledTimes(1);
     const [recipientId, msg] = sendSpy.mock.calls[0];
@@ -762,7 +952,13 @@ describe('send() — plugin notification channels', () => {
     installPluginChannel();
     setNotificationChannels(testDb, 'none');
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' },
+    });
 
     // A built-in always exists in the code, so it needs an explicit switch. A plugin
     // channel only exists because an admin installed and enabled that plugin — and
@@ -777,7 +973,13 @@ describe('send() — plugin notification channels', () => {
     setNotificationChannels(testDb, 'plugin:gotify');
     disableNotificationPref(testDb, user.id, 'trip_invite', 'plugin:gotify');
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' },
+    });
 
     expect(sendSpy).not.toHaveBeenCalled();
   });
@@ -787,7 +989,13 @@ describe('send() — plugin notification channels', () => {
     installPluginChannel({ isConfiguredFor: () => false });
     setNotificationChannels(testDb, 'plugin:gotify');
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' },
+    });
 
     expect(sendSpy).not.toHaveBeenCalled();
   });
@@ -799,7 +1007,13 @@ describe('send() — plugin notification channels', () => {
     setNotificationChannels(testDb, 'email,plugin:gotify');
     sendMailMock.mockClear();
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' },
+    });
 
     expect(sendMailMock).toHaveBeenCalledTimes(1);
     expect((await getInAppNotifications(user.id)).length).toBe(1);
@@ -812,7 +1026,13 @@ describe('send() — plugin notification channels', () => {
     installPluginChannel({ supportsEvent: () => true });
     setNotificationChannels(testDb, 'plugin:gotify');
 
-    await send({ event: 'version_available', actorId: null, scope: 'admin', targetId: 0, params: { version: '3.0.0' } });
+    await send({
+      event: 'version_available',
+      actorId: null,
+      scope: 'admin',
+      targetId: 0,
+      params: { version: '3.0.0' },
+    });
 
     expect(sendSpy).not.toHaveBeenCalled();
   });
@@ -822,10 +1042,22 @@ describe('send() — plugin notification channels', () => {
     installPluginChannel({ supportsEvent: (e: string) => e === 'booking_change' });
     setNotificationChannels(testDb, 'plugin:gotify');
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' },
+    });
     expect(sendSpy).not.toHaveBeenCalled();
 
-    await send({ event: 'booking_change', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Rome', actor: 'Alice', tripId: '1' } });
+    await send({
+      event: 'booking_change',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Rome', actor: 'Alice', tripId: '1' },
+    });
     expect(sendSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -835,9 +1067,17 @@ describe('send() — plugin notification channels', () => {
     setNotificationChannels(testDb, 'plugin:gotify');
     logErrorMock.mockClear();
 
-    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' } });
+    await send({
+      event: 'trip_invite',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Rome', actor: 'Alice', invitee: 'Bob', tripId: '1' },
+    });
 
-    const dispatchLog = logErrorMock.mock.calls.map(([msg]) => String(msg)).find(m => m.includes('channel dispatch failed'));
+    const dispatchLog = logErrorMock.mock.calls
+      .map(([msg]) => String(msg))
+      .find((m) => m.includes('channel dispatch failed'));
     // The legacy per-recipient log interpolated the raw reason ("Error: gotify
     // is down"); the admin path always unwrapped — now both do.
     expect(dispatchLog).toContain(': gotify is down');

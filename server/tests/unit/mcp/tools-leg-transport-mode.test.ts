@@ -2,22 +2,22 @@
  * Unit tests for MCP leg-mode tools: set_leg_transport_mode,
  * set_day_default_transport_mode.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
+import { Days } from '../../../src/db/entities/Days.entity';
+import { createUser, createTrip, createDay, createPlace, createDayAssignment } from '../../helpers/factories';
+import { findRow, updateRows } from '../../helpers/factories/rows';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { findRow, updateRows } from '../../helpers/factories/rows';
-import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
-import { Days } from '../../../src/db/entities/Days.entity';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -41,7 +41,11 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -56,10 +60,20 @@ describe('Tool: set_assignment_route_excluded (#2532)', () => {
     const place = createPlace(testDb, trip.id);
     const assignment = createDayAssignment(testDb, day.id, place.id);
     await withHarness(user.id, async (h) => {
-      const out = parseToolResult(await h.client.callTool({ name: 'set_assignment_route_excluded', arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: true } })) as any;
+      const out = parseToolResult(
+        await h.client.callTool({
+          name: 'set_assignment_route_excluded',
+          arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: true },
+        }),
+      ) as any;
       expect(out.assignment.route_excluded).toBe(true);
       expect((await findRow(orm, DayAssignments, { id: assignment.id }))?.route_excluded).toBe(1);
-      const back = parseToolResult(await h.client.callTool({ name: 'set_assignment_route_excluded', arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: false } })) as any;
+      const back = parseToolResult(
+        await h.client.callTool({
+          name: 'set_assignment_route_excluded',
+          arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: false },
+        }),
+      ) as any;
       expect(back.assignment.route_excluded).toBe(false);
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'assignment:updated', expect.any(Object));
     });
@@ -73,7 +87,10 @@ describe('Tool: set_assignment_route_excluded (#2532)', () => {
     const place = createPlace(testDb, other.id);
     const assignment = createDayAssignment(testDb, day.id, place.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'set_assignment_route_excluded', arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: true } });
+      const result = await h.client.callTool({
+        name: 'set_assignment_route_excluded',
+        arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: true },
+      });
       expect(result.isError).toBe(true);
     });
   });

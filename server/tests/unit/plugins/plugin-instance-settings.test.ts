@@ -6,46 +6,46 @@
  * saving through the controller re-spawns an ACTIVE plugin (config is handed to
  * the child once, in its init envelope), and an inactive plugin is left alone.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import { db as testDb } from '../../../src/db/database';
+import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
+import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
+import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
+import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
+import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
+import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import type { PluginActionsRepository } from '../../../src/db/repositories/PluginActions.repository';
+import type { PluginCapabilityAuditRepository } from '../../../src/db/repositories/PluginCapabilityAudit.repository';
+import type { PluginEgressHostsRepository } from '../../../src/db/repositories/PluginEgressHosts.repository';
+import type { PluginErrorLogRepository } from '../../../src/db/repositories/PluginErrorLog.repository';
+import type { PluginSettingsFieldsRepository } from '../../../src/db/repositories/PluginSettingsFields.repository';
+import type { PluginUserConfigRepository } from '../../../src/db/repositories/PluginUserConfig.repository';
+import type { PluginsRepository } from '../../../src/db/repositories/Plugins.repository';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { discoverPlugins } from '../../../src/nest/plugins/install/discovery';
+import { PluginConsentRequired, type PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { PluginsController } from '../../../src/nest/plugins/plugins.controller';
+import { PluginsService } from '../../../src/nest/plugins/plugins.service';
+import type { PluginRegistryService } from '../../../src/nest/plugins/registry/registry.service';
+import { deleteRows, findRow, insertRow, updateRows, upsertRow } from '../../helpers/factories/rows';
+import { createPluginRuntime } from '../../helpers/plugin-host';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import type { TestOrm } from '../../helpers/test-orm';
+import { sharedTestOrm, createTestUnitOfWork } from '../../helpers/test-uow';
 import { HttpException } from '@nestjs/common';
+
+import type { Request } from 'express';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { Request } from 'express';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   return { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: async () => null };
 });
-import { db as testDb } from '../../../src/db/database';
-
-import { PluginsService } from '../../../src/nest/plugins/plugins.service';
-import { PluginsController } from '../../../src/nest/plugins/plugins.controller';
-import { PluginConsentRequired, type PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
-import type { PluginRegistryService } from '../../../src/nest/plugins/registry/registry.service';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { createPluginRuntime } from '../../helpers/plugin-host';
-import { discoverPlugins } from '../../../src/nest/plugins/install/discovery';
-import { sharedTestOrm, createTestUnitOfWork } from '../../helpers/test-uow';
-import { Plugins } from '../../../src/db/entities/Plugins.entity';
-import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
-import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
-import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
-import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
-import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
-import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
-import type { PluginsRepository } from '../../../src/db/repositories/Plugins.repository';
-import type { PluginEgressHostsRepository } from '../../../src/db/repositories/PluginEgressHosts.repository';
-import type { PluginSettingsFieldsRepository } from '../../../src/db/repositories/PluginSettingsFields.repository';
-import type { PluginActionsRepository } from '../../../src/db/repositories/PluginActions.repository';
-import type { PluginUserConfigRepository } from '../../../src/db/repositories/PluginUserConfig.repository';
-import type { PluginErrorLogRepository } from '../../../src/db/repositories/PluginErrorLog.repository';
-import type { PluginCapabilityAuditRepository } from '../../../src/db/repositories/PluginCapabilityAudit.repository';
-import type { TestOrm } from '../../helpers/test-orm';
-import { deleteRows, findRow, insertRow, updateRows, upsertRow } from '../../helpers/factories/rows';
 
 let orm: TestOrm;
 
@@ -60,21 +60,50 @@ async function markActive(id: string) {
 
 async function install(id: string) {
   await upsertRow(orm, Plugins, {
-    id, name: id, status: 'inactive', enabled: 0, version: '1.0.0', permissions: '[]', granted_permissions: '[]',
-    capabilities: '{}', config: '{}',
+    id,
+    name: id,
+    status: 'inactive',
+    enabled: 0,
+    version: '1.0.0',
+    permissions: '[]',
+    granted_permissions: '[]',
+    capabilities: '{}',
+    config: '{}',
   });
   activeIds.delete(id);
 }
 
-async function declareField(pluginId: string, key: string, scope: 'instance' | 'user', opts: { secret?: boolean; required?: boolean; sortOrder?: number; options?: string } = {}) {
+async function declareField(
+  pluginId: string,
+  key: string,
+  scope: 'instance' | 'user',
+  opts: { secret?: boolean; required?: boolean; sortOrder?: number; options?: string } = {},
+) {
   await insertRow(orm, PluginSettingsFields, {
-    plugin_id: pluginId, field_key: key, label: key, input_type: 'text', placeholder: null, hint: null,
-    required: opts.required ? 1 : 0, secret: opts.secret ? 1 : 0, scope, options: opts.options ?? null, sort_order: opts.sortOrder ?? 0,
+    plugin_id: pluginId,
+    field_key: key,
+    label: key,
+    input_type: 'text',
+    placeholder: null,
+    hint: null,
+    required: opts.required ? 1 : 0,
+    secret: opts.secret ? 1 : 0,
+    scope,
+    options: opts.options ?? null,
+    sort_order: opts.sortOrder ?? 0,
   });
 }
 
 function declareActionRow(pluginId: string, key: string, label: string, scope: 'user' | 'instance') {
-  return insertRow(orm, PluginActions, { plugin_id: pluginId, action_key: key, label, hint: null, danger: 0, scope, sort_order: 0 });
+  return insertRow(orm, PluginActions, {
+    plugin_id: pluginId,
+    action_key: key,
+    label,
+    hint: null,
+    danger: 0,
+    scope,
+    sort_order: 0,
+  });
 }
 
 let addonsService: AddonsService;
@@ -111,13 +140,26 @@ async function installFixturePlugin(opts: { settings: Array<Record<string, unkno
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
     path.join(codeRoot, 'fixture-id', 'trek-plugin.json'),
-    JSON.stringify({ id: 'fixture-id', name: 'Fixture', version: '1.0.0', type: 'integration', trek: '>=4.0.0 <5.0.0', settings: opts.settings }),
+    JSON.stringify({
+      id: 'fixture-id',
+      name: 'Fixture',
+      version: '1.0.0',
+      type: 'integration',
+      trek: '>=4.0.0 <5.0.0',
+      settings: opts.settings,
+    }),
   );
   fs.writeFileSync(path.join(dir, 'index.js'), 'module.exports={}');
   // Plan 3j Task 3: `discoverPlugins` takes a `DiscoveryRepos` bundle now, not a raw
   // connection — the same repositories this file already resolves via `sharedTestOrm`.
   // Plan 4 Task 4: `uow` is no longer optional in that bundle.
-  await discoverPlugins({ plugins: pluginsRepo, actions: pluginActionsRepo, settingsFields: pluginSettingsFieldsRepo, errorLog: pluginErrorLogRepo, uow: await createTestUnitOfWork(testDb) });
+  await discoverPlugins({
+    plugins: pluginsRepo,
+    actions: pluginActionsRepo,
+    settingsFields: pluginSettingsFieldsRepo,
+    errorLog: pluginErrorLogRepo,
+    uow: await createTestUnitOfWork(testDb),
+  });
 }
 
 beforeAll(async () => {
@@ -182,13 +224,18 @@ describe('instance settings fields', () => {
     await declareActionRow('with-action', 'notify', 'Notify', 'user'); // user-scope actions must not count
 
     const plugins = (await svc().list()).plugins;
-    expect(plugins.find((p) => p.id === 'with-action')).toMatchObject({ instanceSettingsCount: 0, instanceActionsCount: 1 });
+    expect(plugins.find((p) => p.id === 'with-action')).toMatchObject({
+      instanceSettingsCount: 0,
+      instanceActionsCount: 1,
+    });
     expect(plugins.find((p) => p.id === 'plain')).toMatchObject({ instanceSettingsCount: 0, instanceActionsCount: 0 });
     await deleteRows(orm, PluginActions, { plugin_id: 'with-action' });
   });
 
   it('INS-010 — persists a settings-field default and serves it on the fields list', async () => {
-    await installFixturePlugin({ settings: [{ key: 'oauth_authorize_url', required: true, default: 'https://auth.openbnb.org/authorize' }] });
+    await installFixturePlugin({
+      settings: [{ key: 'oauth_authorize_url', required: true, default: 'https://auth.openbnb.org/authorize' }],
+    });
     const fields = await svc().instanceSettingsFields('fixture-id');
     expect(fields[0].default).toBe('https://auth.openbnb.org/authorize');
   });
@@ -215,18 +262,30 @@ describe('instance settings fields', () => {
 describe('required settings are enforced on save', () => {
   it('refuses a save that leaves a required instance field empty', async () => {
     await installFixturePlugin({ settings: [{ key: 'client_id', required: true }] });
-    await expect(svc().updateInstanceConfig('fixture-id', { client_id: '   ' })).rejects.toThrow(/Missing required setting "client_id"/);
+    await expect(svc().updateInstanceConfig('fixture-id', { client_id: '   ' })).rejects.toThrow(
+      /Missing required setting "client_id"/,
+    );
   });
 
   it('accepts a partial patch when the required field is already stored', async () => {
-    await installFixturePlugin({ settings: [{ key: 'client_id', required: true }, { key: 'note', required: false }] });
+    await installFixturePlugin({
+      settings: [
+        { key: 'client_id', required: true },
+        { key: 'note', required: false },
+      ],
+    });
     const s = svc();
     await s.updateInstanceConfig('fixture-id', { client_id: 'abc' });
     await expect(s.updateInstanceConfig('fixture-id', { note: 'hi' })).resolves.toBeDefined();
   });
 
   it('accepts a user-scope partial patch when the required user field is already stored', async () => {
-    await installFixturePlugin({ settings: [{ key: 'api_key', scope: 'user', required: true }, { key: 'units', scope: 'user' }] });
+    await installFixturePlugin({
+      settings: [
+        { key: 'api_key', scope: 'user', required: true },
+        { key: 'units', scope: 'user' },
+      ],
+    });
     const s = svc();
     await s.updateUserConfig('fixture-id', 1, { api_key: 'sk-1' });
     await expect(s.updateUserConfig('fixture-id', 1, { units: 'metric' })).resolves.toBeDefined();
@@ -234,25 +293,42 @@ describe('required settings are enforced on save', () => {
 
   it('refuses a user-settings save that leaves a required user field empty', async () => {
     await installFixturePlugin({ settings: [{ key: 'api_key', scope: 'user', required: true }] });
-    await expect(svc().updateUserConfig('fixture-id', 1, { api_key: '' })).rejects.toThrow(/Missing required setting "api_key"/);
+    await expect(svc().updateUserConfig('fixture-id', 1, { api_key: '' })).rejects.toThrow(
+      /Missing required setting "api_key"/,
+    );
   });
 
   it('exempts checkbox fields from required enforcement (consent, not a settings field)', async () => {
-    await installFixturePlugin({ settings: [{ key: 'accept_terms', input_type: 'checkbox', required: true }, { key: 'note', required: false }] });
+    await installFixturePlugin({
+      settings: [
+        { key: 'accept_terms', input_type: 'checkbox', required: true },
+        { key: 'note', required: false },
+      ],
+    });
     // accept_terms is left entirely unset (never patched, nothing stored) — a
     // non-checkbox required field in this state would throw.
     await expect(svc().updateInstanceConfig('fixture-id', { note: 'hi' })).resolves.toBeDefined();
   });
 
   it('a required field with a manifest default is satisfied by the default', async () => {
-    await installFixturePlugin({ settings: [{ key: 'region', required: true, default: 'eu' }, { key: 'note', required: false }] });
+    await installFixturePlugin({
+      settings: [
+        { key: 'region', required: true, default: 'eu' },
+        { key: 'note', required: false },
+      ],
+    });
     // region is never patched and nothing is stored — the runtime will see the default,
     // so refusing the save here would contradict what the child actually gets.
     await expect(svc().updateInstanceConfig('fixture-id', { note: 'hi' })).resolves.toBeDefined();
   });
 
   it('a stored secret (non-empty ciphertext) counts as filled on a later partial patch', async () => {
-    await installFixturePlugin({ settings: [{ key: 'api_key', secret: true, required: true }, { key: 'note', required: false }] });
+    await installFixturePlugin({
+      settings: [
+        { key: 'api_key', secret: true, required: true },
+        { key: 'note', required: false },
+      ],
+    });
     const s = svc();
     await s.updateInstanceConfig('fixture-id', { api_key: 'sk-real' });
     await expect(s.updateInstanceConfig('fixture-id', { api_key: '••••••••', note: 'hi' })).resolves.toBeDefined();
@@ -271,9 +347,13 @@ describe('respawn on save (runtime)', () => {
     const rt = await createPluginRuntime(testDb);
     const calls: string[] = [];
     vi.spyOn(rt, 'isActive').mockReturnValue(true);
-    vi.spyOn(rt, 'activate').mockImplementation(async () => { calls.push('activate'); });
+    vi.spyOn(rt, 'activate').mockImplementation(async () => {
+      calls.push('activate');
+    });
     const sup = (rt as unknown as { supervisor: { disable: (id: string) => Promise<void> } }).supervisor;
-    vi.spyOn(sup, 'disable').mockImplementation(async () => { calls.push('disable'); });
+    vi.spyOn(sup, 'disable').mockImplementation(async () => {
+      calls.push('disable');
+    });
 
     await expect(rt.respawnIfActive('p')).resolves.toBe(true);
     expect(calls).toEqual(['disable', 'activate']); // stop first, then bring back up
@@ -337,7 +417,10 @@ describe('admin config endpoints (controller)', () => {
 
     const failed = await controllerWith({ respawnIfActive })
       .updateConfig('p', { apiUrl: 'https://y.example' })
-      .then(() => null, (e: unknown) => e as HttpException);
+      .then(
+        () => null,
+        (e: unknown) => e as HttpException,
+      );
 
     expect(failed?.getStatus()).toBe(503);
     // The respawn is a spawn: it must not run while the whole plugin system is off.
@@ -355,7 +438,10 @@ describe('admin config endpoints (controller)', () => {
 
     const failed = await controllerWith({ respawnIfActive, deactivate })
       .updateConfig('p', { apiUrl: 'https://y.example' })
-      .then(() => null, (e: unknown) => e as HttpException);
+      .then(
+        () => null,
+        (e: unknown) => e as HttpException,
+      );
 
     expect(failed?.getStatus()).toBe(409);
     // The envelope carries the saved config and names the restart as the part that broke:
@@ -399,9 +485,18 @@ describe('defaults reach the child at spawn', () => {
 describe('plugin_actions.scope migration', () => {
   it('MIG-ACT-001 — the column exists on a migrated DB and defaults to user', async () => {
     // test-sql-allow: the column list comes from PRAGMA table_info, which no entity or repository maps.
-    const cols = testDb.prepare("SELECT name FROM pragma_table_info('plugin_actions')").all() as Array<{ name: string }>;
+    const cols = testDb.prepare("SELECT name FROM pragma_table_info('plugin_actions')").all() as Array<{
+      name: string;
+    }>;
     expect(cols.some((c) => c.name === 'scope')).toBe(true);
-    await insertRow(orm, PluginActions, { plugin_id: 'm', action_key: 'k', label: 'K', hint: null, danger: 0, sort_order: 0 });
+    await insertRow(orm, PluginActions, {
+      plugin_id: 'm',
+      action_key: 'k',
+      label: 'K',
+      hint: null,
+      danger: 0,
+      sort_order: 0,
+    });
     expect((await findRow(orm, PluginActions, { plugin_id: 'm' }))!.scope).toBe('user');
     await deleteRows(orm, PluginActions, { plugin_id: 'm' });
   });
@@ -419,7 +514,12 @@ describe('instance-scope actions (admin)', () => {
     // (markActive), mirroring what an actually-activated plugin would report.
     const isActive = (id: string) => activeIds.has(id);
     const runtime = Object.assign(rt, { invokeAction: invoke, isActive }) as unknown as PluginRuntimeService;
-    const c = new PluginsController(svc(), runtime, {} as unknown as PluginRegistryService, { isManaged: () => false } as unknown as RuntimeEnvService);
+    const c = new PluginsController(
+      svc(),
+      runtime,
+      {} as unknown as PluginRegistryService,
+      { isManaged: () => false } as unknown as RuntimeEnvService,
+    );
     return { c, invoke };
   }
 
@@ -432,7 +532,9 @@ describe('instance-scope actions (admin)', () => {
     await declareAction('p', 'purge', 'instance');
     await declareAction('p', 'testConnection', 'user');
     const { c } = await controller();
-    expect((await c.getConfig('p')).actions).toEqual([{ key: 'purge', label: 'purge', hint: undefined, danger: false, scope: 'instance' }]);
+    expect((await c.getConfig('p')).actions).toEqual([
+      { key: 'purge', label: 'purge', hint: undefined, danger: false, scope: 'instance' },
+    ]);
   });
 
   it('ACT-ADM-002 — POST runs the action as the clicking admin in the instance scope', async () => {
@@ -446,14 +548,24 @@ describe('instance-scope actions (admin)', () => {
   it('ACT-ADM-003 — an inactive plugin answers 404 like the user route', async () => {
     await install('p');
     const { c, invoke } = await controller();
-    await expect(c.runAction('p', 'purge', adminReq)).rejects.toMatchObject({ status: 404, response: { error: 'Plugin is not active' } });
+    await expect(c.runAction('p', 'purge', adminReq)).rejects.toMatchObject({
+      status: 404,
+      response: { error: 'Plugin is not active' },
+    });
     expect(invoke).not.toHaveBeenCalled();
   });
 
   it('ACT-ADM-004 — a refused key is a failed RESULT, not a server error', async () => {
     await install('p');
     await markActive('p');
-    const { c } = await controller(vi.fn(async () => { throw new Error('plugin p did not declare action "x" in scope instance'); }));
-    expect(await c.runAction('p', 'x', adminReq)).toEqual({ ok: false, message: 'plugin p did not declare action "x" in scope instance' });
+    const { c } = await controller(
+      vi.fn(async () => {
+        throw new Error('plugin p did not declare action "x" in scope instance');
+      }),
+    );
+    expect(await c.runAction('p', 'x', adminReq)).toEqual({
+      ok: false,
+      message: 'plugin p did not declare action "x" in scope instance',
+    });
   });
 });

@@ -1,24 +1,25 @@
+import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { ReservationDayPositions } from '../../db/entities/ReservationDayPositions.entity';
+import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import type { DayAccommodationsRepository } from '../../db/repositories/DayAccommodations.repository';
+import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
+import type { DaysRepository } from '../../db/repositories/Days.repository';
+import type { ReservationDayPositionsRepository } from '../../db/repositories/ReservationDayPositions.repository';
+import type { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
+import type { ReservationsRepository, RoadtripCarrierRow } from '../../db/repositories/Reservations.repository';
 import { DomainError } from '../common/domain-error';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { SettingsService } from '../settings/settings.service';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 import { DayBoundariesService } from './day-boundaries.service';
 import { RoadtripPreferencesService } from './roadtrip-preferences.service';
 import { RoadtripRouterService } from './roadtrip-router.service';
 import { RoadtripService } from './roadtrip.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import { type RoadtripPreferences } from '@trek/shared';
-import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository } from '../../db/repositories/Days.repository';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
-import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
-import type { DayAccommodationsRepository } from '../../db/repositories/DayAccommodations.repository';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import type { ReservationsRepository, RoadtripCarrierRow } from '../../db/repositories/Reservations.repository';
-import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
-import type { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
-import { ReservationDayPositions } from '../../db/entities/ReservationDayPositions.entity';
-import type { ReservationDayPositionsRepository } from '../../db/repositories/ReservationDayPositions.repository';
 import {
   assembleRoadtrip,
   carrierLegsFor,
@@ -47,7 +48,6 @@ import {
   type RouteAvoidClass,
   standsAsDay,
 } from '@trek/shared/roadtrip';
-import { TripAccessService } from '../trip-membership/trip-access.service';
 
 const stopKey = (s: RoadtripStop) =>
   `${s.lat.toFixed(5)},${s.lng.toFixed(5)},${s.legMode ?? ''},${s.incomingLegMode ?? ''}`;
@@ -141,34 +141,34 @@ export class RoadtripPlanService {
     );
     if (preferences.roadtrip_day_start && preferences.roadtrip_day_end && !window)
       throw new DomainError(400, 'Day end must be later than day start.');
-    const seams = context.carriers.map((booking) => carrierSeam(booking)).filter((seam): seam is CarrierSeam => seam !== null);
+    const seams = context.carriers
+      .map((booking) => carrierSeam(booking))
+      .filter((seam): seam is CarrierSeam => seam !== null);
     const dayNumberOf = (dayId: number): number => context.days.find((d) => d.id === dayId)?.day_number ?? 0;
     const stored: PlanDay[] = context.days.map((day) => {
       const visits = context.visits.filter((v) => v.day_id === day.id && v.lat !== null && v.lng !== null);
-      const stops = visits.map(
-        (v, index): RoadtripStop => ({
-          assignmentId: v.id,
-          ownerDayId: day.id,
-          ownerIndex: index,
-          placeId: v.place_id,
-          name: v.name,
-          lat: v.lat!,
-          lng: v.lng!,
-          time: v.time,
-          // The visit's end time is when the drive leaves it, the same reading the
-          // planner makes in the browser (useRoadtripRoutes).
-          leaveAt: v.end_time,
-          checkInTime: v.check_in,
-          night: v.stay_id !== null,
-          bookedNightId: v.accommodation_id,
-          dwellMinutes: v.duration_minutes,
-          endDay: v.end_day === 1,
-          legMode: v.leg_transport_mode,
-          incomingLegMode: v.incoming_leg_transport_mode,
-          stopType: v.stop_type,
-          fillPercent: v.fill_percent,
-        }),
-      );
+      const stops = visits.map((v, index): RoadtripStop => ({
+        assignmentId: v.id,
+        ownerDayId: day.id,
+        ownerIndex: index,
+        placeId: v.place_id,
+        name: v.name,
+        lat: v.lat!,
+        lng: v.lng!,
+        time: v.time,
+        // The visit's end time is when the drive leaves it, the same reading the
+        // planner makes in the browser (useRoadtripRoutes).
+        leaveAt: v.end_time,
+        checkInTime: v.check_in,
+        night: v.stay_id !== null,
+        bookedNightId: v.accommodation_id,
+        dwellMinutes: v.duration_minutes,
+        endDay: v.end_day === 1,
+        legMode: v.leg_transport_mode,
+        incomingLegMode: v.incoming_leg_transport_mode,
+        stopType: v.stop_type,
+        fillPercent: v.fill_percent,
+      }));
       return {
         dayId: day.id,
         dayNumber: day.day_number,
@@ -196,8 +196,7 @@ export class RoadtripPlanService {
     const failures: { fromAssignmentId: number; toAssignmentId: number; reason: string }[] = [];
     const avoid = parseAvoid(preferences.roadtrip_avoid);
     const connectDays = preferences.roadtrip_connect_days || window !== null;
-    if (context.visits.length > 150)
-      throw new DomainError(400, 'This trip exceeds the 150-visit calculation limit.');
+    if (context.visits.length > 150) throw new DomainError(400, 'This trip exceeds the 150-visit calculation limit.');
     const asked = new Set<string>();
     const distanceUnit: DistanceUnit =
       (await this.settings.getUserSettings(userId)).distance_unit === 'imperial' ? 'imperial' : 'metric';
@@ -252,7 +251,13 @@ export class RoadtripPlanService {
         });
         Object.assign(
           allLegs,
-          foldRouteRun(stops, stopAt, { coordinates: routed.leg.line, legs, vias: routed.leg.vias }, profile, distanceUnit),
+          foldRouteRun(
+            stops,
+            stopAt,
+            { coordinates: routed.leg.line, legs, vias: routed.leg.vias },
+            profile,
+            distanceUnit,
+          ),
         );
         missedByDay[dayId] = [...new Set([...(missedByDay[dayId] ?? []), ...routed.avoidMissed])];
         stops.forEach((stop, index) => {

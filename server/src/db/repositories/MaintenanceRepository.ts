@@ -105,7 +105,9 @@ export class MaintenanceRepository {
     for (const table of ['plugin_user_config', 'plugin_oauth_tokens', 'plugin_oauth_state']) {
       try {
         await this.em.getConnection().execute(`DELETE FROM ${table} WHERE user_id = ?`, [userId], 'run', ctx);
-      } catch { /* table absent (slim schema) */ }
+      } catch {
+        /* table absent (slim schema) */
+      }
     }
   }
 }

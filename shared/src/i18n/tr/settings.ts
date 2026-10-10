@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Şablon seçin...',
   'settings.mapDefaultHint': 'OpenStreetMap için boş bırakın (varsayılan)',
   'settings.routingBase': 'Kendi rota motoru',
-  'settings.routingBaseHint': 'Kendi OSRM sunucunuz. Boş bırakılırsa saniyede yaklaşık bir istek veren genel sunucular kullanılır: bir gün için yeter, uzun yolculuk için az. Sunucu yeniden başlatıldığında etkin olur.',
+  'settings.routingBaseHint':
+    'Kendi OSRM sunucunuz. Boş bırakılırsa saniyede yaklaşık bir istek veren genel sunucular kullanılır: bir gün için yeter, uzun yolculuk için az. Sunucu yeniden başlatıldığında etkin olur.',
   'settings.valhallaBase': 'Kendi Valhalla sunucunuz',
   'settings.valhallaBaseHint':
     'TREK, ücretli yolları, otoyolları ve feribotları önlemek için varsayılan olarak FOSSGIS’in herkese açık Valhalla hizmetini kullanır. Bunun yerine kendi Valhalla sunucunuzu kullanmak için URL’sini buraya girin. Yalnızca özel bir rota sunucusu yapılandırılmışsa herkese açık Valhalla kullanılmaz. Özel URL girdikten sonra sunucuyu yeniden başlatın ve sayfayı yenileyin.',
@@ -81,7 +82,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': "Tüm tarih seçicilerde haftanın ilk günü. Vacay'in kendi ayarı vardır.",
   'settings.preferredNavApp': 'Yerleri şurada aç',
   'settings.preferredNavAppAsk': 'Her seferinde sor',
-  'settings.preferredNavAppHint': 'Bir uygulama seçiliyse, navigasyon düğmesi tüm harita uygulamalarını sunmak yerine onu doğrudan açar.',
+  'settings.preferredNavAppHint':
+    'Bir uygulama seçiliyse, navigasyon düğmesi tüm harita uygulamalarını sunmak yerine onu doğrudan açar.',
   'settings.bookingLabels': 'Rezervasyon rota etiketleri',
   'settings.bookingLabelsHint': 'Haritada istasyon / havalimanı adlarını göster. Kapalıyken yalnızca simge görünür.',
   'settings.blurBookingCodes': 'Rezervasyon Kodlarını Bulanıklaştır',
@@ -502,7 +504,8 @@ const settings: TranslationStrings = {
   'settings.compactUnplanned': 'Planlanmamış yerler için küçük işaretler',
   'settings.compactUnplannedHint':
     'Hiçbir güne planlanmamış yerler fotoğrafsız küçük işaretler olarak gösterilir, böylece planlanan duraklar öne çıkar.',
-  'settings.dayDateFirstHint': 'Her güne takvim tarihiyle başla ve yanında "1. Gün" ya da günün kendi başlığını göster.',
+  'settings.dayDateFirstHint':
+    'Her güne takvim tarihiyle başla ve yanında "1. Gün" ya da günün kendi başlığını göster.',
   'settings.startPage': 'Başlangıç sayfası',
   'settings.startPageDashboard': 'Pano',
   'settings.startPageActiveTrip': 'Aktif seyahat',
@@ -546,7 +549,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'Bağlantı yok. Gezileri çevrimdışı kaydetmek için bağlanın.',
   'settings.offline.notice.signedOut': 'Oturumunuz sona erdi. Eşitlemek için tekrar giriş yapın.',
   'settings.offline.notice.failed': 'İndirme tamamlanamadı. Bağlantınızı kontrol edip yeniden deneyin.',
-  'settings.offline.notice.loadFailed': 'Bu cihazın çevrimdışı deposu okunamadı. Genellikle önbelleği temizlemek sorunu çözer.',
+  'settings.offline.notice.loadFailed':
+    'Bu cihazın çevrimdışı deposu okunamadı. Genellikle önbelleği temizlemek sorunu çözer.',
   'settings.offline.clear': 'Önbelleği temizle',
   'settings.offline.clearConfirm':
     'Tüm çevrimdışı gezi verileri silinsin mi? Çevrimiçiyken istediğiniz zaman yeniden senkronize edebilirsiniz.',
@@ -614,7 +618,8 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Dilek listesi',
   'settings.apiScopes.stats': 'Toplamlar',
   'settings.apiKeys.title': 'API Anahtarları',
-  'settings.apiKeys.description': 'Genel API için anahtarlar, böylece başka yazılımlar gezilerini okuyabilir. Yalnızca okuma: bir anahtar hiçbir şeyi değiştiremez veya silemez.',
+  'settings.apiKeys.description':
+    'Genel API için anahtarlar, böylece başka yazılımlar gezilerini okuyabilir. Yalnızca okuma: bir anahtar hiçbir şeyi değiştiremez veya silemez.',
   'settings.apiKeys.create': 'Anahtar oluştur',
   'settings.apiKeys.empty': 'Henüz anahtar yok. Başka bir yazılımı bağlamak için bir tane oluştur.',
   'settings.apiKeys.createdAt': 'oluşturuldu',
@@ -625,7 +630,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.deleteFailed': 'Anahtar silinemedi',
   'settings.apiKeys.createFailed': 'Anahtar oluşturulamadı',
   'settings.apiKeys.copy': 'Kopyala',
-  'settings.apiKeys.docsHint': 'Anahtarı "Authorization: Bearer ..." veya "X-API-Key: ..." olarak /api/v1 adresine gönder.',
+  'settings.apiKeys.docsHint':
+    'Anahtarı "Authorization: Bearer ..." veya "X-API-Key: ..." olarak /api/v1 adresine gönder.',
   'settings.apiKeys.endpoint': 'Uç nokta',
   'settings.apiKeys.neverUsed': 'hiç kullanılmadı',
   'settings.apiKeys.loadFailed': 'Anahtarların yüklenemedi. Tekrar denemek için sayfayı yenile.',

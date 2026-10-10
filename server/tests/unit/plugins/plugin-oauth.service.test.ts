@@ -4,6 +4,17 @@
  * https/SSRF guard on the endpoints, the code + refresh token exchanges (mocked fetch),
  * tokens encrypted at rest, and a stored refresh token that the plugin never sees.
  */
+import { PluginOauthState } from '../../../src/db/entities/PluginOauthState.entity';
+import { PluginOauthTokens } from '../../../src/db/entities/PluginOauthTokens.entity';
+import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import { PluginOAuthService } from '../../../src/nest/plugins/oauth/plugin-oauth.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { sharedTestOrm } from '../../helpers/test-uow';
+
+import Database from 'better-sqlite3';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
@@ -20,7 +31,11 @@ const { getDb } = vi.hoisted(() => ({ getDb: { current: null as unknown } }));
 // (the service dropped its last raw-connection use) — a transitive importer of
 // `src/db/database` elsewhere in the module graph would otherwise try to open a
 // real connection at import time.
-vi.mock('../../../src/db/database', () => ({ get db() { return getDb.current; } }));
+vi.mock('../../../src/db/database', () => ({
+  get db() {
+    return getDb.current;
+  },
+}));
 
 // The token POST now runs through the SSRF guard (ssrfGuard.safeFetchLlm), which
 // resolves the host before fetching. Stub DNS so the fake provider.example host
@@ -31,28 +46,22 @@ vi.mock('node:dns/promises', () => {
   return { default: { lookup }, lookup };
 });
 
-import Database from 'better-sqlite3';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { PluginOAuthService } from '../../../src/nest/plugins/oauth/plugin-oauth.service';
-import { sharedTestOrm } from '../../helpers/test-uow';
-import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
-import { Plugins } from '../../../src/db/entities/Plugins.entity';
-import { PluginOauthTokens } from '../../../src/db/entities/PluginOauthTokens.entity';
-import { PluginOauthState } from '../../../src/db/entities/PluginOauthState.entity';
-import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
-import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
-
 const CFG = {
   oauth_authorize_url: 'https://provider.example/authorize',
   oauth_token_url: 'https://provider.example/token',
   oauth_scopes: 'read write',
-  oauth_client_id: 'enc:client-123',       // stored encrypted
+  oauth_client_id: 'enc:client-123', // stored encrypted
   oauth_client_secret: 'enc:secret-abc',
 };
 
 async function freshDb(cfg: Record<string, unknown> = CFG) {
   const d = createSnapshotTestDb();
-  await insertRow(await sharedTestOrm(d), Plugins, { id: 'p', name: 'p', config: JSON.stringify(cfg), status: 'active' });
+  await insertRow(await sharedTestOrm(d), Plugins, {
+    id: 'p',
+    name: 'p',
+    config: JSON.stringify(cfg),
+    status: 'active',
+  });
   return d;
 }
 
@@ -76,15 +85,31 @@ const NOW = 1_700_000_000_000;
  */
 async function makeOauthService(): Promise<PluginOAuthService> {
   const orm = await sharedTestOrm(getDb.current as Database.Database);
-  return new PluginOAuthService(orm.repo(Plugins), orm.repo(PluginOauthTokens), orm.repo(PluginOauthState), orm.repo(PluginSettingsFields), new UnitOfWork(orm.em));
+  return new PluginOAuthService(
+    orm.repo(Plugins),
+    orm.repo(PluginOauthTokens),
+    orm.repo(PluginOauthState),
+    orm.repo(PluginSettingsFields),
+    new UnitOfWork(orm.em),
+  );
 }
 
 describe('PluginOAuthService', () => {
   let svc: PluginOAuthService;
-  beforeEach(async () => { getDb.current = await freshDb(); svc = await makeOauthService(); vi.restoreAllMocks(); dnsState.address = '93.184.216.34'; dnsState.family = 4; });
+  beforeEach(async () => {
+    getDb.current = await freshDb();
+    svc = await makeOauthService();
+    vi.restoreAllMocks();
+    dnsState.address = '93.184.216.34';
+    dnsState.family = 4;
+  });
 
   it('providerConfig returns null unless every piece is present, decrypting the secrets', async () => {
-    expect(await svc.providerConfig('p')).toMatchObject({ clientId: 'client-123', clientSecret: 'secret-abc', scopes: 'read write' });
+    expect(await svc.providerConfig('p')).toMatchObject({
+      clientId: 'client-123',
+      clientSecret: 'secret-abc',
+      scopes: 'read write',
+    });
     getDb.current = await freshDb({ ...CFG, oauth_client_secret: '' });
     expect(await (await makeOauthService()).providerConfig('p')).toBeNull();
   });
@@ -96,11 +121,17 @@ describe('PluginOAuthService', () => {
     getDb.current = await freshDb(stored);
     const orm = await currentOrm();
     const declareDefault = (key: string, value: string) =>
-      insertRow(orm, PluginSettingsFields, { plugin_id: 'p', field_key: key, scope: 'instance', secret: 0, default_value: JSON.stringify(value) });
+      insertRow(orm, PluginSettingsFields, {
+        plugin_id: 'p',
+        field_key: key,
+        scope: 'instance',
+        secret: 0,
+        default_value: JSON.stringify(value),
+      });
     await declareDefault('oauth_authorize_url', 'https://provider.example/authorize');
     await declareDefault('oauth_token_url', 'https://provider.example/token');
     await declareDefault('oauth_scopes', 'read');
-    svc = (await makeOauthService());
+    svc = await makeOauthService();
     expect(await svc.providerConfig('p')).toEqual({
       authorizeUrl: 'https://provider.example/authorize',
       tokenUrl: 'https://provider.example/token',
@@ -154,7 +185,8 @@ describe('PluginOAuthService', () => {
     const url = new URL(await svc.startConnect('p', 42, NOW));
     const state = url.searchParams.get('state')!;
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: true, json: async () => ({ access_token: 'AT', refresh_token: 'RT', expires_in: 3600, scope: 'read' }),
+      ok: true,
+      json: async () => ({ access_token: 'AT', refresh_token: 'RT', expires_in: 3600, scope: 'read' }),
     } as Response);
 
     await svc.completeCallback('p', 42, 'the-code', state, NOW + 1000);
@@ -165,7 +197,7 @@ describe('PluginOAuthService', () => {
     expect(body).toContain('client_secret=secret-abc');
 
     const tok = (await findRow(await currentOrm(), PluginOauthTokens, { plugin_id: 'p', user_id: 42 }))!;
-    expect(tok.access_token).toBe('enc:AT');   // encrypted at rest
+    expect(tok.access_token).toBe('enc:AT'); // encrypted at rest
     expect(tok.refresh_token).toBe('enc:RT');
     expect(await svc.status('p', 42)).toMatchObject({ configured: true, connected: true });
     // state is single-use — replaying it fails
@@ -182,12 +214,20 @@ describe('PluginOAuthService', () => {
   it('getAccessToken returns the token, refreshes an expiring one, and hands the plugin only the access token', async () => {
     const orm = await currentOrm();
     // a live token → returned decrypted, no network
-    await insertRow(orm, PluginOauthTokens, { plugin_id: 'p', user_id: 42, access_token: 'enc:LIVE', refresh_token: 'enc:RT', expires_at: NOW + 3600_000 });
+    await insertRow(orm, PluginOauthTokens, {
+      plugin_id: 'p',
+      user_id: 42,
+      access_token: 'enc:LIVE',
+      refresh_token: 'enc:RT',
+      expires_at: NOW + 3600_000,
+    });
     expect(await svc.getAccessToken('p', 42, NOW)).toBe('LIVE');
 
     // an expired token → refreshed via the refresh_token grant
     await updateRows(orm, PluginOauthTokens, { user_id: 42 }, { access_token: 'enc:OLD', expires_at: NOW - 1000 });
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ access_token: 'NEW', expires_in: 3600 }) } as Response);
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue({ ok: true, json: async () => ({ access_token: 'NEW', expires_in: 3600 }) } as Response);
     expect(await svc.getAccessToken('p', 42, NOW)).toBe('NEW');
     expect((fetchMock.mock.calls[0][1] as { body: string }).body).toContain('grant_type=refresh_token');
     // the provider omitted a new refresh_token → the old one is kept
@@ -200,14 +240,16 @@ describe('PluginOAuthService', () => {
 
   it('routes the token exchange through the SSRF guard — a token_url resolving to cloud metadata is refused', async () => {
     const state = new URL(await svc.startConnect('p', 42, NOW)).searchParams.get('state')!;
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ access_token: 'AT' }) } as Response);
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue({ ok: true, json: async () => ({ access_token: 'AT' }) } as Response);
     // The provider's token_url now resolves to the cloud-metadata address.
     dnsState.address = '169.254.169.254';
     await expect(svc.completeCallback('p', 42, 'the-code', state, NOW + 1000)).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled(); // blocked before any request left the host
   });
 
-  it('disconnect drops the user\'s tokens', async () => {
+  it("disconnect drops the user's tokens", async () => {
     await insertRow(await currentOrm(), PluginOauthTokens, { plugin_id: 'p', user_id: 42, access_token: 'enc:X' });
     await svc.disconnect('p', 42);
     expect((await svc.status('p', 42)).connected).toBe(false);
@@ -228,7 +270,10 @@ describe('PluginOAuthService', () => {
 
     // Success path.
     const stateB = new URL(await svc.startConnect('p', 42, NOW)).searchParams.get('state')!;
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ access_token: 'AT' }) } as Response);
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ access_token: 'AT' }),
+    } as Response);
     await svc.completeCallback('p', 42, 'code', stateB, NOW + 1000);
     expect(await stateRow(stateB)).toBeNull();
   });
@@ -244,7 +289,8 @@ describe('PluginOAuthService', () => {
   it('the state consume race: two concurrent completeCallback calls for the SAME state — exactly one wins', async () => {
     const state = new URL(await svc.startConnect('p', 42, NOW)).searchParams.get('state')!;
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: true, json: async () => ({ access_token: 'AT', refresh_token: 'RT', expires_in: 3600 }),
+      ok: true,
+      json: async () => ({ access_token: 'AT', refresh_token: 'RT', expires_in: 3600 }),
     } as Response);
 
     const results = await Promise.allSettled([
@@ -255,7 +301,9 @@ describe('PluginOAuthService', () => {
     const rejected = results.filter((r) => r.status === 'rejected');
     expect(fulfilled).toHaveLength(1); // exactly one consumer wins the state
     expect(rejected).toHaveLength(1);
-    expect((rejected[0] as PromiseRejectedResult).reason as Error).toMatchObject({ message: expect.stringMatching(/state/) });
+    expect((rejected[0] as PromiseRejectedResult).reason as Error).toMatchObject({
+      message: expect.stringMatching(/state/),
+    });
     // The token exchange fired exactly once — the loser never reached it.
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(await stateRow(state)).toBeNull();

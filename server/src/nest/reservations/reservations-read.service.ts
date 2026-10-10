@@ -1,17 +1,28 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
+import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { ReservationTravelers } from '../../db/entities/ReservationTravelers.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import type { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
+import type { ReservationTravelersRepository } from '../../db/repositories/ReservationTravelers.repository';
+import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
 import { avatarUrl } from '../common/avatarUrl';
 import type { ReservationRow, ReservationEndpoint, ReservationTraveler } from './reservations.service';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
-import type { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
-import { ReservationTravelers } from '../../db/entities/ReservationTravelers.entity';
-import type { ReservationTravelersRepository } from '../../db/repositories/ReservationTravelers.repository';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /** The one traveler projection every reservation read shares (avatar_url included). */
-export function toTraveler(r: { user_id: number; username: string; avatar: string | null; is_guest?: number | null }): ReservationTraveler {
-  return { user_id: r.user_id, username: r.username, avatar: r.avatar, is_guest: r.is_guest ?? null, avatar_url: avatarUrl(r) };
+export function toTraveler(r: {
+  user_id: number;
+  username: string;
+  avatar: string | null;
+  is_guest?: number | null;
+}): ReservationTraveler {
+  return {
+    user_id: r.user_id,
+    username: r.username,
+    avatar: r.avatar,
+    is_guest: r.is_guest ?? null,
+    avatar_url: avatarUrl(r),
+  };
 }
 
 /**
@@ -66,6 +77,6 @@ export class ReservationsReadService {
   async loadTravelers(reservationId: number | string): Promise<ReservationTraveler[]> {
     // RR3 — no ORDER BY (unlike RS6), matching the legacy statement's own row order.
     const rows = await this.travelersRepo.listForReservation(Number(reservationId));
-    return rows.map(r => toTraveler(r));
+    return rows.map((r) => toTraveler(r));
   }
 }

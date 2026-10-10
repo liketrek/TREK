@@ -11,26 +11,26 @@
  * harness here keeps withTools on (the resources are NOT registered by the
  * legacy registerResources fan-out anymore).
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { ADDON_IDS } from '../../../src/addons';
 import { db as testDb } from '../../../src/db/database';
+import { PackingBags } from '../../../src/db/entities/PackingBags.entity';
+import { PackingItems } from '../../../src/db/entities/PackingItems.entity';
+import { createUser, createTrip, createPackingItem, addTripMember } from '../../helpers/factories';
+import { inContext } from '../../helpers/factories/context';
+import { addPackingBagMembers, addPackingItemRecipients, makePackingBag } from '../../helpers/factories/packing';
+import { countRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
+import { setAddonEnabled } from '../../helpers/factories/settings';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createPackingItem, addTripMember } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { ADDON_IDS } from '../../../src/addons';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { inContext } from '../../helpers/factories/context';
-import { countRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
-import { addPackingBagMembers, addPackingItemRecipients, makePackingBag } from '../../helpers/factories/packing';
-import { setAddonEnabled } from '../../helpers/factories/settings';
-import { PackingBags } from '../../../src/db/entities/PackingBags.entity';
-import { PackingItems } from '../../../src/db/entities/PackingItems.entity';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -54,7 +54,11 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 /** The text of a failed call, including the SDK's own schema-validation refusals
@@ -109,7 +113,10 @@ describe('Tool: create_packing_item', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_packing_item', arguments: { tripId: trip.id, name: 'X' } });
+      const result = await h.client.callTool({
+        name: 'create_packing_item',
+        arguments: { tripId: trip.id, name: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -119,7 +126,10 @@ describe('Tool: create_packing_item', () => {
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_packing_item', arguments: { tripId: trip.id, name: 'X' } });
+      const result = await h.client.callTool({
+        name: 'create_packing_item',
+        arguments: { tripId: trip.id, name: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -145,7 +155,7 @@ const recipientIds = async (itemId: number) =>
     .sort((a, b) => a - b);
 
 describe('Tool: create_packing_item sharing', () => {
-  it('puts a personal item on the caller\'s own list', async () => {
+  it("puts a personal item on the caller's own list", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
@@ -293,10 +303,23 @@ describe('Tool: update_packing_item', () => {
     const trip = createTrip(testDb, user.id);
     const item = createPackingItem(testDb, trip.id, { name: 'Shirts' });
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'update_packing_item', arguments: { tripId: trip.id, itemId: item.id, quantity: 4 } });
-      const partial = parseToolResult(await h.client.callTool({ name: 'update_packing_item', arguments: { tripId: trip.id, itemId: item.id, packed_quantity: 3 } })) as any;
+      await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, quantity: 4 },
+      });
+      const partial = parseToolResult(
+        await h.client.callTool({
+          name: 'update_packing_item',
+          arguments: { tripId: trip.id, itemId: item.id, packed_quantity: 3 },
+        }),
+      ) as any;
       expect(partial.item).toMatchObject({ packed_quantity: 3, checked: 0 });
-      const full = parseToolResult(await h.client.callTool({ name: 'update_packing_item', arguments: { tripId: trip.id, itemId: item.id, packed_quantity: 4 } })) as any;
+      const full = parseToolResult(
+        await h.client.callTool({
+          name: 'update_packing_item',
+          arguments: { tripId: trip.id, itemId: item.id, packed_quantity: 4 },
+        }),
+      ) as any;
       expect(full.item).toMatchObject({ packed_quantity: null, checked: 1 });
     });
   });
@@ -306,7 +329,10 @@ describe('Tool: update_packing_item', () => {
     const trip = createTrip(testDb, user.id);
     const item = createPackingItem(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'update_packing_item', arguments: { tripId: trip.id, itemId: item.id, name: 'Updated' } });
+      await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, name: 'Updated' },
+      });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:updated', expect.any(Object));
     });
   });
@@ -315,7 +341,10 @@ describe('Tool: update_packing_item', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_packing_item', arguments: { tripId: trip.id, itemId: 99999, name: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: 99999, name: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -326,7 +355,10 @@ describe('Tool: update_packing_item', () => {
     const trip = createTrip(testDb, other.id);
     const item = createPackingItem(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_packing_item', arguments: { tripId: trip.id, itemId: item.id, name: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, name: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -420,7 +452,7 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
     });
   });
 
-  it('takes a common item onto the caller\'s own list, and off everyone else\'s screen', async () => {
+  it("takes a common item onto the caller's own list, and off everyone else's screen", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const item = createPackingItem(testDb, trip.id);
@@ -494,7 +526,7 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
 // ---------------------------------------------------------------------------
 
 describe('Tool: set_packing_item_sharing', () => {
-  it('moves a common item onto the caller\'s own list', async () => {
+  it("moves a common item onto the caller's own list", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const item = createPackingItem(testDb, trip.id);
@@ -545,7 +577,7 @@ describe('Tool: set_packing_item_sharing', () => {
     expect(await recipientIds(item.id)).toEqual([]);
   });
 
-  it('rebuilds the room\'s view: gone for everyone, back for the people who may see it', async () => {
+  it("rebuilds the room's view: gone for everyone, back for the people who may see it", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const item = createPackingItem(testDb, trip.id);
@@ -701,7 +733,10 @@ describe('Tool: update_packing_bag limit and owner', () => {
     const trip = createTrip(testDb, user.id);
     const bagId = await makeBag(trip.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'update_packing_bag', arguments: { tripId: trip.id, bagId, user_id: stranger.id } });
+      await h.client.callTool({
+        name: 'update_packing_bag',
+        arguments: { tripId: trip.id, bagId, user_id: stranger.id },
+      });
       expect((await bagRow(bagId)).user_id).toBeNull();
     });
   });
@@ -761,7 +796,10 @@ describe('Tool: toggle_packing_item', () => {
     const trip = createTrip(testDb, user.id);
     const item = createPackingItem(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'toggle_packing_item', arguments: { tripId: trip.id, itemId: item.id, checked: true } });
+      await h.client.callTool({
+        name: 'toggle_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, checked: true },
+      });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:updated', expect.any(Object));
     });
   });
@@ -770,7 +808,10 @@ describe('Tool: toggle_packing_item', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'toggle_packing_item', arguments: { tripId: trip.id, itemId: 99999, checked: true } });
+      const result = await h.client.callTool({
+        name: 'toggle_packing_item',
+        arguments: { tripId: trip.id, itemId: 99999, checked: true },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -781,7 +822,10 @@ describe('Tool: toggle_packing_item', () => {
     const trip = createTrip(testDb, other.id);
     const item = createPackingItem(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'toggle_packing_item', arguments: { tripId: trip.id, itemId: item.id, checked: true } });
+      const result = await h.client.callTool({
+        name: 'toggle_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id, checked: true },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -797,7 +841,10 @@ describe('Tool: delete_packing_item', () => {
     const trip = createTrip(testDb, user.id);
     const item = createPackingItem(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_packing_item', arguments: { tripId: trip.id, itemId: item.id } });
+      const result = await h.client.callTool({
+        name: 'delete_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id },
+      });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
       expect(await findRow(orm, PackingItems, { id: item.id })).toBeNull();
@@ -818,7 +865,10 @@ describe('Tool: delete_packing_item', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_packing_item', arguments: { tripId: trip.id, itemId: 99999 } });
+      const result = await h.client.callTool({
+        name: 'delete_packing_item',
+        arguments: { tripId: trip.id, itemId: 99999 },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -829,7 +879,10 @@ describe('Tool: delete_packing_item', () => {
     const trip = createTrip(testDb, other.id);
     const item = createPackingItem(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_packing_item', arguments: { tripId: trip.id, itemId: item.id } });
+      const result = await h.client.callTool({
+        name: 'delete_packing_item',
+        arguments: { tripId: trip.id, itemId: item.id },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -842,10 +895,20 @@ describe('Tool: delete_packing_item', () => {
 describe('Packing tools — scope gating', () => {
   const READ_TOOLS = ['list_packing_bags', 'get_packing_category_assignees', 'list_packing_templates'];
   const WRITE_TOOLS = [
-    'create_packing_item', 'toggle_packing_item', 'delete_packing_item', 'update_packing_item',
-    'reorder_packing_items', 'create_packing_bag', 'update_packing_bag', 'delete_packing_bag',
-    'set_bag_members', 'set_packing_category_assignees', 'apply_packing_template',
-    'save_packing_template', 'delete_packing_template', 'bulk_import_packing',
+    'create_packing_item',
+    'toggle_packing_item',
+    'delete_packing_item',
+    'update_packing_item',
+    'reorder_packing_items',
+    'create_packing_bag',
+    'update_packing_bag',
+    'delete_packing_bag',
+    'set_bag_members',
+    'set_packing_category_assignees',
+    'apply_packing_template',
+    'save_packing_template',
+    'delete_packing_template',
+    'bulk_import_packing',
     'set_packing_item_sharing',
   ];
 
@@ -919,11 +982,18 @@ describe('Resource: trek://trips/{tripId}/packing', () => {
     });
   });
 
-  it('hides another member\'s private items from the requesting user (#858)', async () => {
+  it("hides another member's private items from the requesting user (#858)", async () => {
     const { user } = createUser(testDb);
     const { user: owner } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    await insertRow(orm, PackingItems, { trip: trip.id, name: 'Secret gift', checked: 0, sort_order: 0, is_private: 1, owner: owner.id });
+    await insertRow(orm, PackingItems, {
+      trip: trip.id,
+      name: 'Secret gift',
+      checked: 0,
+      sort_order: 0,
+      is_private: 1,
+      owner: owner.id,
+    });
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/packing` });
       expect(parseResourceResult(result)).toEqual([]);
@@ -1020,9 +1090,7 @@ describe('a restricted packing item over MCP', () => {
 
     // The assertion that would have caught the leak: a fifth argument naming
     // the only user this may reach.
-    expect(broadcastMock).toHaveBeenCalledWith(
-      trip.id, 'packing:updated', expect.any(Object), undefined, user.id,
-    );
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:updated', expect.any(Object), undefined, user.id);
     expect(broadcastMock).not.toHaveBeenCalledWith(trip.id, 'packing:updated', expect.any(Object));
   });
 
@@ -1039,9 +1107,7 @@ describe('a restricted packing item over MCP', () => {
       });
     });
 
-    expect(broadcastMock).toHaveBeenCalledWith(
-      trip.id, 'packing:updated', expect.any(Object), undefined, user.id,
-    );
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:updated', expect.any(Object), undefined, user.id);
     expect(broadcastMock).not.toHaveBeenCalledWith(trip.id, 'packing:updated', expect.any(Object));
   });
 
@@ -1064,9 +1130,7 @@ describe('a restricted packing item over MCP', () => {
       });
     });
 
-    expect(broadcastMock).toHaveBeenCalledWith(
-      trip.id, 'packing:deleted', expect.any(Object), undefined, user.id,
-    );
+    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:deleted', expect.any(Object), undefined, user.id);
     expect(broadcastMock).not.toHaveBeenCalledWith(trip.id, 'packing:deleted', expect.any(Object));
   });
 

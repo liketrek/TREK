@@ -1,5 +1,6 @@
-import path from 'node:path';
 import { resolveDataPaths } from '../../app-config/data-paths';
+
+import path from 'node:path';
 
 /**
  * The storage domain's view of the data layout. Both roots come from

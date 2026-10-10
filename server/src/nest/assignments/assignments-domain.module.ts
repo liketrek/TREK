@@ -1,19 +1,19 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { AssignmentParticipants } from '../../db/entities/AssignmentParticipants.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import { Tours } from '../../db/entities/Tours.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
 import { JourneyDomainModule } from '../journey/journey-domain.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
 import { RealtimeModule } from '../realtime/realtime.module';
-import { AssignmentsService } from './assignments.service';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import { AssignmentParticipants } from '../../db/entities/AssignmentParticipants.entity';
-import { Days } from '../../db/entities/Days.entity';
-import { Places } from '../../db/entities/Places.entity';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
-import { Trips } from '../../db/entities/Trips.entity';
-import { Tours } from '../../db/entities/Tours.entity';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { AssignmentsService } from './assignments.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * The assignments SERVICE, split from the controller/MCP/RPC surfaces (the
@@ -36,12 +36,22 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
  * one-Tour-per-day check create and move share.
  */
 @Module({
-  imports: [TripMembershipModule, 
+  imports: [
+    TripMembershipModule,
     PermissionsModule,
     QueryHelpersModule,
     JourneyDomainModule,
     RealtimeModule,
-    MikroOrmModule.forFeature([DayAssignments, AssignmentParticipants, Days, Places, TripMembers, RoadtripVias, Trips, Tours]),
+    MikroOrmModule.forFeature([
+      DayAssignments,
+      AssignmentParticipants,
+      Days,
+      Places,
+      TripMembers,
+      RoadtripVias,
+      Trips,
+      Tours,
+    ]),
   ],
   providers: [AssignmentsService],
   exports: [AssignmentsService],

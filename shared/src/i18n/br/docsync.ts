@@ -177,7 +177,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'A transferência não foi concluída.',
 
   'docsync.error.unknown_provider': 'Este provedor não está disponível nesta instância.',
-  'docsync.error.provider_disabled': 'Pausado: um administrador desativou este provedor. A sincronização continua assim que ele for reativado.',
+  'docsync.error.provider_disabled':
+    'Pausado: um administrador desativou este provedor. A sincronização continua assim que ele for reativado.',
   'docsync.binding.reconnect': 'Voltar a ligar',
 };
 

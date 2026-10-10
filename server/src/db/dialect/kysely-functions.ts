@@ -1,6 +1,25 @@
+import {
+  isKnownPlatform,
+  isPostgres,
+  isSqlite,
+  PG_ISO_DATE_PREFIX,
+  PG_TIMESTAMP_FORMAT,
+  PG_UTC_NOW,
+  pgTimestampText,
+  unsupported,
+} from './platform';
 import type { Platform } from '@mikro-orm/core';
-import { sql, type Expression, type ExpressionBuilder, type ExpressionWrapper, type RawBuilder, type ReferenceExpression, type SqlBool, type StringReference } from 'kysely';
-import { isKnownPlatform, isPostgres, isSqlite, PG_ISO_DATE_PREFIX, PG_TIMESTAMP_FORMAT, PG_UTC_NOW, pgTimestampText, unsupported } from './platform';
+
+import {
+  sql,
+  type Expression,
+  type ExpressionBuilder,
+  type ExpressionWrapper,
+  type RawBuilder,
+  type ReferenceExpression,
+  type SqlBool,
+  type StringReference,
+} from 'kysely';
 
 /**
  * The Kysely-expression half of the dialect layer: the twins of the MikroORM
@@ -83,9 +102,8 @@ export function substringKysely<DB, TB extends keyof DB>(
     throw new Error(`sql-functions: substringKysely needs a non-negative integer length, got ${length}`);
   }
   if (isKnownPlatform(platform)) {
-    const args: ReferenceExpression<DB, TB>[] = length === undefined
-      ? [ref, eb.val(start)]
-      : [ref, eb.val(start), eb.val(length)];
+    const args: ReferenceExpression<DB, TB>[] =
+      length === undefined ? [ref, eb.val(start)] : [ref, eb.val(start), eb.val(length)];
     return eb.fn<string>('substr', args);
   }
   return unsupported(platform);
@@ -93,9 +111,7 @@ export function substringKysely<DB, TB extends keyof DB>(
 
 /** A part of a `concatKysely()` expression — a column reference, a bound value, or a nested Kysely `Expression<string>` (composes freely, unlike `concat()`'s MikroORM `RawQueryFragment` form). */
 export type KyselyConcatPart<DB, TB extends keyof DB> =
-  | { column: StringReference<DB, TB> }
-  | { value: string }
-  | { expression: Expression<string> };
+  { column: StringReference<DB, TB> } | { value: string } | { expression: Expression<string> };
 
 /**
  * The Kysely-expression twin of {@link concat}: `<part> || <part> || …`,
@@ -116,7 +132,8 @@ export function concatKysely<DB, TB extends keyof DB>(
     throw new Error(`sql-functions: concatKysely needs at least two parts, got ${parts.length}`);
   }
   if (!isKnownPlatform(platform)) return unsupported(platform);
-  const value = (text: string): Expression<string> => (isPostgres(platform) ? eb.cast<string>(eb.val(text), 'text') : eb.val(text));
+  const value = (text: string): Expression<string> =>
+    isPostgres(platform) ? eb.cast<string>(eb.val(text), 'text') : eb.val(text);
   const operand = (part: KyselyConcatPart<DB, TB>): Expression<string> =>
     'column' in part ? eb.ref(part.column).$castTo<string>() : 'value' in part ? value(part.value) : part.expression;
   let acc: Expression<string> = operand(parts[0]!);

@@ -1,6 +1,6 @@
 import type { PluginErrorLog } from '../entities/PluginErrorLog.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /** PR2 delivery row / plugins.service.ts `errors()`'s own projection. */
 export interface PluginErrorLogRow {
@@ -35,7 +35,12 @@ export class PluginErrorLogRepository extends TrekRepository<PluginErrorLog> {
       .where(
         'id',
         'not in',
-        db.selectFrom('plugin_error_log').select('id').where('plugin_id', '=', pluginId).orderBy('id', 'desc').limit(retention),
+        db
+          .selectFrom('plugin_error_log')
+          .select('id')
+          .where('plugin_id', '=', pluginId)
+          .orderBy('id', 'desc')
+          .limit(retention),
       )
       .execute();
   }

@@ -304,7 +304,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.summary.partial': 'Encara s’està calculant la resta del trajecte',
   'roadtrip.stay.releaseTitle': 'Treure la pernoctació?',
   'roadtrip.stay.releaseBody': 'Es traurà la nit a «{name}». La parada es manté a la ruta com a pausa.',
-  'roadtrip.stay.releaseBookedBody': 'Es traurà la nit a «{name}» juntament amb la reserva «{booking}» i qualsevol despesa vinculada. La parada es manté a la ruta com a pausa.',
+  'roadtrip.stay.releaseBookedBody':
+    'Es traurà la nit a «{name}» juntament amb la reserva «{booking}» i qualsevol despesa vinculada. La parada es manté a la ruta com a pausa.',
   'roadtrip.stay.releaseAction': 'Converteix en pausa',
   'roadtrip.ride.departure': 'Sortida {time}',
   'roadtrip.ride.arrival': 'Arribada {time}',

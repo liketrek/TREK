@@ -4,12 +4,10 @@ const files: TranslationStrings = {
   'files.filterStarred': 'Ulduzlu',
   'files.link': 'Əlaqələndir',
   'files.linkTitle': 'Faylı əlaqələndir',
-  'files.linkEmpty':
-    'Əlaqələndiriləcək məkan və ya rezervasiya yoxdur',
+  'files.linkEmpty': 'Əlaqələndiriləcək məkan və ya rezervasiya yoxdur',
   'files.menu': 'Daha çox seçim',
 
-  'files.uploadErrorSize':
-    'Fayl həddindən çox böyükdür (maksimum {max} MB)',
+  'files.uploadErrorSize': 'Fayl həddindən çox böyükdür (maksimum {max} MB)',
   'files.title': 'Fayllar',
   'files.pageTitle': 'Fayllar və sənədlər',
   'files.subtitle': '{trip} üçün {count} fayl',
@@ -26,8 +24,7 @@ const files: TranslationStrings = {
 
   'files.dropzone': 'Faylları buraya sürükləyib buraxın',
   'files.dropzoneHint': 'və ya seçmək üçün klikləyin',
-  'files.allowedTypes':
-    'Şəkillər, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Maksimum 50 MB',
+  'files.allowedTypes': 'Şəkillər, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV · Maksimum 50 MB',
   'files.uploading': 'Yüklənir...',
 
   'files.filterAll': 'Hamısı',
@@ -38,11 +35,9 @@ const files: TranslationStrings = {
   'files.sourceCollab': 'Əməkdaşlıq qeydlərindən',
 
   'files.empty': 'Hələ fayl yoxdur',
-  'files.emptyHint':
-    'Səyahətinizə əlavə etmək üçün fayllar yükləyin',
+  'files.emptyHint': 'Səyahətinizə əlavə etmək üçün fayllar yükləyin',
   'files.openTab': 'Yeni tabda aç',
-  'files.confirm.delete':
-    'Bu faylı silmək istədiyinizə əminsiniz?',
+  'files.confirm.delete': 'Bu faylı silmək istədiyinizə əminsiniz?',
   'files.toast.deleted': 'Fayl silindi',
   'files.toast.deleteError': 'Faylı silmək mümkün olmadı',
 
@@ -50,8 +45,7 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Rezervasiya',
   'files.sourceTransport': 'Nəqliyyat',
   'files.attach': 'Əlavə et',
-  'files.pasteHint':
-    'Şəkilləri mübadilə buferindən də yapışdıra bilərsiniz (Ctrl+V)',
+  'files.pasteHint': 'Şəkilləri mübadilə buferindən də yapışdıra bilərsiniz (Ctrl+V)',
 
   'files.trash': 'Zibil qutusu',
   'files.trashEmpty': 'Zibil qutusu boşdur',
@@ -76,8 +70,7 @@ const files: TranslationStrings = {
   'files.toast.assignError': 'Faylı təyin etmək mümkün olmadı',
   'files.toast.restoreError': 'Bərpa etmək mümkün olmadı',
 
-  'files.confirm.permanentDelete':
-    'Bu fayl həmişəlik silinsin? Bu əməliyyatı geri qaytarmaq mümkün deyil.',
+  'files.confirm.permanentDelete': 'Bu fayl həmişəlik silinsin? Bu əməliyyatı geri qaytarmaq mümkün deyil.',
   'files.confirm.emptyTrash':
     'Zibil qutusundakı bütün fayllar həmişəlik silinsin? Bu əməliyyatı geri qaytarmaq mümkün deyil.',
 

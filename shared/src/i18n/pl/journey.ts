@@ -216,10 +216,12 @@ const journey: TranslationStrings = {
   'journey.settings.status': 'Status',
   'journey.settings.statusAuto': 'Automatycznie',
   'journey.settings.statusAutoHint': 'Zależy od dat powiązanych podróży. Bez podróży dziennik pozostaje szkicem.',
-  'journey.settings.statusManualHint': 'Ustawiony ręcznie. Daty podróży go nie zmienią, dopóki nie wrócisz do trybu automatycznego.',
+  'journey.settings.statusManualHint':
+    'Ustawiony ręcznie. Daty podróży go nie zmienią, dopóki nie wrócisz do trybu automatycznego.',
   'journey.settings.photosSection': 'Zdjęcia',
   'journey.settings.photoLocation': 'Ustalaj miejsce wpisów z ich zdjęć',
-  'journey.settings.photoLocationHint': 'Wpis bez miejsca dostaje lokalizację pierwszego zdjęcia z GPS. Miejsca ustawione ręcznie nigdy nie są przesuwane.',
+  'journey.settings.photoLocationHint':
+    'Wpis bez miejsca dostaje lokalizację pierwszego zdjęcia z GPS. Miejsca ustawione ręcznie nigdy nie są przesuwane.',
   'journey.settings.endJourney': 'Archiwizuj podróż',
   'journey.settings.reopenJourney': 'Przywróć podróż',
   'journey.settings.archived': 'Podróż zarchiwizowana',
@@ -327,12 +329,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Pobierz tę rozkładówkę',
-  'journey.studio.downloadSpreadHint': 'Zapisuje projekt tej rozkładówki jako plik, bez zdjęć, do udostępnienia lub ponownego użycia',
+  'journey.studio.downloadSpreadHint':
+    'Zapisuje projekt tej rozkładówki jako plik, bez zdjęć, do udostępnienia lub ponownego użycia',
   'journey.studio.importSpread': 'Importuj',
   'journey.studio.importSpreadHint': 'Dodaje rozkładówkę z pobranego pliku projektu',
   'journey.studio.importSpreadFailed': 'Ten plik nie jest rozkładówką TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Składanie książki wymaga miejsca, dlatego Studio działa tylko na komputerze, tak samo jak tworzenie PDF-a. Reszta podróży działa tu jak zwykle.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Składanie książki wymaga miejsca, dlatego Studio działa tylko na komputerze, tak samo jak tworzenie PDF-a. Reszta podróży działa tu jak zwykle.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -396,7 +400,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -477,7 +482,8 @@ const journey: TranslationStrings = {
   'journey.studio.paste': 'Wklej (Ctrl+V)',
   'journey.studio.pasteEmpty': 'Najpierw coś skopiuj, a potem wklej to na dowolnej stronie',
   'journey.studio.myLayouts': 'Moje układy',
-  'journey.studio.myLayoutsEmpty': 'Zachowaj ułożoną stronę i rozmieść inne strony w ten sam sposób. Ich zdjęcia i teksty pozostaną.',
+  'journey.studio.myLayoutsEmpty':
+    'Zachowaj ułożoną stronę i rozmieść inne strony w ten sam sposób. Ich zdjęcia i teksty pozostaną.',
   'journey.studio.saveLayout': 'Zapisz tę stronę jako układ',
   'journey.studio.saveLayoutHint': 'Zachowuje rozmieszczenie bez zdjęć, dla wszystkich edytorów tej książki',
   'journey.studio.saveLayoutFull': 'Ta książka mieści do 24 układów. Usuń jeden, aby zapisać kolejny.',
@@ -589,7 +595,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Kontury',
   'journey.studio.mapSourceRelief': 'Relief',
   'journey.studio.mapSourceSatellite': 'Satelita',
-  'journey.studio.mapSourceSatelliteHint': 'Bezchmurne Sentinel-2, można drukować bez opłat z podaniem źródła. Ostre aż do pojedynczej ulicy w mieście.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Bezchmurne Sentinel-2, można drukować bez opłat z podaniem źródła. Ostre aż do pojedynczej ulicy w mieście.',
   'journey.studio.routeLook': 'Linia',
   'journey.studio.routeStyle': 'Styl linii',
   'journey.studio.routePlain': 'Gładka',
@@ -612,14 +619,16 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Pobierz ponownie',
   'journey.studio.roadsClear': 'Wyczyść',
   'journey.studio.roadsBusy': 'Pobieranie',
-  'journey.studio.roadsHint': 'Zapyta usługę tras o rzeczywisty przebieg każdego odcinka. Długie odcinki zostają bez zmian.',
+  'journey.studio.roadsHint':
+    'Zapyta usługę tras o rzeczywisty przebieg każdego odcinka. Długie odcinki zostają bez zmian.',
   'journey.studio.roadsHave': 'Drogi są zapisane w tej książce, więc offline drukuje tę samą linię.',
   'journey.studio.mapPerTrip': 'Jedna podróż naraz',
   'journey.studio.mapWholeJourney': 'Cały dziennik',
   'journey.studio.mapScope': 'Pokaż',
   'journey.studio.mapPrintDpi': 'Rozdzielczość druku około',
   'journey.studio.mapPrintDpiLow': 'przy tym rozmiarze wyjdzie nieostro, spróbuj szerszego kadru lub innego źródła',
-  'journey.studio.mapSourceReliefHint': 'Cieniowany relief NASA, można drukować bez licencji. Dobry dla kraju lub kontynentu, za mało dokładny dla miasta.',
+  'journey.studio.mapSourceReliefHint':
+    'Cieniowany relief NASA, można drukować bez licencji. Dobry dla kraju lub kontynentu, za mało dokładny dla miasta.',
   'journey.studio.mapSourceTiles': 'Kafelki',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Pobierane przy renderowaniu i drukowane z informacją o źródle',
@@ -684,8 +693,10 @@ const journey: TranslationStrings = {
   'journey.entry.offRoute': 'Poza trasą',
   'journey.entry.draft': 'Szkic',
   'journey.editor.draft': 'Szkic',
-  'journey.editor.draftHint': 'Ten wpis widzisz tylko ty i pozostali współautorzy. Udostępniony dziennik go pomija, dopóki tego nie wyłączysz.',
-  'journey.editor.tripSuggestionHint': 'Ten dzień przypada na tę podróż. Połącz ją, a jej miejsca trafią do tego dziennika.',
+  'journey.editor.draftHint':
+    'Ten wpis widzisz tylko ty i pozostali współautorzy. Udostępniony dziennik go pomija, dopóki tego nie wyłączysz.',
+  'journey.editor.tripSuggestionHint':
+    'Ten dzień przypada na tę podróż. Połącz ją, a jej miejsca trafią do tego dziennika.',
   'journey.editor.tripSuggestionLater': 'Nie teraz',
   'journey.suggestions.dismiss': 'Odrzuć tę propozycję',
   'journey.suggestions.dismissed': 'Propozycja odrzucona',

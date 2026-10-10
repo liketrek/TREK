@@ -4,14 +4,15 @@
  * hottest statement in this file") had no repository-level
  * `toEqual(<legacy raw>)` parity test.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { VacayPlans } from '../../../../src/db/entities/VacayPlans.entity';
+import type { VacayPlansRepository } from '../../../../src/db/repositories/VacayPlans.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { makeVacayPlan } from '../../../helpers/factories/vacay';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
-import { VacayPlans } from '../../../../src/db/entities/VacayPlans.entity';
-import { makeVacayPlan } from '../../../helpers/factories/vacay';
-import type { VacayPlansRepository } from '../../../../src/db/repositories/VacayPlans.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -21,10 +22,28 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(VacayPlans);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
-async function insertPlan(ownerId: number, overrides: Partial<{ block_weekends: number; holidays_enabled: number; holidays_region: string; school_holidays_enabled: number; company_holidays_enabled: number; carry_over_enabled: number; weekend_days: string; week_start: number }> = {}): Promise<number> {
+async function insertPlan(
+  ownerId: number,
+  overrides: Partial<{
+    block_weekends: number;
+    holidays_enabled: number;
+    holidays_region: string;
+    school_holidays_enabled: number;
+    company_holidays_enabled: number;
+    carry_over_enabled: number;
+    weekend_days: string;
+    week_start: number;
+  }> = {},
+): Promise<number> {
   return (await makeVacayPlan(t, ownerId, overrides)).id;
 }
 

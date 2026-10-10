@@ -21,9 +21,6 @@
  * AsyncLocalStorage, so a straggler from a timed-out method can never be
  * counted against the next one.
  */
-
-import { AsyncLocalStorage } from 'node:async_hooks';
-
 import {
   CompiledQuery,
   type DatabaseConnection,
@@ -35,6 +32,7 @@ import {
   type QueryCompiler,
   type QueryResult,
 } from 'kysely';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 export type StatementOutcome = { ok: true } | { ok: false; code: string; message: string };
 
@@ -44,7 +42,8 @@ export interface StatementRecord {
 }
 
 /** Transaction control a probed method sends; each statement already runs in its own rolled-back transaction. */
-const TRANSACTION_CONTROL = /^\s*(begin|commit|rollback|end|abort|start\s+transaction|savepoint|release(\s+savepoint)?)\b/i;
+const TRANSACTION_CONTROL =
+  /^\s*(begin|commit|rollback|end|abort|start\s+transaction|savepoint|release(\s+savepoint)?)\b/i;
 
 export function isTransactionControl(sql: string): boolean {
   return TRANSACTION_CONTROL.test(sql);
@@ -114,7 +113,10 @@ export class ProbeConnection implements DatabaseConnection {
       this.recorder.record(key, { sql: compiled.sql, outcome: { ok: true } });
       return result;
     } catch (error) {
-      this.recorder.record(key, { sql: compiled.sql, outcome: { ok: false, code: sqlState(error), message: errorLine(error) } });
+      this.recorder.record(key, {
+        sql: compiled.sql,
+        outcome: { ok: false, code: sqlState(error), message: errorLine(error) },
+      });
       return { rows: [] };
     } finally {
       await this.inner.executeQuery(CompiledQuery.raw('rollback'));

@@ -3,13 +3,6 @@
  * enrichment plumbing. The KMZ unpacker and the Google list id parsing moved
  * with their code to place-import/ (kml.codec.test.ts, google-list.provider.test.ts).
  */
-import { describe, it, expect, vi } from 'vitest';
-
-vi.mock('../../../src/db/database', () => ({
-  db: { prepare: vi.fn() },
-  getPlaceWithTags: vi.fn(),
-}));
-
 import {
   COORD_DEDUP_TOLERANCE,
   externalIdsOf,
@@ -19,6 +12,13 @@ import {
   trimOrNull,
   type DedupSet,
 } from '../../../src/nest/places/places.helpers';
+
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../../../src/db/database', () => ({
+  db: { prepare: vi.fn() },
+  getPlaceWithTags: vi.fn(),
+}));
 
 // ── Import dedup predicates ───────────────────────────────────────────────────
 
@@ -59,7 +59,9 @@ describe('isPlaceDuplicate / trackInsertedInDedupSet', () => {
     // The user renamed it in TREK; the list still calls it what Google calls it.
     dedup.names.delete('trattoria da enzo');
     dedup.names.add('dinner tuesday');
-    expect(isPlaceDuplicate({ name: 'Trattoria da Enzo', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' }, dedup)).toBe(true);
+    expect(isPlaceDuplicate({ name: 'Trattoria da Enzo', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' }, dedup)).toBe(
+      true,
+    );
   });
 
   it('matches on any of the three id columns, and ignores blank ones', () => {
@@ -75,7 +77,9 @@ describe('isPlaceDuplicate / trackInsertedInDedupSet', () => {
     const dedup = emptyDedup();
     // Identical coordinates, different ids: the restaurant and the bar downstairs.
     trackInsertedInDedupSet({ name: 'Rooftop Bar', lat: 52.52, lng: 13.405, google_ftid: '0xaa:0xbb' }, dedup);
-    expect(isPlaceDuplicate({ name: 'Ground Floor Diner', lat: 52.52, lng: 13.405, google_ftid: '0xcc:0xdd' }, dedup)).toBe(false);
+    expect(
+      isPlaceDuplicate({ name: 'Ground Floor Diner', lat: 52.52, lng: 13.405, google_ftid: '0xcc:0xdd' }, dedup),
+    ).toBe(false);
   });
 
   it('leaves id-less imports on their old behaviour', () => {

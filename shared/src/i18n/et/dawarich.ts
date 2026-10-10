@@ -190,7 +190,6 @@ const dawarich: TranslationStrings = {
     'Soov loetakse täidetuks, kui viibid vähemalt {count} minuti kohast {meters} m raadiuses.',
   'dawarich.journey.dayStays.other': '{count} peatumist Dawarichist',
   'dawarich.journey.dayStays.one': '{count} peatumine Dawarichist',
-
 };
 
 export default dawarich;

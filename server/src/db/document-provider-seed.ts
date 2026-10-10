@@ -1,4 +1,3 @@
-
 /**
  * The five document providers and the fields their connection form asks for.
  *

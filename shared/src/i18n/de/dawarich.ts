@@ -53,8 +53,7 @@ const dawarich: TranslationStrings = {
   'dawarich.error.unauthorized': 'Dawarich hat den API-Schlüssel abgelehnt.',
   'dawarich.error.forbidden': 'Dieser API-Schlüssel darf das nicht lesen.',
   'dawarich.error.not_found': 'Diese Dawarich-Version hat diesen Endpunkt nicht.',
-  'dawarich.error.rate_limited':
-    'Dawarich hat TREK gebeten, langsamer zu machen. Versuch es gleich noch einmal.',
+  'dawarich.error.rate_limited': 'Dawarich hat TREK gebeten, langsamer zu machen. Versuch es gleich noch einmal.',
   'dawarich.error.server_error': 'Dawarich hat mit einem Fehler geantwortet.',
   'dawarich.error.invalid_response': 'Diese Adresse hat mit etwas geantwortet, das kein Dawarich ist.',
   'dawarich.error.too_large': 'Dawarich hat mehr Daten geschickt, als TREK auf einmal liest.',
@@ -62,7 +61,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Das Dawarich-Addon ist für diese Instanz abgeschaltet.',
   'dawarich.error.offline': 'Dafür braucht es eine Verbindung — TREK ist gerade offline.',
   'dawarich.error.invalid_url': 'TREK kann diese Adresse nicht verwenden.',
-  'dawarich.warning.private_ip': 'Diese Adresse zeigt auf eine private IP ({ip}). Prüfe, ob das so gewollt ist — der Server braucht dafür eventuell ALLOW_INTERNAL_NETWORK=true.',
+  'dawarich.warning.private_ip':
+    'Diese Adresse zeigt auf eine private IP ({ip}). Prüfe, ob das so gewollt ist — der Server braucht dafür eventuell ALLOW_INTERNAL_NETWORK=true.',
   'dawarich.error.unknown': 'Bei der Kommunikation mit Dawarich ist etwas schiefgelaufen.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -87,8 +87,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.pending': '{count} warten auf dich',
   'dawarich.suggestions.pending.one': '{count} wartet auf dich',
   'dawarich.suggestions.loading': 'Dawarich wird gelesen…',
-  'dawarich.suggestions.notConnected':
-    'Verbinde Dawarich in den Einstellungen, um deine Aufenthalte hier zu sehen.',
+  'dawarich.suggestions.notConnected': 'Verbinde Dawarich in den Einstellungen, um deine Aufenthalte hier zu sehen.',
   'dawarich.suggestions.unavailable': 'Dawarich konnte nicht gelesen werden.',
   'dawarich.suggestions.allHandled': 'Alles, was hier aufgezeichnet wurde, ist erledigt.',
   'dawarich.suggestions.asJournal': 'Tagebucheintrag schreiben',
@@ -191,7 +190,6 @@ const dawarich: TranslationStrings = {
   'dawarich.bucket.rule.one': 'Ein Wunsch gilt ab {meters} m Nähe und {count} Minute vor Ort als erreicht.',
   'dawarich.journey.dayStays.other': '{count} Aufenthalte aus Dawarich',
   'dawarich.journey.dayStays.one': '{count} Aufenthalt aus Dawarich',
-
 };
 
 export default dawarich;

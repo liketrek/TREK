@@ -3,14 +3,18 @@
  * `PlaceShadowService` used to issue raw, on real rows. `place_shadow_picks`
  * has no other repository test file before this one.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PlaceShadowPicks } from '../../../../src/db/entities/PlaceShadowPicks.entity';
+import type {
+  PlaceShadowPicksRepository,
+  NewPlaceShadowPickRow,
+} from '../../../../src/db/repositories/PlaceShadowPicks.repository';
+import { dbNow } from '../../../../src/db/types';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { findRow, findRows, updateRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { PlaceShadowPicks } from '../../../../src/db/entities/PlaceShadowPicks.entity';
-import { findRow, findRows, updateRows } from '../../../helpers/factories/rows';
-import { dbNow } from '../../../../src/db/types';
-import type { PlaceShadowPicksRepository, NewPlaceShadowPickRow } from '../../../../src/db/repositories/PlaceShadowPicks.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -20,8 +24,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   picks = t.repo(PlaceShadowPicks);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function row(overrides: Partial<NewPlaceShadowPickRow> = {}): NewPlaceShadowPickRow {
   return {
@@ -56,7 +66,13 @@ describe('PlaceShadowPicksRepository.insertPick', () => {
   it('PSPICKREPO-001: inserts exactly the given columns, nullable ones included', async () => {
     await picks.insertPick(row());
     const [stored] = await storedPicks();
-    expect(await rawRow(stored.id)).toMatchObject({ query: 'louvre', source: 'nominatim', live_rank: 0, live_count: 5, lang: null });
+    expect(await rawRow(stored.id)).toMatchObject({
+      query: 'louvre',
+      source: 'nominatim',
+      live_rank: 0,
+      live_count: 5,
+      lang: null,
+    });
   });
 });
 
@@ -137,7 +153,12 @@ describe('PlaceShadowPicksRepository.totals / countBySource / countByLiveRank', 
     await picks.insertPick(row({ live_rank: 0 }));
     await picks.insertPick(row({ live_rank: 3 }));
     const rows = await picks.countByLiveRank();
-    expect(rows).toEqual(expect.arrayContaining([{ live_rank: 0, count: 2 }, { live_rank: 3, count: 1 }]));
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { live_rank: 0, count: 2 },
+        { live_rank: 3, count: 1 },
+      ]),
+    );
     expect(rows).toHaveLength(2);
   });
 });

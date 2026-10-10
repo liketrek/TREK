@@ -8,18 +8,18 @@
  * registrar (or used a @Cron decorator) and every suite is now running real
  * timers.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
 import type { INestApplication } from '@nestjs/common';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
-import { buildApp } from '../../src/bootstrap';
 
 describe('SCHED-GATE — the harness boots without scheduling anything', () => {
   let app: INestApplication;

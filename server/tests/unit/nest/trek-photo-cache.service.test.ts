@@ -11,17 +11,17 @@
  * stub-registry fixture rooted in a throwaway dir — the real uploads tree is
  * never touched.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-import fs from 'node:fs';
-import path from 'node:path';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { TrekPhotoCacheMeta } from '../../../src/db/entities/TrekPhotoCacheMeta.entity';
 import { TrekPhotoCacheService, CACHE_TTL } from '../../../src/nest/memories/trek-photo-cache.service';
 import { StorageNotFoundError } from '../../../src/nest/storage/storage.types';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const fx = makeStorageFixture('photos/trek/');
 const testDb = createSnapshotTestDb();
@@ -131,7 +131,8 @@ describe('serveFresh', () => {
   it('CACHE-013: a getFresh→send delete race reads as a miss, not a crash', async () => {
     const key = freshKey('race');
     await svc.put(key, Buffer.from('bytes'), 'image/webp');
-    const send = vi.spyOn(fx.storage, 'sendToResponse')
+    const send = vi
+      .spyOn(fx.storage, 'sendToResponse')
       .mockRejectedValueOnce(new StorageNotFoundError(`photos/trek/${key}.bin`));
     const res = { set: vi.fn(), headersSent: false };
 
@@ -141,10 +142,12 @@ describe('serveFresh', () => {
 });
 
 describe('the stampede guard', () => {
-  it('CACHE-009: a second caller gets the first caller\'s in-flight promise', async () => {
+  it("CACHE-009: a second caller gets the first caller's in-flight promise", async () => {
     const key = 'inflight-key';
     let resolveFetch!: (b: Buffer) => void;
-    const fetch = new Promise<Buffer | null>((resolve) => { resolveFetch = resolve as (b: Buffer) => void; });
+    const fetch = new Promise<Buffer | null>((resolve) => {
+      resolveFetch = resolve as (b: Buffer) => void;
+    });
 
     svc.setInFlight(key, fetch);
     expect(svc.getInFlight(key)).toBe(fetch);
@@ -184,7 +187,11 @@ describe('sweepExpired', () => {
 
   it('CACHE-012: survives a metadata row whose object is already gone', async () => {
     const key = 'sweep-orphan';
-    await insertRow(t, TrekPhotoCacheMeta, { cache_key: key, content_type: 'image/jpeg', fetched_at: Date.now() - CACHE_TTL * 3 });
+    await insertRow(t, TrekPhotoCacheMeta, {
+      cache_key: key,
+      content_type: 'image/jpeg',
+      fetched_at: Date.now() - CACHE_TTL * 3,
+    });
 
     await expect(svc.sweepExpired()).resolves.toBeUndefined();
     expect(await findRow(t, TrekPhotoCacheMeta, { cache_key: key })).toBeNull();

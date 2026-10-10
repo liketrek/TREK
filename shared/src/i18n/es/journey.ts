@@ -205,11 +205,14 @@ const journey: TranslationStrings = {
   'journey.settings.showTripTracksHint': 'Dibuja en el mapa las rutas grabadas de los viajes vinculados.',
   'journey.settings.status': 'Estado',
   'journey.settings.statusAuto': 'Automático',
-  'journey.settings.statusAutoHint': 'Sigue las fechas de los viajes vinculados. Sin viaje, la travesía se queda como borrador.',
-  'journey.settings.statusManualHint': 'Definido a mano. Las fechas del viaje ya no lo cambian hasta que vuelvas a automático.',
+  'journey.settings.statusAutoHint':
+    'Sigue las fechas de los viajes vinculados. Sin viaje, la travesía se queda como borrador.',
+  'journey.settings.statusManualHint':
+    'Definido a mano. Las fechas del viaje ya no lo cambian hasta que vuelvas a automático.',
   'journey.settings.photosSection': 'Fotos',
   'journey.settings.photoLocation': 'Ubicar entradas según sus fotos',
-  'journey.settings.photoLocationHint': 'Una entrada sin lugar toma el punto donde se hizo su primera foto con GPS. Los lugares que pongas tú nunca se mueven.',
+  'journey.settings.photoLocationHint':
+    'Una entrada sin lugar toma el punto donde se hizo su primera foto con GPS. Los lugares que pongas tú nunca se mueven.',
   'journey.settings.endJourney': 'Archivar viaje',
   'journey.settings.reopenJourney': 'Restaurar viaje',
   'journey.settings.archived': 'Viaje archivado',
@@ -309,12 +312,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Descargar esta doble página',
-  'journey.studio.downloadSpreadHint': 'Guarda el diseño de esta doble página como archivo, sin las fotos, para compartirlo o reutilizarlo',
+  'journey.studio.downloadSpreadHint':
+    'Guarda el diseño de esta doble página como archivo, sin las fotos, para compartirlo o reutilizarlo',
   'journey.studio.importSpread': 'Importar',
   'journey.studio.importSpreadHint': 'Añade una doble página desde un archivo de diseño descargado',
   'journey.studio.importSpreadFailed': 'Ese archivo no es una doble página de TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Diseñar un libro pide sitio para trabajar, así que Studio solo está en el escritorio, y el PDF también. Todo lo demás de tu viaje funciona aquí como siempre.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Diseñar un libro pide sitio para trabajar, así que Studio solo está en el escritorio, y el PDF también. Todo lo demás de tu viaje funciona aquí como siempre.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -378,7 +383,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -572,7 +578,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Contornos',
   'journey.studio.mapSourceRelief': 'Relieve',
   'journey.studio.mapSourceSatellite': 'Satélite',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 sin nubes, libre para imprimir con su atribución. Nítido hasta el nivel de calle.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 sin nubes, libre para imprimir con su atribución. Nítido hasta el nivel de calle.',
   'journey.studio.routeLook': 'La línea',
   'journey.studio.routeStyle': 'Trazo',
   'journey.studio.routePlain': 'Simple',
@@ -595,9 +602,11 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Volver a pedir',
   'journey.studio.roadsClear': 'Borrar',
   'journey.studio.roadsBusy': 'Pidiendo',
-  'journey.studio.roadsHint': 'Pide a un servicio de rutas el camino que se recorrió en cada tramo. Los tramos largos se quedan como están.',
+  'journey.studio.roadsHint':
+    'Pide a un servicio de rutas el camino que se recorrió en cada tramo. Los tramos largos se quedan como están.',
   'journey.studio.roadsHave': 'Las carreteras se guardan en este libro, así que imprime la misma línea sin conexión.',
-  'journey.studio.mapSourceReliefHint': 'Relieve sombreado de la NASA, libre para imprimir. Ideal para un país o un continente, demasiado tosco para una ciudad.',
+  'journey.studio.mapSourceReliefHint':
+    'Relieve sombreado de la NASA, libre para imprimir. Ideal para un país o un continente, demasiado tosco para una ciudad.',
   'journey.studio.mapPrintDpi': 'Se imprime a unos',
   'journey.studio.mapPrintDpiLow': 'poco nítido a este tamaño, prueba una vista más amplia u otro origen',
   'journey.studio.mapPerTrip': 'Un viaje cada vez',

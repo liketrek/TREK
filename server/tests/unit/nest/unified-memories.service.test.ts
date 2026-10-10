@@ -3,12 +3,46 @@
  * Moved 1:1 with the fold; the free functions became methods.
  * Covers error paths: access denied, disabled provider, no providers enabled.
  */
+import { ADDON_IDS } from '../../../src/addons';
+import { db as testDb } from '../../../src/db/database';
+import { JourneyContributors } from '../../../src/db/entities/JourneyContributors.entity';
+import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
+import { Journeys } from '../../../src/db/entities/Journeys.entity';
+import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripAlbumLinks } from '../../../src/db/entities/TripAlbumLinks.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import type { TripAlbumLinksRepository } from '../../../src/db/repositories/TripAlbumLinks.repository';
+import type { TripPhotosRepository } from '../../../src/db/repositories/TripPhotos.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import type { ImmichService } from '../../../src/nest/memories/immich.service';
+import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import type { ServiceResult } from '../../../src/nest/memories/memories.helpers';
+import type { SynologyService } from '../../../src/nest/memories/synology.service';
+import { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
+import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { createUser, createTrip } from '../../helpers/factories';
+import {
+  countRows,
+  findRow,
+  findRows,
+  insertRow,
+  insertRowIgnoringConflict,
+  updateRows,
+} from '../../helpers/factories/rows';
+import { notificationsStub } from '../../helpers/notifications';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import { createTestUnitOfWork, sharedTestOrm, createTestUsersRepo } from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ─────────────────────────────────────────────────────────────────
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -17,36 +51,8 @@ vi.mock('../../../src/db/database', async () => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
   };
-    return mock;
+  return mock;
 });
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { ADDON_IDS } from '../../../src/addons';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
-import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { TripAlbumLinks } from '../../../src/db/entities/TripAlbumLinks.entity';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
-import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
-import { Journeys } from '../../../src/db/entities/Journeys.entity';
-import { JourneyContributors } from '../../../src/db/entities/JourneyContributors.entity';
-import type { ServiceResult } from '../../../src/nest/memories/memories.helpers';
-import type { ImmichService } from '../../../src/nest/memories/immich.service';
-import type { SynologyService } from '../../../src/nest/memories/synology.service';
-import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import type { TripPhotosRepository } from '../../../src/db/repositories/TripPhotos.repository';
-import type { TripAlbumLinksRepository } from '../../../src/db/repositories/TripAlbumLinks.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import { notificationsStub } from '../../helpers/notifications';
-import { createTestUnitOfWork, sharedTestOrm, createTestUsersRepo } from '../../helpers/test-uow';
-import type { TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow, findRows, insertRow, insertRowIgnoringConflict, updateRows } from '../../helpers/factories/rows';
 
 // The album-sync paths are the providers' half and have their own suites; these
 // cases never reach them, so stubs keep the graph small.
@@ -99,7 +105,15 @@ beforeAll(async () => {
     new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), t.repo(JourneyPhotos)),
     {} as ImmichService,
     {} as SynologyService,
-    new MemoriesAccessService(t.repo(TripPhotos), t.repo(TrekPhotos), t.repo(TripAlbumLinks), t.repo(Trips), t.repo(Journeys), t.repo(JourneyContributors), t.repo(JourneyPhotos)),
+    new MemoriesAccessService(
+      t.repo(TripPhotos),
+      t.repo(TrekPhotos),
+      t.repo(TripAlbumLinks),
+      t.repo(Trips),
+      t.repo(Journeys),
+      t.repo(JourneyContributors),
+      t.repo(JourneyPhotos),
+    ),
     notificationsStub(),
     await createTestAddonsService(testDb),
     await createTestUnitOfWork(testDb),
@@ -203,7 +217,12 @@ describe('addTripPhotos', () => {
 
     // Insert a disabled provider
     await insertRowIgnoringConflict(orm, PhotoProviders, {
-      id: 'disabled-prov', name: 'Disabled', description: 'Disabled provider', icon: 'Image', enabled: 0, sort_order: 99,
+      id: 'disabled-prov',
+      name: 'Disabled',
+      description: 'Disabled provider',
+      icon: 'Image',
+      enabled: 0,
+      sort_order: 99,
     });
 
     const result = await addTripPhotos(
@@ -242,11 +261,22 @@ describe('addTripPhotos is atomic per photo', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await insertRowIgnoringConflict(orm, PhotoProviders, {
-      id: 'tx-prov', name: 'Tx', description: 'Tx provider', icon: 'Image', enabled: 1, sort_order: 98,
+      id: 'tx-prov',
+      name: 'Tx',
+      description: 'Tx provider',
+      icon: 'Image',
+      enabled: 1,
+      sort_order: 98,
     });
     const spy = vi.spyOn(tripPhotosRepo, 'insertIgnore').mockRejectedValueOnce(new Error('disk full'));
 
-    const result = await addTripPhotos(String(trip.id), user.id, false, [{ provider: 'tx-prov', asset_ids: ['asset-tx'] }], 'sid');
+    const result = await addTripPhotos(
+      String(trip.id),
+      user.id,
+      false,
+      [{ provider: 'tx-prov', asset_ids: ['asset-tx'] }],
+      'sid',
+    );
 
     expect(result.success).toBe(false);
     expect(await findRows(orm, TrekPhotos, { asset_id: 'asset-tx' })).toEqual([]);
@@ -288,7 +318,12 @@ describe('createTripAlbumLink', () => {
     const trip = createTrip(testDb, user.id);
 
     await insertRowIgnoringConflict(orm, PhotoProviders, {
-      id: 'disabled-prov2', name: 'Disabled2', description: 'desc', icon: 'Image', enabled: 0, sort_order: 100,
+      id: 'disabled-prov2',
+      name: 'Disabled2',
+      description: 'desc',
+      icon: 'Image',
+      enabled: 0,
+      sort_order: 100,
     });
 
     const result = await createTripAlbumLink(String(trip.id), user.id, 'disabled-prov2', 'album-1', 'My Album');
@@ -328,7 +363,14 @@ describe('removeAlbumLink', () => {
     const linkRow = await findRow(orm, TripAlbumLinks, { trip: trip.id, user: user.id, album_id: 'album-rm-1' });
     if (!linkRow) throw new Error('album link album-rm-1 was not created');
 
-    await addTripPhotos(String(trip.id), user.id, true, [{ provider: 'immich', asset_ids: ['asset-rm-1'] }], 'sid-6', String(linkRow.id));
+    await addTripPhotos(
+      String(trip.id),
+      user.id,
+      true,
+      [{ provider: 'immich', asset_ids: ['asset-rm-1'] }],
+      'sid-6',
+      String(linkRow.id),
+    );
     const photoRow = await findRow(orm, TripPhotos, { trip: trip.id, albumLink: linkRow.id });
     expect(photoRow).not.toBeNull();
 
@@ -355,18 +397,33 @@ describe('listTripPhotos / listTripAlbumLinks — parity', () => {
     // A photo under a disabled provider must not appear — the legacy `tkp.provider IN (...)`
     // only ever names the enabled set.
     await insertRowIgnoringConflict(orm, PhotoProviders, {
-      id: 'disabled-x', name: 'Disabled X', description: 'desc', icon: 'Image', enabled: 0, sort_order: 50,
+      id: 'disabled-x',
+      name: 'Disabled X',
+      description: 'desc',
+      icon: 'Image',
+      enabled: 0,
+      sort_order: 50,
     });
 
-    const enabledPhoto = await insertRow(orm, TrekPhotos, { provider: 'immich', asset_id: 'asset-enabled', owner: user.id });
-    const disabledPhoto = await insertRow(orm, TrekPhotos, { provider: 'disabled-x', asset_id: 'asset-disabled', owner: user.id });
+    const enabledPhoto = await insertRow(orm, TrekPhotos, {
+      provider: 'immich',
+      asset_id: 'asset-enabled',
+      owner: user.id,
+    });
+    const disabledPhoto = await insertRow(orm, TrekPhotos, {
+      provider: 'disabled-x',
+      asset_id: 'asset-disabled',
+      owner: user.id,
+    });
 
     await insertRow(orm, TripPhotos, { trip: trip.id, user: user.id, photo: enabledPhoto, shared: 1 });
     await insertRow(orm, TripPhotos, { trip: trip.id, user: user.id, photo: disabledPhoto, shared: 1 });
 
     const enabledProviders = await enabledProviderIds();
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const oracle = testDb.prepare(`
+    const oracle = testDb
+      .prepare(
+        `
       SELECT tp.photo_id, tkp.asset_id, tkp.provider, tp.user_id, tp.shared, tp.added_at,
              u.username, u.avatar
       FROM trip_photos tp
@@ -376,7 +433,9 @@ describe('listTripPhotos / listTripAlbumLinks — parity', () => {
         AND (tp.user_id = ? OR tp.shared = 1)
         AND tkp.provider IN (${enabledProviders.map(() => '?').join(',')})
       ORDER BY tp.added_at ASC
-    `).all(trip.id, user.id, ...enabledProviders);
+    `,
+      )
+      .all(trip.id, user.id, ...enabledProviders);
 
     const result = await listTripPhotos(String(trip.id), user.id);
     const data = expectSuccess(result);
@@ -388,11 +447,20 @@ describe('listTripPhotos / listTripAlbumLinks — parity', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    await createTripAlbumLink(String(trip.id), user.id, 'synologyphotos', 'album-p1', 'Passphrase Album', 'secret-pass');
+    await createTripAlbumLink(
+      String(trip.id),
+      user.id,
+      'synologyphotos',
+      'album-p1',
+      'Passphrase Album',
+      'secret-pass',
+    );
 
     const enabledProviders = await enabledProviderIds();
     // test-sql-allow: the raw statement is the legacy oracle this parity test holds the repository to.
-    const oracle = testDb.prepare(`
+    const oracle = testDb
+      .prepare(
+        `
       SELECT tal.id,
              tal.trip_id,
              tal.user_id,
@@ -408,7 +476,9 @@ describe('listTripPhotos / listTripAlbumLinks — parity', () => {
       WHERE tal.trip_id = ?
         AND tal.provider IN (${enabledProviders.map(() => '?').join(',')})
       ORDER BY tal.created_at ASC
-    `).all(trip.id, ...enabledProviders);
+    `,
+      )
+      .all(trip.id, ...enabledProviders);
 
     const result = await listTripAlbumLinks(String(trip.id), user.id);
     const data = expectSuccess(result);
@@ -439,11 +509,22 @@ describe('R8 — injected RealtimeService, not the legacy module broadcast', () 
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const result = await addTripPhotos(String(trip.id), user.id, false, [{ provider: 'immich', asset_ids: ['asset-r8-1'] }], 'sid-1');
+    const result = await addTripPhotos(
+      String(trip.id),
+      user.id,
+      false,
+      [{ provider: 'immich', asset_ids: ['asset-r8-1'] }],
+      'sid-1',
+    );
 
     expect(expectSuccess(result).added).toBe(1);
     expect(realtimeMock.broadcast).toHaveBeenCalledTimes(1);
-    expect(realtimeMock.broadcast).toHaveBeenCalledWith(String(trip.id), 'memories:updated', { userId: user.id }, 'sid-1');
+    expect(realtimeMock.broadcast).toHaveBeenCalledWith(
+      String(trip.id),
+      'memories:updated',
+      { userId: user.id },
+      'sid-1',
+    );
   });
 
   it('MEM-UNIFIED-016: setTripPhotoSharing calls this.realtime.broadcast', async () => {
@@ -456,7 +537,12 @@ describe('R8 — injected RealtimeService, not the legacy module broadcast', () 
 
     expect(result.success).toBe(true);
     expect(realtimeMock.broadcast).toHaveBeenCalledTimes(1);
-    expect(realtimeMock.broadcast).toHaveBeenCalledWith(String(trip.id), 'memories:updated', { userId: user.id }, 'sid-2');
+    expect(realtimeMock.broadcast).toHaveBeenCalledWith(
+      String(trip.id),
+      'memories:updated',
+      { userId: user.id },
+      'sid-2',
+    );
     const row = await findRow(orm, TripPhotos, { trip: trip.id, user: user.id, photo: photoId });
     expect(row?.shared).toBe(1);
   });
@@ -465,11 +551,23 @@ describe('R8 — injected RealtimeService, not the legacy module broadcast', () 
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const first = await addTripPhotos(String(trip.id), user.id, false, [{ provider: 'immich', asset_ids: ['asset-dup-1'] }], 'sid-4');
+    const first = await addTripPhotos(
+      String(trip.id),
+      user.id,
+      false,
+      [{ provider: 'immich', asset_ids: ['asset-dup-1'] }],
+      'sid-4',
+    );
     expect(expectSuccess(first).added).toBe(1);
     realtimeMock.broadcast.mockClear();
 
-    const second = await addTripPhotos(String(trip.id), user.id, false, [{ provider: 'immich', asset_ids: ['asset-dup-1'] }], 'sid-5');
+    const second = await addTripPhotos(
+      String(trip.id),
+      user.id,
+      false,
+      [{ provider: 'immich', asset_ids: ['asset-dup-1'] }],
+      'sid-5',
+    );
     expect(expectSuccess(second).added).toBe(0);
 
     expect(await countRows(orm, TripPhotos, { trip: trip.id, user: user.id })).toBe(1);
@@ -485,7 +583,12 @@ describe('R8 — injected RealtimeService, not the legacy module broadcast', () 
 
     expect(result.success).toBe(true);
     expect(realtimeMock.broadcast).toHaveBeenCalledTimes(1);
-    expect(realtimeMock.broadcast).toHaveBeenCalledWith(String(trip.id), 'memories:updated', { userId: user.id }, 'sid-3');
+    expect(realtimeMock.broadcast).toHaveBeenCalledWith(
+      String(trip.id),
+      'memories:updated',
+      { userId: user.id },
+      'sid-3',
+    );
     const row = await findRow(orm, TripPhotos, { trip: trip.id, user: user.id, photo: photoId });
     expect(row).toBeNull();
   });

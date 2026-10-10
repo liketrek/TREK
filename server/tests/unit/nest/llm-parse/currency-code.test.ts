@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { toIsoCurrency } from '../../../../src/nest/llm-parse/currency-code';
+
+import { describe, it, expect } from 'vitest';
 
 describe('toIsoCurrency', () => {
   it('keeps an ISO 4217 code in any case and spacing', () => {

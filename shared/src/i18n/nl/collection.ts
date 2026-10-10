@@ -174,7 +174,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'Aan een lijst toevoegen',
   'collections.file.targetExistingHint': 'Aan een lijst die je al hebt',
   'collections.file.searchLists': 'Lijsten zoeken',
-  'collections.file.intoHint': 'Plekken die de lijst al heeft blijven zoals ze zijn, net als de naam en de kleur. Labels uit het bestand komen erbij.',
+  'collections.file.intoHint':
+    'Plekken die de lijst al heeft blijven zoals ze zijn, net als de naam en de kleur. Labels uit het bestand komen erbij.',
   'collections.file.confirmInto': 'Aan lijst toevoegen',
   'collections.file.doneInto': '{count} plekken toegevoegd aan {name}',
   'collections.file.doneInto.one': '{count} plek toegevoegd aan {name}',

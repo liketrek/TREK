@@ -9,7 +9,11 @@ export class PlaceDetailsCacheRepository extends TrekRepository<PlaceDetailsCach
    * `NOT NULL DEFAULT ''`, never NULL) and `expanded` bound to the
    * `CACHE_KIND` constant.
    */
-  async findEntry(placeId: string, lang: string, kind: number): Promise<{ payload_json: string; fetched_at: number } | null> {
+  async findEntry(
+    placeId: string,
+    lang: string,
+    kind: number,
+  ): Promise<{ payload_json: string; fetched_at: number } | null> {
     const row = await this.findOne(
       { place_id: placeId, lang, expanded: kind },
       { fields: ['payload_json', 'fetched_at'] },
@@ -29,7 +33,13 @@ export class PlaceDetailsCacheRepository extends TrekRepository<PlaceDetailsCach
    * `lang`/`expanded` values on the same place. `fetched_at` is ms-epoch,
    * never `currentTimestamp`.
    */
-  async upsertEntry(row: { place_id: string; lang: string; expanded: number; payload_json: string; fetched_at: number }): Promise<void> {
+  async upsertEntry(row: {
+    place_id: string;
+    lang: string;
+    expanded: number;
+    payload_json: string;
+    fetched_at: number;
+  }): Promise<void> {
     await this.upsert(row, { onConflictFields: ['place_id', 'lang', 'expanded'], onConflictAction: 'merge' });
   }
 }

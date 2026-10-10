@@ -8,13 +8,14 @@
  * (`listLegs`), RT22 (`setSequence`), RT24 (`findById`), AS20
  * (`listForReanchor`).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createDay, createTrip, createUser } from '../../../helpers/factories';
 import { RoadtripVias } from '../../../../src/db/entities/RoadtripVias.entity';
 import type { RoadtripViasRepository } from '../../../../src/db/repositories/RoadtripVias.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createDay, createTrip, createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -24,8 +25,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   vias = t.repo(RoadtripVias);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function fixture() {
   const { user } = createUser(testDb);
@@ -42,7 +49,15 @@ describe('RoadtripViasRepository', () => {
     const { dayA1 } = fixture();
     const id = await vias.insertVia({ day_id: dayA1.id, after_order_index: 0, sequence: 0, lat: 53.1, lng: 10.2 });
     const row = await vias.findById(id);
-    expect(row).toEqual({ id, day_id: dayA1.id, after_order_index: 0, sequence: 0, lat: 53.1, lng: 10.2, created_at: expect.any(String) });
+    expect(row).toEqual({
+      id,
+      day_id: dayA1.id,
+      after_order_index: 0,
+      sequence: 0,
+      lat: 53.1,
+      lng: 10.2,
+      created_at: expect.any(String),
+    });
   });
 
   it('RT24REPO-001: findById on a missing id is null', async () => {

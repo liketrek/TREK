@@ -1,5 +1,5 @@
-import { DOCSYNC_SECRET_MASK } from '@trek/shared';
 import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DOCSYNC_SECRET_MASK } from '@trek/shared';
 
 /**
  * Credential handling for document connections.
@@ -58,7 +58,11 @@ export function decryptSecrets(stored: string | null | undefined): SecretMap {
  * (DSM's device token). It is carried over untouched and cannot be set from
  * here: the form never saw it, so an edit can neither wipe it nor plant one.
  */
-export function mergeSecrets(stored: SecretMap, submitted: Record<string, string>, secretKeys: readonly string[]): SecretMap {
+export function mergeSecrets(
+  stored: SecretMap,
+  submitted: Record<string, string>,
+  secretKeys: readonly string[],
+): SecretMap {
   const next: SecretMap = { ...stored };
   for (const key of secretKeys) {
     const value = submitted[key];

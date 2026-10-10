@@ -1,6 +1,6 @@
 import type { Journeys } from '../entities/Journeys.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 /**
  * `SELECT * FROM journeys WHERE id = ?`'s row — every scalar column the
@@ -41,7 +41,10 @@ export interface JourneyListRow extends JourneyRow {
 }
 
 /** The `journeys`/`journey_contributors`/`journey_entries`/`journey_photos`/`journey_trips`/`trips` tables {@link JourneysRepository.listForUser} reads. */
-type JourneyListKyselyDB = Pick<DB, 'journeys' | 'journey_contributors' | 'journey_entries' | 'journey_photos' | 'journey_trips' | 'trips'>;
+type JourneyListKyselyDB = Pick<
+  DB,
+  'journeys' | 'journey_contributors' | 'journey_entries' | 'journey_photos' | 'journey_trips' | 'trips'
+>;
 
 /** The `journeys`/`journey_contributors` tables {@link JourneysRepository.listRecipientUserIds} reads. */
 type JourneyRecipientsKyselyDB = Pick<DB, 'journeys' | 'journey_contributors'>;
@@ -130,7 +133,9 @@ export class JourneysRepository extends TrekRepository<Journeys> {
   async listForUser(user_id: number): Promise<JourneyListRow[]> {
     const rows = await this.kysely<JourneyListKyselyDB>()
       .selectFrom('journeys as j')
-      .leftJoin('journey_contributors as jc', (join) => join.onRef('jc.journey_id', '=', 'j.id').on('jc.user_id', '=', user_id))
+      .leftJoin('journey_contributors as jc', (join) =>
+        join.onRef('jc.journey_id', '=', 'j.id').on('jc.user_id', '=', user_id),
+      )
       .selectAll('j')
       .select((eb) => [
         eb
@@ -171,7 +176,13 @@ export class JourneysRepository extends TrekRepository<Journeys> {
   }
 
   /** JG9 — `createJourney`'s INSERT: `(user_id, title, subtitle, status, created_at, updated_at)`, `status` hard-coded `'active'` like the legacy statement. */
-  async insertJourney(data: { user_id: number; title: string; subtitle: string | null; created_at: number; updated_at: number }): Promise<number> {
+  async insertJourney(data: {
+    user_id: number;
+    title: string;
+    subtitle: string | null;
+    created_at: number;
+    updated_at: number;
+  }): Promise<number> {
     return await this.insert({
       user: data.user_id,
       title: data.title,

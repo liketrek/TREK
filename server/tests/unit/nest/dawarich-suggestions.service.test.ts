@@ -10,44 +10,47 @@
  * DawarichService and DawarichClient so no case can touch the network or a
  * user's stored credentials.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { BucketList } from '../../../src/db/entities/BucketList.entity';
+import { DawarichVisitSuggestions } from '../../../src/db/entities/DawarichVisitSuggestions.entity';
+import { Days } from '../../../src/db/entities/Days.entity';
+import { JourneyEntries } from '../../../src/db/entities/JourneyEntries.entity';
+import { Journeys } from '../../../src/db/entities/Journeys.entity';
+import { Places } from '../../../src/db/entities/Places.entity';
+import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
+import type { BucketListRepository } from '../../../src/db/repositories/BucketList.repository';
+import type { DawarichVisitSuggestionsRepository } from '../../../src/db/repositories/DawarichVisitSuggestions.repository';
+import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import type { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
+import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import { AcceptError, DawarichSuggestionsService } from '../../../src/nest/integrations/dawarich-suggestions.service';
+import type { DawarichClient } from '../../../src/nest/integrations/dawarich.client';
+import type { DawarichService } from '../../../src/nest/integrations/dawarich.service';
+import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import type { PlacesService } from '../../../src/nest/places/places.service';
+import { createTestDawarichVisitSuggestionsRepo } from '../../helpers/dawarich-repos';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser, createTrip, createDay, addTripMember } from '../../helpers/factories';
+import { countRows, deleteRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import {
+  createTestPlacesRepo,
+  createTestTripsRepo,
+  createTestUnitOfWork,
+  createTestUsersRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+import { DAWARICH_BUCKET_SCAN_LIMIT } from '@trek/shared';
+import type { DawarichConnection } from '@trek/shared';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup (real in-memory SQLite — same pattern as the other service tests) ──
 
 const testDb = createSnapshotTestDb();
-
-import { DAWARICH_BUCKET_SCAN_LIMIT } from '@trek/shared';
-import type { DawarichConnection } from '@trek/shared';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, addTripMember } from '../../helpers/factories';
-import {
-  AcceptError,
-  DawarichSuggestionsService,
-} from '../../../src/nest/integrations/dawarich-suggestions.service';
-import type { DawarichService } from '../../../src/nest/integrations/dawarich.service';
-import type { DawarichClient } from '../../../src/nest/integrations/dawarich.client';
-import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
-import type { PlacesService } from '../../../src/nest/places/places.service';
-import type { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import type { DawarichVisitSuggestionsRepository } from '../../../src/db/repositories/DawarichVisitSuggestions.repository';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import { BucketList } from '../../../src/db/entities/BucketList.entity';
-import { Days } from '../../../src/db/entities/Days.entity';
-import { DawarichVisitSuggestions } from '../../../src/db/entities/DawarichVisitSuggestions.entity';
-import { Journeys } from '../../../src/db/entities/Journeys.entity';
-import { JourneyEntries } from '../../../src/db/entities/JourneyEntries.entity';
-import { Places } from '../../../src/db/entities/Places.entity';
-import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
-import { countRows, deleteRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
-import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
-import type { BucketListRepository } from '../../../src/db/repositories/BucketList.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import type { TestOrm } from '../../helpers/test-orm';
-import { createTestDawarichVisitSuggestionsRepo } from '../../helpers/dawarich-repos';
-import { createTestPlacesRepo, createTestTripsRepo, createTestUnitOfWork, createTestUsersRepo, sharedTestOrm } from '../../helpers/test-uow';
 
 // ── Collaborator stubs ───────────────────────────────────────────────────────
 //
@@ -311,9 +314,7 @@ describe('DawarichSuggestionsService — the review list', () => {
     await seedSuggestion({ userId: user.id, tripId: otherTrip.id });
     await seedSuggestion({ userId: stranger.id, tripId: strangerTrip.id });
 
-    const byTrip = (await svc.list(user.id, { tripId: trip.id }))
-      .suggestions.map((s) => s.id)
-      .sort((a, b) => a - b);
+    const byTrip = (await svc.list(user.id, { tripId: trip.id })).suggestions.map((s) => s.id).sort((a, b) => a - b);
     expect(byTrip).toEqual([onTrip, dismissed].sort((a, b) => a - b));
 
     expect((await svc.list(user.id, { tripId: trip.id, state: 'dismissed' })).suggestions.map((s) => s.id)).toEqual([
@@ -355,11 +356,16 @@ describe('DawarichSuggestionsService — the review list', () => {
     // accepted: the detector re-ran and the hash moved, it upgraded the stay
     // from suggested to confirmed, and then the visit disappeared from
     // Dawarich altogether. The tick the user made stands through all of it.
-    await updateRows(t, DawarichVisitSuggestions, { id }, {
-      source_hash: 'hash-after-redetection',
-      source_status: 'confirmed',
-      source_missing_at: '2026-09-07T00:00:00Z',
-    });
+    await updateRows(
+      t,
+      DawarichVisitSuggestions,
+      { id },
+      {
+        source_hash: 'hash-after-redetection',
+        source_status: 'confirmed',
+        source_missing_at: '2026-09-07T00:00:00Z',
+      },
+    );
 
     const wire = (await svc.getOne(user.id, id))!;
     expect(wire.sourceStatus).toBe('confirmed');
@@ -466,7 +472,9 @@ describe('DawarichSuggestionsService — accepting into a trip', () => {
 
     placesStub.create.mockImplementationOnce((tripId: string, body: { name?: string; lat?: number; lng?: number }) => {
       // test-sql-allow: runs inside the service's open transaction, on the connection that transaction holds.
-      testDb.prepare('UPDATE dawarich_visit_suggestions SET source_hash = ? WHERE id = ?').run('hash-changed-concurrently', id);
+      testDb
+        .prepare('UPDATE dawarich_visit_suggestions SET source_hash = ? WHERE id = ?')
+        .run('hash-changed-concurrently', id);
       return insertPlaceRow(tripId, body);
     });
 
@@ -1329,7 +1337,9 @@ describe('DawarichSuggestionsService — the Atlas hand-off', () => {
     const id = await seedSuggestion({ userId: member.id, tripId: trip.id });
     permissionsStub.checkPermission.mockImplementation((action: string) => action !== 'day_edit');
 
-    await expect(svc.accept(member.id, id, { target: 'place', tripId: trip.id, dayId: day.id })).rejects.toThrow(AcceptError);
+    await expect(svc.accept(member.id, id, { target: 'place', tripId: trip.id, dayId: day.id })).rejects.toThrow(
+      AcceptError,
+    );
     expect(placesStub.create).not.toHaveBeenCalled();
     expect((await rowOf(id)).state).toBe('new');
   });
@@ -1425,7 +1435,13 @@ describe('DawarichSuggestionsService — the Atlas hand-off', () => {
   it('DAWARICH-SUG-036: a journal acceptance reopens once its entry is gone', async () => {
     const { user } = createUser(testDb);
     const id = await seedSuggestion({ userId: user.id, tripId: null });
-    const journeyId = await insertRow(t, Journeys, { user: user.id, title: 'Trip diary', status: 'active', created_at: 0, updated_at: 0 });
+    const journeyId = await insertRow(t, Journeys, {
+      user: user.id,
+      title: 'Trip diary',
+      status: 'active',
+      created_at: 0,
+      updated_at: 0,
+    });
     const entryId = await insertRow(t, JourneyEntries, {
       journey: journeyId,
       author: user.id,
@@ -1445,7 +1461,7 @@ describe('DawarichSuggestionsService — the Atlas hand-off', () => {
     expect((await svc.list(user.id, {})).suggestions.find((s) => s.id === id)!.state).toBe('new');
   });
 
-  it('DAWARICH-SUG-037: reopening is scoped to the caller — another user\'s orphan stays put', async () => {
+  it("DAWARICH-SUG-037: reopening is scoped to the caller — another user's orphan stays put", async () => {
     const { user: mine } = createUser(testDb);
     const { user: theirs } = createUser(testDb);
     const trip = createTrip(testDb, theirs.id);

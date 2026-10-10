@@ -79,22 +79,22 @@
  *   resolves to nothing was accepted (201), not refused (400 "Unknown
  *   reference").
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import type { INestApplication } from '@nestjs/common';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { generateToken } from '../helpers/auth';
+import { createDay, createDayAssignment, createPlace, createTrip, createUser } from '../helpers/factories';
+import { setAddonEnabled } from '../helpers/factories/settings';
 import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import request from 'supertest';
-import type { Application } from 'express';
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { createDay, createDayAssignment, createPlace, createTrip, createUser } from '../helpers/factories';
-import { generateToken } from '../helpers/auth';
-import { setAddonEnabled } from '../helpers/factories/settings';
 
 describe('R1 async-closure truthiness guards (RB2/RS21/RS23) — driven through the real routes', () => {
   let app: INestApplication;

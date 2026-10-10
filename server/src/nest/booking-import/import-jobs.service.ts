@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { MikroORM } from '@mikro-orm/core';
-import { randomUUID } from 'node:crypto';
 import { withRequestContext } from '../database/request-context';
+import { LlmParseService } from '../llm-parse/llm-parse.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { BookingImportService } from './booking-import.service';
-import { LlmParseService } from '../llm-parse/llm-parse.service';
+import { MikroORM } from '@mikro-orm/core';
+import { Injectable } from '@nestjs/common';
 import type { BookingImportMode, BookingImportPreviewResponse, ReceiptScanResult, TrekWsPayload } from '@trek/shared';
+
+import { randomUUID } from 'node:crypto';
 
 type JobStatus = 'running' | 'done' | 'error';
 
@@ -61,7 +62,10 @@ export class ImportJobsService {
   /** Queue the read of one receipt photo, behind the same user's other parses. */
   startReceipt(tripId: string, file: Express.Multer.File, userId: number): string {
     return this.enqueue(tripId, userId, 1, async (job) => {
-      const result = await this.llmParse.readReceipt({ buffer: file.buffer, originalName: file.originalname }, job.userId);
+      const result = await this.llmParse.readReceipt(
+        { buffer: file.buffer, originalName: file.originalname },
+        job.userId,
+      );
       job.done = 1;
       return result;
     });
@@ -106,7 +110,10 @@ export class ImportJobsService {
     return job && job.userId === userId ? job : undefined;
   }
 
-  private async run(job: ImportJob, work: (job: ImportJob) => Promise<BookingImportPreviewResponse | ReceiptScanResult>): Promise<void> {
+  private async run(
+    job: ImportJob,
+    work: (job: ImportJob) => Promise<BookingImportPreviewResponse | ReceiptScanResult>,
+  ): Promise<void> {
     this.push(job, 'import:progress', { status: 'running', done: 0, total: job.total });
     try {
       const result = await work(job);

@@ -1,9 +1,10 @@
+import { checkBackupDatabase } from '../../../src/nest/backup/backup-archive';
+
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { checkBackupDatabase } from '../../../src/nest/backup/backup-archive';
 
 describe('checkBackupDatabase and the release that made the backup', () => {
   let dir: string;
@@ -17,7 +18,8 @@ describe('checkBackupDatabase and the release that made the backup', () => {
 
   const backupWith = (recorded: string[]): void => {
     const db = new Database(path.join(dir, 'travel.db'));
-    for (const table of ['users', 'trips', 'trip_members', 'places', 'days']) db.exec(`CREATE TABLE ${table} (id INTEGER)`);
+    for (const table of ['users', 'trips', 'trip_members', 'places', 'days'])
+      db.exec(`CREATE TABLE ${table} (id INTEGER)`);
     db.exec('CREATE TABLE mikro_orm_migrations (id INTEGER PRIMARY KEY, name TEXT, executed_at TEXT)');
     // test-sql-allow: a bare backup file before any boot, which no ORM is bound to.
     const insert = db.prepare('INSERT INTO mikro_orm_migrations (name) VALUES (?)');
@@ -40,7 +42,8 @@ describe('checkBackupDatabase and the release that made the backup', () => {
 
   it('BACKUPVER-003: accepts a pre-ORM backup without the migrations table', () => {
     const db = new Database(path.join(dir, 'travel.db'));
-    for (const table of ['users', 'trips', 'trip_members', 'places', 'days']) db.exec(`CREATE TABLE ${table} (id INTEGER)`);
+    for (const table of ['users', 'trips', 'trip_members', 'places', 'days'])
+      db.exec(`CREATE TABLE ${table} (id INTEGER)`);
     db.close();
     expect(checkBackupDatabase(dir)).toBeNull();
   });

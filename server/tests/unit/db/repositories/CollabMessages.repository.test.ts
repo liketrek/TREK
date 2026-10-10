@@ -9,16 +9,17 @@
  * through this read (no `reply_text`/`reply_username`, unlike
  * `joinedQuery`), and a deleted message (`deleted = 1`) must never surface.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTrip, createUser } from '../../../helpers/factories';
-import { createTestCollabMessagesRepo } from '../../../helpers/collab-repos';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { makeCollabMessage } from '../../../helpers/factories/collab';
-import { updateRows } from '../../../helpers/factories/rows';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import type { CollabMessagesRepository } from '../../../../src/db/repositories/CollabMessages.repository';
+import { createTestCollabMessagesRepo } from '../../../helpers/collab-repos';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { makeCollabMessage } from '../../../helpers/factories/collab';
+import { updateRows } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let collabMessagesRepo: CollabMessagesRepository;
@@ -50,9 +51,11 @@ async function insertMessage(
 
 function legacyPublicForShare(tripId: number): unknown {
   // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-  return testDb.prepare(
-    'SELECT m.*, u.username, u.avatar FROM collab_messages m JOIN users u ON m.user_id = u.id WHERE m.trip_id = ? AND m.deleted = 0 ORDER BY m.created_at ASC',
-  ).all(tripId);
+  return testDb
+    .prepare(
+      'SELECT m.*, u.username, u.avatar FROM collab_messages m JOIN users u ON m.user_id = u.id WHERE m.trip_id = ? AND m.deleted = 0 ORDER BY m.created_at ASC',
+    )
+    .all(tripId);
 }
 
 describe('CollabMessagesRepository — share.service.ts SH16 read', () => {
@@ -63,8 +66,16 @@ describe('CollabMessagesRepository — share.service.ts SH16 read', () => {
     const trip = createTrip(testDb, author.id);
     const other = createTrip(testDb, author.id);
 
-    const rootId = await insertMessage(trip.id, author.id, { text: 'root', reply_to: null, created_at: '2026-09-01T10:00:00.000Z' });
-    const replyId = await insertMessage(trip.id, replier.id, { text: 'reply', reply_to: rootId, created_at: '2026-09-01T11:00:00.000Z' });
+    const rootId = await insertMessage(trip.id, author.id, {
+      text: 'root',
+      reply_to: null,
+      created_at: '2026-09-01T10:00:00.000Z',
+    });
+    const replyId = await insertMessage(trip.id, replier.id, {
+      text: 'reply',
+      reply_to: rootId,
+      created_at: '2026-09-01T11:00:00.000Z',
+    });
     await insertMessage(trip.id, author.id, { text: 'gone', deleted: 1, created_at: '2026-09-01T12:00:00.000Z' });
     await insertMessage(other.id, author.id, { text: 'foreign' });
 

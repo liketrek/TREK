@@ -1,6 +1,6 @@
 import type { BudgetCategoryOrder } from '../entities/BudgetCategoryOrder.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { TrekRepository } from './_shared/trek-repository';
 
 type BudgetCategoryOrderKyselyDB = Pick<DB, 'budget_category_order'>;
 

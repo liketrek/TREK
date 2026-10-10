@@ -1,35 +1,16 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpCode,
-  HttpException,
-  Param,
-  Patch,
-  Post,
-  Put,
-  Query,
-  UploadedFile,
-  UseGuards,
-  UseInterceptors,
-} from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import type { Options } from 'multer';
-import path from 'path';
+import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
-import { CollectionsService } from './collections.service';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
-import { ADDON_IDS } from '../../addons';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { PLACE_IMAGE_FILE_FILTER } from '../common/place-image-upload';
-import { StorageService } from '../storage/storage.service';
+import { CollectionGpxError } from '../place-import/place-import.types';
 import { placeImageUrl } from '../places/place-image';
+import { PlaceRatingDto } from '../places/places.dto';
+import { StorageService } from '../storage/storage.service';
 import {
   CollectionCreateDto,
   CollectionUpdateDto,
@@ -55,8 +36,28 @@ import {
   CollectionImportIntoDto,
   CollectionGpxReadDto,
 } from './collections.dto';
-import { PlaceRatingDto } from '../places/places.dto';
-import { CollectionGpxError } from '../place-import/place-import.types';
+import { CollectionsService } from './collections.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  HttpCode,
+  HttpException,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+
+import type { Options } from 'multer';
+import path from 'path';
 
 export const MAX_COVER_SIZE = 20 * 1024 * 1024;
 // Duplicated on purpose from trips.controller.ts (historical parity — no
@@ -84,7 +85,11 @@ const COVER_FILE_FILTER: Options['fileFilter'] = (_req, file, cb) => {
 @UseGuards(AddonGuard, JwtAuthGuard)
 @RequireAddon(ADDON_IDS.COLLECTIONS, 'Collections')
 export class CollectionsController {
-  constructor(private readonly collections: CollectionsService, private readonly env: RuntimeEnvService, private readonly storage: StorageService) {}
+  constructor(
+    private readonly collections: CollectionsService,
+    private readonly env: RuntimeEnvService,
+    private readonly storage: StorageService,
+  ) {}
 
   // ── Lists ─────────────────────────────────────────────────────────────────
   @Get()
@@ -107,37 +112,75 @@ export class CollectionsController {
   // ── Places (static prefixes before /:id) ────────────────────────────────────
   @Post('places')
   @HttpCode(200)
-  savePlace(@CurrentUser() user: User, @Body() body: CollectionSavePlaceDto, @Headers('x-socket-id') socketId?: string) {
+  savePlace(
+    @CurrentUser() user: User,
+    @Body() body: CollectionSavePlaceDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     return this.collections.savePlace(user.id, body, socketId);
   }
 
   @Post('places/from-trip')
   @HttpCode(200)
-  saveFromTrip(@CurrentUser() user: User, @Body() body: CollectionSaveFromTripDto, @Headers('x-socket-id') socketId?: string) {
-    return this.collections.saveFromTripPlace(user.id, body.collection_id, body.source_trip_id, body.source_place_id, body.force, socketId);
+  saveFromTrip(
+    @CurrentUser() user: User,
+    @Body() body: CollectionSaveFromTripDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return this.collections.saveFromTripPlace(
+      user.id,
+      body.collection_id,
+      body.source_trip_id,
+      body.source_place_id,
+      body.force,
+      socketId,
+    );
   }
 
   @Post('places/from-trip-many')
   @HttpCode(200)
-  saveFromTripMany(@CurrentUser() user: User, @Body() body: CollectionSaveFromTripManyDto, @Headers('x-socket-id') socketId?: string) {
-    return this.collections.saveFromTripPlaces(user.id, body.collection_id, body.source_trip_id, body.source_place_ids, body.force, socketId);
+  saveFromTripMany(
+    @CurrentUser() user: User,
+    @Body() body: CollectionSaveFromTripManyDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return this.collections.saveFromTripPlaces(
+      user.id,
+      body.collection_id,
+      body.source_trip_id,
+      body.source_place_ids,
+      body.force,
+      socketId,
+    );
   }
 
   @Post('places/delete-many')
   @HttpCode(200)
-  async deleteMany(@CurrentUser() user: User, @Body() body: CollectionDeleteManyDto, @Headers('x-socket-id') socketId?: string) {
+  async deleteMany(
+    @CurrentUser() user: User,
+    @Body() body: CollectionDeleteManyDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     return { deleted: await this.collections.deletePlacesMany(user.id, body.ids, socketId) };
   }
 
   @Post('places/status-many')
   @HttpCode(200)
-  setStatusMany(@CurrentUser() user: User, @Body() body: CollectionSetStatusManyDto, @Headers('x-socket-id') socketId?: string) {
+  setStatusMany(
+    @CurrentUser() user: User,
+    @Body() body: CollectionSetStatusManyDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     return this.collections.setStatusMany(user.id, body.ids, body.status, socketId);
   }
 
   @Post('places/status-from-trip')
   @HttpCode(200)
-  setStatusFromTrip(@CurrentUser() user: User, @Body() body: CollectionSetStatusFromTripDto, @Headers('x-socket-id') socketId?: string) {
+  setStatusFromTrip(
+    @CurrentUser() user: User,
+    @Body() body: CollectionSetStatusFromTripDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     return this.collections.setStatusFromTrip(user.id, body.trip_id, body.place_ids, body.status, socketId);
   }
 
@@ -318,14 +361,22 @@ export class CollectionsController {
 
   @Post('invite/accept')
   @HttpCode(200)
-  async acceptInvite(@CurrentUser() user: User, @Body() body: CollectionInviteActionDto, @Headers('x-socket-id') socketId?: string) {
+  async acceptInvite(
+    @CurrentUser() user: User,
+    @Body() body: CollectionInviteActionDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     await this.collections.acceptInvite(user.id, body.collection_id, socketId);
     return { success: true };
   }
 
   @Post('invite/decline')
   @HttpCode(200)
-  async declineInvite(@CurrentUser() user: User, @Body() body: CollectionInviteActionDto, @Headers('x-socket-id') socketId?: string) {
+  async declineInvite(
+    @CurrentUser() user: User,
+    @Body() body: CollectionInviteActionDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     await this.collections.declineInvite(user.id, body.collection_id, socketId);
     return { success: true };
   }
@@ -343,7 +394,11 @@ export class CollectionsController {
 
   @Post('leave')
   @HttpCode(200)
-  async leave(@CurrentUser() user: User, @Body() body: CollectionInviteActionDto, @Headers('x-socket-id') socketId?: string) {
+  async leave(
+    @CurrentUser() user: User,
+    @Body() body: CollectionInviteActionDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     await this.collections.leaveCollection(user.id, body.collection_id, socketId);
     return { success: true };
   }
@@ -382,7 +437,12 @@ export class CollectionsController {
 
   @Post(':id/cover')
   @UseInterceptors(FileInterceptor('cover', { fileFilter: COVER_FILE_FILTER }))
-  async uploadCover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined, @Headers('x-socket-id') socketId?: string) {
+  async uploadCover(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     if (isDemoWriteBlocked(this.env, user.email)) {
       throw new HttpException(DEMO_WRITE_ERROR, 403);
     }
@@ -447,7 +507,12 @@ export class CollectionsController {
   }
 
   @Patch(':id')
-  update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: CollectionUpdateDto, @Headers('x-socket-id') socketId?: string) {
+  update(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: CollectionUpdateDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     return this.collections.updateCollection(user.id, Number(id), body, socketId);
   }
 

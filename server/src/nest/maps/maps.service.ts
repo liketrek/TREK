@@ -1,27 +1,34 @@
+import { readEnv } from '../../app-config';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { GeoLane } from '../geo/nominatim.client';
+import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+import type { ApiKeySource } from '../settings/instance-api-keys';
+import { indexPoiAnswer, indexPoiPlan, indexSuggestions } from './maps-index.helpers';
+import { NEARBY_DEFAULT_LIMIT, NEARBY_DEFAULT_RADIUS_M, nearbyCacheKey, nearestFirst } from './maps-nearby.helpers';
+import { MapsUrlResolver, type ResolvedMapsUrl } from './maps-url.resolver';
+import { toApiLang, mergeSearchResults } from './maps.helpers';
+import { PlaceDetailsResolver } from './place-details.resolver';
+import { PlacePhotoResolver } from './place-photo.resolver';
+import { PlacesProviderSelector, type KeyedProvider } from './places-provider.selector';
+import type { AmapPlacesProvider } from './providers/amap.provider';
+import { GooglePlacesClient } from './providers/google-places.provider';
+import { OsmClient, type PoiSearchResult } from './providers/osm.client';
+import type { PlacesProviderChoice } from './providers/places-provider';
+import { WikimediaClient, type BrandLogo } from './providers/wikimedia.client';
+import {
+  trekPlacesSearch,
+  indexHitsOnly,
+  trekPlacesArea,
+  trekPlacesNearby,
+  toPlaceRecord,
+  type TrekPlace,
+} from './trek-places.client';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import { isOutsideChina } from '@trek/shared';
 import type { MapsSearchResult, MapsAutocompleteResult, MapsPlaceDetailsResult } from '@trek/shared';
 import type { MapsPlacePhotoResult, MapsReverseResult, MapsResolveUrlResult } from '@trek/shared';
-import { readEnv } from '../../app-config';
-import type { ApiKeySource } from '../settings/instance-api-keys';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import type { PlacesProviderChoice } from './providers/places-provider';
-import { GooglePlacesClient } from './providers/google-places.provider';
-import { OsmClient, type PoiSearchResult } from './providers/osm.client';
-import { WikimediaClient, type BrandLogo } from './providers/wikimedia.client';
-import type { AmapPlacesProvider } from './providers/amap.provider';
-import { PlacesProviderSelector, type KeyedProvider } from './places-provider.selector';
-import { PlacePhotoResolver } from './place-photo.resolver';
-import { MapsUrlResolver, type ResolvedMapsUrl } from './maps-url.resolver';
-import { PlaceDetailsResolver } from './place-details.resolver';
-import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
-import type { GeoLane } from '../geo/nominatim.client';
-import { trekPlacesSearch, indexHitsOnly, trekPlacesArea, trekPlacesNearby, toPlaceRecord, type TrekPlace } from './trek-places.client';
-import { toApiLang, mergeSearchResults } from './maps.helpers';
-import { indexPoiAnswer, indexPoiPlan, indexSuggestions } from './maps-index.helpers';
-import { NEARBY_DEFAULT_LIMIT, NEARBY_DEFAULT_RADIUS_M, nearbyCacheKey, nearestFirst } from './maps-nearby.helpers';
 
 // What the other domains have always imported from here.
 export { readBrandIdentity, readWikiIdentity, type WikiIdentity } from './providers/wiki-identity';
@@ -139,10 +146,18 @@ export class MapsService {
     locationBias?: { lat: number; lng: number; radius?: number },
     provider?: 'google',
   ): Promise<MapsSearchResult> {
-    return this.searchPlaces(userId, query, lang, locationBias, { googleOnly: provider === 'google' }) as Promise<MapsSearchResult>;
+    return this.searchPlaces(userId, query, lang, locationBias, {
+      googleOnly: provider === 'google',
+    }) as Promise<MapsSearchResult>;
   }
 
-  autocomplete(userId: number, input: string, lang?: string, locationBias?: LocationBias, sessionToken?: string): Promise<MapsAutocompleteResult> {
+  autocomplete(
+    userId: number,
+    input: string,
+    lang?: string,
+    locationBias?: LocationBias,
+    sessionToken?: string,
+  ): Promise<MapsAutocompleteResult> {
     return this.autocompletePlaces(userId, input, lang, locationBias, sessionToken) as Promise<MapsAutocompleteResult>;
   }
 
@@ -150,7 +165,12 @@ export class MapsService {
     return this.getPlaceDetails(userId, placeId, lang, sessionToken) as Promise<MapsPlaceDetailsResult>;
   }
 
-  detailsExpanded(userId: number, placeId: string, lang: string | undefined, refresh: boolean): Promise<MapsPlaceDetailsResult> {
+  detailsExpanded(
+    userId: number,
+    placeId: string,
+    lang: string | undefined,
+    refresh: boolean,
+  ): Promise<MapsPlaceDetailsResult> {
     return this.getPlaceDetailsExpanded(userId, placeId, lang, refresh) as Promise<MapsPlaceDetailsResult>;
   }
 
@@ -311,7 +331,11 @@ export class MapsService {
     // A search sent to Google on purpose, or the admin's "Google only" switch,
     // skips the pair the same way: the search then reads exactly as it did
     // before 4.3.0 on an install with a key.
-    if (this.trekPlacesEnabled() && !(opts.googleIdentityOnly && apiKey) && !(await this.selector.googleOnly(keyed, opts.googleOnly))) {
+    if (
+      this.trekPlacesEnabled() &&
+      !(opts.googleIdentityOnly && apiKey) &&
+      !(await this.selector.googleOnly(keyed, opts.googleOnly))
+    ) {
       // Both at once. The index is a dataset of businesses and is very good
       // at those; OpenStreetMap is where the temples, bridges, riverside
       // walks and viewpoints are, and a travel search asks for those
@@ -331,10 +355,12 @@ export class MapsService {
           lat: locationBias?.lat,
           lng: locationBias?.lng,
           limit: 10,
-        }).then(indexHitsOnly).catch((err: unknown) => {
-          console.warn('TREK Places search failed, falling back:', (err as Error).message);
-          return [] as TrekPlace[];
-        }),
+        })
+          .then(indexHitsOnly)
+          .catch((err: unknown) => {
+            console.warn('TREK Places search failed, falling back:', (err as Error).message);
+            return [] as TrekPlace[];
+          }),
         this.osm.searchNominatim(query, lang, 'interactive', locationBias).catch((err: unknown) => {
           console.warn('OpenStreetMap search failed, index only:', (err as Error).message);
           return [] as Record<string, unknown>[];
@@ -349,9 +375,8 @@ export class MapsService {
         // the search log writes this into the corpus a candidate index is later
         // scored against, so a list that is entirely OpenStreetMap must not be
         // recorded as though the index had a hand in it.
-        const source = found.length > 0
-          ? (osm.length > 0 ? 'trek-places+openstreetmap' : 'trek-places')
-          : 'openstreetmap';
+        const source =
+          found.length > 0 ? (osm.length > 0 ? 'trek-places+openstreetmap' : 'trek-places') : 'openstreetmap';
         return { places, source };
       }
     }
@@ -374,7 +399,9 @@ export class MapsService {
 
     // Google in its slot: the index and OpenStreetMap came back empty, or this
     // search was sent to Google alone. Its errors carry Google's own status.
-    const places = await this.googlePlaces.provider({ key: apiKey, source: keySource, userId }).searchText(query, lang, locationBias);
+    const places = await this.googlePlaces
+      .provider({ key: apiKey, source: keySource, userId })
+      .searchText(query, lang, locationBias);
     return { places, source: 'google' };
   }
 
@@ -423,7 +450,8 @@ export class MapsService {
         console.warn('TREK Places nearby failed, falling back:', (err as Error).message);
         return [];
       });
-      if (found.length > 0) return { places: nearestFirst(found.map(toPlaceRecord), origin, limit), source: 'trek-places' };
+      if (found.length > 0)
+        return { places: nearestFirst(found.map(toPlaceRecord), origin, limit), source: 'trek-places' };
     }
 
     if (keyed?.id === 'google') {
@@ -459,7 +487,10 @@ export class MapsService {
     // Amap first inside China when the admin picked it, as in the search (#1636).
     let amapTips: MapsAutocompleteResult['suggestions'] | null = null;
     const boxCentre = locationBias
-      ? { lat: (locationBias.low.lat + locationBias.high.lat) / 2, lng: (locationBias.low.lng + locationBias.high.lng) / 2 }
+      ? {
+          lat: (locationBias.low.lat + locationBias.high.lat) / 2,
+          lng: (locationBias.low.lng + locationBias.high.lng) / 2,
+        }
       : undefined;
     if (keyed?.id === 'amap' && (await this.selector.amapAnswersFirst(boxCentre))) {
       amapTips = await keyed.provider.autocomplete(input, lang, locationBias).catch((err: unknown) => {
@@ -580,6 +611,12 @@ export class MapsService {
     if (link.kind === 'resolved') return link.result;
     // An Amap point is named the way a right-click is, Amap first inside China.
     const reverse = await this.reverseGeocode(String(link.lat), String(link.lng), undefined, { timeoutMs: 8000 });
-    return { lat: link.lat, lng: link.lng, name: link.name || reverse.name, address: reverse.address, google_ftid: null };
+    return {
+      lat: link.lat,
+      lng: link.lng,
+      name: link.name || reverse.name,
+      address: reverse.address,
+      google_ftid: null,
+    };
   }
 }

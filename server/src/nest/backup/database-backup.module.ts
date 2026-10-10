@@ -1,8 +1,8 @@
-import { Global, Module } from '@nestjs/common';
 import { DATABASE_BACKUP } from '../database/database-backup.interface';
 import { DatabaseLifecycleModule } from '../database/database-lifecycle.module';
 import { MaintenanceModule } from '../database/maintenance.module';
 import { SqliteDatabaseBackup } from './sqlite-database-backup';
+import { Global, Module } from '@nestjs/common';
 
 /**
  * Binds the database backup port (`DATABASE_BACKUP`) to the engine in use.

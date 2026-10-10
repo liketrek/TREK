@@ -18,59 +18,153 @@
  *     publishedAt), each of which needs at least two notices active in the
  *     SAME call for `.sort()` to ever invoke the comparator at all.
  */
-import { describe, it, expect, vi } from 'vitest';
+import type { UserNoticeDismissalRow } from '../../../src/db/repositories/UserNoticeDismissals.repository';
+import type { UserRow } from '../../../src/db/repositories/Users.repository';
+import { SystemNoticesService } from '../../../src/nest/system-notices/system-notices.service';
+import { registerPredicate } from '../../../src/systemNotices/conditions';
+import { getCurrentAppVersion } from '../../../src/systemNotices/service';
 import type { SystemNotice } from '../../../src/systemNotices/types';
 
-const { PRIORITY_HI, PRIORITY_LO, SEVERITY_HI, SEVERITY_LO, PUBLISHED_NEW, PUBLISHED_OLD, ADDON_FLAG_MISS, SETTING_FLAG_MISS, RELEASE } =
-  vi.hoisted(() => {
-    const base = { display: 'toast' as const, dismissible: true, conditions: [{ kind: 'always' as const }], publishedAt: '2020-01-01T00:00:00Z' };
-    const priorityHi: SystemNotice = { ...base, id: 'sn-priority-hi', severity: 'info', titleKey: 't', bodyKey: 'b', priority: 5 };
-    // No `priority` field at all (not just 0) — exercises the `b.priority ??
-    // 0` / `a.priority ?? 0` fallback itself, not just a priority of 0.
-    const priorityLo: SystemNotice = { ...base, id: 'sn-priority-lo', severity: 'info', titleKey: 't', bodyKey: 'b' };
-    const severityHi: SystemNotice = { ...base, id: 'sn-severity-hi', severity: 'critical', titleKey: 't', bodyKey: 'b', priority: 0 };
-    const severityLo: SystemNotice = { ...base, id: 'sn-severity-lo', severity: 'info', titleKey: 't', bodyKey: 'b', priority: 0 };
-    const publishedNew: SystemNotice = { ...base, id: 'sn-published-new', severity: 'info', titleKey: 't', bodyKey: 'b', priority: 0, publishedAt: '2024-06-01T00:00:00Z' };
-    const publishedOld: SystemNotice = { ...base, id: 'sn-published-old', severity: 'info', titleKey: 't', bodyKey: 'b', priority: 0, publishedAt: '2020-01-01T00:00:00Z' };
-    const addonFlagMiss: SystemNotice = {
-      id: 'sn-addon-flag-miss', display: 'toast', severity: 'info', titleKey: 't', bodyKey: 'b', dismissible: true,
-      conditions: [{ kind: 'custom', id: 'branch-cov-addon-probe' }], publishedAt: '2020-01-01T00:00:00Z', priority: 0,
-    };
-    const settingFlagMiss: SystemNotice = {
-      id: 'sn-setting-flag-miss', display: 'toast', severity: 'info', titleKey: 't', bodyKey: 'b', dismissible: true,
-      conditions: [{ kind: 'custom', id: 'branch-cov-setting-probe' }], publishedAt: '2020-01-01T00:00:00Z', priority: 0,
-    };
-    const release: SystemNotice = {
-      id: 'sn-release-nullver', display: 'modal', severity: 'info', titleKey: 'system_notice.release_notes.headline', bodyKey: 'system_notice.release_notes.intro',
-      dismissible: true, conditions: [], recurring: 'per-version', publishedAt: '2020-01-01T00:00:00Z', priority: 0,
-      release: { version: '4.3.0', headlineKey: 'system_notice.release_notes.headline' } as SystemNotice['release'],
-    };
-    return {
-      PRIORITY_HI: priorityHi, PRIORITY_LO: priorityLo, SEVERITY_HI: severityHi, SEVERITY_LO: severityLo,
-      PUBLISHED_NEW: publishedNew, PUBLISHED_OLD: publishedOld, ADDON_FLAG_MISS: addonFlagMiss, SETTING_FLAG_MISS: settingFlagMiss, RELEASE: release,
-    };
-  });
+import { describe, it, expect, vi } from 'vitest';
+
+const {
+  PRIORITY_HI,
+  PRIORITY_LO,
+  SEVERITY_HI,
+  SEVERITY_LO,
+  PUBLISHED_NEW,
+  PUBLISHED_OLD,
+  ADDON_FLAG_MISS,
+  SETTING_FLAG_MISS,
+  RELEASE,
+} = vi.hoisted(() => {
+  const base = {
+    display: 'toast' as const,
+    dismissible: true,
+    conditions: [{ kind: 'always' as const }],
+    publishedAt: '2020-01-01T00:00:00Z',
+  };
+  const priorityHi: SystemNotice = {
+    ...base,
+    id: 'sn-priority-hi',
+    severity: 'info',
+    titleKey: 't',
+    bodyKey: 'b',
+    priority: 5,
+  };
+  // No `priority` field at all (not just 0) — exercises the `b.priority ??
+  // 0` / `a.priority ?? 0` fallback itself, not just a priority of 0.
+  const priorityLo: SystemNotice = { ...base, id: 'sn-priority-lo', severity: 'info', titleKey: 't', bodyKey: 'b' };
+  const severityHi: SystemNotice = {
+    ...base,
+    id: 'sn-severity-hi',
+    severity: 'critical',
+    titleKey: 't',
+    bodyKey: 'b',
+    priority: 0,
+  };
+  const severityLo: SystemNotice = {
+    ...base,
+    id: 'sn-severity-lo',
+    severity: 'info',
+    titleKey: 't',
+    bodyKey: 'b',
+    priority: 0,
+  };
+  const publishedNew: SystemNotice = {
+    ...base,
+    id: 'sn-published-new',
+    severity: 'info',
+    titleKey: 't',
+    bodyKey: 'b',
+    priority: 0,
+    publishedAt: '2024-06-01T00:00:00Z',
+  };
+  const publishedOld: SystemNotice = {
+    ...base,
+    id: 'sn-published-old',
+    severity: 'info',
+    titleKey: 't',
+    bodyKey: 'b',
+    priority: 0,
+    publishedAt: '2020-01-01T00:00:00Z',
+  };
+  const addonFlagMiss: SystemNotice = {
+    id: 'sn-addon-flag-miss',
+    display: 'toast',
+    severity: 'info',
+    titleKey: 't',
+    bodyKey: 'b',
+    dismissible: true,
+    conditions: [{ kind: 'custom', id: 'branch-cov-addon-probe' }],
+    publishedAt: '2020-01-01T00:00:00Z',
+    priority: 0,
+  };
+  const settingFlagMiss: SystemNotice = {
+    id: 'sn-setting-flag-miss',
+    display: 'toast',
+    severity: 'info',
+    titleKey: 't',
+    bodyKey: 'b',
+    dismissible: true,
+    conditions: [{ kind: 'custom', id: 'branch-cov-setting-probe' }],
+    publishedAt: '2020-01-01T00:00:00Z',
+    priority: 0,
+  };
+  const release: SystemNotice = {
+    id: 'sn-release-nullver',
+    display: 'modal',
+    severity: 'info',
+    titleKey: 'system_notice.release_notes.headline',
+    bodyKey: 'system_notice.release_notes.intro',
+    dismissible: true,
+    conditions: [],
+    recurring: 'per-version',
+    publishedAt: '2020-01-01T00:00:00Z',
+    priority: 0,
+    release: { version: '4.3.0', headlineKey: 'system_notice.release_notes.headline' } as SystemNotice['release'],
+  };
+  return {
+    PRIORITY_HI: priorityHi,
+    PRIORITY_LO: priorityLo,
+    SEVERITY_HI: severityHi,
+    SEVERITY_LO: severityLo,
+    PUBLISHED_NEW: publishedNew,
+    PUBLISHED_OLD: publishedOld,
+    ADDON_FLAG_MISS: addonFlagMiss,
+    SETTING_FLAG_MISS: settingFlagMiss,
+    RELEASE: release,
+  };
+});
 
 vi.mock('../../../src/systemNotices/registry', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/systemNotices/registry')>();
   return {
     ...actual,
-    SYSTEM_NOTICES: [PRIORITY_HI, PRIORITY_LO, SEVERITY_HI, SEVERITY_LO, PUBLISHED_NEW, PUBLISHED_OLD, ADDON_FLAG_MISS, SETTING_FLAG_MISS, RELEASE],
+    SYSTEM_NOTICES: [
+      PRIORITY_HI,
+      PRIORITY_LO,
+      SEVERITY_HI,
+      SEVERITY_LO,
+      PUBLISHED_NEW,
+      PUBLISHED_OLD,
+      ADDON_FLAG_MISS,
+      SETTING_FLAG_MISS,
+      RELEASE,
+    ],
   };
 });
-
-import { SystemNoticesService } from '../../../src/nest/system-notices/system-notices.service';
-import { getCurrentAppVersion } from '../../../src/systemNotices/service';
-import { registerPredicate } from '../../../src/systemNotices/conditions';
-import type { UserRow } from '../../../src/db/repositories/Users.repository';
-import type { UserNoticeDismissalRow } from '../../../src/db/repositories/UserNoticeDismissals.repository';
 
 // Neither key is asked about by any `addonEnabled`/`settingFlag` condition
 // anywhere in the fixtures above, so the up-front flag map never populates
 // them — the only way to reach them is a `case 'custom'` predicate calling
 // `ctx.addonEnabled`/`ctx.settingFlag` with a key of its own choosing.
-const addonProbe = vi.fn((ctx: { addonEnabled: (id: string) => boolean }) => ctx.addonEnabled('addon-nobody-asks-about') === false);
-const settingProbe = vi.fn((ctx: { settingFlag: (key: string) => boolean }) => ctx.settingFlag('setting-nobody-asks-about') === false);
+const addonProbe = vi.fn(
+  (ctx: { addonEnabled: (id: string) => boolean }) => ctx.addonEnabled('addon-nobody-asks-about') === false,
+);
+const settingProbe = vi.fn(
+  (ctx: { settingFlag: (key: string) => boolean }) => ctx.settingFlag('setting-nobody-asks-about') === false,
+);
 registerPredicate('branch-cov-addon-probe', addonProbe);
 registerPredicate('branch-cov-setting-probe', settingProbe);
 
@@ -118,26 +212,34 @@ describe('SystemNoticesService.getActiveFor — M3 branch coverage', () => {
   });
 
   it('a per-version notice dismissed by a row whose dismissed_app_version semver cannot coerce falls back to 0.0.0, same as re-showing', async () => {
-    const { svc } = makeService({ listForUser: [{ notice_id: 'sn-release-nullver', dismissed_app_version: 'not-a-semver-string' }] });
+    const { svc } = makeService({
+      listForUser: [{ notice_id: 'sn-release-nullver', dismissed_app_version: 'not-a-semver-string' }],
+    });
     const ids = (await svc.getActiveFor(BASE_USER.id, new Set(['release']), getCurrentAppVersion())).map((n) => n.id);
     expect(ids).toContain('sn-release-nullver');
   });
 
   it('sorts by priority first: a higher-priority notice comes before a same-severity, same-date, lower-priority one', async () => {
     const { svc } = makeService();
-    const order = (await svc.getActiveFor(BASE_USER.id)).map((n) => n.id).filter((id) => id === 'sn-priority-hi' || id === 'sn-priority-lo');
+    const order = (await svc.getActiveFor(BASE_USER.id))
+      .map((n) => n.id)
+      .filter((id) => id === 'sn-priority-hi' || id === 'sn-priority-lo');
     expect(order).toEqual(['sn-priority-hi', 'sn-priority-lo']);
   });
 
   it('falls through to severity when priority ties: a critical notice comes before a same-priority, same-date info one', async () => {
     const { svc } = makeService();
-    const order = (await svc.getActiveFor(BASE_USER.id)).map((n) => n.id).filter((id) => id === 'sn-severity-hi' || id === 'sn-severity-lo');
+    const order = (await svc.getActiveFor(BASE_USER.id))
+      .map((n) => n.id)
+      .filter((id) => id === 'sn-severity-hi' || id === 'sn-severity-lo');
     expect(order).toEqual(['sn-severity-hi', 'sn-severity-lo']);
   });
 
   it('falls through to publishedAt when priority AND severity tie: the newer notice comes first', async () => {
     const { svc } = makeService();
-    const order = (await svc.getActiveFor(BASE_USER.id)).map((n) => n.id).filter((id) => id === 'sn-published-new' || id === 'sn-published-old');
+    const order = (await svc.getActiveFor(BASE_USER.id))
+      .map((n) => n.id)
+      .filter((id) => id === 'sn-published-new' || id === 'sn-published-old');
     expect(order).toEqual(['sn-published-new', 'sn-published-old']);
   });
 
@@ -152,7 +254,8 @@ describe('SystemNoticesService.getActiveFor — M3 branch coverage', () => {
       return { ...actual, getCurrentAppVersion: () => 'not-a-semver-string' };
     });
     try {
-      const { SystemNoticesService: Reloaded } = await import('../../../src/nest/system-notices/system-notices.service');
+      const { SystemNoticesService: Reloaded } =
+        await import('../../../src/nest/system-notices/system-notices.service');
       const inst = new Reloaded(
         { isAddonEnabled: async () => false } as never,
         { isManaged: () => false } as never,

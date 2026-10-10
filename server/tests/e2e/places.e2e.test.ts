@@ -14,44 +14,7 @@
  * goes to a FakeRealtimeService. Every `it(...)` body below is unchanged from before this
  * conversion — only the DB bootstrap changed.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
-import cookieParser from 'cookie-parser';
-import type { Server } from 'http';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { RealtimeService } from '../../src/nest/realtime/realtime.service';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
 import { db } from '../../src/db/database';
-
-const { onPlaceCreated, onPlaceUpdated, onPlaceDeleted } = vi.hoisted(() => ({
-  onPlaceCreated: vi.fn().mockResolvedValue(undefined),
-  onPlaceUpdated: vi.fn().mockResolvedValue(undefined),
-  onPlaceDeleted: vi.fn().mockResolvedValue(undefined),
-}));
-import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
-
-// Since the permissions DI migration, the check is a spy on the container's
-// PermissionsService singleton (created in beforeAll, after build()).
-let checkPermission: MockInstance;
-
-import { PlacesModule } from '../../src/nest/places/places.module';
-import { PlacesService } from '../../src/nest/places/places.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeUser } from '../helpers/factories/users';
-import { makeTour } from '../helpers/factories/tours';
-import { countRows, deleteRows, findRow, findRows, insertRow, insertRows, upsertRow } from '../helpers/factories/rows';
 import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
 import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
 import { Days } from '../../src/db/entities/Days.entity';
@@ -59,7 +22,42 @@ import { PlaceRatings } from '../../src/db/entities/PlaceRatings.entity';
 import { Places } from '../../src/db/entities/Places.entity';
 import { Tours } from '../../src/db/entities/Tours.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { PlacesModule } from '../../src/nest/places/places.module';
+import { PlacesService } from '../../src/nest/places/places.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { RealtimeService } from '../../src/nest/realtime/realtime.service';
+import { countRows, deleteRows, findRow, findRows, insertRow, insertRows, upsertRow } from '../helpers/factories/rows';
+import { makeTour } from '../helpers/factories/tours';
+import { makeUser } from '../helpers/factories/users';
 import { FakeRealtimeService } from '../helpers/fake-realtime';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
+import cookieParser from 'cookie-parser';
+import type { Server } from 'http';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
+
+const { onPlaceCreated, onPlaceUpdated, onPlaceDeleted } = vi.hoisted(() => ({
+  onPlaceCreated: vi.fn().mockResolvedValue(undefined),
+  onPlaceUpdated: vi.fn().mockResolvedValue(undefined),
+  onPlaceDeleted: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Since the permissions DI migration, the check is a spy on the container's
+// PermissionsService singleton (created in beforeAll, after build()).
+let checkPermission: MockInstance;
 
 const realtime = new FakeRealtimeService();
 const broadcast = realtime.broadcastMock;
@@ -71,7 +69,14 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, PlacesModule] })
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        PlacesModule,
+      ],
+    })
       .overrideProvider(RealtimeService)
       .useValue(realtime)
       .overrideProvider(JourneyDomainService)
@@ -136,13 +141,18 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('marks Tour-backed Places without changing ordinary Place rows', async () => {
-    await insertRows(orm, Places, [{ id: 1, trip: 5, name: 'Plain' }, { id: 2, trip: 5, name: 'Tour' }]);
+    await insertRows(orm, Places, [
+      { id: 1, trip: 5, name: 'Plain' },
+      { id: 2, trip: 5, name: 'Tour' },
+    ]);
     await makeTour(orm, 2, { tourTypeRef: 'hike' });
 
     const all = await request(server).get('/api/trips/5/places').set('Cookie', sessionCookie(1));
     expect(all.status).toBe(200);
     expect(all.body.places).toHaveLength(2);
-    const tourPlaceIdById = new Map(all.body.places.map((place: { id: number; tour_place_id: number | null }) => [place.id, place.tour_place_id]));
+    const tourPlaceIdById = new Map(
+      all.body.places.map((place: { id: number; tour_place_id: number | null }) => [place.id, place.tour_place_id]),
+    );
     expect(tourPlaceIdById.get(1)).toBeNull();
     expect(tourPlaceIdById.get(2)).toBe(2);
   });
@@ -161,27 +171,42 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     // The row really landed.
     expect(await countRows(orm, Places, { trip: 5 })).toBe(1);
 
-    const long = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({ name: 'x'.repeat(201) });
+    const long = await request(server)
+      .post('/api/trips/5/places')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'x'.repeat(201) });
     expect(long.status).toBe(400);
     expect(long.body).toEqual({ error: 'name must be 200 characters or less' });
 
     checkPermission.mockReturnValue(false);
-    const forbidden = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({ name: 'Spot' });
+    const forbidden = await request(server)
+      .post('/api/trips/5/places')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Spot' });
     expect(forbidden.status).toBe(403);
   });
 
   it('200 (not 201) bulk-delete, 400 on bad ids', async () => {
-    await insertRows(orm, Places, [{ id: 1, trip: 5, name: 'A' }, { id: 2, trip: 5, name: 'B' }]);
+    await insertRows(orm, Places, [
+      { id: 1, trip: 5, name: 'A' },
+      { id: 2, trip: 5, name: 'B' },
+    ]);
     await insertRow(orm, Places, { id: 3, trip: 6, name: 'Foreign' });
-    const ok = await request(server).post('/api/trips/5/places/bulk-delete').set('Cookie', sessionCookie(1)).send({ ids: [1, 2, 3] });
+    const ok = await request(server)
+      .post('/api/trips/5/places/bulk-delete')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [1, 2, 3] });
     expect(ok.status).toBe(200);
     expect(ok.body).toEqual({ deleted: [1, 2], count: 2, tourPlaceIds: [] });
     // The foreign trip's place is untouched.
-    expect((await findRows(orm, Places, {}, { id: 'asc' })).map(p => ({ id: p.id }))).toEqual([{ id: 3 }]);
+    expect((await findRows(orm, Places, {}, { id: 'asc' })).map((p) => ({ id: p.id }))).toEqual([{ id: 3 }]);
 
     // The ZodValidationPipe owns this 400 since the DTO ratchet — the legacy
     // 'ids must be an array of numbers' string is gone.
-    const bad = await request(server).post('/api/trips/5/places/bulk-delete').set('Cookie', sessionCookie(1)).send({ ids: ['a'] });
+    const bad = await request(server)
+      .post('/api/trips/5/places/bulk-delete')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: ['a'] });
     expect(bad.status).toBe(400);
     expect(bad.body.error).toMatch(/^ids\.0: /);
   });
@@ -191,7 +216,10 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect(nameless.status).toBe(400);
     expect(nameless.body.error).toMatch(/^name: /);
 
-    const urlless = await request(server).post('/api/trips/5/places/import/google-list').set('Cookie', sessionCookie(1)).send({});
+    const urlless = await request(server)
+      .post('/api/trips/5/places/import/google-list')
+      .set('Cookie', sessionCookie(1))
+      .send({});
     expect(urlless.status).toBe(400);
     expect(urlless.body.error).toMatch(/^url: /);
 
@@ -203,19 +231,27 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('bulk-update: an empty id list still short-circuits, a bare id list still 400s', async () => {
-    const empty = await request(server).post('/api/trips/5/places/bulk-update').set('Cookie', sessionCookie(1)).send({ ids: [] });
+    const empty = await request(server)
+      .post('/api/trips/5/places/bulk-update')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [] });
     expect(empty.status).toBe(200);
     expect(empty.body).toEqual({ updated: [], count: 0 });
 
     // category_id absent (not undefined-valued): Zod strips absent optionals, so
     // the handler's `'category_id' in body` check still discriminates.
-    const noField = await request(server).post('/api/trips/5/places/bulk-update').set('Cookie', sessionCookie(1)).send({ ids: [1] });
+    const noField = await request(server)
+      .post('/api/trips/5/places/bulk-update')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [1] });
     expect(noField.status).toBe(400);
     expect(noField.body).toEqual({ error: 'Provide at least one field to update' });
   });
 
   it('import/google-list forwards a boolean enrich flag as the client sends it', async () => {
-    const spy = vi.spyOn(app.get(PlacesService), 'importGoogleList').mockResolvedValue({ places: [], listName: 'L', skipped: 0 });
+    const spy = vi
+      .spyOn(app.get(PlacesService), 'importGoogleList')
+      .mockResolvedValue({ places: [], listName: 'L', skipped: 0 });
     const res = await request(server)
       .post('/api/trips/5/places/import/google-list')
       .set('Cookie', sessionCookie(1))
@@ -228,44 +264,65 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   it('PUT route_color: hex through, null through, garbage rejected (#776)', async () => {
     await insertRow(orm, Places, { id: 9, trip: 5, name: 'Walk' });
 
-    const ok = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: '#e11d48' });
+    const ok = await request(server)
+      .put('/api/trips/5/places/9')
+      .set('Cookie', sessionCookie(1))
+      .send({ route_color: '#e11d48' });
     expect(ok.status).toBe(200);
     expect(ok.body.place.route_color).toBe('#e11d48');
 
     // null is the reset back to the inherited category colour.
-    const cleared = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: null });
+    const cleared = await request(server)
+      .put('/api/trips/5/places/9')
+      .set('Cookie', sessionCookie(1))
+      .send({ route_color: null });
     expect(cleared.status).toBe(200);
     expect(cleared.body.place.route_color).toBeNull();
 
-    const bad = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: 'red' });
+    const bad = await request(server)
+      .put('/api/trips/5/places/9')
+      .set('Cookie', sessionCookie(1))
+      .send({ route_color: 'red' });
     expect(bad.status).toBe(400);
     expect(bad.body).toEqual({ error: 'route_color must be a hex colour like #4f46e5' });
   });
 
   // #2483: a place from the TREK index can carry its website without a scheme.
   it('PLACES-E2E-2483-01: create and update take a website without a scheme and store it as https', async () => {
-    const created = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1))
+    const created = await request(server)
+      .post('/api/trips/5/places')
+      .set('Cookie', sessionCookie(1))
       .send({ name: 'Chapelle Sainte-Barbe', website: 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët' });
     expect(created.status).toBe(201);
     expect(created.body.place.website).toBe('https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët');
 
     const id = created.body.place.id;
-    const updated = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1))
+    const updated = await request(server)
+      .put(`/api/trips/5/places/${id}`)
+      .set('Cookie', sessionCookie(1))
       .send({ website: '//www.example.fr/patrimoine' });
     expect(updated.status).toBe(200);
     expect((await findRow(orm, Places, { id }))!.website).toBe('https://www.example.fr/patrimoine');
 
     // An explicit scheme is stored exactly as sent, and '' still clears the field.
-    const kept = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1))
+    const kept = await request(server)
+      .put(`/api/trips/5/places/${id}`)
+      .set('Cookie', sessionCookie(1))
       .send({ website: 'http://Example.fr/Pfad?q=1' });
     expect(kept.body.place.website).toBe('http://Example.fr/Pfad?q=1');
-    const cleared = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1)).send({ website: '' });
+    const cleared = await request(server)
+      .put(`/api/trips/5/places/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ website: '' });
     expect(cleared.status).toBe(200);
   });
 
   it('PLACES-E2E-2483-02: a script link, another scheme or a bare word is still a 400 with the same message', async () => {
     for (const website of ['javascript:alert(1)', 'mailto:mairie@example.fr', 'Chapelle', 42]) {
-      const res = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({ name: 'Chapelle', website });
+      const res = await request(server)
+        .post('/api/trips/5/places')
+        .set('Cookie', sessionCookie(1))
+        .send({ name: 'Chapelle', website });
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ error: 'website must be an http or https URL' });
     }
@@ -284,12 +341,20 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect((await findRow(orm, Places, { id: 9 }))!.name).toBe('Walk');
   });
 
-  it('PUT/DELETE :id/rating stores and clears the caller\'s vote', async () => {
+  it("PUT/DELETE :id/rating stores and clears the caller's vote", async () => {
     await insertRow(orm, Places, { id: 9, trip: 5, name: 'Rated' });
 
-    const rated = await request(server).put('/api/trips/5/places/9/rating').set('Cookie', sessionCookie(1)).send({ rating: 4 });
+    const rated = await request(server)
+      .put('/api/trips/5/places/9/rating')
+      .set('Cookie', sessionCookie(1))
+      .send({ rating: 4 });
     expect(rated.status).toBe(200);
-    expect((await findRows(orm, PlaceRatings, { place: 9 }, { id: 'asc' })).map(r => ({ user_id: r.user_id, rating: r.rating }))).toEqual([{ user_id: 1, rating: 4 }]);
+    expect(
+      (await findRows(orm, PlaceRatings, { place: 9 }, { id: 'asc' })).map((r) => ({
+        user_id: r.user_id,
+        rating: r.rating,
+      })),
+    ).toEqual([{ user_id: 1, rating: 4 }]);
 
     const cleared = await request(server).delete('/api/trips/5/places/9/rating').set('Cookie', sessionCookie(1));
     expect(cleared.status).toBe(200);
@@ -324,7 +389,10 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect(single.body).toEqual({ success: true, tourPlaceIds: [20] });
     expect(await findRow(orm, Tours, { place: 20 })).toBeNull();
 
-    const bulk = await request(server).post('/api/trips/5/places/bulk-delete').set('Cookie', sessionCookie(1)).send({ ids: [21, 22] });
+    const bulk = await request(server)
+      .post('/api/trips/5/places/bulk-delete')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [21, 22] });
     expect(bulk.status).toBe(200);
     expect(bulk.body).toEqual({ deleted: [21, 22], count: 2, tourPlaceIds: [21] });
   });
@@ -337,7 +405,7 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).delete('/api/trips/5/places/12').set('Cookie', sessionCookie(1));
 
     expect(res.status).toBe(200);
-    expect((await findRows(orm, BudgetItems, {}, { id: 'asc' })).map(b => ({ id: b.id }))).toEqual([{ id: 45 }]);
+    expect((await findRows(orm, BudgetItems, {}, { id: 'asc' })).map((b) => ({ id: b.id }))).toEqual([{ id: 45 }]);
   });
 
   it('DELETE :id tells the deleting tab about the expense that went with the place', async () => {
@@ -348,8 +416,10 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     await insertRow(orm, BudgetItems, { id: 46, trip: 5, name: 'Tickets', total_price: 34, place: 13 });
     vi.mocked(broadcast).mockClear();
 
-    const res = await request(server).delete('/api/trips/5/places/13')
-      .set('Cookie', sessionCookie(1)).set('X-Socket-Id', 'tab-1');
+    const res = await request(server)
+      .delete('/api/trips/5/places/13')
+      .set('Cookie', sessionCookie(1))
+      .set('X-Socket-Id', 'tab-1');
 
     expect(res.status).toBe(200);
     expect(broadcast).toHaveBeenCalledWith('5', 'place:deleted', { placeId: 13 }, 'tab-1');
@@ -395,7 +465,14 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     const seedTrip = async () => {
       await upsertRow(orm, Trips, { id: 5, title: 'Alpine week', user: 1 });
       await insertRow(orm, Places, { id: 1, trip: 5, name: 'Trailhead', lat: 47.1, lng: 11.2 });
-      await insertRow(orm, Places, { id: 2, trip: 5, name: 'Ridge', lat: 47.2, lng: 11.3, route_geometry: '[[47.2,11.3],[47.25,11.35]]' });
+      await insertRow(orm, Places, {
+        id: 2,
+        trip: 5,
+        name: 'Ridge',
+        lat: 47.2,
+        lng: 11.3,
+        route_geometry: '[[47.2,11.3],[47.25,11.35]]',
+      });
       await insertRow(orm, Days, { id: 1, trip: 5, day_number: 1, date: '2026-05-01', title: 'Warm up' });
       await insertRows(orm, DayAssignments, [
         { day: 1, place: 1, order_index: 0 },

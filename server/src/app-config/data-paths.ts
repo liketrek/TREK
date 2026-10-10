@@ -1,5 +1,6 @@
-import path from 'node:path';
 import { readEnv, type AppEnv } from './env';
+
+import path from 'node:path';
 
 /**
  * `<server>/`, the directory holding package.json. `src/app-config` and

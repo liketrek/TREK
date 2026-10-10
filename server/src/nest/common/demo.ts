@@ -23,10 +23,7 @@ export const DEMO_PASS = 'demo12345';
  * Includes the historical `demo@nomad.app` identifier so instances that
  * upgraded in place without resetting the DB still hit demo-mode guards.
  */
-export const DEMO_EMAILS: ReadonlySet<string> = new Set([
-  DEMO_EMAIL_PRIMARY,
-  'demo@nomad.app',
-]);
+export const DEMO_EMAILS: ReadonlySet<string> = new Set([DEMO_EMAIL_PRIMARY, 'demo@nomad.app']);
 
 export function isDemoEmail(email: string | null | undefined): boolean {
   return !!email && DEMO_EMAILS.has(email);

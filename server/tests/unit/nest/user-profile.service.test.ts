@@ -1,3 +1,29 @@
+// ---------------------------------------------------------------------------
+// Imports (after mocks)
+// ---------------------------------------------------------------------------
+import { db as testDb } from '../../../src/db/database';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { UserProfileService } from '../../../src/nest/auth/user-profile.service';
+import { SEARCH_TEXT_FIELD_MASK } from '../../../src/nest/maps/providers/google-places.constants';
+import { asLegacyResult } from '../../helpers/domain-error';
+import { createUser, createAdmin } from '../../helpers/factories';
+import { updateRows } from '../../helpers/factories/rows';
+import { readAppSetting, setAppSetting } from '../../helpers/factories/settings';
+import { readUser } from '../../helpers/factories/users';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestUsersRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
 /**
  * user-profile.service.test.ts
  *
@@ -12,13 +38,11 @@
 // ---------------------------------------------------------------------------
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => undefined, isOwner: () => false };
-    return mock;
+  return mock;
 });
-
 
 vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: vi.fn((v) => v),
@@ -27,26 +51,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   encrypt_api_key: vi.fn((v) => v),
 }));
 
-// ---------------------------------------------------------------------------
-// Imports (after mocks)
-// ---------------------------------------------------------------------------
-
-import { asLegacyResult } from '../../helpers/domain-error';
-import { db as testDb } from '../../../src/db/database';
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin } from '../../helpers/factories';
-import fs from 'node:fs';
-import path from 'node:path';
-import { UserProfileService } from '../../../src/nest/auth/user-profile.service';
-import { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestUsersRepo, sharedTestOrm } from '../../helpers/test-uow';
-import { updateRows } from '../../helpers/factories/rows';
-import { readUser } from '../../helpers/factories/users';
-import { readAppSetting, setAppSetting } from '../../helpers/factories/settings';
-import { Users } from '../../../src/db/entities/Users.entity';
-
 /** Writes columns of the user row directly, the state a case starts from. */
 async function setUserColumns(
   userId: number,
@@ -54,7 +58,6 @@ async function setUserColumns(
 ): Promise<void> {
   await updateRows(await sharedTestOrm(testDb), Users, { id: userId }, data);
 }
-import { SEARCH_TEXT_FIELD_MASK } from '../../../src/nest/maps/providers/google-places.constants';
 
 const avatarsFx = makeStorageFixture('avatars/');
 let profile: UserProfileService;
@@ -176,7 +179,10 @@ describe('getSettings', () => {
     process.env.PLACES_API_KEY = 'google-from-env';
     try {
       const { user } = createAdmin(testDb);
-      await profile.updateApiKeys(user.id, { maps_api_key: 'stored-but-overridden', unsplash_api_key: 'stored-unsplash' });
+      await profile.updateApiKeys(user.id, {
+        maps_api_key: 'stored-but-overridden',
+        unsplash_api_key: 'stored-unsplash',
+      });
       const settings = (await asLegacyResult(profile.getSettings(user.id))).settings;
       // Neither the stored value nobody searches with nor the operator's own.
       expect(settings?.maps_api_key).toBeNull();
@@ -261,9 +267,7 @@ describe('validateKeys', () => {
     const { user } = createAdmin(testDb);
     await setUserColumns(user.id, { maps_api_key: 'test-key' });
 
-    const fetchSpy = vi
-      .spyOn(global, 'fetch')
-      .mockRejectedValueOnce(new Error('Network failure'));
+    const fetchSpy = vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network failure'));
 
     const result = await asLegacyResult(profile.validateKeys(user.id));
     expect(result.maps).toBe(false);
@@ -422,7 +426,10 @@ const instanceRow = async (key: string) => (await readAppSetting(await sharedTes
 describe('instance-wide API keys', () => {
   it('AUTH-DB-102: an admin save lands in app_settings AND in their own column', async () => {
     const { user } = createAdmin(testDb);
-    await profile.updateApiKeys(user.id, { maps_api_key: 'instance-google-key', unsplash_api_key: 'instance-unsplash-key' });
+    await profile.updateApiKeys(user.id, {
+      maps_api_key: 'instance-google-key',
+      unsplash_api_key: 'instance-unsplash-key',
+    });
     expect(await instanceRow('maps_api_key')).toBe('instance-google-key');
     expect(await instanceRow('unsplash_api_key')).toBe('instance-unsplash-key');
     // The column stays in step so clearing the field clears both.
@@ -469,7 +476,9 @@ describe('instance-wide API keys', () => {
 
   it('AUTH-DB-107: updateSettings mirrors the key half without touching name/email handling', async () => {
     const { user } = createAdmin(testDb);
-    const result = await asLegacyResult(profile.updateSettings(user.id, { maps_api_key: 'from-settings-route', username: 'renamed' }));
+    const result = await asLegacyResult(
+      profile.updateSettings(user.id, { maps_api_key: 'from-settings-route', username: 'renamed' }),
+    );
     expect(result.success).toBe(true);
     expect(result.user?.username).toBe('renamed');
     expect(await instanceRow('maps_api_key')).toBe('from-settings-route');
@@ -482,7 +491,9 @@ describe('changedKeys', () => {
     const { user } = createAdmin(testDb);
     await profile.updateApiKeys(user.id, { maps_api_key: 'k1', openweather_api_key: 'w1' });
     // unsplash was never sent, so it can never be reported.
-    expect((await profile.updateApiKeys(user.id, { openweather_api_key: 'w2' })).changedKeys).toEqual(['openweather_api_key']);
+    expect((await profile.updateApiKeys(user.id, { openweather_api_key: 'w2' })).changedKeys).toEqual([
+      'openweather_api_key',
+    ]);
     expect((await profile.updateApiKeys(user.id, { maps_api_key: '' })).changedKeys).toEqual(['maps_api_key']);
   });
 
@@ -494,7 +505,9 @@ describe('changedKeys', () => {
     expect((await profile.updateApiKeys(user.id, { maps_api_key: '  unchanged-key  ' })).changedKeys).toEqual([]);
     // A member is measured against their own column, not the instance value.
     const { user: member } = createUser(testDb);
-    expect((await profile.updateApiKeys(member.id, { maps_api_key: 'unchanged-key' })).changedKeys).toEqual(['maps_api_key']);
+    expect((await profile.updateApiKeys(member.id, { maps_api_key: 'unchanged-key' })).changedKeys).toEqual([
+      'maps_api_key',
+    ]);
   });
 
   it('AUTH-DB-110: a managed install reports no change for the names it refuses to write', async () => {
@@ -507,7 +520,9 @@ describe('changedKeys', () => {
       expect(result.changedKeys).toEqual([]);
       expect(await instanceRow('maps_api_key')).toBeUndefined();
       expect((await profile.updateMapsKey(user.id, 'operator-owns-this')).changedKeys).toEqual([]);
-      expect((await asLegacyResult(profile.updateSettings(user.id, { maps_api_key: 'operator-owns-this' }))).changedKeys).toEqual([]);
+      expect(
+        (await asLegacyResult(profile.updateSettings(user.id, { maps_api_key: 'operator-owns-this' }))).changedKeys,
+      ).toEqual([]);
     } finally {
       if (prev === undefined) delete process.env.TREK_MANAGED;
       else process.env.TREK_MANAGED = prev;

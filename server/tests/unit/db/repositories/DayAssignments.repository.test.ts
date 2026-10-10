@@ -3,20 +3,29 @@
  * assignment-with-place projection contract (built here, Task 3 consumes it
  * unchanged for AS1/AS3).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createCategory, createDay, createDayAccommodation, createDayAssignment, createPlace, createTrip, createUser } from '../../../helpers/factories';
-import { createTour } from '../../../helpers/tours-repos';
+import { DayAccommodations } from '../../../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../../../src/db/entities/DayAssignments.entity';
+import { Places } from '../../../../src/db/entities/Places.entity';
 import type { DayAssignmentsRepository } from '../../../../src/db/repositories/DayAssignments.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import {
+  createCategory,
+  createDay,
+  createDayAccommodation,
+  createDayAssignment,
+  createPlace,
+  createTrip,
+  createUser,
+} from '../../../helpers/factories';
 import type { DayAssignmentRow } from '../../../helpers/factories/itinerary';
 import { findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
-import { DayAccommodations } from '../../../../src/db/entities/DayAccommodations.entity';
-import { Places } from '../../../../src/db/entities/Places.entity';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { createTour } from '../../../helpers/tours-repos';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -28,11 +37,20 @@ beforeAll(async () => {
   assignments = t.repo(DayAssignments);
   uow = new UnitOfWork(t.em);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 /** The named columns of the assignment, or undefined once it is gone: what a `SELECT <cols> FROM day_assignments` read back. */
-async function assignmentCols<K extends keyof DayAssignmentRow>(id: number, ...cols: K[]): Promise<Pick<DayAssignmentRow, K> | undefined> {
+async function assignmentCols<K extends keyof DayAssignmentRow>(
+  id: number,
+  ...cols: K[]
+): Promise<Pick<DayAssignmentRow, K> | undefined> {
   const row = await findRow(t, DayAssignments, { id });
   if (!row) return undefined;
   return Object.fromEntries(cols.map((c) => [c, row[c]])) as Pick<DayAssignmentRow, K>;
@@ -46,7 +64,9 @@ async function orderOf(id: number) {
 /** The DY1/DY3/AS1/AS3 statement, run raw — the parity oracle every assertion below is checked against. */
 function legacyProjectionRow(id: number): unknown {
   // test-sql-allow: the legacy DY1/DY3/AS1/AS3 statement is the parity oracle the repository is compared against.
-  return testDb.prepare(`
+  return testDb
+    .prepare(
+      `
     SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
       p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
       COALESCE(da.assignment_time, p.place_time) as place_time,
@@ -60,7 +80,9 @@ function legacyProjectionRow(id: number): unknown {
     LEFT JOIN tours t ON t.place_id = p.id
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE da.id = ?
-  `).get(id);
+  `,
+    )
+    .get(id);
 }
 
 async function withQueryCount<T>(fn: () => Promise<T>): Promise<{ value: T; queries: number }> {
@@ -95,9 +117,14 @@ describe('DayAssignmentsRepository — the DY1/DY3/AS1/AS3 projection', () => {
     expect(rows[0]).toStrictEqual(legacyProjectionRow(assignment.id));
     // Named spot-checks so a future field rename fails loudly here, not just via toStrictEqual.
     expect(rows[0]).toMatchObject({
-      id: assignment.id, day_id: day.id, place_id: place.id,
-      place_name: 'Louvre', category_id: category.id,
-      category_name: 'Museum', category_color: '#111111', category_icon: '🏛️',
+      id: assignment.id,
+      day_id: day.id,
+      place_id: place.id,
+      place_name: 'Louvre',
+      category_id: category.id,
+      category_name: 'Museum',
+      category_color: '#111111',
+      category_icon: '🏛️',
     });
   });
 
@@ -127,23 +154,34 @@ describe('DayAssignmentsRepository — the DY1/DY3/AS1/AS3 projection', () => {
     const one = await assignments.findWithPlaceAndCategory(tour.id);
     expect(one).toStrictEqual(legacyProjectionRow(tour.id));
     expect(one).toMatchObject({ tour_place_id: tourPlace.id, tour_route_geometry: '[[47,11],[47.1,11.1]]' });
-    expect(await assignments.findWithPlaceAndCategory(track.id)).toMatchObject({ tour_place_id: null, tour_route_geometry: null });
+    expect(await assignments.findWithPlaceAndCategory(track.id)).toMatchObject({
+      tour_place_id: null,
+      tour_route_geometry: null,
+    });
 
     const facets = (rows: { tour_place_id: number | null; tour_route_geometry: string | null }[]) =>
       rows.map((r) => [r.tour_place_id, r.tour_route_geometry]);
-    const expected = [[tourPlace.id, '[[47,11],[47.1,11.1]]'], [null, null]];
+    const expected = [
+      [tourPlace.id, '[[47,11],[47.1,11.1]]'],
+      [null, null],
+    ];
     expect(facets(await assignments.listForDay(day.id))).toEqual(expected);
     expect(facets(await assignments.listWithPlaceAndCategory([day.id]))).toEqual(expected);
   });
 
-  it('ASSIGNPLACEREPO-004: place_time/end_time COALESCE — the assignment\'s own time wins, the place\'s time is the fallback', async () => {
+  it("ASSIGNPLACEREPO-004: place_time/end_time COALESCE — the assignment's own time wins, the place's time is the fallback", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
     await updateRows(t, Places, { id: place.id }, { place_time: '09:00', end_time: '10:00' });
     const withOwnTime = createDayAssignment(testDb, day.id, place.id);
-    await updateRows(t, DayAssignments, { id: withOwnTime.id }, { assignment_time: '14:00', assignment_end_time: '15:00' });
+    await updateRows(
+      t,
+      DayAssignments,
+      { id: withOwnTime.id },
+      { assignment_time: '14:00', assignment_end_time: '15:00' },
+    );
     const withoutOwnTime = createDayAssignment(testDb, day.id, place.id);
 
     const rows = await assignments.listForDay(day.id);
@@ -230,7 +268,7 @@ describe('DayAssignmentsRepository — the DY1/DY3/AS1/AS3 projection', () => {
   });
 });
 
-describe('DayAssignmentsRepository — AC20/AC21 (the stop a booking owns, carried to another day by night-seat.ts\'s reseatOwnStopWith)', () => {
+describe("DayAssignmentsRepository — AC20/AC21 (the stop a booking owns, carried to another day by night-seat.ts's reseatOwnStopWith)", () => {
   it('ASSIGNREPO-036 (AC20, maxOrderIndexExcluding): the highest order_index on the day without the excluded row — null for a day holding nothing else, a stored 0 not confused with "no rows"', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -290,7 +328,7 @@ describe('DayAssignmentsRepository — AS4/AS9/AS12 existence + trip-scoped read
     expect(await assignments.existsInDay(a.id, day.id, trip.id + 1)).toBe(false);
   });
 
-  it('ASSIGNREPO-002 (AS9): raw-bind on day_id/trip_id — a string binds unconverted, same as a real number; `id` itself is `number`-only now (Task 3 review H1, absorbed in Task 4: the method\'s only caller `toRowId`s `id` before calling, so the type narrowed to match)', async () => {
+  it("ASSIGNREPO-002 (AS9): raw-bind on day_id/trip_id — a string binds unconverted, same as a real number; `id` itself is `number`-only now (Task 3 review H1, absorbed in Task 4: the method's only caller `toRowId`s `id` before calling, so the type narrowed to match)", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -309,7 +347,9 @@ describe('DayAssignmentsRepository — AS4/AS9/AS12 existence + trip-scoped read
 
     const row = await assignments.findInTrip(a.id, trip.id);
     // test-sql-allow: the legacy AS12 statement is the parity oracle the repository is compared against.
-    const legacy = testDb.prepare(`SELECT da.* FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE da.id = ? AND d.trip_id = ?`).get(a.id, trip.id);
+    const legacy = testDb
+      .prepare(`SELECT da.* FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE da.id = ? AND d.trip_id = ?`)
+      .get(a.id, trip.id);
     expect(row).toStrictEqual(legacy);
     expect(row).toMatchObject({ id: a.id, day_id: day.id, order_index: 3, assignment_time: '09:00', notes: 'a note' });
     expect(await assignments.findInTrip(a.id, trip.id + 1)).toBeUndefined();
@@ -340,7 +380,9 @@ describe('DayAssignmentsRepository — AS6/AS7/AS8 (createAssignment)', () => {
     const after = createDayAssignment(testDb, day.id, place.id, { order_index: 2 });
     const foreign = createDayAssignment(testDb, otherDay.id, place.id, { order_index: 1 });
 
-    await withRequestContext(t.orm, async () => { await assignments.shiftOrderFrom(day.id, 1); });
+    await withRequestContext(t.orm, async () => {
+      await assignments.shiftOrderFrom(day.id, 1);
+    });
 
     expect(await orderOf(before.id)).toBe(0);
     expect(await orderOf(at.id)).toBe(2);
@@ -354,16 +396,28 @@ describe('DayAssignmentsRepository — AS6/AS7/AS8 (createAssignment)', () => {
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
 
-    const id = await withRequestContext(t.orm, () => assignments.insertAssignment({
-      day_id: day.id, place_id: place.id, order_index: 2, notes: null, accommodation_id: null,
-    }));
+    const id = await withRequestContext(t.orm, () =>
+      assignments.insertAssignment({
+        day_id: day.id,
+        place_id: place.id,
+        order_index: 2,
+        notes: null,
+        accommodation_id: null,
+      }),
+    );
     expect(typeof id).toBe('number');
     const row = await assignmentCols(id, 'day_id', 'place_id', 'order_index', 'notes', 'accommodation_id');
     expect(row).toEqual({ day_id: day.id, place_id: place.id, order_index: 2, notes: null, accommodation_id: null });
 
-    const id2 = await withRequestContext(t.orm, () => assignments.insertAssignment({
-      day_id: day.id, place_id: place.id, order_index: 0, notes: 'skip the line', accommodation_id: 42,
-    }));
+    const id2 = await withRequestContext(t.orm, () =>
+      assignments.insertAssignment({
+        day_id: day.id,
+        place_id: place.id,
+        order_index: 0,
+        notes: 'skip the line',
+        accommodation_id: 42,
+      }),
+    );
     const row2 = await assignmentCols(id2, 'notes', 'accommodation_id');
     expect(row2).toEqual({ notes: 'skip the line', accommodation_id: 42 });
   });
@@ -420,9 +474,20 @@ describe('DayAssignmentsRepository — AS10/AS11/AS13/AS14/AS19 (delete / order 
 
     // b twice: the later index wins, as two writes in a row would leave it; foreign is on another day.
     await withRequestContext(t.orm, () =>
-      assignments.setOrderIndexes([{ id: c.id, order_index: 0 }, { id: b.id, order_index: 9 }, { id: a.id, order_index: 2 }, { id: b.id, order_index: 1 }, { id: foreign.id, order_index: 0 }], day.id),
+      assignments.setOrderIndexes(
+        [
+          { id: c.id, order_index: 0 },
+          { id: b.id, order_index: 9 },
+          { id: a.id, order_index: 2 },
+          { id: b.id, order_index: 1 },
+          { id: foreign.id, order_index: 0 },
+        ],
+        day.id,
+      ),
     );
-    expect([await orderOf(a.id), await orderOf(b.id), await orderOf(c.id), await orderOf(foreign.id)]).toEqual([2, 1, 0, 5]);
+    expect([await orderOf(a.id), await orderOf(b.id), await orderOf(c.id), await orderOf(foreign.id)]).toEqual([
+      2, 1, 0, 5,
+    ]);
 
     // Unscoped: by id alone, and only the listed rows.
     await withRequestContext(t.orm, () => assignments.setOrderIndexes([{ id: foreign.id, order_index: 1 }]));
@@ -433,7 +498,7 @@ describe('DayAssignmentsRepository — AS10/AS11/AS13/AS14/AS19 (delete / order 
     expect(await orderOf(c.id)).toBe(0);
   });
 
-  it('ASSIGNREPO-010 (AS13, getDayId): the assignment\'s day_id, undefined for a missing id', async () => {
+  it("ASSIGNREPO-010 (AS13, getDayId): the assignment's day_id, undefined for a missing id", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -486,7 +551,9 @@ describe('DayAssignmentsRepository — AS10/AS11/AS13/AS14/AS19 (delete / order 
           throw new Error('force rollback');
         });
       });
-    } catch (e) { caught = e; }
+    } catch (e) {
+      caught = e;
+    }
     expect((caught as Error).message).toBe('force rollback');
 
     const row = await assignmentCols(a.id, 'day_id', 'order_index');
@@ -495,7 +562,7 @@ describe('DayAssignmentsRepository — AS10/AS11/AS13/AS14/AS19 (delete / order 
 });
 
 describe('DayAssignmentsRepository.effectiveStart (AS16, Kysely)', () => {
-  it('ASSIGNREPO-012: byte-identical to the legacy three-way COALESCE, own time wins over the place\'s', async () => {
+  it("ASSIGNREPO-012: byte-identical to the legacy three-way COALESCE, own time wins over the place's", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -506,36 +573,52 @@ describe('DayAssignmentsRepository.effectiveStart (AS16, Kysely)', () => {
 
     const row = await withRequestContext(t.orm, () => assignments.effectiveStart(a.id));
     // test-sql-allow: the legacy AS16 three-way COALESCE is the parity oracle the repository is compared against.
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT da.day_id, COALESCE(da.assignment_time, p.place_time, acc.check_in) AS start
       FROM day_assignments da JOIN places p ON da.place_id = p.id
       LEFT JOIN day_accommodations acc ON acc.id = da.accommodation_id
       WHERE da.id = ?
-    `).get(a.id);
+    `,
+      )
+      .get(a.id);
     expect(row).toEqual(legacy);
     expect(row).toEqual({ day_id: day.id, start: '14:00' });
   });
 
-  it('ASSIGNREPO-013: falls back to the place\'s own time when the assignment has none', async () => {
+  it("ASSIGNREPO-013: falls back to the place's own time when the assignment has none", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
     await updateRows(t, Places, { id: place.id }, { place_time: '08:00' });
     const a = createDayAssignment(testDb, day.id, place.id);
-    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(a.id))).toEqual({ day_id: day.id, start: '08:00' });
+    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(a.id))).toEqual({
+      day_id: day.id,
+      start: '08:00',
+    });
   });
 
-  it('ASSIGNREPO-014: a booked night falls back further, to the accommodation\'s check_in (a LEFT JOIN through the plain accommodation_id column, no ORM relation)', async () => {
+  it("ASSIGNREPO-014: a booked night falls back further, to the accommodation's check_in (a LEFT JOIN through the plain accommodation_id column, no ORM relation)", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const hotel = createPlace(testDb, trip.id);
     const night = createDayAssignment(testDb, day.id, hotel.id);
-    const stayId = await insertRow(t, DayAccommodations, { trip: trip.id, place: hotel.id, startDay: day.id, endDay: day.id, check_in: '17:00' });
+    const stayId = await insertRow(t, DayAccommodations, {
+      trip: trip.id,
+      place: hotel.id,
+      startDay: day.id,
+      endDay: day.id,
+      check_in: '17:00',
+    });
     await updateRows(t, DayAssignments, { id: night.id }, { accommodation_id: stayId });
 
-    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(night.id))).toEqual({ day_id: day.id, start: '17:00' });
+    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(night.id))).toEqual({
+      day_id: day.id,
+      start: '17:00',
+    });
   });
 
   it('ASSIGNREPO-015: null start when nothing sets a time anywhere in the chain', async () => {
@@ -544,7 +627,10 @@ describe('DayAssignmentsRepository.effectiveStart (AS16, Kysely)', () => {
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
     const a = createDayAssignment(testDb, day.id, place.id);
-    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(a.id))).toEqual({ day_id: day.id, start: null });
+    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(a.id))).toEqual({
+      day_id: day.id,
+      start: null,
+    });
   });
 
   it('ASSIGNREPO-016: undefined for a missing id', async () => {
@@ -566,14 +652,18 @@ describe('DayAssignmentsRepository.listForTimeSort (AS18, Kysely)', () => {
 
     const rows = await withRequestContext(t.orm, () => assignments.listForTimeSort(day.id));
     // test-sql-allow: the legacy AS18 statement is the parity oracle the repository is compared against.
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT da.id, da.order_index, COALESCE(da.assignment_time, p.place_time, acc.check_in) as effective_time,
         (p.lat IS NOT NULL AND p.lng IS NOT NULL) as located
       FROM day_assignments da JOIN places p ON da.place_id = p.id
       LEFT JOIN day_accommodations acc ON acc.id = da.accommodation_id
       WHERE da.day_id = ?
       ORDER BY da.order_index ASC, da.created_at ASC, da.id ASC
-    `).all(day.id);
+    `,
+      )
+      .all(day.id);
     expect(rows).toEqual(legacy);
     expect(rows.map((r) => r.id)).toEqual([a2.id, a1.id]);
     expect(rows.find((r) => r.id === a1.id)?.located).toBe(1);
@@ -589,7 +679,7 @@ describe('DayAssignmentsRepository.listForTimeSort (AS18, Kysely)', () => {
 });
 
 describe('DayAssignmentsRepository.listSeatRows (AC7, Kysely)', () => {
-  it('ASSIGNREPO-038: byte-identical to the legacy statement — a booked night at its check_in, a stop at its own time, a stop at its place\'s, `located` 0/1 and the three-key ORDER BY', async () => {
+  it("ASSIGNREPO-038: byte-identical to the legacy statement — a booked night at its check_in, a stop at its own time, a stop at its place's, `located` 0/1 and the three-key ORDER BY", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -610,7 +700,9 @@ describe('DayAssignmentsRepository.listSeatRows (AC7, Kysely)', () => {
 
     const rows = await withRequestContext(t.orm, () => assignments.listSeatRows(day.id));
     // test-sql-allow: the legacy AC7 statement is the parity oracle the repository is compared against.
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT da.id, da.order_index,
         CASE WHEN other.id IS NULL THEN COALESCE(da.assignment_time, p.place_time) ELSE other.check_in END AS at,
         other.id AS night_id,
@@ -619,7 +711,9 @@ describe('DayAssignmentsRepository.listSeatRows (AC7, Kysely)', () => {
       LEFT JOIN day_accommodations other ON other.id = da.accommodation_id
       WHERE da.day_id = ?
       ORDER BY da.order_index ASC, da.created_at ASC, da.id ASC
-    `).all(day.id);
+    `,
+      )
+      .all(day.id);
     expect(rows).toEqual(legacy);
     expect(rows.map((r) => r.id)).toEqual([placeTime.id, ownTime.id, noCoords.id, night.id]);
     expect(rows.find((r) => r.id === night.id)).toMatchObject({ at: '17:00', night_id: stay.id, located: 1 });
@@ -637,11 +731,15 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
     const place = createPlace(testDb, trip.id);
     const a = createDayAssignment(testDb, day.id, place.id);
     await withRequestContext(t.orm, () => assignments.setTimes(a.id, '09:00', '10:30'));
-    expect(await assignmentCols(a.id, 'assignment_time', 'assignment_end_time'))
-      .toEqual({ assignment_time: '09:00', assignment_end_time: '10:30' });
+    expect(await assignmentCols(a.id, 'assignment_time', 'assignment_end_time')).toEqual({
+      assignment_time: '09:00',
+      assignment_end_time: '10:30',
+    });
     await withRequestContext(t.orm, () => assignments.setTimes(a.id, null, null));
-    expect(await assignmentCols(a.id, 'assignment_time', 'assignment_end_time'))
-      .toEqual({ assignment_time: null, assignment_end_time: null });
+    expect(await assignmentCols(a.id, 'assignment_time', 'assignment_end_time')).toEqual({
+      assignment_time: null,
+      assignment_end_time: null,
+    });
   });
 
   // Task 9 fix wave (B-M5, the OAUTHTOKREPO-012/REANCHORDAY-003 rollback
@@ -662,11 +760,15 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
           throw new Error('force rollback');
         });
       });
-    } catch (e) { caught = e; }
+    } catch (e) {
+      caught = e;
+    }
     expect((caught as Error).message).toBe('force rollback');
 
-    expect(await assignmentCols(a.id, 'assignment_time', 'assignment_end_time'))
-      .toEqual({ assignment_time: null, assignment_end_time: null });
+    expect(await assignmentCols(a.id, 'assignment_time', 'assignment_end_time')).toEqual({
+      assignment_time: null,
+      assignment_end_time: null,
+    });
   });
 
   it('ASSIGNREPO-020 (AS24, setEndDay): writes the 0/1 flag', async () => {
@@ -699,13 +801,15 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
     const a = createDayAssignment(testDb, day.id, place.id);
     await withRequestContext(t.orm, () => assignments.setLegMode(a.id, 'cycling'));
     await withRequestContext(t.orm, () => assignments.setIncomingLegMode(a.id, 'walking'));
-    expect(await assignmentCols(a.id, 'leg_transport_mode', 'incoming_leg_transport_mode'))
-      .toEqual({ leg_transport_mode: 'cycling', incoming_leg_transport_mode: 'walking' });
+    expect(await assignmentCols(a.id, 'leg_transport_mode', 'incoming_leg_transport_mode')).toEqual({
+      leg_transport_mode: 'cycling',
+      incoming_leg_transport_mode: 'walking',
+    });
     await withRequestContext(t.orm, () => assignments.setLegMode(a.id, null));
     expect((await findRow(t, DayAssignments, { id: a.id }))!.leg_transport_mode).toBeNull();
   });
 
-  it('ASSIGNREPO-039 (AS32, listIdsToClear): exactly the day\'s ids, [] for an empty day', async () => {
+  it("ASSIGNREPO-039 (AS32, listIdsToClear): exactly the day's ids, [] for an empty day", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -715,11 +819,14 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
     const a1 = createDayAssignment(testDb, day.id, place.id);
     const a2 = createDayAssignment(testDb, day.id, place.id);
     createDayAssignment(testDb, otherDay.id, place.id);
-    expect((await withRequestContext(t.orm, () => assignments.listIdsToClear(day.id))).sort((x, y) => x - y)).toEqual([a1.id, a2.id]);
+    expect((await withRequestContext(t.orm, () => assignments.listIdsToClear(day.id))).sort((x, y) => x - y)).toEqual([
+      a1.id,
+      a2.id,
+    ]);
     expect(await withRequestContext(t.orm, () => assignments.listIdsToClear(emptyDay.id))).toEqual([]);
   });
 
-  it('ASSIGNREPO-040 (AS33, deleteForDay): removes only that day\'s rows', async () => {
+  it("ASSIGNREPO-040 (AS33, deleteForDay): removes only that day's rows", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -730,7 +837,9 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
     const kept = createDayAssignment(testDb, otherDay.id, place.id);
     await withRequestContext(t.orm, () => assignments.deleteForDay(day.id));
     expect(await findRows(t, DayAssignments, { day: day.id })).toEqual([]);
-    expect((await findRows(t, DayAssignments, { day: otherDay.id }, { id: 'asc' })).map((r) => ({ id: r.id }))).toEqual([{ id: kept.id }]);
+    expect((await findRows(t, DayAssignments, { day: otherDay.id }, { id: 'asc' })).map((r) => ({ id: r.id }))).toEqual(
+      [{ id: kept.id }],
+    );
   });
 
   it('ASSIGNREPO-041 (AS34, setRouteExcluded): writes 1 and then 0 on exactly the given row', async () => {
@@ -803,7 +912,7 @@ describe('DayAssignmentsRepository.listItineraryForGpx (PL30)', () => {
     expect(await assignments.listItineraryForGpx(trip.id)).toEqual([]);
   });
 
-  it('ASSIGNREPO-026: another trip\'s stops never leak in', async () => {
+  it("ASSIGNREPO-026: another trip's stops never leak in", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const other = createTrip(testDb, user.id);
@@ -835,17 +944,37 @@ describe('DayAssignmentsRepository.listAllForTrip (TP48)', () => {
     // Row A: every nullable column non-null, a unicode string and a
     // '007'-style digit string among the values.
     const a1 = await insertRow(t, DayAssignments, {
-      day: day.id, place: place.id, order_index: 5, notes: 'Notes — 日本 ☕️ 007', reservation_status: 'confirmed',
-      reservation_notes: 'resv notes 007', reservation_datetime: '2026-01-01T10:00:00Z', created_at: '2026-01-01 09:00:00',
-      assignment_time: '10:00', assignment_end_time: '11:00', leg_transport_mode: 'walking',
-      incoming_leg_transport_mode: 'driving', end_day: 1, accommodation_id: accommodation.id,
+      day: day.id,
+      place: place.id,
+      order_index: 5,
+      notes: 'Notes — 日本 ☕️ 007',
+      reservation_status: 'confirmed',
+      reservation_notes: 'resv notes 007',
+      reservation_datetime: '2026-01-01T10:00:00Z',
+      created_at: '2026-01-01 09:00:00',
+      assignment_time: '10:00',
+      assignment_end_time: '11:00',
+      leg_transport_mode: 'walking',
+      incoming_leg_transport_mode: 'driving',
+      end_day: 1,
+      accommodation_id: accommodation.id,
     });
 
     // Row B: every nullable column NULL (end_day is NOT NULL, given 0).
     const a2 = await insertRow(t, DayAssignments, {
-      day: day.id, place: bare.id, order_index: null, notes: null, reservation_status: null,
-      reservation_notes: null, reservation_datetime: null, created_at: null, assignment_time: null,
-      assignment_end_time: null, leg_transport_mode: null, incoming_leg_transport_mode: null, end_day: 0,
+      day: day.id,
+      place: bare.id,
+      order_index: null,
+      notes: null,
+      reservation_status: null,
+      reservation_notes: null,
+      reservation_datetime: null,
+      created_at: null,
+      assignment_time: null,
+      assignment_end_time: null,
+      leg_transport_mode: null,
+      incoming_leg_transport_mode: null,
+      end_day: 0,
       accommodation_id: null,
     });
 
@@ -855,7 +984,9 @@ describe('DayAssignmentsRepository.listAllForTrip (TP48)', () => {
 
     const rows = await assignments.listAllForTrip(trip.id);
     // test-sql-allow: the legacy TP48 statement is the parity oracle the repository is compared against.
-    const legacy = testDb.prepare('SELECT da.* FROM day_assignments da JOIN days d ON d.id = da.day_id WHERE d.trip_id = ?').all(trip.id);
+    const legacy = testDb
+      .prepare('SELECT da.* FROM day_assignments da JOIN days d ON d.id = da.day_id WHERE d.trip_id = ?')
+      .all(trip.id);
     expect(rows).toEqual(legacy);
     expect(rows.map((r) => r.id)).toEqual([a1, a2]);
   });
@@ -875,19 +1006,44 @@ describe('DayAssignmentsRepository.insertAssignmentCopy (TP49)', () => {
     const place = createPlace(testDb, trip.id);
 
     const newId = await assignments.insertAssignmentCopy({
-      day_id: day.id, place_id: place.id, order_index: 2, notes: 'n',
-      reservation_status: 'booked', reservation_notes: 'rn', reservation_datetime: '2026-01-01T10:00',
-      assignment_time: '10:00', assignment_end_time: '11:00', end_day: 0,
+      day_id: day.id,
+      place_id: place.id,
+      order_index: 2,
+      notes: 'n',
+      reservation_status: 'booked',
+      reservation_notes: 'rn',
+      reservation_datetime: '2026-01-01T10:00',
+      assignment_time: '10:00',
+      assignment_end_time: '11:00',
+      end_day: 0,
     });
 
     const row = await assignmentCols(
-      newId, 'day_id', 'place_id', 'order_index', 'notes', 'reservation_status', 'reservation_notes',
-      'reservation_datetime', 'assignment_time', 'assignment_end_time', 'end_day', 'accommodation_id',
+      newId,
+      'day_id',
+      'place_id',
+      'order_index',
+      'notes',
+      'reservation_status',
+      'reservation_notes',
+      'reservation_datetime',
+      'assignment_time',
+      'assignment_end_time',
+      'end_day',
+      'accommodation_id',
     );
     expect(row).toEqual({
-      day_id: day.id, place_id: place.id, order_index: 2, notes: 'n',
-      reservation_status: 'booked', reservation_notes: 'rn', reservation_datetime: '2026-01-01T10:00',
-      assignment_time: '10:00', assignment_end_time: '11:00', end_day: 0, accommodation_id: null,
+      day_id: day.id,
+      place_id: place.id,
+      order_index: 2,
+      notes: 'n',
+      reservation_status: 'booked',
+      reservation_notes: 'rn',
+      reservation_datetime: '2026-01-01T10:00',
+      assignment_time: '10:00',
+      assignment_end_time: '11:00',
+      end_day: 0,
+      accommodation_id: null,
     });
   });
 });
@@ -941,14 +1097,27 @@ describe('DayAssignmentsRepository.listRoadtripVisits (RPL2, roadtrip-plan.servi
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id, { name: 'Museum' });
-    await updateRows(t, Places, { id: place.id }, { place_time: '09:00', end_time: '11:00', duration_minutes: 90, stop_type: null, fill_percent: null });
+    await updateRows(
+      t,
+      Places,
+      { id: place.id },
+      { place_time: '09:00', end_time: '11:00', duration_minutes: 90, stop_type: null, fill_percent: null },
+    );
     createDayAssignment(testDb, day.id, place.id);
 
     // test-sql-allow: the legacy RPL2 statement is the parity oracle the repository is compared against.
     const legacy = testDb.prepare(LEGACY_LIST_ROADTRIP_VISITS).all(trip.id);
     const typed = await assignments.listRoadtripVisits(trip.id);
     expect(typed).toEqual(legacy);
-    expect(typed[0]).toMatchObject({ time: '09:00', end_time: '11:00', stay_id: null, check_in: null, check_out: null, checkout_day: null, leg_transport_mode: null });
+    expect(typed[0]).toMatchObject({
+      time: '09:00',
+      end_time: '11:00',
+      stay_id: null,
+      check_in: null,
+      check_out: null,
+      checkout_day: null,
+      leg_transport_mode: null,
+    });
   });
 
   it('ASSIGNREPO-035: matches the legacy statement — a matching stay populates stay/checkout columns, explicit overrides win over coalesce', async () => {
@@ -957,21 +1126,47 @@ describe('DayAssignmentsRepository.listRoadtripVisits (RPL2, roadtrip-plan.servi
     const day = createDay(testDb, trip.id, { day_number: 1 });
     const checkoutDay = createDay(testDb, trip.id, { day_number: 2 });
     const place = createPlace(testDb, trip.id, { name: 'Grand Hotel' });
-    await updateRows(t, Places, { id: place.id }, { place_time: '08:00', end_time: '10:00', duration_minutes: 45, stop_type: 'lodging', fill_percent: 80 });
-    const stay = createDayAccommodation(testDb, trip.id, place.id, day.id, checkoutDay.id, { check_in: '15:00', check_out: '11:00' });
-    const assignment = createDayAssignment(testDb, day.id, place.id);
-    await updateRows(t, DayAssignments, { id: assignment.id }, {
-      assignment_time: '14:00', assignment_end_time: '14:30', leg_transport_mode: 'driving', incoming_leg_transport_mode: 'walking', end_day: 1,
+    await updateRows(
+      t,
+      Places,
+      { id: place.id },
+      { place_time: '08:00', end_time: '10:00', duration_minutes: 45, stop_type: 'lodging', fill_percent: 80 },
+    );
+    const stay = createDayAccommodation(testDb, trip.id, place.id, day.id, checkoutDay.id, {
+      check_in: '15:00',
+      check_out: '11:00',
     });
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+    await updateRows(
+      t,
+      DayAssignments,
+      { id: assignment.id },
+      {
+        assignment_time: '14:00',
+        assignment_end_time: '14:30',
+        leg_transport_mode: 'driving',
+        incoming_leg_transport_mode: 'walking',
+        end_day: 1,
+      },
+    );
 
     // test-sql-allow: the legacy RPL2 statement is the parity oracle the repository is compared against.
     const legacy = testDb.prepare(LEGACY_LIST_ROADTRIP_VISITS).all(trip.id);
     const typed = await assignments.listRoadtripVisits(trip.id);
     expect(typed).toEqual(legacy);
     expect(typed[0]).toMatchObject({
-      time: '14:00', end_time: '14:30', stay_id: stay.id, check_in: '15:00', check_out: '11:00',
-      checkout_day: 2, leg_transport_mode: 'driving', incoming_leg_transport_mode: 'walking', end_day: 1,
-      stop_type: 'lodging', fill_percent: 80, duration_minutes: 45,
+      time: '14:00',
+      end_time: '14:30',
+      stay_id: stay.id,
+      check_in: '15:00',
+      check_out: '11:00',
+      checkout_day: 2,
+      leg_transport_mode: 'driving',
+      incoming_leg_transport_mode: 'walking',
+      end_day: 1,
+      stop_type: 'lodging',
+      fill_percent: 80,
+      duration_minutes: 45,
     });
   });
 
@@ -996,7 +1191,9 @@ function legacyPublicForShare(dayIds: number[]): unknown {
   if (dayIds.length === 0) return [];
   const placeholders = dayIds.map(() => '?').join(',');
   // test-sql-allow: the legacy SH9 statement is the parity oracle the repository is compared against.
-  return testDb.prepare(`
+  return testDb
+    .prepare(
+      `
     SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
       p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
       COALESCE(da.assignment_time, p.place_time) as place_time,
@@ -1009,7 +1206,9 @@ function legacyPublicForShare(dayIds: number[]): unknown {
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE da.day_id IN (${placeholders})
     ORDER BY da.order_index ASC, da.created_at ASC
-  `).all(...dayIds);
+  `,
+    )
+    .all(...dayIds);
 }
 
 describe('DayAssignmentsRepository.listPublicForShare (SH9, share.service.ts)', () => {
@@ -1021,26 +1220,77 @@ describe('DayAssignmentsRepository.listPublicForShare (SH9, share.service.ts)', 
     const excludedDay = createDay(testDb, trip.id, { day_number: 3 });
     const category = createCategory(testDb, { name: 'Museum', color: '#111111', icon: '🏛️' });
 
-    const placeFull = createPlace(testDb, trip.id, { name: 'Louvre', lat: 48.86, lng: 2.34, category_id: category.id, description: 'Art museum' });
-    await updateRows(t, Places, { id: placeFull.id }, {
-      address: 'Rue de Rivoli', price: 17.5, currency: 'EUR', place_time: '09:00', end_time: '11:00',
-      duration_minutes: 120, notes: 'bring ID', image_url: 'https://img/louvre.jpg', transport_mode: 'walking',
-      website: 'https://louvre.fr', phone: '+33140205050', google_place_id: 'ChIJ123', google_ftid: 'ftid1',
-      osm_id: 'osm1', amap_poi_id: 'amap1', stop_type: 'lodging', fill_percent: 80,
+    const placeFull = createPlace(testDb, trip.id, {
+      name: 'Louvre',
+      lat: 48.86,
+      lng: 2.34,
+      category_id: category.id,
+      description: 'Art museum',
     });
+    await updateRows(
+      t,
+      Places,
+      { id: placeFull.id },
+      {
+        address: 'Rue de Rivoli',
+        price: 17.5,
+        currency: 'EUR',
+        place_time: '09:00',
+        end_time: '11:00',
+        duration_minutes: 120,
+        notes: 'bring ID',
+        image_url: 'https://img/louvre.jpg',
+        transport_mode: 'walking',
+        website: 'https://louvre.fr',
+        phone: '+33140205050',
+        google_place_id: 'ChIJ123',
+        google_ftid: 'ftid1',
+        osm_id: 'osm1',
+        amap_poi_id: 'amap1',
+        stop_type: 'lodging',
+        fill_percent: 80,
+      },
+    );
     const assignmentOnFullPlace = createDayAssignment(testDb, day1.id, placeFull.id, { order_index: 2 });
-    await updateRows(t, DayAssignments, { id: assignmentOnFullPlace.id }, {
-      assignment_time: '14:00', assignment_end_time: '14:30', reservation_status: 'confirmed',
-      reservation_notes: 'window seat', reservation_datetime: '2026-09-01T09:00:00.000Z',
-      leg_transport_mode: 'driving', incoming_leg_transport_mode: 'walking', accommodation_id: null,
-    });
+    await updateRows(
+      t,
+      DayAssignments,
+      { id: assignmentOnFullPlace.id },
+      {
+        assignment_time: '14:00',
+        assignment_end_time: '14:30',
+        reservation_status: 'confirmed',
+        reservation_notes: 'window seat',
+        reservation_datetime: '2026-09-01T09:00:00.000Z',
+        leg_transport_mode: 'driving',
+        incoming_leg_transport_mode: 'walking',
+        accommodation_id: null,
+      },
+    );
 
     const placeBare = createPlace(testDb, trip.id, { name: 'Unnamed spot' });
-    await updateRows(t, Places, { id: placeBare.id }, {
-      category: null, lat: null, lng: null, address: null, price: null, currency: null, place_time: null,
-      end_time: null, duration_minutes: null, notes: null, image_url: null, transport_mode: null,
-      website: null, phone: null, description: null,
-    });
+    await updateRows(
+      t,
+      Places,
+      { id: placeBare.id },
+      {
+        category: null,
+        lat: null,
+        lng: null,
+        address: null,
+        price: null,
+        currency: null,
+        place_time: null,
+        end_time: null,
+        duration_minutes: null,
+        notes: null,
+        image_url: null,
+        transport_mode: null,
+        website: null,
+        phone: null,
+        description: null,
+      },
+    );
     const assignmentOnBarePlace = createDayAssignment(testDb, day2.id, placeBare.id, { order_index: 1 });
 
     // A second assignment on day1, ordered before both of the above by order_index.
@@ -1055,10 +1305,20 @@ describe('DayAssignmentsRepository.listPublicForShare (SH9, share.service.ts)', 
     const legacy = legacyPublicForShare(dayIds);
     const typed = await assignments.listPublicForShare(dayIds);
     expect(typed).toEqual(legacy);
-    expect(typed.map((r) => r.id)).toEqual([earlierOrderAssignment.id, assignmentOnBarePlace.id, assignmentOnFullPlace.id]);
+    expect(typed.map((r) => r.id)).toEqual([
+      earlierOrderAssignment.id,
+      assignmentOnBarePlace.id,
+      assignmentOnFullPlace.id,
+    ]);
 
     const fullRow = typed.find((r) => r.id === assignmentOnFullPlace.id)!;
-    expect(fullRow).toMatchObject({ category_name: 'Museum', category_color: '#111111', category_icon: '🏛️', place_time: '14:00', end_time: '14:30' });
+    expect(fullRow).toMatchObject({
+      category_name: 'Museum',
+      category_color: '#111111',
+      category_icon: '🏛️',
+      place_time: '14:00',
+      end_time: '14:30',
+    });
     expect(fullRow).not.toHaveProperty('google_place_id');
     expect(fullRow).not.toHaveProperty('google_ftid');
     expect(fullRow).not.toHaveProperty('osm_id');
@@ -1067,7 +1327,14 @@ describe('DayAssignmentsRepository.listPublicForShare (SH9, share.service.ts)', 
     expect(fullRow).not.toHaveProperty('fill_percent');
 
     const bareRow = typed.find((r) => r.id === assignmentOnBarePlace.id)!;
-    expect(bareRow).toMatchObject({ category_id: null, category_name: null, category_color: null, category_icon: null, place_time: null, end_time: null });
+    expect(bareRow).toMatchObject({
+      category_id: null,
+      category_name: null,
+      category_color: null,
+      category_icon: null,
+      place_time: null,
+      end_time: null,
+    });
   });
 
   it('[] for an empty day_ids array (no query issued)', async () => {

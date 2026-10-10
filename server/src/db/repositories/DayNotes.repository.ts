@@ -1,7 +1,7 @@
 import type { DayNotes } from '../entities/DayNotes.entity';
+import type { DB } from '../kysely/db';
 import { toRow, type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 export interface DayNoteRow {
   id: number;
@@ -87,10 +87,7 @@ export class DayNotesRepository extends TrekRepository<DayNotes> {
    * relies on read order).
    */
   async listByTrip(trip_id: number | string): Promise<DayNoteRow[]> {
-    return await this.qb('n')
-      .select(['n.*'])
-      .where('n.trip_id = ?', [trip_id])
-      .execute<DayNoteRow[]>('all', false);
+    return await this.qb('n').select(['n.*']).where('n.trip_id = ?', [trip_id]).execute<DayNoteRow[]>('all', false);
   }
 
   /**
@@ -145,7 +142,11 @@ export class DayNotesRepository extends TrekRepository<DayNotes> {
    * AND day_id = ? AND trip_id = ?`. Same raw-bind seam as
    * {@link listByDayAndTrip}.
    */
-  async findByIdDayTrip(id: number | string, day_id: number | string, trip_id: number | string): Promise<DayNoteRow | undefined> {
+  async findByIdDayTrip(
+    id: number | string,
+    day_id: number | string,
+    trip_id: number | string,
+  ): Promise<DayNoteRow | undefined> {
     return await this.qb('n')
       .select(['n.*'])
       .where('n.id = ? AND n.day_id = ? AND n.trip_id = ?', [id, day_id, trip_id])
@@ -160,29 +161,32 @@ export class DayNotesRepository extends TrekRepository<DayNotes> {
    * already resolves each one's `fields.x !== undefined ? fields.x :
    * current.x` fallback, same shape as `createNote`'s docstring).
    */
-  async updateNote(id: number | string, fields: {
-    text: string;
-    time: string | null;
-    icon: string | null;
-    sort_order: number | null;
-    color: string | null;
-  }): Promise<DayNoteRow | undefined> {
+  async updateNote(
+    id: number | string,
+    fields: {
+      text: string;
+      time: string | null;
+      icon: string | null;
+      sort_order: number | null;
+      color: string | null;
+    },
+  ): Promise<DayNoteRow | undefined> {
     await this.qb('n')
-      .update({ text: fields.text, time: fields.time, icon: fields.icon, sort_order: fields.sort_order, color: fields.color })
+      .update({
+        text: fields.text,
+        time: fields.time,
+        icon: fields.icon,
+        sort_order: fields.sort_order,
+        color: fields.color,
+      })
       .where('n.id = ?', [id])
       .execute('run');
-    return await this.qb('n')
-      .select(['n.*'])
-      .where('n.id = ?', [id])
-      .execute<DayNoteRow | undefined>('get', false);
+    return await this.qb('n').select(['n.*']).where('n.id = ?', [id]).execute<DayNoteRow | undefined>('get', false);
   }
 
   /** `day-notes.service.ts::remove` — `DELETE FROM day_notes WHERE id = ?`. */
   async deleteById(id: number | string): Promise<void> {
-    await this.qb('n')
-      .delete()
-      .where('n.id = ?', [id])
-      .execute('run');
+    await this.qb('n').delete().where('n.id = ?', [id]).execute('run');
   }
 
   /**

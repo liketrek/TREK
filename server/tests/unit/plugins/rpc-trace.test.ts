@@ -3,6 +3,14 @@
  * whole dispatch runs under, and one log line per call. A refused call comes
  * back as `{ ok: false }` rather than a throw, so that is what the line says.
  */
+import { currentCorrelation, type Correlation } from '../../../src/nest/common/request-correlation';
+import { RpcRateLimiter, DEFAULT_RPC_LIMIT } from '../../../src/nest/plugins/host/rate-limit';
+import type { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
+import type { RpcRequest, RpcResponse, RpcError } from '../../../src/nest/plugins/protocol/envelope';
+import { PluginSupervisor } from '../../../src/nest/plugins/supervisor/plugin-supervisor';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 
 const log = vi.hoisted(() => ({
@@ -13,14 +21,6 @@ const log = vi.hoisted(() => ({
   logError: vi.fn(),
 }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => log);
-
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { PluginSupervisor } from '../../../src/nest/plugins/supervisor/plugin-supervisor';
-import { RpcRateLimiter, DEFAULT_RPC_LIMIT } from '../../../src/nest/plugins/host/rate-limit';
-import { currentCorrelation, type Correlation } from '../../../src/nest/common/request-correlation';
-import type { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import type { RpcRequest, RpcResponse, RpcError } from '../../../src/nest/plugins/protocol/envelope';
 
 interface DispatchEntry {
   id: string;
@@ -54,7 +54,12 @@ function makeSupervisor(answer: (req: RpcRequest) => RpcResponse | RpcError) {
     seen.push(currentCorrelation());
     return answer(req);
   };
-  const supervisor = new PluginSupervisor(() => ({ dispatch }) as unknown as PluginRpcHost, {}, {}, () => t.orm) as unknown as SupervisorPrivate;
+  const supervisor = new PluginSupervisor(
+    () => ({ dispatch }) as unknown as PluginRpcHost,
+    {},
+    {},
+    () => t.orm,
+  ) as unknown as SupervisorPrivate;
   const sup: DispatchEntry = {
     id: 'weather-plugin',
     rpcHost: { dispatch },

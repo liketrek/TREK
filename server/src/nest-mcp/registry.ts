@@ -18,6 +18,7 @@ import type {
 } from './types';
 import { ResourceTemplate as SdkResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+
 import { z } from 'zod';
 
 interface BoundEntry {
@@ -48,7 +49,11 @@ export interface McpRegistryOptions {
 type AnyHandler = (this: unknown, ...handlerArgs: unknown[]) => unknown;
 
 /** Run one handler call through the host's `around` wrapper when it set one. */
-function invoke(opts: McpAttachOptions | undefined, info: { kind: McpEntryKind; name: string }, call: () => unknown): unknown {
+function invoke(
+  opts: McpAttachOptions | undefined,
+  info: { kind: McpEntryKind; name: string },
+  call: () => unknown,
+): unknown {
   return opts?.around ? opts.around(info, call) : call();
 }
 
@@ -150,7 +155,14 @@ export class McpRegistry {
       const handler = (instance as unknown as Record<string, AnyHandler>)[entry.methodName];
       switch (entry.kind) {
         case 'tool':
-          this.attachTool(registrar, entry.options, instance, this.mapped(this.gated(entry.options, handler, ctx)), ctx, opts);
+          this.attachTool(
+            registrar,
+            entry.options,
+            instance,
+            this.mapped(this.gated(entry.options, handler, ctx)),
+            ctx,
+            opts,
+          );
           break;
         case 'resource':
           this.attachResource(registrar, entry.options, instance, handler, ctx, opts);

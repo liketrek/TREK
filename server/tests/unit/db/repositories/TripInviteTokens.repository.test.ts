@@ -1,11 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { TripInviteTokens } from '../../../../src/db/entities/TripInviteTokens.entity';
+import type { TripInviteTokensRepository } from '../../../../src/db/repositories/TripInviteTokens.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { countRows, findRow, insertRow } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createTrip, createUser } from '../../../helpers/factories';
-import { TripInviteTokens } from '../../../../src/db/entities/TripInviteTokens.entity';
-import { countRows, findRow, insertRow } from '../../../helpers/factories/rows';
-import type { TripInviteTokensRepository } from '../../../../src/db/repositories/TripInviteTokens.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -15,8 +16,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   tripInviteTokens = t.repo(TripInviteTokens);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 /** The trip's stored invite row as it is now; fails the case when there is none. */
 async function storedToken(tripId: number) {
@@ -35,7 +42,9 @@ describe('TripInviteTokensRepository.findInfoByTrip / existsForTrip (Plan 4 Task
     await insertRow(t, TripInviteTokens, { trip: trip.id, token: 'tok', createdByRef: user.id, expires_at: null });
 
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
-    const legacy = testDb.prepare('SELECT token, expires_at, created_at FROM trip_invite_tokens WHERE trip_id = ?').get(trip.id);
+    const legacy = testDb
+      .prepare('SELECT token, expires_at, created_at FROM trip_invite_tokens WHERE trip_id = ?')
+      .get(trip.id);
     expect(await tripInviteTokens.findInfoByTrip(trip.id)).toEqual(legacy);
     expect(await tripInviteTokens.existsForTrip(trip.id)).toBe(true);
   });
@@ -65,7 +74,11 @@ describe('TripInviteTokensRepository.insertForTrip / updateForTrip (Plan 4 Task 
     await tripInviteTokens.insertForTrip({ trip_id: trip.id, token: 'first', created_by: owner.id, expires_at: null });
     const before = await storedToken(trip.id);
 
-    await tripInviteTokens.updateForTrip(trip.id, { token: 'second', expires_at: '2030-01-01T00:00:00.000Z', created_by: rotator.id });
+    await tripInviteTokens.updateForTrip(trip.id, {
+      token: 'second',
+      expires_at: '2030-01-01T00:00:00.000Z',
+      created_by: rotator.id,
+    });
 
     const after = await storedToken(trip.id);
     expect(after.id).toBe(before.id); // same row, not a second insert
@@ -77,7 +90,7 @@ describe('TripInviteTokensRepository.insertForTrip / updateForTrip (Plan 4 Task 
 });
 
 describe('TripInviteTokensRepository.deleteByTrip (Plan 4 Task 1)', () => {
-  it('TIREPO-004: removes the trip\'s row and only that trip\'s row', async () => {
+  it("TIREPO-004: removes the trip's row and only that trip's row", async () => {
     const { user } = createUser(testDb);
     const tripA = createTrip(testDb, user.id);
     const tripB = createTrip(testDb, user.id);
@@ -101,15 +114,29 @@ describe('TripInviteTokensRepository.resolveTokenToTrip (Plan 4 Task 1, mutation
   it('TIREPO-006: resolves a valid token to its trip id/title/expires_at', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Kyoto Loop' });
-    await tripInviteTokens.insertForTrip({ trip_id: trip.id, token: 'real-token', created_by: user.id, expires_at: '2030-01-01T00:00:00.000Z' });
+    await tripInviteTokens.insertForTrip({
+      trip_id: trip.id,
+      token: 'real-token',
+      created_by: user.id,
+      expires_at: '2030-01-01T00:00:00.000Z',
+    });
 
-    expect(await tripInviteTokens.resolveTokenToTrip('real-token')).toEqual({ trip_id: trip.id, title: 'Kyoto Loop', expires_at: '2030-01-01T00:00:00.000Z' });
+    expect(await tripInviteTokens.resolveTokenToTrip('real-token')).toEqual({
+      trip_id: trip.id,
+      title: 'Kyoto Loop',
+      expires_at: '2030-01-01T00:00:00.000Z',
+    });
   });
 
   it('TIREPO-007: an unknown token resolves to undefined — never a row from a different trip', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    await tripInviteTokens.insertForTrip({ trip_id: trip.id, token: 'real-token', created_by: user.id, expires_at: null });
+    await tripInviteTokens.insertForTrip({
+      trip_id: trip.id,
+      token: 'real-token',
+      created_by: user.id,
+      expires_at: null,
+    });
 
     expect(await tripInviteTokens.resolveTokenToTrip('forged-token')).toBeUndefined();
   });
@@ -117,7 +144,12 @@ describe('TripInviteTokensRepository.resolveTokenToTrip (Plan 4 Task 1, mutation
   it("TIREPO-008: a token that used to resolve stops resolving once it's rotated away (mutation proof)", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    await tripInviteTokens.insertForTrip({ trip_id: trip.id, token: 'old-token', created_by: user.id, expires_at: null });
+    await tripInviteTokens.insertForTrip({
+      trip_id: trip.id,
+      token: 'old-token',
+      created_by: user.id,
+      expires_at: null,
+    });
     await tripInviteTokens.updateForTrip(trip.id, { token: 'new-token', expires_at: null, created_by: user.id });
 
     expect(await tripInviteTokens.resolveTokenToTrip('old-token')).toBeUndefined();

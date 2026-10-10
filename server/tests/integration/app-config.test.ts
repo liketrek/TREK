@@ -4,19 +4,19 @@
  * pattern the integration suite relies on), and RuntimeEnvService must stay
  * live within a single app's lifetime.
  */
-import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
+import { buildApp, getHttpServer } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { httpConfig, RuntimeEnvService } from '../../src/nest/app-config';
+import { resetTestDb } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
+
+import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { resetTestDb } from '../helpers/test-db';
-import { buildApp, getHttpServer } from '../../src/bootstrap';
-import { httpConfig, RuntimeEnvService } from '../../src/nest/app-config';
-import type { ConfigType } from '@nestjs/config';
 
 describe('AppConfigModule in the real buildApp()', () => {
   let app: INestApplication | undefined;

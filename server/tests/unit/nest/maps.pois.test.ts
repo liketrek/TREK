@@ -7,6 +7,14 @@
  * already reads, and that everything which is not a hit still lands on Overpass
  * unchanged.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
+import { buildMapsParts } from '../../helpers/maps-service';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { mockNearby } = vi.hoisted(() => ({
@@ -22,14 +30,6 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
   ...(await importOriginal<typeof import('../../../src/nest/maps/trek-places.client')>()),
   trekPlacesNearby: mockNearby,
 }));
-
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import { buildMapsParts } from '../../helpers/maps-service';
-import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { noGoogleQuota } from '../../helpers/google-quota';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 
 // keyedProvider/resolveMapsKey (maps.service.ts) go through instance-api-keys.ts
 // on every call now — none of these cases configure a key, so the stubs just
@@ -116,7 +116,14 @@ afterEach(() => {
 function make(enabled = true) {
   if (enabled) delete process.env.TREK_PLACES_ENABLED;
   else process.env.TREK_PLACES_ENABLED = 'false';
-  const { svc, osm } = buildMapsParts({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
+  const { svc, osm } = buildMapsParts(
+    {} as PlacePhotoCacheService,
+    noAppSettings,
+    noUsers,
+    {} as never,
+    {} as never,
+    noGoogleQuota,
+  );
   osmOf.set(svc, osm);
   return svc;
 }
@@ -299,16 +306,20 @@ describe('MapsService.pois answered from the index', () => {
 
     expect(overpass).not.toHaveBeenCalled();
     // One request carrying every term the two categories map to.
-    expect(mockNearby).toHaveBeenCalledWith(0, 0, expect.objectContaining({
-      category: 'gas_station,fueling_station,ev_charging_station',
-      // Per category, so a mixed search does not spend the whole allowance on
-      // whichever kind happens to be densest.
-      limit: 120,
-    }));
+    expect(mockNearby).toHaveBeenCalledWith(
+      0,
+      0,
+      expect.objectContaining({
+        category: 'gas_station,fueling_station,ev_charging_station',
+        // Per category, so a mixed search does not spend the whole allowance on
+        // whichever kind happens to be densest.
+        limit: 120,
+      }),
+    );
     // Each hit carries the category that produced it, not the list that was
     // asked for: the client colours and groups its markers by that field, and
     // "fuel,charging" is not a category.
-    expect(out.pois.map(p => p.category)).toEqual(['fuel', 'charging']);
+    expect(out.pois.map((p) => p.category)).toEqual(['fuel', 'charging']);
   });
 
   it('MAPS-POIS-013b: a leaf category that is only a substring of a term is still labelled by it', async () => {
@@ -317,7 +328,13 @@ describe('MapsService.pois answered from the index', () => {
     // took the first category of the request instead — whichever pill the user
     // tapped first — and the corridor panel groups and colours on that field.
     mockNearby.mockResolvedValue([
-      { ...FULL, gers: 'r-1', name: 'Trattoria', category: 'italian_restaurant', categoryPath: 'eat_and_drink>restaurant>italian_restaurant' },
+      {
+        ...FULL,
+        gers: 'r-1',
+        name: 'Trattoria',
+        category: 'italian_restaurant',
+        categoryPath: 'eat_and_drink>restaurant>italian_restaurant',
+      },
       { ...FULL, gers: 'f-1', name: 'Aral', category: 'gas_station', categoryPath: 'automotive>gas_station' },
     ]);
     const svc = make();
@@ -327,14 +344,23 @@ describe('MapsService.pois answered from the index', () => {
 
     // Fuel was tapped first, so the old fallback made the trattoria a petrol
     // station: orange pin, listed under Fuel.
-    expect(out.pois.map(p => [p.name, p.category])).toEqual([['Trattoria', 'restaurant'], ['Aral', 'fuel']]);
+    expect(out.pois.map((p) => [p.name, p.category])).toEqual([
+      ['Trattoria', 'restaurant'],
+      ['Aral', 'fuel'],
+    ]);
     // The true leaf is still reported, unchanged.
     expect(out.pois[0].poi_type).toBe('italian_restaurant');
   });
 
   it('MAPS-POIS-013c: the longest matching term wins, so fast_food does not answer as a cafe', async () => {
     mockNearby.mockResolvedValue([
-      { ...FULL, gers: 'q-1', name: 'Imbiss', category: 'fast_food_restaurant', categoryPath: 'eat_and_drink>fast_food>fast_food_restaurant' },
+      {
+        ...FULL,
+        gers: 'q-1',
+        name: 'Imbiss',
+        category: 'fast_food_restaurant',
+        categoryPath: 'eat_and_drink>fast_food>fast_food_restaurant',
+      },
     ]);
     const svc = make();
     stubOverpass(svc);

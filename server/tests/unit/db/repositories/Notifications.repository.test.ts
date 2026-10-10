@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { Notifications } from '../../../../src/db/entities/Notifications.entity';
+import { Users } from '../../../../src/db/entities/Users.entity';
+import type { NotificationsRepository } from '../../../../src/db/repositories/Notifications.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser, createTrip, addTripMember, type TestUser, type TestTrip } from '../../../helpers/factories';
+import { findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser, createTrip, addTripMember, type TestUser, type TestTrip } from '../../../helpers/factories';
-import { Notifications } from '../../../../src/db/entities/Notifications.entity';
-import type { NotificationsRepository } from '../../../../src/db/repositories/Notifications.repository';
-import { findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
-import { Users } from '../../../../src/db/entities/Users.entity';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -30,23 +31,50 @@ afterAll(async () => {
 });
 
 /** Inserts one of each NT-inventory notification type, with every optional field set, for `recipientId`. Returns the three ids in insertion order (simple, boolean, navigate). */
-async function seedThreeTypes(recipientId: number, senderId: number | null): Promise<{ simpleId: number; booleanId: number; navigateId: number }> {
+async function seedThreeTypes(
+  recipientId: number,
+  senderId: number | null,
+): Promise<{ simpleId: number; booleanId: number; navigateId: number }> {
   const simpleId = await insertRow(t, Notifications, {
-    type: 'simple', scope: 'trip', target: trip.id, sender: senderId, recipient: recipientId,
-    title_key: 'notif.trip_invite.title', title_params: '{"trip":"Rome"}', text_key: 'notif.trip_invite.text', text_params: '{"actor":"Alice"}',
+    type: 'simple',
+    scope: 'trip',
+    target: trip.id,
+    sender: senderId,
+    recipient: recipientId,
+    title_key: 'notif.trip_invite.title',
+    title_params: '{"trip":"Rome"}',
+    text_key: 'notif.trip_invite.text',
+    text_params: '{"actor":"Alice"}',
   });
 
   const booleanId = await insertRow(t, Notifications, {
-    type: 'boolean', scope: 'trip', target: trip.id, sender: senderId, recipient: recipientId,
-    title_key: 'notif.vacay_invite.title', title_params: '{"trip":"Rome"}', text_key: 'notif.vacay_invite.text', text_params: '{"actor":"Bob"}',
-    positive_text_key: 'notif.action.accept', negative_text_key: 'notif.action.decline',
-    positive_callback: '{"action":"noop","payload":{"x":1}}', negative_callback: '{"action":"noop","payload":{"x":2}}',
+    type: 'boolean',
+    scope: 'trip',
+    target: trip.id,
+    sender: senderId,
+    recipient: recipientId,
+    title_key: 'notif.vacay_invite.title',
+    title_params: '{"trip":"Rome"}',
+    text_key: 'notif.vacay_invite.text',
+    text_params: '{"actor":"Bob"}',
+    positive_text_key: 'notif.action.accept',
+    negative_text_key: 'notif.action.decline',
+    positive_callback: '{"action":"noop","payload":{"x":1}}',
+    negative_callback: '{"action":"noop","payload":{"x":2}}',
   });
 
   const navigateId = await insertRow(t, Notifications, {
-    type: 'navigate', scope: 'trip', target: trip.id, sender: senderId, recipient: recipientId,
-    title_key: 'notif.booking_change.title', title_params: '{"trip":"Rome"}', text_key: 'notif.booking_change.text', text_params: '{"actor":"Carl"}',
-    navigate_text_key: 'notif.action.view_trip', navigate_target: '/trips/1',
+    type: 'navigate',
+    scope: 'trip',
+    target: trip.id,
+    sender: senderId,
+    recipient: recipientId,
+    title_key: 'notif.booking_change.title',
+    title_params: '{"trip":"Rome"}',
+    text_key: 'notif.booking_change.text',
+    text_params: '{"actor":"Carl"}',
+    navigate_text_key: 'notif.action.view_trip',
+    navigate_target: '/trips/1',
   });
 
   return { simpleId, booleanId, navigateId };
@@ -82,7 +110,9 @@ describe('NotificationsRepository — findById/findByIdForRecipient parity (full
     const { booleanId } = await seedThreeTypes(recipient.id, null);
 
     // test-sql-allow: the legacy recipient-scoped SELECT is the parity oracle the repository is compared against.
-    const legacy = testDb.prepare('SELECT * FROM notifications WHERE id = ? AND recipient_id = ?').get(booleanId, recipient.id);
+    const legacy = testDb
+      .prepare('SELECT * FROM notifications WHERE id = ? AND recipient_id = ?')
+      .get(booleanId, recipient.id);
     expect(await repo.findByIdForRecipient(booleanId, recipient.id)).toEqual(legacy);
     expect(await repo.findByIdForRecipient(booleanId, stranger.id)).toBeUndefined();
   });
@@ -93,24 +123,39 @@ describe('NotificationsRepository — findById/findByIdForRecipient parity (full
     const { simpleId } = await seedThreeTypes(recipient.id, sender.id);
 
     // test-sql-allow: the legacy LEFT JOIN projection is the parity oracle the repository is compared against.
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT n.*, u.username AS sender_username, u.avatar AS sender_avatar
       FROM notifications n LEFT JOIN users u ON n.sender_id = u.id
       WHERE n.id = ?
-    `).get(simpleId);
+    `,
+      )
+      .get(simpleId);
     expect(await repo.findWithSenderById(simpleId)).toEqual(legacy);
 
     // A system notification (no sender) — the LEFT JOIN's NULL side.
     const systemId = await insertRow(t, Notifications, {
-      type: 'simple', scope: 'admin', target: 0, sender: null, recipient: recipient.id,
-      title_key: 'notif.version_available.title', title_params: '{}', text_key: 'notif.version_available.text', text_params: '{}',
+      type: 'simple',
+      scope: 'admin',
+      target: 0,
+      sender: null,
+      recipient: recipient.id,
+      title_key: 'notif.version_available.title',
+      title_params: '{}',
+      text_key: 'notif.version_available.text',
+      text_params: '{}',
     });
     // test-sql-allow: the legacy LEFT JOIN projection is the parity oracle the repository is compared against.
-    const legacySystem = testDb.prepare(`
+    const legacySystem = testDb
+      .prepare(
+        `
       SELECT n.*, u.username AS sender_username, u.avatar AS sender_avatar
       FROM notifications n LEFT JOIN users u ON n.sender_id = u.id
       WHERE n.id = ?
-    `).get(systemId);
+    `,
+      )
+      .get(systemId);
     expect(await repo.findWithSenderById(systemId)).toEqual(legacySystem);
   });
 
@@ -125,13 +170,17 @@ describe('NotificationsRepository — findById/findByIdForRecipient parity (full
     for (const unreadOnly of [false, true]) {
       const whereAliased = unreadOnly ? 'WHERE n.recipient_id = ? AND n.is_read = 0' : 'WHERE n.recipient_id = ?';
       // test-sql-allow: the legacy joined page read is the parity oracle the repository is compared against.
-      const legacy = testDb.prepare(`
+      const legacy = testDb
+        .prepare(
+          `
         SELECT n.*, u.username AS sender_username, u.avatar AS sender_avatar
         FROM notifications n LEFT JOIN users u ON n.sender_id = u.id
         ${whereAliased}
         ORDER BY n.created_at DESC
         LIMIT ? OFFSET ?
-      `).all(recipient.id, 20, 0);
+      `,
+        )
+        .all(recipient.id, 20, 0);
       const converted = await repo.listForRecipient(recipient.id, 20, 0, unreadOnly);
       expect(converted).toEqual(legacy);
     }
@@ -141,7 +190,8 @@ describe('NotificationsRepository — findById/findByIdForRecipient parity (full
 describe('NotificationsRepository — recipient resolution (NT1-NT4)', () => {
   it('NOTREPO-005 — getTripOwnerId matches `SELECT user_id FROM trips WHERE id = ?`', async () => {
     // test-sql-allow: the legacy statement named in the case title is the parity oracle.
-    const legacy = (testDb.prepare('SELECT user_id FROM trips WHERE id = ?').get(trip.id) as { user_id: number }).user_id;
+    const legacy = (testDb.prepare('SELECT user_id FROM trips WHERE id = ?').get(trip.id) as { user_id: number })
+      .user_id;
     expect(await repo.getTripOwnerId(trip.id)).toBe(legacy);
     expect(await repo.getTripOwnerId(999999)).toBeNull();
   });
@@ -149,13 +199,23 @@ describe('NotificationsRepository — recipient resolution (NT1-NT4)', () => {
   it('NOTREPO-006 — listNonGuestTripMemberIds (NT2, the guest-exclusion chokepoint, #1362): a guest member never appears, a real member always does', async () => {
     const { user: member } = createUser(testDb);
     addTripMember(testDb, trip.id, member.id);
-    const guestId = await insertRow(t, Users, { username: 'Guest', email: 'guest-repo@guests.invalid', password_hash: '', role: 'user', is_guest: 1 });
+    const guestId = await insertRow(t, Users, {
+      username: 'Guest',
+      email: 'guest-repo@guests.invalid',
+      password_hash: '',
+      role: 'user',
+      is_guest: 1,
+    });
     addTripMember(testDb, trip.id, guestId);
 
     // test-sql-allow: the legacy statement named in the case title is the parity oracle.
-    const legacy = (testDb.prepare(
-      'SELECT m.user_id FROM trip_members m JOIN users u ON u.id = m.user_id WHERE m.trip_id = ? AND COALESCE(u.is_guest, 0) = 0',
-    ).all(trip.id) as { user_id: number }[]).map((r) => r.user_id);
+    const legacy = (
+      testDb
+        .prepare(
+          'SELECT m.user_id FROM trip_members m JOIN users u ON u.id = m.user_id WHERE m.trip_id = ? AND COALESCE(u.is_guest, 0) = 0',
+        )
+        .all(trip.id) as { user_id: number }[]
+    ).map((r) => r.user_id);
     const converted = await repo.listNonGuestTripMemberIds(trip.id);
 
     expect(converted.sort()).toEqual(legacy.sort());
@@ -173,12 +233,20 @@ describe('NotificationsRepository — recipient resolution (NT1-NT4)', () => {
     const { user: admin1 } = createUser(testDb, { role: 'admin' });
     const { user: admin2 } = createUser(testDb, { role: 'admin' });
     createUser(testDb); // a regular user — must not appear
-    const guestAdminId = await insertRow(t, Users, { username: 'GuestAdmin', email: 'guest-admin@guests.invalid', password_hash: '', role: 'admin', is_guest: 1 });
+    const guestAdminId = await insertRow(t, Users, {
+      username: 'GuestAdmin',
+      email: 'guest-admin@guests.invalid',
+      password_hash: '',
+      role: 'admin',
+      is_guest: 1,
+    });
 
     // test-sql-allow: the legacy statement named in the case title is the parity oracle.
-    const legacy = (testDb.prepare(
-      'SELECT id FROM users WHERE role = ? AND COALESCE(is_guest, 0) = 0',
-    ).all('admin') as { id: number }[]).map((r) => r.id);
+    const legacy = (
+      testDb.prepare('SELECT id FROM users WHERE role = ? AND COALESCE(is_guest, 0) = 0').all('admin') as {
+        id: number;
+      }[]
+    ).map((r) => r.id);
     const converted = await repo.listNonGuestUserIdsByRole('admin');
 
     expect(converted.sort()).toEqual(legacy.sort());
@@ -203,11 +271,21 @@ describe('NotificationsRepository — writes', () => {
     const { user: sender } = createUser(testDb);
 
     const id = await repo.insertNotification({
-      type: 'boolean', scope: 'trip', target: trip.id, sender_id: sender.id, recipient_id: recipient.id,
-      title_key: 'notif.trip_invite.title', title_params: '{"trip":"Rome"}', text_key: 'notif.trip_invite.text', text_params: '{"actor":"A"}',
-      positive_text_key: 'notif.action.accept', negative_text_key: 'notif.action.decline',
-      positive_callback: '{"action":"noop","payload":{}}', negative_callback: '{"action":"noop","payload":{}}',
-      navigate_text_key: null, navigate_target: null,
+      type: 'boolean',
+      scope: 'trip',
+      target: trip.id,
+      sender_id: sender.id,
+      recipient_id: recipient.id,
+      title_key: 'notif.trip_invite.title',
+      title_params: '{"trip":"Rome"}',
+      text_key: 'notif.trip_invite.text',
+      text_params: '{"actor":"A"}',
+      positive_text_key: 'notif.action.accept',
+      negative_text_key: 'notif.action.decline',
+      positive_callback: '{"action":"noop","payload":{}}',
+      negative_callback: '{"action":"noop","payload":{}}',
+      navigate_text_key: null,
+      navigate_target: null,
     });
 
     const row = await notificationRow(id);

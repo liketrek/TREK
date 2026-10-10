@@ -15,30 +15,60 @@
  * plugin-sdk/ checkout with no server present, so a build-time artefact would ship an SDK
  * with an empty permission list.
  */
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import {
-  HOOK_PERMISSION, KNOWN_METHODS, KNOWN_PERMISSIONS, METHOD_PERMISSION,
-  EVENTS_PERMISSION, JOBS_PERMISSION, USER_DATA_PERMISSION, HTTP_OUTBOUND_PREFIX, PLUGIN_API_VERSION,
-} from '../src/nest/plugins/protocol/envelope';
-import {
-  ACTIONS_MAX, ADDON_ID_RE, CAPABILITY_NAME_RE, EGRESS_HOST_RE, MCP_TOOLS_MAX, PLUGIN_CHANNEL_EVENTS, PLUGIN_ID_RE,
-  PLUGIN_SEMVER_RE, PLUGIN_TYPES, REPLACEABLE_TABS, RESERVED_PLUGIN_IDS, RESERVED_SETTING_KEYS, ROUTE_PROFILE_ID_RE,
-  ROUTE_PROFILES_MAX, SETTING_FIELD_KEYS, SETTING_KEY_RE, TOOL_NAME_RE, TRIP_PAGE_POSITION_MAX, WIDGET_SLOTS,
-} from '../src/nest/plugins/protocol/manifest-rules';
-import { SNAPSHOT_GRANT, ENTITY_ID_KEYS } from '../src/plugin-event-sink';
-import {
-  PLUGIN_ENTITY_CONTRACT, PLUGIN_ENTITY_NESTED, PLUGIN_METHOD_OUTPUT, pluginEntityFields, type PluginEntityName,
-  type PluginMethodOutput,
-} from '../src/nest/plugins/protocol/output-contract';
-import { ADDON_IDS } from '../src/addons';
 // A relative import of the shared SOURCE, not @trek/shared: the plugin-facts CI job
 // installs only the server, so shared's dist does not exist there. The file has no
 // imports of its own for exactly this reason.
 import {
-  PLUGIN_POI_ICONS, PLUGIN_POI_LABEL_MAX, PLUGIN_POI_MAX_CATEGORIES,
+  PLUGIN_POI_ICONS,
+  PLUGIN_POI_LABEL_MAX,
+  PLUGIN_POI_MAX_CATEGORIES,
 } from '../../shared/src/plugins/plugin-poi-facts';
+import { ADDON_IDS } from '../src/addons';
+import {
+  HOOK_PERMISSION,
+  KNOWN_METHODS,
+  KNOWN_PERMISSIONS,
+  METHOD_PERMISSION,
+  EVENTS_PERMISSION,
+  JOBS_PERMISSION,
+  USER_DATA_PERMISSION,
+  HTTP_OUTBOUND_PREFIX,
+  PLUGIN_API_VERSION,
+} from '../src/nest/plugins/protocol/envelope';
+import {
+  ACTIONS_MAX,
+  ADDON_ID_RE,
+  CAPABILITY_NAME_RE,
+  EGRESS_HOST_RE,
+  MCP_TOOLS_MAX,
+  PLUGIN_CHANNEL_EVENTS,
+  PLUGIN_ID_RE,
+  PLUGIN_SEMVER_RE,
+  PLUGIN_TYPES,
+  REPLACEABLE_TABS,
+  RESERVED_PLUGIN_IDS,
+  RESERVED_SETTING_KEYS,
+  ROUTE_PROFILE_ID_RE,
+  ROUTE_PROFILES_MAX,
+  SETTING_FIELD_KEYS,
+  SETTING_KEY_RE,
+  TOOL_NAME_RE,
+  TRIP_PAGE_POSITION_MAX,
+  WIDGET_SLOTS,
+} from '../src/nest/plugins/protocol/manifest-rules';
+import {
+  PLUGIN_ENTITY_CONTRACT,
+  PLUGIN_ENTITY_NESTED,
+  PLUGIN_METHOD_OUTPUT,
+  pluginEntityFields,
+  type PluginEntityName,
+  type PluginMethodOutput,
+} from '../src/nest/plugins/protocol/output-contract';
+import { SNAPSHOT_GRANT, ENTITY_ID_KEYS } from '../src/plugin-event-sink';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -54,7 +84,9 @@ const HEADER = [
 
 const list = (xs: readonly string[]) => xs.map((x) => `  '${x}',`).join('\n');
 const pairs = (o: Readonly<Record<string, string>>) =>
-  Object.entries(o).map(([k, v]) => `  ${/^[A-Za-z_$][\w$]*$/.test(k) ? k : `'${k}'`}: '${v}',`).join('\n');
+  Object.entries(o)
+    .map(([k, v]) => `  ${/^[A-Za-z_$][\w$]*$/.test(k) ? k : `'${k}'`}: '${v}',`)
+    .join('\n');
 
 /**
  * Types here are deliberately WIDE — Readonly<Record<string, string>> and string[] —
@@ -261,9 +293,7 @@ function coverageProblems(): string[] {
   const ui = fs.readFileSync(path.join(REPO, 'plugin-sdk/src/cli/ui.ts'), 'utf8');
   const missingHint = KNOWN_PERMISSIONS.filter((p) => !ui.includes(`'${p}'`));
   if (missingHint.length) {
-    problems.push(
-      `plugin-sdk/src/cli/ui.ts PERMISSION_FAMILIES does not cover: ${missingHint.join(', ')}`,
-    );
+    problems.push(`plugin-sdk/src/cli/ui.ts PERMISSION_FAMILIES does not cover: ${missingHint.join(', ')}`);
   }
 
   return problems;

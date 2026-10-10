@@ -1,8 +1,8 @@
-import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { ForbiddenResource } from '../../nest-rpc/rpc-errors';
-import { num, str } from '../../nest-rpc/rpc-params';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
+import { num, str } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { AssignmentsService } from './assignments.service';
 
@@ -32,8 +32,10 @@ export class ItineraryRpc {
     const actor = this.guards.requireActor(ctx, 'itinerary');
     const notes = params.notes === undefined || params.notes === null ? null : str(params.notes, 'notes');
     await this.guards.requireTripEdit(tripId, actor, DAY_EDIT_ACTION);
-    if (!(await this.assignments.dayExists(dayId, tripId))) throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
-    if (!(await this.assignments.placeExists(placeId, tripId))) throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
+    if (!(await this.assignments.dayExists(dayId, tripId)))
+      throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);
+    if (!(await this.assignments.placeExists(placeId, tripId)))
+      throw new ForbiddenResource(`no place ${placeId} on trip ${tripId}`);
     const assignment = await this.assignments.createAssignment(dayId, placeId, notes);
     this.realtime.broadcast(tripId, 'assignment:created', { assignment });
     await this.assignments.reconcile(tripId);

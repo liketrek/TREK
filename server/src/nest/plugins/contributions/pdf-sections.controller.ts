@@ -1,10 +1,11 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
+import { TripAccessService } from '../../trip-membership/trip-access.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
-import { TripAccessService } from '../../trip-membership/trip-access.service';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/pdf-sections/:tripId — text-only sections plugins append to a trip's
@@ -64,7 +65,9 @@ function normalize(pluginId: string, raw: unknown): PdfSection[] {
     out.push({
       pluginId,
       title,
-      paragraphs: (Array.isArray(s.paragraphs) ? s.paragraphs : []).slice(0, MAX_PARAGRAPHS).map((p) => cap(p, PARAGRAPH_MAX)),
+      paragraphs: (Array.isArray(s.paragraphs) ? s.paragraphs : [])
+        .slice(0, MAX_PARAGRAPHS)
+        .map((p) => cap(p, PARAGRAPH_MAX)),
       table: normalizeTable(s.table),
     });
   }
@@ -87,7 +90,8 @@ export class PdfSectionsController {
     if (!pluginsEnabled()) return { sections: [] };
     const tripId = Number(tripIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(tripId) || userId == null || !(await this.trips.findAccessible(tripId, userId))) return { sections: [] };
+    if (!Number.isFinite(tripId) || userId == null || !(await this.trips.findAccessible(tripId, userId)))
+      return { sections: [] };
 
     const ids = this.hooks.providersOf('pdfSectionProvider');
     const perProvider = await Promise.all(

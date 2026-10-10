@@ -6,10 +6,21 @@
  *       These tests run in test env and may not have a full DB file to zip,
  *       but the service should handle gracefully.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import * as backupService from '../../src/nest/backup/backup.impl';
+import { DEFAULT_BACKUPS_ROOT } from '../../src/nest/storage/storage-paths';
+import { authCookie } from '../helpers/auth';
+import { createAdmin, createUser } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -18,7 +29,9 @@ vi.mock('../../src/db/database', async () => {
 
 // Mock filesystem-dependent service functions to avoid real disk I/O in tests
 vi.mock('../../src/nest/backup/backup.impl', async () => {
-  const actual = await vi.importActual<typeof import('../../src/nest/backup/backup.impl')>('../../src/nest/backup/backup.impl');
+  const actual = await vi.importActual<typeof import('../../src/nest/backup/backup.impl')>(
+    '../../src/nest/backup/backup.impl',
+  );
   return {
     ...actual,
     createBackup: vi.fn().mockResolvedValue({
@@ -39,24 +52,22 @@ vi.mock('../../src/nest/backup/backup.impl', async () => {
 // The auto-settings routes live on AutoBackupJob now; keep its settings-file
 // I/O off the real data/ dir (the scheduling itself is off under the test gate).
 vi.mock('../../src/nest/backup/auto-backup.settings', async () => {
-  const actual = await vi.importActual<typeof import('../../src/nest/backup/auto-backup.settings')>('../../src/nest/backup/auto-backup.settings');
+  const actual = await vi.importActual<typeof import('../../src/nest/backup/auto-backup.settings')>(
+    '../../src/nest/backup/auto-backup.settings',
+  );
   return {
     ...actual,
-    loadSettings: vi.fn(() => ({ enabled: false, interval: 'daily', keep_days: 7, hour: 2, day_of_week: 0, day_of_month: 1 })),
+    loadSettings: vi.fn(() => ({
+      enabled: false,
+      interval: 'daily',
+      keep_days: 7,
+      hour: 2,
+      day_of_week: 0,
+      day_of_month: 1,
+    })),
     saveSettings: vi.fn(),
   };
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createAdmin, createUser } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import * as backupService from '../../src/nest/backup/backup.impl';
-import { DEFAULT_BACKUPS_ROOT } from '../../src/nest/storage/storage-paths';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -80,9 +91,7 @@ describe('Backup access control', () => {
   it('non-admin cannot access backup routes', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/backup/list')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/backup/list').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(403);
   });
 });
@@ -91,9 +100,7 @@ describe('Backup list', () => {
   it('BACKUP-001 — GET /backup/list returns backups array', async () => {
     const { user: admin } = createAdmin(testDb);
 
-    const res = await request(app)
-      .get('/api/backup/list')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).get('/api/backup/list').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.backups)).toBe(true);
   });
@@ -103,9 +110,7 @@ describe('Backup creation', () => {
   it('BACKUP-001 — POST /backup/create creates a backup', async () => {
     const { user: admin } = createAdmin(testDb);
 
-    const res = await request(app)
-      .post('/api/backup/create')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).post('/api/backup/create').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.backup).toHaveProperty('filename');
@@ -117,9 +122,7 @@ describe('Auto-backup settings', () => {
   it('BACKUP-008 — GET /backup/auto-settings returns current config', async () => {
     const { user: admin } = createAdmin(testDb);
 
-    const res = await request(app)
-      .get('/api/backup/auto-settings')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).get('/api/backup/auto-settings').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('settings');
     expect(res.body.settings).toHaveProperty('enabled');
@@ -143,9 +146,7 @@ describe('Backup security', () => {
   it('BACKUP-007 — Download with path traversal filename is rejected', async () => {
     const { user: admin } = createAdmin(testDb);
 
-    const res = await request(app)
-      .get('/api/backup/download/../../etc/passwd')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).get('/api/backup/download/../../etc/passwd').set('Cookie', authCookie(admin.id));
     // Express normalises the URL before routing; path traversal gets resolved
     // to a path that matches no route → 404
     expect(res.status).toBe(404);
@@ -154,9 +155,7 @@ describe('Backup security', () => {
   it('BACKUP-007 — Delete with path traversal filename is rejected', async () => {
     const { user: admin } = createAdmin(testDb);
 
-    const res = await request(app)
-      .delete('/api/backup/../../../etc/passwd')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).delete('/api/backup/../../../etc/passwd').set('Cookie', authCookie(admin.id));
     // Express normalises the URL, stripping traversal → no route match → 404
     expect(res.status).toBe(404);
   });
@@ -178,7 +177,9 @@ describe('Backup download', () => {
   });
 
   afterAll(() => {
-    try { fs.unlinkSync(downloadFixturePath); } catch {}
+    try {
+      fs.unlinkSync(downloadFixturePath);
+    } catch {}
   });
 
   it('BACKUP-INT-001 — GET /backup/download/:filename returns 200 with content-disposition', async () => {
@@ -187,9 +188,7 @@ describe('Backup download', () => {
     fs.mkdirSync(DEFAULT_BACKUPS_ROOT, { recursive: true });
     fs.writeFileSync(downloadFixturePath, 'fake zip content');
 
-    const res = await request(app)
-      .get(`/api/backup/download/${downloadFixture}`)
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).get(`/api/backup/download/${downloadFixture}`).set('Cookie', authCookie(admin.id));
 
     expect(res.status).toBe(200);
     expect(res.headers['content-disposition']).toMatch(/attachment/i);
@@ -236,9 +235,7 @@ describe('Backup restore', () => {
     vi.mocked(backupService.backupFileExists).mockResolvedValue(true);
     vi.mocked(backupService.restoreBackup).mockResolvedValue({ success: true });
 
-    const res = await request(app)
-      .post(`/api/backup/restore/${filename}`)
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).post(`/api/backup/restore/${filename}`).set('Cookie', authCookie(admin.id));
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -261,9 +258,7 @@ describe('Backup restore', () => {
   it('BACKUP-INT-006 — POST /backup/restore/:filename returns 400 for invalid filename', async () => {
     const { user: admin } = createAdmin(testDb);
 
-    const res = await request(app)
-      .post('/api/backup/restore/../../evil.zip')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).post('/api/backup/restore/../../evil.zip').set('Cookie', authCookie(admin.id));
 
     // Express resolves path traversal → no route or invalid filename check
     expect([400, 404]).toContain(res.status);
@@ -280,9 +275,7 @@ describe('Backup restore', () => {
       status: 400,
     });
 
-    const res = await request(app)
-      .post(`/api/backup/restore/${filename}`)
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).post(`/api/backup/restore/${filename}`).set('Cookie', authCookie(admin.id));
 
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/travel\.db not found/i);
@@ -301,9 +294,7 @@ describe('Backup delete', () => {
     vi.mocked(backupService.backupFileExists).mockResolvedValue(true);
     vi.mocked(backupService.deleteBackup).mockReturnValue(undefined);
 
-    const res = await request(app)
-      .delete(`/api/backup/${filename}`)
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).delete(`/api/backup/${filename}`).set('Cookie', authCookie(admin.id));
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -327,9 +318,7 @@ describe('Backup delete', () => {
   it('BACKUP-INT-010 — DELETE /backup/:filename returns 400 for invalid filename', async () => {
     const { user: admin } = createAdmin(testDb);
 
-    const res = await request(app)
-      .delete('/api/backup/not-a-backup.tar.gz')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).delete('/api/backup/not-a-backup.tar.gz').set('Cookie', authCookie(admin.id));
 
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/invalid filename/i);
@@ -353,16 +342,12 @@ describe('Backup rate limiter', () => {
 
     // First 3 succeed
     for (let i = 0; i < 3; i++) {
-      const res = await request(app)
-        .post('/api/backup/create')
-        .set('Cookie', authCookie(admin.id));
+      const res = await request(app).post('/api/backup/create').set('Cookie', authCookie(admin.id));
       expect(res.status).toBe(200);
     }
 
     // 4th is rate-limited
-    const res = await request(app)
-      .post('/api/backup/create')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).post('/api/backup/create').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(429);
     expect(res.body.error).toMatch(/too many/i);
   });
@@ -394,9 +379,7 @@ describe('Backup upload-restore', () => {
   it('BACKUP-INT-013 — POST /backup/upload-restore with no file returns 400', async () => {
     const { user: admin } = createAdmin(testDb);
 
-    const res = await request(app)
-      .post('/api/backup/upload-restore')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).post('/api/backup/upload-restore').set('Cookie', authCookie(admin.id));
 
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/no file/i);

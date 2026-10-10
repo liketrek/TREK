@@ -12,8 +12,28 @@
  * fetch is stubbed; the SSRF guard and the database are mocked, the same way
  * maps.service.test.ts does it.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
+import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { isGooglePlaceId } from '../../../src/nest/maps/maps.helpers';
+import {
+  AmapPlacesProvider,
+  AmapTipStash,
+  amapOpeningToOsm,
+  amapPoiId,
+  isAmapHost,
+  isAmapPlaceId,
+  parseAmapUrl,
+} from '../../../src/nest/maps/providers/amap.provider';
+import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
+import { trekPlacesSearch } from '../../../src/nest/maps/trek-places.client';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
+import { buildMapsService } from '../../helpers/maps-service';
 import { gcj02ToWgs84, wgs84ToGcj02 } from '@trek/shared';
+
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const { mockDbGet, mockDbRun, mockInstanceGet, mockProviderGet } = vi.hoisted(() => ({
   mockDbGet: vi.fn((..._args: unknown[]) => undefined as any),
@@ -58,26 +78,6 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
   trekPlacesSearch: vi.fn(async (): Promise<unknown[]> => []),
 }));
 
-import { buildMapsService } from '../../helpers/maps-service';
-import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
-import { trekPlacesSearch } from '../../../src/nest/maps/trek-places.client';
-import {
-  AmapPlacesProvider,
-  AmapTipStash,
-  amapOpeningToOsm,
-  amapPoiId,
-  isAmapHost,
-  isAmapPlaceId,
-  parseAmapUrl,
-} from '../../../src/nest/maps/providers/amap.provider';
-import { isGooglePlaceId } from '../../../src/nest/maps/maps.helpers';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { noGoogleQuota } from '../../helpers/google-quota';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
-import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
-
 // resolveMapsKey/resolveAmapKey (maps.service.ts) now read AppSettingsRepository/
 // UsersRepository directly (Plan 3a Task 5's instance-api-keys.ts conversion)
 // instead of raw SQL through the mocked db module above — these two stubs wire
@@ -89,7 +89,8 @@ import type { PlacesRepository } from '../../../src/db/repositories/Places.repos
 // MAP2 (`placesProviderChoice`) reads that key through this stub now.
 const appSettingsStub = {
   getValue: async (key: string) =>
-    (key === 'places_provider' ? mockProviderGet(key) : (mockInstanceGet(key) as { value: string | null } | undefined))?.value ?? null,
+    (key === 'places_provider' ? mockProviderGet(key) : (mockInstanceGet(key) as { value: string | null } | undefined))
+      ?.value ?? null,
 } as unknown as AppSettingsRepository;
 const usersStub = {
   getApiKeyColumn: async (userId: number, name: 'maps_api_key' | 'amap_api_key') => {
@@ -105,7 +106,13 @@ const placeDetailsCacheStub = {
     const row = mockDbGet(placeId, lang) as { payload_json: string; fetched_at: number } | undefined;
     return row ? { payload_json: row.payload_json, fetched_at: row.fetched_at } : null;
   },
-  upsertEntry: async (row: { place_id: string; lang: string; expanded: number; payload_json: string; fetched_at: number }) => {
+  upsertEntry: async (row: {
+    place_id: string;
+    lang: string;
+    expanded: number;
+    payload_json: string;
+    fetched_at: number;
+  }) => {
     mockDbRun(row.place_id, row.lang, row.payload_json, row.fetched_at);
   },
 } as unknown as PlaceDetailsCacheRepository;
@@ -126,7 +133,14 @@ const photoCacheStub = {
   serveKey: vi.fn(() => null),
 } as unknown as PlacePhotoCacheService;
 
-const svc = buildMapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+const svc = buildMapsService(
+  photoCacheStub,
+  appSettingsStub,
+  usersStub,
+  placeDetailsCacheStub,
+  placesStub,
+  noGoogleQuota,
+);
 
 /** A provider over a fixed key, which is all these cases need. */
 function provider(tips = new AmapTipStash()): AmapPlacesProvider {
@@ -326,13 +340,16 @@ describe('AmapPlacesProvider.searchText', () => {
 
   it('AMAP-015c: a body larger than the cap is refused before it is read', async () => {
     const cancel = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      headers: { get: (n: string) => (n === 'content-length' ? String(50 * 1024 * 1024) : null) },
-      body: { getReader: () => ({ read: async () => ({ done: true }), cancel }), cancel },
-      json: async () => ({ status: '1', pois: [] }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: { get: (n: string) => (n === 'content-length' ? String(50 * 1024 * 1024) : null) },
+        body: { getReader: () => ({ read: async () => ({ done: true }), cancel }), cancel },
+        json: async () => ({ status: '1', pois: [] }),
+      }),
+    );
 
     await expect(provider().searchText('外滩')).rejects.toThrow(/more than/);
     // The socket goes back rather than staying pinned on a body nobody reads.
@@ -361,7 +378,11 @@ describe('AmapPlacesProvider.searchText', () => {
       );
     vi.stubGlobal('fetch', fetchSpy);
 
-    const places = await provider().searchText('Test Village, Test Region', 'zh', { lat: 30.0, lng: 120.0, radius: 5000 });
+    const places = await provider().searchText('Test Village, Test Region', 'zh', {
+      lat: 30.0,
+      lng: 120.0,
+      radius: 5000,
+    });
 
     expect(places).toHaveLength(1);
     expect(places[0].amap_poi_id).toBe('amap:B0TESTVIL1');
@@ -371,7 +392,9 @@ describe('AmapPlacesProvider.searchText', () => {
   });
 
   it('AMAP-017b: a place/around with hits answers alone, place/text is not asked', async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(ok({ pois: [{ id: 'B1', name: '咖啡', location: TIANANMEN_LOCATION }] }));
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(ok({ pois: [{ id: 'B1', name: '咖啡', location: TIANANMEN_LOCATION }] }));
     vi.stubGlobal('fetch', fetchSpy);
 
     const places = await provider().searchText('咖啡', 'zh', { lat: 39.9, lng: 116.4, radius: 3000 });
@@ -443,7 +466,14 @@ describe('AmapPlacesProvider.autocomplete', () => {
   it('AMAP-031: drops a tip with no id, which cannot be looked up afterwards', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(ok({ tips: [{ name: '一条路', id: [] }, { id: 'T9', name: '有效的' }] })),
+      vi.fn().mockResolvedValue(
+        ok({
+          tips: [
+            { name: '一条路', id: [] },
+            { id: 'T9', name: '有效的' },
+          ],
+        }),
+      ),
     );
     const suggestions = await provider().autocomplete('路');
     expect(suggestions).toHaveLength(1);
@@ -554,25 +584,52 @@ describe('AmapPlacesProvider.placeDetails', () => {
   });
 
   it('AMAP-045: Chinese hours from v5 place/detail become weekday lines and periods', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ pois: [{
-      id: 'B0TESTHRS1', name: 'Test Shop', location: TIANANMEN_LOCATION,
-      business: { opentime_week: '周一至周五 09:00-18:00；周六、周日 10:00-16:00' },
-    }] })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        ok({
+          pois: [
+            {
+              id: 'B0TESTHRS1',
+              name: 'Test Shop',
+              location: TIANANMEN_LOCATION,
+              business: { opentime_week: '周一至周五 09:00-18:00；周六、周日 10:00-16:00' },
+            },
+          ],
+        }),
+      ),
+    );
 
     const place = await provider().placeDetails('amap:B0TESTHRS1');
 
     expect(place!.opening_hours).toEqual([
-      'Monday: 09:00-18:00', 'Tuesday: 09:00-18:00', 'Wednesday: 09:00-18:00', 'Thursday: 09:00-18:00',
-      'Friday: 09:00-18:00', 'Saturday: 10:00-16:00', 'Sunday: 10:00-16:00',
+      'Monday: 09:00-18:00',
+      'Tuesday: 09:00-18:00',
+      'Wednesday: 09:00-18:00',
+      'Thursday: 09:00-18:00',
+      'Friday: 09:00-18:00',
+      'Saturday: 10:00-16:00',
+      'Sunday: 10:00-16:00',
     ]);
     expect(place!.opening_periods).toHaveLength(7);
   });
 
   it('AMAP-046: a dated holiday segment is dropped, not allowed to void the week', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ pois: [{
-      id: 'B0TESTHRS2', name: 'Test Shop', location: TIANANMEN_LOCATION,
-      business: { opentime_week: '周一至周五 09:00-18:00；2026-10-01至2026-10-07 10:00-22:00' },
-    }] })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        ok({
+          pois: [
+            {
+              id: 'B0TESTHRS2',
+              name: 'Test Shop',
+              location: TIANANMEN_LOCATION,
+              business: { opentime_week: '周一至周五 09:00-18:00；2026-10-01至2026-10-07 10:00-22:00' },
+            },
+          ],
+        }),
+      ),
+    );
 
     const place = await provider().placeDetails('amap:B0TESTHRS2');
 
@@ -583,10 +640,24 @@ describe('AmapPlacesProvider.placeDetails', () => {
   it('AMAP-047: hours the translation cannot fully read give no hours, not a verbatim line', async () => {
     // Amap's own documented example: a service remark with a nested ；, and a
     // Saturday segment that is prose. Partly parsed, Saturday would read as closed.
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ pois: [{
-      id: 'B0TESTHRS3', name: 'Test Bank', location: TIANANMEN_LOCATION,
-      business: { opentime_week: '周一至周五:08:30-17:30(延时服务时间:08:30-09:00；12:00-13:30)；周六延时服务时间:09:00-13:00(法定节假日除外)' },
-    }] })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        ok({
+          pois: [
+            {
+              id: 'B0TESTHRS3',
+              name: 'Test Bank',
+              location: TIANANMEN_LOCATION,
+              business: {
+                opentime_week:
+                  '周一至周五:08:30-17:30(延时服务时间:08:30-09:00；12:00-13:30)；周六延时服务时间:09:00-13:00(法定节假日除外)',
+              },
+            },
+          ],
+        }),
+      ),
+    );
 
     const place = await provider().placeDetails('amap:B0TESTHRS3');
 
@@ -653,7 +724,14 @@ describe('AmapPlacesProvider.reverse', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        ok({ regeocode: { formatted_address: '某地址', aois: [], pois: [], addressComponent: { neighborhood: { name: '某社区' } } } }),
+        ok({
+          regeocode: {
+            formatted_address: '某地址',
+            aois: [],
+            pois: [],
+            addressComponent: { neighborhood: { name: '某社区' } },
+          },
+        }),
       ),
     );
     expect((await provider().reverse(39.9, 116.4))!.name).toBe('某社区');
@@ -664,7 +742,9 @@ describe('AmapPlacesProvider.reverse', () => {
 
 describe('parseAmapUrl', () => {
   it('AMAP-060: reads uri.amap.com marker links as lng,lat in GCJ-02', () => {
-    const parsed = parseAmapUrl(`https://uri.amap.com/marker?position=${TIANANMEN_LOCATION}&name=%E5%A4%A9%E5%AE%89%E9%97%A8`);
+    const parsed = parseAmapUrl(
+      `https://uri.amap.com/marker?position=${TIANANMEN_LOCATION}&name=%E5%A4%A9%E5%AE%89%E9%97%A8`,
+    );
     expect(parsed).not.toBeNull();
     // Longitude first AND a datum shift: reading this link the Google way would
     // put a Beijing landmark in the Indian Ocean.
@@ -778,7 +858,11 @@ describe('MapsService.keyedProvider', () => {
       vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => ({ id: 'ChIJ123', displayName: { text: 'Old Google place' }, location: { latitude: 48.8, longitude: 2.3 } }),
+        json: async () => ({
+          id: 'ChIJ123',
+          displayName: { text: 'Old Google place' },
+          location: { latitude: 48.8, longitude: 2.3 },
+        }),
       }),
     );
 
@@ -806,7 +890,10 @@ describe('MapsService.keyedProvider', () => {
   // often a bare host, and keeps for a week.
   it('AMAP-079: a cached details row with a bare website is served with https', async () => {
     mockProviderGet.mockReturnValue({ value: 'amap' });
-    const row = { payload_json: JSON.stringify({ name: '旧酒店', website: 'www.hotel.cn', source: 'amap' }), fetched_at: Date.now() };
+    const row = {
+      payload_json: JSON.stringify({ name: '旧酒店', website: 'www.hotel.cn', source: 'amap' }),
+      fetched_at: Date.now(),
+    };
     // The cache lookup binds the place id, the key lookup the user id.
     mockDbGet.mockImplementation((...args: unknown[]) =>
       args[0] === 'amap:B7' ? row : { maps_api_key: null, amap_api_key: 'akey' },
@@ -855,7 +942,16 @@ describe('MapsService with Amap in the keyed slot', () => {
       'fetch',
       vi.fn(async (url: unknown) =>
         String(url).includes('/v3/assistant/inputtips')
-          ? ok({ tips: [{ id: 'B0TESTVIL4', name: 'Test Village', district: 'Test District', location: `${villageGcj.lng},${villageGcj.lat}` }] })
+          ? ok({
+              tips: [
+                {
+                  id: 'B0TESTVIL4',
+                  name: 'Test Village',
+                  district: 'Test District',
+                  location: `${villageGcj.lng},${villageGcj.lat}`,
+                },
+              ],
+            })
           : ok({ count: '0', pois: [] }),
       ),
     );
@@ -869,7 +965,10 @@ describe('MapsService with Amap in the keyed slot', () => {
 
   it('AMAP-081: autocomplete goes to inputtips instead of Nominatim', async () => {
     amapSelected();
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok({ tips: [{ id: 'T1', name: '外滩', district: '上海市黄浦区' }] })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(ok({ tips: [{ id: 'T1', name: '外滩', district: '上海市黄浦区' }] })),
+    );
 
     const result = await svc.autocompletePlaces(1, '外滩');
     expect(result.source).toBe('amap');
@@ -890,7 +989,7 @@ describe('MapsService with Amap in the keyed slot', () => {
 
     const answer = await svc.reverseGeocode('39.9', '116.4');
     expect(answer).toEqual({ name: '某处', address: '某地址' });
-    const calls = fetchSpy.mock.calls.map(call => String(call[0]));
+    const calls = fetchSpy.mock.calls.map((call) => String(call[0]));
     expect(calls[0]).toContain('/v3/geocode/regeo');
     expect(calls[1]).toContain('nominatim');
     errorSpy.mockRestore();
@@ -901,7 +1000,9 @@ describe('MapsService with Amap in the keyed slot', () => {
     // buys a round trip and an empty answer before the fallback runs anyway.
     mockProviderGet.mockReturnValue({ value: 'amap' });
     mockInstanceGet.mockReturnValue({ value: 'akey' });
-    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ name: 'Belém', display_name: 'Lisboa' }) });
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ name: 'Belém', display_name: 'Lisboa' }) });
     vi.stubGlobal('fetch', fetchSpy);
 
     const answer = await svc.reverseGeocode('38.6916', '-9.2160');
@@ -914,7 +1015,10 @@ describe('MapsService with Amap in the keyed slot', () => {
   it('AMAP-083: a pasted Amap marker link resolves without touching the Google path', async () => {
     // Auto with no key at all: the address comes from Nominatim, the coordinate
     // and the name from the link itself, already converted to WGS-84.
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ display_name: '北京市东城区' }) }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ display_name: '北京市东城区' }) }),
+    );
 
     const result = await svc.resolveGoogleMapsUrl(
       `https://uri.amap.com/marker?position=${TIANANMEN_LOCATION}&name=%E5%A4%A9%E5%AE%89%E9%97%A8`,
@@ -930,7 +1034,9 @@ describe('MapsService with Amap in the keyed slot', () => {
   it('AMAP-084: an Amap POI page with no coordinate is the same 400 a bare Google page gets', async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
-    await expect(svc.resolveGoogleMapsUrl('https://www.amap.com/place/B000A83M61')).rejects.toMatchObject({ status: 400 });
+    await expect(svc.resolveGoogleMapsUrl('https://www.amap.com/place/B000A83M61')).rejects.toMatchObject({
+      status: 400,
+    });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
@@ -941,7 +1047,7 @@ describe('MapsService: Amap first inside China when picked outright (#1636)', ()
   const BEIJING_BOX = { low: { lat: 39.8, lng: 116.3 }, high: { lat: 40.0, lng: 116.5 } };
   let spies: { mockRestore: () => void }[] = [];
   afterEach(() => {
-    spies.forEach(s => s.mockRestore());
+    spies.forEach((s) => s.mockRestore());
     spies = [];
     vi.mocked(trekPlacesSearch).mockClear();
   });
@@ -1065,7 +1171,10 @@ describe('AmapTipStash', () => {
 
   it('AMAP-091: holds at most 500 tips, oldest out first, and a tip served again counts as new', () => {
     const tips = new AmapTipStash();
-    tips.remember(Array.from({ length: AmapTipStash.MAX }, (_, i) => ({ id: `T${i}` })), 0);
+    tips.remember(
+      Array.from({ length: AmapTipStash.MAX }, (_, i) => ({ id: `T${i}` })),
+      0,
+    );
     tips.remember([{ id: 'T0' }], 0);
     tips.remember([{ id: 'NEW' }], 0);
     expect(tips.recall('T0', 0)).not.toBeNull();

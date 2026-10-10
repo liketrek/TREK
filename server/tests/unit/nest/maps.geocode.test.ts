@@ -8,6 +8,12 @@
  * admin leaves it on), and that a failure on either side ends as a coordinate
  * or a null rather than a half-answer the importer would store.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
+import { buildMapsService } from '../../helpers/maps-service';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { mockSearch, mockNominatim } = vi.hoisted(() => ({
@@ -27,12 +33,6 @@ vi.mock('../../../src/nest/geo/nominatim.client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../src/nest/geo/nominatim.client')>()),
   nominatimFetch: mockNominatim,
 }));
-
-import { buildMapsService } from '../../helpers/maps-service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { noGoogleQuota } from '../../helpers/google-quota';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 
 // keyedProvider/resolveMapsKey (maps.service.ts) go through instance-api-keys.ts
 // on every call now — none of these cases configure a key, so the stubs just
@@ -70,7 +70,14 @@ afterEach(() => {
 function make(enabled = true) {
   if (enabled) delete process.env.TREK_PLACES_ENABLED;
   else process.env.TREK_PLACES_ENABLED = 'false';
-  return buildMapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
+  return buildMapsService(
+    {} as PlacePhotoCacheService,
+    noAppSettings,
+    noUsers,
+    {} as never,
+    {} as never,
+    noGoogleQuota,
+  );
 }
 
 beforeEach(() => {

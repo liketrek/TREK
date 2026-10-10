@@ -34,7 +34,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Select template...',
   'settings.mapDefaultHint': 'Leave empty for OpenStreetMap (default)',
   'settings.routingBase': 'Own routing engine',
-  'settings.routingBaseHint': 'An OSRM instance of your own. Empty uses the public servers, which allow about one request a second — enough for a day, tight for a road trip. Takes effect after a server restart.',
+  'settings.routingBaseHint':
+    'An OSRM instance of your own. Empty uses the public servers, which allow about one request a second — enough for a day, tight for a road trip. Takes effect after a server restart.',
   'settings.valhallaBase': 'Own Valhalla instance',
   'settings.valhallaBaseHint':
     'TREK uses the public FOSSGIS Valhalla by default to avoid toll roads, motorways and ferries. Enter your own Valhalla URL here to use it instead. If only a custom routing instance is configured, the public Valhalla is not used. After entering a custom URL, restart the server and reload the page.',
@@ -88,7 +89,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'First day of the week in every date picker. Vacay has its own setting.',
   'settings.preferredNavApp': 'Open places in',
   'settings.preferredNavAppAsk': 'Ask every time',
-  'settings.preferredNavAppHint': 'With an app picked, the navigate button opens it straight away instead of offering every map app.',
+  'settings.preferredNavAppHint':
+    'With an app picked, the navigate button opens it straight away instead of offering every map app.',
   'settings.bookingLabels': 'Booking route labels',
   'settings.bookingLabelsHint': 'Show station / airport names on the map. When off, only the icon is shown.',
   'settings.mapPoiPill': 'Explore places on the map',
@@ -504,7 +506,8 @@ const settings: TranslationStrings = {
   'settings.general.startup': 'Startup',
   'settings.dayDateFirst': 'Date first in day headings',
   'settings.compactUnplanned': 'Compact markers for unplanned places',
-  'settings.compactUnplannedHint': 'Places not planned into any day show as small markers without a photo, so the planned stops stand out.',
+  'settings.compactUnplannedHint':
+    'Places not planned into any day show as small markers without a photo, so the planned stops stand out.',
   'settings.dayDateFirstHint':
     'Lead each day with its calendar date and show "Day 1" or the day\'s own title next to it.',
   'settings.startPage': 'Start page',
@@ -549,7 +552,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'No connection. Connect to store trips for offline use.',
   'settings.offline.notice.signedOut': 'Your session has ended. Sign in again to sync.',
   'settings.offline.notice.failed': 'The download could not finish. Check your connection and try again.',
-  'settings.offline.notice.loadFailed': 'Could not read this device’s offline storage. Clearing the cache usually fixes it.',
+  'settings.offline.notice.loadFailed':
+    'Could not read this device’s offline storage. Clearing the cache usually fixes it.',
   'settings.offline.clear': 'Clear cache',
   'settings.offline.clearConfirm': 'Clear all offline trip data? You can re-sync anytime while online.',
   'settings.offline.stats.trips': 'Cached trips',
@@ -607,7 +611,8 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Wishlist',
   'settings.apiScopes.stats': 'Totals',
   'settings.apiKeys.title': 'API Keys',
-  'settings.apiKeys.description': 'Keys for the public API, so other software can read your trips. Read-only: a key cannot change or delete anything.',
+  'settings.apiKeys.description':
+    'Keys for the public API, so other software can read your trips. Read-only: a key cannot change or delete anything.',
   'settings.apiKeys.create': 'Create key',
   'settings.apiKeys.empty': 'No keys yet. Create one to connect other software.',
   'settings.apiKeys.createdAt': 'created',

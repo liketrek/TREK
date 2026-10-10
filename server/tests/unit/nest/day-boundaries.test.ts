@@ -5,26 +5,35 @@
  * `RoadtripDayBoundariesRepository` — the real schema, not a 4-column
  * hand-written subset.
  */
-import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createDay, createDayAssignment, createPlace, createTrip, createUser } from '../../helpers/factories';
-import { DayBoundariesService } from '../../../src/nest/roadtrip/day-boundaries.service';
-import { DayBoundariesController } from '../../../src/nest/roadtrip/day-boundaries.controller';
-import { DayBoundariesMcp } from '../../../src/nest/roadtrip/day-boundaries.mcp';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
 import { RoadtripDayBoundaries } from '../../../src/db/entities/RoadtripDayBoundaries.entity';
-import { deleteRows } from '../../helpers/factories/rows';
 import type { McpContext } from '../../../src/nest-mcp';
+import { DayBoundariesController } from '../../../src/nest/roadtrip/day-boundaries.controller';
+import { DayBoundariesMcp } from '../../../src/nest/roadtrip/day-boundaries.mcp';
+import { DayBoundariesService } from '../../../src/nest/roadtrip/day-boundaries.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createDay, createDayAssignment, createPlace, createTrip, createUser } from '../../helpers/factories';
+import { deleteRows } from '../../helpers/factories/rows';
 import { callGatedTool } from '../../helpers/mcp-gate';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { HttpException } from '@nestjs/common';
+
+import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
-beforeAll(async () => { t = await createTestOrm(testDb); });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function setup() {
   const { user } = createUser(testDb);
@@ -68,7 +77,8 @@ it('replaces one day only, persists place snapping and cascades deleted visits',
   await service.save(tripA.id, boundary);
   await service.save(tripA.id, { ...boundary, day_number: 2, fraction: 0.8 });
   expect(await service.save(tripA.id, { ...boundary, to_assignment_id: null })).toEqual([
-    { ...boundary, to_assignment_id: null, fraction: 1 }, { ...boundary, day_number: 2, fraction: 0.8 },
+    { ...boundary, to_assignment_id: null, fraction: 1 },
+    { ...boundary, day_number: 2, fraction: 0.8 },
   ]);
   expect(await service.list(tripB.id)).toEqual([]);
   await service.remove(tripB.id, 1);
@@ -101,7 +111,12 @@ it('REST changes broadcast the complete state and exclude the saving socket', as
   const { controller, realtime, tripA, fromId, toId } = setup();
   const boundary = { day_number: 1, from_assignment_id: fromId, to_assignment_id: toId, fraction: 0.4 };
   await controller.save(String(tripA.id), boundary, 'self');
-  expect(realtime.broadcast).toHaveBeenCalledWith(String(tripA.id), 'roadtripBoundary:changed', { boundaries: [boundary] }, 'self');
+  expect(realtime.broadcast).toHaveBeenCalledWith(
+    String(tripA.id),
+    'roadtripBoundary:changed',
+    { boundaries: [boundary] },
+    'self',
+  );
   expect(await controller.remove(String(tripA.id), 1)).toEqual({ boundaries: [] });
 });
 
@@ -113,15 +128,12 @@ it('REST changes broadcast the complete state and exclude the saving socket', as
 // `ON CONFLICT (trip, day_number) DO UPDATE` — that statement is atomic, so
 // the row can never end up a hybrid of the two payloads; exactly one caller's
 // fraction survives. Pinning today's actual outcome, not a fix.
-it('R7: two concurrent saves for the same day_number both succeed; the upsert leaves one caller\'s row intact, never a hybrid (unserialized belongs-check-then-upsert)', async () => {
+it("R7: two concurrent saves for the same day_number both succeed; the upsert leaves one caller's row intact, never a hybrid (unserialized belongs-check-then-upsert)", async () => {
   const { service, tripA, fromId, toId } = setup();
   const boundaryA = { day_number: 1, from_assignment_id: fromId, to_assignment_id: toId, fraction: 0.25 };
   const boundaryB = { day_number: 1, from_assignment_id: fromId, to_assignment_id: toId, fraction: 0.75 };
 
-  const results = await Promise.allSettled([
-    service.save(tripA.id, boundaryA),
-    service.save(tripA.id, boundaryB),
-  ]);
+  const results = await Promise.allSettled([service.save(tripA.id, boundaryA), service.save(tripA.id, boundaryB)]);
 
   expect(results.every((r) => r.status === 'fulfilled')).toBe(true);
   const rows = await service.list(tripA.id);

@@ -1,13 +1,14 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createHash } from 'crypto';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createMcpToken, createUser } from '../../../helpers/factories';
 import { McpTokens } from '../../../../src/db/entities/McpTokens.entity';
 import type { McpTokensRepository } from '../../../../src/db/repositories/McpTokens.repository';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createMcpToken, createUser } from '../../../helpers/factories';
 import { countRows, findRow, updateRows } from '../../../helpers/factories/rows';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { createHash } from 'crypto';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -219,7 +220,7 @@ describe('McpTokensRepository', () => {
       const { user } = createUser(testDb);
       const created = createMcpToken(testDb, user.id);
       await tokens.deleteById(created.id);
-      expect((await storedToken(created.id))).toBeUndefined();
+      expect(await storedToken(created.id)).toBeUndefined();
     });
   });
 
@@ -378,7 +379,7 @@ describe('McpTokensRepository', () => {
       await tokens.deleteAllForUser(user.id);
 
       expect(await countRows(t, McpTokens, { user: user.id })).toBe(0);
-      expect((await storedToken(untouched.id))).toBeDefined();
+      expect(await storedToken(untouched.id)).toBeDefined();
     });
   });
 

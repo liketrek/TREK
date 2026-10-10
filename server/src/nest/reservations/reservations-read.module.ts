@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { ReservationsReadService } from './reservations-read.service';
-import { Reservations } from '../../db/entities/Reservations.entity';
 import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
 import { ReservationTravelers } from '../../db/entities/ReservationTravelers.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { ReservationsReadService } from './reservations-read.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * A leaf on purpose (the trip-membership precedent): AirtrailCoreModule needs

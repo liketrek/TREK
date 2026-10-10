@@ -1,11 +1,12 @@
+import { BODY_CONTRACT_ALLOW_LIST } from './body-contract-allow-list';
+import { byCodeUnit } from './compare';
 import type { INestApplication } from '@nestjs/common';
 import { RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, ROUTE_ARGS_METADATA } from '@nestjs/common/constants';
 import { RouteParamtypes } from '@nestjs/common/enums/route-paramtypes.enum';
 import { ModulesContainer } from '@nestjs/core';
+
 import { isZodDto } from 'nestjs-zod/dto';
-import { BODY_CONTRACT_ALLOW_LIST } from './body-contract-allow-list';
-import { byCodeUnit } from './compare';
 
 const MUTATION_METHODS = new Set<RequestMethod>([
   RequestMethod.POST,
@@ -53,10 +54,7 @@ export function validateBodyContracts(
         const methodEnum = Reflect.getMetadata(METHOD_METADATA, handler) as RequestMethod | undefined;
         if (methodEnum === undefined || !MUTATION_METHODS.has(methodEnum)) continue;
 
-        const args = (Reflect.getMetadata(ROUTE_ARGS_METADATA, ctor, name) ?? {}) as Record<
-          string,
-          { index: number }
-        >;
+        const args = (Reflect.getMetadata(ROUTE_ARGS_METADATA, ctor, name) ?? {}) as Record<string, { index: number }>;
         const paramtypes = (Reflect.getMetadata('design:paramtypes', ctor.prototype, name) ?? []) as unknown[];
 
         for (const key of Object.keys(args)) {

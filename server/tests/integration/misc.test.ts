@@ -2,21 +2,21 @@
  * Miscellaneous integration tests.
  * Covers MISC-001, 002, 004, 007, 008, 013, 015.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { authCookie } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -48,9 +48,7 @@ describe('Addons list', () => {
   it('MISC-002 — GET /api/addons returns enabled addons', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/addons')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/addons').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.addons)).toBe(true);
     // Should only return enabled addons
@@ -104,9 +102,7 @@ describe('Force HTTPS redirect', () => {
   it('MISC-004 — no redirect when FORCE_HTTPS is not set', async () => {
     delete process.env.FORCE_HTTPS;
 
-    const res = await request(app)
-      .get('/api/health')
-      .set('X-Forwarded-Proto', 'http');
+    const res = await request(app).get('/api/health').set('X-Forwarded-Proto', 'http');
     expect(res.status).toBe(200);
   });
 });

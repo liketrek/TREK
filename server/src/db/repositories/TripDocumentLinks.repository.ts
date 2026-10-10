@@ -74,7 +74,11 @@ export class TripDocumentLinksRepository extends TrekRepository<TripDocumentLink
    * named test (`doc-sync-svc: dueLinks orders by next_attempt_at then
    * last_sync_at then id, not insertion order`).
    */
-  async dueLinks(circuitOpenAfter: number, enabledProviderIds: readonly string[], limit: number): Promise<TripDocumentLinkRow[]> {
+  async dueLinks(
+    circuitOpenAfter: number,
+    enabledProviderIds: readonly string[],
+    limit: number,
+  ): Promise<TripDocumentLinkRow[]> {
     if (enabledProviderIds.length === 0) return [];
     const platform = this.getEntityManager().getPlatform();
     const rows = await this.qb('l')
@@ -98,7 +102,11 @@ export class TripDocumentLinksRepository extends TrekRepository<TripDocumentLink
 
   /** DSC12 (`listLinks`) — `SELECT * FROM trip_document_links WHERE trip_id = ? ORDER BY id`. */
   async listForTrip(tripId: number): Promise<TripDocumentLinkRow[]> {
-    return await this.qb('l').select(['l.*']).where({ trip_id: tripId }).orderBy({ id: 'asc' }).execute<TripDocumentLinkRow[]>('all', false);
+    return await this.qb('l')
+      .select(['l.*'])
+      .where({ trip_id: tripId })
+      .orderBy({ id: 'asc' })
+      .execute<TripDocumentLinkRow[]>('all', false);
   }
 
   /** DSC13 (`getLink`) — `SELECT * FROM trip_document_links WHERE id = ?`. */
@@ -108,11 +116,18 @@ export class TripDocumentLinksRepository extends TrekRepository<TripDocumentLink
 
   /** DSC14 (`getLinkByToken`) — `SELECT * FROM trip_document_links WHERE webhook_token = ?`. **PUBLIC/ANONYMOUS ENTRYPOINT** (the webhook controller's sole authentication check). */
   async findByToken(token: string): Promise<TripDocumentLinkRow | undefined> {
-    return await this.qb('l').select(['l.*']).where({ webhook_token: token }).execute<TripDocumentLinkRow | undefined>('get', false);
+    return await this.qb('l')
+      .select(['l.*'])
+      .where({ webhook_token: token })
+      .execute<TripDocumentLinkRow | undefined>('get', false);
   }
 
   /** DSC15 (`createLink`'s pre-check) — `SELECT * FROM trip_document_links WHERE trip_id = ? AND connection_id = ? AND remote_scope_key = ?`. */
-  async findByTripConnectionScope(tripId: number, connectionId: number, scopeKey: string): Promise<TripDocumentLinkRow | undefined> {
+  async findByTripConnectionScope(
+    tripId: number,
+    connectionId: number,
+    scopeKey: string,
+  ): Promise<TripDocumentLinkRow | undefined> {
     return await this.qb('l')
       .select(['l.*'])
       .where({ trip_id: tripId, connection_id: connectionId, remote_scope_key: scopeKey })
@@ -208,7 +223,10 @@ export class TripDocumentLinksRepository extends TrekRepository<TripDocumentLink
    * last_sync_error=?, failure_count=0, next_attempt_at=NULL,
    * updated_at=CURRENT_TIMESTAMP WHERE id=?`.
    */
-  async recordSuccess(id: number, data: { remote_cursor: string | null; state: string; error_code: string | null }): Promise<void> {
+  async recordSuccess(
+    id: number,
+    data: { remote_cursor: string | null; state: string; error_code: string | null },
+  ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate(
       { id },
@@ -235,7 +253,10 @@ export class TripDocumentLinksRepository extends TrekRepository<TripDocumentLink
    * pre-rendered fragment, keeping every dialect-function call inside the
    * repository layer.
    */
-  async recordFailure(id: number, data: { state: string; error_code: string; failure_count: number; next_attempt_seconds: number }): Promise<void> {
+  async recordFailure(
+    id: number,
+    data: { state: string; error_code: string; failure_count: number; next_attempt_seconds: number },
+  ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate(
       { id },

@@ -7,14 +7,6 @@
  * same reason: a rule with no inventory behind it decays into whatever the last
  * person needed to make a test pass.
  */
-import { describe, it, expect, vi } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-import { Test } from '@nestjs/testing';
 import { AppModule } from '../../../src/nest/app.module';
 import {
   ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST,
@@ -22,6 +14,14 @@ import {
   PUBLIC_ROUTE_ALLOW_LIST,
   validateRouteGuards,
 } from '../../../src/nest/common/validate-route-guards';
+import { Test } from '@nestjs/testing';
+
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 async function buildApp() {
   // Plan 4 Task 4: `DatabaseService` is gone — nothing left in the graph
@@ -59,8 +59,9 @@ describe('route guard inventory', () => {
   it('ROUTES-004: a stale entry fails too — an unpruned list is not a list', async () => {
     const app = await buildApp();
     try {
-      expect(() => validateRouteGuards(app, [...PUBLIC_ROUTE_ALLOW_LIST, 'GhostController.vanished'].sort()))
-        .toThrow('GhostController.vanished');
+      expect(() => validateRouteGuards(app, [...PUBLIC_ROUTE_ALLOW_LIST, 'GhostController.vanished'].sort())).toThrow(
+        'GhostController.vanished',
+      );
     } finally {
       await app.close();
     }
@@ -75,8 +76,9 @@ describe('route guard inventory', () => {
       const covers = ['public', 'optional-auth', 'declared-guards', 'declared-guards-anonymous'];
       expect(entries.every((e) => covers.includes(e.cover))).toBe(true);
       expect(entries.filter((e) => e.cover === 'public').length).toBe(PUBLIC_ROUTE_ALLOW_LIST.length);
-      expect(entries.filter((e) => e.cover === 'declared-guards-anonymous').map((e) => e.id))
-        .toEqual(ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST);
+      expect(entries.filter((e) => e.cover === 'declared-guards-anonymous').map((e) => e.id)).toEqual(
+        ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST,
+      );
     } finally {
       await app.close();
     }
@@ -85,10 +87,15 @@ describe('route guard inventory', () => {
   it('ROUTES-006: a guard chain that never authenticates fails the gate unless it is written down', async () => {
     const app = await buildApp();
     try {
-      expect(() => validateRouteGuards(app, PUBLIC_ROUTE_ALLOW_LIST, []))
-        .toThrow(ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST[0]);
-      expect(() => validateRouteGuards(app, PUBLIC_ROUTE_ALLOW_LIST, [...ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST, 'GhostController.anonymous']))
-        .toThrow('GhostController.anonymous');
+      expect(() => validateRouteGuards(app, PUBLIC_ROUTE_ALLOW_LIST, [])).toThrow(
+        ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST[0],
+      );
+      expect(() =>
+        validateRouteGuards(app, PUBLIC_ROUTE_ALLOW_LIST, [
+          ...ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST,
+          'GhostController.anonymous',
+        ]),
+      ).toThrow('GhostController.anonymous');
     } finally {
       await app.close();
     }

@@ -91,38 +91,22 @@ const admin: TranslationStrings = {
   'admin.googleCaveat.badge': '不推荐',
   'admin.googleCaveat.body':
     'TREK 是开源软件，在这件事上我们并不中立。在这个规模上，评分和普通店铺的照片只有 Google 有，这就是垄断。这个输入框存在是因为没有替代品，而不是因为我们推荐。填了它，每次查询都会发往 Google。',
-  'admin.trekApi.tagline':
-    'TREK 自己的地点索引。不用 Google 密钥，没有配额，也没有人统计你搜了什么。',
-  'admin.trekApi.factPlaces':
-    '全球 7363 万个地点',
-  'admin.trekApi.factNoKey':
-    '无需密钥，没有配额',
-  'admin.trekApi.factOffline':
-    '国家数据包可离线使用',
-  'admin.trekApi.factPrivacy':
-    '搜索内容从不记录',
-  'admin.trekApi.more':
-    '里面有什么',
-  'admin.trekApi.fieldPhone':
-    '电话',
-  'admin.trekApi.fieldStableId':
-    '稳定标识',
-  'admin.trekApi.includedNote':
-    '简介取自地点自己的网站，营业时间在已填写的地方取自 OpenStreetMap。',
-  'admin.trekApi.notRatings':
-    '评分',
-  'admin.trekApi.notPhotos':
-    '普通店铺的照片',
-  'admin.trekApi.notIncludedNote':
-    '两者在任何开放数据集中都没有，出多少钱也没有。这两项仍然只能走 Google 密钥。',
-  'admin.trekApi.sourcesLabel':
-    '来源',
-  'admin.trekApi.sourcesNote':
-    '响应里的每个字段都会标明它来自其中哪一个。',
-  'admin.trekApi.included':
-    '包含',
-  'admin.trekApi.notIncluded':
-    '不包含',
+  'admin.trekApi.tagline': 'TREK 自己的地点索引。不用 Google 密钥，没有配额，也没有人统计你搜了什么。',
+  'admin.trekApi.factPlaces': '全球 7363 万个地点',
+  'admin.trekApi.factNoKey': '无需密钥，没有配额',
+  'admin.trekApi.factOffline': '国家数据包可离线使用',
+  'admin.trekApi.factPrivacy': '搜索内容从不记录',
+  'admin.trekApi.more': '里面有什么',
+  'admin.trekApi.fieldPhone': '电话',
+  'admin.trekApi.fieldStableId': '稳定标识',
+  'admin.trekApi.includedNote': '简介取自地点自己的网站，营业时间在已填写的地方取自 OpenStreetMap。',
+  'admin.trekApi.notRatings': '评分',
+  'admin.trekApi.notPhotos': '普通店铺的照片',
+  'admin.trekApi.notIncludedNote': '两者在任何开放数据集中都没有，出多少钱也没有。这两项仍然只能走 Google 密钥。',
+  'admin.trekApi.sourcesLabel': '来源',
+  'admin.trekApi.sourcesNote': '响应里的每个字段都会标明它来自其中哪一个。',
+  'admin.trekApi.included': '包含',
+  'admin.trekApi.notIncluded': '不包含',
   'admin.mapsKey': 'Google Maps API 密钥',
   'admin.mapsKeyHint': '用于地点搜索。在 console.cloud.google.com 获取',
   'admin.mapsKeyHintLong':
@@ -174,11 +158,15 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     '添加地点时显示图片和描述。始终使用维基百科和 OpenStreetMap；开启「地点照片」或「地点详情」时会额外使用 Google。',
   'admin.placesGoogleOnly.title': '仅使用 Google 搜索',
-  'admin.placesGoogleOnly.subtitle': '所有搜索和建议都发送到 Google Places。关闭时，TREK 自有索引和 OpenStreetMap 先回答，只有二者都没有结果时才询问 Google。',
-  'admin.placesGoogleOnly.missingKey': '需要 Google Maps API 密钥。没有密钥时，无论此开关如何，搜索都通过 TREK 索引和 OpenStreetMap 进行。',
-  'admin.placesGoogleOnly.otherProvider': '需要将 Google 设为地点提供方。选择 Amap 或 OpenStreetMap 时，无论此开关如何设置，搜索都不会发送到 Google。',
+  'admin.placesGoogleOnly.subtitle':
+    '所有搜索和建议都发送到 Google Places。关闭时，TREK 自有索引和 OpenStreetMap 先回答，只有二者都没有结果时才询问 Google。',
+  'admin.placesGoogleOnly.missingKey':
+    '需要 Google Maps API 密钥。没有密钥时，无论此开关如何，搜索都通过 TREK 索引和 OpenStreetMap 进行。',
+  'admin.placesGoogleOnly.otherProvider':
+    '需要将 Google 设为地点提供方。选择 Amap 或 OpenStreetMap 时，无论此开关如何设置，搜索都不会发送到 Google。',
   'admin.googleQuota.title': 'Google 调用每日上限',
-  'admin.googleQuota.subtitle': '达到上限后，TREK 会在次日（UTC）前停止调用 Google，改用 OpenStreetMap 搜索。留空表示不限制。',
+  'admin.googleQuota.subtitle':
+    '达到上限后，TREK 会在次日（UTC）前停止调用 Google，改用 OpenStreetMap 搜索。留空表示不限制。',
   'admin.googleQuota.placeholder': '不限制',
   'admin.googleQuota.usedToday': '今天：{used}',
   'admin.googleQuota.usedOfLimit': '今天：{used} / {limit}',
@@ -189,9 +177,12 @@ const admin: TranslationStrings = {
   'admin.transitProvider.transitous': 'Transitous（免费）',
   'admin.transitProvider.google': 'Google',
   'admin.transitProvider.transitousHint': '社区 GTFS 数据源。免费且无需密钥，在欧洲覆盖最好。',
-  'admin.transitProvider.googleHint': '使用上方的 Google 密钥，覆盖 Transitous 没有数据的地区。按每次搜索计费——未设置密钥时仍使用 Transitous。',
-  'admin.transitProvider.noKeyWarning': '已选择 Google，但未配置 Google 密钥——公共交通搜索仍在使用 Transitous。请在上方的 API 密钥中添加密钥。',
-  'admin.transitProvider.personalKeyWarning': '只设置了你自己的 Google 密钥，因此其他成员的搜索仍会回退到 Transitous。请以管理员身份在上方保存密钥，使其对整个实例生效。',
+  'admin.transitProvider.googleHint':
+    '使用上方的 Google 密钥，覆盖 Transitous 没有数据的地区。按每次搜索计费——未设置密钥时仍使用 Transitous。',
+  'admin.transitProvider.noKeyWarning':
+    '已选择 Google，但未配置 Google 密钥——公共交通搜索仍在使用 Transitous。请在上方的 API 密钥中添加密钥。',
+  'admin.transitProvider.personalKeyWarning':
+    '只设置了你自己的 Google 密钥，因此其他成员的搜索仍会回退到 Transitous。请以管理员身份在上方保存密钥，使其对整个实例生效。',
   'admin.placeShadow.title': '地点搜索记录',
   'admin.placeShadow.subtitle':
     '记录用户选中了哪条搜索结果，以便日后用真实的搜索来评估另一套地点索引。数据不会离开本实例，管理员随时可以导出或删除记录。',
@@ -375,7 +366,8 @@ const admin: TranslationStrings = {
   'admin.plugins.poiCategoriesTitle': '添加的地图分类',
   'admin.plugins.perm.mcp:tools':
     '发布 AI 助手可以代你运行的工具（它以你在此处授予插件的权限运行，而非助手自身的权限）',
-  'admin.plugins.perm.geolocation:read': '在其某个视图打开时请求你的实时位置（由 TREK 使用本站点已有的位置权限读取，不会单独为插件询问）',
+  'admin.plugins.perm.geolocation:read':
+    '在其某个视图打开时请求你的实时位置（由 TREK 使用本站点已有的位置权限读取，不会单独为插件询问）',
   'admin.plugins.perm.hook:pdf-section-provider': '向行程 PDF 导出追加文本段落',
   'admin.plugins.perm.hook:atlas-layer-provider': '在 Atlas 世界地图上高亮国家（例如愿望清单或旅行提醒）',
   'admin.plugins.perm.hook:journal-entry-provider': '向日志条目添加额外行（链接、统计）',
@@ -580,8 +572,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.airtrail.name': 'AirTrail',
   'admin.addons.catalog.airtrail.description': '从你的 AirTrail 实例同步航班',
   'admin.addons.catalog.dawarich.name': 'Dawarich',
-  'admin.addons.catalog.dawarich.description':
-    '从每位使用者自行连接的 Dawarich 实例读取到访记录和记录的路线',
+  'admin.addons.catalog.dawarich.description': '从每位使用者自行连接的 Dawarich 实例读取到访记录和记录的路线',
   'admin.addons.catalog.llm_parsing.name': 'AI 解析',
   'admin.addons.catalog.llm_parsing.description': '用你选择的 AI 模型读取内置解析器无法识别的预订',
   'admin.addons.llm.vision.auto': '自动',
@@ -720,7 +711,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNotificationsHint':
     '配置哪些渠道发送管理员通知（如版本更新提醒）。设置管理员 Webhook URL 后，Webhook 将自动触发。',
   'admin.notificationDefaults.title': '用户默认值',
-  'admin.notificationDefaults.hint': '每位用户通知的初始状态。“关闭”用户仍可自行开启；“封锁”会为所有人关闭，并在其设置中显示为锁定。适用于尚未自行更改该单元格的所有人。',
+  'admin.notificationDefaults.hint':
+    '每位用户通知的初始状态。“关闭”用户仍可自行开启；“封锁”会为所有人关闭，并在其设置中显示为锁定。适用于尚未自行更改该单元格的所有人。',
   'admin.notificationDefaults.on': '开启',
   'admin.notificationDefaults.off': '关闭',
   'admin.notificationDefaults.blocked': '封锁',

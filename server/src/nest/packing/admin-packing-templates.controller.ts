@@ -1,13 +1,14 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { PackingService } from './packing.service';
-import { AdminTemplateNameDto } from './packing.dto';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import type { User } from '../../types';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
 import { AdminGuard } from '../auth-core/admin.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
-import { getClientIp } from '../audit/client-ip';
-import { AuditService } from '../audit/audit.service';
-import type { User } from '../../types';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { AdminTemplateNameDto } from './packing.dto';
+import { PackingService } from './packing.service';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /** Throw the legacy {error,status} envelope when a service call reports failure. */
 @Controller('api/admin/packing-templates')
@@ -67,7 +68,11 @@ export class AdminPackingTemplatesController {
   }
 
   @Put(':templateId/categories/:catId')
-  async updateCategory(@Param('templateId') templateId: string, @Param('catId') catId: string, @Body() body: AdminTemplateNameDto) {
+  async updateCategory(
+    @Param('templateId') templateId: string,
+    @Param('catId') catId: string,
+    @Body() body: AdminTemplateNameDto,
+  ) {
     return await this.packing.updateTemplateCategory(templateId, catId, body);
   }
 
@@ -79,12 +84,20 @@ export class AdminPackingTemplatesController {
 
   @Post(':templateId/categories/:catId/items')
   @HttpCode(201)
-  async createItem(@Param('templateId') templateId: string, @Param('catId') catId: string, @Body() body: AdminTemplateNameDto) {
+  async createItem(
+    @Param('templateId') templateId: string,
+    @Param('catId') catId: string,
+    @Body() body: AdminTemplateNameDto,
+  ) {
     return await this.packing.createTemplateItem(templateId, catId, body.name);
   }
 
   @Put(':templateId/items/:itemId')
-  async updateItem(@Param('templateId') templateId: string, @Param('itemId') itemId: string, @Body() body: AdminTemplateNameDto) {
+  async updateItem(
+    @Param('templateId') templateId: string,
+    @Param('itemId') itemId: string,
+    @Body() body: AdminTemplateNameDto,
+  ) {
     return await this.packing.updateTemplateItem(templateId, itemId, body);
   }
 

@@ -1,5 +1,5 @@
-import { Global, Module } from '@nestjs/common';
 import { UnitOfWork } from './unit-of-work';
+import { Global, Module } from '@nestjs/common';
 
 /**
  * The ORM-side container module: the home of providers that depend on MikroORM

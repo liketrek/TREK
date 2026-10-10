@@ -9,21 +9,21 @@
  * harness here keeps withTools on (the resource is NOT registered by the
  * legacy registerResources fan-out anymore).
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { Notifications } from '../../../src/db/entities/Notifications.entity';
+import { createUser } from '../../helpers/factories';
+import { makeNotification } from '../../helpers/factories/notifications';
+import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
-import { makeNotification } from '../../helpers/factories/notifications';
-import { Notifications } from '../../../src/db/entities/Notifications.entity';
 
 let orm: TestOrm;
 
@@ -61,14 +61,22 @@ function createNotification(
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   // The in-app resource attaches via the nest-mcp registry (withTools), not
   // the legacy registerResources fan-out.
   const h = await createMcpHarness({ userId, withTools: true, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------

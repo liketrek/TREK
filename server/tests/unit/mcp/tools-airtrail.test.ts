@@ -8,27 +8,31 @@
  * of the real users row, the mapper and the dedupe run for real, and the
  * reservations land in the test DB.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { ADDON_IDS } from '../../../src/addons';
 import { db as testDb } from '../../../src/db/database';
+import { Reservations } from '../../../src/db/entities/Reservations.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { AirtrailImportService } from '../../../src/nest/integrations/airtrail-import.service';
+import {
+  AirtrailClient,
+  AirtrailRequestError,
+  type AirtrailFlightRaw,
+} from '../../../src/nest/integrations/airtrail.client';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { createUser, createTrip, addTripMember } from '../../helpers/factories';
+import { findRows, updateRows } from '../../helpers/factories/rows';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { createTestUnitOfWork, createTestAppSettingsRepo } from '../../helpers/test-uow';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { ADDON_IDS } from '../../../src/addons';
-import { AirtrailClient, AirtrailRequestError, type AirtrailFlightRaw } from '../../../src/nest/integrations/airtrail.client';
-import { AirtrailImportService } from '../../../src/nest/integrations/airtrail-import.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo } from '../../helpers/test-uow';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { findRows, updateRows } from '../../helpers/factories/rows';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { Reservations } from '../../../src/db/entities/Reservations.entity';
-import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -39,7 +43,10 @@ const broadcastMock = realtime.broadcastMock;
 let permissionsService: PermissionsService;
 let savePermissions: typeof permissionsService.savePermissions;
 beforeAll(async () => {
-  permissionsService = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
+  permissionsService = new PermissionsService(
+    await createTestAppSettingsRepo(testDb),
+    await createTestUnitOfWork(testDb),
+  );
   savePermissions = permissionsService.savePermissions.bind(permissionsService);
 });
 
@@ -71,7 +78,11 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes: string[] | null = null) {
   const h = await createMcpHarness({ realtime, userId, withResources: false, scopes });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 /** The stored connection, plaintext key: decrypt_api_key passes legacy plaintext straight through. */
@@ -79,9 +90,36 @@ async function connectAirtrail(userId: number, url = 'https://airtrail.example.c
   await updateRows(orm, Users, { id: userId }, { airtrail_url: url, airtrail_api_key: 'plain-test-key' });
 }
 
-const ZRH = { id: 1, icao: 'LSZH', iata: 'ZRH', name: 'Zurich', lat: 47.458, lon: 8.548, tz: 'Europe/Zurich', country: 'CH' };
-const FRA = { id: 2, icao: 'EDDF', iata: 'FRA', name: 'Frankfurt', lat: 50.033, lon: 8.571, tz: 'Europe/Berlin', country: 'DE' };
-const JFK = { id: 3, icao: 'KJFK', iata: 'JFK', name: 'New York JFK', lat: 40.641, lon: -73.778, tz: 'America/New_York', country: 'US' };
+const ZRH = {
+  id: 1,
+  icao: 'LSZH',
+  iata: 'ZRH',
+  name: 'Zurich',
+  lat: 47.458,
+  lon: 8.548,
+  tz: 'Europe/Zurich',
+  country: 'CH',
+};
+const FRA = {
+  id: 2,
+  icao: 'EDDF',
+  iata: 'FRA',
+  name: 'Frankfurt',
+  lat: 50.033,
+  lon: 8.571,
+  tz: 'Europe/Berlin',
+  country: 'DE',
+};
+const JFK = {
+  id: 3,
+  icao: 'KJFK',
+  iata: 'JFK',
+  name: 'New York JFK',
+  lat: 40.641,
+  lon: -73.778,
+  tz: 'America/New_York',
+  country: 'US',
+};
 
 function flight(overrides: Partial<AirtrailFlightRaw> & { id: number }): AirtrailFlightRaw {
   return {
@@ -116,7 +154,14 @@ describe('Tool: list_airtrail_flights', () => {
     const { user } = createUser(testDb);
     await connectAirtrail(user.id);
     listFlightsMock.mockResolvedValue([
-      flight({ id: 22, date: '2026-09-20', departure: '2026-09-20T06:00:00Z', flightNumber: 'LH400', from: FRA, to: JFK }),
+      flight({
+        id: 22,
+        date: '2026-09-20',
+        departure: '2026-09-20T06:00:00Z',
+        flightNumber: 'LH400',
+        from: FRA,
+        to: JFK,
+      }),
       flight({ id: 11 }),
     ]);
 
@@ -128,14 +173,21 @@ describe('Tool: list_airtrail_flights', () => {
       expect(data.total).toBe(2);
       expect(data.truncated).toBe(false);
       expect(data.flights[0]).toMatchObject({
-        id: '11', fromCode: 'ZRH', toCode: 'FRA', airline: 'Lufthansa', flightNumber: 'LH1201', seatClass: 'economy',
+        id: '11',
+        fromCode: 'ZRH',
+        toCode: 'FRA',
+        airline: 'Lufthansa',
+        flightNumber: 'LH1201',
+        seatClass: 'economy',
       });
     });
 
     // The stored connection is what reaches the client, so a tool can only ever
     // read the caller's own AirTrail account.
     expect(listFlightsMock).toHaveBeenCalledWith({
-      baseUrl: 'https://airtrail.example.com', apiKey: 'plain-test-key', allowInsecureTls: false,
+      baseUrl: 'https://airtrail.example.com',
+      apiKey: 'plain-test-key',
+      allowInsecureTls: false,
     });
   });
 
@@ -222,7 +274,7 @@ describe('Tool: list_airtrail_flights', () => {
     setAddonEnabled(testDb, ADDON_IDS.AIRTRAIL, false);
 
     await withHarness(user.id, async (h) => {
-      const names = (await h.client.listTools()).tools.map(t => t.name);
+      const names = (await h.client.listTools()).tools.map((t) => t.name);
       expect(names).not.toContain('list_airtrail_flights');
       const result = await h.client.callTool({ name: 'list_airtrail_flights', arguments: {} });
       expect(result.isError).toBe(true);
@@ -234,13 +286,21 @@ describe('Tool: list_airtrail_flights', () => {
     const { user } = createUser(testDb);
     await connectAirtrail(user.id);
 
-    await withHarness(user.id, async (h) => {
-      expect((await h.client.listTools()).tools.map(t => t.name)).toContain('list_airtrail_flights');
-    }, ['reservations:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        expect((await h.client.listTools()).tools.map((t) => t.name)).toContain('list_airtrail_flights');
+      },
+      ['reservations:read'],
+    );
 
-    await withHarness(user.id, async (h) => {
-      expect((await h.client.listTools()).tools.map(t => t.name)).not.toContain('list_airtrail_flights');
-    }, ['places:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        expect((await h.client.listTools()).tools.map((t) => t.name)).not.toContain('list_airtrail_flights');
+      },
+      ['places:read'],
+    );
   });
 });
 
@@ -271,8 +331,12 @@ describe('Tool: import_airtrail_flights', () => {
     const rows = await reservationRows(trip.id);
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
-      title: 'LH1201', type: 'flight', external_source: 'airtrail', external_id: '11',
-      external_owner_user_id: user.id, sync_enabled: 1,
+      title: 'LH1201',
+      type: 'flight',
+      external_source: 'airtrail',
+      external_id: '11',
+      external_owner_user_id: user.id,
+      sync_enabled: 1,
     });
     expect(broadcastMock).toHaveBeenCalledTimes(2);
     expect(broadcastMock.mock.calls[0][1]).toBe('reservation:created');
@@ -286,7 +350,10 @@ describe('Tool: import_airtrail_flights', () => {
 
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'import_airtrail_flights', arguments: { tripId: trip.id, flightIds: ['11'] } });
-      const again = await h.client.callTool({ name: 'import_airtrail_flights', arguments: { tripId: trip.id, flightIds: ['11'] } });
+      const again = await h.client.callTool({
+        name: 'import_airtrail_flights',
+        arguments: { tripId: trip.id, flightIds: ['11'] },
+      });
       const data = parseToolResult(again) as any;
       expect(data.imported).toEqual([]);
       expect(data.skipped).toEqual([{ flightId: '11', reason: 'already-imported' }]);
@@ -301,8 +368,12 @@ describe('Tool: import_airtrail_flights', () => {
     listFlightsMock.mockResolvedValue([
       flight({ id: 11 }),
       flight({
-        id: 12, from: FRA, to: JFK, flightNumber: 'LH400',
-        departure: '2026-09-10T09:00:00Z', arrival: '2026-09-10T18:00:00Z',
+        id: 12,
+        from: FRA,
+        to: JFK,
+        flightNumber: 'LH400',
+        departure: '2026-09-10T09:00:00Z',
+        arrival: '2026-09-10T18:00:00Z',
       }),
     ]);
 
@@ -375,7 +446,8 @@ describe('Tool: import_airtrail_flights', () => {
     const { user } = createUser(testDb);
     await connectAirtrail(user.id);
     const trip = createTrip(testDb, user.id, { start_date: '2026-09-10', end_date: '2026-09-12' });
-    const importMock = vi.spyOn(AirtrailImportService.prototype, 'importAirtrailFlights')
+    const importMock = vi
+      .spyOn(AirtrailImportService.prototype, 'importAirtrailFlights')
       .mockRejectedValue(new Error(''));
 
     try {
@@ -407,21 +479,30 @@ describe('Tool: import_airtrail_flights', () => {
 
     process.env.DEMO_MODE = 'true';
     await withHarness(demo.id, async (h) => {
-      const result = await h.client.callTool({ name: 'import_airtrail_flights', arguments: { tripId: trip.id, flightIds: ['11'] } });
+      const result = await h.client.callTool({
+        name: 'import_airtrail_flights',
+        arguments: { tripId: trip.id, flightIds: ['11'] },
+      });
       expect(result.isError).toBe(true);
       expect((result.content as any)[0].text).toContain('demo mode');
     });
     delete process.env.DEMO_MODE;
 
     await withHarness(stranger.id, async (h) => {
-      const result = await h.client.callTool({ name: 'import_airtrail_flights', arguments: { tripId: trip.id, flightIds: ['11'] } });
+      const result = await h.client.callTool({
+        name: 'import_airtrail_flights',
+        arguments: { tripId: trip.id, flightIds: ['11'] },
+      });
       expect(result.isError).toBe(true);
       expect((result.content as any)[0].text).toContain('access denied');
     });
 
     await savePermissions({ reservation_edit: 'trip_owner' });
     await withHarness(member.id, async (h) => {
-      const result = await h.client.callTool({ name: 'import_airtrail_flights', arguments: { tripId: trip.id, flightIds: ['11'] } });
+      const result = await h.client.callTool({
+        name: 'import_airtrail_flights',
+        arguments: { tripId: trip.id, flightIds: ['11'] },
+      });
       expect(result.isError).toBe(true);
       expect((result.content as any)[0].text).toContain('permission');
     });
@@ -438,7 +519,7 @@ describe('Tool: import_airtrail_flights', () => {
     setAddonEnabled(testDb, ADDON_IDS.AIRTRAIL, false);
 
     await withHarness(user.id, async (h) => {
-      const names = (await h.client.listTools()).tools.map(t => t.name);
+      const names = (await h.client.listTools()).tools.map((t) => t.name);
       expect(names).not.toContain('import_airtrail_flights');
       const result = await h.client.callTool({
         name: 'import_airtrail_flights',
@@ -454,12 +535,20 @@ describe('Tool: import_airtrail_flights', () => {
     const { user } = createUser(testDb);
     await connectAirtrail(user.id);
 
-    await withHarness(user.id, async (h) => {
-      expect((await h.client.listTools()).tools.map(t => t.name)).toContain('import_airtrail_flights');
-    }, ['reservations:write']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        expect((await h.client.listTools()).tools.map((t) => t.name)).toContain('import_airtrail_flights');
+      },
+      ['reservations:write'],
+    );
 
-    await withHarness(user.id, async (h) => {
-      expect((await h.client.listTools()).tools.map(t => t.name)).not.toContain('import_airtrail_flights');
-    }, ['reservations:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        expect((await h.client.listTools()).tools.map((t) => t.name)).not.toContain('import_airtrail_flights');
+      },
+      ['reservations:read'],
+    );
   });
 });

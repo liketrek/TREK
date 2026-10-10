@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   adminNotificationPreferencesRequestSchema,
   notificationDefaultsUpdateRequestSchema,
@@ -10,6 +9,8 @@ import {
   pushSubscribeRequestSchema,
   pushUnsubscribeRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared notification

@@ -8,19 +8,20 @@
  * `createTestOrm()`, the harness every other converted repository test uses)
  * rather than the legacy hand-written `SCHEMA`/`dbFacade` — R8's rewrite list.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow, findRows, updateRows } from '../../helpers/factories/rows';
-import { setAppSetting } from '../../helpers/factories/settings';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { PlaceShadowPicks } from '../../../src/db/entities/PlaceShadowPicks.entity';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { PlaceShadowPicksRepository } from '../../../src/db/repositories/PlaceShadowPicks.repository';
 import { dbNow } from '../../../src/db/types';
 import { PlaceShadowService, RETENTION_DAYS } from '../../../src/nest/place-shadow/place-shadow.service';
-import { PlaceShadowPicks } from '../../../src/db/entities/PlaceShadowPicks.entity';
-import type { PlaceShadowPicksRepository } from '../../../src/db/repositories/PlaceShadowPicks.repository';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { countRows, findRow, findRows, updateRows } from '../../helpers/factories/rows';
+import { setAppSetting } from '../../helpers/factories/settings';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import type { PlaceShadowPickRequest } from '@trek/shared';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -55,8 +56,14 @@ beforeAll(async () => {
   const appSettings: AppSettingsRepository = t.repo(AppSettings);
   svc = new PlaceShadowService(picks, appSettings);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('PlaceShadowService', () => {
   describe('the switch', () => {
@@ -116,7 +123,12 @@ describe('PlaceShadowService', () => {
       // Sequential, not Promise.all: the rows are inserted in rank order and the
       // export/paging assertions below read that order back.
       for (const [i, rank] of ranks.entries()) {
-        await svc.record({ ...PICK, liveRank: rank, liveCount: 50, source: i % 2 ? 'search:nominatim' : 'autocomplete:google' });
+        await svc.record({
+          ...PICK,
+          liveRank: rank,
+          liveCount: 50,
+          source: i % 2 ? 'search:nominatim' : 'autocomplete:google',
+        });
       }
     });
 
@@ -165,14 +177,14 @@ describe('PlaceShadowService', () => {
 
     it('pages by id and hands back the cursor for the next page', async () => {
       const first = await svc.export(undefined, 3);
-      expect(first.rows.map(r => r.query)).toEqual(['q0', 'q1', 'q2']);
+      expect(first.rows.map((r) => r.query)).toEqual(['q0', 'q1', 'q2']);
       expect(first.nextAfter).toBe(first.rows[2].id);
 
       const second = await svc.export(first.nextAfter ?? undefined, 3);
-      expect(second.rows.map(r => r.query)).toEqual(['q3', 'q4', 'q5']);
+      expect(second.rows.map((r) => r.query)).toEqual(['q3', 'q4', 'q5']);
 
       const third = await svc.export(second.nextAfter ?? undefined, 3);
-      expect(third.rows.map(r => r.query)).toEqual(['q6']);
+      expect(third.rows.map((r) => r.query)).toEqual(['q6']);
       // Nothing beyond, so no cursor — that is how a reader knows to stop.
       expect(third.nextAfter).toBeNull();
     });

@@ -199,7 +199,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'เพิ่มลงในรายการ',
   'collections.file.targetExistingHint': 'ลงในรายการที่คุณมีอยู่แล้ว',
   'collections.file.searchLists': 'ค้นหารายการ',
-  'collections.file.intoHint': 'สถานที่ที่มีอยู่ในรายการจะคงเดิม รวมถึงชื่อและสีของรายการ ป้ายกำกับที่มากับไฟล์จะถูกเพิ่มเข้าไป',
+  'collections.file.intoHint':
+    'สถานที่ที่มีอยู่ในรายการจะคงเดิม รวมถึงชื่อและสีของรายการ ป้ายกำกับที่มากับไฟล์จะถูกเพิ่มเข้าไป',
   'collections.file.confirmInto': 'เพิ่มลงในรายการ',
   'collections.file.doneInto': 'เพิ่มสถานที่ {count} แห่งลงใน {name} แล้ว',
   'collections.file.doneIntoDuplicates': 'เพิ่ม {count} แห่งลงใน {name} แล้ว มี {duplicates} แห่งอยู่แล้ว',

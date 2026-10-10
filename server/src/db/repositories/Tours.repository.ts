@@ -1,7 +1,7 @@
-import type { AssertRowKeys } from './_shared/rows';
 import type { Tours } from '../entities/Tours.entity';
-import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import type { AssertRowKeys } from './_shared/rows';
+import { TrekRepository } from './_shared/trek-repository';
 
 /**
  * A tour as the Tours list and detail read it: the `tours` facet joined with
@@ -90,8 +90,12 @@ export class ToursRepository extends TrekRepository<Tours> {
         't.wanderer_ref as wanderer_ref',
         't.match_confidence as match_confidence',
         't.max_hiking_difficulty as max_hiking_difficulty',
-        eb.exists(eb.selectFrom('day_assignments as da').select('da.id').whereRef('da.place_id', '=', 'p.id')).as('planned'),
-        eb.exists(eb.selectFrom('tour_waypoints as tw').select('tw.id').whereRef('tw.place_id', '=', 'p.id')).as('has_waypoints'),
+        eb
+          .exists(eb.selectFrom('day_assignments as da').select('da.id').whereRef('da.place_id', '=', 'p.id'))
+          .as('planned'),
+        eb
+          .exists(eb.selectFrom('tour_waypoints as tw').select('tw.id').whereRef('tw.place_id', '=', 'p.id'))
+          .as('has_waypoints'),
       ]);
   }
 
@@ -118,7 +122,11 @@ export class ToursRepository extends TrekRepository<Tours> {
 
   /** TO3 — `SELECT 1 FROM tours WHERE place_id = ?`: whether the place is a tour. */
   async existsForPlace(place_id: number): Promise<boolean> {
-    const row = await this.db().selectFrom('tours').select('place_id').where('place_id', '=', place_id).executeTakeFirst();
+    const row = await this.db()
+      .selectFrom('tours')
+      .select('place_id')
+      .where('place_id', '=', place_id)
+      .executeTakeFirst();
     return !!row;
   }
 
@@ -209,6 +217,8 @@ export class ToursRepository extends TrekRepository<Tours> {
   }
 }
 
-function toListRow<R extends Omit<TourListRow, 'planned' | 'has_waypoints'> & { planned: unknown; has_waypoints: unknown }>(r: R): TourListRow {
+function toListRow<
+  R extends Omit<TourListRow, 'planned' | 'has_waypoints'> & { planned: unknown; has_waypoints: unknown },
+>(r: R): TourListRow {
   return { ...r, planned: Number(r.planned), has_waypoints: Number(r.has_waypoints) };
 }

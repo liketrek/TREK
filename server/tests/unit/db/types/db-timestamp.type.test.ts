@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import { DB_TIMESTAMP_RE, DbTimestampType, dbNow, parseDbTimestamp, utcSuffix } from '../../../../src/db/types';
+
+import { describe, expect, it } from 'vitest';
+
 // The value converters take no platform: the wire format is the same text on
 // every dialect (see db-timestamp.type.ts).
 const type = new DbTimestampType();
@@ -20,19 +22,20 @@ describe('DbTimestampType', () => {
   });
 
   it('TS-004: formats a Date a driver hands back (Postgres later) to the same text', () => {
-    expect(type.convertToJSValue(new Date(Date.UTC(2026, 8, 21, 13, 5, 9)) as unknown as string))
-      .toBe('2026-09-21 13:05:09');
+    expect(type.convertToJSValue(new Date(Date.UTC(2026, 8, 21, 13, 5, 9)) as unknown as string)).toBe(
+      '2026-09-21 13:05:09',
+    );
   });
 
   it('TS-005: a millisecond integer (a Date written by the stock DateTimeType) reads back as text', () => {
-    expect(type.convertToJSValue(Date.UTC(2026, 8, 21, 13, 5, 9) as unknown as string))
-      .toBe('2026-09-21 13:05:09');
+    expect(type.convertToJSValue(Date.UTC(2026, 8, 21, 13, 5, 9) as unknown as string)).toBe('2026-09-21 13:05:09');
   });
 
   it('TS-006: writes text unchanged and a stray Date as text, never as a number', () => {
     expect(type.convertToDatabaseValue('2026-09-21 13:05:09')).toBe('2026-09-21 13:05:09');
-    expect(type.convertToDatabaseValue(new Date(Date.UTC(2026, 8, 21, 13, 5, 9)) as unknown as string))
-      .toBe('2026-09-21 13:05:09');
+    expect(type.convertToDatabaseValue(new Date(Date.UTC(2026, 8, 21, 13, 5, 9)) as unknown as string)).toBe(
+      '2026-09-21 13:05:09',
+    );
   });
 
   it('TS-007: null and undefined survive both directions', () => {

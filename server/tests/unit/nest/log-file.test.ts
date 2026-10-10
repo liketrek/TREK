@@ -8,11 +8,12 @@
  * rotation another process already did is not repeated, and a failing disk is
  * reported instead of thrown.
  */
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { BufferedLogFile } from '../../../src/nest/audit/log-file';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { BufferedLogFile } from '../../../src/nest/audit/log-file';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 
 const dirs: string[] = [];
 
@@ -159,7 +160,9 @@ describe('BufferedLogFile', () => {
     fs.writeFileSync(file, 'x'.repeat(20));
     const onError = vi.fn();
     const sink = new BufferedLogFile({ dir, maxBytes: 10, onError });
-    vi.spyOn(fs.promises, 'rename').mockRejectedValue(Object.assign(new Error('permission denied'), { code: 'EACCES' }));
+    vi.spyOn(fs.promises, 'rename').mockRejectedValue(
+      Object.assign(new Error('permission denied'), { code: 'EACCES' }),
+    );
     sink.write('kept');
     await sink.flush();
     expect(onError).toHaveBeenCalledWith('log rotation failed: permission denied');

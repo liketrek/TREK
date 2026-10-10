@@ -91,7 +91,7 @@ export interface ViaPlan {
 
 /** The stops the router counts, in day order: the positions the vias are pinned to. */
 export function locatedIds(rows: readonly SeatRow[]): number[] {
-  return rows.filter(row => row.located).map(row => row.id);
+  return rows.filter((row) => row.located).map((row) => row.id);
 }
 
 /**
@@ -140,7 +140,7 @@ export function seatAmong(others: readonly SeatRow[], night: Night): number {
  * legacy row type, and `Number(null)` keeps that coercion for the nullable column.
  */
 export function seatIndexAmong(rows: readonly SeatRow[], night: Night, excludeId?: number): number {
-  const others = rows.filter(row => row.id !== excludeId);
+  const others = rows.filter((row) => row.id !== excludeId);
   const seat = seatAmong(others, night);
   return seat === 0 ? 0 : Number(others[seat - 1].order_index) + 1;
 }
@@ -158,11 +158,12 @@ export function seatIndexAmong(rows: readonly SeatRow[], night: Night, excludeId
  */
 export function seatHolds(rows: readonly SeatRow[], ownId: number, checkIn: string | null | undefined): boolean {
   if (!checkIn) return true;
-  const own = rows.findIndex(row => row.id === ownId);
+  const own = rows.findIndex((row) => row.id === ownId);
   if (own < 0) return true;
-  const laterAhead = rows.slice(0, own).some(row => row.at !== null && row.at > checkIn);
-  const earlierBehind = rows.slice(own + 1).some(row =>
-    row.at !== null && (row.night_id === null ? row.at <= checkIn : row.at < checkIn));
+  const laterAhead = rows.slice(0, own).some((row) => row.at !== null && row.at > checkIn);
+  const earlierBehind = rows
+    .slice(own + 1)
+    .some((row) => row.at !== null && (row.night_id === null ? row.at <= checkIn : row.at < checkIn));
   return !laterAhead && !earlierBehind;
 }
 
@@ -194,7 +195,14 @@ export function planViaCarry(vias: readonly PinnedVia[], previousIds: number[], 
     else if (next !== via.after_order_index) moved.push({ id: via.id, after_order_index: next });
   }
   if (!remove.length && !moved.length) return null;
-  return { remove, moved, resequence: renumberMergedLegs(vias.filter(via => !remove.includes(via.id)), moved) };
+  return {
+    remove,
+    moved,
+    resequence: renumberMergedLegs(
+      vias.filter((via) => !remove.includes(via.id)),
+      moved,
+    ),
+  };
 }
 
 /** Whether a write left the day's located stops in the order they were in. */
@@ -229,8 +237,11 @@ function legAfter(index: number, previousIds: number[], nextIds: number[]): numb
  * Only a leg that received a via is touched, and only a via whose sequence changes
  * is listed.
  */
-function renumberMergedLegs(kept: PinnedVia[], moved: { id: number; after_order_index: number }[]): { id: number; sequence: number }[] {
-  const landed = new Map(moved.map(via => [via.id, via.after_order_index]));
+function renumberMergedLegs(
+  kept: PinnedVia[],
+  moved: { id: number; after_order_index: number }[],
+): { id: number; sequence: number }[] {
+  const landed = new Map(moved.map((via) => [via.id, via.after_order_index]));
   const byLeg = new Map<number, PinnedVia[]>();
   for (const via of kept) {
     const leg = landed.get(via.id) ?? via.after_order_index;
@@ -238,7 +249,7 @@ function renumberMergedLegs(kept: PinnedVia[], moved: { id: number; after_order_
   }
   const resequence: { id: number; sequence: number }[] = [];
   for (const onLeg of byLeg.values()) {
-    if (!onLeg.some(via => landed.has(via.id))) continue;
+    if (!onLeg.some((via) => landed.has(via.id))) continue;
     onLeg.sort((a, b) => a.after_order_index - b.after_order_index || a.sequence - b.sequence || a.id - b.id);
     onLeg.forEach((via, index) => {
       if (via.sequence !== index) resequence.push({ id: via.id, sequence: index });
@@ -256,7 +267,12 @@ export async function locatedStopIdsWith(stops: SeatStopStore, dayId: number): P
 }
 
 /** {@link seatIndexAmong} over the day as it stands now. */
-export async function seatIndexWith(stops: SeatStopStore, dayId: number, night: Night, excludeId?: number): Promise<number> {
+export async function seatIndexWith(
+  stops: SeatStopStore,
+  dayId: number,
+  night: Night,
+  excludeId?: number,
+): Promise<number> {
   return seatIndexAmong(await stops.listSeatRows(dayId), night, excludeId);
 }
 
@@ -267,7 +283,13 @@ export async function seatIndexWith(stops: SeatStopStore, dayId: number, night: 
  * of the target day and seated the way a fresh insert would be: two steps, because
  * the index it should get is read off a chain it is not part of yet.
  */
-export async function reseatOwnStopWith(stops: SeatStopStore, stop: OwnStop, placeId: number, dayId: number, night: Night): Promise<void> {
+export async function reseatOwnStopWith(
+  stops: SeatStopStore,
+  stop: OwnStop,
+  placeId: number,
+  dayId: number,
+  night: Night,
+): Promise<void> {
   await stops.closeGap(stop.day_id, Number(stop.order_index));
   const max = await stops.maxOrderIndexExcluding(dayId, stop.id);
   const end = (max !== null ? max : -1) + 1;
@@ -281,7 +303,12 @@ export async function reseatOwnStopWith(stops: SeatStopStore, stop: OwnStop, pla
 }
 
 /** Carry one day's vias ({@link planViaCarry}). Returns what changed, or null when nothing did. */
-export async function carryViasWith(vias: SeatViaStore, dayId: number, previousIds: number[], nextIds: number[]): Promise<{ moved: number; removed: number } | null> {
+export async function carryViasWith(
+  vias: SeatViaStore,
+  dayId: number,
+  previousIds: number[],
+  nextIds: number[],
+): Promise<{ moved: number; removed: number } | null> {
   if (sameOrder(previousIds, nextIds)) return null;
   const plan = planViaCarry(await vias.listAnchors(dayId), previousIds, nextIds);
   if (!plan) return null;

@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { Users } from '../../db/entities/Users.entity';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
+import type { TripEventSink, TripWriter } from '../common/trip-writer';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
-import type { TripEventSink, TripWriter } from '../common/trip-writer';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The impure MCP tool guards that used to live as plain functions in
@@ -53,7 +53,11 @@ export class McpToolGuardsService {
       // call sites). Runtime is a pure pass-through to the transport's
       // broadcast.
       const send = this.realtime.broadcast as (
-        t: number | string, e: string, p: Record<string, unknown>, sid?: number | string, uid?: number,
+        t: number | string,
+        e: string,
+        p: Record<string, unknown>,
+        sid?: number | string,
+        uid?: number,
       ) => void;
       const body = { ...payload, _source: 'mcp' };
 

@@ -10,6 +10,15 @@
  *
  * The cases share the module's one connection and run in order.
  */
+import {
+  closeDb,
+  db,
+  getRawConnection,
+  openDb,
+  registerReinitializeHook,
+  reinitialize,
+} from '../../../src/db/database';
+
 import { describe, expect, it, vi } from 'vitest';
 
 const opened = vi.hoisted(() => ({ count: 0 }));
@@ -24,8 +33,6 @@ vi.mock('../../../src/db/connection', async (importOriginal) => {
     },
   };
 });
-
-import { closeDb, db, getRawConnection, openDb, registerReinitializeHook, reinitialize } from '../../../src/db/database';
 
 describe('db/database.ts connection lifecycle', () => {
   it('DBOPEN-001: importing the module opens nothing', () => {

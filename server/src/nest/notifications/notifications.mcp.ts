@@ -1,19 +1,26 @@
 import {
-  McpController, Tool, Resource, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
+  McpController,
+  Tool,
+  Resource,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
   ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
-import { idSchema } from '@trek/shared';
 import { NotificationsService } from './notifications.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 function jsonContent(uri: string, data: unknown) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify(data, null, 2),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
   };
 }
 
@@ -31,9 +38,7 @@ function jsonContent(uri: string, data: unknown) {
  */
 @McpController()
 export class NotificationsMcp {
-  constructor(
-    private readonly notifications: NotificationsService,
-  ) {}
+  constructor(private readonly notifications: NotificationsService) {}
 
   @Tool({
     name: 'list_notifications',
@@ -50,7 +55,11 @@ export class NotificationsMcp {
     { limit, offset, unread_only }: { limit?: number; offset?: number; unread_only?: boolean },
     ctx: McpContext,
   ) {
-    const result = await this.notifications.listInApp(ctx.userId, { limit: limit ?? 20, offset: offset ?? 0, unreadOnly: unread_only ?? false });
+    const result = await this.notifications.listInApp(ctx.userId, {
+      limit: limit ?? 20,
+      offset: offset ?? 0,
+      unreadOnly: unread_only ?? false,
+    });
     return ok(result);
   }
 

@@ -20,31 +20,14 @@
  * `BudgetService` (the budget fold's own container spy, unrelated to this
  * conversion) stay mocked.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
-import cookieParser from 'cookie-parser';
-import type { Server } from 'http';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
-import { MAX_TRIP_DAYS } from '@trek/shared';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-// The audit domain is DI-native now: writeAudit runs for real against the temp
-// db's audit_log table; only the file logger is silenced.
-vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
-vi.mock('../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
-
 import { db } from '../../src/db/database';
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
-
-// Since the permissions DI migration, the check is a spy on the container's
-// PermissionsService singleton (created in beforeAll, after build()).
-let checkPermission: MockInstance;
-
+import { AuditLog } from '../../src/db/entities/AuditLog.entity';
+import { Days } from '../../src/db/entities/Days.entity';
+import { JourneyEntries } from '../../src/db/entities/JourneyEntries.entity';
+import { Journeys } from '../../src/db/entities/Journeys.entity';
+import { Settings } from '../../src/db/entities/Settings.entity';
+import { TripMembers } from '../../src/db/entities/TripMembers.entity';
+import { Trips } from '../../src/db/entities/Trips.entity';
 // TripsService itself is real since the trip fold — no tripService mock; the
 // real migrated trips/trip_members/days tables serve its SQL.
 // bundle()'s days + accommodations now run DaysService's real SQL (DI-injected,
@@ -54,26 +37,48 @@ let checkPermission: MockInstance;
 // spy in beforeAll (unrelated to this file's schema conversion).
 
 import { BudgetService } from '../../src/nest/budget/budget.service';
-import { TripsModule } from '../../src/nest/trips/trips.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
-import { makeUser } from '../helpers/factories/users';
-import { setUserSetting } from '../helpers/factories/settings';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { TripsModule } from '../../src/nest/trips/trips.module';
 import { countRows, deleteRows, findRow, findRows, insertRow } from '../helpers/factories/rows';
-import { AuditLog } from '../../src/db/entities/AuditLog.entity';
-import { Days } from '../../src/db/entities/Days.entity';
-import { JourneyEntries } from '../../src/db/entities/JourneyEntries.entity';
-import { Journeys } from '../../src/db/entities/Journeys.entity';
-import { Settings } from '../../src/db/entities/Settings.entity';
-import { TripMembers } from '../../src/db/entities/TripMembers.entity';
-import { Trips } from '../../src/db/entities/Trips.entity';
+import { setUserSetting } from '../helpers/factories/settings';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+import { MAX_TRIP_DAYS } from '@trek/shared';
+
+import cookieParser from 'cookie-parser';
+import type { Server } from 'http';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
+// The audit domain is DI-native now: writeAudit runs for real against the temp
+// db's audit_log table; only the file logger is silenced.
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+}));
+vi.mock('../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
+
+// Since the permissions DI migration, the check is a spy on the container's
+// PermissionsService singleton (created in beforeAll, after build()).
+let checkPermission: MockInstance;
 
 let orm: TestOrm;
 
 /** The trip's day ids in day order. */
 async function dayIds(tripId: number): Promise<number[]> {
-  return (await findRows(orm, Days, { trip: tripId }, { day_number: 'asc' })).map(d => d.id);
+  return (await findRows(orm, Days, { trip: tripId }, { day_number: 'asc' })).map((d) => d.id);
 }
 
 describe('Trips e2e (real auth guard + temp SQLite)', () => {
@@ -81,7 +86,14 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, TripsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        TripsModule,
+      ],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -129,7 +141,14 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     const res = await request(server).get('/api/trips').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body.trips).toHaveLength(1);
-    expect(res.body.trips[0]).toMatchObject({ id: tripId, title: 'T', is_owner: 1, day_count: 0, place_count: 0, shared_count: 0 });
+    expect(res.body.trips[0]).toMatchObject({
+      id: tripId,
+      title: 'T',
+      is_owner: 1,
+      day_count: 0,
+      place_count: 0,
+      shared_count: 0,
+    });
   });
 
   it('201 create (real insert + day generation), 403 without permission', async () => {
@@ -149,17 +168,25 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
 
   it('201 create without a currency takes the display currency from the settings', async () => {
     await setUserSetting(orm, 1, 'default_currency', JSON.stringify('USD'));
-    const preferred = await request(server).post('/api/trips').set('Cookie', sessionCookie(1)).send({ title: 'Road trip' });
+    const preferred = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Road trip' });
     expect(preferred.status).toBe(201);
     expect(preferred.body.trip).toMatchObject({ title: 'Road trip', currency: 'USD' });
-    const explicit = await request(server).post('/api/trips').set('Cookie', sessionCookie(1)).send({ title: 'Tokyo', currency: 'JPY' });
+    const explicit = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Tokyo', currency: 'JPY' });
     expect(explicit.status).toBe(201);
     expect(explicit.body.trip).toMatchObject({ title: 'Tokyo', currency: 'JPY' });
   });
 
   it('201 create keeps every day of a trip longer than a year (#2403)', async () => {
     // 2025-01-26 .. 2026-01-28 is 368 days; the day list used to stop at 365.
-    const res = await request(server).post('/api/trips').set('Cookie', sessionCookie(1))
+    const res = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
       .send({ title: 'Gap year', start_date: '2025-01-26', end_date: '2026-01-28' });
     expect(res.status).toBe(201);
     expect(res.body.trip).toMatchObject({ start_date: '2025-01-26', end_date: '2026-01-28', day_count: 368 });
@@ -168,15 +195,21 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('400 on a date range past MAX_TRIP_DAYS, for create and update alike', async () => {
-    const tooLong = await request(server).post('/api/trips').set('Cookie', sessionCookie(1))
+    const tooLong = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
       .send({ title: 'Decade', start_date: '2026-01-01', end_date: '2036-01-01' });
     expect(tooLong.status).toBe(400);
     expect(tooLong.body).toEqual({ error: `A trip can span at most ${MAX_TRIP_DAYS} days` });
     expect(await countRows(orm, Trips)).toBe(0);
 
-    const week = await request(server).post('/api/trips').set('Cookie', sessionCookie(1))
+    const week = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
       .send({ title: 'Week', start_date: '2026-07-01', end_date: '2026-07-07' });
-    const stretched = await request(server).put(`/api/trips/${week.body.trip.id}`).set('Cookie', sessionCookie(1))
+    const stretched = await request(server)
+      .put(`/api/trips/${week.body.trip.id}`)
+      .set('Cookie', sessionCookie(1))
       .send({ end_date: '2036-07-01' });
     expect(stretched.status).toBe(400);
     expect(stretched.body).toEqual({ error: `A trip can span at most ${MAX_TRIP_DAYS} days` });
@@ -184,10 +217,14 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('200 update with an earlier end drops the last days, and the answer stays { trip }', async () => {
-    const week = await request(server).post('/api/trips').set('Cookie', sessionCookie(1))
+    const week = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
       .send({ title: 'Week', start_date: '2026-07-01', end_date: '2026-07-07' });
     const kept = (await dayIds(week.body.trip.id)).slice(0, 5);
-    const res = await request(server).put(`/api/trips/${week.body.trip.id}`).set('Cookie', sessionCookie(1))
+    const res = await request(server)
+      .put(`/api/trips/${week.body.trip.id}`)
+      .set('Cookie', sessionCookie(1))
       .send({ end_date: '2026-07-05' });
     expect(res.status).toBe(200);
     expect(Object.keys(res.body)).toEqual(['trip']);
@@ -215,7 +252,9 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
       const running = await seedDated('Running', '2000-01-01', '2999-12-31');
       const res = await request(server).get('/api/trips/active').set('Cookie', sessionCookie(1));
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ trip: { id: running, title: 'Running', start_date: '2000-01-01', end_date: '2999-12-31' } });
+      expect(res.body).toEqual({
+        trip: { id: running, title: 'Running', start_date: '2000-01-01', end_date: '2999-12-31' },
+      });
     });
 
     it('answers { trip: null } when the user has no trip at all', async () => {
@@ -234,7 +273,12 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
   // Real CalendarService against the temp db: a title carrying U+3000 slipped
   // through the old \s keep-class into setHeader and 500'd the export (#2165).
   it('200 export.ics with a header-safe filename for a title full of ideographic whitespace', async () => {
-    const tripId = await insertRow(orm, Trips, { user: 1, title: '沖縄　4泊5日', start_date: '2026-05-01', end_date: '2026-05-05' });
+    const tripId = await insertRow(orm, Trips, {
+      user: 1,
+      title: '沖縄　4泊5日',
+      start_date: '2026-05-01',
+      end_date: '2026-05-05',
+    });
     const res = await request(server).get(`/api/trips/${tripId}/export.ics`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('text/calendar');
@@ -263,10 +307,22 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     // one. The assertions below are untouched, character-for-character.
     const journeyId = await insertRow(orm, Journeys, { user: 1, title: 'J', created_at: 0, updated_at: 0 });
     await insertRow(orm, JourneyEntries, {
-      journey: journeyId, sourceTrip: tripId, author: 1, type: 'skeleton', entry_date: '2026-01-01', created_at: 0, updated_at: 0,
+      journey: journeyId,
+      sourceTrip: tripId,
+      author: 1,
+      type: 'skeleton',
+      entry_date: '2026-01-01',
+      created_at: 0,
+      updated_at: 0,
     });
     const filledId = await insertRow(orm, JourneyEntries, {
-      journey: journeyId, sourceTrip: tripId, author: 1, type: 'story', entry_date: '2026-01-01', created_at: 0, updated_at: 0,
+      journey: journeyId,
+      sourceTrip: tripId,
+      author: 1,
+      type: 'story',
+      entry_date: '2026-01-01',
+      created_at: 0,
+      updated_at: 0,
     });
     const res = await request(server).delete(`/api/trips/${tripId}`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);

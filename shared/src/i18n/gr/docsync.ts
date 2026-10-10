@@ -182,7 +182,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Η μεταφορά δεν ολοκληρώθηκε.',
 
   'docsync.error.unknown_provider': 'Αυτός ο πάροχος δεν είναι διαθέσιμος σε αυτή την εγκατάσταση.',
-  'docsync.error.provider_disabled': 'Σε παύση: ένας διαχειριστής απενεργοποίησε αυτόν τον πάροχο. Ο συγχρονισμός θα συνεχιστεί μόλις ενεργοποιηθεί ξανά.',
+  'docsync.error.provider_disabled':
+    'Σε παύση: ένας διαχειριστής απενεργοποίησε αυτόν τον πάροχο. Ο συγχρονισμός θα συνεχιστεί μόλις ενεργοποιηθεί ξανά.',
   'docsync.binding.reconnect': 'Επανασύνδεση',
 };
 

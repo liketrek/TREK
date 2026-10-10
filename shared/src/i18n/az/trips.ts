@@ -11,6 +11,7 @@ const trips: TranslationStrings = {
   'trips.reminderDays': 'gün',
   'trips.reminderCustom': 'Fərdi',
   'trips.reminderDaysBefore': 'gün əvvəl xatırlat',
-  'trips.reminderDisabledHint': 'Səyahət xatırlatmaları deaktiv edilib. Onları Admin > Tənzimləmələr > Bildirişlər bölməsində aktivləşdirin.',
+  'trips.reminderDisabledHint':
+    'Səyahət xatırlatmaları deaktiv edilib. Onları Admin > Tənzimləmələr > Bildirişlər bölməsində aktivləşdirin.',
 };
 export default trips;

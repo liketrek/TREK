@@ -1,5 +1,5 @@
-import type { PlaceShadowPicks } from '../entities/PlaceShadowPicks.entity';
 import { countAll, countAllRef, maxOf, minOf, nowMinusDays } from '../dialect/sql-functions';
+import type { PlaceShadowPicks } from '../entities/PlaceShadowPicks.entity';
 import { toRow, type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -80,7 +80,11 @@ export class PlaceShadowPicksRepository extends TrekRepository<PlaceShadowPicks>
     // coverage), unreachable, not a real "no rows" guard. Non-null
     // asserted, matching the docstring's own claim.
     const row = await this.qb('p')
-      .select([countAll(platform, 'total'), minOf(platform, 'p.created_at', 'oldest'), maxOf(platform, 'p.created_at', 'newest')])
+      .select([
+        countAll(platform, 'total'),
+        minOf(platform, 'p.created_at', 'oldest'),
+        maxOf(platform, 'p.created_at', 'newest'),
+      ])
       .execute<{ total: number; oldest: string | null; newest: string | null } | undefined>('get', false);
     return { total: row!.total, oldest: row!.oldest, newest: row!.newest };
   }

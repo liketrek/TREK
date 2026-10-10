@@ -206,11 +206,14 @@ const journey: TranslationStrings = {
   'journey.settings.showTripTracksHint': 'Tekent de opgenomen routes van de gekoppelde reizen op de kaart.',
   'journey.settings.status': 'Status',
   'journey.settings.statusAuto': 'Automatisch',
-  'journey.settings.statusAutoHint': 'Volgt de data van de gekoppelde trips. Zonder trip blijft de journey een concept.',
-  'journey.settings.statusManualHint': 'Handmatig ingesteld. De tripdata veranderen het niet meer tot je terugzet op automatisch.',
+  'journey.settings.statusAutoHint':
+    'Volgt de data van de gekoppelde trips. Zonder trip blijft de journey een concept.',
+  'journey.settings.statusManualHint':
+    'Handmatig ingesteld. De tripdata veranderen het niet meer tot je terugzet op automatisch.',
   'journey.settings.photosSection': "Foto's",
   'journey.settings.photoLocation': "Items plaatsen op basis van hun foto's",
-  'journey.settings.photoLocationHint': 'Een item zonder plek krijgt de plek waar de eerste foto met gps is gemaakt. Plekken die je zelf instelt, worden nooit verplaatst.',
+  'journey.settings.photoLocationHint':
+    'Een item zonder plek krijgt de plek waar de eerste foto met gps is gemaakt. Plekken die je zelf instelt, worden nooit verplaatst.',
   'journey.settings.endJourney': 'Reis archiveren',
   'journey.settings.reopenJourney': 'Reis herstellen',
   'journey.settings.archived': 'Reis gearchiveerd',
@@ -316,7 +319,8 @@ const journey: TranslationStrings = {
   'journey.studio.importSpreadHint': 'Voegt een dubbele pagina toe uit een gedownload ontwerpbestand',
   'journey.studio.importSpreadFailed': 'Dat bestand is geen TREK Studio-pagina',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Een boek opmaken vraagt om ruimte, dus Studio is alleen voor de desktop, en de pdf ook. Al het andere van je reis werkt hier gewoon.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Een boek opmaken vraagt om ruimte, dus Studio is alleen voor de desktop, en de pdf ook. Al het andere van je reis werkt hier gewoon.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -380,7 +384,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -574,7 +579,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Omtrekken',
   'journey.studio.mapSourceRelief': 'Reliëf',
   'journey.studio.mapSourceSatellite': 'Satelliet',
-  'journey.studio.mapSourceSatelliteHint': 'Wolkenvrije Sentinel-2, met bronvermelding vrij te drukken. Scherp tot op de straat in een stad.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Wolkenvrije Sentinel-2, met bronvermelding vrij te drukken. Scherp tot op de straat in een stad.',
   'journey.studio.routeLook': 'De lijn',
   'journey.studio.routeStyle': 'Lijnstijl',
   'journey.studio.routePlain': 'Effen',
@@ -597,14 +603,16 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Opnieuw ophalen',
   'journey.studio.roadsClear': 'Wissen',
   'journey.studio.roadsBusy': 'Ophalen',
-  'journey.studio.roadsHint': 'Vraagt een routedienst welke weg er per traject is gereden. Lange trajecten blijven zoals ze zijn.',
+  'journey.studio.roadsHint':
+    'Vraagt een routedienst welke weg er per traject is gereden. Lange trajecten blijven zoals ze zijn.',
   'journey.studio.roadsHave': 'De wegen staan opgeslagen in dit boek, dus offline drukt het dezelfde lijn.',
   'journey.studio.mapPerTrip': 'Eén reis per keer',
   'journey.studio.mapWholeJourney': 'Hele reisverslag',
   'journey.studio.mapScope': 'Weergave',
   'journey.studio.mapPrintDpi': 'Drukt af op ongeveer',
   'journey.studio.mapPrintDpiLow': 'onscherp op dit formaat, probeer een ruimere uitsnede of een andere bron',
-  'journey.studio.mapSourceReliefHint': 'NASA-schaduwreliëf, rechtenvrij te drukken. Goed voor een land of een continent, te grof voor één stad.',
+  'journey.studio.mapSourceReliefHint':
+    'NASA-schaduwreliëf, rechtenvrij te drukken. Goed voor een land of een continent, te grof voor één stad.',
   'journey.studio.mapSourceTiles': 'Kaarttegels',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'Wordt bij het renderen opgehaald en met bronvermelding gedrukt',

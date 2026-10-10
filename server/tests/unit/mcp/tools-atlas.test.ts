@@ -2,21 +2,21 @@
  * Unit tests for MCP atlas and bucket list tools:
  * mark_country_visited, unmark_country_visited, create_bucket_list_item, delete_bucket_list_item.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { BucketList } from '../../../src/db/entities/BucketList.entity';
+import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
+import { createUser, createBucketListItem, createVisitedCountry } from '../../helpers/factories';
+import { countRows, findRow } from '../../helpers/factories/rows';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createBucketListItem, createVisitedCountry } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { countRows, findRow } from '../../helpers/factories/rows';
-import { BucketList } from '../../../src/db/entities/BucketList.entity';
-import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
 
 let orm: TestOrm;
 
@@ -36,7 +36,11 @@ afterAll(async () => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -123,12 +127,16 @@ describe('Tool: create_bucket_list_item', () => {
   it('stores a wished-for region and refuses one outside its country (#1901)', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const ok = parseToolResult(await h.client.callTool({
-        name: 'create_bucket_list_item', arguments: { name: 'Bayern', country_code: 'DE', region_code: 'DE-BY' },
-      })) as any;
+      const ok = parseToolResult(
+        await h.client.callTool({
+          name: 'create_bucket_list_item',
+          arguments: { name: 'Bayern', country_code: 'DE', region_code: 'DE-BY' },
+        }),
+      ) as any;
       expect(ok.item.region_code).toBe('DE-BY');
       const bad = await h.client.callTool({
-        name: 'create_bucket_list_item', arguments: { name: 'Berlin', country_code: 'FR', region_code: 'DE-BE' },
+        name: 'create_bucket_list_item',
+        arguments: { name: 'Berlin', country_code: 'FR', region_code: 'DE-BE' },
       });
       expect(bad.isError).toBe(true);
     });

@@ -11,21 +11,22 @@
  * emptying `user_sessions`, which is exactly what the baseline brings back.
  * The reads and writes around it run for real against the snapshot schema.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { UserSessions } from '../../../src/db/entities/UserSessions.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { resetDemoUser } from '../../../src/demo/demo-reset';
+import { verifyJwtAndLoadUser } from '../../../src/nest/auth-core/jwt-verify';
+import type { DatabaseBackupStrategy } from '../../../src/nest/database/database-backup.interface';
+import { withRequestContext } from '../../../src/nest/database/request-context';
+import { SessionsService } from '../../../src/nest/sessions/sessions.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { countRows, deleteRows, findRows } from '../../helpers/factories/rows';
+import { makeUser } from '../../helpers/factories/users';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import type Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
-import type Database from 'better-sqlite3';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { makeUser } from '../../helpers/factories/users';
-import { countRows, deleteRows, findRows } from '../../helpers/factories/rows';
-import { withRequestContext } from '../../../src/nest/database/request-context';
-import type { DatabaseBackupStrategy } from '../../../src/nest/database/database-backup.interface';
-import { resetDemoUser } from '../../../src/demo/demo-reset';
-import { SessionsService } from '../../../src/nest/sessions/sessions.service';
-import { verifyJwtAndLoadUser } from '../../../src/nest/auth-core/jwt-verify';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { UserSessions } from '../../../src/db/entities/UserSessions.entity';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const BASELINE = path.resolve(__dirname, '..', '..', '..', 'data', 'travel-baseline.db');
 

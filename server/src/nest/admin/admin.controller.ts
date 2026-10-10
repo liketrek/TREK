@@ -1,11 +1,19 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, NotFoundException, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
 import { readEnv } from '../../app-config';
-import { AdminService } from './admin.service';
-import { TokenService } from '../tokens/token.service';
+import type { User } from '../../types';
+import { AddonsService } from '../addons/addons.service';
+import { logInfo } from '../audit/audit-log.logger';
+import { AuditService } from '../audit/audit.service';
+import { getClientIp } from '../audit/client-ip';
+import { AdminGuard } from '../auth-core/admin.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RegistrationInvitesService } from '../auth/registration-invites.service';
-import { OauthService } from '../oauth/oauth.service';
 import { KitineraryExtractorService } from '../booking-import/kitinerary-extractor.service';
+import { ManagedForbidden } from '../common/managed';
+import { NotificationsService } from '../notifications/notifications.service';
+import { OauthService } from '../oauth/oauth.service';
+import { PluginRuntimeService } from '../plugins/plugin-runtime.service';
+import { TokenService } from '../tokens/token.service';
 import {
   AdminUserCreateDto,
   AdminUserUpdateDto,
@@ -17,17 +25,24 @@ import {
   AdminTestNotificationDto,
   AdminTransitProviderDto,
 } from './admin.dto';
-import { PluginRuntimeService } from '../plugins/plugin-runtime.service';
-import { AddonsService } from '../addons/addons.service';
-import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { AdminGuard } from '../auth-core/admin.guard';
-import { CurrentUser } from '../auth-core/current-user.decorator';
-import { getClientIp } from '../audit/client-ip';
-import { logInfo } from '../audit/audit-log.logger';
-import { AuditService } from '../audit/audit.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import type { User } from '../../types';
-import { ManagedForbidden } from '../common/managed';
+import { AdminService } from './admin.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpException,
+  NotFoundException,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * /api/admin — admin-only control surface (users, stats, permissions, audit log,
@@ -62,20 +77,39 @@ export class AdminController {
 
   // ── Users ──
   @Get('users')
-  async listUsers() { return { users: await this.admin.listUsers() }; }
+  async listUsers() {
+    return { users: await this.admin.listUsers() };
+  }
 
   @Post('users')
   @HttpCode(201)
   async createUser(@CurrentUser() user: User, @Body() body: AdminUserCreateDto, @Req() req: Request) {
     const result = await this.admin.createUser(body as Parameters<AdminService['createUser']>[0]);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.user_create', resource: String(result.insertedId), ip: getClientIp(req), details: result.auditDetails });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.user_create',
+      resource: String(result.insertedId),
+      ip: getClientIp(req),
+      details: result.auditDetails,
+    });
     return { user: result.user };
   }
 
   @Put('users/:id')
-  async updateUser(@CurrentUser() user: User, @Param('id') id: string, @Body() body: AdminUserUpdateDto, @Req() req: Request) {
+  async updateUser(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: AdminUserUpdateDto,
+    @Req() req: Request,
+  ) {
     const result = await this.admin.updateUser(id, body);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.user_update', resource: String(id), ip: getClientIp(req), details: { targetUser: result.previousEmail, fields: result.changed } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.user_update',
+      resource: String(id),
+      ip: getClientIp(req),
+      details: { targetUser: result.previousEmail, fields: result.changed },
+    });
     logInfo(`Admin ${user.email} edited user ${result.previousEmail} (fields: ${result.changed.join(', ')})`);
     return { user: result.user };
   }
@@ -83,7 +117,13 @@ export class AdminController {
   @Delete('users/:id')
   async deleteUser(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
     const result = await this.admin.deleteUser(id, user.id);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.user_delete', resource: String(id), ip: getClientIp(req), details: { targetUser: result.email } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.user_delete',
+      resource: String(id),
+      ip: getClientIp(req),
+      details: { targetUser: result.email },
+    });
     logInfo(`Admin ${user.email} deleted user ${result.email}`);
     return { success: true };
   }
@@ -91,33 +131,63 @@ export class AdminController {
   @Delete('users/:id/passkeys')
   async resetUserPasskeys(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
     const result = await this.admin.resetUserPasskeys(id);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.user_passkeys_reset', resource: String(id), ip: getClientIp(req), details: { targetUser: result.email, deleted: result.deleted } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.user_passkeys_reset',
+      resource: String(id),
+      ip: getClientIp(req),
+      details: { targetUser: result.email, deleted: result.deleted },
+    });
     return { success: true, deleted: result.deleted };
   }
 
   @Delete('users/:id/mfa')
   async resetUserMfa(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
     const result = await this.admin.resetUserMfa(id, user.id);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.user_mfa_reset', resource: String(id), ip: getClientIp(req), details: { targetUser: result.email } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.user_mfa_reset',
+      resource: String(id),
+      ip: getClientIp(req),
+      details: { targetUser: result.email },
+    });
     return { success: true };
   }
 
   // ── Stats / permissions / audit ──
   @Get('stats')
-  stats() { return this.admin.getStats(); }
+  stats() {
+    return this.admin.getStats();
+  }
 
   @Get('permissions')
-  permissions() { return this.admin.getPermissions(); }
+  permissions() {
+    return this.admin.getPermissions();
+  }
 
   @Put('permissions')
   async savePermissions(@CurrentUser() user: User, @Body() body: AdminPermissionsDto, @Req() req: Request) {
-    const result = await this.admin.savePermissions(body.permissions as unknown as Parameters<AdminService['savePermissions']>[0]);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.permissions_update', resource: 'permissions', ip: getClientIp(req), details: body.permissions as Record<string, unknown> });
-    return { success: true, permissions: result.permissions, ...(result.skipped.length ? { skipped: result.skipped } : {}) };
+    const result = await this.admin.savePermissions(
+      body.permissions as unknown as Parameters<AdminService['savePermissions']>[0],
+    );
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.permissions_update',
+      resource: 'permissions',
+      ip: getClientIp(req),
+      details: body.permissions as Record<string, unknown>,
+    });
+    return {
+      success: true,
+      permissions: result.permissions,
+      ...(result.skipped.length ? { skipped: result.skipped } : {}),
+    };
   }
 
   @Get('audit-log')
-  auditLog(@Query() query: { limit?: string; offset?: string }) { return this.admin.getAuditLog(query); }
+  auditLog(@Query() query: { limit?: string; offset?: string }) {
+    return this.admin.getAuditLog(query);
+  }
 
   @Post('save-demo-baseline')
   @HttpCode(200)
@@ -134,7 +204,9 @@ export class AdminController {
   }
 
   @Get('version-check')
-  async versionCheck() { return this.admin.checkVersion(); }
+  async versionCheck() {
+    return this.admin.checkVersion();
+  }
 
   /**
    * Versions of the bundled tools an operator cannot see from the UI. Today the
@@ -143,28 +215,45 @@ export class AdminController {
    * unsupported provider without this (#2261).
    */
   @Get('system-info')
-  systemInfo() { return { kitinerary: this.kitinerary.describe() }; }
+  systemInfo() {
+    return { kitinerary: this.kitinerary.describe() };
+  }
 
   // ── Invites ──
   @Get('invites')
-  async listInvites() { return { invites: await this.invites.listInvites() }; }
+  async listInvites() {
+    return { invites: await this.invites.listInvites() };
+  }
 
   // Trips an admin can optionally bind a registration invite to (#1402).
   @Get('invites/trips')
-  async listInviteTrips() { return { trips: await this.invites.listTripsForInvite() }; }
+  async listInviteTrips() {
+    return { trips: await this.invites.listTripsForInvite() };
+  }
 
   @Post('invites')
   @HttpCode(201)
   async createInvite(@CurrentUser() user: User, @Body() body: AdminInviteCreateDto, @Req() req: Request) {
     const result = await this.invites.createInvite(user.id, body);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.invite_create', resource: String(result.inviteId), ip: getClientIp(req), details: { max_uses: result.uses, expires_in_days: result.expiresInDays, trip_id: result.tripId } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.invite_create',
+      resource: String(result.inviteId),
+      ip: getClientIp(req),
+      details: { max_uses: result.uses, expires_in_days: result.expiresInDays, trip_id: result.tripId },
+    });
     return { invite: result.invite };
   }
 
   @Delete('invites/:id')
   async deleteInvite(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
     await this.invites.deleteInvite(id);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.invite_delete', resource: String(id), ip: getClientIp(req) });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.invite_delete',
+      resource: String(id),
+      ip: getClientIp(req),
+    });
     return { success: true };
   }
 
@@ -178,77 +267,128 @@ export class AdminController {
   // edge would close a cycle.
 
   @Get('bag-tracking')
-  getBagTracking() { return this.addons.getBagTracking(); }
+  getBagTracking() {
+    return this.addons.getBagTracking();
+  }
 
   @Put('bag-tracking')
   async updateBagTracking(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = await this.addons.updateBagTracking(body.enabled);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.bag_tracking', ip: getClientIp(req), details: { enabled: result.enabled } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.bag_tracking',
+      ip: getClientIp(req),
+      details: { enabled: result.enabled },
+    });
     return result;
   }
 
   @Get('places-photos')
-  getPlacesPhotos() { return this.addons.getPlacesPhotos(); }
+  getPlacesPhotos() {
+    return this.addons.getPlacesPhotos();
+  }
 
   @Put('places-photos')
   async updatePlacesPhotos(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = await this.addons.updatePlacesPhotos(body.enabled);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.places_photos', ip: getClientIp(req), details: { enabled: result.enabled } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.places_photos',
+      ip: getClientIp(req),
+      details: { enabled: result.enabled },
+    });
     return result;
   }
 
   @Get('places-autocomplete')
-  getPlacesAutocomplete() { return this.addons.getPlacesAutocomplete(); }
+  getPlacesAutocomplete() {
+    return this.addons.getPlacesAutocomplete();
+  }
 
   @Put('places-autocomplete')
   async updatePlacesAutocomplete(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = await this.addons.updatePlacesAutocomplete(body.enabled);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.places_autocomplete', ip: getClientIp(req), details: { enabled: result.enabled } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.places_autocomplete',
+      ip: getClientIp(req),
+      details: { enabled: result.enabled },
+    });
     return result;
   }
 
   @Get('places-details')
-  getPlacesDetails() { return this.addons.getPlacesDetails(); }
+  getPlacesDetails() {
+    return this.addons.getPlacesDetails();
+  }
 
   @Put('places-details')
   async updatePlacesDetails(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = await this.addons.updatePlacesDetails(body.enabled);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.places_details', ip: getClientIp(req), details: { enabled: result.enabled } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.places_details',
+      ip: getClientIp(req),
+      details: { enabled: result.enabled },
+    });
     return result;
   }
 
   @Get('place-shadow')
-  getPlaceShadow() { return this.addons.getPlaceShadow(); }
+  getPlaceShadow() {
+    return this.addons.getPlaceShadow();
+  }
 
   @Put('place-shadow')
   async updatePlaceShadow(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = await this.addons.updatePlaceShadow(body.enabled);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.place_shadow', ip: getClientIp(req), details: { enabled: result.enabled } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.place_shadow',
+      ip: getClientIp(req),
+      details: { enabled: result.enabled },
+    });
     return result;
   }
 
   @Get('places-google-only')
-  getPlacesGoogleOnly() { return this.addons.getPlacesGoogleOnly(); }
+  getPlacesGoogleOnly() {
+    return this.addons.getPlacesGoogleOnly();
+  }
 
   @Put('places-google-only')
   async updatePlacesGoogleOnly(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = await this.addons.updatePlacesGoogleOnly(body.enabled);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.places_google_only', ip: getClientIp(req), details: { enabled: result.enabled } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.places_google_only',
+      ip: getClientIp(req),
+      details: { enabled: result.enabled },
+    });
     return result;
   }
 
   @Get('places-enrich')
-  getPlacesEnrich() { return this.addons.getPlacesEnrich(); }
+  getPlacesEnrich() {
+    return this.addons.getPlacesEnrich();
+  }
 
   @Put('places-enrich')
   async updatePlacesEnrich(@CurrentUser() user: User, @Body() body: AdminFeatureToggleDto, @Req() req: Request) {
     const result = await this.addons.updatePlacesEnrich(body.enabled);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.places_enrich', ip: getClientIp(req), details: { enabled: result.enabled } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.places_enrich',
+      ip: getClientIp(req),
+      details: { enabled: result.enabled },
+    });
     return result;
   }
 
   @Get('collab-features')
-  getCollabFeatures() { return this.addons.getCollabFeatures(); }
+  getCollabFeatures() {
+    return this.addons.getCollabFeatures();
+  }
 
   @Put('collab-features')
   async updateCollabFeatures(@CurrentUser() user: User, @Body() body: AdminCollabFeaturesDto, @Req() req: Request) {
@@ -256,30 +396,55 @@ export class AdminController {
     // Collab flags gate MCP registration, but a no-op save must not tear down
     // every live MCP session (#1414).
     if (changed) this.admin.invalidateMcpSessions();
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.collab_features', ip: getClientIp(req), details: features });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.collab_features',
+      ip: getClientIp(req),
+      details: features,
+    });
     return features;
   }
 
   // Which backend answers /api/transit (#1699). Transitous unless an admin
   // says otherwise, and still Transitous if Google is picked without a key.
   @Get('transit-provider')
-  getTransitProvider(@CurrentUser() user: User) { return this.addons.getTransitProvider(user.id); }
+  getTransitProvider(@CurrentUser() user: User) {
+    return this.addons.getTransitProvider(user.id);
+  }
 
   @Put('transit-provider')
   async updateTransitProvider(@CurrentUser() user: User, @Body() body: AdminTransitProviderDto, @Req() req: Request) {
     const result = await this.addons.updateTransitProvider(body.provider, user.id);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.transit_provider', ip: getClientIp(req), details: { provider: result.provider } });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.transit_provider',
+      ip: getClientIp(req),
+      details: { provider: result.provider },
+    });
     return result;
   }
 
   // ── Addons ──
   @Get('addons')
-  async listAddons() { return { addons: await this.admin.listAddons() }; }
+  async listAddons() {
+    return { addons: await this.admin.listAddons() };
+  }
 
   @Put('addons/:id')
-  async updateAddon(@CurrentUser() user: User, @Param('id') id: string, @Body() body: AdminAddonUpdateDto, @Req() req: Request) {
+  async updateAddon(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: AdminAddonUpdateDto,
+    @Req() req: Request,
+  ) {
     const result = await this.admin.updateAddon(id, body);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.addon_update', resource: String(id), ip: getClientIp(req), details: result.auditDetails });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.addon_update',
+      resource: String(id),
+      ip: getClientIp(req),
+      details: result.auditDetails,
+    });
     // Sessions only need re-creating when the registered MCP surface can
     // actually change — an enabled-flip of an MCP-relevant addon. Config-only
     // saves and photo-provider toggles used to kill every session (#1414).
@@ -300,22 +465,36 @@ export class AdminController {
 
   // ── MCP tokens / OAuth sessions ──
   @Get('mcp-tokens')
-  async listMcpTokens() { return { tokens: await this.tokens.listAllMcpTokens() }; }
+  async listMcpTokens() {
+    return { tokens: await this.tokens.listAllMcpTokens() };
+  }
 
   @Delete('mcp-tokens/:id')
   async deleteMcpToken(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
     await this.tokens.adminDeleteMcpToken(id);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.mcp_token_delete', resource: String(id), ip: getClientIp(req) });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.mcp_token_delete',
+      resource: String(id),
+      ip: getClientIp(req),
+    });
     return { success: true };
   }
 
   @Get('oauth-sessions')
-  async listOAuthSessions() { return { sessions: await this.oauth.listAllOAuthSessions() }; }
+  async listOAuthSessions() {
+    return { sessions: await this.oauth.listAllOAuthSessions() };
+  }
 
   @Delete('oauth-sessions/:id')
   async revokeOAuthSession(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
     await this.oauth.adminRevokeOAuthSession(id);
-    await this.audit.writeAudit({ userId: user.id, action: 'admin.oauth_session_revoke', resource: String(id), ip: getClientIp(req) });
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'admin.oauth_session_revoke',
+      resource: String(id),
+      ip: getClientIp(req),
+    });
     return { success: true };
   }
 

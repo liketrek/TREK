@@ -1,12 +1,13 @@
-import type Database from 'better-sqlite3';
-import { AddonsService } from '../../src/nest/addons/addons.service';
-import { sharedTestOrm } from './test-uow';
-import { UnitOfWork } from '../../src/nest/database/unit-of-work';
 import { Addons } from '../../src/db/entities/Addons.entity';
-import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
-import { PhotoProviderFields } from '../../src/db/entities/PhotoProviderFields.entity';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
+import { PhotoProviderFields } from '../../src/db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
 import { Users } from '../../src/db/entities/Users.entity';
+import { AddonsService } from '../../src/nest/addons/addons.service';
+import { UnitOfWork } from '../../src/nest/database/unit-of-work';
+import { sharedTestOrm } from './test-uow';
+
+import type Database from 'better-sqlite3';
 
 /**
  * AddonsService's constructor grew from one `DatabaseService` to four

@@ -26,7 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Selecteer sjabloon...',
   'settings.mapDefaultHint': 'Laat leeg voor OpenStreetMap (standaard)',
   'settings.routingBase': 'Eigen routeserver',
-  'settings.routingBaseHint': 'Een eigen OSRM-server. Leeg gebruikt de publieke servers, die ongeveer één verzoek per seconde toestaan — genoeg voor een dag, krap voor een roadtrip. Werkt na een herstart van de server.',
+  'settings.routingBaseHint':
+    'Een eigen OSRM-server. Leeg gebruikt de publieke servers, die ongeveer één verzoek per seconde toestaan — genoeg voor een dag, krap voor een roadtrip. Werkt na een herstart van de server.',
   'settings.valhallaBase': 'Eigen Valhalla-instantie',
   'settings.valhallaBaseHint':
     'TREK gebruikt standaard de publieke Valhalla van FOSSGIS om tolwegen, snelwegen en veerboten te vermijden. Vul hier de URL van je eigen Valhalla in om die te gebruiken. Als alleen een eigen routeringsinstantie is ingesteld, wordt de publieke Valhalla niet gebruikt. Herstart na het invoeren van een eigen URL de server en laad de pagina opnieuw.',
@@ -81,7 +82,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Eerste dag van de week in elke datumkiezer. Vacay heeft een eigen instelling.',
   'settings.preferredNavApp': 'Plekken openen in',
   'settings.preferredNavAppAsk': 'Elke keer vragen',
-  'settings.preferredNavAppHint': 'Met een gekozen app opent de navigatieknop die meteen, in plaats van alle kaart-apps aan te bieden.',
+  'settings.preferredNavAppHint':
+    'Met een gekozen app opent de navigatieknop die meteen, in plaats van alle kaart-apps aan te bieden.',
   'settings.blurBookingCodes': 'Boekingscodes vervagen',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -549,8 +551,10 @@ const settings: TranslationStrings = {
   'settings.offline.notice.busy': 'Er loopt al een synchronisatie. Probeer het zo opnieuw.',
   'settings.offline.notice.offline': 'Geen verbinding. Maak verbinding om reizen offline op te slaan.',
   'settings.offline.notice.signedOut': 'Je sessie is verlopen. Meld je opnieuw aan om te synchroniseren.',
-  'settings.offline.notice.failed': 'De download kon niet worden voltooid. Controleer je verbinding en probeer het opnieuw.',
-  'settings.offline.notice.loadFailed': 'Kan de offlineopslag van dit apparaat niet lezen. De cache wissen helpt meestal.',
+  'settings.offline.notice.failed':
+    'De download kon niet worden voltooid. Controleer je verbinding en probeer het opnieuw.',
+  'settings.offline.notice.loadFailed':
+    'Kan de offlineopslag van dit apparaat niet lezen. De cache wissen helpt meestal.',
   'settings.offline.clear': 'Cache wissen',
   'settings.offline.clearConfirm':
     'Alle offline reisgegevens wissen? Je kunt altijd opnieuw synchroniseren wanneer je online bent.',
@@ -618,13 +622,15 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Wensenlijst',
   'settings.apiScopes.stats': 'Totalen',
   'settings.apiKeys.title': 'API-sleutels',
-  'settings.apiKeys.description': 'Sleutels voor de publieke API, zodat andere software je reizen kan lezen. Alleen-lezen: een sleutel kan niets wijzigen of verwijderen.',
+  'settings.apiKeys.description':
+    'Sleutels voor de publieke API, zodat andere software je reizen kan lezen. Alleen-lezen: een sleutel kan niets wijzigen of verwijderen.',
   'settings.apiKeys.create': 'Sleutel aanmaken',
   'settings.apiKeys.empty': 'Nog geen sleutels. Maak er een om andere software te koppelen.',
   'settings.apiKeys.createdAt': 'aangemaakt',
   'settings.apiKeys.usedAt': 'laatst gebruikt',
   'settings.apiKeys.deleteTitle': 'Sleutel verwijderen',
-  'settings.apiKeys.deleteMessage': 'Alles wat deze sleutel gebruikt, stopt direct met werken. Dit kan niet ongedaan worden gemaakt.',
+  'settings.apiKeys.deleteMessage':
+    'Alles wat deze sleutel gebruikt, stopt direct met werken. Dit kan niet ongedaan worden gemaakt.',
   'settings.apiKeys.deleted': 'Sleutel verwijderd',
   'settings.apiKeys.deleteFailed': 'Sleutel kon niet worden verwijderd',
   'settings.apiKeys.createFailed': 'Sleutel kon niet worden aangemaakt',
@@ -632,7 +638,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.docsHint': 'Stuur de sleutel als "Authorization: Bearer ..." of "X-API-Key: ..." naar /api/v1.',
   'settings.apiKeys.endpoint': 'Eindpunt',
   'settings.apiKeys.neverUsed': 'nooit gebruikt',
-  'settings.apiKeys.loadFailed': 'Je sleutels konden niet worden geladen. Herlaad de pagina om het opnieuw te proberen.',
+  'settings.apiKeys.loadFailed':
+    'Je sleutels konden niet worden geladen. Herlaad de pagina om het opnieuw te proberen.',
   'settings.apiKeys.limitReached':
     'Je hebt {count} sleutels, het maximum per account. Verwijder er een die je niet meer gebruikt om een nieuwe te maken.',
   'settings.apiKeys.limitReached.one':
@@ -645,7 +652,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Aanmaken...',
   'settings.apiKeys.modal.create': 'Aanmaken',
   'settings.apiKeys.modal.createdTitle': 'API-sleutel aangemaakt',
-  'settings.apiKeys.modal.createdWarning': 'Kopieer de sleutel nu. Hij wordt één keer getoond en kan later niet worden opgehaald.',
+  'settings.apiKeys.modal.createdWarning':
+    'Kopieer de sleutel nu. Hij wordt één keer getoond en kan later niet worden opgehaald.',
   'settings.apiKeys.modal.done': 'Klaar',
 };
 

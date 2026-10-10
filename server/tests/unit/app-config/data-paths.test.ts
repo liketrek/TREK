@@ -4,12 +4,18 @@
  * (DataPathsService). These cases pin where each path lands, because a moved
  * anchor silently moves the database, the key files or the backups.
  */
-import { describe, it, expect, afterEach, vi } from 'vitest';
-import path from 'node:path';
 import { resolveDataPaths, SERVER_ROOT } from '../../../src/app-config/data-paths';
 import { DataPathsService } from '../../../src/nest/app-config/data-paths.service';
-import { DEFAULT_BACKUPS_ROOT, DEFAULT_UPLOADS_ROOT, DATA_ROOT, GLOBAL_TEMP_DIR } from '../../../src/nest/storage/storage-paths';
 import { filesDir } from '../../../src/nest/files/files.constants';
+import {
+  DEFAULT_BACKUPS_ROOT,
+  DEFAULT_UPLOADS_ROOT,
+  DATA_ROOT,
+  GLOBAL_TEMP_DIR,
+} from '../../../src/nest/storage/storage-paths';
+
+import path from 'node:path';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 
 const SERVER_DIR = path.resolve(__dirname, '..', '..', '..');
 

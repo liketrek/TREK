@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} มีจำหน่ายแล้ว',
   'notif.replica_failure.title': 'การจำลองการจัดเก็บข้อมูลล้มเหลว',
   'notif.replica_failure.text': "การเขียนแบบจำลองล้มเหลวใน '{backend}': {op} จาก {key} — {error}",
-  'notif.replica_failure.textSuppressed': "การเขียนแบบจำลองล้มเหลวใน '{backend}': {op} จาก {key} — {error} {suppressed} ความล้มเหลวเพิ่มขึ้นถูกระงับนับตั้งแต่การแจ้งเตือนครั้งล่าสุด",
+  'notif.replica_failure.textSuppressed':
+    "การเขียนแบบจำลองล้มเหลวใน '{backend}': {op} จาก {key} — {error} {suppressed} ความล้มเหลวเพิ่มขึ้นถูกระงับนับตั้งแต่การแจ้งเตือนครั้งล่าสุด",
   'notif.action.view_trip': 'ดูการเดินทาง',
   'notif.action.view_collab': 'ดูข้อความ',
   'notif.action.view_packing': 'ดูการบรรจุ',

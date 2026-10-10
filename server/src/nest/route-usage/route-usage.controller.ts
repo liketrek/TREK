@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
-import type { RouteUsageReportResult, RouteUsageSummaryResult } from '@trek/shared';
 import { AdminGuard } from '../auth-core/admin.guard';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RouteUsageReportDto } from './route-usage.dto';
 import { RouteUsageService } from './route-usage.service';
+import { Body, Controller, Delete, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
+import type { RouteUsageReportResult, RouteUsageSummaryResult } from '@trek/shared';
 
 /**
  * /api/route-usage — how much routing this instance does.
