@@ -178,7 +178,7 @@ describe('import-boundaries.mjs', () => {
     expect(out).toContain('FAIL  dbImportsNest: db/orm.ts -> nest/database/request-context.ts');
   });
 
-  it('BOUND-012: a provider may not import the orchestrator above it, type-only included', () => {
+  it('BOUND-014: a provider may not import the orchestrator above it, type-only included', () => {
     const dir = serverRoot({
       'nest/maps/maps.service.ts':
         "import { Osm } from './providers/osm.client';\nexport class MapsService { o = Osm; }\n",
