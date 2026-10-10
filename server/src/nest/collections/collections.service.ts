@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import path from 'path';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -98,9 +99,7 @@ function serializeLinks(links: CollectionLink[] | undefined): string | null {
 // ---------------------------------------------------------------------------
 
 function httpError(status: number, message: string): never {
-  const err = new Error(message) as Error & { status: number };
-  err.status = status;
-  throw err;
+  throw new DomainError(status, message);
 }
 
 /** Re-exported under this service's historical name — the underlying type
@@ -1365,17 +1364,17 @@ export class CollectionsService {
   async sendInvite(
     collectionId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number,
     role: 'viewer' | 'editor' | 'admin' = 'editor',
-  ): Promise<{ error?: string; status?: number }> {
-    if (!(await this.isOwner(inviterId, collectionId))) return { error: 'Not allowed', status: 403 };
-    if (targetUserId === inviterId) return { error: 'Cannot invite yourself', status: 400 };
+  ): Promise<void> {
+    if (!(await this.isOwner(inviterId, collectionId))) throw new DomainError(403, 'Not allowed');
+    if (targetUserId === inviterId) throw new DomainError(400, 'Cannot invite yourself');
 
     const targetUser = await this.users.findIdUsername(targetUserId);
-    if (!targetUser) return { error: 'User not found', status: 404 };
+    if (!targetUser) throw new DomainError(404, 'User not found');
 
     const existing = await this.members.findByCollectionAndUser(collectionId, targetUserId);
     if (existing) {
-      if (existing.status === 'accepted') return { error: 'Already a member', status: 400 };
-      if (existing.status === 'pending') return { error: 'Invite already pending', status: 400 };
+      if (existing.status === 'accepted') throw new DomainError(400, 'Already a member');
+      if (existing.status === 'pending') throw new DomainError(400, 'Invite already pending');
     }
 
     await this.members.insertInvite(collectionId, targetUserId, role);
@@ -1387,16 +1386,13 @@ export class CollectionsService {
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
     this.notifications.send({ event: 'collection_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterEmail, collectionId: String(collectionId) } }).catch(() => {});
-
-    return {};
   }
 
-  async acceptInvite(userId: number, collectionId: number, socketId: string | undefined): Promise<{ error?: string; status?: number }> {
+  async acceptInvite(userId: number, collectionId: number, socketId: string | undefined): Promise<void> {
     const inviteId = await this.members.findPendingInvite(collectionId, userId);
-    if (inviteId === undefined) return { error: 'No pending invite', status: 404 };
+    if (inviteId === undefined) throw new DomainError(404, 'No pending invite');
     await this.members.accept(inviteId);
     await this.notifyCollectionUsers(collectionId, socketId, 'collections:accepted');
-    return {};
   }
 
   async declineInvite(userId: number, collectionId: number, socketId: string | undefined): Promise<void> {

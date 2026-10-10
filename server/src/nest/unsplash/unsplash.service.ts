@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import { Readable } from 'node:stream';
 import { v4 as uuidv4 } from 'uuid';
 import { Injectable } from '@nestjs/common';
@@ -81,7 +82,7 @@ export class UnsplashService {
   async searchUnsplashPhotos(query: string, perPage = 9, accessKey?: string | null) {
   const trimmed = query.trim();
   if (!trimmed) {
-    return { error: 'Search query is required', status: 400 };
+    throw new DomainError(400, 'Search query is required');
   }
 
   const params = new URLSearchParams({
@@ -116,11 +117,11 @@ export class UnsplashService {
   try {
     data = await response.json() as UnsplashSearchResponse;
   } catch {
-    return { error: 'Unsplash search unavailable', status: response.ok ? 502 : response.status };
+    throw new DomainError(response.ok ? 502 : response.status, 'Unsplash search unavailable');
   }
 
   if (!response.ok) {
-    return { error: data.errors?.[0] || data.error || 'Unsplash search unavailable', status: response.status };
+    throw new DomainError(response.status, data.errors?.[0] || data.error || 'Unsplash search unavailable');
   }
 
   const photos: UnsplashPhoto[] = (data.results || [])

@@ -363,8 +363,7 @@ export class CollectionsMcp {
     // of two where an unexpected throw escaped to the SDK instead of isError.
     try {
       const me = await this.users.findUsernameEmail(ctx.userId);
-      const res = await this.collections.sendInvite(collection_id, ctx.userId, me?.username ?? '', me?.email ?? '', user_id, role);
-      if (res.error) return { content: [{ type: 'text' as const, text: res.error }], isError: true };
+      await this.collections.sendInvite(collection_id, ctx.userId, me?.username ?? '', me?.email ?? '', user_id, role);
       return ok({ success: true });
     } catch (err) { return fail(err); }
   }
@@ -429,8 +428,7 @@ export class CollectionsMcp {
   async acceptCollectionInvite({ collectionId }: { collectionId: number }, ctx: McpContext) {
     // try/catch added with the post-fold quirk pass (see inviteToCollection).
     try {
-      const res = await this.collections.acceptInvite(ctx.userId, collectionId, undefined);
-      if (res.error) return { content: [{ type: 'text' as const, text: res.error }], isError: true };
+      await this.collections.acceptInvite(ctx.userId, collectionId, undefined);
       return ok({ success: true });
     } catch (err) { return fail(err); }
   }

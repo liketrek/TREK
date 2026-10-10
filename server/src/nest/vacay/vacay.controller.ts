@@ -124,20 +124,14 @@ export class VacayController {
       throw new HttpException({ error: 'user_id required' }, 400);
     }
     const plan = await this.vacay.getActivePlan(user.id);
-    const result = await this.vacay.sendInvite(plan.id, user.id, user.username, user.email, body.user_id as number);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
+    await this.vacay.sendInvite(plan.id, user.id, user.username, user.email, body.user_id as number);
     return { success: true };
   }
 
   @Post('invite/accept')
   @HttpCode(200)
   async acceptInvite(@CurrentUser() user: User, @Body() body: VacayInviteActionDto, @Headers('x-socket-id') socketId?: string) {
-    const result = await this.vacay.acceptInvite(user.id, body.plan_id as number, socketId);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
+    await this.vacay.acceptInvite(user.id, body.plan_id as number, socketId);
     return { success: true };
   }
 
@@ -286,10 +280,7 @@ export class VacayController {
     if (!body.user_id) {
       throw new HttpException({ error: 'user_id required' }, 400);
     }
-    const result = await this.vacay.shareCalendar(user.id, user.email, Number.parseInt(String(body.user_id)), socketId);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
+    await this.vacay.shareCalendar(user.id, user.email, Number.parseInt(String(body.user_id)), socketId);
     return { success: true };
   }
 
@@ -327,27 +318,18 @@ export class VacayController {
   @Get('holidays/countries')
   async holidayCountries() {
     const result = await this.vacay.getCountries();
-    if (result.error) {
-      throw new HttpException({ error: result.error }, 502);
-    }
     return result.data;
   }
 
   @Get('holidays/:year/:country')
   async holidays(@Param('year') year: string, @Param('country') country: string) {
     const result = await this.vacay.getHolidays(year, country);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, 502);
-    }
     return result.data;
   }
 
   @Get('school-holidays/regions/:country')
   async schoolHolidayRegions(@Param('country') country: string) {
     const result = await this.vacay.getSchoolHolidayRegions(country, country.toUpperCase() === 'DE' ? 'DE' : 'EN');
-    if (result.error) {
-      throw new HttpException({ error: result.error }, 502);
-    }
     return result.data;
   }
 
@@ -372,9 +354,6 @@ export class VacayController {
 
   private async schoolHolidays(year: string, country: string, subdivision?: string, group?: string) {
     const result = await this.vacay.getSchoolHolidays(year, country, subdivision, country.toUpperCase() === 'DE' ? 'DE' : 'EN', group);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, 502);
-    }
     return result.data;
   }
 }

@@ -7,7 +7,8 @@ import { DomainError } from '../../src/nest/common/domain-error';
  */
 export async function asLegacyResult<T>(call: Promise<T> | T): Promise<T & { error?: string; status?: number }> {
   try {
-    return (await call) as T & { error?: string; status?: number };
+    // A call that resolves to nothing (a void write) reads as the empty success it used to return.
+    return ((await call) ?? {}) as T & { error?: string; status?: number };
   } catch (err) {
     if (err instanceof DomainError) {
       return { ...err.details, error: err.publicMessage, status: err.getStatus() } as T & {

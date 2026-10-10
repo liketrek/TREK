@@ -1,3 +1,4 @@
+import { asLegacyResult } from '../../helpers/domain-error';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup (real in-memory SQLite) ─────────────────────────────────────────
@@ -902,7 +903,7 @@ describe('acceptInvite', () => {
     await svc.getOwnPlan(invitee.id); // ensure own plan exists for data migration path
     await insertMember(ownerPlan.id, invitee.id, 'pending');
 
-    const result = await svc.acceptInvite(invitee.id, ownerPlan.id, undefined);
+    const result = await asLegacyResult(svc.acceptInvite(invitee.id, ownerPlan.id, undefined));
 
     expect(result.error).toBeUndefined();
     const row = await storedFields(VacayPlanMembers, { plan: ownerPlan.id, user: invitee.id }, ['status']) as { status: string } | undefined;
@@ -912,7 +913,7 @@ describe('acceptInvite', () => {
   it('VACAY-SVC-038: returns 404 error when there is no pending invite', async () => {
     const { user } = createUser(testDb);
 
-    const result = await svc.acceptInvite(user.id, 99999, undefined);
+    const result = await asLegacyResult(svc.acceptInvite(user.id, 99999, undefined));
 
     expect(result.status).toBe(404);
     expect(result.error).toBeDefined();
@@ -924,7 +925,7 @@ describe('acceptInvite', () => {
     await svc.getOwnPlan(invitee.id);
     await insertMember(ownerPlan.id, invitee.id, 'pending');
 
-    await svc.acceptInvite(invitee.id, ownerPlan.id, undefined);
+    await asLegacyResult(svc.acceptInvite(invitee.id, ownerPlan.id, undefined));
 
     const active = await svc.getActivePlan(invitee.id);
     expect(active.id).toBe(ownerPlan.id);
@@ -1013,9 +1014,9 @@ describe('getAvailableUsers', () => {
 
     // The picker is only a list. The id comes back from the client, and the MCP
     // tools reach the same two methods, so refusing has to happen here.
-    const invited = await svc.sendInvite(plan.id, owner.id, 'owner', 'owner@example.test', guest.id);
+    const invited = await asLegacyResult(svc.sendInvite(plan.id, owner.id, 'owner', 'owner@example.test', guest.id));
     expect(invited.error).toBe('User not found');
-    const shared = await svc.shareCalendar(owner.id, 'owner@example.test', guest.id);
+    const shared = await asLegacyResult(svc.shareCalendar(owner.id, 'owner@example.test', guest.id));
     expect(shared.error).toBe('User not found');
   });
 });
@@ -1463,7 +1464,7 @@ describe('shareCalendar', () => {
     const { user: owner } = await setupUserWithPlan();
     const { user: target } = createUser(testDb);
 
-    const result = await svc.shareCalendar(owner.id, owner.email, target.id);
+    const result = await asLegacyResult(svc.shareCalendar(owner.id, owner.email, target.id));
 
     expect(result.error).toBeUndefined();
     const row = await storedRow(VacayShares, { owner: owner.id, user: target.id });
@@ -1473,7 +1474,7 @@ describe('shareCalendar', () => {
   it('VACAY-SVC-049: returns 400 when sharing with yourself', async () => {
     const { user: owner } = await setupUserWithPlan();
 
-    const result = await svc.shareCalendar(owner.id, owner.email, owner.id);
+    const result = await asLegacyResult(svc.shareCalendar(owner.id, owner.email, owner.id));
 
     expect(result).toEqual({ error: 'Cannot share with yourself', status: 400 });
   });
@@ -1481,7 +1482,7 @@ describe('shareCalendar', () => {
   it('VACAY-SVC-050: returns 404 when the target user does not exist', async () => {
     const { user: owner } = await setupUserWithPlan();
 
-    const result = await svc.shareCalendar(owner.id, owner.email, 99999);
+    const result = await asLegacyResult(svc.shareCalendar(owner.id, owner.email, 99999));
 
     expect(result).toEqual({ error: 'User not found', status: 404 });
   });
@@ -1489,9 +1490,9 @@ describe('shareCalendar', () => {
   it('VACAY-SVC-051: returns 400 when the share already exists', async () => {
     const { user: owner } = await setupUserWithPlan();
     const { user: target } = createUser(testDb);
-    await svc.shareCalendar(owner.id, owner.email, target.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, target.id));
 
-    const result = await svc.shareCalendar(owner.id, owner.email, target.id);
+    const result = await asLegacyResult(svc.shareCalendar(owner.id, owner.email, target.id));
 
     expect(result).toEqual({ error: 'Already shared', status: 400 });
   });
@@ -1501,7 +1502,7 @@ describe('shareCalendar', () => {
     const { user: member } = createUser(testDb);
     await insertMember(plan.id, member.id, 'accepted');
 
-    const result = await svc.shareCalendar(owner.id, owner.email, member.id);
+    const result = await asLegacyResult(svc.shareCalendar(owner.id, owner.email, member.id));
 
     expect(result).toEqual({ error: 'User is already in your calendar', status: 400 });
   });
@@ -1511,7 +1512,7 @@ describe('listShares', () => {
   it('VACAY-SVC-053: outgoing rows carry the target user info', async () => {
     const { user: owner } = await setupUserWithPlan();
     const { user: target } = createUser(testDb);
-    await svc.shareCalendar(owner.id, owner.email, target.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, target.id));
 
     const result = await svc.listShares(owner.id);
 
@@ -1528,7 +1529,7 @@ describe('listShares', () => {
     const { user: owner, plan } = await setupUserWithPlan();
     await svc.setUserColor(owner.id, plan.id, '#ef4444', undefined);
     const { user: viewer } = await setupUserWithPlan();
-    await svc.shareCalendar(owner.id, owner.email, viewer.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, viewer.id));
 
     const result = await svc.listShares(viewer.id);
 
@@ -1547,8 +1548,8 @@ describe('listShares', () => {
     const { user: viewer } = await setupUserWithPlan(); // viewer's own color is #6366f1
     const { user: owner1 } = await setupUserWithPlan(); // default #6366f1
     const { user: owner2 } = await setupUserWithPlan(); // default #6366f1
-    await svc.shareCalendar(owner1.id, owner1.email, viewer.id);
-    await svc.shareCalendar(owner2.id, owner2.email, viewer.id);
+    await asLegacyResult(svc.shareCalendar(owner1.id, owner1.email, viewer.id));
+    await asLegacyResult(svc.shareCalendar(owner2.id, owner2.email, viewer.id));
 
     const { incoming } = await svc.listShares(viewer.id);
 
@@ -1564,7 +1565,7 @@ describe('removeShare', () => {
   it('VACAY-SVC-056: the owner can revoke their share', async () => {
     const { user: owner } = await setupUserWithPlan();
     const { user: viewer } = createUser(testDb);
-    await svc.shareCalendar(owner.id, owner.email, viewer.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, viewer.id));
     const shareId = (await svc.listShares(owner.id)).outgoing[0].id as number;
 
     expect(await svc.removeShare(shareId, owner.id)).toBe(true);
@@ -1575,7 +1576,7 @@ describe('removeShare', () => {
   it('VACAY-SVC-057: the recipient can remove a share they received', async () => {
     const { user: owner } = await setupUserWithPlan();
     const { user: viewer } = createUser(testDb);
-    await svc.shareCalendar(owner.id, owner.email, viewer.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, viewer.id));
     const shareId = (await svc.listShares(viewer.id)).incoming[0].id;
 
     expect(await svc.removeShare(shareId, viewer.id)).toBe(true);
@@ -1585,7 +1586,7 @@ describe('removeShare', () => {
     const { user: owner } = await setupUserWithPlan();
     const { user: viewer } = createUser(testDb);
     const { user: stranger } = createUser(testDb);
-    await svc.shareCalendar(owner.id, owner.email, viewer.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, viewer.id));
     const shareId = (await svc.listShares(owner.id)).outgoing[0].id as number;
 
     expect(await svc.removeShare(shareId, stranger.id)).toBe(false);
@@ -1600,7 +1601,7 @@ describe('setShareHidden', () => {
   it('VACAY-SVC-059: the recipient can hide and unhide the shared calendar', async () => {
     const { user: owner } = await setupUserWithPlan();
     const { user: viewer } = createUser(testDb);
-    await svc.shareCalendar(owner.id, owner.email, viewer.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, viewer.id));
     const shareId = (await svc.listShares(viewer.id)).incoming[0].id;
 
     expect(await svc.setShareHidden(shareId, viewer.id, true)).toBe(true);
@@ -1616,7 +1617,7 @@ describe('setShareHidden', () => {
   it('VACAY-SVC-060: the owner cannot toggle the recipient hidden flag', async () => {
     const { user: owner } = await setupUserWithPlan();
     const { user: viewer } = createUser(testDb);
-    await svc.shareCalendar(owner.id, owner.email, viewer.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, viewer.id));
     const shareId = (await svc.listShares(owner.id)).outgoing[0].id as number;
 
     expect(await svc.setShareHidden(shareId, owner.id, true)).toBe(false);
@@ -1631,7 +1632,7 @@ describe('getShareAvailableUsers', () => {
     const { user: member } = createUser(testDb);
     await insertMember(plan.id, member.id, 'accepted');
     const { user: shared } = createUser(testDb);
-    await svc.shareCalendar(owner.id, owner.email, shared.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, shared.id));
     const { user: unrelated } = createUser(testDb);
 
     const ids = (await svc.getShareAvailableUsers(owner.id) as { id: number }[]).map(u => u.id);
@@ -1652,7 +1653,7 @@ describe('getSharedCalendars', () => {
     await svc.toggleEntry(owner.id, plan.id, '2025-06-10', 1);
     await svc.toggleEntry(owner.id, plan.id, '2025-06-11', 0.5);
     await svc.toggleEntry(member.id, plan.id, '2025-06-12', 1);
-    await svc.shareCalendar(owner.id, owner.email, viewer.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, viewer.id));
 
     const calendars = await svc.getSharedCalendars(viewer.id, '2025');
 
@@ -1671,7 +1672,7 @@ describe('getSharedCalendars', () => {
     const { user: viewer } = createUser(testDb);
     await updateRows(await orm(), VacayPlans, { id: plan.id }, { company_holidays_enabled: 0 });
     await svc.toggleCompanyHoliday(plan.id, '2025-12-24', 'Christmas Eve', undefined);
-    await svc.shareCalendar(owner.id, owner.email, viewer.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, viewer.id));
 
     const calendars = await svc.getSharedCalendars(viewer.id, '2025');
 
@@ -1683,7 +1684,7 @@ describe('getSharedCalendars', () => {
     const { user: viewer } = createUser(testDb);
     await updateRows(await orm(), VacayPlans, { id: plan.id }, { company_holidays_enabled: 1 });
     await svc.toggleCompanyHoliday(plan.id, '2025-12-24', 'Christmas Eve', undefined);
-    await svc.shareCalendar(owner.id, owner.email, viewer.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, viewer.id));
 
     const calendars = await svc.getSharedCalendars(viewer.id, '2025');
 
@@ -1711,7 +1712,7 @@ describe('getSharedCalendars', () => {
     await insertMember(hostPlan.id, owner.id, 'accepted');
     const { user: viewer } = createUser(testDb);
     await svc.toggleEntry(owner.id, hostPlan.id, '2025-03-03', 1);
-    await svc.shareCalendar(owner.id, owner.email, viewer.id);
+    await asLegacyResult(svc.shareCalendar(owner.id, owner.email, viewer.id));
 
     const calendars = await svc.getSharedCalendars(viewer.id, '2025');
 
@@ -1812,9 +1813,9 @@ describe('quirk fixes', () => {
     vi.stubGlobal('fetch', fetchMock);
     const fresh = await freshVacayService();
 
-    expect(await fresh.getCountries()).toEqual({ error: 'Failed to fetch countries' });
+    expect(await asLegacyResult(fresh.getCountries())).toEqual({ error: 'Failed to fetch countries', status: 502 });
     // Nothing cached: a retry hits the network again.
-    expect(await fresh.getCountries()).toEqual({ error: 'Failed to fetch countries' });
+    expect(await asLegacyResult(fresh.getCountries())).toEqual({ error: 'Failed to fetch countries', status: 502 });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ signal: expect.any(AbortSignal) }));
   });
@@ -1825,7 +1826,7 @@ describe('quirk fixes', () => {
     const fresh = await freshVacayService();
 
     for (const [year, country] of [['../../..', 'DE'], ['2026', 'DE/../../x'], ['20xx', 'DE'], ['2026', 'DEU']]) {
-      expect(await fresh.getHolidays(year, country)).toEqual({ error: 'Failed to fetch holidays' });
+      expect(await asLegacyResult(fresh.getHolidays(year, country))).toEqual({ error: 'Failed to fetch holidays', status: 502 });
     }
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -1835,8 +1836,9 @@ describe('quirk fixes', () => {
     vi.stubGlobal('fetch', fetchMock);
     const fresh = await freshVacayService();
 
-    expect(await fresh.getSchoolHolidayRegions('DE&countryIsoCode=FR')).toEqual({
+    expect(await asLegacyResult(fresh.getSchoolHolidayRegions('DE&countryIsoCode=FR'))).toEqual({
       error: 'Failed to fetch school holiday regions',
+      status: 502,
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -1850,8 +1852,8 @@ describe('quirk fixes', () => {
     vi.stubGlobal('fetch', fetchMock);
     const fresh = await freshVacayService();
 
-    expect(await fresh.getCountries()).toEqual({ error: 'Failed to fetch countries' });
-    expect(await fresh.getHolidays('2026', 'DE')).toEqual({ error: 'Failed to fetch holidays' });
+    expect(await asLegacyResult(fresh.getCountries())).toEqual({ error: 'Failed to fetch countries', status: 502 });
+    expect(await asLegacyResult(fresh.getHolidays('2026', 'DE'))).toEqual({ error: 'Failed to fetch holidays', status: 502 });
   });
 
   it('VACAY-SVC-070d: a chunked provider body past the cap reads as the usual fetch error', async () => {
@@ -1876,8 +1878,8 @@ describe('quirk fixes', () => {
     vi.stubGlobal('fetch', fetchMock);
     const fresh = await freshVacayService();
 
-    expect(await fresh.getHolidays('2026', 'DE')).toEqual({ error: 'Failed to fetch holidays' });
-    expect(await fresh.getCountries()).toEqual({ error: 'Failed to fetch countries' });
+    expect(await asLegacyResult(fresh.getHolidays('2026', 'DE'))).toEqual({ error: 'Failed to fetch holidays', status: 502 });
+    expect(await asLegacyResult(fresh.getCountries())).toEqual({ error: 'Failed to fetch countries', status: 502 });
   });
 
   it('VACAY-SVC-071: applyHolidayCalendars honors the cache TTL', async () => {

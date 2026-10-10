@@ -1,3 +1,4 @@
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { HttpException } from '@nestjs/common';
@@ -140,7 +141,7 @@ describe('CollectionsController', () => {
         .toEqual({ status: 403, body: { error: 'Only the owner can invite' } });
     });
     it('surfaces a sendInvite error with its status', async () => {
-      const svc = makeService({ sendInvite: vi.fn().mockResolvedValue({ error: 'Already a member', status: 409 }) });
+      const svc = makeService({ sendInvite: vi.fn().mockRejectedValue(new DomainError(409, 'Already a member')) });
       expect(await thrownAsync(() => new CollectionsController(svc, new RuntimeEnvService(), storageStub).invite(user, { collection_id: 3, user_id: 2 } as never)))
         .toEqual({ status: 409, body: { error: 'Already a member' } });
     });
@@ -149,7 +150,7 @@ describe('CollectionsController', () => {
       expect(await new CollectionsController(svc, new RuntimeEnvService(), storageStub).invite(user, { collection_id: 3, user_id: 2 } as never)).toEqual({ success: true });
     });
     it('accept surfaces an error, else succeeds', async () => {
-      const bad = makeService({ acceptInvite: vi.fn().mockResolvedValue({ error: 'Gone', status: 404 }) });
+      const bad = makeService({ acceptInvite: vi.fn().mockRejectedValue(new DomainError(404, 'Gone')) });
       expect(await thrownAsync(() => new CollectionsController(bad, new RuntimeEnvService(), storageStub).acceptInvite(user, { collection_id: 3 } as never, 'sid')))
         .toEqual({ status: 404, body: { error: 'Gone' } });
       const svc = makeService();

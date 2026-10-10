@@ -312,20 +312,14 @@ export class CollectionsController {
     if (!(await this.collections.isOwner(user.id, body.collection_id))) {
       throw new HttpException({ error: 'Only the owner can invite' }, 403);
     }
-    const result = await this.collections.sendInvite(body.collection_id, user.id, user.username, user.email, body.user_id, body.role);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
+    await this.collections.sendInvite(body.collection_id, user.id, user.username, user.email, body.user_id, body.role);
     return { success: true };
   }
 
   @Post('invite/accept')
   @HttpCode(200)
   async acceptInvite(@CurrentUser() user: User, @Body() body: CollectionInviteActionDto, @Headers('x-socket-id') socketId?: string) {
-    const result = await this.collections.acceptInvite(user.id, body.collection_id, socketId);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
+    await this.collections.acceptInvite(user.id, body.collection_id, socketId);
     return { success: true };
   }
 

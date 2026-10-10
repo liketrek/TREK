@@ -13,6 +13,7 @@
  * trek://vacay/holidays/{year} — these ride the registry too (attached inside
  * registerTools), so `withTools` must stay on even for resource reads.
  */
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
 
@@ -720,7 +721,7 @@ describe('Tool: list_school_holiday_regions', () => {
 
   it('surfaces the upstream failure', async () => {
     const { user } = createUser(testDb);
-    schoolRegionsSpy.mockResolvedValueOnce({ error: 'Failed to fetch school holiday regions' });
+    schoolRegionsSpy.mockRejectedValueOnce(new DomainError(502, 'Failed to fetch school holiday regions'));
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_school_holiday_regions', arguments: { country: 'DE' } });
       expect(result.isError).toBe(true);
@@ -757,7 +758,7 @@ describe('Tool: list_school_holidays', () => {
 
   it('surfaces the upstream failure', async () => {
     const { user } = createUser(testDb);
-    schoolHolidaysSpy.mockResolvedValueOnce({ error: 'Failed to fetch school holidays' });
+    schoolHolidaysSpy.mockRejectedValueOnce(new DomainError(502, 'Failed to fetch school holidays'));
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_school_holidays', arguments: { country: 'DE', year: 2025 } });
       expect(result.isError).toBe(true);

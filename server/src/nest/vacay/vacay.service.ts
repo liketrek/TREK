@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { manualSchoolRegionId } from '@trek/shared';
@@ -699,22 +700,22 @@ export class VacayService {
   // Invitations
   // -------------------------------------------------------------------------
 
-  async sendInvite(planId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number): Promise<{ error?: string; status?: number }> {
-    if (targetUserId === inviterId) return { error: 'Cannot invite yourself', status: 400 };
+  async sendInvite(planId: number, inviterId: number, inviterUsername: string, inviterEmail: string, targetUserId: number): Promise<void> {
+    if (targetUserId === inviterId) throw new DomainError(400, 'Cannot invite yourself');
 
     // The picker no longer offers guests, but the id arrives from the client, so the
     // write path has to refuse them too rather than trust the list it handed out.
     const targetUser = await this.members.findInvitableUser(targetUserId);
-    if (!targetUser) return { error: 'User not found', status: 404 };
+    if (!targetUser) throw new DomainError(404, 'User not found');
 
     const existing = await this.members.findMembership(planId, targetUserId);
     if (existing) {
-      if (existing.status === 'accepted') return { error: 'Already fused', status: 400 };
-      if (existing.status === 'pending') return { error: 'Invite already pending', status: 400 };
+      if (existing.status === 'accepted') throw new DomainError(400, 'Already fused');
+      if (existing.status === 'pending') throw new DomainError(400, 'Invite already pending');
     }
 
     const targetFusion = await this.members.findAcceptedForUser(targetUserId);
-    if (targetFusion) return { error: 'User is already fused with another plan', status: 400 };
+    if (targetFusion) throw new DomainError(400, 'User is already fused with another plan');
 
     await this.members.insertPending(planId, targetUserId);
 
@@ -732,16 +733,14 @@ export class VacayService {
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
     this.notifications.send({ event: 'vacay_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterEmail, planId: String(planId) } }).catch(() => {});
-
-    return {};
   }
 
-  async acceptInvite(userId: number, planId: number, socketId: string | undefined): Promise<{ error?: string; status?: number }> {
+  async acceptInvite(userId: number, planId: number, socketId: string | undefined): Promise<void> {
     // The accept flow is a multi-statement write (status flip + entry/year/color
     // migration + seeding) — atomic, so a failure can't leave the member half-fused.
-    const result = await this.uow.transactional(async (): Promise<{ error?: string; status?: number }> => {
+    await this.uow.transactional(async () => {
       const invite = await this.members.findPending(planId, userId);
-      if (!invite) return { error: 'No pending invite', status: 404 };
+      if (!invite) throw new DomainError(404, 'No pending invite');
 
       await this.members.accept(invite.id);
 
@@ -781,13 +780,11 @@ export class VacayService {
       for (const y of targetYears) {
         await this.userYears.insertIgnore(userId, planId, y, 30, 0);
       }
-      return {};
     });
 
-    // Only announce a fusion that actually happened — the transaction returns the
-    // refusal for an invite that was already gone.
-    if (!result.error) await this.notifyPlanUsers(planId, socketId, 'vacay:accepted');
-    return result;
+    // Only announce a fusion that actually happened: an invite that was already
+    // gone refuses inside the transaction and never reaches this line.
+    await this.notifyPlanUsers(planId, socketId, 'vacay:accepted');
   }
 
   async declineInvite(userId: number, planId: number, socketId: string | undefined): Promise<void> {
@@ -928,18 +925,18 @@ export class VacayService {
     return { outgoing, incoming };
   }
 
-  async shareCalendar(ownerId: number, ownerEmail: string, targetUserId: number, socketId?: string): Promise<{ error?: string; status?: number }> {
-    if (targetUserId === ownerId) return { error: 'Cannot share with yourself', status: 400 };
+  async shareCalendar(ownerId: number, ownerEmail: string, targetUserId: number, socketId?: string): Promise<void> {
+    if (targetUserId === ownerId) throw new DomainError(400, 'Cannot share with yourself');
 
     const targetOk = await this.shares.existsInvitableUser(targetUserId);
-    if (!targetOk) return { error: 'User not found', status: 404 };
+    if (!targetOk) throw new DomainError(404, 'User not found');
 
     const existing = await this.shares.findByOwnerAndUser(ownerId, targetUserId);
-    if (existing) return { error: 'Already shared', status: 400 };
+    if (existing) throw new DomainError(400, 'Already shared');
 
     // Plan members already see the whole calendar — sharing with them is moot.
     if ((await this.getPlanUsers(await this.getActivePlanId(ownerId))).find(u => u.id === targetUserId)) {
-      return { error: 'User is already in your calendar', status: 400 };
+      throw new DomainError(400, 'User is already in your calendar');
     }
 
     await this.shares.insertShare(ownerId, targetUserId);
@@ -951,8 +948,6 @@ export class VacayService {
     } catch { /* websocket not available */ }
 
     this.notifications.send({ event: 'vacay_share', actorId: ownerId, scope: 'user', targetId: targetUserId, params: { actor: ownerEmail } }).catch(() => {});
-
-    return {};
   }
 
   /**
@@ -1315,43 +1310,43 @@ export class VacayService {
   // Holidays (nager.at proxy with cache)
   // -------------------------------------------------------------------------
 
-  async getCountries(): Promise<{ data?: unknown; error?: string }> {
+  async getCountries(): Promise<{ data?: unknown }> {
     const cacheKey = 'countries';
     const cached = this.holidayCache.get(cacheKey);
     if (cached && Date.now() - cached.time < CACHE_TTL) return { data: cached.data };
     try {
       const resp = await fetch('https://date.nager.at/api/v3/AvailableCountries', { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-      if (!resp.ok) { discardBody(resp); return { error: 'Failed to fetch countries' }; }
+      if (!resp.ok) { discardBody(resp); throw new DomainError(502, 'Failed to fetch countries'); }
       const data = await readCappedJson(resp, MAX_HOLIDAY_BYTES);
-      if (data === undefined) return { error: 'Failed to fetch countries' };
+      if (data === undefined) throw new DomainError(502, 'Failed to fetch countries');
       this.holidayCache.set(cacheKey, { data, time: Date.now() });
       return { data };
     } catch {
-      return { error: 'Failed to fetch countries' };
+      throw new DomainError(502, 'Failed to fetch countries');
     }
   }
 
-  async getHolidays(year: string, country: string): Promise<{ data?: unknown; error?: string }> {
+  async getHolidays(year: string, country: string): Promise<{ data?: unknown }> {
     // Both segments land in the URL path, so they are checked before the cache
     // lookup rather than after it.
-    if (!YEAR_RE.test(year) || !COUNTRY_RE.test(country)) return { error: 'Failed to fetch holidays' };
+    if (!YEAR_RE.test(year) || !COUNTRY_RE.test(country)) throw new DomainError(502, 'Failed to fetch holidays');
     const cacheKey = `${year}-${country}`;
     const cached = this.holidayCache.get(cacheKey);
     if (cached && Date.now() - cached.time < CACHE_TTL) return { data: cached.data };
     try {
       const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-      if (!resp.ok) { discardBody(resp); return { error: 'Failed to fetch holidays' }; }
+      if (!resp.ok) { discardBody(resp); throw new DomainError(502, 'Failed to fetch holidays'); }
       const data = await readCappedJson(resp, MAX_HOLIDAY_BYTES);
-      if (data === undefined) return { error: 'Failed to fetch holidays' };
+      if (data === undefined) throw new DomainError(502, 'Failed to fetch holidays');
       this.holidayCache.set(cacheKey, { data, time: Date.now() });
       return { data };
     } catch {
-      return { error: 'Failed to fetch holidays' };
+      throw new DomainError(502, 'Failed to fetch holidays');
     }
   }
 
-  async getSchoolHolidayRegions(country: string, language = 'EN'): Promise<{ data?: unknown; error?: string }> {
-    if (!COUNTRY_RE.test(country)) return { error: 'Failed to fetch school holiday regions' };
+  async getSchoolHolidayRegions(country: string, language = 'EN'): Promise<{ data?: unknown }> {
+    if (!COUNTRY_RE.test(country)) throw new DomainError(502, 'Failed to fetch school holiday regions');
     const normalizedLanguage = String(language || 'EN').slice(0, 2).toUpperCase();
     const cacheKey = `school-regions-${country}-${normalizedLanguage}`;
     const cached = this.holidayCache.get(cacheKey);
@@ -1364,21 +1359,21 @@ export class VacayService {
       if (!groupsResp.ok || !subdivisionsResp.ok) {
         discardBody(groupsResp);
         discardBody(subdivisionsResp);
-        return { error: 'Failed to fetch school holiday regions' };
+        throw new DomainError(502, 'Failed to fetch school holiday regions');
       }
       const groups = await readCappedJson(groupsResp, MAX_HOLIDAY_BYTES);
       const subdivisions = await readCappedJson(subdivisionsResp, MAX_HOLIDAY_BYTES);
-      if (groups === undefined || subdivisions === undefined) return { error: 'Failed to fetch school holiday regions' };
+      if (groups === undefined || subdivisions === undefined) throw new DomainError(502, 'Failed to fetch school holiday regions');
       const data = { groups, subdivisions };
       this.holidayCache.set(cacheKey, { data, time: Date.now() });
       return { data };
     } catch {
-      return { error: 'Failed to fetch school holiday regions' };
+      throw new DomainError(502, 'Failed to fetch school holiday regions');
     }
   }
 
-  async getSchoolHolidays(year: string, country: string, subdivision?: string | null, language = 'EN', group?: string | null): Promise<{ data?: unknown; error?: string }> {
-    if (!YEAR_RE.test(year) || !COUNTRY_RE.test(country)) return { error: 'Failed to fetch school holidays' };
+  async getSchoolHolidays(year: string, country: string, subdivision?: string | null, language = 'EN', group?: string | null): Promise<{ data?: unknown }> {
+    if (!YEAR_RE.test(year) || !COUNTRY_RE.test(country)) throw new DomainError(502, 'Failed to fetch school holidays');
     const normalizedLanguage = String(language || 'EN').slice(0, 2).toUpperCase();
     const normalizedSubdivision = subdivision || '';
     const normalizedGroup = group || '';
@@ -1398,13 +1393,13 @@ export class VacayService {
         headers: { accept: 'text/json' },
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
-      if (!resp.ok) { discardBody(resp); return { error: 'Failed to fetch school holidays' }; }
+      if (!resp.ok) { discardBody(resp); throw new DomainError(502, 'Failed to fetch school holidays'); }
       const data = await readCappedJson(resp, MAX_HOLIDAY_BYTES);
-      if (data === undefined) return { error: 'Failed to fetch school holidays' };
+      if (data === undefined) throw new DomainError(502, 'Failed to fetch school holidays');
       this.holidayCache.set(cacheKey, { data, time: Date.now() });
       return { data };
     } catch {
-      return { error: 'Failed to fetch school holidays' };
+      throw new DomainError(502, 'Failed to fetch school holidays');
     }
   }
 }

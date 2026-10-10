@@ -1,3 +1,4 @@
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { legacyDatabaseAccess } = vi.hoisted(() => ({
@@ -208,7 +209,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     // pins `url`, so the ZodValidationPipe rejects a urlless body before the
     // handler runs.
     it('maps a service { error, status } to the same response', async () => {
-      const s = svc({ importGoogleList: vi.fn().mockResolvedValue({ error: 'List is empty', status: 400 }) } as Partial<PlacesService>);
+      const s = svc({ importGoogleList: vi.fn().mockRejectedValue(new DomainError(400, 'List is empty')) } as Partial<PlacesService>);
       expect(await thrownAsync(() => new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(user, '5', { url: 'http://x' }))).toEqual({ status: 400, body: { error: 'List is empty' } });
     });
     it('imports a naver list and returns the count + listName', async () => {
@@ -579,7 +580,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
   it('GET /:id/image maps service error + returns photos', async () => {
     const s = svc({ searchImage: vi.fn().mockResolvedValue({ photos: [{ url: 'x' }] }) } as Partial<PlacesService>);
     expect(await new PlacesController(s, new RuntimeEnvService(), storageStub).image(user, '5', '9')).toEqual({ photos: [{ url: 'x' }] });
-    const e = svc({ searchImage: vi.fn().mockResolvedValue({ error: 'No key', status: 400 }) } as Partial<PlacesService>);
+    const e = svc({ searchImage: vi.fn().mockRejectedValue(new DomainError(400, 'No key')) } as Partial<PlacesService>);
     expect(await thrownAsync(() => new PlacesController(e, new RuntimeEnvService(), storageStub).image(user, '5', '9'))).toEqual({ status: 400, body: { error: 'No key' } });
   });
 

@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import path from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -70,7 +71,6 @@ import {
   type GpxImportOptions,
   type GpxImportResult,
   type KmlImportOptions,
-  type ListImportError,
   type ListImportOptions,
   type ListImportResult,
   type PlaceImportResult,
@@ -1144,9 +1144,9 @@ export class PlacesService {
   // Import Google Maps list
   // -------------------------------------------------------------------------
 
-  async importGoogleList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
+  async importGoogleList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult> {
     const read = await this.placeImport.readGoogleList(url);
-    if ('error' in read) return read;
+    if ('error' in read) throw new DomainError(read.status, read.error);
     // A short link that lands on a route is a directions link: imported as one,
     // with the resolved URL, so the hop is not made twice.
     if ('directions' in read) return this.importGoogleDirections(tripId, read.directions, opts);
@@ -1246,9 +1246,9 @@ export class PlacesService {
    * The stops of a route somebody else planned, read and placed by
    * PlaceImportService (no API key, the stops are in the link), stored here.
    */
-  async importGoogleDirections(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
+  async importGoogleDirections(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult> {
     const read = await this.placeImport.readGoogleDirections(url, (query) => this.maps.geocodeQuery(query));
-    if ('error' in read) return read;
+    if ('error' in read) throw new DomainError(read.status, read.error);
     const { places, unplaceable } = read;
 
     const { created, skipped } = await this.storeGooglePlaces(tripId, places);
@@ -1267,9 +1267,9 @@ export class PlacesService {
   // Import Naver Maps list
   // -------------------------------------------------------------------------
 
-  async importNaverList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
+  async importNaverList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult> {
     const read = await this.placeImport.readNaverList(url);
-    if ('error' in read) return read;
+    if ('error' in read) throw new DomainError(read.status, read.error);
     const { listName, places } = read;
 
     // Rule 21 / M1 (Task 9 fix wave) — same ruling as `importGpxRows`: the
@@ -1514,16 +1514,16 @@ export class PlacesService {
     // `toRowId` first (Task 3 review H1, absorbed here) — same gate shape
     // as every other place-id route in this service.
     const id = toRowId(placeId);
-    if (id === null) return { error: 'Place not found', status: 404 };
+    if (id === null) throw new DomainError(404, 'Place not found');
     // Rule 21 (H1): the trip id gets the same `toRowId` treatment as the
     // place id above, parsed once and used for the one downstream read —
     // `Number(tripId)` used to disagree with it and let a hex trip id read
     // a different trip's place.
     const tid = toRowId(tripId);
-    if (tid === null) return { error: 'Place not found', status: 404 };
+    if (tid === null) throw new DomainError(404, 'Place not found');
     // PL48 — same statement as PL9 (`applyUpdate`'s pre-image read).
     const place = await this.placesRepo.findInTrip(id, tid);
-    if (!place) return { error: 'Place not found', status: 404 };
+    if (!place) throw new DomainError(404, 'Place not found');
 
     return this.unsplash.searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5, await this.unsplash.getUnsplashKey(userId));
   }

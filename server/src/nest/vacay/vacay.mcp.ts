@@ -5,6 +5,7 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult, ok,
 } from '../../nest-mcp';
+import { catchDomainError, DomainError } from '../common/domain-error';
 import { z } from 'zod';
 import {
   vacayAddHolidayCalendarRequestSchema,
@@ -185,8 +186,7 @@ export class VacayMcp {
     const planId = await this.vacay.getActivePlanId(ctx.userId);
     const me = await this.users.findUsernameEmail(ctx.userId);
     if (!me) return errorResult('User not found.');
-    const result = await this.vacay.sendInvite(planId, ctx.userId, me.username, me.email, targetUserId);
-    if (result.error) return errorResult(result.error);
+    await this.vacay.sendInvite(planId, ctx.userId, me.username, me.email, targetUserId);
     return ok({ success: true });
   }
 
@@ -201,8 +201,7 @@ export class VacayMcp {
     access: { group: 'vacay', mode: 'write' },
   })
   async acceptVacayInvite({ planId }: { planId: number }, ctx: McpContext) {
-    const result = await this.vacay.acceptInvite(ctx.userId, planId, undefined);
-    if (result.error) return errorResult(result.error);
+    await this.vacay.acceptInvite(ctx.userId, planId, undefined);
     return ok({ success: true });
   }
 
@@ -468,7 +467,6 @@ export class VacayMcp {
   })
   async listHolidayCountries(_args: Record<string, never>, _ctx: McpContext) {
     const result = await this.vacay.getCountries();
-    if (result.error) return errorResult(result.error);
     return ok({ countries: result.data });
   }
 
@@ -485,7 +483,6 @@ export class VacayMcp {
   })
   async listHolidays({ country, year }: { country: string; year: number }, _ctx: McpContext) {
     const result = await this.vacay.getHolidays(String(year), country);
-    if (result.error) return errorResult(result.error);
     return ok({ holidays: result.data });
   }
 
@@ -501,7 +498,6 @@ export class VacayMcp {
   })
   async listSchoolHolidayRegions({ country }: { country: string }, _ctx: McpContext) {
     const result = await this.vacay.getSchoolHolidayRegions(country, schoolHolidayLanguage(country));
-    if (result.error) return errorResult(result.error);
     return ok({ regions: result.data, calendar_regions: calendarRegionCodes(country, result.data) });
   }
 
@@ -523,7 +519,6 @@ export class VacayMcp {
     _ctx: McpContext,
   ) {
     const result = await this.vacay.getSchoolHolidays(String(year), country, subdivision, schoolHolidayLanguage(country), group);
-    if (result.error) return errorResult(result.error);
     return ok({ holidays: result.data });
   }
 
@@ -564,8 +559,7 @@ export class VacayMcp {
   async shareVacayCalendar({ targetUserId }: { targetUserId: number }, ctx: McpContext) {
     const me = await this.users.findUsernameEmail(ctx.userId);
     if (!me) return errorResult('User not found.');
-    const result = await this.vacay.shareCalendar(ctx.userId, me.email, targetUserId);
-    if (result.error) return errorResult(result.error);
+    await this.vacay.shareCalendar(ctx.userId, me.email, targetUserId);
     return ok({ success: true });
   }
 
@@ -662,7 +656,8 @@ export class VacayMcp {
     });
     if (!plan.holidays_enabled || !plan.holidays_region) return json([]);
     const yearStr = Array.isArray(year) ? year[0] : year;
-    const result = await this.vacay.getHolidays(yearStr, plan.holidays_region);
-    return json(result.data ?? []);
+    // A failed fetch reads as no holidays here, as it always has.
+    const result = await catchDomainError(() => this.vacay.getHolidays(yearStr, plan.holidays_region));
+    return json(result instanceof DomainError ? [] : (result.data ?? []));
   }
 }

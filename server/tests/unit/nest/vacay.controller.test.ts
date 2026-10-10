@@ -1,3 +1,4 @@
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { describe, it, expect, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import { VacayController } from '../../../src/nest/vacay/vacay.controller';
@@ -83,7 +84,7 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
     });
 
     it('maps a sendInvite error to its status', () => {
-      const sendInvite = vi.fn().mockReturnValue({ error: 'Already in a plan', status: 409 });
+      const sendInvite = vi.fn().mockRejectedValue(new DomainError(409, 'Already in a plan'));
       return thrown(() => makeController({ ...planBase, sendInvite }).invite(user, { user_id: 2 })).then((r) =>
         expect(r).toEqual({ status: 409, body: { error: 'Already in a plan' } }));
     });
@@ -95,7 +96,7 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
     });
 
     it('maps an acceptInvite error', () => {
-      const acceptInvite = vi.fn().mockReturnValue({ error: 'Invite not found', status: 404 });
+      const acceptInvite = vi.fn().mockRejectedValue(new DomainError(404, 'Invite not found'));
       return thrown(() => makeController({ acceptInvite }).acceptInvite(user, { plan_id: 5 })).then((r) =>
         expect(r).toEqual({ status: 404, body: { error: 'Invite not found' } }));
     });
@@ -195,7 +196,7 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
 
   describe('public holidays', () => {
     it('502 when the upstream country lookup fails', () => {
-      const getCountries = vi.fn().mockResolvedValue({ error: 'upstream down' });
+      const getCountries = vi.fn().mockRejectedValue(new DomainError(502, 'upstream down'));
       return thrown(() => makeController({ getCountries }).holidayCountries()).then((r) =>
         expect(r).toEqual({ status: 502, body: { error: 'upstream down' } }));
     });
@@ -206,7 +207,7 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
     });
 
     it('502 when the holidays lookup fails', () => {
-      const getHolidays = vi.fn().mockResolvedValue({ error: 'upstream down' });
+      const getHolidays = vi.fn().mockRejectedValue(new DomainError(502, 'upstream down'));
       return thrown(() => makeController({ getHolidays }).holidays('2026', 'DE')).then((r) =>
         expect(r).toEqual({ status: 502, body: { error: 'upstream down' } }));
     });
@@ -225,7 +226,7 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
     });
 
     it('maps a shareCalendar error to its status', () => {
-      const shareCalendar = vi.fn().mockReturnValue({ error: 'Already shared', status: 400 });
+      const shareCalendar = vi.fn().mockRejectedValue(new DomainError(400, 'Already shared'));
       return thrown(() => makeController({ shareCalendar }).share(user, { user_id: 2 })).then((r) =>
         expect(r).toEqual({ status: 400, body: { error: 'Already shared' } }));
     });

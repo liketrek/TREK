@@ -1,3 +1,4 @@
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { HttpException } from '@nestjs/common';
@@ -261,7 +262,7 @@ describe('FilesDownloadController', () => {
   const res = {} as Response;
 
   it('maps the auth error from authenticateDownload', async () => {
-    const s = dsvc({ authenticateDownload: vi.fn().mockReturnValue({ error: 'Authentication required', status: 401 }) });
+    const s = dsvc({ authenticateDownload: vi.fn().mockRejectedValue(new DomainError(401, 'Authentication required')) });
     expect(await rejected(new FilesDownloadController(s, dstor()).download(req, res, '5', '9'))).toEqual({ status: 401, body: { error: 'Authentication required' } });
   });
 

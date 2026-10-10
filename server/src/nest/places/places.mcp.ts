@@ -390,10 +390,6 @@ export class PlacesMcp {
         : await this.places.importGoogleList(String(tripId), url, opts))
       : await this.places.importNaverList(String(tripId), url, opts);
 
-    if ('error' in result) {
-      return { content: [{ type: 'text' as const, text: result.error }], isError: true };
-    }
-
     for (const place of result.places) {
       this.guards.safeBroadcast(tripId, 'place:created', { place });
     }

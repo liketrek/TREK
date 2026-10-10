@@ -9,6 +9,7 @@
  * service is constructed directly, no Nest container needed. External fetches
  * are mocked where needed.
  */
+import { asLegacyResult } from '../../helpers/domain-error';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
@@ -1073,7 +1074,7 @@ describe('importGoogleList', () => {
   it('PLACE-SVC-026 — returns error when list ID cannot be extracted from URL', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const result = await svc.importGoogleList(String(trip.id), 'https://example.com/no-id-here') as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), 'https://example.com/no-id-here')) as any;
     expect(result.error).toMatch(/Could not extract list ID/);
     expect(result.status).toBe(400);
   });
@@ -1082,7 +1083,7 @@ describe('importGoogleList', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const url = 'https://www.google.com/maps/place/Eiffel+Tower/@48.8584,2.2945,17z/data=!3m1';
-    const result = await svc.importGoogleList(String(trip.id), url) as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), url)) as any;
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/single place/i);
   });
@@ -1092,7 +1093,7 @@ describe('importGoogleList', () => {
     const trip = createTrip(testDb, user.id);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, text: async () => '', status: 502 }));
     const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
-    const result = await svc.importGoogleList(String(trip.id), url) as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), url)) as any;
     expect(result.error).toMatch(/Failed to fetch list/);
     expect(result.status).toBe(502);
   });
@@ -1113,7 +1114,7 @@ describe('importGoogleList', () => {
     }));
 
     const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
-    const result = await svc.importGoogleList(String(trip.id), url) as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), url)) as any;
     expect(result.listName).toBe('My Test List');
     expect(result.places).toHaveLength(2);
     expect(result.places[0].name).toBe('Paris');
@@ -1132,7 +1133,7 @@ describe('importGoogleList', () => {
       ]],
     ];
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: async () => 'prefix\n' + JSON.stringify(listPayload) }));
-    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as { places: { id: number }[] };
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456')) as { places: { id: number }[] };
     const row = await findRow(orm, Places, { id: result.places[0].id }) as Record<string, unknown>;
     expect(row).toMatchObject({
       trip_id: trip.id, name: 'London', description: null, lat: 51.5074, lng: -0.1278,
@@ -1182,7 +1183,7 @@ describe('importGoogleList', () => {
     }));
 
     const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
-    const result = await svc.importGoogleList(String(trip.id), url) as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), url)) as any;
 
     expect(result.places).toHaveLength(1);
     expect(result.places[0].google_place_id).toBeNull();
@@ -1209,7 +1210,7 @@ describe('importGoogleList', () => {
     }));
 
     const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
-    const result = await svc.importGoogleList(String(trip.id), url) as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), url)) as any;
     const row = await findRow(orm, Places, { id: existing.id }) as any;
 
     expect(result.places).toHaveLength(0);
@@ -1247,7 +1248,7 @@ describe('importGoogleList', () => {
       text: async () => 'prefix\n' + JSON.stringify(listPayload),
     }));
 
-    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456')) as any;
     const other = await findRow(orm, Places, { id: namesake.id }) as any;
 
     expect(result.skipped).toBe(1);
@@ -1270,7 +1271,7 @@ describe('importGoogleList', () => {
     const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
 
     respond();
-    const first = await svc.importGoogleList(String(trip.id), url) as any;
+    const first = await asLegacyResult(svc.importGoogleList(String(trip.id), url)) as any;
     expect(first.places).toHaveLength(1);
 
     // What the reporter does: rename it to something they can actually read, and
@@ -1278,7 +1279,7 @@ describe('importGoogleList', () => {
     await updateRows(orm, Places, { id: first.places[0].id }, { name: 'Saturday market', lat: 43.6, lng: -80.6 });
 
     respond();
-    const second = await svc.importGoogleList(String(trip.id), url) as any;
+    const second = await asLegacyResult(svc.importGoogleList(String(trip.id), url)) as any;
     expect(second.places).toHaveLength(0);
     expect(second.skipped).toBe(1);
     expect(({ c: await countRows(orm, Places, { trip: trip.id }) })).toEqual({ c: 1 });
@@ -1300,7 +1301,7 @@ describe('importGoogleList', () => {
       text: async () => 'prefix\n' + JSON.stringify(listPayload),
     }));
 
-    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456')) as any;
     expect(result.places).toHaveLength(2);
     expect(result.skipped).toBe(0);
   });
@@ -1316,7 +1317,7 @@ describe('importGoogleList', () => {
     }));
 
     const url = 'https://www.google.com/maps/placelists/list/ABC123DEF456';
-    const result = await svc.importGoogleList(String(trip.id), url) as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), url)) as any;
     expect(result.error).toBeDefined();
     expect(result.status).toBe(400);
   });
@@ -1332,7 +1333,7 @@ describe('searchImage', () => {
   it('PLACE-SVC-030 — returns 404 when place does not exist', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const result = await svc.searchImage(String(trip.id), '99999', user.id) as any;
+    const result = await asLegacyResult(svc.searchImage(String(trip.id), '99999', user.id)) as any;
     expect(result.error).toBeDefined();
     expect(result.status).toBe(404);
   });
@@ -1341,12 +1342,8 @@ describe('searchImage', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id);
-    const result: Awaited<ReturnType<PlacesService['searchImage']>> = await svc.searchImage(String(trip.id), `${place.id} `, user.id);
-    expect('error' in result).toBe(true);
-    if ('error' in result) {
-      expect(result.error).toBeDefined();
-      expect(result.status).toBe(404);
-    }
+    const result = await asLegacyResult(svc.searchImage(String(trip.id), `${place.id} `, user.id));
+    expect(result).toEqual({ error: 'Place not found', status: 404 });
   });
 
   it('PLACE-SVC-031 — searches Unsplash without a stored API key', async () => {
@@ -1363,7 +1360,7 @@ describe('searchImage', () => {
       status: 200,
     }));
 
-    const result = await svc.searchImage(String(trip.id), String(place.id), user.id) as any;
+    const result = await asLegacyResult(svc.searchImage(String(trip.id), String(place.id), user.id)) as any;
     expect(result.photos).toHaveLength(1);
     const [url] = (fetch as any).mock.calls[0];
     expect(url).toContain('https://unsplash.com/napi/search/photos?');
@@ -1384,7 +1381,7 @@ describe('searchImage', () => {
       status: 200,
     }));
 
-    const result = await svc.searchImage(String(trip.id), String(place.id), user.id) as any;
+    const result = await asLegacyResult(svc.searchImage(String(trip.id), String(place.id), user.id)) as any;
     expect(result.photos).toHaveLength(1);
     expect(result.photos[0].id).toBe('photo1');
     expect(result.photos[0].url).toBe('https://img.example.com/1');
@@ -2083,7 +2080,7 @@ describe('importGoogleList provider payload', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: async () => 'prefix\nnot-json-at-all' }));
-    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456')) as any;
     expect(result).toEqual({ error: 'Invalid list data received from Google Maps', status: 400 });
   });
 
@@ -2091,7 +2088,7 @@ describe('importGoogleList provider payload', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: async () => 'prefix\n{"unexpected":true}' }));
-    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456')) as any;
     expect(result).toEqual({ error: 'Invalid list data received from Google Maps', status: 400 });
   });
 
@@ -2103,7 +2100,7 @@ describe('importGoogleList provider payload', () => {
       headers: { get: () => null }, // chunked: the declared check cannot help
       text: async () => 'x'.repeat(9 * 1024 * 1024),
     }));
-    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456')) as any;
     expect(result).toEqual({ error: 'Failed to fetch list from Google Maps', status: 502 });
   });
 
@@ -2116,7 +2113,7 @@ describe('importGoogleList provider payload', () => {
       headers: { get: (h: string) => (h.toLowerCase() === 'content-length' ? String(20 * 1024 * 1024) : null) },
       text,
     }));
-    const result = await svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456') as any;
+    const result = await asLegacyResult(svc.importGoogleList(String(trip.id), 'https://www.google.com/maps/placelists/list/ABC123DEF456')) as any;
     expect(result).toEqual({ error: 'Failed to fetch list from Google Maps', status: 502 });
     expect(text).not.toHaveBeenCalled();
   });
@@ -2140,7 +2137,7 @@ describe('importNaverList provider payload', () => {
       headers: { get: (h: string) => (h.toLowerCase() === 'content-length' ? String(20 * 1024 * 1024) : null) },
       text,
     }));
-    const result = await svc.importNaverList(String(trip.id), FOLDER_URL) as any;
+    const result = await asLegacyResult(svc.importNaverList(String(trip.id), FOLDER_URL)) as any;
     expect(result).toEqual({ error: 'Failed to fetch list from Naver Maps', status: 502 });
     expect(text).not.toHaveBeenCalled();
   });
@@ -2153,7 +2150,7 @@ describe('importNaverList provider payload', () => {
       headers: { get: () => null }, // chunked: the declared check cannot help
       text: async () => 'x'.repeat(9 * 1024 * 1024),
     }));
-    const result = await svc.importNaverList(String(trip.id), FOLDER_URL) as any;
+    const result = await asLegacyResult(svc.importNaverList(String(trip.id), FOLDER_URL)) as any;
     expect(result).toEqual({ error: 'Failed to fetch list from Naver Maps', status: 502 });
   });
 
@@ -2161,7 +2158,7 @@ describe('importNaverList provider payload', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: async () => 'not-json-at-all' }));
-    const result = await svc.importNaverList(String(trip.id), FOLDER_URL) as any;
+    const result = await asLegacyResult(svc.importNaverList(String(trip.id), FOLDER_URL)) as any;
     expect(result).toEqual({ error: 'Invalid list data received from Naver Maps', status: 400 });
   });
 
@@ -2175,7 +2172,7 @@ describe('importNaverList provider payload', () => {
         bookmarkList: [{ name: 'Gyeongbokgung', px: 126.977, py: 37.5796, memo: null, address: 'Sejongno' }],
       }),
     }));
-    const result = await svc.importNaverList(String(trip.id), FOLDER_URL) as any;
+    const result = await asLegacyResult(svc.importNaverList(String(trip.id), FOLDER_URL)) as any;
     expect(result.listName).toBe('Seoul');
     expect(result.places).toHaveLength(1);
     expect(result.places[0].name).toBe('Gyeongbokgung');
@@ -2194,7 +2191,7 @@ describe('importNaverList provider payload', () => {
         bookmarkList: [{ name: 'Gyeongbokgung', px: 126.977, py: 37.5796, memo: 'A palace', address: 'Sejongno' }],
       }),
     }));
-    const result = await svc.importNaverList(String(trip.id), FOLDER_URL) as { places: { id: number }[] };
+    const result = await asLegacyResult(svc.importNaverList(String(trip.id), FOLDER_URL)) as { places: { id: number }[] };
     const row = await findRow(orm, Places, { id: result.places[0].id }) as Record<string, unknown>;
     expect(row).toMatchObject({
       trip_id: trip.id, name: 'Gyeongbokgung', description: null, lat: 37.5796, lng: 126.977,

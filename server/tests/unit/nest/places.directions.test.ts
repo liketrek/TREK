@@ -6,6 +6,7 @@
  * in a unit test. What is under test is the step between the two: which stops the link
  * yields, which of them get geocoded, and what a partly readable link leaves behind.
  */
+import { asLegacyResult } from '../../helpers/domain-error';
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
@@ -138,7 +139,7 @@ describe('PlacesService.importGoogleDirections', () => {
     const search = geocoder();
     const url = 'https://www.google.com/maps/dir/Berlin/Dresden/@51.5,13.5,8z/'
       + 'data=!4m14!1m5!1m1!1s0x0:0x0!2m2!1d13.404954!2d52.520008!1m5!1m1!1s0x0:0x0!2m2!1d13.737262!2d51.050409';
-    const result = await (await svc(search)).importGoogleDirections(tripId, url);
+    const result = await asLegacyResult((await svc(search)).importGoogleDirections(tripId, url));
 
     expect('error' in result).toBe(false);
     if ('error' in result) return;
@@ -150,10 +151,10 @@ describe('PlacesService.importGoogleDirections', () => {
 
   it('PLACES-DIR-002: a stop that is only a name is geocoded, and keeps the name from the link', async () => {
     const search = geocoder();
-    const result = await (await svc(search)).importGoogleDirections(
+    const result = await asLegacyResult((await svc(search)).importGoogleDirections(
       tripId,
       'https://www.google.com/maps/dir/Berlin/Dresden/Prague',
-    );
+    ));
 
     expect('error' in result).toBe(false);
     if ('error' in result) return;
@@ -163,10 +164,10 @@ describe('PlacesService.importGoogleDirections', () => {
 
   it('PLACES-DIR-003: a stop nobody can place is left out, not made up, and is counted', async () => {
     const search = geocoder();
-    const result = await (await svc(search)).importGoogleDirections(
+    const result = await asLegacyResult((await svc(search)).importGoogleDirections(
       tripId,
       'https://www.google.com/maps/dir/Berlin/Somewhere+Nobody+Knows/Prague',
-    );
+    ));
 
     expect('error' in result).toBe(false);
     if ('error' in result) return;
@@ -181,7 +182,7 @@ describe('PlacesService.importGoogleDirections', () => {
       if (query === 'Dresden') throw new Error('Nominatim 429');
       return [hit(query, 52.52, 13.405)];
     }) as unknown as OsmClient['searchNominatim'];
-    const result = await (await svc(search)).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden/Prague');
+    const result = await asLegacyResult((await svc(search)).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden/Prague'));
 
     expect('error' in result).toBe(false);
     if ('error' in result) return;
@@ -193,7 +194,7 @@ describe('PlacesService.importGoogleDirections', () => {
     createPlace(testDb, Number(tripId), { name: 'Berlin', lat: 52.520008, lng: 13.404954 });
     const url = 'https://www.google.com/maps/dir/Berlin/Dresden/@51.5,13.5,8z/'
       + 'data=!4m14!1m5!1m1!1s0x0:0x0!2m2!1d13.404954!2d52.520008!1m5!1m1!1s0x0:0x0!2m2!1d13.737262!2d51.050409';
-    const result = await (await svc(geocoder())).importGoogleDirections(tripId, url);
+    const result = await asLegacyResult((await svc(geocoder())).importGoogleDirections(tripId, url));
 
     expect('error' in result).toBe(false);
     if ('error' in result) return;
@@ -202,7 +203,7 @@ describe('PlacesService.importGoogleDirections', () => {
   });
 
   it('PLACES-DIR-006: a link that is not Google\'s is refused after it is resolved', async () => {
-    const result = await (await svc(geocoder())).importGoogleDirections(tripId, 'https://evil.example.com/maps/dir/Berlin/Dresden');
+    const result = await asLegacyResult((await svc(geocoder())).importGoogleDirections(tripId, 'https://evil.example.com/maps/dir/Berlin/Dresden'));
     expect(result).toEqual({ error: 'That link is not a Google Maps link.', status: 400 });
   });
 
@@ -210,7 +211,7 @@ describe('PlacesService.importGoogleDirections', () => {
     safeFetchFollow.mockResolvedValue({
       url: 'https://www.google.com/maps/dir/Berlin/Dresden',
     } as unknown as Response);
-    const result = await (await svc(geocoder())).importGoogleDirections(tripId, 'https://maps.app.goo.gl/abc123');
+    const result = await asLegacyResult((await svc(geocoder())).importGoogleDirections(tripId, 'https://maps.app.goo.gl/abc123'));
 
     expect(safeFetchFollow).toHaveBeenCalledTimes(1);
     expect('error' in result).toBe(false);
@@ -220,12 +221,12 @@ describe('PlacesService.importGoogleDirections', () => {
 
   it('PLACES-DIR-008: a blocked URL never reaches the parser', async () => {
     checkSsrf.mockResolvedValue({ allowed: false } as never);
-    const result = await (await svc(geocoder())).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden');
+    const result = await asLegacyResult((await svc(geocoder())).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden'));
     expect(result).toEqual({ error: 'URL is not allowed', status: 400 });
   });
 
   it('PLACES-DIR-009: a link with nothing to read says what to do instead', async () => {
-    const result = await (await svc(geocoder())).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin');
+    const result = await asLegacyResult((await svc(geocoder())).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin'));
     expect(result).toMatchObject({ status: 400 });
     expect((result as { error: string }).error).toMatch(/Share button/);
   });
@@ -243,7 +244,7 @@ describe('PlacesService.importGoogleDirections', () => {
     (service as unknown as { maps: Partial<MapsService> }).maps.geocodeQuery =
       geocode as unknown as MapsService['geocodeQuery'];
 
-    await service.importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden');
+    await asLegacyResult(service.importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden'));
 
     expect(geocode).toHaveBeenCalledWith('Berlin');
     expect(geocode).toHaveBeenCalledWith('Dresden');
@@ -263,7 +264,7 @@ describe('PlacesService.importGoogleDirections', () => {
       url: 'https://www.google.com/maps/dir/52.52,13.405/51.05,13.74',
     } as never);
 
-    const result = await (await svc(geocoder())).importGoogleList(tripId, 'https://maps.app.goo.gl/aBcDeF12345');
+    const result = await asLegacyResult((await svc(geocoder())).importGoogleList(tripId, 'https://maps.app.goo.gl/aBcDeF12345'));
 
     expect('error' in result).toBe(false);
     if ('error' in result) return;
@@ -276,7 +277,7 @@ describe('PlacesService.importGoogleDirections', () => {
   it('PLACES-DIR-010: a route where only one stop can be placed is not half an import', async () => {
     const search = vi.fn(async () => []) as unknown as OsmClient['searchNominatim'];
     const url = 'https://www.google.com/maps/dir/52.52,13.405/Nowhere/Nowhere+Else';
-    const result = await (await svc(search)).importGoogleDirections(tripId, url);
+    const result = await asLegacyResult((await svc(search)).importGoogleDirections(tripId, url));
     expect(result).toEqual({ error: 'None of the stops in that link could be placed on the map.', status: 400 });
   });
 });

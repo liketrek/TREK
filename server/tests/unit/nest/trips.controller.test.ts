@@ -1,3 +1,4 @@
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
@@ -128,14 +129,14 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
     });
 
     it('sends an absent query as "" so the service keeps owning the empty-query 400', async () => {
-      const searchCoverImages = vi.fn().mockResolvedValue({ error: 'Search query is required', status: 400 });
+      const searchCoverImages = vi.fn().mockRejectedValue(new DomainError(400, 'Search query is required'));
       const s = svc({ searchCoverImages } as Partial<TripsService>);
       expect(await thrownAsync(() => tc(s).coverImages(user, undefined))).toEqual({ status: 400, body: { error: 'Search query is required' } });
       expect(searchCoverImages).toHaveBeenCalledWith('', 1);
     });
 
     it('keeps the upstream status instead of flattening it into the catch-all 500', async () => {
-      const s = svc({ searchCoverImages: vi.fn().mockResolvedValue({ error: 'Rate limit reached', status: 429 }) } as Partial<TripsService>);
+      const s = svc({ searchCoverImages: vi.fn().mockRejectedValue(new DomainError(429, 'Rate limit reached')) } as Partial<TripsService>);
       // A 429 that arrives as a 500 makes the client retry immediately and burn
       // the rest of the hourly Unsplash quota.
       expect(await thrownAsync(() => tc(s).coverImages(user, 'kyoto'))).toEqual({ status: 429, body: { error: 'Rate limit reached' } });

@@ -291,9 +291,6 @@ export class PlacesController {
         : isDirectionsUrl(url)
           ? await this.places.importGoogleDirections(tripId, url, opts)
           : await this.places.importGoogleList(tripId, url, opts);
-      if ('error' in result) {
-        throw new HttpException({ error: result.error }, result.status);
-      }
       for (const place of result.places) {
         this.places.broadcast(tripId, 'place:created', { place }, socketId);
       }
@@ -479,9 +476,6 @@ export class PlacesController {
   async image(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string) {
     try {
       const result = await this.places.searchImage(tripId, id, user.id);
-      if ('error' in result) {
-        throw new HttpException({ error: result.error }, result.status);
-      }
       return { photos: result.photos };
     } catch (err: unknown) {
       if (err instanceof HttpException) throw err;

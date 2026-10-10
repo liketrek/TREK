@@ -6,6 +6,7 @@
  * and the download-token auth over a real in-memory SQLite DB, plus the
  * files.bridge delegation (inside the src/nest coverage gate).
  */
+import { asLegacyResult } from '../../helpers/domain-error';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import path from 'path';
 
@@ -808,7 +809,7 @@ describe('read-model parity: raw SQL vs. the repository-backed reads', () => {
 describe('authenticateDownload', () => {
   it('FILE-SVC-032: a valid session cookie wins over a bearer token', async () => {
     verifyJwtAndLoadUser.mockReturnValue({ id: 42 });
-    const result = await svc.authenticateDownload(req({ cookie: 'cookie-jwt', bearer: 'bearer-jwt' }));
+    const result = await asLegacyResult(svc.authenticateDownload(req({ cookie: 'cookie-jwt', bearer: 'bearer-jwt' })));
     expect(result).toEqual({ userId: 42 });
     // The concrete expected argument, not expect.anything(): emStub.getRepository
     // always returns a fresh `{}` (task-1-review.md F6) — deep-equal, not a
@@ -825,26 +826,26 @@ describe('authenticateDownload', () => {
 
   it('FILE-SVC-033: a bearer token is used when no cookie is present; invalid JWTs 401', async () => {
     verifyJwtAndLoadUser.mockReturnValue({ id: 7 });
-    expect(await svc.authenticateDownload(req({ bearer: 'bearer-jwt' }))).toEqual({ userId: 7 });
+    expect(await asLegacyResult(svc.authenticateDownload(req({ bearer: 'bearer-jwt' })))).toEqual({ userId: 7 });
     expect(verifyJwtAndLoadUser).toHaveBeenCalledWith('bearer-jwt', {}, {}); // see FILE-SVC-032's comment
     expect(getRepository).toHaveBeenCalledWith(Users);
     expect(getRepository).toHaveBeenCalledWith(UserSessions);
 
     verifyJwtAndLoadUser.mockReturnValue(null);
-    expect(await svc.authenticateDownload(req({ bearer: 'stale' }))).toEqual({ error: 'Invalid or expired token', status: 401 });
+    expect(await asLegacyResult(svc.authenticateDownload(req({ bearer: 'stale' })))).toEqual({ error: 'Invalid or expired token', status: 401 });
   });
 
   it('FILE-SVC-034: a ?token= ephemeral token is consumed with the download purpose', async () => {
     consumeEphemeralToken.mockReturnValue(9);
-    expect(await svc.authenticateDownload(req({ token: 'eph' }))).toEqual({ userId: 9 });
+    expect(await asLegacyResult(svc.authenticateDownload(req({ token: 'eph' })))).toEqual({ userId: 9 });
     expect(consumeEphemeralToken).toHaveBeenCalledWith('eph', 'download');
 
     consumeEphemeralToken.mockReturnValue(null);
-    expect(await svc.authenticateDownload(req({ token: 'spent' }))).toEqual({ error: 'Invalid or expired token', status: 401 });
+    expect(await asLegacyResult(svc.authenticateDownload(req({ token: 'spent' })))).toEqual({ error: 'Invalid or expired token', status: 401 });
   });
 
   it('FILE-SVC-035: no credentials at all is a 401 Authentication required', async () => {
-    expect(await svc.authenticateDownload(req({}))).toEqual({ error: 'Authentication required', status: 401 });
+    expect(await asLegacyResult(svc.authenticateDownload(req({})))).toEqual({ error: 'Authentication required', status: 401 });
     expect(verifyJwtAndLoadUser).not.toHaveBeenCalled();
     expect(consumeEphemeralToken).not.toHaveBeenCalled();
   });

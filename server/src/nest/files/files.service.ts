@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import path from 'path';
@@ -156,7 +157,7 @@ export class FilesService {
   // download route)
   // ---------------------------------------------------------------------------
 
-  async authenticateDownload(req: Request): Promise<{ userId: number } | { error: string; status: number }> {
+  async authenticateDownload(req: Request): Promise<{ userId: number }> {
     const cookieToken = (req as { cookies?: Record<string, string> }).cookies?.trek_session;
     const authHeader = req.headers['authorization'];
     const bearerToken = authHeader ? (authHeader.split(' ')[1] || undefined) : undefined;
@@ -169,17 +170,17 @@ export class FilesService {
       // previously this bypassed the check and stolen download tokens stayed
       // valid across a password reset.
       const user = await verifyJwtAndLoadUser(jwtToken, this.em.getRepository(Users), this.em.getRepository(UserSessions));
-      if (!user) return { error: 'Invalid or expired token', status: 401 };
+      if (!user) throw new DomainError(401, 'Invalid or expired token');
       return { userId: user.id };
     }
 
     if (queryToken) {
       const uid = this.tokens.consume(queryToken, 'download');
-      if (!uid) return { error: 'Invalid or expired token', status: 401 };
+      if (!uid) throw new DomainError(401, 'Invalid or expired token');
       return { userId: uid };
     }
 
-    return { error: 'Authentication required', status: 401 };
+    throw new DomainError(401, 'Authentication required');
   }
 
   // ---------------------------------------------------------------------------

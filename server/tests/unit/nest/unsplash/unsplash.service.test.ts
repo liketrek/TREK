@@ -1,3 +1,4 @@
+import { asLegacyResult } from '../../../helpers/domain-error';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
@@ -33,7 +34,8 @@ const coverFx = makeStorageFixture('covers/');
 const appSettingsStub = { getValue: mockGetValue } as unknown as AppSettingsRepository;
 const usersStub = { getApiKeyColumn: mockGetApiKeyColumn } as unknown as UsersRepository;
 const svc = new UnsplashService(appSettingsStub, usersStub, new RuntimeEnvService(), coverFx.storage);
-const searchUnsplashPhotos = svc.searchUnsplashPhotos.bind(svc);
+const searchUnsplashPhotos = (...args: Parameters<UnsplashService['searchUnsplashPhotos']>) =>
+  asLegacyResult(svc.searchUnsplashPhotos(...args));
 const getUnsplashKey = svc.getUnsplashKey.bind(svc);
 const saveUnsplashCover = svc.saveUnsplashCover.bind(svc);
 const isUnsplashCoverUrl = svc.isUnsplashCoverUrl.bind(svc);

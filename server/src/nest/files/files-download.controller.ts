@@ -32,9 +32,6 @@ export class FilesDownloadController {
     @Param('id') id: string,
   ): Promise<void> {
     const auth = await this.files.authenticateDownload(req);
-    if ('error' in auth) {
-      throw new HttpException({ error: auth.error }, auth.status);
-    }
 
     const trip = await this.files.verifyTripAccess(tripId, auth.userId);
     if (!trip) {

@@ -7,6 +7,7 @@
  * registry in tests/helpers/mcp-test-controllers.ts, so the assertions below
  * exercise the @Tool/@ResourceTemplate path instead of the deleted registrar.
  */
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
 
@@ -1012,10 +1013,10 @@ describe('Tool: import_places_from_url', () => {
     list.mockRestore();
   });
 
-  it('surfaces the naver importer\'s { error, status } as a tool error', async () => {
+  it('surfaces the naver importer\'s refusal as a tool error', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const spy = vi.spyOn(PlacesService.prototype, 'importNaverList').mockResolvedValue({ error: 'List is empty or could not be read', status: 400 });
+    const spy = vi.spyOn(PlacesService.prototype, 'importNaverList').mockRejectedValue(new DomainError(400, 'List is empty or could not be read'));
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({

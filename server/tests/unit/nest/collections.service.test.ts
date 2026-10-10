@@ -9,6 +9,7 @@
  * faithfully. Keeps its own clearCollections() reset (the shared
  * resetTestDb RESET_TABLES list has no collection tables).
  */
+import { asLegacyResult } from '../../helpers/domain-error';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
@@ -572,11 +573,11 @@ describe('fusion invitations', () => {
 
   it('COLLECTIONS-SVC-030: sendInvite — self 400, unknown 404, non-owner 403, happy path', async () => {
     const { owner, target, col } = await setup();
-    expect((await svc.sendInvite(col.id, owner.id, owner.username, owner.email, owner.id)).status).toBe(400);
-    expect((await svc.sendInvite(col.id, owner.id, owner.username, owner.email, 99999)).status).toBe(404);
-    expect((await svc.sendInvite(col.id, target.id, target.username, target.email, owner.id)).status).toBe(403); // non-owner inviter
+    expect((await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, owner.id))).status).toBe(400);
+    expect((await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, 99999))).status).toBe(404);
+    expect((await asLegacyResult(svc.sendInvite(col.id, target.id, target.username, target.email, owner.id))).status).toBe(403); // non-owner inviter
 
-    const ok = await svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id);
+    const ok = await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id));
     expect(ok.error).toBeUndefined();
     expect(broadcastToUser).toHaveBeenCalledWith(target.id, expect.objectContaining({ type: 'collections:invite' }));
     // the notification send is fire-and-forget via a dynamic import — flush microtasks.
@@ -585,37 +586,37 @@ describe('fusion invitations', () => {
 
   it('COLLECTIONS-SVC-031: double-invite while pending → 400; existing member → 400', async () => {
     const { owner, target, col } = await setup();
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id);
-    expect((await svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id)).status).toBe(400);
-    await svc.acceptInvite(target.id, col.id, undefined);
-    expect((await svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id)).error).toBe('Already a member');
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id));
+    expect((await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id))).status).toBe(400);
+    await asLegacyResult(svc.acceptInvite(target.id, col.id, undefined));
+    expect((await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id))).error).toBe('Already a member');
   });
 
   it('COLLECTIONS-SVC-032: acceptInvite — 404 with no pending; flips to accepted → member now sees list', async () => {
     const { owner, target, col } = await setup();
-    expect((await svc.acceptInvite(target.id, col.id, undefined)).status).toBe(404);
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id);
-    expect((await svc.acceptInvite(target.id, col.id, undefined)).error).toBeUndefined();
+    expect((await asLegacyResult(svc.acceptInvite(target.id, col.id, undefined))).status).toBe(404);
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id));
+    expect((await asLegacyResult(svc.acceptInvite(target.id, col.id, undefined))).error).toBeUndefined();
     expect((await svc.listCollections(target.id)).collections.map((c) => c.id)).toContain(col.id);
   });
 
   it('COLLECTIONS-SVC-033: accept-after-cancel → 404 (no orphan accept)', async () => {
     const { owner, target, col } = await setup();
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id);
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id));
     await svc.cancelInvite(col.id, owner.id, target.id);
-    expect((await svc.acceptInvite(target.id, col.id, undefined)).status).toBe(404);
+    expect((await asLegacyResult(svc.acceptInvite(target.id, col.id, undefined))).status).toBe(404);
   });
 
   it('COLLECTIONS-SVC-034: declineInvite removes the pending row', async () => {
     const { owner, target, col } = await setup();
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id);
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id));
     await svc.declineInvite(target.id, col.id, undefined);
     expect(await membersOf(col.id)).toEqual({ n: 0 });
   });
 
   it('COLLECTIONS-SVC-035: cancelInvite is owner-only', async () => {
     const { owner, target, col } = await setup();
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id);
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id));
     await expect(svc.cancelInvite(col.id, target.id, target.id)).rejects.toThrow(); // non-owner
     await svc.cancelInvite(col.id, owner.id, target.id); // owner ok
     expect(await membersOf(col.id)).toEqual({ n: 0 });
@@ -623,8 +624,8 @@ describe('fusion invitations', () => {
 
   it('COLLECTIONS-SVC-036: leaveCollection — member ok, owner blocked (400)', async () => {
     const { owner, target, col } = await setup();
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id);
-    await svc.acceptInvite(target.id, col.id, undefined);
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id));
+    await asLegacyResult(svc.acceptInvite(target.id, col.id, undefined));
     await svc.leaveCollection(target.id, col.id, undefined);
     expect((await svc.listCollections(target.id)).collections.map((c) => c.id)).not.toContain(col.id);
 
@@ -638,8 +639,8 @@ describe('fusion invitations', () => {
     const colA = await svc.createCollection(owner.id, { name: 'A' });
     const colB = await svc.createCollection(owner.id, { name: 'B' });
     // target is accepted in A; must still be invitable to B
-    await svc.sendInvite(colA.id, owner.id, owner.username, owner.email, target.id);
-    await svc.acceptInvite(target.id, colA.id, undefined);
+    await asLegacyResult(svc.sendInvite(colA.id, owner.id, owner.username, owner.email, target.id));
+    await asLegacyResult(svc.acceptInvite(target.id, colA.id, undefined));
 
     const forB = (await svc.availableUsers(owner.id, colB.id)).map((u) => u.id);
     expect(forB).toContain(target.id);
@@ -661,9 +662,9 @@ describe('fusion invitations', () => {
 
   it('COLLECTIONS-SVC-039: visibility = owner OR accepted member (pending does NOT grant access)', async () => {
     const { owner, target, col } = await setup();
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id);
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, target.id));
     await expect(svc.getCollection(target.id, col.id)).rejects.toThrow(); // pending, no access yet
-    await svc.acceptInvite(target.id, col.id, undefined);
+    await asLegacyResult(svc.acceptInvite(target.id, col.id, undefined));
     expect((await svc.getCollection(target.id, col.id)).collection.id).toBe(col.id);
   });
 });
@@ -677,9 +678,9 @@ describe('deleteCollection', () => {
     const pending = createUser(testDb).user;
     const col = await svc.createCollection(owner.id, { name: 'Doomed' });
     await svc.savePlace(owner.id, { collection_id: col.id, name: 'P' });
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, accepted.id);
-    await svc.acceptInvite(accepted.id, col.id, undefined);
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, pending.id);
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, accepted.id));
+    await asLegacyResult(svc.acceptInvite(accepted.id, col.id, undefined));
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, pending.id));
 
     // a non-owner member cannot delete
     await expect(svc.deleteCollection(accepted.id, col.id)).rejects.toThrow();
@@ -1028,9 +1029,9 @@ describe('membership lookups', () => {
     expect(await svc.findMembershipForUser(owner.id, col.id)).toEqual({ is_member: true, is_owner: true, status: 'accepted' });
     expect(await svc.findMembershipForUser(outsider.id, col.id)).toEqual({ is_member: false, is_owner: false, status: null });
 
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, member.id);
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, member.id));
     expect(await svc.findMembershipForUser(member.id, col.id)).toEqual({ is_member: false, is_owner: false, status: 'pending' });
-    await svc.acceptInvite(member.id, col.id, undefined);
+    await asLegacyResult(svc.acceptInvite(member.id, col.id, undefined));
     expect(await svc.findMembershipForUser(member.id, col.id)).toEqual({ is_member: true, is_owner: false, status: 'accepted' });
   });
 });
@@ -1688,7 +1689,7 @@ describe('Plan 3h Task 1 — repository conversion parity', () => {
     await addMember(col.id, admin.id, 'admin');
     await addMember(col.id, editor.id, 'editor');
     await addMember(col.id, viewer.id, 'viewer');
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, pending.id);
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, pending.id));
 
     const tag = createTag(testDb, owner.id, { name: 'Foodie' });
     const place = (await svc.savePlace(owner.id, {
@@ -1748,9 +1749,9 @@ describe('Plan 3h Task 1 — repository conversion parity', () => {
     const accepted = createUser(testDb).user;
     const pending = createUser(testDb).user;
     const col = await svc.createCollection(owner.id, { name: 'Ordering proof' });
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, accepted.id);
-    await svc.acceptInvite(accepted.id, col.id, undefined);
-    await svc.sendInvite(col.id, owner.id, owner.username, owner.email, pending.id);
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, accepted.id));
+    await asLegacyResult(svc.acceptInvite(accepted.id, col.id, undefined));
+    await asLegacyResult(svc.sendInvite(col.id, owner.id, owner.username, owner.email, pending.id));
 
     broadcastToUser.mockClear();
     // Captured at CALL time, not after `deleteCollection` returns — if the

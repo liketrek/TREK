@@ -93,9 +93,6 @@ export class TripsController {
   async coverImages(@CurrentUser() user: User, @Query('query') query?: string) {
     try {
       const result = await this.trips.searchCoverImages(query || '', user.id);
-      if ('error' in result) {
-        throw new HttpException({ error: result.error }, result.status);
-      }
       return { photos: result.photos };
     } catch (err: unknown) {
       if (err instanceof HttpException) throw err;

@@ -5,6 +5,7 @@ import {
   errorResult, ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { DomainError } from '../common/domain-error';
 import { tripIdPromptArg } from '../mcp-shared/prompt-args';
 import { z } from 'zod';
 import { CalendarService } from '../calendar/calendar.service';
@@ -202,9 +203,11 @@ export class TripsMcp {
   async searchCoverImages({ query }: { query: string }, ctx: McpContext) {
     try {
       const result = await this.trips.searchCoverImages(query, ctx.userId);
-      if ('error' in result) return errorResult(result.error);
       return ok({ photos: result.photos });
     } catch (err) {
+      // A refusal (no query, Unsplash answering an error) keeps its own text;
+      // the registry's error mapper turns it into the tool result.
+      if (err instanceof DomainError) throw err;
       console.error('Unsplash cover image error:', err);
       return errorResult('Error searching for cover images');
     }
