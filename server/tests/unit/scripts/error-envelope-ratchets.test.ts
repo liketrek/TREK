@@ -5,7 +5,7 @@
  * on this repository, so the committed baselines are checked by the unit suite.
  */
 import { countInlineZod } from '../../../scripts/mcp-inline-zod.mjs';
-import { countResultBranches, countServiceIdioms } from '../../../scripts/service-http-ratchet.mjs';
+import { countFile, countResultBranches, countServiceIdioms } from '../../../scripts/service-http-ratchet.mjs';
 
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -83,6 +83,33 @@ describe('the counters', () => {
     ].join('\n');
     expect(countResultBranches(text)).toBe(4);
   });
+
+  it('ENV-RATCHET-004: counts a comparison, a negation, an optional chain and a ternary on a returned error', () => {
+    const text = [
+      "if (result.error === 'not_found') {",
+      'if (!r.error) return ok(r);',
+      'if (res?.error && res.status) {',
+      'return outcome.error ? fail() : pass();',
+      "const notFound = r.error !== 'gone';",
+      'logger.error(r);',
+      'const e = res.error;',
+      'if (r.errors) {',
+    ].join('\n');
+    expect(countResultBranches(text)).toBe(5);
+  });
+
+  it('ENV-RATCHET-005: counts the envelope in any domain file, not in the HTTP layer or the DomainError itself', () => {
+    const envelope = `return { error: 'x', ${STATUS} };`;
+    for (const file of ['a.helpers.ts', 'a.impl.ts', 'providers/x.provider.ts', 'a.service.ts']) {
+      expect(countFile(envelope, `src/nest/a/${file}`)).toBe(1);
+    }
+    for (const file of ['a.controller.ts', 'a.guard.ts', 'a.pipe.ts', 'a.filter.ts', 'a.interceptor.ts', 'a.dto.ts']) {
+      expect(countFile(envelope, `src/nest/a/${file}`)).toBe(0);
+    }
+    expect(countFile(envelope, 'src/nest/common/domain-error.ts')).toBe(0);
+    expect(countFile('if (r.error) {', 'src/nest/a/a.rpc.ts')).toBe(1);
+    expect(countFile('if (r.error) {', 'src/nest/a/a.helpers.ts')).toBe(0);
+  });
 });
 
 describe('mcp-inline-zod.mjs', () => {
@@ -145,24 +172,26 @@ describe('mcp-inline-zod.mjs', () => {
 describe('service-http-ratchet.mjs', () => {
   const BASE = 'service-http-baseline.json';
 
-  it('ENV-RATCHET-020: counts services, controllers and tools, nothing else', () => {
+  it('ENV-RATCHET-020: counts domain files, controllers, tools and RPC handlers, not the HTTP layer', () => {
     const dir = serverRoot(
       {
         [`${NEST}/a/a.service.ts`]: `return { error: 'x', ${STATUS} };\n`,
         [`${NEST}/a/a.controller.ts`]: 'if (result.error) {\n',
         [`${NEST}/a/a.mcp.ts`]: "if ('error' in r) return x;\n",
+        [`${NEST}/a/a.rpc.ts`]: "if (r.error === 'nope') throw x;\n",
         [`${NEST}/a/a.helpers.ts`]: `return { error: 'x', ${STATUS} };\n`,
+        [`${NEST}/a/a.guard.ts`]: `throw ${HTTP}'no', 403);\n`,
       },
       BASE,
     );
     const { status, out } = run('service-http-ratchet.mjs', dir);
     expect(status).toBe(1);
-    for (const file of ['a.service.ts', 'a.controller.ts', 'a.mcp.ts']) {
+    expect(out).not.toContain('a.guard.ts');
+    for (const file of ['a.service.ts', 'a.controller.ts', 'a.mcp.ts', 'a.rpc.ts', 'a.helpers.ts']) {
       expect(out).toContain(
         `FAIL  ${NEST}/a/${file}: 1 error-envelope idiom(s), a file without a baseline entry may hold none.`,
       );
     }
-    expect(out).not.toContain('a.helpers.ts');
     expect(out).toContain('Throw a DomainError');
   });
 
