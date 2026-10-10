@@ -111,3 +111,6 @@ export * from './vacay/school-holiday-catalog.schema';
 
 // Money arithmetic in whole hundredths (sums, equal splits, currency precision).
 export * from './money/money';
+
+// Trip permission catalog (keys, levels, defaults) and the rule that decides a check.
+export * from './permissions/permissions';

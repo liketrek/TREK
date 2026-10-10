@@ -7,7 +7,8 @@
  * no business knowing), and a mutation additionally needs its own permission. They
  * moved out of days.controller.test.ts with the check itself.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, expectTypeOf, vi } from 'vitest';
+import type { PermissionKey } from '@trek/shared';
 import { HttpException } from '@nestjs/common';
 import { ROUTE_ARGS_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
@@ -187,5 +188,13 @@ describe('@Trip() param decorator', () => {
     // Silently handing the handler `undefined` would turn a missing guard into a
     // crash somewhere further down, with nothing pointing at the wiring.
     expect(() => tripFactory()(undefined, ctx({}))).toThrow(/without @UseGuards\(TripAccessGuard\)/);
+  });
+});
+
+describe('RequirePermission', () => {
+  it('takes a key of the shared permission catalog, so a misspelt action does not compile', () => {
+    expectTypeOf(RequirePermission).parameter(0).toEqualTypeOf<PermissionKey>();
+    expectTypeOf<'day_edit'>().toMatchTypeOf<PermissionKey>();
+    expectTypeOf<'day_edits'>().not.toMatchTypeOf<PermissionKey>();
   });
 });

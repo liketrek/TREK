@@ -64,3 +64,7 @@ The parity rule governs **existing** routes; it is not a license to mint new deb
 ## Money (`src/money/money.ts`)
 
 `toMinor`, `sumMinor`, `splitEqualShares` and `currencyDecimals` are the budget arithmetic both sides must agree on to the cent: amounts are netted in whole hundredths, equal splits hand the leftover hundredths out by rotation from `itemId % n`, and the shares always sum back to the total. The server's settlement uses these directly; `money.spec.ts` holds the share table that used to be duplicated between the server and client tests. The client still carries its own `splitEqualShares` (in euros, `CostsPanel.helpers.ts`) and `currencyDecimals` (`utils/formatters.ts`); folding them onto these is client work, not a second implementation to copy.
+
+## Permissions (`src/permissions/permissions.ts`)
+
+`PERMISSION_ACTIONS` is the catalog of configurable trip permissions (key, default level, the levels an admin may pick), `PermissionKey` the union of its keys and `evaluatePermission(level, { isAdmin, isOwner, isMember })` the one decision rule. The server's `PermissionsService` and `@RequirePermission(action: PermissionKey)` are built on them, so a new action starts here and a misspelt key fails to compile. The client still evaluates in its own `useCanDo` (with "not configured = allow"); moving it onto `evaluatePermission` is client work.

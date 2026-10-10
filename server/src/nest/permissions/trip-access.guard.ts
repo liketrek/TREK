@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata }
 import { Reflector } from '@nestjs/core';
 import { EntityManager } from '@mikro-orm/core';
 import type { Request } from 'express';
+import type { PermissionKey } from '@trek/shared';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import { PermissionsService } from './permissions.service';
@@ -16,11 +17,12 @@ export const TRIP_PERMISSION_KEY = 'trekTripPermission';
 /**
  * Requires a permission on the trip the route is scoped to, on top of access.
  *
- * The action string is the same one the domain services pass to
- * `PermissionsService.checkPermission` ('day_edit', 'budget_edit', …), so a route
- * and its MCP counterpart cannot drift apart on which right they demand.
+ * The action is a key of the shared catalog (`PermissionKey` from `@trek/shared`),
+ * the same one the domain services pass to `PermissionsService.checkPermission`
+ * ('day_edit', 'budget_edit', …), so a route and its MCP counterpart cannot drift
+ * apart on which right they demand, and a misspelt key fails to compile.
  */
-export const RequirePermission = (action: string) => SetMetadata(TRIP_PERMISSION_KEY, action);
+export const RequirePermission = (action: PermissionKey) => SetMetadata(TRIP_PERMISSION_KEY, action);
 
 type TripRequest = Request & { user?: User; [TRIP_REQUEST_KEY]?: TripAccess };
 

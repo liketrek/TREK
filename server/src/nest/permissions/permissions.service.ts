@@ -5,63 +5,16 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { logError } from '../audit/audit-log.logger';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { PERMISSION_ACTIONS, evaluatePermission, type PermissionAction, type PermissionLevel } from '@trek/shared';
 import { PermissionsCacheStore, permissionsCacheSlot } from './permissions-cache';
 
-/**
- * Permission levels (hierarchical, higher includes lower):
- *   admin > trip_owner > trip_member > everybody
- *
- * "everybody" means any authenticated user with trip access.
- * For trip_create, "everybody" means any authenticated user (no trip context).
- */
-export type PermissionLevel = 'admin' | 'trip_owner' | 'trip_member' | 'everybody';
+// The catalog (keys, levels, defaults) and the decision rule live in
+// @trek/shared, so the admin screen and the client read the same table the
+// server enforces. Re-exported here for the server code that imported them.
+export { PERMISSION_ACTIONS };
+export type { PermissionAction, PermissionLevel };
 
-export interface PermissionAction {
-  key: string;
-  defaultLevel: PermissionLevel;
-  allowedLevels: PermissionLevel[];
-}
-
-// All configurable actions with their defaults matching upstream behavior
-export const PERMISSION_ACTIONS: PermissionAction[] = [
-  // Trip management
-  { key: 'trip_create',        defaultLevel: 'everybody',   allowedLevels: ['admin', 'everybody'] },
-  { key: 'trip_edit',          defaultLevel: 'trip_owner',   allowedLevels: ['trip_owner', 'trip_member'] },
-  { key: 'trip_delete',        defaultLevel: 'trip_owner',   allowedLevels: ['admin', 'trip_owner'] },
-  { key: 'trip_archive',       defaultLevel: 'trip_owner',   allowedLevels: ['trip_owner', 'trip_member'] },
-  { key: 'trip_cover_upload',  defaultLevel: 'trip_owner',   allowedLevels: ['trip_owner', 'trip_member'] },
-
-  // Member management
-  { key: 'member_manage',      defaultLevel: 'trip_owner',   allowedLevels: ['admin', 'trip_owner', 'trip_member'] },
-
-  // Files
-  { key: 'file_upload',        defaultLevel: 'trip_member',  allowedLevels: ['admin', 'trip_owner', 'trip_member'] },
-  { key: 'file_edit',          defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
-  { key: 'file_delete',        defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
-
-  // Places
-  { key: 'place_edit',         defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
-
-  // Budget
-  { key: 'budget_edit',        defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
-
-  // Packing
-  { key: 'packing_edit',       defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
-
-  // Reservations
-  { key: 'reservation_edit',   defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
-
-  // Day notes & schedule
-  { key: 'day_edit',           defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
-
-  // Collaboration (notes, polls, messages)
-  { key: 'collab_edit',        defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
-
-  // Share link management
-  { key: 'share_manage',       defaultLevel: 'trip_owner',   allowedLevels: ['trip_owner', 'trip_member'] },
-];
-
-const ACTIONS_MAP = new Map(PERMISSION_ACTIONS.map(a => [a.key, a]));
+const ACTIONS_MAP = new Map<string, PermissionAction>(PERMISSION_ACTIONS.map(a => [a.key, a]));
 
 // The cache is a PermissionsCacheStore (./permissions-cache), injected so a
 // store shared between processes can be plugged in later. A hand-built
@@ -192,22 +145,11 @@ export class PermissionsService {
     userId: number,
     isMember: boolean
   ): Promise<boolean> {
-    // Admins always pass
+    // Admins always pass, without reading the configured level.
     if (userRole === 'admin') return true;
 
     const required = await this.getPermissionLevel(actionKey);
-
-    switch (required) {
-      case 'admin':
-        return false; // already checked above
-      case 'trip_owner':
-        return tripUserId !== null && tripUserId === userId;
-      case 'trip_member':
-        return (tripUserId !== null && tripUserId === userId) || isMember;
-      case 'everybody':
-        return true;
-      default:
-        return false;
-    }
+    const isOwner = tripUserId !== null && tripUserId === userId;
+    return evaluatePermission(required, { isAdmin: false, isOwner, isMember });
   }
 }
