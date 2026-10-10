@@ -22,12 +22,18 @@ interface ExecError {
 
 const roots: string[] = [];
 
-function serverRoot(files: Record<string, string>, baseline: unknown = {}): string {
+function serverRoot(files: Record<string, string>, baseline: unknown = {}, testBaseline: unknown = {}): string {
   // null writes no baseline file at all.
   const dir = mkdtempSync(path.join(tmpdir(), 'trek-size-lint-'));
   roots.push(dir);
   mkdirSync(path.join(dir, 'src'), { recursive: true });
   mkdirSync(path.join(dir, 'scripts'), { recursive: true });
+  // The tests scope needs a tree with a file in it; cases about it add their own.
+  mkdirSync(path.join(dir, 'tests'), { recursive: true });
+  writeFileSync(path.join(dir, 'tests/setup.ts'), lines(1));
+  if (testBaseline !== null) {
+    writeFileSync(path.join(dir, 'scripts/test-size-baseline.json'), JSON.stringify(testBaseline));
+  }
   for (const [file, text] of Object.entries(files)) {
     mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
     writeFileSync(path.join(dir, file), text);
@@ -144,6 +150,43 @@ describe('size-lint.mjs', () => {
     const { status, out } = run(dir);
     expect(status).toBe(1);
     expect(out).toContain('src/ does not exist');
+  });
+
+  it('SIZE-011: holds files under tests/ to 2000 lines, test suites included, against their own baseline', () => {
+    const ok = run(serverRoot({ 'src/a.ts': lines(1), 'tests/unit/a.test.ts': lines(2000) }));
+    expect(ok.status).toBe(0);
+    expect(ok.out).toContain('size (tests): 2 file(s), 0 over 2000 lines');
+
+    const grown = run(serverRoot({ 'src/a.ts': lines(1), 'tests/unit/a.test.ts': lines(2001) }));
+    expect(grown.status).toBe(1);
+    expect(grown.out).toContain('FAIL  tests/unit/a.test.ts: 2001 lines, the limit is 2000.');
+
+    const held = { 'tests/unit/a.test.ts': 2500 };
+    expect(run(serverRoot({ 'src/a.ts': lines(1), 'tests/unit/a.test.ts': lines(2500) }, {}, held)).status).toBe(0);
+    expect(run(serverRoot({ 'src/a.ts': lines(1), 'tests/unit/a.test.ts': lines(2501) }, {}, held)).status).toBe(1);
+    // A test file under src/ is still not part of the source scope.
+    expect(run(serverRoot({ 'src/a.ts': lines(1), 'src/a.test.ts': lines(3000) })).status).toBe(0);
+  });
+
+  it('SIZE-012: the tests baseline lowers with --update and fails closed when it is missing', () => {
+    const dir = serverRoot(
+      { 'src/a.ts': lines(1), 'tests/unit/a.test.ts': lines(2100) },
+      {},
+      { 'tests/unit/a.test.ts': 2400 },
+    );
+    const stale = run(dir);
+    expect(stale.status).toBe(1);
+    expect(stale.out).toContain(
+      'FAIL  tests/unit/a.test.ts is held at 2400 in scripts/test-size-baseline.json, but it has 2100 lines now.',
+    );
+    expect(run(dir, '--update').status).toBe(0);
+    expect(JSON.parse(readFileSync(path.join(dir, 'scripts/test-size-baseline.json'), 'utf8'))).toEqual({
+      'tests/unit/a.test.ts': 2100,
+    });
+
+    const missing = run(serverRoot({ 'src/a.ts': lines(1) }, {}, null));
+    expect(missing.status).toBe(1);
+    expect(missing.out).toContain('test-size-baseline.json cannot be read');
   });
 
   it('SIZE-009: --update only lowers, drops files back under the limit, and never adds one', () => {

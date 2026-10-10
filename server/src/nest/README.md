@@ -100,7 +100,7 @@ over an injected `AddonsService`.
   took the same three ids in different orders. `local` is not a provider; both
   dispatch sites branch on it.
 - `realtime/`: `/ws` as a Nest gateway. `ws-state.ts` is module state on purpose
-  (test harnesses build `RealtimeService` outside the container). The socket id
+  (a `RealtimeService` built outside the container delivers to the same rooms). The socket id
   stays a monotonic integer, because `broadcast` excludes the originator with
   `Number(excludeSid)`. `trek-ws.adapter.ts` builds the ws server itself so
   `verifyClient` keeps the origin check, and attaches the per-socket `error`
@@ -196,9 +196,13 @@ events whichever surface made the change.
 Every module ships two kinds of tests.
 
 1. **Unit**: `tests/unit/nest/<domain>.controller.test.ts` and
-   `<domain>.service.test.ts`. Build the class directly with its collaborators
-   (no `overrideProvider`); assert status codes, the exact `{ error }` bodies and
-   how inputs are forwarded. Parity assertions live here; there is no separate
+   `<domain>.service.test.ts`. A controller test builds the controller over stub
+   services; a service test takes the service out of its module with
+   `createTestModule` (`tests/helpers/test-module.ts`) and replaces the
+   collaborators it controls through `overrides`, instead of calling the
+   constructor with positional arguments (`lint:test-new-service` holds the
+   hand-built rest). Assert status codes, the exact `{ error }` bodies and how
+   inputs are forwarded. Parity assertions live here; there is no separate
    parity directory. See `tests/unit/nest/weather.controller.test.ts`.
 2. **e2e**: `tests/e2e/<domain>.e2e.test.ts` boots the module against a temp
    SQLite through `tests/e2e/harness.ts` (`createTempDb`, `seedUser`,
@@ -208,6 +212,14 @@ Every module ships two kinds of tests.
 
 Seed and read rows through the ORM factories in `tests/helpers/factories/`;
 raw `.prepare()` fixtures are legacy that `lint:test-sql` only lets shrink.
+
+The shared modules are not mocked by path (`lint:test-mocks` counts what is
+left): `src/config` answers the fixed values in `tests/helpers/test-config.ts`
+in every suite (`overrideTestConfig` for a case that needs others), broadcasts
+are recorded on a `FakeRealtimeService` (`tests/helpers/fake-realtime.ts`)
+handed in through DI or put over a booted app with `spyOnRealtime(app)`, and
+suites that drive a cross-domain surface (the MCP tools, the plugin RPC host)
+take AppModule itself from `bootTestApp` (`tests/helpers/test-app.ts`).
 
 `tests/` is outside the build's `include`, so a constructor that grows a
 parameter does not break a hand-wired `new` in a test at build time;

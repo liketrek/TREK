@@ -280,6 +280,8 @@ jobs:
         # A source file may hold no more lines than scripts/size-baseline.json
         # allows (1000 for a file without an entry, long lines counted
         # wrapped), so a big service is split by concern instead of growing.
+        # Files under tests/ are held the same way at 2000 lines against
+        # scripts/test-size-baseline.json.
         run: cd server && npm run lint:size
 
       - name: Shared ratchet code
@@ -310,6 +312,18 @@ jobs:
         # against scripts/test-sql-baseline.json. New fixtures seed and read
         # through tests/helpers/factories (MikroORM) instead.
         run: cd server && npm run lint:test-sql
+
+      - name: Module mocks of config, realtime and db in tests may only shrink
+        # Counts vi.mock/vi.doMock of src/config, src/nest/realtime and src/db
+        # per file under tests/ against scripts/test-mocks-baseline.json. The
+        # setup file fixes the config, a FakeRealtimeService records broadcasts.
+        run: cd server && npm run lint:test-mocks
+
+      - name: Hand-built services in tests may only shrink
+        # Counts new XService(/new XRepository( per file under tests/ against
+        # scripts/test-new-service-baseline.json (classes whose constructor
+        # takes nothing are allowed). New suites use createTestModule.
+        run: cd server && npm run lint:test-new-service
 
       - name: QueryBuilder calls in the repositories may only shrink
         # Counts this.qb(...)/createQueryBuilder(...) per file under

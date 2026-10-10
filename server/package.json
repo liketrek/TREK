@@ -23,6 +23,8 @@
     "lint:dialect": "node scripts/dialect-lint.mjs",
     "lint:tx": "node scripts/tx-writes.mjs",
     "lint:test-sql": "node scripts/test-sql-ratchet.mjs",
+    "lint:test-mocks": "node scripts/test-mocks-ratchet.mjs",
+    "lint:test-new-service": "node scripts/test-new-service-ratchet.mjs",
     "lint:query-api": "node scripts/query-api-ratchet.mjs",
     "lint:mcp-zod": "node scripts/mcp-inline-zod.mjs",
     "lint:service-http": "node scripts/service-http-ratchet.mjs",

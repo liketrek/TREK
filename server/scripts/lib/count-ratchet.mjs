@@ -1,5 +1,6 @@
 /*
- * The per-file count ratchet shared by lint:mcp-zod and lint:service-http.
+ * The per-file count ratchet shared by lint:mcp-zod, lint:service-http,
+ * lint:test-mocks and lint:test-new-service.
  *
  * A check names the tree it walks, which files in it count and how to count one
  * file's text. Every file is held to its entry in the check's baseline JSON
@@ -31,11 +32,14 @@ export function scan(serverDir, check) {
       `${check.root}/ does not exist under ${serverDir}: the check would pass without looking at anything`,
     );
   }
+  // A check that needs to read the tree first (a list of class names, say)
+  // builds that context once here; count() gets it with every file.
+  const context = check.prepare ? check.prepare(serverDir) : undefined;
   const counts = {};
   for (const path of walk(dir)) {
     const file = relative(serverDir, path).split('\\').join('/');
     if (!check.include(file)) continue;
-    const n = check.count(readFileSync(path, 'utf8'), file);
+    const n = check.count(readFileSync(path, 'utf8'), file, context);
     if (n > 0) counts[file] = n;
   }
   return counts;
