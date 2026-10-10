@@ -32,12 +32,10 @@ export interface PluginRpcContext {
 }
 
 /** What a plugin may do to its declared dependencies. */
-export interface PluginRpcPeers {
+interface PluginRpcPeers {
   call(targetId: string, fn: string, args: unknown, actingUserId: number | undefined): Promise<unknown>;
   emit(event: string, payload: unknown): Promise<void>;
 }
-
-export type PluginRpcHandler = (params: Record<string, unknown>, ctx: PluginRpcContext) => unknown;
 
 /**
  * What a decorator records. `methodName` is the name of the decorated class method,

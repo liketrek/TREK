@@ -31,13 +31,13 @@ import { isOutsideChina } from '@trek/shared';
  * admin can say which one should answer. Absent, which is every install that
  * predates Amap, means `auto`, which keeps Google.
  */
-export const PLACES_PROVIDER_SETTING = 'places_provider';
+const PLACES_PROVIDER_SETTING = 'places_provider';
 /**
  * The admin switch that hands search and suggestions to Google alone. Off, the
  * index and OpenStreetMap answer first and Google is only asked when they find
  * nothing, which is what every install has had since 4.3.0.
  */
-export const PLACES_GOOGLE_ONLY_SETTING = 'places_google_only';
+const PLACES_GOOGLE_ONLY_SETTING = 'places_google_only';
 
 /**
  * Whoever holds the keyed slot beside the index for one request: Google's

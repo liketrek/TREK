@@ -20,7 +20,7 @@ import type { CollectionGpxExport, CollectionGpxReadResult } from '@trek/shared'
 
 // The directions-link reading is also what the road trip planner reads a
 // shared route with, and what the import routes dispatch on.
-export { isDirectionsUrl, parseDirectionsUrl, MAX_DIR_WAYPOINTS, type DirWaypoint } from './directions-url.helpers';
+export { isDirectionsUrl, parseDirectionsUrl, MAX_DIR_WAYPOINTS } from './directions-url.helpers';
 export type { GpxExportDay, GpxExportInput, GpxExportOptions, GpxExportPlace } from './providers/gpx.provider';
 export type { ExportedCollectionFile } from './providers/collection-gpx.provider';
 

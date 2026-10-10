@@ -16,7 +16,7 @@ import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import unzipper from 'unzipper';
 import { TextDecoder } from 'util';
 
-export type { KmlImportSummary, ParsedKmlPlacemark } from './place-import.types';
+export type { ParsedKmlPlacemark } from './place-import.types';
 
 export interface KmlPlacemarkNode {
   placemark: any;
@@ -111,9 +111,7 @@ export function sanitizeKmlDescription(value: unknown): string | null {
   return decoded || null;
 }
 
-export function parseKmlLineStringCoordinates(
-  value: unknown,
-): Array<{ lat: number; lng: number; ele: number | null }> | null {
+function parseKmlLineStringCoordinates(value: unknown): Array<{ lat: number; lng: number; ele: number | null }> | null {
   const coordinates = asTrimmedString(value);
   if (!coordinates) return null;
 
@@ -148,7 +146,7 @@ export function parseKmlPointCoordinates(value: unknown): { lat: number; lng: nu
   return { lat, lng };
 }
 
-export function createKmlImportSummary(totalPlacemarks: number): KmlImportSummary {
+function createKmlImportSummary(totalPlacemarks: number): KmlImportSummary {
   return {
     totalPlacemarks,
     createdCount: 0,

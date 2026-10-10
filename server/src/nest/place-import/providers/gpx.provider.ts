@@ -166,7 +166,7 @@ export function gpxFilename(tripTitle: string): string {
  * anything. Waypoints become places, each route and each track becomes one
  * place carrying its geometry.
  */
-export function prepareGpxRows(fileBuffer: Buffer, opts: GpxImportOptions = {}): PreparedGpxPlace[] {
+function prepareGpxRows(fileBuffer: Buffer, opts: GpxImportOptions = {}): PreparedGpxPlace[] {
   const { importWaypoints = true, importRoutes = true, importTracks = true, defaultName } = opts;
 
   const parsed = gpxGeometryParser.parse(fileBuffer.toString('utf-8'));

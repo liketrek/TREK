@@ -15,8 +15,10 @@
       "entry": ["scripts/ci/*.mjs", "scripts/*.{cjs,mts}"],
       "project": ["scripts/**/*.{mjs,cjs,mts}"],
       // An optional peer of tsdown, which loads shared/tsdown.config.ts through
-      // it; nothing imports it by name.
-      "ignoreDependencies": ["unrun"]
+      // it; nothing imports it by name. eslint and prettier are the workspaces'
+      // own copies: the shared scripts/lib takes them handed in, and its tests
+      // import the hoisted ones the server and shared declare.
+      "ignoreDependencies": ["unrun", "eslint", "prettier"]
     },
     "client": {
       // The app, its scripts, the Playwright specs and the server launcher

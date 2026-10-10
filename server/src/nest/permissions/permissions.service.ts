@@ -12,7 +12,7 @@ import { PERMISSION_ACTIONS, evaluatePermission, type PermissionAction, type Per
 // @trek/shared, so the admin screen and the client read the same table the
 // server enforces. Re-exported here for the server code that imported them.
 export { PERMISSION_ACTIONS };
-export type { PermissionAction, PermissionLevel };
+export type { PermissionLevel };
 
 const ACTIONS_MAP = new Map<string, PermissionAction>(PERMISSION_ACTIONS.map((a) => [a.key, a]));
 

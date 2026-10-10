@@ -30,4 +30,5 @@ export const Public = (reason: string) => SetMetadata(IS_PUBLIC, { reason });
  * aside when there is no user, so making a route optional-auth newly enrols its
  * mutations in idempotency replay.
  */
+/** @public The documented opt-out for a route that reads a session when there is one; no route needs it today. */
 export const OptionalAuth = (reason: string) => SetMetadata(OPTIONAL_AUTH, { reason });

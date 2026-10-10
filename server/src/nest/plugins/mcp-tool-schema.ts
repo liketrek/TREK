@@ -13,14 +13,14 @@
  * because that is what an assistant reliably surfaces.
  */
 import type { McpZodSchema } from '../../nest-mcp';
-import { MCP_TOOLS_MAX, TOOL_NAME_RE } from './protocol/manifest-rules';
+import { MCP_TOOLS_MAX } from './protocol/manifest-rules';
 import { sanitiseAssistantText } from './text-sanitize';
 
 import { z } from 'zod';
 
 // The per-plugin cap and the tool-name pattern are manifest rules: they live in
 // protocol/manifest-rules.ts, which gen-plugin-facts writes into the SDK.
-export { MCP_TOOLS_MAX, TOOL_NAME_RE };
+export { MCP_TOOLS_MAX };
 
 /**
  * Tools all plugins together may advertise.

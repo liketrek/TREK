@@ -56,7 +56,7 @@ export function createGpxParser(mode: GpxReadMode): XMLParser {
 export const gpxGeometryParser = createGpxParser('geometry');
 export const gpxTextParser = createGpxParser('text');
 
-export const GPX_NAMESPACE = 'http://www.topografix.com/GPX/1/1';
+const GPX_NAMESPACE = 'http://www.topografix.com/GPX/1/1';
 
 /** Coordinates are written with 7 decimals, ~11 mm, which is past what any consumer
  *  device resolves and keeps the file from carrying float noise. */

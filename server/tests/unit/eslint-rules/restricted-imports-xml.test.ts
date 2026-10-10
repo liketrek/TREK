@@ -1,7 +1,6 @@
-import tsParser from '@typescript-eslint/parser';
-
 import { ESLint, Linter } from 'eslint';
 import path from 'path';
+import tseslint from 'typescript-eslint';
 import { describe, expect, it } from 'vitest';
 
 // fast-xml-parser is allowed in place-import's codecs and the WebDAV client
@@ -29,7 +28,7 @@ async function flags(file: string, source: string): Promise<boolean> {
     [
       {
         files: ['**/*.ts'],
-        languageOptions: { parser: tsParser },
+        languageOptions: { parser: tseslint.parser },
         rules: { 'no-restricted-imports': ['error', ...(options as object[])] },
       },
     ],

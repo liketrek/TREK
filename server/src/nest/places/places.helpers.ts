@@ -18,7 +18,7 @@ import { externalIdsOf, normalizePlaceName, placeMatchStrategies, type PlaceMatc
 // while the values themselves live in @trek/shared with the rule that uses them.
 export { COORD_DEDUP_TOLERANCE, externalIdsOf } from '@trek/shared';
 
-export type { GpxImportOptions, KmlImportOptions, ListImportError } from '../place-import/place-import.types';
+export type { GpxImportOptions, KmlImportOptions } from '../place-import/place-import.types';
 
 /**
  * Escape the LIKE metacharacters in a user-supplied search term so `%` and `_`
@@ -34,12 +34,6 @@ export interface ListImportOptions {
   enrich?: boolean;
   userId?: number;
   lang?: string;
-}
-
-export interface PlaceWithCategory extends Place {
-  category_name: string | null;
-  category_color: string | null;
-  category_icon: string | null;
 }
 
 export interface PlaceImportResult {

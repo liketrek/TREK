@@ -1,7 +1,4 @@
 {
-  "devDependencies": {
-    "server/package.json": 3
-  },
   "duplicates": {
     "client/src/api/client.ts": 1,
     "client/src/components/Map/VectorBasemap.tsx": 1,
@@ -79,11 +76,9 @@
     "server/src/mcp/nest-mcp-policy.ts": 1,
     "server/src/mcp/scopes.ts": 3,
     "server/src/mcp/tools/_shared.ts": 8,
-    "server/src/nest-mcp/index.ts": 1,
     "server/src/nest/accommodations/night-seat.ts": 1,
     "server/src/nest/app-config/index.ts": 6,
     "server/src/nest/auth/auth.helpers.ts": 1,
-    "server/src/nest/auth/public.decorator.ts": 1,
     "server/src/nest/backup/backup-archive.ts": 1,
     "server/src/nest/backup/backup.impl.ts": 3,
     "server/src/nest/budget/budget.service.ts": 1,
@@ -100,7 +95,6 @@
     "server/src/nest/llm-parse/image-input.ts": 2,
     "server/src/nest/llm-parse/llm-config.ts": 1,
     "server/src/nest/llm-parse/llm-prompt.ts": 1,
-    "server/src/nest/maps/maps.service.ts": 2,
     "server/src/nest/maps/providers/amap.provider.ts": 2,
     "server/src/nest/maps/providers/places-provider.ts": 1,
     "server/src/nest/notifications/channel-registry.ts": 1,
@@ -109,7 +103,6 @@
     "server/src/nest/oauth/oauth.helpers.ts": 1,
     "server/src/nest/place-enrichment/place-enrichment.service.ts": 1,
     "server/src/nest/place-shadow/place-shadow.service.ts": 1,
-    "server/src/nest/places/kml-import.helpers.ts": 1,
     "server/src/nest/places/places.helpers.ts": 1,
     "server/src/nest/plugins/contributions/plugin-search.helpers.ts": 2,
     "server/src/nest/plugins/host/plugin-data.service.ts": 1,
@@ -121,7 +114,6 @@
     "server/src/nest/route-usage/route-usage.service.ts": 1,
     "server/src/nest/share/share.service.ts": 1,
     "server/src/nest/storage/storage-stats.service.ts": 1,
-    "server/src/nest/transit/transit-provider.ts": 2,
     "shared/src/roadtrip/accessSpur.ts": 3
   },
   "types": {
@@ -207,7 +199,7 @@
     "server/src/db/repositories/UserSessions.repository.ts": 1,
     "server/src/db/repositories/_shared/rows.ts": 1,
     "server/src/mcp/nest-mcp-policy.ts": 1,
-    "server/src/nest-mcp/index.ts": 13,
+    "server/src/nest-mcp/index.ts": 12,
     "server/src/nest-mcp/types.ts": 4,
     "server/src/nest/booking-import/kitinerary.types.ts": 6,
     "server/src/nest/collab/collab.service.ts": 1,
@@ -219,9 +211,7 @@
     "server/src/nest/maps/trek-places.client.ts": 1,
     "server/src/nest/memories/memories.helpers.ts": 1,
     "server/src/nest/notifications/notifications.service.ts": 1,
-    "server/src/nest/places/places.helpers.ts": 1,
     "server/src/nest/plugins/contributions/map-layers.controller.ts": 1,
-    "server/src/nest/plugins/host/rpc-kit/types.ts": 2,
     "server/src/nest/plugins/install/manifest.ts": 7,
     "server/src/nest/plugins/plugins.service.ts": 1,
     "server/src/nest/plugins/protocol/envelope.ts": 2,
@@ -233,8 +223,7 @@
     "server/src/nest/vacay/vacay.service.ts": 4,
     "server/src/nest/weather/weather.impl.ts": 1,
     "server/src/shutdown.ts": 1,
-    "server/src/systemNotices/types.ts": 7,
-    "server/src/types.ts": 14
+    "server/src/systemNotices/types.ts": 7
   },
   "unlisted": {
     "client/src/components/Map/MapView.tsx": 1,

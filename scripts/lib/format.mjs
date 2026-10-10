@@ -38,7 +38,7 @@ export async function isFormatted(prettier, path) {
 }
 
 /** The files under root/<dirs> that accepts takes and Prettier would rewrite, keyed by their path from root. */
-export async function unformatted({ prettier, root, dirs, accepts }) {
+async function unformatted({ prettier, root, dirs, accepts }) {
   const found = [];
   for (const path of listFiles(root, dirs, accepts)) {
     if (!(await isFormatted(prettier, path))) found.push(toKey(root, path));

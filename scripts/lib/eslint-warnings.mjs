@@ -27,7 +27,7 @@ import {
  * inline disable must not be the cheap way under the ratchet, and an inline
  * rule config, which silences without a trace, fails outright (see tally).
  */
-export const AREAS = ['src', 'tests', 'suppressed'];
+const AREAS = ['src', 'tests', 'suppressed'];
 
 const areaOf = (key) => (key.startsWith('tests/') || TEST_FILE.test(key) ? 'tests' : 'src');
 

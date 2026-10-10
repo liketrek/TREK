@@ -284,7 +284,7 @@ export type McpErrorMapper = (err: unknown) => unknown;
  * needs, resolved from the container like any other provider. A gate that
  * reads the database has to come from DI, and `forRoot` options are static.
  */
-export interface McpToolGateProvider {
+interface McpToolGateProvider {
   /** Modules exporting what `inject` names, unless those providers are global. */
   imports?: NonNullable<ModuleMetadata['imports']>;
   inject?: InjectionToken[];
