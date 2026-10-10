@@ -13,8 +13,11 @@
  * the same stand-ins the hand-built graphs used:
  *   - RealtimeService: the suite's FakeRealtimeService (or a fresh one), so
  *     broadcasts are recorded instead of delivered;
- *   - the reverse geocoder behind the journey photo capture, which would ask
- *     Nominatim for every attached provider photo;
+ *   - the reverse geocoding OsmClient sends to Nominatim (the journey photo
+ *     capture asks it for every attached provider photo): it answers that
+ *     nothing is known. The instance's method is replaced after the build, so
+ *     the container wires every consumer itself and a spy a suite sets on
+ *     MapsService.prototype.reverseGeocode still wins;
  *   - StorageService: a real local driver in a throwaway directory
  *     (makeStorageFixture), so nothing a suite uploads lands in server/uploads.
  *
@@ -25,21 +28,12 @@
  * created on top of the module.
  */
 import { AppModule } from '../../src/nest/app.module';
-import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
-import { JourneyPhotoCaptureService } from '../../src/nest/journey/journey-photo-capture.service';
-import type { MapsService } from '../../src/nest/maps/maps.service';
-import { PhotoCaptureBackfillService } from '../../src/nest/memories/photo-capture-backfill.service';
+import { OsmClient } from '../../src/nest/maps/providers/osm.client';
 import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 import { StorageService } from '../../src/nest/storage/storage.service';
 import { FakeRealtimeService } from './fake-realtime';
 import { makeStorageFixture } from './storage-fixture';
-import { MikroORM } from '@mikro-orm/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-
-/** The geocoder the capture asks for a place name: nothing known, without leaving the process. */
-const offlineGeocoder = {
-  reverseGeocode: async () => ({ name: null, address: null }),
-} as unknown as MapsService;
 
 const booted = new Map<RealtimeService, Promise<TestingModule>>();
 
@@ -49,13 +43,9 @@ async function boot(realtime: RealtimeService): Promise<TestingModule> {
     .useValue(realtime)
     .overrideProvider(StorageService)
     .useValue(makeStorageFixture('').storage)
-    .overrideProvider(JourneyPhotoCaptureService)
-    .useFactory({
-      factory: (backfill: PhotoCaptureBackfillService, journey: JourneyDomainService, orm: MikroORM) =>
-        new JourneyPhotoCaptureService(backfill, journey, offlineGeocoder, orm),
-      inject: [PhotoCaptureBackfillService, JourneyDomainService, MikroORM],
-    })
     .compile();
+  // Reverse geocoding answers "nothing known" without leaving the process.
+  moduleRef.get(OsmClient, { strict: false }).reverse = async () => ({ name: null, address: null });
   await moduleRef.init();
   return moduleRef;
 }

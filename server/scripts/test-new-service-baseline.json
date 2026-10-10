@@ -8,7 +8,6 @@
     "tests/helpers/sessions.ts": 1,
     "tests/helpers/storage-fixture.ts": 1,
     "tests/helpers/test-addons.ts": 1,
-    "tests/helpers/test-app.ts": 1,
     "tests/helpers/test-uow.ts": 3,
     "tests/integration/dayReorder.test.ts": 3,
     "tests/integration/mcp.test.ts": 2,
