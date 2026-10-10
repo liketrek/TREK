@@ -16,7 +16,9 @@
  *                   So are the imports of src/db/entities/: MikroORM relations
  *                   point both ways by design and are read through `() => X`
  *                   thunks after every file has loaded.
- *   domainCycles    the same, between src/nest/<domain> folders: domain A
+ *   domainCycles    the same, between src/nest/<domain> folders (and the
+ *                   layers in LAYERS, src/nest-rpc, src/nest-mcp and src/mcp,
+ *                   each counted as one domain): domain A
  *                   imports from B while B (directly or through others)
  *                   imports from A. Keyed by the domain pair, so a further
  *                   import along a dependency that already exists is not new;
@@ -38,8 +40,10 @@
  *   dbImportsNest   a file under src/db/ importing from src/nest/. The data
  *                   layer sits below the domains, never the other way round.
  *   foreignRepositories
- *                   a class in src/nest/<A>/ injecting (@InjectRepository) the
- *                   repository of an entity another domain owns. Ownership is
+ *                   a class in src/nest/<A>/ (or one of LAYERS) reaching the
+ *                   repository of an entity another domain owns, through
+ *                   @InjectRepository(X) or a getRepository(X) call on an
+ *                   EntityManager. Ownership is
  *                   the map in scripts/repository-owners.json (entity class ->
  *                   owning domain folder); an injected entity missing from it
  *                   stops the run. Keyed by domain and entity, so a second
@@ -282,7 +286,22 @@ function cycleEdges(pairs) {
   return out;
 }
 
-const domainOf = (file) => file.match(/^nest\/([^/]+)\//)?.[1] ?? null;
+/**
+ * Layers outside src/nest that work like a domain of their own: the plugin RPC
+ * kit, the MCP decorator layer and the process-wide MCP state. They import
+ * domains and domains import them, so they take part in domainCycles and
+ * foreignRepositories under their folder name; moving a file out of src/nest
+ * does not take its edges out of the count.
+ */
+export const LAYERS = ['nest-rpc', 'nest-mcp', 'mcp'];
+
+/** The domain a src/-relative path belongs to: nest/<domain>/..., one of LAYERS, or null. */
+export const domainOf = (file) => {
+  const nest = file.match(/^nest\/([^/]+)\//)?.[1];
+  if (nest) return nest;
+  const top = file.split('/')[0];
+  return file.includes('/') && LAYERS.includes(top) ? top : null;
+};
 
 /** The orchestrators no provider may import: its own domain's main service, and MapsService everywhere. */
 function isOrchestratorOf(providerFile, target) {
@@ -293,6 +312,8 @@ function isOrchestratorOf(providerFile, target) {
 const isProviderFile = (file) => /^nest\/[^/]+\/(?:.+\/)?providers\//.test(file);
 
 export function isPublic(target) {
+  // A layer outside src/nest is a toolkit every domain is written against.
+  if (!target.startsWith('nest/')) return true;
   const inner = target.slice('nest/'.length);
   const domain = inner.split('/')[0];
   if (SHARED_DOMAINS.has(domain)) return true;
@@ -300,18 +321,44 @@ export function isPublic(target) {
   return PUBLIC_SUFFIXES.some((s) => target.endsWith(s));
 }
 
-/** Every @InjectRepository(Entity) under src/nest: { domain, entity, file }. */
+/**
+ * The entity classes a file reaches a repository of: `@InjectRepository(X)`
+ * and `<anything>.getRepository(X)`, read from the syntax tree so a comment or
+ * a string naming them does not count.
+ */
+export function repositoryEntitiesOf(text, fileName = 'file.ts') {
+  const source = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
+  const found = [];
+  const visit = (node) => {
+    if (ts.isCallExpression(node) && node.arguments.length > 0 && ts.isIdentifier(node.arguments[0])) {
+      const callee = node.expression;
+      const name = ts.isIdentifier(callee)
+        ? callee.text
+        : ts.isPropertyAccessExpression(callee)
+          ? callee.name.text
+          : null;
+      if (name === 'InjectRepository' || name === 'getRepository') found.push(node.arguments[0].text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
+}
+
+/** Every repository a class under src/nest or one of LAYERS reaches: { domain, entity, file }. */
 export function collectRepositoryInjections(serverDir) {
   const src = join(serverDir, 'src');
-  const nest = join(src, 'nest');
-  if (!existsSync(nest)) return [];
   const found = [];
-  for (const file of walk(nest)) {
-    const rel = relative(src, file).split(sep).join('/');
-    const domain = domainOf(rel);
-    if (!domain) continue;
-    for (const m of readFileSync(file, 'utf8').matchAll(/@InjectRepository\(\s*([A-Za-z_$][\w$]*)\s*\)/g)) {
-      found.push({ domain, entity: m[1], file: rel });
+  for (const top of ['nest', ...LAYERS]) {
+    const dir = join(src, top);
+    if (!existsSync(dir)) continue;
+    for (const file of walk(dir)) {
+      const rel = relative(src, file).split(sep).join('/');
+      const domain = domainOf(rel);
+      if (!domain) continue;
+      for (const entity of repositoryEntitiesOf(readFileSync(file, 'utf8'), file)) {
+        found.push({ domain, entity, file: rel });
+      }
     }
   }
   return found;

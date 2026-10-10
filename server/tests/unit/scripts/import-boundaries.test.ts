@@ -291,6 +291,56 @@ describe('import-boundaries.mjs', () => {
     expect(res.out).toContain('no owner for injected entity Mystery (nest/a/a.service.ts)');
   });
 
+  it('BOUND-015: getRepository calls count like injections, a comment naming one does not', () => {
+    const owners = JSON.stringify({ Trips: 'trips', Users: 'auth' });
+    const dir = serverRoot({
+      'nest/perm/perm.guard.ts': [
+        '// em.getRepository(Users) would be foreign too',
+        'class G { run(em: any) { return em.getRepository(Trips).findAccessible(1, 2); } }',
+        'export { G };',
+        '',
+      ].join('\n'),
+    });
+    writeFileSync(path.join(dir, 'scripts/repository-owners.json'), owners);
+    const res = run(dir);
+    expect(res.status).toBe(1);
+    expect(res.out).toContain('FAIL  foreignRepositories: perm -> Trips (owned by trips)');
+    expect(res.out).not.toContain('Users');
+  });
+
+  it('BOUND-016: src/nest-rpc, src/nest-mcp and src/mcp are domains of their own for cycles and repositories', () => {
+    const owners = JSON.stringify({ Trips: 'trips' });
+    const dir = serverRoot({
+      'nest/addons/addons.service.ts': [
+        "import { kit } from '../../nest-rpc/rpc-kit/kit';",
+        'export class AddonsService { k = kit; }',
+        '',
+      ].join('\n'),
+      'nest-rpc/rpc-kit/kit.ts': 'export const kit = 1;\n',
+      'nest-rpc/plugin-guards.service.ts': [
+        "import { AddonsService } from '../nest/addons/addons.service';",
+        '@InjectRepository(Trips) class PluginGuardsService { a = AddonsService; }',
+        'export { PluginGuardsService };',
+        '',
+      ].join('\n'),
+      'nest/weather/weather.rpc.ts': [
+        "import { PluginGuardsService } from '../../nest-rpc/plugin-guards.service';",
+        'export const r = PluginGuardsService;',
+        '',
+      ].join('\n'),
+    });
+    writeFileSync(path.join(dir, 'scripts/repository-owners.json'), owners);
+    const res = run(dir);
+    expect(res.status).toBe(1);
+    expect(res.out).toContain('FAIL  domainCycles: addons -> nest-rpc');
+    expect(res.out).toContain('FAIL  domainCycles: nest-rpc -> addons');
+    expect(res.out).toContain('FAIL  foreignRepositories: nest-rpc -> Trips (owned by trips)');
+    // The layers are toolkits: a domain using one reaches no internals, and
+    // weather, which nothing imports back, is on no cycle.
+    expect(res.out).not.toContain('FAIL  domainInternals');
+    expect(res.out).not.toContain('weather -> nest-rpc');
+  });
+
   it('BOUND-010: resolves .js specifiers and index files', () => {
     const dir = serverRoot({
       'x/a.ts': "import { b } from './b.js';\nimport { c } from './c';\nexport const a = [b, c];\n",
