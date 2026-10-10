@@ -65,7 +65,7 @@ The parity rule governs **existing** routes; it is not a license to mint new deb
 
 ## Money (`src/money/money.ts`)
 
-`toMinor`, `sumMinor`, `splitEqualShares` and `currencyDecimals` are the budget arithmetic both sides must agree on to the cent: amounts are netted in whole hundredths, equal splits hand the leftover hundredths out by rotation from `itemId % n`, and the shares always sum back to the total. The server's settlement uses these directly; `money.spec.ts` holds the share table that used to be duplicated between the server and client tests. The client still carries its own `splitEqualShares` (in euros, `client/src/components/Budget/CostsPanel.helpers.ts`) and `currencyDecimals` (`client/src/utils/formatters.ts`); folding them onto these is client work, not a second implementation to copy.
+`toMinor`, `sumMinor`, `splitEqualShares` and `currencyDecimals` are the budget arithmetic both sides must agree on to the cent: amounts are netted in whole hundredths, equal splits hand the leftover hundredths out by rotation from `itemId % n`, and the shares always sum back to the total. The server's settlement uses these directly; `money.spec.ts` holds the share table that used to be duplicated between the server and client tests. The client's euro preview (`splitEqualShares` in `client/src/components/Budget/CostsPanel.helpers.ts`) converts the shared cent split; only its `currencyDecimals` (`client/src/utils/formatters.ts`) is still a copy of its own, and folding it onto this one is client work, not a second implementation to copy.
 
 ## Permissions (`src/permissions/permissions.ts`)
 

@@ -104,11 +104,9 @@ describe('rebalancePayers', () => {
 
 // ── Client/server share parity (#2176) ───────────────────────────────────────
 //
-// splitEqualShares exists twice: here (previewing the split in euros) and on the
-// server (netting the settlement in cents — BudgetService.splitEqualShares in
-// server/src/nest/budget/budget.service.ts). The fixture below is duplicated
-// verbatim in server/tests/unit/nest/budget.service.calc.test.ts; if either
-// implementation drifts — sign handling included — its copy of this table fails.
+// The preview's splitEqualShares returns euros on top of the shared cent split
+// the server settles with (shared/src/money/money.ts, whose money.spec.ts holds
+// the same table). This copy checks that the euro conversion keeps every cent.
 const SHARE_PARITY_FIXTURE: { totalCents: number; users: number[]; itemId: number; expected: Record<number, number> }[] = [
   { totalCents: 10000, users: [1, 2, 3], itemId: 0, expected: { 1: 3334, 2: 3333, 3: 3333 } },
   { totalCents: 10000, users: [1, 2, 3], itemId: 1, expected: { 1: 3333, 2: 3334, 3: 3333 } },
