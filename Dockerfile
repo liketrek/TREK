@@ -42,7 +42,9 @@ COPY server/package.json ./server/
 RUN npm ci --workspace=server --ignore-scripts
 COPY --from=shared-builder /app/shared/dist ./shared/dist
 COPY server/ ./server/
-RUN npm run build --workspace=server
+# tsc needs more than the 2 GB heap Node picks on a host with about 12 GB of RAM;
+# on a bigger build machine the default is larger, so only small hosts failed.
+RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build --workspace=server
 
 # ── Stage 4: production runtime ──────────────────────────────────────────────
 FROM node:24-trixie-slim
