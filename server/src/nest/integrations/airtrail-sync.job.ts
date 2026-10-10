@@ -5,6 +5,7 @@ import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { AirtrailSyncService } from './airtrail-sync.service';
+import { readAppSetting } from '../common/app-settings.registry';
 
 /**
  * AirTrail sync: poll connected instances on an interval and reconcile linked
@@ -32,7 +33,7 @@ export class AirtrailSyncJob implements OnApplicationBootstrap {
     // registering at all.
     let minutes = 5;
     await this.registrar.runOnBoot('airtrail-sync-boot', async () => {
-      const value = await this.appSettings.getValue('airtrail_poll_interval_minutes');
+      const value = await readAppSetting(this.appSettings, 'airtrail_poll_interval_minutes');
       const raw = Number.parseInt(value || '5', 10);
       minutes = Number.isFinite(raw) && raw >= 1 && raw <= 59 ? raw : 5;
       logInfo(`AirTrail sync: scheduled every ${minutes}m`);

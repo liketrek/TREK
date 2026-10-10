@@ -5,6 +5,7 @@ import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { DawarichSyncService } from './dawarich-sync.service';
+import { readAppSetting } from '../common/app-settings.registry';
 
 /**
  * Polls every connected Dawarich instance for new visits (#2279).
@@ -38,7 +39,7 @@ export class DawarichSyncJob implements OnApplicationBootstrap {
     // not registering at all.
     let minutes = 15;
     await this.registrar.runOnBoot('dawarich-sync-boot', async () => {
-      const value = await this.appSettings.getValue('dawarich_poll_interval_minutes');
+      const value = await readAppSetting(this.appSettings, 'dawarich_poll_interval_minutes');
       const raw = Number.parseInt(value || '15', 10);
       minutes = Number.isFinite(raw) && raw >= 5 && raw <= 59 ? raw : 15;
       logInfo(`Dawarich sync: scheduled every ${minutes}m`);

@@ -3,6 +3,7 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { DEFAULT_ALLOWED_EXTENSIONS } from './files.constants';
+import { readAppSetting } from '../common/app-settings.registry';
 
 /**
  * The operator's allowed-extension list, on its own.
@@ -24,7 +25,7 @@ export class AllowedFileTypesService {
   /** Comma-separated, as the admin panel stores it. `*` means anything. */
   async get(): Promise<string> {
     try {
-      const value = await this.appSettings.getValue('allowed_file_types');
+      const value = await readAppSetting(this.appSettings, 'allowed_file_types');
       return value || DEFAULT_ALLOWED_EXTENSIONS;
     } catch {
       return DEFAULT_ALLOWED_EXTENSIONS;

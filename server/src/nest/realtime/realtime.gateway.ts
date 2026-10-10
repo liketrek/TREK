@@ -32,6 +32,7 @@ import {
 } from './ws-state';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 import { hostVersion } from '../plugins/install/host-compat';
+import { readAppSetting } from '../common/app-settings.registry';
 
 const HEARTBEAT_INTERVAL = 30_000;
 
@@ -146,7 +147,7 @@ export class RealtimeGateway
 
       // Don't leak password_version beyond the handshake.
       const { password_version: _pv, ...user } = row;
-      const requireMfa = (await this.appSettings.getValue('require_mfa')) === 'true';
+      const requireMfa = (await readAppSetting(this.appSettings, 'require_mfa')) === 'true';
       const mfaOk = user.mfa_enabled === 1 || user.mfa_enabled === true;
       if (requireMfa && !mfaOk) {
         socket.close(4403, 'MFA required');

@@ -12,6 +12,7 @@ import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
 import type { WebauthnCredentialsRepository } from '../../db/repositories/WebauthnCredentials.repository';
+import { readAppSetting } from '../common/app-settings.registry';
 
 /** Metadata key `@MfaExempt()` writes. */
 export const MFA_EXEMPT = 'trek:mfa-exempt';
@@ -68,7 +69,7 @@ export class MfaPolicyGuard implements CanActivate {
     // No session: whoever answers next decides, exactly as before.
     if (!user) return true;
 
-    const requireMfa = await this.appSettings.getValue('require_mfa');
+    const requireMfa = await readAppSetting(this.appSettings, 'require_mfa');
     if (requireMfa !== 'true') return true;
 
     if (this.env.isDemoMode() && user.email && DEMO_EMAILS.has(user.email)) return true;

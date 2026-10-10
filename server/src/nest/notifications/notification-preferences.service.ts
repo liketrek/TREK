@@ -19,6 +19,7 @@ import {
   type NotifChannel,
   type NotifEventType,
 } from './notification-events';
+import { readAppSetting } from '../common/app-settings.registry';
 
 export interface PreferencesMatrix {
   preferences: Partial<Record<NotifEventType, Partial<Record<NotifChannel, boolean>>>>;
@@ -96,7 +97,7 @@ export class NotificationPreferencesService {
    * would silently drop any that were).
    */
   async getActiveChannels(): Promise<NotifChannel[]> {
-    const raw = (await this.appSettings.getValue('notification_channels')) || (await this.appSettings.getValue('notification_channel')) || 'none';
+    const raw = (await readAppSetting(this.appSettings, 'notification_channels')) || (await readAppSetting(this.appSettings, 'notification_channel')) || 'none';
     if (raw === 'none') return [];
     const builtins = new Set((await listChannels()).filter(c => c.source === 'builtin').map(c => c.id));
     return raw.split(',').map(c => c.trim()).filter(c => builtins.has(c));
@@ -203,8 +204,8 @@ export class NotificationPreferencesService {
       // Admin-scoped events go out over the admin's own global credentials, which
       // are independent of the per-user `notification_channels` toggle.
       const hasSmtp = await this.mailer.isSmtpConfigured();
-      const hasAdminWebhook = !!(await this.appSettings.getValue('admin_webhook_url'));
-      const hasAdminNtfy = !!(await this.appSettings.getValue('admin_ntfy_topic'));
+      const hasAdminWebhook = !!(await readAppSetting(this.appSettings, 'admin_webhook_url'));
+      const hasAdminNtfy = !!(await readAppSetting(this.appSettings, 'admin_ntfy_topic'));
       const adminActive: Record<string, boolean> = { email: hasSmtp, webhook: hasAdminWebhook, ntfy: hasAdminNtfy };
       for (const channel of await listChannels()) {
         // Only the channels with an admin-global copy. Plugin channels and push are
@@ -290,7 +291,7 @@ export class NotificationPreferencesService {
       channels: await this.describeChannels(userId, scope),
       event_types,
       implemented_combos,
-      ...(scope === 'user' && { defaults: { ntfyServer: (await this.appSettings.getValue('admin_ntfy_server')) || null }, locked }),
+      ...(scope === 'user' && { defaults: { ntfyServer: (await readAppSetting(this.appSettings, 'admin_ntfy_server')) || null }, locked }),
     };
   }
 

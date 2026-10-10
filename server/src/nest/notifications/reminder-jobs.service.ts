@@ -11,6 +11,7 @@ import { NotificationsService, type NotificationDelivery, type NotificationPaylo
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { addIsoDays } from '@trek/shared';
 import { appClock } from '../common/timezoneService';
+import { readAppSetting } from '../common/app-settings.registry';
 
 /**
  * The trip-reminder and todo-due reminder crons, in the domain that owns them
@@ -62,8 +63,8 @@ export class ReminderJobsService implements OnApplicationBootstrap {
     // safe if this dependency graph goes repository-backed later).
     await this.registrar.runOnBoot('reminder-jobs-boot', async () => {
       try {
-        const reminderEnabled = (await this.appSettings.getValue('notify_trip_reminder')) !== 'false';
-        const channelsRaw = (await this.appSettings.getValue('notification_channels')) || (await this.appSettings.getValue('notification_channel')) || 'none';
+        const reminderEnabled = (await readAppSetting(this.appSettings, 'notify_trip_reminder')) !== 'false';
+        const channelsRaw = (await readAppSetting(this.appSettings, 'notification_channels')) || (await readAppSetting(this.appSettings, 'notification_channel')) || 'none';
         const activeChannels = channelsRaw === 'none' ? [] : channelsRaw.split(',').map(c => c.trim());
         if (!reminderEnabled) {
           logInfo('Trip reminders: disabled in settings');
@@ -72,7 +73,7 @@ export class ReminderJobsService implements OnApplicationBootstrap {
           logInfo(`Trip reminders: enabled via [${activeChannels.join(',')}]${tripCount > 0 ? `, ${tripCount} trip(s) with active reminders` : ''}`);
         }
 
-        if ((await this.appSettings.getValue('notify_todo_due')) !== 'false') {
+        if ((await readAppSetting(this.appSettings, 'notify_todo_due')) !== 'false') {
           logInfo(`Todo due reminders: enabled (lead ${TODO_REMINDER_LEAD_DAYS}d)`);
         } else {
           logInfo('Todo due reminders: disabled in settings');
@@ -110,7 +111,7 @@ export class ReminderJobsService implements OnApplicationBootstrap {
    */
   async tripTick(): Promise<void> {
     try {
-      if ((await this.appSettings.getValue('notify_trip_reminder')) === 'false') return;
+      if ((await readAppSetting(this.appSettings, 'notify_trip_reminder')) === 'false') return;
 
       const today = appClock().date;
       const candidates = await this.trips.listReminderCandidates();
@@ -155,7 +156,7 @@ export class ReminderJobsService implements OnApplicationBootstrap {
    */
   async todoTick(): Promise<void> {
     try {
-      if ((await this.appSettings.getValue('notify_todo_due')) === 'false') return;
+      if ((await readAppSetting(this.appSettings, 'notify_todo_due')) === 'false') return;
 
       // `due_date` is canonical `YYYY-MM-DD` text, so a text-range bind
       // covers the lead window. "Today" is the date in the job's TZ.

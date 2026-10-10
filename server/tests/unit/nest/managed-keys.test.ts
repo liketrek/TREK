@@ -2,7 +2,7 @@
  * Who owns which setting, pinned.
  *
  * The lists grow and the mode does not: that is how this kind of switch drifts.
- * A key added to ADMIN_SETTINGS_KEYS or DEFAULTABLE_USER_SETTING_KEYS belongs to
+ * A key added to the admin form (ADMIN_FORM_SETTING_KEYS) or DEFAULTABLE_USER_SETTING_KEYS belongs to
  * neither set until somebody decides, and MANAGED-KEYS-001 is what makes that
  * decision unavoidable rather than optional.
  *
@@ -11,7 +11,7 @@
  * set it", which is the failure this is here to prevent.
  */
 import { describe, it, expect } from 'vitest';
-import { ADMIN_SETTINGS_KEYS } from '../../../src/nest/auth/auth.helpers';
+import { ADMIN_FORM_SETTING_KEYS } from '../../../src/nest/common/app-settings.registry';
 import { DEFAULTABLE_USER_SETTING_KEYS } from '../../../src/nest/settings/settings.service';
 import {
   MANAGED_LOCKED_SETTING_KEYS,
@@ -21,7 +21,7 @@ import {
   splitManagedKeys,
 } from '../../../src/nest/common/managed';
 
-const SOURCE_KEYS: string[] = [...ADMIN_SETTINGS_KEYS, ...DEFAULTABLE_USER_SETTING_KEYS];
+const SOURCE_KEYS: string[] = [...ADMIN_FORM_SETTING_KEYS, ...DEFAULTABLE_USER_SETTING_KEYS];
 const locked = new Set<string>(MANAGED_LOCKED_SETTING_KEYS);
 const customer = new Set<string>(MANAGED_CUSTOMER_KEYS);
 

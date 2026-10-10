@@ -13,6 +13,7 @@ import { RouteUsageDailyRepository } from '../../db/repositories/RouteUsageDaily
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { UnitOfWork } from '../database/unit-of-work';
+import { readAppSetting } from '../common/app-settings.registry';
 
 /** Days a counted day survives. Aggregates are tiny, so this is a year and a bit. */
 export const RETENTION_DAYS = 400;
@@ -42,7 +43,7 @@ export class RouteUsageService {
   ) {}
 
   async enabled(): Promise<boolean> {
-    const value = await this.appSettings.getValue('route_usage_enabled');
+    const value = await readAppSetting(this.appSettings, 'route_usage_enabled');
     // Absent means on: the counters have to be collecting before anyone thinks to
     // look for them, and there is nothing here to protect.
     return value !== 'false';

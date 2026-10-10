@@ -23,6 +23,7 @@ import type { InviteTokensRepository, InviteTokenRow } from '../../db/repositori
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { InMemoryOidcFlowStore, OidcFlowStore, type OidcPendingState } from './oidc-flow.store';
+import { readAppSetting, resolveAppSetting, type AppSettingKey } from '../common/app-settings.registry';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -323,14 +324,15 @@ export class OidcService implements OnModuleDestroy {
   // -------------------------------------------------------------------------
 
   async getOidcConfig(): Promise<OidcConfig | null> {
-    const get = (key: string) => this.appSettings.getValue(key);
-
-    const oidcEnv = readEnv().oidc;
-    const issuer = oidcEnv.issuer || (await get('oidc_issuer'));
-    const clientId = oidcEnv.clientId || (await get('oidc_client_id'));
-    const clientSecret = oidcEnv.clientSecret || decrypt_api_key(await get('oidc_client_secret'));
-    const displayName = oidcEnv.displayName || (await get('oidc_display_name')) || 'SSO';
-    const discoveryUrl = oidcEnv.discoveryUrl || (await get('oidc_discovery_url')) || null;
+    // Environment first, then the setting (the register's rule), for every value.
+    // Unlike isOidcConfigured this also wants the client secret: it builds the
+    // config the provider is called with. The secret is stored encrypted.
+    const resolve = (key: AppSettingKey) => resolveAppSetting(this.appSettings, key);
+    const issuer = await resolve('oidc_issuer');
+    const clientId = await resolve('oidc_client_id');
+    const clientSecret = readEnv().oidc.clientSecret || decrypt_api_key(await readAppSetting(this.appSettings, 'oidc_client_secret'));
+    const displayName = (await resolve('oidc_display_name')) || 'SSO';
+    const discoveryUrl = (await resolve('oidc_discovery_url')) || null;
 
     if (!issuer || !clientId || !clientSecret) return null;
     // The lookbehind pins the trailing-slash strip (here and below) to the start of
@@ -832,7 +834,7 @@ export class OidcService implements OnModuleDestroy {
   // every user out of the instance.
 
   async getOidcSettings() {
-    const get = async (key: string) => (await this.appSettings.getValue(key)) || '';
+    const get = async (key: AppSettingKey) => (await readAppSetting(this.appSettings, key)) || '';
     const secret = decrypt_api_key(await get('oidc_client_secret'));
     return {
       issuer: await get('oidc_issuer'),

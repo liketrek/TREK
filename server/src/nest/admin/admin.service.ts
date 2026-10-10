@@ -68,6 +68,7 @@ import {
 import { MANAGED_FORBIDDEN_ERROR } from '../common/managed';
 import { utcSuffix } from '../../db/types';
 import { SessionsService } from '../sessions/sessions.service';
+import { readAppSetting } from '../common/app-settings.registry';
 
 /** Outbound GitHub calls: hard timeout and response-size cap (server/CLAUDE.md). */
 const GITHUB_TIMEOUT_MS = 10_000;
@@ -559,7 +560,7 @@ export class AdminService {
       const result = await this.checkVersion();
       if (!result.update_available) return;
 
-      const lastNotified = await this.appSettings.getValue('last_notified_version');
+      const lastNotified = await readAppSetting(this.appSettings, 'last_notified_version');
       if (lastNotified === result.latest) return;
 
       // INSERT OR REPLACE shape — the SAME dialect storage's `upsertOrReplace`

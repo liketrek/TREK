@@ -28,6 +28,7 @@ import {
 import { buildOsmDetails, isGooglePlaceId, parseWikipediaTag, rankCommonsCandidates, toWikiLang } from '../maps/maps.helpers';
 import { trekPlacesById } from '../maps/trek-places.client';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+import { readAppSetting } from '../common/app-settings.registry';
 
 /**
  * How many pictures each source may contribute.
@@ -331,7 +332,7 @@ export class PlaceEnrichmentService {
    * working, and there is nothing here that warrants a migration.
    */
   async enrichDisabled(): Promise<boolean> {
-    const value = await this.appSettings.getValue('places_enrich_enabled');
+    const value = await readAppSetting(this.appSettings, 'places_enrich_enabled');
     return value === 'false';
   }
 

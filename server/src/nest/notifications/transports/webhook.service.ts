@@ -7,6 +7,7 @@ import { SettingsRepository } from '../../../db/repositories/Settings.repository
 import { AppSettings } from '../../../db/entities/AppSettings.entity';
 import { Settings } from '../../../db/entities/Settings.entity';
 import { safeFetchFollow, SsrfBlockedError } from '../../../utils/ssrfGuard';
+import { readAppSetting } from '../../common/app-settings.registry';
 
 /**
  * Renders the outgoing body. Discord and Slack get their native shapes; anything
@@ -62,7 +63,7 @@ export class WebhookService {
 
   /** WH2 — one of the plan's six identical `app_settings` reads, R4's shared `AppSettingsRepository.getValue(key)`. */
   async getAdminWebhookUrl(): Promise<string | null> {
-    const value = (await this.appSettings.getValue('admin_webhook_url')) || null;
+    const value = (await readAppSetting(this.appSettings, 'admin_webhook_url')) || null;
     return value ? decrypt_api_key(value) : null;
   }
 

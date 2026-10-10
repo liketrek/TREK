@@ -8,6 +8,7 @@ import { AppSettings } from '../../../db/entities/AppSettings.entity';
 import { Settings } from '../../../db/entities/Settings.entity';
 import { safeFetchFollow, SsrfBlockedError } from '../../../utils/ssrfGuard';
 import type { NotifEventType } from '../notification-events';
+import { readAppSetting } from '../../common/app-settings.registry';
 
 /** NS2's three per-user ntfy keys, read together off `SettingsRepository.getForUser`. */
 const NTFY_USER_KEYS = new Set(['ntfy_topic', 'ntfy_server', 'ntfy_token']);
@@ -142,9 +143,9 @@ export class NtfyService {
 
   /** NS1 — three of the plan's six identical `app_settings` reads, R4's shared `AppSettingsRepository.getValue(key)`. */
   async getAdminNtfyConfig(): Promise<NtfyConfig> {
-    const topic = (await this.appSettings.getValue('admin_ntfy_topic')) || null;
-    const server = (await this.appSettings.getValue('admin_ntfy_server')) || null;
-    const rawToken = (await this.appSettings.getValue('admin_ntfy_token')) || null;
+    const topic = (await readAppSetting(this.appSettings, 'admin_ntfy_topic')) || null;
+    const server = (await readAppSetting(this.appSettings, 'admin_ntfy_server')) || null;
+    const rawToken = (await readAppSetting(this.appSettings, 'admin_ntfy_token')) || null;
     return {
       topic,
       server,

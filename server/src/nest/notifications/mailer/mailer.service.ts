@@ -14,6 +14,7 @@ import { Users } from '../../../db/entities/Users.entity';
 import { buildEmailHtml, buildPasswordResetHtml } from './email-html';
 import { emailLogoAttachment } from './email-logo';
 import { describeSmtpFailure, describeSmtpGap, parseSmtpPort, type SmtpTarget } from './smtp-diagnostics';
+import { readAppSetting, resolveAppSetting } from '../../common/app-settings.registry';
 
 interface SmtpConfig {
   host: string;
@@ -69,13 +70,13 @@ export class MailerService {
 
   /** Env wins over the admin panel, per field. Read fresh on every send. */
   private async readSmtpSettings() {
-    const smtpEnv = readEnv().smtp;
     return {
-      host: smtpEnv.host || (await this.appSettings.getValue('smtp_host')),
-      port: smtpEnv.port || (await this.appSettings.getValue('smtp_port')),
-      user: smtpEnv.user || (await this.appSettings.getValue('smtp_user')),
-      pass: smtpEnv.pass || decrypt_api_key(await this.appSettings.getValue('smtp_pass')) || '',
-      from: smtpEnv.from || (await this.appSettings.getValue('smtp_from')),
+      host: await resolveAppSetting(this.appSettings, 'smtp_host'),
+      port: await resolveAppSetting(this.appSettings, 'smtp_port'),
+      user: await resolveAppSetting(this.appSettings, 'smtp_user'),
+      // The stored password is encrypted, the environment's is not.
+      pass: readEnv().smtp.pass || decrypt_api_key(await readAppSetting(this.appSettings, 'smtp_pass')) || '',
+      from: await resolveAppSetting(this.appSettings, 'smtp_from'),
     };
   }
 
@@ -103,7 +104,7 @@ export class MailerService {
    * one method is the only change, and it keeps the freshness property visible.
    */
   private async createTransport(config: SmtpConfig, socketTimeoutMs: number = SOCKET_TIMEOUT_MS) {
-    const skipTls = readEnv().smtp.skipTlsVerify || (await this.appSettings.getValue('smtp_skip_tls_verify')) === 'true';
+    const skipTls = readEnv().smtp.skipTlsVerify || (await readAppSetting(this.appSettings, 'smtp_skip_tls_verify')) === 'true';
     if (skipTls) this.warnOnceAboutSkippedTls(config);
     return nodemailer.createTransport({
       host: config.host,
@@ -138,7 +139,7 @@ export class MailerService {
 
   /** Is SMTP configured at the instance level? (Independent of any one user's address.) */
   async isSmtpConfigured(): Promise<boolean> {
-    return !!(readEnv().smtp.host || (await this.appSettings.getValue('smtp_host')));
+    return !!(await resolveAppSetting(this.appSettings, 'smtp_host'));
   }
 
   async getUserEmail(userId: number): Promise<string | null> {

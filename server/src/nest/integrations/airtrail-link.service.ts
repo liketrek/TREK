@@ -18,6 +18,7 @@ import { canonicalHash } from './airtrail.mapper';
 import { buildSavePayload } from './airtrail-sync.helpers';
 import { RESERVATION_METADATA } from '../../db/json-columns';
 import { decodeJson } from '../../utils/json-column';
+import { readAppSetting } from '../common/app-settings.registry';
 
 /**
  * The AirTrail link lifecycle — the enablement gate, the detach policy, the
@@ -46,7 +47,7 @@ export class AirtrailLinkService {
   /** Global on/off: the addon must be enabled and sync not explicitly turned off. */
   async syncGloballyEnabled(): Promise<boolean> {
     if (!(await this.addons.isAddonEnabled(ADDON_IDS.AIRTRAIL))) return false;
-    const value = await this.appSettings.getValue('airtrail_sync_enabled');
+    const value = await readAppSetting(this.appSettings, 'airtrail_sync_enabled');
     return value !== 'false';
   }
 

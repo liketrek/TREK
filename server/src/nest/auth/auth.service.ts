@@ -57,7 +57,6 @@ import { MailerService } from '../notifications/mailer/mailer.service';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
 import { dbNow, parseDbTimestamp } from '../../db/types';
 import {
-  ADMIN_SETTINGS_KEYS,
   BCRYPT_COST,
   DUMMY_PASSWORD_HASH,
   EMAIL_REGEX,
@@ -68,6 +67,17 @@ import {
   parseBackupCodeHashes,
   stripUserForClient,
 } from './auth.helpers';
+import {
+  ADMIN_FORM_SETTING_KEYS,
+  APP_SETTINGS,
+  MASKED_ADMIN_SETTING_KEYS,
+  PUBLIC_CONFIG_SETTING_KEYS,
+  isOidcConfigured,
+  isOidcConfiguredIn,
+  readAppSetting,
+  type AppSettingDef,
+  type AppSettingKey,
+} from '../common/app-settings.registry';
 
 // Mutates otplib module state; must run before any TOTP verify in either the
 // container singleton or the bridge instance (legacy parity — same line sat at
@@ -208,7 +218,7 @@ export class AuthService {
     oidc_registration: boolean;
     passkey_login: boolean;
   }> {
-    const get = (key: string) => this.appSettings.getValue(key);
+    const get = (key: AppSettingKey) => readAppSetting(this.appSettings, key);
 
     // Passkey login is independent of the password/OIDC "new keys" probe, so it
     // must be resolved OUTSIDE the branch below — otherwise on a fresh install
@@ -217,7 +227,7 @@ export class AuthService {
     const passkey_login = (await get('passkey_login')) === 'true';
 
     const hasNewKeys = (
-      await Promise.all(['password_login', 'password_registration', 'oidc_login', 'oidc_registration'].map((k) => get(k)))
+      await Promise.all((['password_login', 'password_registration', 'oidc_login', 'oidc_registration'] as const).map((k) => get(k)))
     ).some((v) => v !== null);
 
     if (hasNewKeys) {
@@ -237,11 +247,7 @@ export class AuthService {
 
     // Legacy fallback
     const oidcOnlyEnabled = readEnv().oidc.only || (await get('oidc_only')) === 'true';
-    const oidcConfigured = !!(
-      (readEnv().oidc.issuer || (await get('oidc_issuer'))) &&
-      (readEnv().oidc.clientId || (await get('oidc_client_id')))
-    );
-    const oidcOnly = oidcOnlyEnabled && oidcConfigured;
+    const oidcOnly = oidcOnlyEnabled && (await isOidcConfigured(this.appSettings));
     const allowReg = ((await get('allow_registration')) ?? 'true') === 'true';
 
     return {
@@ -292,7 +298,7 @@ export class AuthService {
     if (cfg.rpID !== 'localhost' || cfg.explicitOrigins) return true;
     const env = readEnv();
     const declaredRpId = (
-      env.webauthn.rpId || (await this.appSettings.getValue('webauthn_rp_id'))
+      env.webauthn.rpId || (await readAppSetting(this.appSettings, 'webauthn_rp_id'))
     )?.trim();
     return !!(declaredRpId || env.app.appUrl || env.http.allowedOriginsRaw);
   }
@@ -318,20 +324,12 @@ export class AuthService {
     // AU5's 14 literal `app_settings` reads collapse into one `getValues` call
     // (Task 5 brief ruling — the repository already has it, and the map is read
     // the same way a missing/NULL-valued row was before: absent from the map).
-    const settings = await this.appSettings.getValues([
-      'places_provider', 'oidc_display_name', 'oidc_issuer', 'oidc_client_id', 'require_mfa',
-      'notification_channel', 'notify_trip_reminder', 'smtp_host', 'notification_channels',
-      'places_photos_enabled', 'places_autocomplete_enabled', 'places_details_enabled',
-      'places_enrich_enabled', 'place_shadow_enabled',
-    ]);
+    const settings = await this.appSettings.getValues([...PUBLIC_CONFIG_SETTING_KEYS]);
 
     const placesProviderRow = settings.get('places_provider');
     const placesProvider = isPlacesProviderChoice(placesProviderRow) ? placesProviderRow : 'auto';
     const oidcDisplayName = readEnv().oidc.displayName || settings.get('oidc_display_name') || null;
-    const oidcConfigured = !!(
-      (readEnv().oidc.issuer || settings.get('oidc_issuer')) &&
-      (readEnv().oidc.clientId || settings.get('oidc_client_id'))
-    );
+    const oidcConfigured = isOidcConfiguredIn(settings);
     const requireMfaValue = settings.get('require_mfa');
     const notifChannel = settings.get('notification_channel') || 'none';
     const tripReminderSetting = settings.get('notify_trip_reminder');
@@ -707,9 +705,9 @@ export class AuthService {
     if (role !== 'admin') return { error: 'Admin access required', status: 403 };
 
     const result: Record<string, string> = {};
-    for (const key of ADMIN_SETTINGS_KEYS) {
-      const value = await this.appSettings.getValue(key);
-      if (value !== null) result[key] = (key === 'smtp_pass' || key === 'admin_webhook_url' || key === 'admin_ntfy_token') ? '••••••••' : value;
+    for (const key of ADMIN_FORM_SETTING_KEYS) {
+      const value = await readAppSetting(this.appSettings, key);
+      if (value !== null) result[key] = MASKED_ADMIN_SETTING_KEYS.has(key) ? '••••••••' : value;
     }
     return { data: result };
   }
@@ -747,10 +745,7 @@ export class AuthService {
     // Lockout prevention: can't disable all login methods
     if (body.password_login !== undefined || body.oidc_login !== undefined) {
       const current = await this.resolveAuthToggles();
-      const oidcConfigured = !!(
-        (readEnv().oidc.issuer || (await this.appSettings.getValue('oidc_issuer'))) &&
-        (readEnv().oidc.clientId || (await this.appSettings.getValue('oidc_client_id')))
-      );
+      const oidcConfigured = await isOidcConfigured(this.appSettings);
       const nextPasswordLogin = body.password_login !== undefined ? (String(body.password_login) === 'true') : current.password_login;
       const nextOidcLogin = body.oidc_login !== undefined ? (String(body.oidc_login) === 'true') : current.oidc_login;
       if (!nextPasswordLogin && (!nextOidcLogin || !oidcConfigured)) {
@@ -765,7 +760,7 @@ export class AuthService {
     const { blocked } = splitManagedKeys(body as Record<string, unknown>, readEnv().managed.enabled);
 
     await this.uow.transactional(async () => { // the whole form lands, or none of it
-      for (const key of ADMIN_SETTINGS_KEYS) {
+      for (const key of ADMIN_FORM_SETTING_KEYS) {
         if (blocked.includes(key)) continue;
         if (body[key] !== undefined) {
           let val = String(body[key]);
@@ -776,18 +771,17 @@ export class AuthService {
           // degrades an unrecognised row to 'auto', so writing one would show the
           // admin a saved setting that quietly does nothing.
           if (key === 'places_provider' && !isPlacesProviderChoice(val)) continue;
-          if (key === 'smtp_pass' && val === '••••••••') continue;
-          if (key === 'smtp_pass') val = encrypt_api_key(val);
-          if (key === 'admin_webhook_url' && val === '••••••••') continue;
-          if (key === 'admin_webhook_url' && val) val = maybe_encrypt_api_key(val) ?? val;
-          if (key === 'admin_ntfy_token' && val === '••••••••') continue;
-          if (key === 'admin_ntfy_token' && val) val = maybe_encrypt_api_key(val) ?? val;
+          // A masked key sent back unchanged keeps its stored value.
+          if (MASKED_ADMIN_SETTING_KEYS.has(key) && val === '••••••••') continue;
+          const encrypted: AppSettingDef['encrypted'] = (APP_SETTINGS[key] as AppSettingDef).encrypted;
+          if (encrypted === 'always') val = encrypt_api_key(val);
+          else if (encrypted === 'if-plain' && val) val = maybe_encrypt_api_key(val) ?? val;
           await this.appSettings.setValue(key, val);
         }
       }
     });
 
-    const changedKeys = ADMIN_SETTINGS_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !(k === 'smtp_pass' && String(body[k]) === '••••••••'));
+    const changedKeys = ADMIN_FORM_SETTING_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !(k === 'smtp_pass' && String(body[k]) === '••••••••'));
 
     const summary: Record<string, unknown> = {};
     const smtpChanged = changedKeys.some(k => k.startsWith('smtp_'));
@@ -865,7 +859,7 @@ export class AuthService {
     if (readEnv().demo.enabled && isDemoEmail(userEmail)) {
       return { error: 'MFA cannot be changed in demo mode.', status: 403 };
     }
-    const policy = await this.appSettings.getValue('require_mfa');
+    const policy = await readAppSetting(this.appSettings, 'require_mfa');
     if (policy === 'true') {
       return { error: 'Two-factor authentication cannot be disabled while it is required for all users.', status: 403 };
     }

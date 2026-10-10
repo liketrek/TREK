@@ -117,6 +117,19 @@ const STRING_SQL_SELECTORS = [
   },
 ];
 
+// An instance setting is named through the typed register in
+// src/nest/common/app-settings.registry.ts (readAppSetting/resolveAppSetting),
+// which checks the key and owns the env override, never as a string handed to
+// AppSettingsRepository.getValue. The register itself passes a variable, and a
+// key built from parts (`admin_notif_pref_${event}_${channel}`) names a family
+// the register does not list one by one.
+const APP_SETTING_MESSAGE =
+  "Read an app setting through readAppSetting()/resolveAppSetting() from src/nest/common/app-settings.registry.ts, not getValue('<key>'): the register types the key and owns its env override.";
+const APP_SETTING_SELECTORS = [
+  { selector: "CallExpression[callee.property.name='getValue'] > Literal.arguments:first-child", message: APP_SETTING_MESSAGE },
+  { selector: "CallExpression[callee.property.name='getValue'] > TemplateLiteral.arguments:first-child[expressions.length=0]", message: APP_SETTING_MESSAGE },
+];
+
 export default tseslint.config(
   gitignore({ strict: false }),
   {
@@ -231,7 +244,7 @@ export default tseslint.config(
       'src/nest/plugins/host/plugin-audit.ts',
     ],
     rules: {
-      'no-restricted-syntax': ['error', ...ENV_SELECTORS, ...FETCH_SELECTORS],
+      'no-restricted-syntax': ['error', ...ENV_SELECTORS, ...FETCH_SELECTORS, ...APP_SETTING_SELECTORS],
     },
   },
   {
@@ -356,6 +369,7 @@ export default tseslint.config(
         ...RAW_SQL_SELECTORS,
         ...FETCH_SELECTORS,
         ...INSERT_ID_SELECTORS,
+        ...APP_SETTING_SELECTORS,
       ],
     },
   },
@@ -386,6 +400,7 @@ export default tseslint.config(
         ...FETCH_SELECTORS,
         ...STRING_SQL_SELECTORS,
         ...INSERT_ID_SELECTORS,
+        ...APP_SETTING_SELECTORS,
       ],
     },
   },

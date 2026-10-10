@@ -32,21 +32,6 @@ export const DUMMY_PASSWORD_HASH = bcrypt.hashSync('__trek_no_such_user__', BCRY
 
 export const MFA_BACKUP_CODE_COUNT = 10;
 
-export const ADMIN_SETTINGS_KEYS = [
-  'allow_registration', 'allowed_file_types', 'require_mfa',
-  'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify',
-  'notification_channels', 'admin_webhook_url', 'admin_ntfy_server', 'admin_ntfy_topic', 'admin_ntfy_token',
-  'notify_trip_reminder',
-  'password_login', 'password_registration', 'oidc_login', 'oidc_registration',
-  'passkey_login', 'webauthn_rp_id', 'webauthn_origins',
-  // Which places provider answers search/autocomplete/details: 'auto' (the
-  // default and what every install had before Amap existed), 'google', 'amap' or
-  // 'openstreetmap'. Validated in updateAppSettings — an unknown value is
-  // refused rather than stored, because the reader degrades a bad row to 'auto'
-  // and the admin would be left looking at a setting that does nothing.
-  'places_provider',
-];
-
 // ---------------------------------------------------------------------------
 // Helpers (exported for route-level use where needed)
 // ---------------------------------------------------------------------------

@@ -108,6 +108,7 @@ SQLite is the engine today and Postgres is the planned second one. Code under `s
 - Everything else calls `readEnv()` — live, uncached, per call.
 - Validation is fail-fast at boot only (`boot-validate.ts`, imported by `index.ts` right after dotenv): malformed values abort startup; unset/blank defaults. Never wire validation into `buildApp()` or `ConfigModule.forRoot`, and never `cache`/snapshot a runtime-toggled value (it breaks the env-mutating tests).
 - Booleans go through `parseBool` (true/1/on/yes vs false/0/off/no). Everything else pins its exact legacy coercion — quirks and the ESLint exemption list are in `src/app-config/README.md`.
+- **Instance settings** (`app_settings`) are named through the typed register `src/nest/common/app-settings.registry.ts`: one entry per key with its Zod shape, default, environment override and flags (admin form, masked, encrypted, managed-locked, public config). Read with `readAppSetting(repo, key)` (the stored text, exactly what `getValue` answers) or `resolveAppSetting(repo, key)` (a non-empty environment value first); ask `isOidcConfigured()` rather than spelling the issuer/client-id check. The admin form's key lists derive from the flags. ESLint refuses `getValue('<literal>')` outside the register; a key built from parts (`admin_notif_pref_*`) is a family the register does not list.
 
 ## Cross-cutting pieces
 

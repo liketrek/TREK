@@ -10,6 +10,7 @@ import { PlaceShadowPicks } from '../../db/entities/PlaceShadowPicks.entity';
 import type { PlaceShadowPicksRepository, PlaceShadowPickRow } from '../../db/repositories/PlaceShadowPicks.repository';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { readAppSetting } from '../common/app-settings.registry';
 
 /** Rows older than this are removed nightly. */
 export const RETENTION_DAYS = 180;
@@ -66,7 +67,7 @@ export class PlaceShadowService {
   ) {}
 
   async enabled(): Promise<boolean> {
-    const value = await this.appSettings.getValue('place_shadow_enabled');
+    const value = await readAppSetting(this.appSettings, 'place_shadow_enabled');
     return value === 'true';
   }
 

@@ -223,3 +223,23 @@ declare const query: { executeTakeFirstOrThrow(): Promise<{ insertId: bigint | u
     expect(insertIdHits(options, 'declare const row: { id: number };\nvoid row.id;')).toEqual([]);
   });
 });
+
+describe('app setting selectors', () => {
+  const APP_SETTING =
+    "Read an app setting through readAppSetting()/resolveAppSetting() from src/nest/common/app-settings.registry.ts, not getValue('<key>'): the register types the key and owns its env override.";
+  const PROBE = 'declare const repo: { getValue(key: string): Promise<string | null> };\ndeclare const key: string;\n';
+
+  it('flags a literal key handed to getValue, quoted or as a template, in a service and in a repository', async () => {
+    const service = await selectorsFor('src/nest/maps/probe.service.ts');
+    expect(messages(service, `${PROBE}void repo.getValue('smtp_host');`)).toEqual([APP_SETTING]);
+    expect(messages(service, `${PROBE}void repo.getValue(\`smtp_host\`);`)).toEqual([APP_SETTING]);
+    const repo = await selectorsFor('src/db/repositories/Probe.repository.ts');
+    expect(messages(repo, `${PROBE}void repo.getValue('smtp_host');`)).toEqual([APP_SETTING]);
+  });
+
+  it('leaves a key passed as a variable or built from parts alone', async () => {
+    const service = await selectorsFor('src/nest/common/app-settings.registry.ts');
+    expect(messages(service, `${PROBE}void repo.getValue(key);`)).toEqual([]);
+    expect(messages(service, `${PROBE}void repo.getValue(\`pref_\${key}\`);`)).toEqual([]);
+  });
+});

@@ -17,6 +17,7 @@ import type { AppSettingsRepository } from '../../db/repositories/AppSettings.re
 import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { UnitOfWork } from '../database/unit-of-work';
+import { readAppSetting } from '../common/app-settings.registry';
 
 /**
  * Thin wrapper around the enabled-addons + photo-provider read that the legacy
@@ -54,7 +55,7 @@ export class AddonsService {
   }
 
   async getBagTracking() {
-    const value = await this.appSettings.getValue('bag_tracking_enabled');
+    const value = await readAppSetting(this.appSettings, 'bag_tracking_enabled');
     return { enabled: value === 'true' };
   }
 
@@ -224,7 +225,7 @@ export class AddonsService {
    * "off" while the feature runs, which is worse than either default.
    */
   async getPlacesEnrich() {
-    const value = await this.appSettings.getValue('places_enrich_enabled');
+    const value = await readAppSetting(this.appSettings, 'places_enrich_enabled');
     return { enabled: value !== 'false' };
   }
 
