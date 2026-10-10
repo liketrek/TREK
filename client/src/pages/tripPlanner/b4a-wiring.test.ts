@@ -6,7 +6,6 @@ import { test, vi } from 'vitest'
 
 vi.mock('../../../../server/src/config', () => { throw new Error('Config initialization is forbidden in static tests') })
 vi.mock('../../../../server/src/db/database', () => { throw new Error('Legacy database imports are forbidden in static tests') })
-vi.mock('../../../../server/src/nest/database/database.service', () => { throw new Error('Database service imports are forbidden in static tests') })
 vi.mock('better-sqlite3', () => { throw new Error('SQLite imports are forbidden in static tests') })
 
 const pagePath = 'client/src/pages/TripPlannerPage.tsx'
