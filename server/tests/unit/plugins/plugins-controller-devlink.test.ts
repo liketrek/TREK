@@ -11,7 +11,7 @@ import { PluginConsentRequired } from '../../../src/nest/plugins/plugin-runtime.
 import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ctrl = (runtime: any) => new PluginsController({} as any, runtime, {} as any, { isManaged: () => false } as unknown as RuntimeEnvService);
+const ctrl = (runtime: any) => new PluginsController({} as never, runtime, {} as never, { isManaged: () => false } as unknown as RuntimeEnvService);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const status = async (p: Promise<any>): Promise<number> =>
   p.then(() => -1, (e) => (e instanceof HttpException ? e.getStatus() : 0));

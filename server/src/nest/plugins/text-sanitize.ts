@@ -18,8 +18,9 @@
 // escape is an intentional, independent code point to delete — the
 // no-misleading-character-class rule assumes a class means to combine them, which
 // is the opposite of what we want here.
-// eslint-disable-next-line no-misleading-character-class
-const EMOJI_RE = /\p{Emoji_Presentation}|\p{Emoji_Modifier}|\p{Regional_Indicator}|[\u200D\uFE00-\uFE0F\u20E3\u{E0020}-\u{E007F}]/gu;
+const EMOJI_RE =
+  // eslint-disable-next-line no-misleading-character-class
+  /\p{Emoji_Presentation}|\p{Emoji_Modifier}|\p{Regional_Indicator}|[\u200D\uFE00-\uFE0F\u20E3\u{E0020}-\u{E007F}]/gu;
 
 /** Remove emojis from a display string and tidy the whitespace they leave behind. */
 export function stripEmoji(s: string): string {

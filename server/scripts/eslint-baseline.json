@@ -10,7 +10,7 @@
     "no-empty": 6
   },
   "suppressed": {
-    "@typescript-eslint/no-explicit-any": 128,
+    "@typescript-eslint/no-explicit-any": 124,
     "@typescript-eslint/no-require-imports": 20,
     "no-control-regex": 7,
     "no-misleading-character-class": 1

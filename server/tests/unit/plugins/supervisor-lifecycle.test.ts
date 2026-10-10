@@ -72,7 +72,8 @@ describe('supervisor shutdownAll is a clean stop, not a crash', () => {
     (s as any).running.set('p', sup);
     // kill() simulates the child actually exiting during shutdown → fires onExit
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (s as any).kill = vi.fn(async (x: any) => { (s as any).onExit(x, 0, 'SIGTERM'); });
+    const internals = s as any;
+    internals.kill = vi.fn(async (x: unknown) => { internals.onExit(x, 0, 'SIGTERM'); });
     await s.shutdownAll();
     expect(sup.status).toBe('stopped');                                    // stopped before kill
     // onExit took the early-return path — no crash bookkeeping written to the DB hooks
