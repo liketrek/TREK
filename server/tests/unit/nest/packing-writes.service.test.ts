@@ -130,6 +130,28 @@ describe('packing item events: REST == MCP', () => {
   });
 });
 
+describe("REST writer: PackingService's broadcasts", () => {
+  it('PACK-REST-001: carries the user and the socket, and emit skips the sender for the room or names each viewer', () => {
+    const s = setup();
+    const writer = s.writes.restWriter('5', user, 'sock');
+    expect(writer).toMatchObject({ userId: 1, role: 'user', socketId: 'sock', surface: 'rest' });
+
+    writer.events.emit('packing:deleted', { itemId: 3 });
+    writer.events.emit('packing:deleted', { itemId: 4 }, [1, 2]);
+    expect(s.realtime.broadcast.mock.calls).toEqual([
+      ['5', 'packing:deleted', { itemId: 3 }, 'sock'],
+      ['5', 'packing:deleted', { itemId: 4 }, 'sock', 1],
+      ['5', 'packing:deleted', { itemId: 4 }, 'sock', 2],
+    ]);
+  });
+
+  it('PACK-REST-002: emitAll reaches every socket in the room, the sender included', () => {
+    const s = setup();
+    s.writes.restWriter('5', user, 'sock').events.emitAll('packing:bag-totals', {});
+    expect(s.realtime.broadcast.mock.calls).toEqual([['5', 'packing:bag-totals', {}, undefined]]);
+  });
+});
+
 describe('packing item use cases: refusals', () => {
   const mcpText = (err: unknown) => (err as DomainError).mcpMessage ?? (err as DomainError).publicMessage;
 

@@ -1110,6 +1110,16 @@ describe('notifyTagged', () => {
       expect.objectContaining({ params: expect.objectContaining({ trip: 'Untitled' }) }),
     );
   });
+
+  it('swallows a failed send: tagging stays fire-and-forget and never rejects the write', async () => {
+    send.mockRejectedValueOnce(new Error('smtp down'));
+    await expect(
+      svc.notifyTagged('999999', { id: 1, email: 'a@b.c' } as never, 'Clothes', [2]),
+    ).resolves.toBeUndefined();
+    // Let the rejected send settle; an unhandled rejection would fail the run here.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(send).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ── Bridge delegation ─────────────────────────────────────────────────────────

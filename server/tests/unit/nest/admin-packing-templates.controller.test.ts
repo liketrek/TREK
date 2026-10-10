@@ -85,6 +85,13 @@ describe('AdminPackingTemplatesController', () => {
     );
   });
 
+  it('PACKTPL-004b a rename hands the body to the service and answers its { template } as it stands, unaudited', async () => {
+    const { c, packing } = controller();
+    expect(await c.update('1', { name: 'Mountains' })).toEqual({ template: { id: 1 } });
+    expect(packing.updatePackingTemplate).toHaveBeenCalledWith('1', { name: 'Mountains' });
+    expect(writeAudit).not.toHaveBeenCalled();
+  });
+
   it('PACKTPL-005 delete audits the removed name and answers { success: true }', async () => {
     const { c } = controller();
     expect(await c.remove(user, '1', req)).toEqual({ success: true });

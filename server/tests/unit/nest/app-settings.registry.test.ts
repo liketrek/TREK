@@ -115,6 +115,36 @@ describe('reading', () => {
     // A key without an environment variable reads the row.
     expect(await resolveAppSetting(repoOf({ require_mfa: 'true' }), 'require_mfa')).toBe('true');
   });
+
+  it('APPSET-012: every env-backed key reads its own variable, the secrets included', async () => {
+    // The two secrets are read past the register by their callers (they are stored
+    // encrypted), so this is the one place their mapping is pinned.
+    const variables: Record<string, [string, string]> = {
+      smtp_host: ['SMTP_HOST', 'smtp.env.example'],
+      smtp_port: ['SMTP_PORT', '2525'],
+      smtp_user: ['SMTP_USER', 'mailer'],
+      smtp_pass: ['SMTP_PASS', 'env-secret'],
+      smtp_from: ['SMTP_FROM', 'trek@env.example'],
+      oidc_issuer: ['OIDC_ISSUER', 'https://idp.env.example'],
+      oidc_client_id: ['OIDC_CLIENT_ID', 'trek-env'],
+      oidc_client_secret: ['OIDC_CLIENT_SECRET', 'oidc-env-secret'],
+      oidc_display_name: ['OIDC_DISPLAY_NAME', 'Company SSO'],
+      oidc_discovery_url: ['OIDC_DISCOVERY_URL', 'https://idp.env.example/.well-known/openid-configuration'],
+    };
+    const withEnv = (Object.entries(APP_SETTINGS) as Array<[string, AppSettingDef]>)
+      .filter(([, def]) => def.env)
+      .map(([key]) => key);
+    expect(withEnv.sort()).toEqual(Object.keys(variables).sort());
+
+    const keys = Object.keys(variables) as Array<keyof typeof APP_SETTINGS>;
+    const stored = Object.fromEntries(keys.map((key) => [key, `stored-${key}`]));
+    const resolveAll = () => Promise.all(keys.map((key) => resolveAppSetting(repoOf(stored), key)));
+
+    for (const [name] of Object.values(variables)) vi.stubEnv(name, '');
+    expect(await resolveAll()).toEqual(keys.map((key) => `stored-${key}`));
+    for (const [name, value] of Object.values(variables)) vi.stubEnv(name, value);
+    expect(await resolveAll()).toEqual(keys.map((key) => variables[key][1]));
+  });
 });
 
 describe('isOidcConfigured', () => {
