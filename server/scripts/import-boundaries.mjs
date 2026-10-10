@@ -46,6 +46,13 @@
  *                   injection of an entity the domain already reads is not new.
  *                   Asking the owner instead (a service such as
  *                   trip-membership's TripAccessService) is what shrinks it.
+ *   providersImportOrchestrator
+ *                   a file under a providers/ folder of src/nest/<A>/
+ *                   importing (value or type) A's own orchestrator,
+ *                   nest/<A>/<A>.service.ts, or MapsService from any domain.
+ *                   A provider knows how to ask one source; which source
+ *                   answers is the orchestrator's decision, so the dependency
+ *                   only ever points from the orchestrator to its providers.
  *
  * Each rule's baseline lists today's violations. A violation not in it fails
  * the check, and so does an entry that no longer occurs, until --update drops
@@ -65,7 +72,7 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 
-export const RULES = ['fileCycles', 'domainCycles', 'sharedImportsDomain', 'domainInternals', 'dbImportsNest', 'foreignRepositories'];
+export const RULES = ['fileCycles', 'domainCycles', 'sharedImportsDomain', 'domainInternals', 'dbImportsNest', 'foreignRepositories', 'providersImportOrchestrator'];
 
 /**
  * Folders under src/nest whose every file is shared infrastructure, open to all domains.
@@ -277,6 +284,14 @@ function cycleEdges(pairs) {
 
 const domainOf = (file) => file.match(/^nest\/([^/]+)\//)?.[1] ?? null;
 
+/** The orchestrators no provider may import: its own domain's main service, and MapsService everywhere. */
+function isOrchestratorOf(providerFile, target) {
+  const domain = domainOf(providerFile);
+  return target === `nest/${domain}/${domain}.service.ts` || target === 'nest/maps/maps.service.ts';
+}
+
+const isProviderFile = (file) => /^nest\/[^/]+\/(?:.+\/)?providers\//.test(file);
+
 export function isPublic(target) {
   const inner = target.slice('nest/'.length);
   const domain = inner.split('/')[0];
@@ -343,12 +358,14 @@ export function analyse(edges) {
   const sharedImportsDomain = new Set();
   const domainInternals = new Set();
   const dbImportsNest = new Set();
+  const providersImportOrchestrator = new Set();
   for (const e of edges) {
     const a = domainOf(e.from);
     const b = domainOf(e.to);
     if (a && b && SHARED_DOMAINS.has(a) && !SHARED_DOMAINS.has(b)) sharedImportsDomain.add(`${e.from} -> ${e.to}`);
     if (a && b && a !== b && !isPublic(e.to)) domainInternals.add(`${a} -> ${e.to.slice('nest/'.length)}`);
     if (e.from.startsWith('db/') && e.to.startsWith('nest/')) dbImportsNest.add(`${e.from} -> ${e.to}`);
+    if (isProviderFile(e.from) && isOrchestratorOf(e.from, e.to)) providersImportOrchestrator.add(`${e.from} -> ${e.to}`);
   }
   const sorted = (set) => [...set].sort();
   return {
@@ -358,6 +375,7 @@ export function analyse(edges) {
     domainInternals: sorted(domainInternals),
     dbImportsNest: sorted(dbImportsNest),
     foreignRepositories: [],
+    providersImportOrchestrator: sorted(providersImportOrchestrator),
   };
 }
 
@@ -406,6 +424,8 @@ const HINTS = {
   dbImportsNest: 'src/db sits below src/nest. Move what the data layer needs into src/db (or src/utils) instead.',
   foreignRepositories:
     "This injects the repository of a table another domain owns. Ask the owner's service instead (e.g. TripAccessService for trip visibility), or move the code to the owning domain.",
+  providersImportOrchestrator:
+    'A provider sits below the orchestrator that chooses between providers. Hand it what it needs as an argument, or move the shared piece into a helpers file both import.',
 };
 
 function main(argv) {
