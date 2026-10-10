@@ -8,10 +8,9 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { PlacesService } from '../places/places.service';
 import { AssignmentsService } from '../assignments/assignments.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 @Injectable()
 export class GoogleRouteService {
@@ -19,7 +18,7 @@ export class GoogleRouteService {
     private readonly places: PlacesService, private readonly assignments: AssignmentsService,
     private readonly permissions: PermissionsService,
     private readonly uow: UnitOfWork,
-    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
+    private readonly tripsRepo: TripAccessService,
     @InjectRepository(Users) private readonly usersRepo: UsersRepository) {}
 
   async preview(raw: string): Promise<GoogleRoutePreview> {

@@ -47,6 +47,7 @@ import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
 import { Reservations } from '../../db/entities/Reservations.entity';
 import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
 import { ReservationDayPositions } from '../../db/entities/ReservationDayPositions.entity';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 
 /** Road trip domain (#1797): the points a drive is routed through. Registered in AppModule. */
 @Module({
@@ -71,7 +72,7 @@ import { ReservationDayPositions } from '../../db/entities/ReservationDayPositio
   // `ReservationDayPositions`: `RoadtripPlanService`'s RPL3-RPL5 reads (the
   // booked nights and the carrier bookings that seam the drive) plus the RPL6
   // terminal and RS19 day-position reads it joins onto them.
-  imports: [
+  imports: [TripMembershipModule, 
     McpSharedModule,
     PermissionsModule,
     

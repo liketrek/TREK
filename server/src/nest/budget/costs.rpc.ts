@@ -4,13 +4,11 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { num, schemaMessage } from '../../nest-rpc/rpc-params';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { RealtimeService } from '../realtime/realtime.service';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { ADDON_IDS } from '../../addons';
 import { BudgetService } from './budget.service';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 /** Costs are budget items, and the app edits them under 'budget_edit'. */
 const BUDGET_EDIT_ACTION = 'budget_edit';
@@ -33,8 +31,8 @@ export class CostsRpc {
   constructor(
     private readonly budget: BudgetService,
     // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is gone:
-    // this injects TripsRepository directly and calls findAccessible.
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    // this injects TripAccessService (trip-membership) and calls findAccessible.
+    private readonly trips: TripAccessService,
     private readonly realtime: RealtimeService,
     private readonly guards: PluginGuards,
     private readonly membership: TripMembershipService,

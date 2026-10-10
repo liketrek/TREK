@@ -1,12 +1,10 @@
 import { z } from 'zod';
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext, type McpTextResult } from '../../../nest-mcp';
 import { noAccess } from '../../../mcp/tools/_shared';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../../db/repositories/Trips.repository';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { TripAccessService } from '../../trip-membership/trip-access.service';
 
 /**
  * The MCP half of GET /api/trip-warnings/:tripId (#1429).
@@ -42,7 +40,7 @@ const MESSAGE_MAX = 300;
 export class TripWarningsMcp {
   constructor(
     private readonly hooks: PluginHooks,
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
   ) {}
 
   @Tool({

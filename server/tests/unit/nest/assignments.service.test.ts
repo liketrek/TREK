@@ -60,6 +60,7 @@ import { Days } from '../../../src/db/entities/Days.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 let svc: AssignmentsService;
 beforeAll(async () => {
@@ -67,7 +68,7 @@ beforeAll(async () => {
   svc = new AssignmentsService(
     // Plan 4 Task 2 — AssignmentsService's own canAccessTrip delegate is now
     // TripsRepository.findAccessible, in the same constructor slot.
-    await createTestTripsRepo(testDb),
+    new TripAccessService(await createTestTripsRepo(testDb)),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     realtime,
     new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),

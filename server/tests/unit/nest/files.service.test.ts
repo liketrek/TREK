@@ -79,6 +79,7 @@ import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-tok
 import type { EntityManager } from '@mikro-orm/core';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { UserSessions } from '../../../src/db/entities/UserSessions.entity';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 const storageDelete = vi.fn();
 const storageStub = { delete: storageDelete } as unknown as import('../../../src/nest/storage/storage.service').StorageService;
@@ -114,7 +115,7 @@ beforeAll(async () => {
   tripFilesRepo = await createTestTripFilesRepo(testDb);
   fileLinksRepo = await createTestFileLinksRepo(testDb);
   svc = new FilesService(
-    await createTestTripsRepo(testDb),
+    new TripAccessService(await createTestTripsRepo(testDb)),
     permissionsStub,
     new RealtimeService(),
     new EphemeralTokenService(),

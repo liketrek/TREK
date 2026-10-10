@@ -26,6 +26,7 @@ import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
 import { makeDeps } from '../../helpers/rpc-host-deps';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
 
@@ -81,7 +82,7 @@ function build(addonOn: boolean) {
       // SV8 — Plan 3i: DemoService.isDemoUserId, the shared demo-gate primitive.
       { isDemoUserId: async () => false } as never),
     new CollectionsRpc(spyService(calls, 'collections'), guards),
-    new CostsRpc(spyService(calls, 'budget'), db, { broadcast: vi.fn() } as never, guards, spyService(calls, 'membership')),
+    new CostsRpc(spyService(calls, 'budget'), new TripAccessService(db), { broadcast: vi.fn() } as never, guards, spyService(calls, 'membership')),
   ]);
   const granted = new Set([
     'db:read:collab', 'db:write:collab', 'db:read:journal', 'db:write:journal',

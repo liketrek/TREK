@@ -30,6 +30,7 @@ import { PdfSectionsController } from './pdf-sections.controller';
 import { AtlasLayersController } from './atlas-layers.controller';
 import { JournalEntryRowsController } from './journal-entry-rows.controller';
 import { DemoModule } from '../../common/demo.module';
+import { TripMembershipModule } from '../../trip-membership/trip-membership.module';
 
 /**
  * The read-only surface plugins contribute to the app: photos, calendar events,
@@ -63,7 +64,7 @@ import { DemoModule } from '../../common/demo.module';
  * dependency unresolved.
  */
 @Module({
-  imports: [PluginsRuntimeModule, AddonsModule, JourneyDomainModule, DemoModule, MikroOrmModule.forFeature([JourneyEntries, Plugins, Days, Places, Trips])],
+  imports: [TripMembershipModule, PluginsRuntimeModule, AddonsModule, JourneyDomainModule, DemoModule, MikroOrmModule.forFeature([JourneyEntries, Plugins, Days, Places, Trips])],
   controllers: [
     PlaceDetailsController,
     PluginSearchController,

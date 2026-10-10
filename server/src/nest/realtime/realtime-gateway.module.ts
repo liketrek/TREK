@@ -6,6 +6,7 @@ import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { Users } from '../../db/entities/Users.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { processRooms, RoomRegistry, roomsSlot } from './ws-state';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 
 /**
  * The transport, kept out of RealtimeModule on purpose.
@@ -28,7 +29,7 @@ import { processRooms, RoomRegistry, roomsSlot } from './ws-state';
   // DatabaseService onto UsersRepository/AppSettingsRepository. Trips: Plan 4
   // Task 2 — handleJoin's own canAccessTrip delegate, now TripsRepository
   // directly.
-  imports: [EphemeralTokenModule, MikroOrmModule.forFeature([Users, AppSettings, Trips])],
+  imports: [TripMembershipModule, EphemeralTokenModule, MikroOrmModule.forFeature([Users, AppSettings, Trips])],
   // The room registry is the process-wide in-memory one; the constructor
   // below hands whichever one the container resolved to the broadcast
   // functions, so the gateway and the broadcasts never use two registries.

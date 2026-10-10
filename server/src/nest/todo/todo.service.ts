@@ -9,10 +9,10 @@ import { TodoItems } from '../../db/entities/TodoItems.entity';
 import type { TodoItemsRepository } from '../../db/repositories/TodoItems.repository';
 import { TodoCategoryAssignees } from '../../db/entities/TodoCategoryAssignees.entity';
 import type { TodoCategoryAssigneesRepository } from '../../db/repositories/TodoCategoryAssignees.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository, TripAccess } from '../../db/repositories/Trips.repository';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
 import { TripMembers } from '../../db/entities/TripMembers.entity';
 import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 type Trip = TripAccess;
 
@@ -38,8 +38,8 @@ export class TodoService {
     @InjectRepository(TodoItems) private readonly todoItemsRepo: TodoItemsRepository,
     @InjectRepository(TodoCategoryAssignees) private readonly todoCategoryAssigneesRepo: TodoCategoryAssigneesRepository,
     // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is
-    // gone: this injects TripsRepository directly.
-    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
+    // gone: this injects TripAccessService (trip-membership).
+    private readonly tripsRepo: TripAccessService,
     // Plan 4 Task 3 — DatabaseService.rosterUserIds inlined onto
     // TripMembersRepository.rosterUserIds directly.
     @InjectRepository(TripMembers) private readonly tripMembersRepo: TripMembersRepository,

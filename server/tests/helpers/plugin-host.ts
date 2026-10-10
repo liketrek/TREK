@@ -143,6 +143,7 @@ import { noGoogleQuota } from './google-quota';
 import { createTestToursRepo } from './tours-repos';
 import { createTestBudgetSettlementsRepo } from './budget-repos';
 import { MaintenanceRepository } from '../../src/db/repositories/MaintenanceRepository';
+import { TripAccessService } from '../../src/nest/trip-membership/trip-access.service';
 
 /**
  * Hand-wired counterpart of the PluginsModule DI graph for no-Nest tests
@@ -178,7 +179,7 @@ export async function createPluginRpcHostParts(
   const budget = new BudgetService(permissions, exchangeRates, realtime, await createTestUnitOfWork(db), ...(await budgetRepoArgs(db)));
   const addons = await createTestAddonsService(db);
   const queryHelpers = new QueryHelpersService(await createTestTagsRepo(db), await createTestPlaceRatingsRepo(db), await createTestAssignmentParticipantsRepo(db));
-  const todos = new TodoService(permissions, realtime, await createTestUnitOfWork(db), await createTestTodoItemsRepo(db), await createTestTodoCategoryAssigneesRepo(db), await createTestTripsRepo(db), await createTestTripMembersRepo(db));
+  const todos = new TodoService(permissions, realtime, await createTestUnitOfWork(db), await createTestTodoItemsRepo(db), await createTestTodoCategoryAssigneesRepo(db), new TripAccessService(await createTestTripsRepo(db)), await createTestTripMembersRepo(db));
   const packing = new PackingService(
     permissions, realtime, notificationsStub(), await createTestUnitOfWork(db),
     await createTestPackingItemsRepo(db), await createTestPackingItemContributorsRepo(db), await createTestPackingBagsRepo(db),
@@ -188,7 +189,7 @@ export async function createPluginRpcHostParts(
   // Plan 3e Task 1 (files): FilesService now also takes uow + the repositories
   // its R2 transactions and R12 cross-object trip-scoping guard need.
   const files = new FilesService(
-    await createTestTripsRepo(db), permissions, realtime, new EphemeralTokenService(), generalStorage, (await sharedTestOrm(db)).em,
+    new TripAccessService(await createTestTripsRepo(db)), permissions, realtime, new EphemeralTokenService(), generalStorage, (await sharedTestOrm(db)).em,
     await createTestUnitOfWork(db),
     await createTestTripFilesRepo(db),
     await createTestFileLinksRepo(db),
@@ -267,9 +268,9 @@ export async function createPluginRpcHostParts(
     await createTestTripsRepo(db), await createTestPlacesRepo(db),
     await createTestReservationEndpointsRepo(db), await createTestUnitOfWork(db), (await sharedTestOrm(db)).orm,
   );
-  const dayNotes = new DayNotesService(await createTestTripsRepo(db), permissions, realtime, await createTestDayNotesRepo(db), await createTestDaysRepo(db));
+  const dayNotes = new DayNotesService(new TripAccessService(await createTestTripsRepo(db)), permissions, realtime, await createTestDayNotesRepo(db), await createTestDaysRepo(db));
   const assignments = new AssignmentsService(
-    await createTestTripsRepo(db), permissions, realtime, queryHelpers, journey, await createTestUnitOfWork(db),
+    new TripAccessService(await createTestTripsRepo(db)), permissions, realtime, queryHelpers, journey, await createTestUnitOfWork(db),
     await createTestDayAssignmentsRepo(db),
     await createTestAssignmentParticipantsRepo(db),
     await createTestDaysRepo(db),
@@ -287,7 +288,7 @@ export async function createPluginRpcHostParts(
   const oauth = new PluginOAuthService(pluginOrm.repo(Plugins), pluginOrm.repo(PluginOauthTokens), pluginOrm.repo(PluginOauthState), pluginOrm.repo(PluginSettingsFields), await createTestUnitOfWork(db));
   const accommodations = new AccommodationsService(
     permissions, realtime, assignments, await createTestUnitOfWork(db),
-    await createTestTripsRepo(db),
+    new TripAccessService(await createTestTripsRepo(db)),
     await createTestDayAccommodationsRepo(db),
     await createTestDayAssignmentsRepo(db),
     await createTestPlacesRepo(db),
@@ -339,7 +340,7 @@ export async function createPluginRpcHostParts(
     new AccommodationsRpc(accommodations, realtime, guards),
     new ItineraryRpc(assignments, realtime, guards),
     new TripsRpc(trips, reservations, days, membership, realtime, guards, accommodations, members, (await sharedTestOrm(db)).em),
-    new CostsRpc(budget, await createTestTripsRepo(db), realtime, guards, membership),
+    new CostsRpc(budget, new TripAccessService(await createTestTripsRepo(db)), realtime, guards, membership),
     new ReservationsRpc(reservations, realtime, guards),
     new CollabRpc(collab, realtime, guards),
     new AtlasRpc(atlas, guards),

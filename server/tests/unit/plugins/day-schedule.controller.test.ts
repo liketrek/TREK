@@ -22,6 +22,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 import { DayScheduleController } from '../../../src/nest/plugins/contributions/day-schedule.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { DaysRepository } from '../../../src/db/repositories/Days.repository';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -32,7 +33,7 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
   } as unknown as PluginHooks;
   // CT1 (Plan 3j Task 5) — the day-id-set read is now DaysRepository.listIdsByTrip.
   const days = { listIdsByTrip: vi.fn(async () => tripDays.value.map((d) => d.id)) } as unknown as DaysRepository;
-  return { c: new DayScheduleController(runtime, { findAccessible: canAccessTrip } as unknown as TripsRepository, days), runtime };
+  return { c: new DayScheduleController(runtime, new TripAccessService({ findAccessible: canAccessTrip } as unknown as TripsRepository), days), runtime };
 }
 const item = (over: Record<string, unknown> = {}) => ({ id: 's1', dayId: 10, label: 'Charging', ...over });
 

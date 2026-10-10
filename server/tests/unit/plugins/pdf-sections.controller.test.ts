@@ -17,6 +17,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 import { PdfSectionsController } from '../../../src/nest/plugins/contributions/pdf-sections.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -25,7 +26,7 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
     providersOf: vi.fn(() => providers),
     pdfSections: vi.fn(async (id: string) => invoke(id)),
   } as unknown as PluginHooks;
-  return { c: new PdfSectionsController(runtime, { findAccessible: canAccessTrip } as unknown as TripsRepository), runtime };
+  return { c: new PdfSectionsController(runtime, new TripAccessService({ findAccessible: canAccessTrip } as unknown as TripsRepository)), runtime };
 }
 const sec = (over: Record<string, unknown> = {}) => ({ title: 'Weather', ...over });
 

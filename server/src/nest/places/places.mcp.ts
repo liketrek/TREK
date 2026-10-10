@@ -4,7 +4,6 @@ import {
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult, ok,
 } from '../../nest-mcp';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import {
   mapsSearchRequestSchema,
@@ -28,8 +27,7 @@ import { MapsService } from '../maps/maps.service';
 import { PlacesService } from './places.service';
 import { isUpdateConflict } from '../common/conflictResult';
 import { isDirectionsUrl } from './maps-dir.helpers';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -61,7 +59,7 @@ export class PlacesMcp {
   constructor(
     private readonly places: PlacesService,
     private readonly maps: MapsService,
-    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
+    private readonly tripsRepo: TripAccessService,
     private readonly journey: JourneyDomainService,
     private readonly assignments: AssignmentsService,
     private readonly guards: McpToolGuardsService,

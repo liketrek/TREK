@@ -21,6 +21,7 @@ import type { UsersRepository } from '../../../src/db/repositories/Users.reposit
 import type { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
 import { makeDeps } from '../../helpers/rpc-host-deps';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
 
@@ -55,7 +56,7 @@ function build(opts: { addonOn?: boolean; canEdit?: boolean; missing?: boolean; 
   );
   // The leaf membership read replaced the deleted trips.bridge for listMine.
   const membership = { listAccessibleTripIds: vi.fn(() => [1, 2]) } as unknown as TripMembershipService;
-  const rpc = new CostsRpc(budget, db, realtime, guards, membership);
+  const rpc = new CostsRpc(budget, new TripAccessService(db), realtime, guards, membership);
   const host = (...grants: string[]) =>
     new PluginRpcHost('p', new Set(grants.length ? grants : ['db:read:costs', 'db:write:costs']), makeDeps(), createTestPluginRegistry([rpc]));
   return { budget, realtime, host };

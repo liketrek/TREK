@@ -13,6 +13,7 @@ import { TripMembers } from '../../db/entities/TripMembers.entity';
 import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { Tours } from '../../db/entities/Tours.entity';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 
 /**
  * The assignments SERVICE, split from the controller/MCP/RPC surfaces (the
@@ -35,7 +36,7 @@ import { Tours } from '../../db/entities/Tours.entity';
  * one-Tour-per-day check create and move share.
  */
 @Module({
-  imports: [
+  imports: [TripMembershipModule, 
     PermissionsModule,
     QueryHelpersModule,
     JourneyDomainModule,

@@ -3,13 +3,12 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import crypto from 'crypto';
 import { UnitOfWork } from '../database/unit-of-work';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { PermissionsService } from '../permissions/permissions.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { TripInviteTokens } from '../../db/entities/TripInviteTokens.entity';
 import type { TripInviteTokensRepository } from '../../db/repositories/TripInviteTokens.repository';
 import type { User } from '../../types';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 type Trip = TripAccess;
 
@@ -41,9 +40,9 @@ export interface TripInviteInfo {
 export class TripInviteService {
   constructor(
     // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is gone:
-    // this injects TripsRepository directly (same constructor slot) and
+    // this injects TripAccessService (trip-membership) (same constructor slot) and
     // calls findAccessible.
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
     private readonly permissions: PermissionsService,
     private readonly membership: TripMembershipService,
     private readonly uow: UnitOfWork,

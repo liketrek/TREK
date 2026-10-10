@@ -62,6 +62,7 @@ import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoi
 import { RoadtripDayBoundaries } from '../../../src/db/entities/RoadtripDayBoundaries.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 let days: DaysService;
 let journey: JourneyDomainService;
@@ -96,7 +97,7 @@ beforeAll(async () => {
     await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
   );
   assignments = new AssignmentsService(
-    await createTestTripsRepo(testDb), permissions, realtime, queryHelpers, journey,
+    new TripAccessService(await createTestTripsRepo(testDb)), permissions, realtime, queryHelpers, journey,
     await createTestUnitOfWork(testDb),
     await createTestDayAssignmentsRepo(testDb),
     await createTestAssignmentParticipantsRepo(testDb),
@@ -108,7 +109,7 @@ beforeAll(async () => {
   );
   accommodations = new AccommodationsService(
     permissions, realtime, assignments, await createTestUnitOfWork(testDb),
-    await createTestTripsRepo(testDb),
+    new TripAccessService(await createTestTripsRepo(testDb)),
     await createTestDayAccommodationsRepo(testDb),
     await createTestDayAssignmentsRepo(testDb),
     await createTestPlacesRepo(testDb),

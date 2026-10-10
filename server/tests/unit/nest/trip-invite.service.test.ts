@@ -36,6 +36,7 @@ import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo, c
 import { sharedTestOrm } from '../../helpers/test-uow';
 import { countRows, updateRows } from '../../helpers/factories/rows';
 import { TripInviteTokens } from '../../../src/db/entities/TripInviteTokens.entity';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 let svc: TripInviteService;
 beforeAll(async () => {
@@ -43,7 +44,7 @@ beforeAll(async () => {
   svc = new TripInviteService(
     // Plan 4 Task 2 — TripInviteService's own canAccessTrip delegate is now
     // TripsRepository.findAccessible, in the same constructor slot.
-    await createTestTripsRepo(testDb),
+    new TripAccessService(await createTestTripsRepo(testDb)),
     new PermissionsService(await createTestAppSettingsRepo(testDb), uow),
     new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)),
     uow,

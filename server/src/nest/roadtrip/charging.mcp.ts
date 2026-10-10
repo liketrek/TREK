@@ -5,15 +5,13 @@ import { noAccess } from '../../mcp/tools/_shared';
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { ChargingService } from './charging.service';
 import { answeringRefusals } from './roadtrip-mcp.helpers';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 @McpController()
 export class ChargingMcp {
-  constructor(private readonly charging: ChargingService, @InjectRepository(Trips) private readonly tripsRepo: TripsRepository, readonly addons: AddonsService) {}
+  constructor(private readonly charging: ChargingService, private readonly tripsRepo: TripAccessService, readonly addons: AddonsService) {}
   @Tool({ name: 'get_roadtrip_charging_info', description: 'Read open charging availability and published tariffs for a saved charging stop. No API key required. Coverage varies by region and operator. Unknown or stale status is not available capacity. Prices can have conditions and extra fees and are not personalized roaming quotes.',
     inputSchema: { tripId: z.number().int().positive(), placeId: z.number().int().positive() },
     annotations: TOOL_ANNOTATIONS_READONLY, access: { group: 'trips', mode: 'read' }, when: addonGate(ADDON_IDS.ROADTRIP) })

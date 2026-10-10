@@ -6,8 +6,6 @@ import { RoadtripRouterService } from './roadtrip-router.service';
 import { RoadtripService } from './roadtrip.service';
 import { Injectable, HttpException } from '@nestjs/common';
 import { type RoadtripPreferences } from '@trek/shared';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { Days } from '../../db/entities/Days.entity';
 import type { DaysRepository } from '../../db/repositories/Days.repository';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
@@ -48,6 +46,7 @@ import {
   type RouteAvoidClass,
   standsAsDay,
 } from '@trek/shared/roadtrip';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 const stopKey = (s: RoadtripStop) =>
   `${s.lat.toFixed(5)},${s.lng.toFixed(5)},${s.legMode ?? ''},${s.incomingLegMode ?? ''}`;
@@ -60,7 +59,7 @@ export class RoadtripPlanService {
     private readonly router: RoadtripRouterService,
     private readonly roadtrip: RoadtripService,
     private readonly boundaries: DayBoundariesService,
-    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
+    private readonly tripsRepo: TripAccessService,
     @InjectRepository(Days) private readonly daysRepo: DaysRepository,
     @InjectRepository(DayAssignments) private readonly dayAssignmentsRepo: DayAssignmentsRepository,
     @InjectRepository(DayAccommodations) private readonly dayAccommodationsRepo: DayAccommodationsRepository,

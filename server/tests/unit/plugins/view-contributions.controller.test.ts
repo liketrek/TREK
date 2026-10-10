@@ -17,6 +17,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 import { ViewContributionsController } from '../../../src/nest/plugins/contributions/view-contributions.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -25,7 +26,7 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
     providersOf: vi.fn(() => providers),
     tableContributions: vi.fn(async (id: string) => invoke(id)),
   } as unknown as PluginHooks;
-  return { c: new ViewContributionsController(runtime, { findAccessible: canAccessTrip } as unknown as TripsRepository), runtime };
+  return { c: new ViewContributionsController(runtime, new TripAccessService({ findAccessible: canAccessTrip } as unknown as TripsRepository)), runtime };
 }
 const col = (over: Record<string, unknown> = {}) => ({ kind: 'column', entityId: 1, id: 'c1', label: 'X', ...over });
 const act = (over: Record<string, unknown> = {}) => ({ kind: 'action', entityId: 1, id: 'a1', label: 'Go', target: { kind: 'frame', sub: '/ui' }, ...over });

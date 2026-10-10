@@ -9,8 +9,7 @@ import { DayNotes } from '../../db/entities/DayNotes.entity';
 import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
 import { Days } from '../../db/entities/Days.entity';
 import type { DaysRepository } from '../../db/repositories/Days.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 /**
  * Day-notes domain service — the legacy dayNoteService SQL folded in over
@@ -42,9 +41,9 @@ export function normalizeNoteColor(color: string | null | undefined): string | n
 export class DayNotesService {
   constructor(
     // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is gone:
-    // this injects TripsRepository directly (same constructor slot) and
+    // this injects TripAccessService (trip-membership) (same constructor slot) and
     // calls findAccessible.
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
     @InjectRepository(DayNotes) private readonly dayNotes: DayNotesRepository,

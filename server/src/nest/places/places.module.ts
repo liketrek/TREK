@@ -30,6 +30,7 @@ import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
 import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { MAX_PLACE_IMAGE_SIZE } from '../common/place-image-upload';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 
 /**
  * Places domain (S8 — Phase 2 trip sub-domain). Depends on L4 Categories + L5
@@ -40,7 +41,7 @@ import { MAX_PLACE_IMAGE_SIZE } from '../common/place-image-upload';
  * is no places.bridge.ts: nothing outside the container consumes this domain.
  */
 @Module({
-  imports: [
+  imports: [TripMembershipModule, 
     // Module-level options deliberately carry NO fileFilter: the GPX/KML import
     // route keeps its inline memoryStorage config and would inherit a
     // module-level filter via the interceptor's shallow merge — the image

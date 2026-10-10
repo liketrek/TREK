@@ -10,15 +10,13 @@ import {
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { RoadtripPreferencesService } from './roadtrip-preferences.service';
 import { answeringRefusals } from './roadtrip-mcp.helpers';
 import { roadtripPreferencesUpdateSchema, type RoadtripPreferences } from '@trek/shared';
 
 import { z } from 'zod';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 const when = addonGate(ADDON_IDS.ROADTRIP);
 
@@ -27,7 +25,7 @@ export class RoadtripPreferencesMcp {
   constructor(
     private readonly preferences: RoadtripPreferencesService,
     readonly addons: AddonsService,
-    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
+    private readonly tripsRepo: TripAccessService,
     private readonly guards: McpToolGuardsService,
   ) {}
 

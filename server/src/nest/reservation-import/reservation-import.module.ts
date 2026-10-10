@@ -8,6 +8,7 @@ import { AddonsModule } from '../addons/addons.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { Trips } from '../../db/entities/Trips.entity';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 
 /**
  * The one route prefix that turns something external into reservations.
@@ -22,7 +23,7 @@ import { Trips } from '../../db/entities/Trips.entity';
  * @Global, so it is named here.
  */
 @Module({
-  imports: [BookingImportModule, AirtrailModule, AddonsModule, PermissionsModule, McpSharedModule, MikroOrmModule.forFeature([Trips])],
+  imports: [TripMembershipModule, BookingImportModule, AirtrailModule, AddonsModule, PermissionsModule, McpSharedModule, MikroOrmModule.forFeature([Trips])],
   controllers: [ReservationImportController],
   providers: [ReservationImportMcp],
 })

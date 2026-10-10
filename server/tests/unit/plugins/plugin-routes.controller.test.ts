@@ -22,6 +22,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 import { PluginRoutesController } from '../../../src/nest/plugins/contributions/plugin-routes.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { PluginsRepository } from '../../../src/db/repositories/Plugins.repository';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -36,7 +37,7 @@ function controller(invoke: () => unknown, providers = ['ev-plug']) {
   const plugins = {
     findCapabilities: vi.fn(async () => (capabilitiesRow.value === undefined ? null : capabilitiesRow.value)),
   } as unknown as PluginsRepository;
-  return { c: new PluginRoutesController(runtime, { findAccessible: canAccessTrip } as unknown as TripsRepository, plugins), runtime };
+  return { c: new PluginRoutesController(runtime, new TripAccessService({ findAccessible: canAccessTrip } as unknown as TripsRepository), plugins), runtime };
 }
 const wp = (n = 3) => Array.from({ length: n }, (_, i) => ({ lat: 48 + i * 0.1, lng: 2 + i * 0.1 }));
 const goodRoute = (n = 3, over: Record<string, unknown> = {}) => ({

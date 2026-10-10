@@ -15,13 +15,11 @@ import {
 } from './transit-itinerary.helpers';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { RateLimitService } from '../common/rate-limit.service';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { DaysService } from '../days/days.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import { SCHEDULED_TRANSIT_MODES, type TransitItinerary } from './transit.helpers';
 import { TransitService } from './transit.service';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 const TRANSIT_RATE_WINDOW = 15 * 60 * 1000;
 
@@ -65,9 +63,9 @@ export class TransitMcp {
     private readonly days: DaysService,
     private readonly reservations: ReservationsService,
     // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is gone:
-    // this injects TripsRepository directly (same constructor slot) and
+    // this injects TripAccessService (trip-membership) (same constructor slot) and
     // calls findAccessible.
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
     private readonly guards: McpToolGuardsService,
     // The limiter RateLimitModule provides, so its store is the one every
     // other caller counts in. The MCP buckets (mcp_transit_*) are keyed by

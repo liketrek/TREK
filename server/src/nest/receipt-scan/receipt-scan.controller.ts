@@ -1,6 +1,5 @@
 import { Controller, HttpException, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { memoryStorage } from 'multer';
 import type { ReceiptScanStartResponse } from '@trek/shared';
 import type { User } from '../../types';
@@ -8,12 +7,11 @@ import { ADDON_IDS } from '../../addons';
 import { AddonsService } from '../addons/addons.service';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { PermissionsService } from '../permissions/permissions.service';
 import { ImportJobsService } from '../booking-import/import-jobs.service';
 import { LlmParseService } from '../llm-parse/llm-parse.service';
 import { imageMimeType } from '../llm-parse/image-input';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -40,7 +38,7 @@ export class ReceiptScanController {
   constructor(
     private readonly importJobs: ImportJobsService,
     private readonly llmParse: LlmParseService,
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
     private readonly permissions: PermissionsService,
     private readonly addons: AddonsService,
   ) {}

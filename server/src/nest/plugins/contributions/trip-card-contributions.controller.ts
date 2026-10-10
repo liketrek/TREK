@@ -1,12 +1,10 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../../db/repositories/Trips.repository';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { TripAccessService } from '../../trip-membership/trip-access.service';
 
 /**
  * GET /api/trip-card-contributions?tripIds=1,2,3 — host-rendered badges that plugins
@@ -86,7 +84,7 @@ function normalize(pluginId: string, raw: unknown, allowed: Set<number>): TripCa
 export class TripCardContributionsController {
   constructor(
     private readonly hooks: PluginHooks,
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
   ) {}
 
   @Get()

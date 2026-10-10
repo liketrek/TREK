@@ -8,12 +8,10 @@ import { airtrailImportSchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { AirtrailImportService } from '../integrations/airtrail-import.service';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 /** The handler's own @RequireAddon(ADDON_IDS.AIRTRAIL), as an availability gate. */
 const airtrailAddonOn = addonGate(ADDON_IDS.AIRTRAIL);
@@ -44,9 +42,9 @@ export class ReservationImportMcp {
   constructor(
     private readonly airtrailImport: AirtrailImportService,
     // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is gone:
-    // this injects TripsRepository directly (same constructor slot) and
+    // this injects TripAccessService (trip-membership) (same constructor slot) and
     // calls findAccessible.
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
     private readonly guards: McpToolGuardsService,
     readonly addons: AddonsService,
   ) {}

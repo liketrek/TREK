@@ -37,6 +37,7 @@ import { TodoItems } from '../../../src/db/entities/TodoItems.entity';
 import { TodoCategoryAssignees } from '../../../src/db/entities/TodoCategoryAssignees.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { createTestTodoItemsRepo, createTestTodoCategoryAssigneesRepo } from '../../helpers/todo-repos';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 let svc: TodoService;
 let todoItemsRepoDirect: Awaited<ReturnType<typeof createTestTodoItemsRepo>>;
@@ -48,7 +49,7 @@ beforeAll(async () => {
     todoItemsRepoDirect, await createTestTodoCategoryAssigneesRepo(testDb),
     // Plan 4 Task 2 — TodoService's own canAccessTrip delegate is now
     // TripsRepository.findAccessible, a new trailing constructor param.
-    await createTestTripsRepo(testDb),
+    new TripAccessService(await createTestTripsRepo(testDb)),
     // Plan 4 Task 3 — DatabaseService.rosterUserIds inlined onto
     // TripMembersRepository.rosterUserIds directly.
     await createTestTripMembersRepo(testDb),
@@ -404,7 +405,7 @@ describe('TodoService.canEdit', () => {
     const withStub = new TodoService(
       permissions, new RealtimeService(), await createTestUnitOfWork(testDb),
       await createTestTodoItemsRepo(testDb), await createTestTodoCategoryAssigneesRepo(testDb),
-      await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb),
+      new TripAccessService(await createTestTripsRepo(testDb)), await createTestTripMembersRepo(testDb),
     );
     const trip = { id: 1, user_id: 1 } as never;
 

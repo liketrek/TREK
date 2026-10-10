@@ -27,9 +27,10 @@ import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
 import { Users } from '../../db/entities/Users.entity';
 import { Trips } from '../../db/entities/Trips.entity';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 
 @Module({
-  imports: [
+  imports: [TripMembershipModule, 
     MulterModule.registerAsync({
       imports: [StorageModule, AllowedFileTypesModule],
       inject: [StorageService, AllowedFileTypesService],

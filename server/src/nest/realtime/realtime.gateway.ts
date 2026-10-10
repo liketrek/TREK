@@ -16,8 +16,6 @@ import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { User } from '../../types';
 import { logError } from '../audit/audit-log.logger';
 import {
@@ -33,6 +31,7 @@ import {
 import { JOURNEY_ACCESS, type JourneyAccess } from './journey-access.types';
 import { readAppSetting } from '../common/app-settings.registry';
 import { runningVersion } from '../../app-config';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 const HEARTBEAT_INTERVAL = 30_000;
 
@@ -64,9 +63,9 @@ export class RealtimeGateway
 
   constructor(
     // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is gone:
-    // this injects TripsRepository directly (same constructor slot) and
+    // this injects TripAccessService (trip-membership) (same constructor slot) and
     // calls findAccessible from `handleJoin`.
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
     private readonly tokens: EphemeralTokenService,
     /*
      * For the book rooms, and injected rather than reimplemented: who may open

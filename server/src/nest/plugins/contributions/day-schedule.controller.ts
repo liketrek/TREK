@@ -1,14 +1,13 @@
 import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../../db/repositories/Trips.repository';
 import { Days } from '../../../db/entities/Days.entity';
 import type { DaysRepository } from '../../../db/repositories/Days.repository';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { TripAccessService } from '../../trip-membership/trip-access.service';
 
 /**
  * GET /api/day-schedule/:tripId — bounded time contributions plugins attach to the
@@ -84,7 +83,7 @@ function normalize(pluginId: string, tripDayIds: ReadonlySet<number>, raw: unkno
 export class DayScheduleController {
   constructor(
     private readonly hooks: PluginHooks,
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
     // CT1 (Plan 3j Task 5) — the trip's day-id set, converted onto Days.repository.ts.
     @InjectRepository(Days) private readonly days: DaysRepository,
   ) {}

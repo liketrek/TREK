@@ -13,6 +13,7 @@ import { TodoItems } from '../../db/entities/TodoItems.entity';
 import { TodoCategoryAssignees } from '../../db/entities/TodoCategoryAssignees.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 
 /** To-do domain (S3 — Phase 2 trip sub-domain). Registered in AppModule.
  *  Exports TodoService for in-container consumers (TripsService bundle).
@@ -23,7 +24,7 @@ import { TripMembers } from '../../db/entities/TripMembers.entity';
  *  (Plan 4 Task 2): `verifyTripAccess`'s own canAccessTrip delegate, now
  *  TripsRepository directly. */
 @Module({
-  imports: [MikroOrmModule.forFeature([TodoItems, TodoCategoryAssignees, Trips, TripMembers]), McpSharedModule, PermissionsModule, RealtimeModule, PluginGuardsModule, AddonsModule],
+  imports: [TripMembershipModule, MikroOrmModule.forFeature([TodoItems, TodoCategoryAssignees, Trips, TripMembers]), McpSharedModule, PermissionsModule, RealtimeModule, PluginGuardsModule, AddonsModule],
   controllers: [TodoController],
   providers: [TodoService, TodoMcp, TodoRpc],
   exports: [TodoService],

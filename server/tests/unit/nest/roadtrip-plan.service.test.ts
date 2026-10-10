@@ -31,6 +31,7 @@ import { bookendAssignmentId, type RoadtripStop } from '@trek/shared/roadtrip';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 /** Every leg an hour and 60 km, whatever it joins. */
 function hourlyRouter() {
@@ -61,7 +62,7 @@ function hourlyRouter() {
 /** The repositories the service reads through, all on the worker's one test handle. */
 async function planRepos() {
   return [
-    await createTestTripsRepo(db),
+    new TripAccessService(await createTestTripsRepo(db)),
     await createTestDaysRepo(db),
     await createTestDayAssignmentsRepo(db),
     await createTestDayAccommodationsRepo(db),

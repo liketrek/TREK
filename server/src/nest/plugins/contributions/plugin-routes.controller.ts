@@ -1,8 +1,6 @@
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../../db/repositories/Trips.repository';
 import { Plugins } from '../../../db/entities/Plugins.entity';
 import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
@@ -10,6 +8,7 @@ import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { PluginRouteDto } from '../plugins.dto';
 import { normalize, declaredProfiles, readWaypoints, PROFILE_RE, type PluginRouteOut } from './plugin-route-normalize';
+import { TripAccessService } from '../../trip-membership/trip-access.service';
 export type { PluginRouteOut } from './plugin-route-normalize';
 
 /**
@@ -36,7 +35,7 @@ export type { PluginRouteOut } from './plugin-route-normalize';
 export class PluginRoutesController {
   constructor(
     private readonly hooks: PluginHooks,
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
     @InjectRepository(Plugins) private readonly plugins: PluginsRepository,
   ) {}
 

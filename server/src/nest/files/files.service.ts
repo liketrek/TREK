@@ -15,8 +15,6 @@ import { Users } from '../../db/entities/Users.entity';
 import { UserSessions } from '../../db/entities/UserSessions.entity';
 import type { User } from '../../types';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { UnitOfWork } from '../database/unit-of-work';
 import { toRowId } from '../common/row-id';
 import { StorageService } from '../storage/storage.service';
@@ -33,6 +31,7 @@ import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
 import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 type Trip = TripAccess;
 type FilePermission = 'file_upload' | 'file_edit' | 'file_delete';
@@ -119,9 +118,9 @@ function coerceLinkId(value: string | number | null | undefined): number | null 
 export class FilesService {
   constructor(
     // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is gone:
-    // this injects TripsRepository directly (same constructor slot) and
+    // this injects TripAccessService (trip-membership) (same constructor slot) and
     // calls findAccessible.
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
     private readonly tokens: EphemeralTokenService,

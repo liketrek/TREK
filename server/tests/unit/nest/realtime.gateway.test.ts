@@ -43,6 +43,7 @@ import type { JourneyDomainService } from '../../../src/nest/journey/journey-dom
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { User } from '../../../src/types';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 interface FakeSocket extends TrekWebSocket {
   sent: string[];
@@ -88,7 +89,7 @@ const canAccessJourney = vi.fn((journeyId: number) => (journeyId === 4 ? null : 
 const journeys = { canAccessJourney } as unknown as JourneyDomainService;
 
 async function connect(url: string) {
-  const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+  const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
   const ws = socket();
   await gw.handleConnection(ws, { url } as never);
   return { gw, ws };
@@ -158,7 +159,7 @@ describe('RealtimeGateway handshake', () => {
   });
 
   it('WSGW-007b: survives an upgrade request with no url, rather than throwing at it', async () => {
-    const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
     const ws = socket();
     await expect(gw.handleConnection(ws, {} as never)).resolves.not.toThrow();
     expect(ws.closedWith).toEqual([4001, 'Authentication required']);
@@ -198,7 +199,7 @@ describe('RealtimeGateway handshake', () => {
     const throwingUsers = {
       findForWsHandshake: () => { throw new Error('db exploded'); },
     } as unknown as UsersRepository;
-    const gw = new RealtimeGateway(db, tokens, journeys, throwingUsers, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, throwingUsers, appSettings);
     const ws = socket();
 
     await gw.handleConnection(ws, { url: '/ws?token=x' } as never);
@@ -211,7 +212,7 @@ describe('RealtimeGateway handshake', () => {
     const throwingUsers = {
       findForWsHandshake: () => { throw 'db string'; }, // non-Error throw, pinning the ternary's String(err) fallback
     } as unknown as UsersRepository;
-    const gw = new RealtimeGateway(db, tokens, journeys, throwingUsers, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, throwingUsers, appSettings);
     const ws = socket();
 
     await gw.handleConnection(ws, { url: '/ws?token=x' } as never);
@@ -248,7 +249,7 @@ describe('RealtimeGateway heartbeat', () => {
       alive.isAlive = true;
       const stale = socket();
       stale.isAlive = false;
-      const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+      const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
       gw.afterInit({ clients: new Set([alive, stale]) } as never);
 
       vi.advanceTimersByTime(30_000);
@@ -269,7 +270,7 @@ describe('RealtimeGateway heartbeat', () => {
     try {
       const ws = socket();
       ws.isAlive = true;
-      const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+      const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
       gw.afterInit({ clients: new Set([ws]) } as never);
       gw.onModuleDestroy();
 
@@ -378,7 +379,7 @@ describe('book rooms', () => {
   let nextJourney = 100;
 
   async function joined(journeyId: number) {
-    const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
     const ws = socket();
     registerSocket(ws, { id: 3, username: 'm' } as User);
     const reply = await gw.handleBookJoin({ journeyId }, ws);
@@ -394,7 +395,7 @@ describe('book rooms', () => {
 
   /* Same shape as the trip room's refusal, and for the same reason. */
   it('WSGW-BOOK-002: refuses a journey the user cannot see, and adds nobody', async () => {
-    const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
     const ws = socket();
     registerSocket(ws, { id: 3, username: 'm' } as User);
 
@@ -445,7 +446,7 @@ describe('book pointers', () => {
 
   async function pair() {
     const journeyId = nextJourney++;
-    const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
     const mine = socket();
     const theirs = socket();
     registerSocket(mine, { id: 3, username: 'm' } as User);
@@ -510,7 +511,7 @@ describe('book messages that are refused', () => {
   let nextJourney = 300;
 
   it('WSGW-BOOK-006: a join without a journey id is ignored', async () => {
-    const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
     const ws = socket();
     registerSocket(ws, { id: 3, username: 'm' } as User);
 
@@ -520,7 +521,7 @@ describe('book messages that are refused', () => {
 
   /* An unauthenticated socket never got as far as the registry. */
   it('WSGW-BOOK-007: a join from a socket with no user is ignored', async () => {
-    const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
     const j = nextJourney++;
 
     expect(await gw.handleBookJoin({ journeyId: j }, socket())).toBeUndefined();
@@ -528,7 +529,7 @@ describe('book messages that are refused', () => {
   });
 
   it('WSGW-BOOK-008: a journey id that is not a number is refused, not joined', async () => {
-    const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
     const ws = socket();
     registerSocket(ws, { id: 3, username: 'm' } as User);
 
@@ -537,7 +538,7 @@ describe('book messages that are refused', () => {
   });
 
   it('WSGW-BOOK-009: a leave without a journey id is ignored', () => {
-    const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
     const ws = socket();
     registerSocket(ws, { id: 3, username: 'm' } as User);
 
@@ -546,7 +547,7 @@ describe('book messages that are refused', () => {
 
   /* Leaving a room nobody is in must not create one on the way out. */
   it('WSGW-BOOK-010: leaving a book that was never joined does nothing', () => {
-    const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
     const ws = socket();
     registerSocket(ws, { id: 3, username: 'm' } as User);
     const j = nextJourney++;
@@ -556,7 +557,7 @@ describe('book messages that are refused', () => {
   });
 
   it('WSGW-CUR-005: a pointer without a journey id reaches nobody', async () => {
-    const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
     const mine = socket();
     const theirs = socket();
     registerSocket(mine, { id: 3, username: 'm' } as User);
@@ -571,7 +572,7 @@ describe('book messages that are refused', () => {
   });
 
   it('WSGW-CUR-006: a pointer from a socket with no user reaches nobody', async () => {
-    const gw = new RealtimeGateway(db, tokens, journeys, users, appSettings);
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
     const theirs = socket();
     registerSocket(theirs, { id: 4, username: 'o' } as User);
     const j = nextJourney++;

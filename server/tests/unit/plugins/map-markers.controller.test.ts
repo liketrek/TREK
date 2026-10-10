@@ -16,6 +16,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 import { MapMarkersController } from '../../../src/nest/plugins/contributions/map-markers.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -24,7 +25,7 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
     providersOf: vi.fn(() => providers),
     mapMarkers: vi.fn(async (id: string) => invoke(id)),
   } as unknown as PluginHooks;
-  return { c: new MapMarkersController(runtime, { findAccessible: canAccessTrip } as unknown as TripsRepository), runtime };
+  return { c: new MapMarkersController(runtime, new TripAccessService({ findAccessible: canAccessTrip } as unknown as TripsRepository)), runtime };
 }
 const mk = (over: Record<string, unknown> = {}) => ({ id: 'm1', lat: 48.85, lng: 2.35, ...over });
 

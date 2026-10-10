@@ -20,6 +20,7 @@ import {
   createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
 } from './journey-repos';
 import { createTestToursRepo } from './tours-repos';
+import { TripAccessService } from '../../src/nest/trip-membership/trip-access.service';
 
 /**
  * AccommodationsService over a test connection.
@@ -51,7 +52,7 @@ export async function accommodationsOver(conn: Database): Promise<Accommodations
   const realtime = new RealtimeService();
   const t = await sharedTestOrm(conn);
   const assignments = new AssignmentsService(
-    await createTestTripsRepo(conn), permissions, realtime,
+    new TripAccessService(await createTestTripsRepo(conn)), permissions, realtime,
     new QueryHelpersService(await createTestTagsRepo(conn), await createTestPlaceRatingsRepo(conn), await createTestAssignmentParticipantsRepo(conn)),
     new JourneyDomainService(
       realtime, new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), await createTestJourneyPhotosRepo(conn)), await createTestUnitOfWork(conn),
@@ -75,7 +76,7 @@ export async function accommodationsOver(conn: Database): Promise<Accommodations
     // TripsRepository.findAccessible. Plan 4 Task 3 — stampLodging's
     // getPlaceWithTags is PlacesRepository.findWithTagsAndRatings directly
     // (`placesRepo` below, already injected).
-    await createTestTripsRepo(conn),
+    new TripAccessService(await createTestTripsRepo(conn)),
     await createTestDayAccommodationsRepo(conn),
     await createTestDayAssignmentsRepo(conn),
     await createTestPlacesRepo(conn),

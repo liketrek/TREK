@@ -153,6 +153,7 @@ import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 const orm = () => sharedTestOrm(testDb);
 
@@ -322,13 +323,13 @@ beforeAll(async () => {
   new TodoService(
   new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new RealtimeService(), await createTestUnitOfWork(testDb),
   await createTestTodoItemsRepo(testDb), await createTestTodoCategoryAssigneesRepo(testDb),
-  await createTestTripsRepo(testDb),
+  new TripAccessService(await createTestTripsRepo(testDb)),
   await createTestTripMembersRepo(testDb),
   ),
   new FilesService(
     // Plan 4 Task 2 — FilesService's own canAccessTrip delegate is now
     // TripsRepository.findAccessible, in the same constructor slot.
-    await createTestTripsRepo(testDb),
+    new TripAccessService(await createTestTripsRepo(testDb)),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     new RealtimeService(),
     new EphemeralTokenService(),

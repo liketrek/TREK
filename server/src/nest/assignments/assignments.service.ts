@@ -17,8 +17,6 @@ import { AssignmentParticipants } from '../../db/entities/AssignmentParticipants
 import type { AssignmentParticipantsRepository } from '../../db/repositories/AssignmentParticipants.repository';
 import { Days } from '../../db/entities/Days.entity';
 import type { DaysRepository } from '../../db/repositories/Days.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { Places } from '../../db/entities/Places.entity';
 import type { PlacesRepository } from '../../db/repositories/Places.repository';
 import { TripMembers } from '../../db/entities/TripMembers.entity';
@@ -27,6 +25,7 @@ import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
 import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
 import { Tours } from '../../db/entities/Tours.entity';
 import type { ToursRepository } from '../../db/repositories/Tours.repository';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 type Trip = TripAccess;
 
@@ -100,8 +99,8 @@ function sortMinutes(time: string | null): number | null {
 export class AssignmentsService {
   constructor(
     // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is gone:
-    // this injects TripsRepository directly and calls findAccessible.
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    // this injects TripAccessService (trip-membership) and calls findAccessible.
+    private readonly trips: TripAccessService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
     private readonly queryHelpers: QueryHelpersService,

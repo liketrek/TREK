@@ -7,6 +7,7 @@ import type { TripsRepository } from '../../../src/db/repositories/Trips.reposit
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { User } from '../../../src/types';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 const user = { id: 3, role: 'user' } as User;
 const photo = (name = 'r.jpg') => ({ originalname: name, buffer: Buffer.from('x') } as Express.Multer.File);
@@ -17,7 +18,7 @@ function make(over: { readsImages?: boolean; trip?: unknown; addon?: boolean; al
   const c = new ReceiptScanController(
     { startReceipt } as unknown as ImportJobsService,
     { readsImages: vi.fn(async () => over.readsImages ?? true) } as unknown as LlmParseService,
-    { findAccessible: vi.fn(async () => ('trip' in over ? over.trip : { user_id: 5 })) } as unknown as TripsRepository,
+    new TripAccessService({ findAccessible: vi.fn(async () => ('trip' in over ? over.trip : { user_id: 5 })) } as unknown as TripsRepository),
     { checkPermission } as unknown as PermissionsService,
     { isAddonEnabled: vi.fn(async () => over.addon ?? true) } as unknown as AddonsService,
   );

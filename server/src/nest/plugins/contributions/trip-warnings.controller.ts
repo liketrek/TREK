@@ -1,12 +1,10 @@
 import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../../db/repositories/Trips.repository';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { TripAccessService } from '../../trip-membership/trip-access.service';
 
 /**
  * GET /api/trip-warnings/:tripId — validation/warning contributions from plugins
@@ -31,7 +29,7 @@ const MESSAGE_MAX = 300;
 export class TripWarningsController {
   constructor(
     private readonly hooks: PluginHooks,
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
   ) {}
 
   @Get(':tripId')

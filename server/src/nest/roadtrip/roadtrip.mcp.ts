@@ -1,15 +1,13 @@
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_NON_IDEMPOTENT, ok, type McpContext } from '../../nest-mcp';
 import { z } from 'zod';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { RoadtripService } from './roadtrip.service';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { ADDON_IDS } from '../../addons';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { roadtripViaUpdateRequestSchema, type RoadtripViaUpdateRequest } from '@trek/shared';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 /**
  * The whole surface rides the road trip addon, the same way the controller does
@@ -40,7 +38,7 @@ const BOOKEND_VIA_NOTE =
 export class RoadtripMcp {
   constructor(
     private readonly roadtrip: RoadtripService,
-    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
+    private readonly tripsRepo: TripAccessService,
     private readonly guards: McpToolGuardsService,
     readonly addons: AddonsService,
   ) {}

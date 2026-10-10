@@ -108,6 +108,7 @@ import { createTestCollectionPlacesRepo } from '../../helpers/test-uow';
 import { noGoogleQuota } from '../../helpers/google-quota';
 import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
 import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 // Real sibling services over the same in-memory DB — the aggregation runs the
 // actual SQL of every domain it fans out to, so a shape change downstream shows
@@ -200,7 +201,7 @@ const buildReadModel = async (tripsRepo: TripsRepository, roster: TripMembersSer
       await createTestTodoItemsRepo(testDb), await createTestTodoCategoryAssigneesRepo(testDb),
       // Plan 4 Task 2 — TodoService's own canAccessTrip delegate is now
       // TripsRepository.findAccessible, a new trailing constructor param.
-      await createTestTripsRepo(testDb),
+      new TripAccessService(await createTestTripsRepo(testDb)),
       // Plan 4 Task 3 — DatabaseService.rosterUserIds inlined onto
       // TripMembersRepository.rosterUserIds directly.
       await createTestTripMembersRepo(testDb),
@@ -208,7 +209,7 @@ const buildReadModel = async (tripsRepo: TripsRepository, roster: TripMembersSer
     new FilesService(
       // Plan 4 Task 2 — FilesService's own canAccessTrip delegate is now
       // TripsRepository.findAccessible, in the same constructor slot.
-      await createTestTripsRepo(testDb),
+      new TripAccessService(await createTestTripsRepo(testDb)),
       new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
       new RealtimeService(),
       new EphemeralTokenService(),

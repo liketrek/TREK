@@ -15,6 +15,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 import { PlaceDetailsController } from '../../../src/nest/plugins/contributions/place-details.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -26,7 +27,7 @@ function controller(over: Partial<PluginHooks> = {}) {
   } as unknown as PluginHooks;
   // CT7 (Plan 3j Task 5) — the place's owning trip id is now Places.repository.ts#findTripId.
   const places = { findTripId: vi.fn(async (placeId: number) => placeTrip(placeId)?.trip_id) } as unknown as PlacesRepository;
-  return { c: new PlaceDetailsController(runtime, { findAccessible: canAccessTrip } as unknown as TripsRepository, places), runtime };
+  return { c: new PlaceDetailsController(runtime, new TripAccessService({ findAccessible: canAccessTrip } as unknown as TripsRepository), places), runtime };
 }
 
 describe('PlaceDetailsController', () => {

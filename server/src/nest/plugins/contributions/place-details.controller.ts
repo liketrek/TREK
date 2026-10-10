@@ -1,14 +1,13 @@
 import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../../db/repositories/Trips.repository';
 import { Places } from '../../../db/entities/Places.entity';
 import type { PlacesRepository } from '../../../db/repositories/Places.repository';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { TripAccessService } from '../../trip-membership/trip-access.service';
 
 /**
  * GET /api/place-details/:placeId — extra info for a place, contributed by plugins
@@ -67,7 +66,7 @@ function normalize(raw: unknown): DetailItem[] {
 export class PlaceDetailsController {
   constructor(
     private readonly hooks: PluginHooks,
-    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    private readonly trips: TripAccessService,
     // CT7 (Plan 3j Task 5) — the place's owning trip id, converted onto Places.repository.ts.
     @InjectRepository(Places) private readonly places: PlacesRepository,
   ) {}

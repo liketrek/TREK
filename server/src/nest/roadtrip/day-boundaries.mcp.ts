@@ -2,9 +2,6 @@ import { z } from 'zod';
 import { MAX_TRIP_DAYS, roadtripDayBoundarySchema, type RoadtripDayBoundary } from '@trek/shared';
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, ok, type McpContext } from '../../nest-mcp';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { AddonsService } from '../addons/addons.service';
@@ -12,6 +9,7 @@ import { addonGate } from '../addons/addon-gate';
 import { ADDON_IDS } from '../../addons';
 import { DayBoundariesService } from './day-boundaries.service';
 import { answeringRefusals } from './roadtrip-mcp.helpers';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 const when = addonGate(ADDON_IDS.ROADTRIP);
 
@@ -19,7 +17,7 @@ const when = addonGate(ADDON_IDS.ROADTRIP);
 export class DayBoundariesMcp {
   constructor(
     private readonly boundaries: DayBoundariesService,
-    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
+    private readonly tripsRepo: TripAccessService,
     private readonly guards: McpToolGuardsService,
     private readonly realtime: RealtimeService,
     readonly addons: AddonsService,
