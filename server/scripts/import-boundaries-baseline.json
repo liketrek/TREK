@@ -196,7 +196,6 @@
     "integrations -> Users (owned by auth)",
     "journey -> Places (owned by places)",
     "journey -> Trips (owned by trips)",
-    "journey -> Users (owned by auth)",
     "llm-parse -> Addons (owned by addons)",
     "maps -> AppSettings (owned by settings)",
     "maps -> Places (owned by places)",
