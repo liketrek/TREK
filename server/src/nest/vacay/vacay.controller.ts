@@ -360,28 +360,28 @@ export class VacayController {
     return { success: true };
   }
 
-  // response-contract-exempt: passes the holiday provider's answer through as it came; its shape is the provider's.
+  // No contract yet: passes the holiday provider's answer through as it came, so its shape is the provider's.
   @Get('holidays/countries')
   async holidayCountries() {
     const result = await this.vacay.getCountries();
     return result.data;
   }
 
-  // response-contract-exempt: passes the holiday provider's answer through as it came; its shape is the provider's.
+  // No contract yet: passes the holiday provider's answer through as it came, so its shape is the provider's.
   @Get('holidays/:year/:country')
   async holidays(@Param('year') year: string, @Param('country') country: string) {
     const result = await this.vacay.getHolidays(year, country);
     return result.data;
   }
 
-  // response-contract-exempt: passes the holiday provider's answer through as it came; its shape is the provider's.
+  // No contract yet: passes the holiday provider's answer through as it came, so its shape is the provider's.
   @Get('school-holidays/regions/:country')
   async schoolHolidayRegions(@Param('country') country: string) {
     const result = await this.vacay.getSchoolHolidayRegions(country, country.toUpperCase() === 'DE' ? 'DE' : 'EN');
     return result.data;
   }
 
-  // response-contract-exempt: passes the holiday provider's answer through as it came; its shape is the provider's.
+  // No contract yet: passes the holiday provider's answer through as it came, so its shape is the provider's.
   @Get('school-holidays/:year/:country')
   async schoolHolidaysForCountry(
     @Param('year') year: string,
@@ -391,7 +391,7 @@ export class VacayController {
     return this.schoolHolidays(year, country, undefined, group);
   }
 
-  // response-contract-exempt: passes the holiday provider's answer through as it came; its shape is the provider's.
+  // No contract yet: passes the holiday provider's answer through as it came, so its shape is the provider's.
   @Get('school-holidays/:year/:country/:subdivision')
   async schoolHolidaysForSubdivision(
     @Param('year') year: string,

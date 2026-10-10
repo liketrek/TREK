@@ -96,6 +96,7 @@
     "src/nest/trip-invite/trip-invite.controller.ts": 5,
     "src/nest/trip-members/trip-members.controller.ts": 7,
     "src/nest/trips/trips.controller.ts": 12,
+    "src/nest/vacay/vacay.controller.ts": 5,
     "src/nest/weather/weather.controller.ts": 2
   }
 }

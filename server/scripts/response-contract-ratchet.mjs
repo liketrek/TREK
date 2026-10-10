@@ -10,9 +10,11 @@
  *
  * Every method under src/nest/ carrying a route decorator (@Get, @Post, @Put,
  * @Patch, @Delete, @All, @Head, @Options) counts as a handler. One counts as
- * covered when it also carries @ResponseContract(...), or when a comment
- * above it reads `response-contract-exempt: <reason>` (a handler that writes
- * through @Res(), a redirect or a stream, has no return value to check). The
+ * covered when it also carries @ResponseContract(...), or when it writes
+ * through @Res() (or hands off with @Next()) and a comment above it reads
+ * `response-contract-exempt: <reason>`: a redirect or a stream has no return
+ * value to check. The marker on a handler that returns its body excuses
+ * nothing, so a comment cannot stand in for a schema. The
  * uncovered handlers are counted per file against
  * scripts/response-contract-baseline.json: a file may hold at most its entry,
  * a file without one none. An entry above what its file holds now, or for a
@@ -60,6 +62,16 @@ function isExempt(text, method) {
   return head.split('\n').some((line) => /^\s*(\/\/|\/?\*)/.test(line) && line.includes(EXEMPT_MARKER));
 }
 
+/** Whether the handler takes the response (or next) object, so it answers through it rather than by returning. */
+function writesThroughResponse(method) {
+  return method.parameters.some((param) =>
+    (ts.getDecorators(param) ?? []).some((d) => {
+      const name = decoratorName(d);
+      return name === 'Res' || name === 'Next' || name === 'Response';
+    }),
+  );
+}
+
 /** The route handlers of one file's text: `{ name, covered }` in source order. */
 export function handlersOf(text, fileName = 'file.ts') {
   const source = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
@@ -69,7 +81,8 @@ export function handlersOf(text, fileName = 'file.ts') {
       const names = (ts.getDecorators(node) ?? []).map(decoratorName);
       if (names.some((n) => n && ROUTE_DECORATORS.has(n))) {
         const name = node.name && ts.isIdentifier(node.name) ? node.name.text : (node.name?.getText(source) ?? '?');
-        handlers.push({ name, covered: names.includes('ResponseContract') || isExempt(text, node) });
+        const exempt = isExempt(text, node) && writesThroughResponse(node);
+        handlers.push({ name, covered: names.includes('ResponseContract') || exempt });
       }
     }
     ts.forEachChild(node, visit);

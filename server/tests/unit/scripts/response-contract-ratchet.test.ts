@@ -68,6 +68,23 @@ describe('response-contract-ratchet.mjs', () => {
     expect(out).toContain('response-contracts: 2 of 2 route handler(s) covered (100.0 %)');
   });
 
+  it('RC-008: the exempt marker excuses only a handler that writes through @Res() or @Next()', () => {
+    const marked = (name: string, param: string) =>
+      `  // response-contract-exempt: says so\n  @Get('${name}')\n  ${name}(${param}) {\n    return {};\n  }\n`;
+    const { status, out } = run(
+      serverRoot({
+        [`${NEST}/x/x.controller.ts`]: controller(
+          marked('returnsBody', "@Param('id') id: string"),
+          marked('streams', '@Res() res: Response'),
+          marked('handsOff', '@Next() next: () => void'),
+        ),
+      }),
+    );
+    expect(status).toBe(1);
+    expect(out).toContain(`FAIL  ${NEST}/x/x.controller.ts: 1 route handler(s) without @ResponseContract`);
+    expect(out).toContain('2 of 3 route handler(s) covered');
+  });
+
   it('RC-002: fails a new file holding a handler without one, and ignores plain methods', () => {
     const helper = '  private helper() {\n    return 1;\n  }\n';
     const { status, out } = run(serverRoot({ [`${NEST}/x/x.controller.ts`]: controller(bare('a'), helper) }));
