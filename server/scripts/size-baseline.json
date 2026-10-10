@@ -15,7 +15,7 @@
   "src/nest/journey/journey-domain.service.ts": 1799,
   "src/nest/places/places.service.ts": 1598,
   "src/nest/plugins/plugin-runtime.service.ts": 1463,
-  "src/nest/plugins/runtime/plugin-sdk.ts": 1094,
+  "src/nest/plugins/runtime/plugin-sdk.ts": 1093,
   "src/nest/reservations/reservations.service.ts": 1239,
   "src/nest/trips/trips.service.ts": 1009,
   "src/nest/vacay/vacay.service.ts": 1433
