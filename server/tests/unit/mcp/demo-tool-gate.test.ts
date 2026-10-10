@@ -25,7 +25,6 @@ vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 const DEMO_REFUSAL = {
   content: [{ type: 'text', text: 'Write operations are disabled in demo mode.' }],

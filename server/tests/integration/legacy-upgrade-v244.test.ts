@@ -19,11 +19,6 @@ vi.mock('../../src/db/database', async () => {
   const { openLegacyFixture } = await import('../helpers/legacy-fixture');
   return buildDbMock(openLegacyFixture('legacy-v244'));
 });
-vi.mock('../../src/websocket', () => ({
-  broadcast: vi.fn(),
-  broadcastToUser: vi.fn(),
-  getOnlineUserIds: vi.fn(() => []),
-}));
 
 // Off by default under NODE_ENV=test; this suite is the one that asks for it.
 const previousSwitch = process.env.TREK_DB_PRE_MIGRATE_SNAPSHOT;

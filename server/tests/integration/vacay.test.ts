@@ -12,7 +12,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
 // Prevent real HTTP calls (holiday API etc.)
 vi.stubGlobal('fetch', vi.fn().mockResolvedValue({

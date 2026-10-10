@@ -21,7 +21,6 @@ vi.mock('../../../src/db/database', async () => {
     getPlaceWithTags: () => null,
   };
 });
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 import { db as testDb } from '../../../src/db/database';
 import { resetTestDb } from '../../helpers/test-db';

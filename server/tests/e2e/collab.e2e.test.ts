@@ -2,8 +2,8 @@
  * Collab module e2e — exercises the migrated /api/trips/:tripId/collab endpoints
  * through the real JwtAuthGuard against a real migrated temp SQLite db
  * (createSnapshotTestDb(), no hand-rolled CREATE TABLEs), running CollabService's
- * real queries (DI-injected, no service mock). The permission check, the
- * WebSocket broadcast and the chat/note notification are mocked; this focuses
+ * real queries (DI-injected, no service mock). The permission check and
+ * the chat/note notification are mocked; this focuses
  * on auth, trip-access 404, permission 403, the create-201 status codes, the
  * vote/react 200 overrides and the persisted rows. Rows are seeded and read
  * through the factories in tests/helpers/factories.
@@ -20,7 +20,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 

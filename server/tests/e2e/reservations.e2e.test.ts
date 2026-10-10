@@ -3,8 +3,8 @@
  * through the real JwtAuthGuard against a temp SQLite db. Reservation SQL runs
  * for real (ReservationsService is DI-native, no mock — the temp db carries the
  * full, real migrated schema via createSnapshotTestDb), and so does the accommodation
- * SQL (the injected DaysService is DI-native too); the budget service, the
- * permission check and the WebSocket broadcast stay mocked.
+ * SQL (the injected DaysService is DI-native too); the budget service and the
+ * permission check stay mocked.
  */
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
@@ -36,7 +36,6 @@ vi.mock('../../src/db/database', async () => {
     reinitialize: () => {},
   };
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 const { notificationSend } = vi.hoisted(() => ({ notificationSend: vi.fn().mockResolvedValue(undefined) }));
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 

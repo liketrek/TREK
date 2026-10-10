@@ -9,7 +9,6 @@ vi.mock('../../../../src/db/database', () => ({
   // them, but the module-level import has to resolve.
   canAccessTrip: vi.fn(), isOwner: () => false, getPlaceWithTags: () => null,
 }));
-vi.mock('../../../../src/websocket', () => ({ broadcast: vi.fn() }));
 const permissionsStub = { checkPermission: vi.fn(() => true) };
 // Runs the callback in place; the tests that care about the boundary wrap it to record it.
 const uowStub = { transactional: <T>(fn: () => Promise<T>) => fn() };

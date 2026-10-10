@@ -26,9 +26,6 @@ vi.mock('../../../src/db/database', async () => {
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 const checkPermission = vi.fn(() => true);
 const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
@@ -42,7 +39,6 @@ import { PackingService, isInvalidBagRef } from '../../../src/nest/packing/packi
 // Was packing.bridge, deleted with the other three that had no consumer outside the
 // container. The assertions stayed; they point at the service now.
 const bridgeListItems = (tripId: string | number, viewerId?: number) => svc.listItems(tripId, viewerId);
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { notificationsStub } from '../../helpers/notifications';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { addTripMember as addTripMemberRow } from '../../helpers/factories/trips';
@@ -86,6 +82,10 @@ import {
   createTestPackingTemplateCategoriesRepo,
   createTestPackingTemplateItemsRepo,
 } from '../../helpers/packing-repos';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 let svc: PackingService;
 let packingItemsRepoDirect: Awaited<ReturnType<typeof createTestPackingItemsRepo>>;
@@ -104,7 +104,7 @@ beforeAll(async () => {
   packingItemContributorsRepoDirect = await createTestPackingItemContributorsRepo(testDb);
   svc = new PackingService(
     permissionsStub,
-    new RealtimeService(),
+    realtime,
     notificationsStub(send),
     await createTestUnitOfWork(testDb),
     packingItemsRepoDirect,

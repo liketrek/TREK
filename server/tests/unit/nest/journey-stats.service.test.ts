@@ -22,8 +22,6 @@ vi.mock('../../../src/db/database', async () => {
     };
 });
 
-vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
-
 /*
  * The country lookup is stubbed rather than exercised. The real one loads and
  * indexes 4MB of gzipped admin-0 boundaries on first call — minutes of work

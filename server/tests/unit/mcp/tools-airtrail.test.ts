@@ -16,9 +16,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
 import { createUser, createTrip, addTripMember } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
@@ -31,6 +28,10 @@ import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { findRows, updateRows } from '../../helpers/factories/rows';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 // The permissions cache is module-scoped, so a write through any instance is
 // what the tool's own checkPermission call reads back.
@@ -69,7 +70,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes: string[] | null = null) {
-  const h = await createMcpHarness({ userId, withResources: false, scopes });
+  const h = await createMcpHarness({ realtime, userId, withResources: false, scopes });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 

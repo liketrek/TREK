@@ -16,15 +16,10 @@ vi.mock('../../../src/db/database', async () => {
     };
 });
 
-
-const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast }));
-
 import { db as testDb } from '../../../src/db/database';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createDay, createPlace, createDayAccommodation, createDayAssignment, addTripMember } from '../../helpers/factories';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { makeAccommodationsService } from '../../helpers/accommodations-service';
 import { AccommodationsModule } from '../../../src/nest/accommodations/accommodations.module';
@@ -44,6 +39,10 @@ import { Places } from '../../../src/db/entities/Places.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
 import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcast = realtime.broadcastMock;
 
 const orm = () => sharedTestOrm(testDb);
 
@@ -80,7 +79,7 @@ async function setStops(where: FilterQuery<DayAssignments>, data: Partial<Pick<D
 // Named `svc` so the moved cases read exactly as they did on DaysService.
 let svc: Awaited<ReturnType<typeof makeAccommodationsService>>;
 beforeAll(async () => {
-  svc = await makeAccommodationsService(testDb);
+  svc = await makeAccommodationsService(testDb, realtime);
 });
 
 beforeEach(() => {

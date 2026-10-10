@@ -16,6 +16,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
 import { registerTools } from '../../src/mcp/tools';
 import type { McpAttachOptions } from '../../src/nest-mcp';
 import { createMcpTestRegistry } from './mcp-test-controllers';
+import type { RealtimeService } from '../../src/nest/realtime/realtime.service';
 
 export interface McpHarness {
   client: Client;
@@ -47,10 +48,16 @@ export interface McpHarnessOptions {
    * every suite that does not register one.
    */
   dynamicTools?: McpAttachOptions['dynamicTools'];
+  /**
+   * The RealtimeService every tool broadcasts through. A suite that asserts on
+   * broadcasts hands in a FakeRealtimeService (tests/helpers/fake-realtime.ts);
+   * left out, the tools get a real one, whose transport has no sockets here.
+   */
+  realtime?: RealtimeService;
 }
 
 export async function createMcpHarness(options: McpHarnessOptions): Promise<McpHarness> {
-  const { userId, withTools = true, scopes = null, isStaticToken = false, getDeprecationNotice, dynamicTools } = options;
+  const { userId, withTools = true, scopes = null, isStaticToken = false, getDeprecationNotice, dynamicTools, realtime } = options;
 
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
 
@@ -59,7 +66,7 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
     // McpRegistryService to registerTools; the harness has no Nest app, so it
     // builds the same registry by hand (see mcp-test-controllers.ts).
     // registerTools' own ctx construction stays exercised.
-    await registerTools(await createMcpTestRegistry(), server, userId, scopes ?? null, isStaticToken, getDeprecationNotice, undefined, dynamicTools);
+    await registerTools(await createMcpTestRegistry(realtime), server, userId, scopes ?? null, isStaticToken, getDeprecationNotice, undefined, dynamicTools);
   }
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

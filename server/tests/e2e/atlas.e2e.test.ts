@@ -27,8 +27,6 @@ vi.mock('../../src/db/database', async () => {
   };
 });
 
-vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.fn() }));
-
 import { db } from '../../src/db/database';
 import { createUser, createTrip } from '../helpers/factories';
 import { AtlasModule } from '../../src/nest/atlas/atlas.module';

@@ -3,8 +3,8 @@
  * through the real JwtAuthGuard against a migrated temp SQLite db
  * (createSnapshotTestDb()). TodoService and the trip access check run their
  * real queries through the repositories; rows are seeded and read through the
- * factories in tests/helpers/factories. Only the permission check and the
- * WebSocket broadcast stay mocked.
+ * factories in tests/helpers/factories. Only the permission check stays
+ * mocked.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 import request from 'supertest';
@@ -17,7 +17,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 import { db } from '../../src/db/database';
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';

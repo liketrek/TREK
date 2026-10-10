@@ -13,11 +13,9 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock, unlinkSyncMock } = vi.hoisted(() => ({
-  broadcastMock: vi.fn(),
+const { unlinkSyncMock } = vi.hoisted(() => ({
   unlinkSyncMock: vi.fn(),
 }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();
   return { ...actual, unlinkSync: unlinkSyncMock };
@@ -32,6 +30,10 @@ import { makeTripFile } from '../../helpers/factories/files';
 import { CollabNotes } from '../../../src/db/entities/CollabNotes.entity';
 import { DayNotes } from '../../../src/db/entities/DayNotes.entity';
 import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -66,7 +68,7 @@ async function collabNote(id: number) {
 }
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 
@@ -380,7 +382,7 @@ describe('Day-note tools — scope gating', () => {
   const WRITE_TOOLS = ['create_day_note', 'update_day_note', 'delete_day_note'];
 
   async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
-    const h = await createMcpHarness({ userId, withResources: false, scopes });
+    const h = await createMcpHarness({ realtime, userId, withResources: false, scopes });
     try {
       return (await h.client.listTools()).tools.map((t) => t.name);
     } finally {

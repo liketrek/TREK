@@ -27,7 +27,6 @@ vi.mock('../../../src/db/database', async () => {
     return mock;
 });
 
-vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
 // Mock MCP to avoid session side-effects
 vi.mock('../../../src/mcp', () => ({ revokeUserSessions: vi.fn(), invalidateMcpSessions: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn() }));

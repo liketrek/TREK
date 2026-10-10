@@ -12,9 +12,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 vi.mock('../../../src/nest/weather/weather.impl', () => ({
   getWeather: vi.fn().mockResolvedValue({ temp: 20, condition: 'sunny' }),
   getDetailedWeather: vi.fn().mockResolvedValue({ hourly: [] }),
@@ -46,6 +43,10 @@ import { Tags } from '../../../src/db/entities/Tags.entity';
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import { getWeather, getDetailedWeather } from '../../../src/nest/weather/weather.impl';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 // The geo tools live on the DI-discovered maps.mcp.ts since the maps fold; the
 // test registry builds a real MapsService over the mocked db proxy, so stub the
@@ -95,7 +96,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 
@@ -271,7 +272,7 @@ describe('Tags tools: scope gating', () => {
   const TAG_TOOLS = ['list_tags', 'create_tag', 'update_tag', 'delete_tag'];
 
   async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
-    const h = await createMcpHarness({ userId, withResources: false, scopes });
+    const h = await createMcpHarness({ realtime, userId, withResources: false, scopes });
     try {
       return (await h.client.listTools()).tools.map((t) => t.name);
     } finally {

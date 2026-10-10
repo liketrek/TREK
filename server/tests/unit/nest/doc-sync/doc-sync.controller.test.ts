@@ -32,9 +32,6 @@ vi.mock('../../../../src/db/database', async () => {
     };
 });
 
-
-vi.mock('../../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
 /**
  * The SSRF guard resolves DNS, and none of these hostnames exist. It is not
  * what this file tests, and a suite that needs a resolver is a suite that fails

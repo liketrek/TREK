@@ -13,7 +13,7 @@ import { ChargingService } from '../../src/nest/roadtrip/charging.service';
  * fixed for that file). Every service in this module now runs its real SQL
  * through repositories (DI-injected, no service mock) against the real
  * request-scoped `EntityManager` `createTestMikroOrmModule` wires in; only
- * the permission check and the WebSocket broadcast stay mocked.
+ * the permission check stays mocked.
  *
  * The unit test next door pins the handler bodies. What only a booted container
  * can show is the thing the controller's own comment calls load-bearing: that
@@ -47,7 +47,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 import { db } from '../../src/db/database';
 import { Addons } from '../../src/db/entities/Addons.entity';

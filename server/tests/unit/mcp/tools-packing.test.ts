@@ -19,9 +19,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createPackingItem, addTripMember } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
@@ -33,6 +30,10 @@ import { addPackingBagMembers, addPackingItemRecipients, makePackingBag } from '
 import { setAddonEnabled } from '../../helpers/factories/settings';
 import { PackingBags } from '../../../src/db/entities/PackingBags.entity';
 import { PackingItems } from '../../../src/db/entities/PackingItems.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 let orm: TestOrm;
 
@@ -52,7 +53,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 
@@ -849,7 +850,7 @@ describe('Packing tools — scope gating', () => {
   ];
 
   async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
-    const h = await createMcpHarness({ userId, withResources: false, scopes });
+    const h = await createMcpHarness({ realtime, userId, withResources: false, scopes });
     try {
       return (await h.client.listTools()).tools.map((t) => t.name);
     } finally {

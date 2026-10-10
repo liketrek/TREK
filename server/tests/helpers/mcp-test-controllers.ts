@@ -194,7 +194,7 @@ import { TripAccessService } from '../../src/nest/trip-membership/trip-access.se
  * fan-out. Constructing against the `db` Proxy keeps per-file vi.mock's of
  * src/db/database flowing through (same pattern as todo.bridge.ts).
  */
-export async function createMcpTestRegistry(): Promise<McpRegistry> {
+export async function createMcpTestRegistry(realtimeService: RealtimeService = new RealtimeService()): Promise<McpRegistry> {
   // Plan 3c Task 0b / Plan 4 Task 4: `mcpOrm` gives every repository below
   // its `EntityManager` — `canAccessTrip`/`isOwner`/`rosterUserIds`/
   // `getPlaceWithTags` resolve `TripsRepository`/`TripMembersRepository`/
@@ -207,7 +207,6 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
   const auditLogRepo = mcpOrm.repo(AuditLog);
   const usersRepo = mcpOrm.repo(Users);
   const permissionsService = new PermissionsService(await createTestAppSettingsRepo(db), await createTestUnitOfWork(db));
-  const realtimeService = new RealtimeService();
   // Plan 4 Task 1 constructor-ripple: the trip `user_id`/user `role` reads
   // moved off `DatabaseService` onto `TripsRepository`/`UsersRepository`.
   const guards = new McpToolGuardsService(mcpOrm.repo(Trips), usersRepo, permissionsService, realtimeService);

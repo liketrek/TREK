@@ -37,7 +37,6 @@ vi.mock('../../src/db/database', async () => {
     reinitialize: () => {},
   };
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 vi.mock('../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled: () => pluginsEnabled.value }));
 
 import { db } from '../../src/db/database';

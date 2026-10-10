@@ -14,7 +14,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
 // Mock SSRF guard: block loopback and private IPs, allow external hostnames without DNS.
 vi.mock('../../src/utils/ssrfGuard', async () => {

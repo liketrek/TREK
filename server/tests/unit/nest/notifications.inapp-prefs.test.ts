@@ -22,18 +22,10 @@ vi.mock('../../../src/db/database', async () => {
     return mock;
 });
 
-// Mock WebSocket broadcast — must use vi.hoisted() so broadcastMock is available
-// when the vi.mock factory is evaluated (factories are hoisted before const declarations)
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-// RealtimeService imports both names from src/websocket, so the mock must
-// export both even though only broadcastToUser is asserted here.
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: broadcastMock }));
-
 import { db as testDb } from '../../../src/db/database';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin, disableNotificationPref } from '../../helpers/factories';
 import { registerAction } from '../../../src/nest/notifications/in-app-actions';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
@@ -42,6 +34,10 @@ import { makeNotification } from '../../helpers/factories/notifications';
 import { makeTrip } from '../../helpers/factories/trips';
 import { Notifications } from '../../../src/db/entities/Notifications.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastToUserMock;
 
 // Built in beforeAll: the service now takes a UnitOfWork, which is async to build.
 let notifications: NotificationsService;
@@ -54,7 +50,7 @@ const createNotificationForRecipient = (...a: Parameters<Svc['createNotification
 const respondToBoolean = (...a: Parameters<Svc['respond']>) => notifications.respond(...a);
 
 beforeAll(async () => {
-  notifications = await makeNotificationsService(testDb);
+  notifications = await makeNotificationsService(testDb, realtime);
 });
 
 beforeEach(() => {

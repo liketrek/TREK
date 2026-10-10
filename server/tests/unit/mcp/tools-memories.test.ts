@@ -15,9 +15,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock, broadcastToUser: broadcastMock }));
-
 import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
 import { createUser, createJourney, createJourneyEntry, addJourneyContributor } from '../../helpers/factories';
 import { ADDON_IDS } from '../../../src/addons';
@@ -31,6 +28,12 @@ import { JourneyEntryPhotos } from '../../../src/db/entities/JourneyEntryPhotos.
 import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
 import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
+// The suite asserts both channels on one recorder, as its module mock did.
+realtime.broadcastToUserMock.mockImplementation((...args) => broadcastMock(...(args as unknown as Parameters<typeof broadcastMock>)));
 
 const immichSearch = vi.spyOn(ImmichService.prototype, 'searchPhotos');
 const immichAlbums = vi.spyOn(ImmichService.prototype, 'listAlbums');
@@ -87,7 +90,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes?: string[] | null) {
-  const h = await createMcpHarness({ userId, withResources: false, scopes: scopes ?? null });
+  const h = await createMcpHarness({ realtime, userId, withResources: false, scopes: scopes ?? null });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 

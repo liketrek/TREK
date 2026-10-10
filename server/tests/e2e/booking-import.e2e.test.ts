@@ -35,7 +35,6 @@ vi.mock('../../src/db/database', async () => {
     reinitialize: () => {},
   };
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../src/utils/ssrfGuard', async (orig) => ({ ...(await orig<Record<string, unknown>>()), safeFetchLlm }));
 
 import { db } from '../../src/db/database';

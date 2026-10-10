@@ -20,9 +20,6 @@ vi.mock('../../../src/db/database', () => ({
 }));
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 
-const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast }));
-
 const checkPermission = vi.fn(() => true);
 const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
@@ -32,7 +29,6 @@ const getRates = vi.fn();
 const exchangeRatesStub = { getRates } as unknown as ExchangeRatesService;
 
 import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import type { BudgetItemsRepository } from '../../../src/db/repositories/BudgetItems.repository';
 import type { BudgetItemMembersRepository } from '../../../src/db/repositories/BudgetItemMembers.repository';
@@ -43,6 +39,10 @@ import type { ReservationsRepository } from '../../../src/db/repositories/Reserv
 import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
 import type { TripMembersRepository } from '../../../src/db/repositories/TripMembers.repository';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcast = realtime.broadcastMock;
 
 /**
  * There is no database behind this suite (every repository is a stub), so the
@@ -77,7 +77,7 @@ function svc(
   budgetItemsRepo: BudgetItemsRepository = {} as unknown as BudgetItemsRepository,
 ) {
   return new BudgetService(
-    permissionsStub, exchangeRatesStub, new RealtimeService(), uowStub,
+    permissionsStub, exchangeRatesStub, realtime, uowStub,
     budgetItemsRepo,
     {} as unknown as BudgetItemMembersRepository,
     {} as unknown as BudgetItemPayersRepository,

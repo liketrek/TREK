@@ -17,7 +17,6 @@ vi.mock('../../../src/db/database', async () => {
 
 const logMock = vi.hoisted(() => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
 
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
 
 import { db as testDb } from '../../../src/db/database';

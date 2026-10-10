@@ -2,7 +2,7 @@
  * Collections e2e — drives /api/addons/collections through the REAL JwtAuthGuard
  * AND the real DI-native CollectionsService (DatabaseModule + RealtimeModule +
  * CollectionsModule) against a temp SQLite db (full schema). Only the addon
- * flag, websocket and notification send are mocked. Covers: the addon gate
+ * flag and notification send are mocked. Covers: the addon gate
  * (404 before auth), auth, CRUD happy paths, invite/accept/decline, copy-to-trip,
  * cross-user 404s, the non-owner 403 on /:id/available-users (no enumeration), and
  * a list out as GPX and back in through the reader and the import (#2301).
@@ -27,7 +27,6 @@ vi.mock('../../src/db/database', async () => {
 });
 
 const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
-vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.fn() }));
 
 import { db } from '../../src/db/database';
 import { createUser, createTrip, createCategory, createDay, createPlace, createDayAssignment } from '../helpers/factories';

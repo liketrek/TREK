@@ -13,11 +13,6 @@ vi.mock('../../src/db/database', async () => {
   const { openLegacyFixture } = await import('../helpers/legacy-fixture');
   return buildDbMock(openLegacyFixture('legacy-v205'));
 });
-vi.mock('../../src/websocket', () => ({
-  broadcast: vi.fn(),
-  broadcastToUser: vi.fn(),
-  getOnlineUserIds: vi.fn(() => []),
-}));
 
 describeLegacyUpgrade(
   { fixture: 'legacy-v205', version: 205, reseated: 1, nightOrderIndex: 1, id: 'LEGACYUP-205' },

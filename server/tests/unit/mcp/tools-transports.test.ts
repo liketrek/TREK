@@ -12,9 +12,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createDay } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
@@ -25,6 +22,10 @@ import { makeBudgetItem } from '../../helpers/factories/budget';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 /** Overwrites the booking's stored metadata text, the way an import or a legacy row leaves it. */
 async function setMetadata(metadata: string, reservationId: number): Promise<void> {
@@ -49,7 +50,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 

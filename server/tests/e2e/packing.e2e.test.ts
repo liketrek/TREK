@@ -3,8 +3,8 @@
  * endpoints through the real JwtAuthGuard against a migrated temp SQLite db.
  * PackingService runs its real SQL via DatabaseModule (the DATABASE_CONNECTION
  * factory picks up the mocked db singleton); trip access resolves through the
- * real repositories over the temp db. Only the permission check, the
- * WebSocket broadcast and the notification sender stay mocked.
+ * real repositories over the temp db. Only the permission check and
+ * the notification sender stay mocked.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 import request from 'supertest';
@@ -17,7 +17,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 

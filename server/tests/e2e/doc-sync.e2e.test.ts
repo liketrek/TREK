@@ -37,7 +37,6 @@ vi.mock('../../src/db/database', async () => {
 });
 
 const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
-vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.fn() }));
 
 /**
  * The SSRF guard resolves DNS, and `paperless.example.com` does not exist. In

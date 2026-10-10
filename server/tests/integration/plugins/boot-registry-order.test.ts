@@ -28,7 +28,6 @@ vi.mock('../../../src/db/database', async () => {
   const db = createSnapshotTestDb();
   return { db, canAccessTrip: () => undefined };
 });
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
 import { db as testDb } from '../../../src/db/database';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';

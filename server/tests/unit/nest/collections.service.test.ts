@@ -22,18 +22,14 @@ vi.mock('../../../src/db/database', async () => {
   };
 });
 
-const { broadcastToUser } = vi.hoisted(() => ({ broadcastToUser: vi.fn() }));
-
 import { db as testDb } from '../../../src/db/database';
 
-vi.mock('../../../src/websocket', () => ({ broadcastToUser, broadcast: vi.fn() }));
 const notifSend = vi.fn().mockResolvedValue(undefined);
 
 import fs from 'fs';
 import path from 'path';
 import { createUser, createTrip, createPlace, createCategory, createTag, addTripMember, createDay, createDayAssignment } from '../../helpers/factories';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { CollectionsService } from '../../../src/nest/collections/collections.service';
 import { buildPlaceImportService } from '../../helpers/place-import';
 import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
@@ -58,6 +54,10 @@ import { PlaceRatings } from '../../../src/db/entities/PlaceRatings.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { Tags } from '../../../src/db/entities/Tags.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastToUser = realtime.broadcastToUserMock;
 
 const orm = () => sharedTestOrm(testDb);
 
@@ -121,7 +121,7 @@ beforeAll(async () => {
   permissionsForSpy = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
   svc = new CollectionsService(
     permissionsForSpy,
-    new RealtimeService(), notificationsStub(notifSend), storageFx.storage, await createTestUnitOfWork(testDb),
+    realtime, notificationsStub(notifSend), storageFx.storage, await createTestUnitOfWork(testDb),
     await createTestCollectionsRepo(testDb), await createTestCollectionMembersRepo(testDb),
     await createTestCollectionLabelsRepo(testDb), await createTestCategoriesRepo(testDb),
     await createTestCollectionPlacesRepo(testDb), await createTestCollectionPlaceRatingsRepo(testDb),

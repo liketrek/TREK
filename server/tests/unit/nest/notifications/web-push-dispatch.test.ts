@@ -29,7 +29,6 @@ vi.mock('../../../../src/nest/audit/audit-log.logger', () => ({
   logError,
   logWarn: vi.fn(),
 }));
-vi.mock('../../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../../../src/utils/ssrfGuard', () => {
   class SsrfBlockedError extends Error {}
   return { SsrfBlockedError, safeFetchFollow };

@@ -2,8 +2,8 @@
  * Files + photos e2e — exercises the migrated /api/trips/:tripId/files and
  * /api/photos endpoints through the real JwtAuthGuard against a temp SQLite db.
  * FilesService is DI-native (no service mock): the file rows live in the temp
- * db and the SQL runs for real; only canAccessTrip, the permission check, the
- * photo services and the broadcast are mocked. Focuses on auth (incl. the
+ * db and the SQL runs for real; only canAccessTrip, the permission check and the
+ * photo services are mocked. Focuses on auth (incl. the
  * unguarded download's own token auth), trip-access 404, permission 403, the
  * photo id/access guards and status codes.
  */
@@ -56,7 +56,6 @@ const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
 vi.mock('../../src/db/database', () => ({
   db, canAccessTrip, getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
 }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 vi.mock('../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
 
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';

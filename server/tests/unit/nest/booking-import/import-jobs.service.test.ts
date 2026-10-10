@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 
-const { broadcastToUser } = vi.hoisted(() => ({ broadcastToUser: vi.fn() }));
-vi.mock('../../../../src/websocket', () => ({ broadcastToUser }));
-
 import { ImportJobsService } from '../../../../src/nest/booking-import/import-jobs.service';
-import { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { Users } from '../../../../src/db/entities/Users.entity';
+import { FakeRealtimeService } from '../../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastToUser = realtime.broadcastToUserMock;
 
 // R9 (Plan 3h Task 4): `run()` now forks its own `withRequestContext`, so the
 // service needs a real `MikroORM` — the `StorageHealthNotifierService`
@@ -28,7 +28,7 @@ afterAll(async () => {
 
 type Preview = ReturnType<typeof vi.fn>;
 function makeService(preview: Preview, readReceipt: Preview = vi.fn()) {
-  return new ImportJobsService({ preview } as never, new RealtimeService(), { readReceipt } as never, t.orm);
+  return new ImportJobsService({ preview } as never, realtime, { readReceipt } as never, t.orm);
 }
 const files = (n: number) => Array.from({ length: n }, (_, i) => ({ originalname: `f${i}.pdf` })) as never;
 const eventsFor = (jobId: string) => broadcastToUser.mock.calls.map((c) => c[1]).filter((p) => p.jobId === jobId);

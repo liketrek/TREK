@@ -18,7 +18,6 @@ import path from 'node:path';
 // (`createSnapshotTestDb` + `createTestOrm`) replaces the old hand-rolled table set,
 // same fix `registry.test.ts` needed.
 import { createSnapshotTestDb } from '../../helpers/db-mock';
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
 import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
 import { createPluginRuntime } from '../../helpers/plugin-host';

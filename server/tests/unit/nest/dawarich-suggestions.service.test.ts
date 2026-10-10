@@ -17,8 +17,6 @@ import { createSnapshotTestDb } from '../../helpers/db-mock';
 
 const testDb = createSnapshotTestDb();
 
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-
 import { DAWARICH_BUCKET_SCAN_LIMIT } from '@trek/shared';
 import type { DawarichConnection } from '@trek/shared';
 import { resetTestDb } from '../../helpers/test-db';

@@ -22,9 +22,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 // share_vacay_calendar fires a user notification after inserting; stub it out
 
 import { resetTestDb } from '../../helpers/test-db';
@@ -41,6 +38,10 @@ import { VacayPlanMembers } from '../../../src/db/entities/VacayPlanMembers.enti
 import { VacayPlans } from '../../../src/db/entities/VacayPlans.entity';
 import { VacayShares } from '../../../src/db/entities/VacayShares.entity';
 import { VacayUserSettings } from '../../../src/db/entities/VacayUserSettings.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 let orm: TestOrm;
 
@@ -90,12 +91,12 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: true });
+  const h = await createMcpHarness({ realtime, userId, withResources: true });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 

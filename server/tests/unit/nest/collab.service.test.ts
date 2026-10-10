@@ -25,8 +25,6 @@ vi.mock('../../../src/db/database', async () => {
     return mock;
 });
 
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-
 // Stub checkSsrf so linkPreview tests can control SSRF behaviour. Typed from the real
 // checkSsrf rather than from the default implementation below, so the stubbed results
 // stay full SsrfResult objects instead of whatever shape the first fixture happened to have.

@@ -12,9 +12,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createBucketListItem, createVisitedCountry, createTrip, createReservation } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
@@ -31,6 +28,10 @@ import { PlaceRegions } from '../../../src/db/entities/PlaceRegions.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
 import { VisitedRegions } from '../../../src/db/entities/VisitedRegions.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 beforeEach(() => {
   setAddonEnabled(testDb, ADDON_IDS.ATLAS, true);
@@ -51,7 +52,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 
@@ -59,7 +60,7 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 // (AtlasMcp @Resource), so the harness must keep tools on for them to attach
 // (same shape as tools-vacay.test.ts's withResourceHarness).
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: true });
+  const h = await createMcpHarness({ realtime, userId, withResources: true });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 

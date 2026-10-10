@@ -1,8 +1,8 @@
 /**
  * McpToolGuardsService — the injectable fold of the impure _shared.ts helpers.
  * A real in-memory SQLite backs hasTripPermission/isAdminUser so the SQL stays
- * byte-faithful to the module functions it replaces; broadcast flows through
- * the vi.mock'd src/websocket, exactly like every .mcp.ts consumer expects.
+ * byte-faithful to the module functions it replaces; broadcast goes to a
+ * FakeRealtimeService handed in through the constructor.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
@@ -11,8 +11,6 @@ vi.mock('../../../src/db/database', async () => {
   const db = createSnapshotTestDb();
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
 import { db as testDb } from '../../../src/db/database';
 
@@ -20,13 +18,16 @@ import { createUser } from '../../helpers/factories';
 import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
 import { McpSharedModule } from '../../../src/nest/mcp-shared/mcp-shared.module';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo, createTestUsersRepo, sharedTestOrm } from '../../helpers/test-uow';
 import { deleteRows, updateRows } from '../../helpers/factories/rows';
 import { makeTrip } from '../../helpers/factories/trips';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 let svc: McpToolGuardsService;
 beforeAll(async () => {
@@ -36,7 +37,7 @@ beforeAll(async () => {
     await createTestTripsRepo(testDb),
     await createTestUsersRepo(testDb),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
-    new RealtimeService(),
+    realtime,
   );
 });
 

@@ -19,7 +19,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
 // ── SSRF guard mock — routes all Synology API calls to fake responses ─────────
 vi.mock('../../src/utils/ssrfGuard', async () => {

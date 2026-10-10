@@ -15,9 +15,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createDay, createPlace, addTripMember, createBudgetItem, createPackingItem, createReservation, createDayNote, createCollabNote, createDayAssignment, createDayAccommodation } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
@@ -32,6 +29,10 @@ import { Trips } from '../../../src/db/entities/Trips.entity';
 import { VacayEntries } from '../../../src/db/entities/VacayEntries.entity';
 import { VacayUserYears } from '../../../src/db/entities/VacayUserYears.entity';
 import { VacayYears } from '../../../src/db/entities/VacayYears.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 let orm: TestOrm;
 
@@ -74,7 +75,7 @@ async function vacayPlanWithYear(userId: number): Promise<number> {
 }
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 
@@ -739,7 +740,7 @@ describe('Tool: get_trip_summary', () => {
     createDayAssignment(testDb, day.id, place.id);
     createDayAccommodation(testDb, trip.id, place.id, day.id, day.id);
 
-    const h = await createMcpHarness({ userId: user.id, withResources: false, scopes: ['weather:read'] });
+    const h = await createMcpHarness({ realtime, userId: user.id, withResources: false, scopes: ['weather:read'] });
     try {
       const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
       const data = parseToolResult(result) as any;
@@ -765,7 +766,7 @@ describe('Tool: get_trip_summary', () => {
     addTripMember(testDb, trip.id, member.id);
     createDay(testDb, trip.id);
 
-    const h = await createMcpHarness({ userId: user.id, withResources: false, scopes: ['trips:read'] });
+    const h = await createMcpHarness({ realtime, userId: user.id, withResources: false, scopes: ['trips:read'] });
     try {
       const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
       const data = parseToolResult(result) as any;
@@ -927,7 +928,7 @@ describe('static-token deprecation notice', () => {
       emitted = true;
       return 'static tokens are deprecated';
     };
-    const h = await createMcpHarness({ userId: user.id, withResources: false, isStaticToken: true, getDeprecationNotice });
+    const h = await createMcpHarness({ realtime, userId: user.id, withResources: false, isStaticToken: true, getDeprecationNotice });
     try {
       const first = await h.client.callTool({ name: 'list_trips', arguments: {} });
       expect(first.isError).toBe(true);
@@ -952,7 +953,7 @@ describe('static-token deprecation notice', () => {
 
 describe('scope gating', () => {
   async function toolNames(scopes: string[] | null): Promise<string[]> {
-    const h = await createMcpHarness({ userId: 1, withResources: false, scopes });
+    const h = await createMcpHarness({ realtime, userId: 1, withResources: false, scopes });
     try {
       const { tools } = await h.client.listTools();
       return tools.map((t) => t.name);

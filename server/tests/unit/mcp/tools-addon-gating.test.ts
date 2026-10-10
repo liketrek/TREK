@@ -9,14 +9,15 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 import { setAddonEnabled } from '../../helpers/test-db';
 import { ADDON_IDS } from '../../../src/addons';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -38,7 +39,7 @@ async function withHarness(
   fn: (h: McpHarness) => Promise<void>,
   scopes?: string[] | null
 ) {
-  const h = await createMcpHarness({ userId, withResources: false, scopes: scopes ?? null });
+  const h = await createMcpHarness({ realtime, userId, withResources: false, scopes: scopes ?? null });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 

@@ -36,8 +36,11 @@ import { TripAccessService } from '../../src/nest/trip-membership/trip-access.se
  * instance). Kept as two functions for caller-shape continuity, though they
  * are now identical.
  */
-export async function makeAccommodationsService(conn: Database): Promise<AccommodationsService> {
-  return accommodationsOver(conn);
+export async function makeAccommodationsService(
+  conn: Database,
+  realtime: RealtimeService = new RealtimeService(),
+): Promise<AccommodationsService> {
+  return accommodationsOver(conn, realtime);
 }
 
 /**
@@ -47,9 +50,11 @@ export async function makeAccommodationsService(conn: Database): Promise<Accommo
  * the same stop a night entered under Days does, and every suite that builds
  * that service by hand needs one to hand it.
  */
-export async function accommodationsOver(conn: Database): Promise<AccommodationsService> {
+export async function accommodationsOver(
+  conn: Database,
+  realtime: RealtimeService = new RealtimeService(),
+): Promise<AccommodationsService> {
   const permissions = new PermissionsService(await createTestAppSettingsRepo(conn), await createTestUnitOfWork(conn));
-  const realtime = new RealtimeService();
   const t = await sharedTestOrm(conn);
   const assignments = new AssignmentsService(
     new TripAccessService(await createTestTripsRepo(conn)), permissions, realtime,

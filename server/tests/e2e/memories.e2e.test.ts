@@ -30,7 +30,6 @@ const { db } = vi.hoisted(() => {
 });
 
 vi.mock('../../src/db/database', () => ({ db, canAccessTrip: vi.fn(), closeDb: () => {}, reinitialize: () => {} }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 // Provider services — fully mocked. fail/success/canAccessUserPhoto from the
 // helper module are kept real except canAccessUserPhoto which we override.

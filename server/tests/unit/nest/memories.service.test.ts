@@ -47,17 +47,15 @@ const synology = vi.hoisted(() => ({
 
 const helpers = vi.hoisted(() => ({ canAccessUserPhoto: vi.fn(() => true) }));
 
-const ws = vi.hoisted(() => ({ broadcast: vi.fn() }));
-vi.mock('../../../src/websocket', () => ws);
-
 import { MemoriesService } from '../../../src/nest/memories/memories.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import type { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
 import type { ImmichService } from '../../../src/nest/memories/immich.service';
 import type { SynologyService } from '../../../src/nest/memories/synology.service';
 import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
 
 const res = {} as import('express').Response;
+const realtime = new FakeRealtimeService();
 
 describe('MemoriesService (delegation wrapper over services/memories/*)', () => {
   let svc: MemoriesService;
@@ -65,7 +63,7 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
   beforeEach(() => {
     vi.clearAllMocks();
     svc = new MemoriesService(
-      new RealtimeService(),
+      realtime,
       unified as unknown as UnifiedMemoriesService,
       immich as unknown as ImmichService,
       synology as unknown as SynologyService,
@@ -79,12 +77,12 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
     expect(helpers.canAccessUserPhoto).toHaveBeenCalledWith(1, 2, '5', 'a', 'immich');
 
     svc.broadcast('5', 'memories:updated', { userId: 1 }, 'sock');
-    expect(ws.broadcast).toHaveBeenCalledWith('5', 'memories:updated', { userId: 1 }, 'sock');
+    expect(realtime.broadcastMock).toHaveBeenCalledWith('5', 'memories:updated', { userId: 1 }, 'sock');
   });
 
   it('broadcast forwards an absent socket id as undefined', () => {
     svc.broadcast('5', 'memories:updated', { userId: 1 });
-    expect(ws.broadcast).toHaveBeenCalledWith('5', 'memories:updated', { userId: 1 }, undefined);
+    expect(realtime.broadcastMock).toHaveBeenCalledWith('5', 'memories:updated', { userId: 1 }, undefined);
   });
 
   it('unified methods delegate', async () => {

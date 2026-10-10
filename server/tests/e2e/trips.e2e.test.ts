@@ -18,7 +18,7 @@
  * not fail loudly, which is worse than removing it — the same reasoning
  * `days.e2e.test.ts`'s identical comment gives). Only the permission check,
  * `BudgetService` (the budget fold's own container spy, unrelated to this
- * conversion) and the WebSocket broadcast stay mocked.
+ * conversion) stay mocked.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 import request from 'supertest';
@@ -33,7 +33,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 // The audit domain is DI-native now: writeAudit runs for real against the temp
 // db's audit_log table; only the file logger is silenced.
 vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));

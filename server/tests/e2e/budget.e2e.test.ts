@@ -2,8 +2,8 @@
  * Budget module e2e — exercises the migrated /api/trips/:tripId/budget endpoints
  * through the real JwtAuthGuard against a temp SQLite db carrying the full real,
  * migrated schema (createSnapshotTestDb), so the folded BudgetService runs its
- * real SQL. Only the db singleton (trip access) and the WebSocket broadcast are
- * mocked; the permission check is a spy on the container's PermissionsService.
+ * real SQL. Only the db singleton (trip access) is mocked, and broadcasts reach
+ * the real transport, which has no sockets here; the permission check is a spy on the container's PermissionsService.
  * ReservationsModule is mounted beside it because an expense can be linked to a
  * booking (#2084), and deleting that booking has to take the expense with it.
  */
@@ -21,7 +21,6 @@ vi.mock('../../src/db/database', async () => {
   // Trip access reads through TripsRepository now; the module only hands out the handle.
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 

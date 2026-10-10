@@ -16,9 +16,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 const { searchPlacesMock } = vi.hoisted(() => ({ searchPlacesMock: vi.fn() }));
 // PlacesMcp and PlacesService both inject MapsService (search_place and the
 // import enrichment), so the geo calls are stubbed on the prototype — see
@@ -42,6 +39,10 @@ import { JourneyEntries } from '../../../src/db/entities/JourneyEntries.entity';
 import { PlaceRatings } from '../../../src/db/entities/PlaceRatings.entity';
 import { PlaceRegions } from '../../../src/db/entities/PlaceRegions.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 let orm: TestOrm;
 
@@ -75,7 +76,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 

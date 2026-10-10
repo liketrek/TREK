@@ -29,7 +29,6 @@ vi.mock('../../../src/db/database', async () => {
     isOwner: () => false,
   };
 });
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 vi.mock('../../../src/nest/plugins/paths', () => ({ pluginsDataRoot: () => dataRootRef.value }));
 
 import fs from 'node:fs';

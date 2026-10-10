@@ -1,23 +1,29 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { WebSocketServer } from 'ws';
 import type { TrekWsPayload, TrekWsUserEventName } from '@trek/shared';
-
-const { broadcast, broadcastToUser, getOnlineUserIds } = vi.hoisted(() => ({
-  broadcast: vi.fn(),
-  broadcastToUser: vi.fn(),
-  getOnlineUserIds: vi.fn(),
-}));
-vi.mock('../../../src/websocket', () => ({ broadcast, broadcastToUser, getOnlineUserIds }));
-
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-
-const svc = new RealtimeService();
+import {
+  InMemoryRoomRegistry,
+  joinRoom,
+  registerSocket,
+  roomsSlot,
+  setServer,
+  type TrekWebSocket,
+} from '../../../src/nest/realtime/ws-state';
+import type { User } from '../../../src/types';
 
 /**
- * These cases exercise argument pass-through, not payload shape, so they hand
- * the facade only the fields their assertions read. The registry contract asks
- * for more (`vacay:invite` for a `from`, `notification:new` for a
- * `notification`); filling that in would put data into the recorded call that
- * nothing here checks, so the shortcut is named instead of padded out.
+ * The facade over the socket registry, exercised against the real ws-state
+ * functions with sockets that record what they are sent: what reaches a
+ * socket is the contract, not which module function the facade calls.
+ */
+
+/**
+ * These cases exercise delivery, not payload shape, so they hand the facade
+ * only the fields their assertions read. The registry contract asks for more
+ * (`vacay:invite` for a `from`, `notification:new` for a `notification`);
+ * filling that in would put data on the wire that nothing here checks, so the
+ * shortcut is named instead of padded out.
  */
 function partialUserPayload<E extends TrekWsUserEventName>(
   payload: { type: E } & Partial<TrekWsPayload<E>>,
@@ -25,59 +31,114 @@ function partialUserPayload<E extends TrekWsUserEventName>(
   return payload as { type: E } & TrekWsPayload<E>;
 }
 
-beforeEach(() => vi.clearAllMocks());
+interface RecordingSocket {
+  ws: TrekWebSocket;
+  sent: () => unknown[];
+  sid: number;
+}
+
+const clients = new Set<TrekWebSocket>();
+
+function connect(userId: number, readyState = 1): RecordingSocket {
+  const send = vi.fn();
+  const ws = { readyState, send, isAlive: true } as unknown as TrekWebSocket;
+  const sid = registerSocket(ws, { id: userId, username: `u${userId}` } as User);
+  clients.add(ws);
+  return { ws, sid, sent: () => send.mock.calls.map(([frame]) => JSON.parse(frame as string) as unknown) };
+}
+
+const svc = new RealtimeService();
+let rooms: InMemoryRoomRegistry;
+
+beforeEach(() => {
+  clients.clear();
+  rooms = new InMemoryRoomRegistry();
+  roomsSlot.install(rooms);
+  setServer({ clients } as unknown as WebSocketServer);
+});
+
+afterEach(() => {
+  setServer(null);
+  roomsSlot.release(rooms);
+});
 
 describe('RealtimeService', () => {
-  it('broadcast delegates every argument to the websocket module untouched', () => {
-    svc.broadcast('7', 'place:created', { place: { id: 1 } }, '42', 9);
-    expect(broadcast).toHaveBeenCalledTimes(1);
-    expect(broadcast).toHaveBeenCalledWith('7', 'place:created', { place: { id: 1 } }, '42', 9);
+  it('RTSVC-001: broadcast delivers the event to every open socket in the trip room', () => {
+    const a = connect(1);
+    const b = connect(2);
+    const outsider = connect(3);
+    joinRoom(a.ws, 7);
+    joinRoom(b.ws, 7);
+    joinRoom(outsider.ws, 8);
+
+    svc.broadcast('7', 'place:created', { place: { id: 1 } });
+
+    expect(a.sent()).toEqual([{ type: 'place:created', tripId: 7, place: { id: 1 } }]);
+    expect(b.sent()).toEqual([{ type: 'place:created', tripId: 7, place: { id: 1 } }]);
+    expect(outsider.sent()).toEqual([]);
   });
 
-  it('broadcast preserves the caller argument arity exactly (no undefined padding)', () => {
-    // The excludeSid truthiness quirk and onlyUserId `!= null` check live in
-    // websocket.ts — the facade must not normalize, default, or pad anything
-    // on the way through: existing suites assert exact 3/4/5-arg call shapes.
-    svc.broadcast(7, 'day:updated', { day: null });
-    expect(broadcast.mock.calls[0]).toEqual([7, 'day:updated', { day: null }]);
-    svc.broadcast(7, 'day:updated', { day: null }, undefined);
-    expect(broadcast.mock.calls[1]).toEqual([7, 'day:updated', { day: null }, undefined]);
-    expect(broadcast.mock.calls[1].length).toBe(4);
+  it('RTSVC-002: broadcast skips the originating socket named by excludeSid', () => {
+    const origin = connect(1);
+    const other = connect(1);
+    joinRoom(origin.ws, 7);
+    joinRoom(other.ws, 7);
+
+    svc.broadcast(7, 'day:updated', { day: null }, String(origin.sid));
+
+    expect(origin.sent()).toEqual([]);
+    expect(other.sent()).toEqual([{ type: 'day:updated', tripId: 7, day: null }]);
   });
 
-  it('broadcastToUser delegates every argument untouched', () => {
+  it('RTSVC-003: broadcast with onlyUserId reaches only that user\'s sockets in the room', () => {
+    const owner = connect(4);
+    const member = connect(5);
+    joinRoom(owner.ws, 7);
+    joinRoom(member.ws, 7);
+
+    svc.broadcast(7, 'day:updated', { day: null }, undefined, 4);
+
+    expect(owner.sent()).toHaveLength(1);
+    expect(member.sent()).toEqual([]);
+  });
+
+  it('RTSVC-004: broadcastToUser sends the payload as is to every open socket of that user', () => {
+    const mine = connect(5);
+    const closed = connect(5, 3);
+    const someoneElse = connect(6);
     const payload = partialUserPayload({ type: 'vacay:invite', planId: 3 });
-    svc.broadcastToUser(5, payload, '11');
-    expect(broadcastToUser).toHaveBeenCalledTimes(1);
-    expect(broadcastToUser).toHaveBeenCalledWith(5, payload, '11');
-    // Same object reference — the facade must not clone or re-envelope.
-    expect(broadcastToUser.mock.calls[0][1]).toBe(payload);
+
+    svc.broadcastToUser(5, payload);
+
+    expect(mine.sent()).toEqual([{ type: 'vacay:invite', planId: 3 }]);
+    expect(closed.sent()).toEqual([]);
+    expect(someoneElse.sent()).toEqual([]);
   });
 
-  it('per-file vi.mock of src/websocket flows through the facade (call-time delegation)', () => {
-    // The 106 existing suites mock src/websocket by path and assert on those
-    // mocks; this pins that a facade constructed before/after the mock still
-    // routes through the mocked module functions rather than captured bindings.
-    const late = new RealtimeService();
-    late.broadcast('1', 'todo:created', { item: {} }, undefined);
-    late.broadcastToUser(2, partialUserPayload({ type: 'notification:new' }));
-    expect(broadcast).toHaveBeenCalledWith('1', 'todo:created', { item: {} }, undefined);
-    expect(broadcastToUser).toHaveBeenCalledWith(2, { type: 'notification:new' });
+  it('RTSVC-004b: broadcastToUser skips the socket named by excludeSid', () => {
+    const origin = connect(5);
+    const otherTab = connect(5);
+
+    svc.broadcastToUser(5, partialUserPayload({ type: 'notification:new' }), origin.sid);
+
+    expect(origin.sent()).toEqual([]);
+    expect(otherTab.sent()).toEqual([{ type: 'notification:new' }]);
   });
 
-  it('RTSVC-005: getOnlineUserIds hands back the live set from the websocket module, read at call time', () => {
-    const online = new Set([3, 8]);
-    getOnlineUserIds.mockReturnValueOnce(online);
-    expect(svc.getOnlineUserIds()).toBe(online);
-    getOnlineUserIds.mockReturnValueOnce(new Set());
-    expect(svc.getOnlineUserIds().size).toBe(0);
-    expect(getOnlineUserIds).toHaveBeenCalledTimes(2);
+  it('RTSVC-005: getOnlineUserIds answers the users holding an open socket, read at call time', () => {
+    expect(svc.getOnlineUserIds()).toEqual(new Set());
+    connect(3);
+    connect(8);
+    connect(9, 3);
+    expect(svc.getOnlineUserIds()).toEqual(new Set([3, 8]));
   });
 
   it('RTSVC-006: getOnlineUserIds is not guarded, so a failure reaches the caller instead of reading as nobody online', () => {
-    getOnlineUserIds.mockImplementationOnce(() => {
-      throw new Error('socket server not ready');
-    });
+    setServer({
+      get clients(): Set<TrekWebSocket> {
+        throw new Error('socket server not ready');
+      },
+    } as unknown as WebSocketServer);
     expect(() => svc.getOnlineUserIds()).toThrow('socket server not ready');
   });
 });

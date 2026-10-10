@@ -10,8 +10,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createBucketListItem, createVisitedCountry } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';

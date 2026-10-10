@@ -14,7 +14,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 // BOOT-007 boots with NODE_ENV=production, which opens the cron gate — keep the
 // registrar inert so a bootstrap test never schedules real jobs or runs boot
 // sweeps against the real uploads/data dirs. The gate itself is covered by

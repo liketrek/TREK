@@ -7,15 +7,10 @@ import { resetTestDb } from '../../helpers/test-db';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
 
-const { broadcastMock } = vi.hoisted(() => ({
-  broadcastMock: vi.fn(),
-}));
-
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
 import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
 import type { TransitPlace } from '../../../src/nest/transit/transit.helpers';
@@ -25,6 +20,10 @@ import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { countRows, findRow } from '../../helpers/factories/rows';
 import { Days } from '../../../src/db/entities/Days.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 // savePermissions is no longer bridged; write through a service instance — the
 // permissions cache is module-scoped, so the MCP _shared checkPermission path
@@ -136,7 +135,7 @@ async function dayOf(tripId: number, date?: string) {
 const transitCount = () => countRows(orm, Reservations, { type: 'transit' });
 
 async function withHarness(userId: number, scopes: string[] | null, fn: (harness: McpHarness) => Promise<void>) {
-  const harness = await createMcpHarness({ userId, scopes, withResources: false });
+  const harness = await createMcpHarness({ realtime, userId, scopes, withResources: false });
   try {
     await fn(harness);
   } finally {

@@ -15,7 +15,7 @@
  * `canAccessTrip` mock (the legacy override this file used to export from
  * `db/database.ts` — deleted there since Plan 3c Task 0b; a stale mock here
  * would silently do nothing, not fail loudly, which is worse than removing
- * it). Only the permission check and the WebSocket broadcast stay mocked.
+ * it). Only the permission check stays mocked.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 import request from 'supertest';
@@ -29,7 +29,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 import { db } from '../../src/db/database';
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';

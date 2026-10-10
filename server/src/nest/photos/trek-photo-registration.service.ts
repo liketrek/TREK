@@ -33,7 +33,7 @@ import type { JourneyPhotosRepository } from '../../db/repositories/JourneyPhoto
  *
  * File/test renamed to match (Plan 4 Task 8a — 3e Task 6 renamed only the
  * class). The old path, `trek-photos.repository.ts`, was kept as a thin
- * re-export stub (the same `src/websocket.ts` shape) while its ~20
+ * re-export stub while its ~20
  * importers sat in sibling tasks' exclusively-owned windows on this shared
  * branch; Plan 4 Task 4 repointed every one of them at this file directly
  * and deleted the stub.

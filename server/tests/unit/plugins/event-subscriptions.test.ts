@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { PluginSupervisor } from '../../../src/nest/plugins/supervisor/plugin-supervisor';
-import { broadcast } from '../../../src/websocket';
+import { broadcast } from '../../../src/nest/realtime/ws-state';
 import { setPluginEventSink } from '../../../src/plugin-event-sink';
 
 function makeSupervisor(): PluginSupervisor {

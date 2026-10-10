@@ -18,9 +18,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 const { fixture } = vi.hoisted(() => ({ fixture: {} as { root: string } }));
 // Each createMcpHarness() builds a fresh registry, and the helper hands every one
 // of those its own mkdtemp root, so bytes written by a test would land in a
@@ -49,6 +46,10 @@ import { FilesModule } from '../../../src/nest/files/files.module';
 import { FilesMcp } from '../../../src/nest/files/files.mcp';
 import { FILE_CONTENT_MAX } from '../../../src/nest/files/files.service';
 import { StorageService } from '../../../src/nest/storage/storage.service';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 beforeEach(async () => {
   resetTestDb(testDb);
@@ -71,7 +72,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 
@@ -923,7 +924,7 @@ describe('File tools: scope gating', () => {
   const WRITE_TOOLS = ['upload_trip_file', 'update_trip_file', 'link_trip_file', 'unlink_trip_file'];
 
   async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
-    const h = await createMcpHarness({ userId, withResources: false, scopes });
+    const h = await createMcpHarness({ realtime, userId, withResources: false, scopes });
     try {
       return (await h.client.listTools()).tools.map((t) => t.name);
     } finally {

@@ -37,7 +37,6 @@ vi.mock('../../src/db/database', async () => {
 });
 
 const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
-vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.fn() }));
 
 import { db } from '../../src/db/database';
 import { createUser } from '../helpers/factories';

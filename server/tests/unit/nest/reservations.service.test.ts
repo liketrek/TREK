@@ -19,11 +19,6 @@ vi.mock('../../../src/db/database', async () => {
     return mock;
 });
 
-
-
-const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast }));
-
 const checkPermission = vi.fn(() => true);
 const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
@@ -61,7 +56,6 @@ const bridge = {
   deleteReservation: (id: string | number, tripId: string | number) => svc.remove(id, tripId),
   notifyBookingChange: (...a: Parameters<ReservationsService['notifyBookingChange']>) => svc.notifyBookingChange(...a),
 };
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { notificationsStub } from '../../helpers/notifications';
 import { makeAccommodationsService } from '../../helpers/accommodations-service';
 import { createTestUnitOfWork, createTestReservationsRepo, createTestReservationEndpointsRepo, createTestReservationTravelersRepo, createTestReservationDayPositionsRepo, createTestDayAccommodationsRepo, createTestDaysRepo, createTestPlacesRepo, createTestDayAssignmentsRepo, createTestTripMembersRepo, createTestUsersRepo, createTestTripsRepo } from '../../helpers/test-uow';
@@ -78,11 +72,15 @@ import { ReservationDayPositions } from '../../../src/db/entities/ReservationDay
 import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcast = realtime.broadcastMock;
 
 let svc: ReservationsService;
 let orm: TestOrm;
 beforeAll(async () => {
-  svc = new ReservationsService(permissionsStub, budget as unknown as BudgetService, new RealtimeService(), notificationsStub(notif.send), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb)), await makeAccommodationsService(testDb), await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb));
+  svc = new ReservationsService(permissionsStub, budget as unknown as BudgetService, realtime, notificationsStub(notif.send), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb)), await makeAccommodationsService(testDb, realtime), await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb));
 });
 
 beforeEach(async () => {

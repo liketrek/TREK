@@ -14,7 +14,6 @@ vi.mock('../../../src/db/database', async () => {
   // Trip access reads through TripsRepository now; the module only hands out the handle.
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 import { db as testDb } from '../../../src/db/database';
 import { resetTestDb } from '../../helpers/test-db';

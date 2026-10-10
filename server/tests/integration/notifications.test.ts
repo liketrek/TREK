@@ -15,7 +15,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 // The two test-send endpoints must not reach a real SMTP server or URL. Since
 // the fold they are provider methods, so they are stubbed on the prototype
 // rather than by module path — everything else in the domain stays real.

@@ -22,8 +22,6 @@ vi.mock('../../../src/db/database', async () => {
     };
 });
 
-vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
-
 import { db as testDb } from '../../../src/db/database';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createJourney, addJourneyContributor } from '../../helpers/factories';

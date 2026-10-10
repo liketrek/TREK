@@ -17,12 +17,10 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 
 import { db as testDb } from '../../src/db/database';
 import { MikroORM } from '@mikro-orm/core';
 import { buildApp } from '../../src/bootstrap';
-import { DomainError } from '../../src/nest/common/domain-error';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { createUser, createAdmin, createTrip, createPlace, addTripMember } from '../helpers/factories';
@@ -38,7 +36,8 @@ import { PlaceRatings } from '../../src/db/entities/PlaceRatings.entity';
 import { Places } from '../../src/db/entities/Places.entity';
 import { PlacesService } from '../../src/nest/places/places.service';
 import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
-import { broadcast } from '../../src/websocket';
+import { spyOnRealtime, type RealtimeSpies } from '../helpers/fake-realtime';
+import { DomainError } from '../../src/nest/common/domain-error';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -49,6 +48,7 @@ let orm: FactoryOrm;
 // implementation, so only the *Once overrides below change behaviour.
 let importGoogleList: MockInstance;
 let searchPlaceImage: MockInstance;
+let broadcast: RealtimeSpies['broadcast'];
 const GPX_FIXTURE = path.join(__dirname, '../fixtures/test.gpx');
 const KML_FIXTURE = path.join(__dirname, '../fixtures/test.kml');
 const KML_NESTED_FIXTURE = path.join(__dirname, '../fixtures/test-nested.kml');
@@ -69,6 +69,7 @@ beforeEach(async () => {
   // afterEach, which would otherwise strip these for every later test.
   importGoogleList = vi.spyOn(nestApp.get(PlacesService), 'importGoogleList');
   searchPlaceImage = vi.spyOn(nestApp.get(PlacesService), 'searchImage');
+  broadcast = spyOnRealtime(nestApp).broadcast;
 });
 
 afterAll(async () => {

@@ -10,9 +10,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 // The wiki reader is stubbed at the module boundary, the way the weather tools
 // stub weather.impl: help.mcp.ts calls these functions directly, and the reader
 // has its own tests in tests/unit/nest/wiki.test.ts. Stubbing keeps these cases
@@ -45,6 +42,10 @@ import { findRow, updateRows } from '../../helpers/factories/rows';
 import { setAppSetting } from '../../helpers/factories/settings';
 import { Addons } from '../../../src/db/entities/Addons.entity';
 import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 const SECTIONS = [
   { title: 'Getting Started', pages: [{ title: 'Quick Start', slug: 'Quick-Start' }] },
@@ -143,7 +144,7 @@ async function withHarness(
   fn: (h: McpHarness) => Promise<void>,
   scopes?: string[] | null,
 ) {
-  const h = await createMcpHarness({ userId, withResources: false, scopes: scopes ?? null });
+  const h = await createMcpHarness({ realtime, userId, withResources: false, scopes: scopes ?? null });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 

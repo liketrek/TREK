@@ -31,7 +31,6 @@ vi.mock('../../../src/db/database', async () => {
 });
 
 import { db as testDb } from '../../../src/db/database';
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 const checkPermission = vi.fn(() => true);
 const permissionsStub = { checkPermission } as unknown as PermissionsService;

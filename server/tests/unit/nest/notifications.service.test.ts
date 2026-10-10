@@ -30,10 +30,9 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   encrypt_api_key: (v: string) => v,
 }));
 
-const { sendMailMock, fetchMock, broadcastMock, logErrorMock } = vi.hoisted(() => ({
+const { sendMailMock, fetchMock, logErrorMock } = vi.hoisted(() => ({
   sendMailMock: vi.fn().mockResolvedValue({ accepted: ['test@test.com'] }),
   fetchMock: vi.fn(),
-  broadcastMock: vi.fn(),
   logErrorMock: vi.fn(),
 }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
@@ -54,9 +53,6 @@ vi.mock('nodemailer', () => ({
 }));
 
 vi.stubGlobal('fetch', fetchMock);
-// RealtimeService imports both names from src/websocket, so the mock must
-// export both even though only broadcastToUser is asserted here.
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: broadcastMock }));
 vi.mock('../../../src/utils/ssrfGuard', () => {
   class SsrfBlockedError extends Error {
     constructor(message: string) {
@@ -84,7 +80,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => {
 import { db as testDb } from '../../../src/db/database';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin, setAppSetting, setNotificationChannels, disableNotificationPref } from '../../helpers/factories';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { NotificationsService, type NotificationPayload } from '../../../src/nest/notifications/notifications.service';
 import { setPluginChannelSource } from '../../../src/nest/notifications/channel-registry';
 // The channel interface lives in notification-events; channel-registry only imports
@@ -97,6 +92,10 @@ import { setUserSetting } from '../../helpers/factories/settings';
 import { addTripMember, makeTrip } from '../../helpers/factories/trips';
 import { Notifications } from '../../../src/db/entities/Notifications.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastToUserMock;
 
 // Built in beforeAll: the service now takes a UnitOfWork, which is async to build.
 let notifications: NotificationsService;
@@ -146,7 +145,7 @@ async function setRecipientEmail(userId: number): Promise<void> {
 // ── Setup ──────────────────────────────────────────────────────────────────
 
 beforeAll(async () => {
-  notifications = await makeNotificationsService(testDb);
+  notifications = await makeNotificationsService(testDb, realtime);
 });
 
 beforeEach(() => {

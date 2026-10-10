@@ -17,8 +17,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { createUser } from '../../helpers/factories';

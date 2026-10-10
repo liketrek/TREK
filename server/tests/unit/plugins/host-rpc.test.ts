@@ -13,7 +13,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const { broadcast, broadcastToUser } = vi.hoisted(() => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 // A real in-memory core db, so the metadata SQL and the entity->trip resolution run
 // for real. Trip 1 is owned by user 5; user 6 is a member; user 9 shares nothing.
 vi.mock('../../../src/db/database', () => {
@@ -46,7 +45,6 @@ vi.mock('../../../src/db/database', () => {
       tripId === 1 && (userId === 5 || userId === 6) ? { id: 1, user_id: 5 } : undefined,
   };
 });
-vi.mock('../../../src/websocket', () => ({ broadcast, broadcastToUser }));
 
 const notifySend = vi.fn(async () => undefined);
 const { llmExtract } = vi.hoisted(() => ({
@@ -65,7 +63,6 @@ import { UnreadableLlmResponse } from '../../../src/nest/llm-parse/clients/opena
 import { getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/plugin-host-state';
 import { verifyChain } from '../../../src/nest/plugins/host/plugin-audit';
 import { db as mockDb } from '../../../src/db/database';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
@@ -81,6 +78,11 @@ import type { ReservationsRepository } from '../../../src/db/repositories/Reserv
 import type { DayAccommodationsRepository } from '../../../src/db/repositories/DayAccommodations.repository';
 import type { PluginEntityMetadataRepository } from '../../../src/db/repositories/PluginEntityMetadata.repository';
 import type { PluginScheduledTasksRepository } from '../../../src/db/repositories/PluginScheduledTasks.repository';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcast = realtime.broadcastMock;
+const broadcastToUser = realtime.broadcastToUserMock;
 
 // Typed from the real method rather than from the always-true body below, so a case that
 // swaps in an implementation reading the action key (HOSTRPC-015) still type-checks.
@@ -317,7 +319,7 @@ const guards = new PluginGuards(tripsRepo, permissions, addons, usersRepo);
 const registry = createTestPluginRegistry([
   new DbRpc(userSettings),
   new MetaRpc(guards, metaRepo, tripsRepo, placesRepo, daysRepo, reservationsRepo, dayAccommodationsRepo),
-  new HostSurfaceRpc(new RealtimeService(), notifications, llmConfig, oauth, guards, pluginAuditRepo, usersRepo, tripsRepo, scheduledTasksRepo),
+  new HostSurfaceRpc(realtime, notifications, llmConfig, oauth, guards, pluginAuditRepo, usersRepo, tripsRepo, scheduledTasksRepo),
 ]);
 const factory = new PluginRpcHostFactory(pluginAuditRepo, registry as unknown as PluginRpcRegistryService);
 const stubRouter: PluginCallRouter = { callPlugin: async () => undefined, emitPluginEvent: async () => {} };

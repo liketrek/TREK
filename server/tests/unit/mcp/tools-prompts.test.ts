@@ -27,9 +27,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 const { isAddonEnabledMock } = vi.hoisted(() => {
   const isAddonEnabledMock = vi.fn().mockReturnValue(true);
   return { isAddonEnabledMock };
@@ -159,7 +156,6 @@ const authMcp = new AuthMcp();
 
 beforeEach(() => {
   resetTestDb(testDb);
-  broadcastMock.mockClear();
   isAddonEnabledMock.mockReturnValue(true);
 
   // Default mock: returns a trip-summary-shaped value from the real in-memory DB

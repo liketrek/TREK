@@ -17,8 +17,6 @@ vi.mock('../../../src/db/database', async () => {
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
 
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-
 // Frozen snapshot of the rates in play in #1543 (rates[X] = units of X per 1 base).
 const { RATES } = vi.hoisted(() => ({
   RATES: {

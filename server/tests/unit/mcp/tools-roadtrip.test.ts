@@ -15,7 +15,6 @@ vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
 import { createUser, createTrip, createDay, createPlace } from '../../helpers/factories';

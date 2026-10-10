@@ -14,13 +14,10 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
 
-const { broadcastToUser } = vi.hoisted(() => ({ broadcastToUser: vi.fn() }));
-
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser }));
 const { notifSend } = vi.hoisted(() => ({ notifSend: vi.fn().mockResolvedValue(undefined) }));
 
 import { createUser, createTrip, createPlace, createCategory } from '../../helpers/factories';
@@ -35,6 +32,10 @@ import { CollectionMembers } from '../../../src/db/entities/CollectionMembers.en
 import { CollectionPlaces } from '../../../src/db/entities/CollectionPlaces.entity';
 import { Collections } from '../../../src/db/entities/Collections.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastToUser = realtime.broadcastToUserMock;
 
 function clearCollections() {
   testDb.exec(`
@@ -73,7 +74,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 
@@ -689,7 +690,7 @@ const WRITE_TOOLS = [
 
 describe('Collection tools — scope gating', () => {
   async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
-    const h = await createMcpHarness({ userId, withResources: false, scopes });
+    const h = await createMcpHarness({ realtime, userId, withResources: false, scopes });
     try {
       return (await h.client.listTools()).tools.map((t) => t.name);
     } finally {

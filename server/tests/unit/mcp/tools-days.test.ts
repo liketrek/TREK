@@ -12,9 +12,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
 import { resetTestDb } from '../../helpers/test-db';
 import {
   createUser, createTrip, createDay, createPlace, createDayAssignment, createDayAccommodation,
@@ -27,6 +24,10 @@ import { readTripDays } from '../../helpers/factories/trips';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
 import { Days } from '../../../src/db/entities/Days.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -46,7 +47,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 

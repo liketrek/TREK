@@ -11,9 +11,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock, broadcastToUser: broadcastMock }));
-
 /*
  * get_journey_stats resolves a country per stop. The real lookup loads and
  * indexes 4MB of gzipped admin-0 boundaries on first call, which is Atlas'
@@ -41,6 +38,12 @@ import { createUser, createTrip } from '../../helpers/factories';
 import { setAddonEnabled } from '../../helpers/test-db';
 import { ADDON_IDS } from '../../../src/addons';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
+// The suite asserts both channels on one recorder, as its module mock did.
+realtime.broadcastToUserMock.mockImplementation((...args) => broadcastMock(...(args as unknown as Parameters<typeof broadcastMock>)));
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -63,7 +66,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 
@@ -977,7 +980,7 @@ describe('Journey resource gating', () => {
 
   it('does not register the resources without the journey:read scope', async () => {
     const { user } = createUser(testDb);
-    const h = await createMcpHarness({ userId: user.id, scopes: ['trips:read'] });
+    const h = await createMcpHarness({ realtime, userId: user.id, scopes: ['trips:read'] });
     try {
       await expect(h.client.readResource({ uri: 'trek://journeys' })).rejects.toThrow();
     } finally {

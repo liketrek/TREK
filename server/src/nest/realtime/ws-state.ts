@@ -9,11 +9,10 @@ import { ProcessStoreSlot } from '../common/process-store-slot';
  *
  * MODULE state, not provider state, and that is load-bearing: the rooms live
  * in the registry `roomsSlot` holds, which the container's provider replaces
- * when RealtimeGatewayModule is built and nothing else does. The no-Nest test
- * harnesses hand-build RealtimeService instances (mcp-test-controllers.ts and
- * ~60 unit suites), and the 115 vi.mock('src/websocket') seams assert on these
- * exact exports. If the rooms lived on a provider instance, an out-of-container
- * broadcast would go to an empty map: no error, no log, just a client that
+ * when RealtimeGatewayModule is built and nothing else does. Hand-built
+ * RealtimeService instances (the no-Nest test harnesses, out-of-container
+ * consumers) deliver through these same functions. If the rooms lived on a
+ * provider instance, an out-of-container broadcast would go to an empty map: no error, no log, just a client that
  * stops updating. Same reasoning as the geo throttle cursor and the
  * permissions cache.
  *

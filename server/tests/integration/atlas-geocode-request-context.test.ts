@@ -28,7 +28,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../src/nest/atlas/atlas-geo', async (orig) => {
   const actual = await orig<typeof import('../../src/nest/atlas/atlas-geo')>();
   return {

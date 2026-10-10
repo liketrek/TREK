@@ -47,7 +47,7 @@ const HEARTBEAT_INTERVAL = 30_000;
  * What did NOT move is the socket registry. It stays one process-wide
  * instance in ws-state.ts (the RoomRegistry port, installed in `roomsSlot` by
  * RealtimeGatewayModule) because out-of-container code (the no-Nest test
- * harnesses, the vi.mock'd src/websocket seam) must see the same rooms; see
+ * harnesses, hand-built RealtimeService instances) must see the same rooms; see
  * the note there.
  *
  * The wire protocol is unchanged, down to the frame names. TrekWsAdapter maps

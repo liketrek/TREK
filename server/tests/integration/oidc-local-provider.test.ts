@@ -27,7 +27,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 // The provider's names are answered here; every other name goes to the real resolver.
 vi.mock('dns/promises', async (importOriginal) => {
   const real = await importOriginal<typeof import('dns/promises')>();

@@ -24,7 +24,6 @@ vi.mock('../../src/app-config', async (importOriginal) => {
     return { ...actual, getMcpSafeUrl: () => 'https://trek.example.com' };
 });
 
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn(), sessions: new Map() }));
 
 import { db as testDb } from '../../src/db/database';

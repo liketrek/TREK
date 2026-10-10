@@ -10,8 +10,8 @@
  * to resolve a hidden inverse relation this DDL never created — the same
  * class of failure `days.e2e.test.ts`'s own conversion (Task 2) fixed for
  * that file. AssignmentsService runs its real SQL (DI-injected, no service
- * mock); journeyService, the permission check and the WebSocket broadcast
- * stay mocked. Every `it(...)` body below is unchanged from before this
+ * mock); journeyService and the permission check stay mocked, and the
+ * broadcast goes to a FakeRealtimeService. Every `it(...)` body below is unchanged from before this
  * conversion — only the DB bootstrap changed.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
@@ -19,6 +19,7 @@ import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 import { Test } from '@nestjs/testing';
 import { sessionCookie } from './harness';
 
@@ -26,8 +27,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
-vi.mock('../../src/websocket', () => ({ broadcast }));
 
 import { db } from '../../src/db/database';
 
@@ -55,6 +54,10 @@ import { Days } from '../../src/db/entities/Days.entity';
 import { Places } from '../../src/db/entities/Places.entity';
 import { Tours } from '../../src/db/entities/Tours.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
+import { FakeRealtimeService } from '../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcast = realtime.broadcastMock;
 
 let orm: TestOrm;
 
@@ -78,6 +81,8 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
 
   async function build() {
     const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, AssignmentsModule] })
+      .overrideProvider(RealtimeService)
+      .useValue(realtime)
       .overrideProvider(JourneyDomainService)
       .useValue({ reconcileTripSkeletons })
       .compile();

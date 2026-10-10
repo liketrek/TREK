@@ -5,8 +5,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
 
-const { broadcastMock, pluginsEnabled } = vi.hoisted(() => ({
-  broadcastMock: vi.fn(),
+const { pluginsEnabled } = vi.hoisted(() => ({
   pluginsEnabled: vi.fn(() => true),
 }));
 
@@ -14,7 +13,6 @@ vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 // The admin kill switch reads live env; drive it from the test instead of the process.
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
@@ -22,6 +20,10 @@ import { createUser } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 import { resetTestDb } from '../../helpers/test-db';
 import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 const providersOfMock = vi.spyOn(PluginHooks.prototype, 'providersOf');
 const searchPlacesMock = vi.spyOn(PluginHooks.prototype, 'searchPlaces');
@@ -39,7 +41,7 @@ afterAll(() => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false, scopes: null });
+  const h = await createMcpHarness({ realtime, userId, withResources: false, scopes: null });
   try { await fn(h); } finally { await h.cleanup(); }
 }
 

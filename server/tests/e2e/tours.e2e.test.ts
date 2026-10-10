@@ -3,8 +3,8 @@
  * JwtAuthGuard, AddonGuard and TripAccessGuard against a real migrated and
  * seeded temp SQLite db (createSnapshotTestDb()). ToursService, PlacesService,
  * AssignmentsService and TripsService run their real SQL; only the permission
- * check (a container spy), the journey hooks and the WebSocket broadcast are
- * stubbed.
+ * check (a container spy) and the journey hooks are stubbed, and the broadcast
+ * goes to a FakeRealtimeService.
  *
  * Fixtures: user 1 owns trips 5 and 6, user 2 is a member of trip 5 whom the
  * permission spy denies 'place_edit', user 3 has no access to either trip.
@@ -16,6 +16,7 @@ import request from 'supertest';
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 import { Test } from '@nestjs/testing';
 import { sessionCookie } from './harness';
 
@@ -23,8 +24,6 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
-vi.mock('../../src/websocket', () => ({ broadcast }));
 vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
 
 import { db } from '../../src/db/database';
@@ -59,6 +58,10 @@ import { Places } from '../../src/db/entities/Places.entity';
 import { TourWaypoints } from '../../src/db/entities/TourWaypoints.entity';
 import { Tours } from '../../src/db/entities/Tours.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
+import { FakeRealtimeService } from '../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcast = realtime.broadcastMock;
 
 let orm: TestOrm;
 
@@ -110,6 +113,8 @@ describe('Tours e2e (real guards + temp SQLite)', () => {
         TripsModule,
       ],
     })
+      .overrideProvider(RealtimeService)
+      .useValue(realtime)
       .overrideProvider(JourneyDomainService)
       .useValue(journeyHooks)
       .compile();

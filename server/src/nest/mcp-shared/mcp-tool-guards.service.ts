@@ -12,7 +12,7 @@ import type { TripEventSink, TripWriter } from '../common/trip-writer';
  * The impure MCP tool guards that used to live as plain functions in
  * src/mcp/tools/_shared.ts, reaching the db Proxy, a permissions.bridge
  * instance (no longer exists — see auth.service.ts:116) and the
- * src/websocket stub as module globals. The @McpController domain classes are
+ * websocket broadcast functions as module globals. The @McpController domain classes are
  * ordinary Nest providers, so they inject this instead. The pure result
  * helpers (noAccess/permissionDenied/adminRequired and the
  * src/nest-mcp re-exports) stay in _shared.ts — they carry no dependencies.
@@ -50,8 +50,8 @@ export class McpToolGuardsService {
     try {
       // Legacy MCP call sites pass event names as plain strings; route through
       // the facade's implementation signature (its typed overloads are for new
-      // call sites). Runtime is a pure pass-through to src/websocket's
-      // broadcast, so the 100+ per-file vi.mock stubs keep intercepting.
+      // call sites). Runtime is a pure pass-through to the transport's
+      // broadcast.
       const send = this.realtime.broadcast as (
         t: number | string, e: string, p: Record<string, unknown>, sid?: number | string, uid?: number,
       ) => void;

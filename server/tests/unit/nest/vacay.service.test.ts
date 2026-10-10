@@ -15,8 +15,6 @@ vi.mock('../../../src/db/database', async () => {
     return mock;
 });
 
-// Mock websocket so notifyPlanUsers doesn't throw
-vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
 // shareCalendar fires a notification after inserting — keep that out of unit scope
 
 import { db as testDb } from '../../../src/db/database';

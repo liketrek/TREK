@@ -15,8 +15,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vites
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
-const { broadcast, notifySend } = vi.hoisted(() => ({
-  broadcast: vi.fn(),
+const { notifySend } = vi.hoisted(() => ({
   notifySend: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -28,14 +27,12 @@ vi.mock('../../../src/db/database', async () => {
 });
 
 import { db as testDb } from '../../../src/db/database';
-vi.mock('../../../src/websocket', () => ({ broadcast }));
 // notifyInvite reaches the bridge through a dynamic import — keep the send in scope
 // but out of the transports.
 
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, addTripMember } from '../../helpers/factories';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
@@ -76,6 +73,10 @@ import type { UsersRepository } from '../../../src/db/repositories/Users.reposit
 import type { TripMembersRepository } from '../../../src/db/repositories/TripMembers.repository';
 import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
 import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
+const realtime = new FakeRealtimeService();
+const broadcast = realtime.broadcastMock;
 
 // Plan 3c Task 0b: `dbsEm` is resolved once, at the top of the `beforeAll`
 // below — `canAccessTrip`/`isOwner`/`rosterUserIds`/`getPlaceWithTags`
@@ -99,12 +100,12 @@ beforeAll(async () => {
   tripsRepo = await createTestTripsRepo(testDb);
   usersRepo = await createTestUsersRepo(testDb);
   tripMembersRepo = await createTestTripMembersRepo(testDb);
-  budgetSvc = new BudgetService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new ExchangeRatesService(), new RealtimeService(), await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb)));
+  budgetSvc = new BudgetService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new ExchangeRatesService(), realtime, await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb)));
   roster = new TripMembersService(
     budgetSvc,
     new UserCleanupService(new MaintenanceRepository(dbsEm!), budgetSvc, await createTestUnitOfWork(testDb), usersRepo, await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb)),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
-    new RealtimeService(), notificationsStub(notifySend), await createTestUnitOfWork(testDb),
+    realtime, notificationsStub(notifySend), await createTestUnitOfWork(testDb),
     tripsRepo, tripMembersRepo, usersRepo,
   );
 });
