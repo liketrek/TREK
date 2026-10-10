@@ -1,6 +1,6 @@
 /**
  * Unit tests for MCP vacay tools (vacay addon-gated, VacayMcp — DI-discovered
- * via the hand-built test registry in tests/helpers/mcp-test-controllers.ts):
+ * through the booted container's registry, tests/helpers/mcp-test-controllers.ts):
  * get_vacay_plan, get_vacay_year_settings, update_vacay_plan, set_vacay_color,
  * list_vacay_years, add_vacay_year, delete_vacay_year,
  * get_vacay_entries, toggle_vacay_entry, toggle_company_holiday,

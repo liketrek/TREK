@@ -2,8 +2,8 @@
  * The demo-mode write block, held for every registered MCP tool at once.
  *
  * The block used to be the first line of each write tool; it now runs in the
- * registry (trekDemoToolGate, wired into McpModule.forRoot and into the MCP test
- * registry). This suite attaches the real registry to a capturing server and
+ * registry (trekDemoToolGate, wired into McpModule.forRoot, which the MCP test
+ * registry is taken from). This suite attaches the real registry to a capturing server and
  * calls every write tool as the demo account: each one has to answer with the
  * canned refusal before its handler runs. Every read-only tool has to pass the
  * gate. Besides that it pins the two markers the gate relies on to each other,
@@ -14,9 +14,12 @@ import { ADDON_IDS } from '../../../src/addons';
 import { db as testDb } from '../../../src/db/database';
 import { isDemoGatedTool, trekDemoToolGate } from '../../../src/mcp/nest-mcp-policy';
 import type { McpContext, McpRegistry, McpRegistryListing } from '../../../src/nest-mcp';
+import { withRequestContext } from '../../../src/nest/database/request-context';
 import { createUser } from '../../helpers/factories';
 import { createMcpTestRegistry } from '../../helpers/mcp-test-controllers';
+import { bootTestApp } from '../../helpers/test-app';
 import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
@@ -47,20 +50,27 @@ async function captureTools(registry: McpRegistry, ctx: McpContext): Promise<Map
     ) => {
       // Arguments as a client would send nothing: the gate answers before
       // the handler ever reads them.
-      tools.set(name, { annotations: config.annotations, call: async (args = {}) => cb(args, {}) });
+      tools.set(name, {
+        annotations: config.annotations,
+        call: async (args = {}) => withRequestContext(orm, () => cb(args, {})),
+      });
     },
     registerResource: () => undefined,
     registerPrompt: () => undefined,
   } as unknown as McpServer;
-  await registry.attach(server, ctx);
+  // The attach reads the addon toggles, which production does inside the /mcp
+  // request's ORM context; the calls open their own below.
+  await withRequestContext(orm, () => registry.attach(server, ctx));
   return tools;
 }
 
 let registry: McpRegistry;
+let orm: MikroORM;
 let toolListings: McpRegistryListing[];
 
 beforeAll(async () => {
   registry = await createMcpTestRegistry();
+  orm = (await bootTestApp()).get(MikroORM);
   toolListings = registry.list().filter((entry) => entry.kind === 'tool');
 });
 

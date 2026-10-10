@@ -12,7 +12,10 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 
-vi.mock('../../../src/nest/weather/weather.impl', () => ({
+// The rest of the module stays real: the booted container's WeatherService
+// starts and stops its cache sweep through it.
+vi.mock('../../../src/nest/weather/weather.impl', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../src/nest/weather/weather.impl')>()),
   getWeather: vi.fn().mockResolvedValue({ temp: 20, condition: 'sunny' }),
   getDetailedWeather: vi.fn().mockResolvedValue({ hourly: [] }),
 }));

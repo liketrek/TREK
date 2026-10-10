@@ -28,8 +28,7 @@ import {
  * factories, bound to the raw better-sqlite3 handle the same way every other
  * converted domain's test helper does. The helper's own OUTER signature
  * (`db`, `realtime`) is unchanged in shape, so every caller that only goes
- * through this function (`mcp-test-controllers.ts`, `plugin-host.ts`, both
- * test-only) needs no edit of its own beyond passing the raw handle (Plan 4
+ * through this function needs no edit of its own beyond passing the raw handle (Plan 4
  * Task 4 dropped the `DatabaseService` wrapper — the handle was always all
  * this helper read off it).
  *

@@ -1009,7 +1009,6 @@
   "tests/helpers/journey-repos.ts",
   "tests/helpers/journey-share-repos.ts",
   "tests/helpers/mcp-harness.ts",
-  "tests/helpers/mcp-test-controllers.ts",
   "tests/helpers/migration-step.ts",
   "tests/helpers/notifications-repos.ts",
   "tests/helpers/notifications.ts",

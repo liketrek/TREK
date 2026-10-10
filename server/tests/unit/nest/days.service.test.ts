@@ -81,39 +81,27 @@ import { DaysService, DayReorderError, DayAppendError, NO_DATES_MESSAGE, addDays
 // container. The assertions stayed; they point at the service now.
 const bridgeGetDay = async (id: string | number, tripId: string | number) => await svc.getDay(id, tripId);
 const bridgeListDays = async (tripId: string | number) => await svc.list(tripId);
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { makeAccommodationsService } from '../../helpers/accommodations-service';
+import { DaysModule } from '../../../src/nest/days/days.module';
+import { createTestModule, type TestModule, type TestOverride } from '../../helpers/test-module';
 import type { Day } from '../../../src/types';
 import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
-import {
-  createTestUnitOfWork, createTestAppSettingsRepo,
-  createTestDaysRepo, createTestDayAssignmentsRepo, createTestDayNotesRepo, createTestTripsRepo,
-  createTestTagsRepo, createTestPlaceRatingsRepo, createTestAssignmentParticipantsRepo,
-  createTestReservationsRepo,
-  createTestReservationEndpointsRepo,
-  createTestDayAccommodationsRepo,
-  createTestRoadtripViasRepo,
-  createTestRoadtripDayBoundariesRepo,
-} from '../../helpers/test-uow';
+
+// The service comes out of DaysModule, so a dependency it gains reaches this
+// suite through the module rather than through a constructor call here.
+const modules: TestModule[] = [];
+async function daysModule(overrides: TestOverride[] = []): Promise<TestModule> {
+  const t = await createTestModule({ db: testDb, imports: [DaysModule], overrides });
+  modules.push(t);
+  return t;
+}
 
 let svc: DaysService;
 beforeAll(async () => {
-  svc = new DaysService(
-    new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
-    new RealtimeService(),
-    new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
-    await createTestUnitOfWork(testDb),
-    await createTestDaysRepo(testDb),
-    await createTestDayAssignmentsRepo(testDb),
-    await createTestDayNotesRepo(testDb),
-    await createTestTripsRepo(testDb),
-    await createTestReservationsRepo(testDb),
-    await createTestReservationEndpointsRepo(testDb),
-    await createTestDayAccommodationsRepo(testDb),
-    await createTestRoadtripViasRepo(testDb),
-    await createTestRoadtripDayBoundariesRepo(testDb),
-  );
+  svc = (await daysModule()).get(DaysService);
+});
+afterAll(async () => {
+  await Promise.all(modules.splice(0).map((t) => t.close()));
 });
 let accommodations: Awaited<ReturnType<typeof makeAccommodationsService>>;
 beforeAll(async () => {
@@ -963,21 +951,7 @@ describe('DaysService.canEdit', () => {
   it('DAY-SVC-090 asks for day_edit and flags a non-owner as shared', async () => {
     const checkPermission = vi.fn(() => true);
     const permissions = { checkPermission } as unknown as PermissionsService;
-    const withStub = new DaysService(
-      permissions,
-      new RealtimeService(),
-      new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
-      await createTestUnitOfWork(testDb),
-      await createTestDaysRepo(testDb),
-      await createTestDayAssignmentsRepo(testDb),
-      await createTestDayNotesRepo(testDb),
-      await createTestTripsRepo(testDb),
-      await createTestReservationsRepo(testDb),
-      await createTestReservationEndpointsRepo(testDb),
-      await createTestDayAccommodationsRepo(testDb),
-      await createTestRoadtripViasRepo(testDb),
-      await createTestRoadtripDayBoundariesRepo(testDb),
-    );
+    const withStub = (await daysModule([{ provide: PermissionsService, useValue: permissions }])).get(DaysService);
     const trip = { id: 1, user_id: 1 } as never;
 
     expect(await withStub.canEdit(trip, { id: 1, role: 'user' } as never)).toBe(true);

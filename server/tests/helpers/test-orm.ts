@@ -106,12 +106,21 @@ export async function createTestOrm(
 // The spread also carries production's `extensions` (Migrator, SeedManager),
 // `migrations` and `seeder` settings into the harness; only the driver, the
 // database name, the entity list and discovery noise are overridden.
-export function createTestMikroOrmModule(db: Database.Database): DynamicModule | Promise<DynamicModule> {
+//
+// `allowGlobalContext` is for a unit suite that calls services straight out of
+// the container (createTestModule): there is no request to fork a context for,
+// so the repositories read through the global EntityManager, exactly as the
+// hand-built ones over createTestOrm() do.
+export function createTestMikroOrmModule(
+  db: Database.Database,
+  options: { allowGlobalContext?: boolean } = {},
+): DynamicModule | Promise<DynamicModule> {
   return MikroOrmModule.forRoot({
     ...mikroOrmConfig,
     entities: [...ALL_ENTITIES],
     driver: createBoundSqliteDriver(() => db),
     dbName: ':memory:',
     discovery: { warnWhenNoEntities: false },
+    ...(options.allowGlobalContext ? { allowGlobalContext: true } : {}),
   });
 }

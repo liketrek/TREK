@@ -16,11 +16,11 @@
     "no-misleading-character-class": 1
   },
   "tests": {
-    "@typescript-eslint/no-explicit-any": 1571,
+    "@typescript-eslint/no-explicit-any": 1569,
     "@typescript-eslint/no-non-null-assertion": 1757,
     "@typescript-eslint/no-require-imports": 25,
     "@typescript-eslint/no-unsafe-function-type": 7,
-    "@typescript-eslint/no-unused-vars": 101,
+    "@typescript-eslint/no-unused-vars": 96,
     "no-await-in-loop": 459,
     "no-console": 18,
     "no-empty": 2,

@@ -18,30 +18,13 @@ vi.mock('../../../src/db/database', async () => {
 import { db as testDb } from '../../../src/db/database';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createDay, createPlace, createDayAssignment, createDayAccommodation } from '../../helpers/factories';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { DaysService } from '../../../src/nest/days/days.service';
+import { DaysModule } from '../../../src/nest/days/days.module';
 import { DayRemovalService, DayDeleteError, LAST_DAY_MESSAGE, type DayRemoval } from '../../../src/nest/days/day-removal.service';
 import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
 import { AccommodationsService, type MirrorSender } from '../../../src/nest/accommodations/accommodations.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import {
-  createTestUnitOfWork, createTestAppSettingsRepo, createTestTagsRepo, createTestPlaceRatingsRepo,
-  createTestAssignmentParticipantsRepo, createTestDayAssignmentsRepo, createTestDaysRepo, createTestPlacesRepo,
-  createTestTripMembersRepo, createTestRoadtripViasRepo, createTestDayAccommodationsRepo, createTestReservationsRepo,
-  createTestReservationEndpointsRepo, createTestDayNotesRepo, createTestRoadtripDayBoundariesRepo,
-  sharedTestOrm, createTestTripsRepo,
-} from '../../helpers/test-uow';
-import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import {
-  createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
-import { createTestToursRepo } from '../../helpers/tours-repos';
+import { sharedTestOrm } from '../../helpers/test-uow';
+import { createTestModule, type TestModule } from '../../helpers/test-module';
 import type { EntityClass, FilterQuery } from '@mikro-orm/core';
 import { countRows, deleteRows, findRow, findRows, insertRow } from '../../helpers/factories/rows';
 import { makeReservation } from '../../helpers/factories/reservations';
@@ -56,63 +39,39 @@ import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoi
 import { RoadtripDayBoundaries } from '../../../src/db/entities/RoadtripDayBoundaries.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
-import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
 
 let days: DaysService;
 let journey: JourneyDomainService;
-let assignments: AssignmentsService;
 let accommodations: AccommodationsService;
 let removal: DayRemovalService;
+const modules: TestModule[] = [];
+
+/**
+ * The days domain out of its module over the test connection, optionally with
+ * the accommodations service replaced. Every collaborator is the one DaysModule
+ * wires, so a dependency DayRemovalService gains needs no edit here.
+ */
+async function daysModule(acc?: AccommodationsService): Promise<TestModule> {
+  const t = await createTestModule({
+    db: testDb,
+    imports: [DaysModule],
+    overrides: acc ? [{ provide: AccommodationsService, useValue: acc }] : [],
+  });
+  modules.push(t);
+  return t;
+}
 
 /** A DayRemovalService over the test connection, with the accommodations service given. */
 async function removalWith(acc: AccommodationsService): Promise<DayRemovalService> {
-  return new DayRemovalService(
-    days, acc, assignments, await createTestUnitOfWork(testDb),
-    await createTestDaysRepo(testDb), await createTestDayAccommodationsRepo(testDb),
-    await createTestRoadtripDayBoundariesRepo(testDb), await createTestTripsRepo(testDb),
-  );
+  return (await daysModule(acc)).get(DayRemovalService);
 }
 
 beforeAll(async () => {
-  const permissions = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
-  const realtime = new RealtimeService();
-  const queryHelpers = new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb));
-  const t = await sharedTestOrm(testDb);
-  days = new DaysService(
-    permissions, realtime, queryHelpers, await createTestUnitOfWork(testDb),
-    await createTestDaysRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestDayNotesRepo(testDb),
-    await createTestTripsRepo(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb),
-    await createTestDayAccommodationsRepo(testDb), await createTestRoadtripViasRepo(testDb), await createTestRoadtripDayBoundariesRepo(testDb),
-  );
-  journey = new JourneyDomainService(
-    realtime, new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)), await createTestUnitOfWork(testDb),
-    await createTestJourneysRepo(testDb), await createTestJourneyContributorsRepo(testDb),
-    await createTestJourneyTripsRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestTripsRepo(testDb),
-    await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
-  );
-  assignments = new AssignmentsService(
-    new TripAccessService(await createTestTripsRepo(testDb)), permissions, realtime, queryHelpers, journey,
-    await createTestUnitOfWork(testDb),
-    await createTestDayAssignmentsRepo(testDb),
-    await createTestAssignmentParticipantsRepo(testDb),
-    await createTestDaysRepo(testDb),
-    await createTestPlacesRepo(testDb),
-    await createTestTripMembersRepo(testDb),
-    await createTestRoadtripViasRepo(testDb),
-    await createTestToursRepo(testDb),
-  );
-  accommodations = new AccommodationsService(
-    permissions, realtime, assignments, await createTestUnitOfWork(testDb),
-    new TripAccessService(await createTestTripsRepo(testDb)),
-    await createTestDayAccommodationsRepo(testDb),
-    await createTestDayAssignmentsRepo(testDb),
-    await createTestPlacesRepo(testDb),
-    await createTestDaysRepo(testDb),
-    await createTestRoadtripViasRepo(testDb),
-    await createTestReservationsRepo(testDb),
-    await createTestBudgetItemsRepo(testDb),
-  );
-  removal = await removalWith(accommodations);
+  const t = await daysModule();
+  days = t.get(DaysService);
+  journey = t.get(JourneyDomainService);
+  accommodations = t.get(AccommodationsService);
+  removal = t.get(DayRemovalService);
 });
 
 beforeEach(() => {
@@ -123,7 +82,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await Promise.all(modules.splice(0).map((t) => t.close()));
   testDb.close();
 });
 

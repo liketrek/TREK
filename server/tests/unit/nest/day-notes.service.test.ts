@@ -28,31 +28,27 @@ import { createUser, createTrip, createDay, addTripMember } from '../../helpers/
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { DayNotesService } from '../../../src/nest/day-notes/day-notes.service';
 import type { DayNote } from '../../../src/types';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestDayNotesRepo, createTestDaysRepo, createTestTripsRepo } from '../../helpers/test-uow';
 import { sharedTestOrm } from '../../helpers/test-uow';
 import { findRow } from '../../helpers/factories/rows';
 import { DayNotes } from '../../../src/db/entities/DayNotes.entity';
-import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
+import { DayNotesModule } from '../../../src/nest/day-notes/day-notes.module';
+import { createTestModule, type TestModule } from '../../helpers/test-module';
 
+// The service comes out of its own module, so a dependency it gains reaches
+// this suite through DayNotesModule rather than through a constructor call here.
+let t: TestModule;
 let svc: DayNotesService;
 beforeAll(async () => {
-  // Plan 4 Task 2 — DayNotesService's own canAccessTrip delegate is now
-  // TripsRepository.findAccessible, in the same constructor slot.
-  svc = new DayNotesService(
-    new TripAccessService(await createTestTripsRepo(testDb)),
-    new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
-    new RealtimeService(),
-    await createTestDayNotesRepo(testDb),
-    await createTestDaysRepo(testDb),
-  );
+  t = await createTestModule({ db: testDb, imports: [DayNotesModule] });
+  svc = t.get(DayNotesService);
 });
 
 beforeEach(() => {
   resetTestDb(testDb);
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await t.close();
   testDb.close();
 });
 
@@ -273,8 +269,12 @@ describe('remove', () => {
 describe('DayNotesService.canEdit', () => {
   it('DAYNOTE-SVC-090 asks for day_edit and flags a non-owner as shared', async () => {
     const checkPermission = vi.fn(() => true);
-    const permissions = { checkPermission } as unknown as PermissionsService;
-    const withStub = new DayNotesService(new TripAccessService(await createTestTripsRepo(testDb)), permissions, new RealtimeService(), await createTestDayNotesRepo(testDb), await createTestDaysRepo(testDb));
+    const stubbed = await createTestModule({
+      db: testDb,
+      imports: [DayNotesModule],
+      overrides: [{ provide: PermissionsService, useValue: { checkPermission } }],
+    });
+    const withStub = stubbed.get(DayNotesService);
     const trip = { id: 1, user_id: 1 } as never;
 
     expect(await withStub.canEdit(trip, { id: 1, role: 'user' } as never)).toBe(true);
@@ -287,5 +287,6 @@ describe('DayNotesService.canEdit', () => {
 
     checkPermission.mockReturnValue(false);
     expect(await withStub.canEdit(trip, { id: 2, role: 'user' } as never)).toBe(false);
+    await stubbed.close();
   });
 });

@@ -3,8 +3,8 @@
  * (list_categories moved to tools-categories.test.ts with the CategoriesMcp migration.)
  *
  * Since the place DI fold these run through the decorator-driven PlacesMcp in
- * src/nest/places/places.mcp.ts — the harness attaches it via the hand-wired
- * registry in tests/helpers/mcp-test-controllers.ts, so the assertions below
+ * src/nest/places/places.mcp.ts — the harness attaches it through the booted
+ * container's registry (tests/helpers/mcp-test-controllers.ts), so the assertions below
  * exercise the @Tool/@ResourceTemplate path instead of the deleted registrar.
  */
 import { DomainError } from '../../../src/nest/common/domain-error';

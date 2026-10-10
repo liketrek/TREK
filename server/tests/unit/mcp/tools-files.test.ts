@@ -19,10 +19,9 @@ vi.mock('../../../src/db/database', async () => {
 });
 
 const { fixture } = vi.hoisted(() => ({ fixture: {} as { root: string } }));
-// Each createMcpHarness() builds a fresh registry, and the helper hands every one
-// of those its own mkdtemp root, so bytes written by a test would land in a
-// directory the next registry never looks at. Pin one shared fixture instead,
-// which is what lets read_trip_file return a file this suite wrote.
+// The booted container's StorageService is a makeStorageFixture('') over its own
+// mkdtemp root (tests/helpers/test-app.ts). Pin one shared fixture and remember
+// its root, which is what lets read_trip_file return a file this suite wrote.
 vi.mock('../../helpers/storage-fixture', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../helpers/storage-fixture')>();
   const shared = actual.makeStorageFixture('');

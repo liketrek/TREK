@@ -15,7 +15,10 @@ import { Client } from '@modelcontextprotocol/sdk/client/index';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
 import { registerTools } from '../../src/mcp/tools';
 import type { McpAttachOptions } from '../../src/nest-mcp';
+import { MikroORM } from '@mikro-orm/core';
+import { withRequestContext } from '../../src/nest/database/request-context';
 import { createMcpTestRegistry } from './mcp-test-controllers';
+import { bootTestApp } from './test-app';
 import type { RealtimeService } from '../../src/nest/realtime/realtime.service';
 
 export interface McpHarness {
@@ -62,11 +65,17 @@ export async function createMcpHarness(options: McpHarnessOptions): Promise<McpH
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
 
   if (withTools) {
-    // In production the transport service passes its injected
-    // McpRegistryService to registerTools; the harness has no Nest app, so it
-    // builds the same registry by hand (see mcp-test-controllers.ts).
-    // registerTools' own ctx construction stays exercised.
-    await registerTools(await createMcpTestRegistry(realtime), server, userId, scopes ?? null, isStaticToken, getDeprecationNotice, undefined, dynamicTools);
+    // The registry is the booted container's McpRegistryService, as the
+    // transport service hands it to registerTools. In production every /mcp
+    // request runs inside the request context the ORM middleware forks; the
+    // harness has no HTTP request, so it opens one for the attach and for every
+    // call through the registry's `around` seam, as the transport's requests do.
+    const orm = (await bootTestApp(realtime)).get(MikroORM);
+    const registry = await createMcpTestRegistry(realtime);
+    const around = (_info: { kind: string; name: string }, call: () => unknown): unknown => withRequestContext(orm, call);
+    await withRequestContext(orm, () =>
+      registerTools(registry, server, userId, scopes ?? null, isStaticToken, getDeprecationNotice, undefined, dynamicTools, around),
+    );
   }
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
