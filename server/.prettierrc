@@ -14,5 +14,6 @@
   "importOrderParserPlugins": [
     "typescript",
     "decorators-legacy"
-  ]
+  ],
+  "importOrderSideEffects": false
 }
