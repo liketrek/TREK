@@ -56,7 +56,6 @@
   "scripts/check-page-pattern.mjs",
   "scripts/generate-icons.mjs",
   "scripts/patch-maplibre.mjs",
-  "scripts/theme-lint.mjs",
   "src/App.test.tsx",
   "src/App.tsx",
   "src/App.versionHandover.test.tsx",

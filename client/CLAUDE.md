@@ -23,7 +23,7 @@ npm run lint:i18n-keys    # every translation key src/ names exists in shared en
 npm run test              # vitest run (tests/** + co-located src/**/*.test.{ts,tsx}); also test:unit / test:integration / test:coverage
 npm run e2e               # Playwright (CI runs --project=public --project=app; e2e:report opens the last report)
 npm run shots             # Playwright screenshot project (shots:promote to accept)
-npm run theme:lint        # theme conformance audit (theme:lint:strict exits 1; local only)
+npm run theme:lint        # colour literals, palette classes, raw text sizes, z-index literals above z-50 and dark_mode reads may only shrink per file, theme-lint-disable markers too (CI gate; --list shows them, --update lowers both baselines)
 npm run check:gl-split    # after build: fails if one chunk bundles both mapbox-gl and maplibre-gl (CI gate)
 ```
 
@@ -63,7 +63,7 @@ The offline core is flagship work surrounded by a periphery that ignores it. New
 - **Rendering security**: never interpolate user content into HTML strings (map popups included — build via DOM + `textContent`, or `escapeHtml` from `@trek/shared`); untrusted markdown gets `rehype-sanitize`; never `rehype-raw` near it.
 - **No `window` event buses or global mutable `window` state.** No `any` at boundaries: WS payloads and map renderer props get real types.
 - **Hygiene**: error boundaries around new shells/routes (`components/shared/ErrorBoundary.tsx`); every async `.then(setState)` needs a cancelled flag or `AbortController`; no routine `eslint-disable exhaustive-deps` (a missing dep has already shipped wrong money on screen); no sequential-await N+1 fetch loops; search for an existing utility before writing a duplicate.
-- **Theming**: use the semantic Tailwind tokens defined in `tailwind.config.js` (`bg-surface*`, `text-content*`, `border-edge*`, `bg-accent*`, status colors) — no palette classes, hex literals, arbitrary-value color classes, or invented CSS vars. Only `applyAppearance()` in `src/theme/` mutates `<html>` styling (see `src/theme/README.md`). `theme:lint` catches literals and `bg-[#...]`-style classes but not named palette classes — review those by hand.
+- **Theming**: use the semantic Tailwind tokens defined in `tailwind.config.js` (`bg-surface*`, `text-content*`, `border-edge*`, `bg-accent*`, status colors) — no palette classes, hex literals, arbitrary-value color classes, or invented CSS vars. Only `applyAppearance()` in `src/theme/` mutates `<html>` styling (see `src/theme/README.md`). `theme:lint` counts literals, `bg-[#...]`-style and palette classes, raw `text-sm`- and `text-[13px]`-style sizes, z-index literals and `dark_mode` reads per file against `scripts/theme-baseline.json`.
 
 ## Big-picture pieces
 

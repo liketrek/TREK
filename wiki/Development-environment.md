@@ -217,7 +217,7 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run lint:pairs`       | Desktop and phone views of a feature import its shared hook; every phone screen is listed (CI gate) |
 | `npm run lint:skips`       | No focused test, and skipped tests may only go away (CI gate) |
 | `npm run lint:i18n-keys`   | Every translation key the client names exists in `en` (CI gate) |
-| `npm run theme:lint`       | Flag styling that bypasses the appearance tokens (not run in CI) |
+| `npm run theme:lint`       | Styling that bypasses the appearance tokens may only shrink per file (CI gate) |
 | `npm run check:gl-split`   | Fail when one built chunk carries both map engines (MapLibre and Mapbox); run after a build |
 | `npm run build:analyze`    | Production build with the bundle analyzer            |
 | `npm run e2e`              | Playwright end-to-end tests; CI runs the public and app projects in Chromium and WebKit, the screenshot and help-media projects are local only |

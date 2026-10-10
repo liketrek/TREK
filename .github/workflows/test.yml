@@ -438,6 +438,14 @@ jobs:
         # Every translation key src/ names must exist in shared en.
         run: cd client && npm run lint:i18n-keys
 
+      - name: Theme tokens check
+        # Colour literals, palette classes, raw text sizes, z-index literals
+        # and reads of the dark_mode setting may hold no more per file than
+        # scripts/theme-baseline.json allows, and theme-lint-disable markers
+        # no more than scripts/theme-disable-baseline.json, so new surfaces
+        # follow the user's scheme, accent and text size (scripts/theme-lint.mjs).
+        run: cd client && npm run theme:lint
+
   plugin-sdk-quality:
     name: Plugin SDK Types
     needs: changes

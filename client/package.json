@@ -33,7 +33,6 @@
     "lint:i18n-keys": "node scripts/i18n-keys.mjs",
     "check:gl-split": "node scripts/check-gl-split.mjs",
     "theme:lint": "node scripts/theme-lint.mjs",
-    "theme:lint:strict": "node scripts/theme-lint.mjs --strict",
     "e2e": "playwright test",
     "shots": "playwright test --project=screenshots",
     "help:media": "node e2e/help/run.mjs",

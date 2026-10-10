@@ -2,7 +2,6 @@
  * The matching and the comparison behind lint:rtl (scripts/rtl-lint.mjs).
  */
 import { join } from 'node:path';
-import ts from 'typescript';
 import {
   countMap,
   listFiles,
@@ -15,6 +14,7 @@ import {
   toKey,
   writeBaseline,
 } from './ratchet.mjs';
+import { markedInComment, withoutComments } from './source.mjs';
 
 // Tailwind utilities that name a physical side, with any variant prefix
 // (sm:, hover:, group-hover:) and the negative form (-ml-2).
@@ -40,50 +40,6 @@ const CSS =
 export const DISABLE = 'rtl-lint-disable';
 
 /**
- * The source with its comments blanked out, so prose like "top right" or
- * "left out" is no side. TypeScript finds the comments in a .ts/.tsx file,
- * which keeps `/*` and `//` inside strings and JSX text where they belong
- * (accept="image/*", a URL); a stylesheet only has block comments.
- */
-function withoutComments(source, file) {
-  const chars = source.split('');
-  const blank = (pos, end) => {
-    for (let i = pos; i < end; i++) if (chars[i] !== '\n') chars[i] = ' ';
-  };
-  if (file.endsWith('.css')) {
-    for (const m of source.matchAll(/\/\*[\s\S]*?\*\//g)) blank(m.index, m.index + m[0].length);
-    return chars.join('');
-  }
-  const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-  const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, kind);
-  const seen = new Set();
-  const take = (ranges) => {
-    for (const r of ranges ?? []) {
-      if (seen.has(r.pos)) continue;
-      seen.add(r.pos);
-      blank(r.pos, r.end);
-    }
-  };
-  const visit = (node) => {
-    take(ts.getLeadingCommentRanges(source, node.pos));
-    take(ts.getTrailingCommentRanges(source, node.end));
-    // JSX text holds no comments, and asking for them there would read `//` in a URL as one.
-    if (!ts.isJsxText(node)) for (const child of node.getChildren(sf)) visit(child);
-  };
-  visit(sf);
-  take(ts.getLeadingCommentRanges(source, sf.endOfFileToken.pos));
-  return chars.join('');
-}
-
-/** Whether the line carries the marker inside a comment; in a string or in code it is no marker. */
-function markedInComment(line, code) {
-  for (let at = line.indexOf(DISABLE); at !== -1; at = line.indexOf(DISABLE, at + 1)) {
-    if (!code.slice(at, at + DISABLE.length).trim()) return true;
-  }
-  return false;
-}
-
-/**
  * One file read once: every physical use as `line: match`, skipping the lines
  * marked as physical on purpose, and how many lines carry that mark.
  */
@@ -95,7 +51,7 @@ export function inspect(source, file) {
   withoutComments(source, file)
     .split('\n')
     .forEach((code, i) => {
-      if (markedInComment(lines[i], code)) {
+      if (markedInComment(lines[i], code, DISABLE)) {
         markers++;
         return;
       }
