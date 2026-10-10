@@ -115,8 +115,7 @@ export class JourneyDomainService {
     // R7 — AP1's `this.db.canAccessTrip(...)` becomes a direct call to the
     // same repository `DatabaseService.canAccessTrip` already delegates to
     // (Task 0's confirmation: `canAccessTrip` IS `findAccessible`, not
-    // merely equivalent to it). Also reused by `getJourneyFull`'s per-entry
-    // `source_trip_name` lookup (JG16, via the already-existing `getTitle`).
+    // merely equivalent to it).
     @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
     // Plan 3g Task 2 (Part B) — the full photos surface (JG19/JG87-116),
     // finishing the two sites Task 1 left raw (JG15/JG19) because their
@@ -259,16 +258,13 @@ export class JourneyDomainService {
     // .galleryRead`).
     const gallery = await this.photosRepo.galleryRead(journeyId);
 
-    const enrichedEntries = await Promise.all(
-      entries.map(async (e) => ({
-        ...decodeEntryRow(e),
-        photos: photosByEntry[e.id] || [],
-        // JG16 — reuses `TripsRepository.getTitle` (already public, 3c; same
-        // statement text as this site's legacy `SELECT title FROM trips
-        // WHERE id = ?`) rather than a new method.
-        source_trip_name: e.source_trip_id ? await this.tripsRepo.getTitle(e.source_trip_id) : null,
-      })),
-    );
+    // JG16 — the source trips' titles in one read instead of one per entry.
+    const tripTitles = await this.entriesRepo.sourceTripTitles(journeyId);
+    const enrichedEntries = entries.map((e) => ({
+      ...decodeEntryRow(e),
+      photos: photosByEntry[e.id] || [],
+      source_trip_name: e.source_trip_id ? (tripTitles.get(e.source_trip_id) ?? null) : null,
+    }));
 
     // linked trips (JG17)
     const trips = await this.journeyTripsRepo.listForJourney(journeyId);
@@ -1174,14 +1170,13 @@ export class JourneyDomainService {
       (photosByEntry[p.entry_id] ||= []).push(p);
     }
 
-    // JG73 — same N+1-by-design shape as JG16, reusing `TripsRepository.getTitle`.
-    return await Promise.all(
-      entries.map(async (e) => ({
-        ...decodeEntryRow(e),
-        photos: photosByEntry[e.id] || [],
-        source_trip_name: e.source_trip_id ? await this.tripsRepo.getTitle(e.source_trip_id) : null,
-      })),
-    );
+    // JG73 — the source trips' titles in one read, as JG16.
+    const tripTitles = await this.entriesRepo.sourceTripTitles(journeyId);
+    return entries.map((e) => ({
+      ...decodeEntryRow(e),
+      photos: photosByEntry[e.id] || [],
+      source_trip_name: e.source_trip_id ? (tripTitles.get(e.source_trip_id) ?? null) : null,
+    }));
   }
 
   async createEntry(

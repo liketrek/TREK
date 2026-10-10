@@ -407,6 +407,32 @@ describe('DayAssignmentsRepository — AS10/AS11/AS13/AS14/AS19 (delete / order 
     expect(await orderOf(a.id)).toBe(3);
   });
 
+  it('ASSIGNREPO-009b (setOrderIndexes): one statement leaves what the per-row writes left, day scope included', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const otherDay = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const a = createDayAssignment(testDb, day.id, place.id, { order_index: 0 });
+    const b = createDayAssignment(testDb, day.id, place.id, { order_index: 1 });
+    const c = createDayAssignment(testDb, day.id, place.id, { order_index: 2 });
+    const foreign = createDayAssignment(testDb, otherDay.id, place.id, { order_index: 5 });
+
+    // b twice: the later index wins, as two writes in a row would leave it; foreign is on another day.
+    await withRequestContext(t.orm, () =>
+      assignments.setOrderIndexes([{ id: c.id, order_index: 0 }, { id: b.id, order_index: 9 }, { id: a.id, order_index: 2 }, { id: b.id, order_index: 1 }, { id: foreign.id, order_index: 0 }], day.id),
+    );
+    expect([await orderOf(a.id), await orderOf(b.id), await orderOf(c.id), await orderOf(foreign.id)]).toEqual([2, 1, 0, 5]);
+
+    // Unscoped: by id alone, and only the listed rows.
+    await withRequestContext(t.orm, () => assignments.setOrderIndexes([{ id: foreign.id, order_index: 1 }]));
+    expect([await orderOf(foreign.id), await orderOf(a.id)]).toEqual([1, 2]);
+
+    // Nothing to write is no statement at all.
+    await withRequestContext(t.orm, () => assignments.setOrderIndexes([], day.id));
+    expect(await orderOf(c.id)).toBe(0);
+  });
+
   it('ASSIGNREPO-010 (AS13, getDayId): the assignment\'s day_id, undefined for a missing id', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

@@ -171,19 +171,16 @@ export interface CalendarReservationRow extends ReservationAllColumnsRow {
 type CalendarReservationKyselyDB = Pick<DB, 'reservations' | 'places' | 'day_accommodations' | 'days'>;
 
 /**
- * CL4 (`CalendarService.buildTripCalendar`'s per-day assignment read,
- * previously run once per dated day) — `SELECT da.*, p.name as place_name,
- * p.address as place_address, p.lat as place_lat, p.lng as place_lng,
+ * CL4 (`CalendarService.buildTripCalendar`'s assignment read, for every dated
+ * day at once) — `SELECT da.*, p.name as place_name, p.address as
+ * place_address, p.lat as place_lat, p.lng as place_lng,
  * COALESCE(da.assignment_time, p.place_time) as effective_time,
  * COALESCE(da.assignment_end_time, p.end_time) as effective_end_time FROM
- * day_assignments da JOIN places p ON da.place_id = p.id WHERE da.day_id =
- * ? AND da.accommodation_id IS NULL ORDER BY da.order_index ASC,
- * da.created_at ASC` — the booked-night stop (its own accommodation-linked
- * `day_assignments` row) is excluded, matching the legacy comment ("that
- * stop is the booking … reading it here as well would put the hotel on the
- * day a second time"). Kept per-day (the caller's own loop), not batched —
- * result-identical either way per the inventory's own note; per-day is the
- * smaller diff against the legacy statement shape.
+ * day_assignments da JOIN places p ON da.place_id = p.id WHERE da.day_id IN
+ * (...) AND da.accommodation_id IS NULL ORDER BY da.order_index, da.created_at,
+ * da.id` — the booked-night stop (its own accommodation-linked row) is
+ * excluded: it is the booking, and reading it here would put the hotel on the
+ * day a second time. Each day's rows keep the per-day order; the id settles a tie.
  */
 export interface CalendarStopRow extends DayAssignmentRow {
   place_name: string;
@@ -994,8 +991,9 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     return rows as CalendarReservationRow[];
   }
 
-  /** CL4 — see {@link CalendarStopRow}'s docstring. */
-  async listCalendarStops(day_id: number): Promise<CalendarStopRow[]> {
+  /** CL4 — see {@link CalendarStopRow}'s docstring. No days, no query. */
+  async listCalendarStopsForDays(day_ids: number[]): Promise<CalendarStopRow[]> {
+    if (day_ids.length === 0) return [];
     const rows = await this.kysely<CalendarStopsKyselyDB>()
       .selectFrom('day_assignments as da')
       .innerJoin('places as p', 'p.id', 'da.place_id')
@@ -1008,10 +1006,11 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
         eb.fn.coalesce('da.assignment_time', 'p.place_time').as('effective_time'),
         eb.fn.coalesce('da.assignment_end_time', 'p.end_time').as('effective_end_time'),
       ])
-      .where('da.day_id', '=', day_id)
+      .where('da.day_id', 'in', day_ids)
       .where('da.accommodation_id', 'is', null)
       .orderBy('da.order_index', 'asc')
       .orderBy('da.created_at', 'asc')
+      .orderBy('da.id', 'asc')
       .execute();
     return rows as CalendarStopRow[];
   }

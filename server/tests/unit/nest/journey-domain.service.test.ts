@@ -2729,6 +2729,23 @@ describe('entry enrichment', () => {
     expect((entry as any).source_trip_name).toBe('Japan 2026');
   });
 
+  it('JOURNEY-SVC-ENRICH-001b: entries from two trips each carry their own trip name, in the full read and the list alike', async () => {
+    const { user } = createUser(testDb);
+    const a = tripWithPlace(user.id).trip;
+    const b = tripWithPlace(user.id).trip;
+    await updateRows(await orm(), Trips, { id: a.id }, { title: 'Alps' });
+    await updateRows(await orm(), Trips, { id: b.id }, { title: 'Baltic' });
+    const journey = await svc.createJourney(user.id, { title: 'J', trip_ids: [a.id, b.id] });
+    await svc.createEntry(journey.id, user.id, { entry_date: '2026-05-01', title: 'Solo' });
+
+    const names = (rows: Array<{ source_trip_id?: number | null; source_trip_name?: string | null }>) =>
+      rows.map((e) => [e.source_trip_id ?? null, e.source_trip_name]).sort((x, y) => Number(x[0]) - Number(y[0]));
+    const listed = names((await svc.listEntries(journey.id, user.id))!);
+    expect(listed).toEqual([[null, null], [a.id, 'Alps'], [b.id, 'Baltic']].sort((x, y) => Number(x[0]) - Number(y[0])));
+    const full = (await svc.getJourneyFull(journey.id, user.id))! as unknown as { entries: Array<{ source_trip_id?: number | null; source_trip_name?: string | null }> };
+    expect(names(full.entries)).toEqual(listed);
+  });
+
   it('JOURNEY-SVC-ENRICH-002: an entry with no trip and no tags gets [] and null, not undefined', async () => {
     const { user } = createUser(testDb);
     const journey = await svc.createJourney(user.id, { title: 'J' });

@@ -461,6 +461,30 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
     await this.nativeUpdate(where, { order_index });
   }
 
+  /**
+   * {@link setOrderIndex} for many rows in one statement: `UPDATE
+   * day_assignments SET order_index = CASE id WHEN ? THEN ? ... END WHERE id IN
+   * (...) [AND day_id = ?]`. The result is what the writes one by one in the
+   * given order left: an id listed twice keeps its last index, and with
+   * `day_id` a row on another day is not touched.
+   */
+  async setOrderIndexes(order: ReadonlyArray<{ id: number; order_index: number }>, day_id?: number): Promise<void> {
+    const last = new Map<number, number>();
+    for (const { id, order_index } of order) last.set(id, order_index);
+    const [first, ...rest] = [...last];
+    if (!first) return;
+    let query = this.kysely<Pick<DB, 'day_assignments'>>()
+      .updateTable('day_assignments')
+      .set((eb) => {
+        let index = eb.case().when('id', '=', first[0]).then(first[1]);
+        for (const [id, orderIndex] of rest) index = index.when('id', '=', id).then(orderIndex);
+        return { order_index: index.else(eb.ref('order_index')).end() };
+      })
+      .where('id', 'in', [...last.keys()]);
+    if (day_id !== undefined) query = query.where('day_id', '=', day_id);
+    await query.execute();
+  }
+
   /** AS13 (`moveAssignment`'s source-day read) — `SELECT day_id FROM day_assignments WHERE id = ?`. */
   async getDayId(id: number): Promise<number | undefined> {
     const platform = this.getEntityManager().getPlatform();

@@ -325,17 +325,13 @@ export class AssignmentsService {
   }
 
   /**
-   * AS11 — `DayAssignmentsRepository.setOrderIndex`, day-scoped, one row per
-   * id, sequentially and in the legacy's own order (not `Promise.all` — the
-   * program's transaction-ordering rule).
+   * AS11 — `DayAssignmentsRepository.setOrderIndexes`, day-scoped: every id
+   * gets its position in one statement, with the result the per-row writes in
+   * the given order had (an id listed twice keeps its last position).
    */
   async reorderAssignments(dayId: string | number, orderedIds: number[]): Promise<void> {
     const dayIdNum = toRowId(dayId)!;
-    await this.uow.transactional(async () => {
-      for (const [index, id] of orderedIds.entries()) {
-        await this.dayAssignmentsRepo.setOrderIndex(id, dayIdNum, index);
-      }
-    });
+    await this.dayAssignmentsRepo.setOrderIndexes(orderedIds.map((id, index) => ({ id, order_index: index })), dayIdNum);
   }
 
   /**
@@ -457,11 +453,10 @@ export class AssignmentsService {
     // with their gaps would put the day notes and bookings that sort between stops in
     // one place for the writer, who reads the day back, and in another for everyone
     // else. Only a stop whose key changes is written. AS19 — no day scoping,
-    // unlike AS11's `reorderAssignments` (`setOrderIndex`'s `day_id` left
-    // `undefined`), sequentially and in the legacy's own order.
-    for (const [i, row] of sorted.entries()) {
-      if (row.order_index !== i) await this.dayAssignmentsRepo.setOrderIndex(row.id, undefined, i);
-    }
+    // unlike AS11's `reorderAssignments` (`setOrderIndexes`'s `day_id` left
+    // `undefined`), in one statement.
+    const moved = sorted.flatMap((row, i) => (row.order_index !== i ? [{ id: row.id, order_index: i }] : []));
+    await this.dayAssignmentsRepo.setOrderIndexes(moved);
 
     return { dayId, orderedIds: sorted.map(row => row.id), viasMoved: await this.reanchorVias(dayId, rows, sorted) };
   }

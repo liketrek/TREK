@@ -116,6 +116,22 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
   }
 
   /**
+   * JG16/JG73 — the titles of the trips a journey's entries came from, keyed by
+   * trip id, in one read (the journey reads used to ask once per entry). A trip
+   * that is gone has no entry, so its entries read a null name as before.
+   */
+  async sourceTripTitles(journeyId: number): Promise<Map<number, string | null>> {
+    const rows = await this.kysely<Pick<DB, 'journey_entries' | 'trips'>>()
+      .selectFrom('journey_entries as je')
+      .innerJoin('trips as t', 't.id', 'je.source_trip_id')
+      .select(['t.id', 't.title'])
+      .distinct()
+      .where('je.journey_id', '=', journeyId)
+      .execute();
+    return new Map(rows.map((r) => [r.id, r.title ?? null]));
+  }
+
+  /**
    * JS13 (Plan 4 Task 8b relocation) — the public `getPublicJourney` route's
    * entry list: `SELECT je.* FROM journey_entries je WHERE je.journey_id=?
    * AND je.type != 'skeleton' AND je.dismissed=0 AND je.is_draft=0 (#696, a draft

@@ -488,6 +488,24 @@ describe('exportICS', () => {
     expect(ics).toContain('LOCATION:Rue de Rivoli');
   });
 
+  it('CAL-016b: read in one go for all days, each day keeps its own stops and notes in their order', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Two Days' });
+    const first = createDay(testDb, trip.id, { date: '2025-06-02', title: 'First' });
+    const second = createDay(testDb, trip.id, { date: '2025-06-03', title: 'Second' });
+    const place = (name: string) => createPlace(testDb, trip.id, { name });
+    createDayAssignment(testDb, first.id, place('Later').id, { order_index: 1 });
+    createDayAssignment(testDb, first.id, place('Sooner').id, { order_index: 0 });
+    createDayAssignment(testDb, second.id, place('Elsewhere').id, { order_index: 0 });
+    createDayNote(testDb, first.id, trip.id, { text: 'second note', sort_order: 1 });
+    createDayNote(testDb, first.id, trip.id, { text: 'first note', sort_order: 0 });
+
+    const ics = (await svc.exportICS(trip.id)).ics.replace(/\r\n /g, '');
+
+    expect(ics).toContain('SUMMARY:First\r\nDESCRIPTION:• Sooner\\n• Later\\n\\nNotes:\\n• first note\\n• second note\r\n');
+    expect(ics).toContain('SUMMARY:Second\r\nDESCRIPTION:• Elsewhere\r\n');
+  });
+
   it('CAL-016: a day without a date is skipped and a titled day uses its own title', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Mixed Days' });

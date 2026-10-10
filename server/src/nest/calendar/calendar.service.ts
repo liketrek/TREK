@@ -127,6 +127,17 @@ interface ZoneTransition {
 }
 
 const DAY_MS = 86_400_000;
+
+/** Rows of several days, by day id; each day keeps the order the rows came in. */
+function groupByDay<T extends { day_id: number }>(rows: T[]): Map<number, T[]> {
+  const byDay = new Map<number, T[]>();
+  for (const row of rows) {
+    const list = byDay.get(row.day_id);
+    if (list) list.push(row);
+    else byDay.set(row.day_id, [row]);
+  }
+  return byDay;
+}
 /** Ten years at most: a span longer than that is a typo, not a trip. */
 const MAX_SCAN_DAYS = 3660;
 
@@ -318,19 +329,20 @@ export class CalendarService {
       events.push(ev);
     }
 
-    // Days with assignments and notes
+    // Days with assignments and notes, read for all dated days at once.
     const days = await this.daysRepo.listByTrip(trip.id);
+    const datedDayIds = days.filter((d) => d.date).map((d) => d.id);
+    // A booked night puts a stop of its own on its check-in day, so the route
+    // can reach the hotel. That stop is the booking, not a place the traveller
+    // planned to visit, and the booking already comes through below as the
+    // stay block or its check-in and check-out markers. Read here as well it
+    // would put the hotel on the day a second time.
+    const stopsByDay = groupByDay(await this.reservationsRepo.listCalendarStopsForDays(datedDayIds));
+    const notesByDay = groupByDay(await this.dayNotesRepo.listByDayIds(datedDayIds));
     for (const day of days) {
       if (!day.date) continue;
-
-      // A booked night puts a stop of its own on its check-in day, so the route
-      // can reach the hotel. That stop is the booking, not a place the traveller
-      // planned to visit, and the booking already comes through below as the
-      // stay block or its check-in and check-out markers. Read here as well it
-      // would put the hotel on the day a second time.
-      const assignments = await this.reservationsRepo.listCalendarStops(day.id);
-
-      const notes = await this.dayNotesRepo.listByDayIds([day.id]);
+      const assignments = stopsByDay.get(day.id) ?? [];
+      const notes = notesByDay.get(day.id) ?? [];
 
       const timed = assignments.filter(a => a.effective_time);
       const untimed = assignments.filter(a => !a.effective_time);

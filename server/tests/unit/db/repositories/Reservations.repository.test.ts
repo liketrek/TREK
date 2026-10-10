@@ -185,7 +185,7 @@ describe('ReservationsRepository — CL2 (listForCalendar)', () => {
   });
 });
 
-describe('ReservationsRepository — CL4 (listCalendarStops)', () => {
+describe('ReservationsRepository — CL4 (listCalendarStopsForDays)', () => {
   it('CAL-CL4-001: matches the legacy per-day statement, excluding a booked-night stop', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-06-01', end_date: '2026-06-03' });
@@ -197,7 +197,7 @@ describe('ReservationsRepository — CL4 (listCalendarStops)', () => {
     const accId = await insertRow(await orm(), DayAccommodations, { trip: trip.id, place: hotelPlace.id, startDay: day.id, endDay: day.id });
     await insertRow(await orm(), DayAssignments, { day: day.id, place: hotelPlace.id, order_index: 1, accommodation_id: accId });
 
-    const typed = await reservationsRepo.listCalendarStops(day.id);
+    const typed = await reservationsRepo.listCalendarStopsForDays([day.id]);
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
     const legacy = testDb.prepare(`
         SELECT da.*, p.name as place_name, p.address as place_address,
