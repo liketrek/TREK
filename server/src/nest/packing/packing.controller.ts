@@ -13,8 +13,8 @@ import {
 } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import type { User } from '../../types';
-import { PackingService, isInvalidBagRef } from './packing.service';
-import { isUpdateConflict } from '../common/conflictResult';
+import { PackingService } from './packing.service';
+import { PackingWritesService } from './packing-writes.service';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
@@ -59,7 +59,10 @@ type PackingItemRow = { is_private?: number; owner_id?: number | null; recipient
 // passes, so the HTTP and MCP paths cannot demand different rights.
 @UseGuards(JwtAuthGuard, TripAccessGuard)
 export class PackingController {
-  constructor(private readonly packing: PackingService) {}
+  constructor(
+    private readonly packing: PackingService,
+    private readonly writes: PackingWritesService,
+  ) {}
 
   /** Loads the trip or throws the legacy 404; returns it for the permission check. */
 
@@ -99,14 +102,9 @@ export class PackingController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     // checked arrives as boolean or legacy 0/1 — the service coerces by truthiness.
-    const item = await this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked === undefined ? undefined : !!body.checked, weight_grams: body.weight_grams, bag_id: body.bag_id, quantity: body.quantity, is_private: body.is_private, visibility: body.visibility, recipient_ids: body.recipient_ids }, user.id);
-    // A bag referenced in the body must exist on this trip (#2154). The payload
-    // is at fault, so 400 — the 404 'Bag not found' stays with the path routes.
-    if (isInvalidBagRef(item)) {
-      throw new HttpException({ error: 'Bag not found' }, 400);
-    }
-    this.packing.emitToViewers(tripId, 'packing:created', { item }, item, socketId);
-    this.packing.broadcastBagTotals(tripId);
+    // A bag the body names must exist on this trip (#2154); the use case answers
+    // that 400, the 404 'Bag not found' stays with the path routes.
+    const item = await this.writes.createItem(tripId, { name: body.name, category: body.category, checked: body.checked === undefined ? undefined : !!body.checked, weight_grams: body.weight_grams, bag_id: body.bag_id, quantity: body.quantity, is_private: body.is_private, visibility: body.visibility, recipient_ids: body.recipient_ids }, this.writes.restWriter(tripId, user, socketId));
     return { item };
   }
 
@@ -142,32 +140,12 @@ export class PackingController {
     if (itemId === null) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
-    // Privacy state before the change, so a public↔private toggle (#858) can route
-    // the broadcast correctly instead of leaking a freshly-privatized item.
-    const before = await this.packing.getItemPrivacy(tripId, itemId);
     const { name, checked, category, weight_grams, bag_id, quantity, packed_quantity, is_private } = body;
     // bodyKeys carries which keys the request actually provided (the presence-
     // sentinel protocol); the parsed body only ever holds known schema keys.
     // checked arrives as boolean or legacy 0/1 — normalize to the 0/1 the SQL binds.
-    const updated = await this.packing.updateItem(tripId, itemId, { name, checked: checked === undefined ? undefined : checked ? 1 : 0, category, weight_grams, bag_id, quantity, packed_quantity, is_private }, Object.keys(body), ifMatch, user.id);
-    if (!updated) {
-      throw new HttpException({ error: 'Item not found' }, 404);
-    }
-    // Stale offline overwrite — surface the conflict for client-side resolution (#1135).
-    if (isUpdateConflict(updated)) {
-      throw new HttpException({ error: 'conflict', server: updated.server }, 409);
-    }
-    // A bag referenced in the body must exist on this trip (#2154) — see create.
-    if (isInvalidBagRef(updated)) {
-      throw new HttpException({ error: 'Bag not found' }, 400);
-    }
-    this.packing.broadcastUpdate(tripId, itemId, updated as PackingItemRow, !!before?.is_private, socketId);
-    // Only when the write could actually move a weight. Checking an item off is
-    // the most frequent packing write there is, and every ping costs every
-    // connected client a listBags round trip.
-    if (['weight_grams', 'quantity', 'bag_id'].some(k => Object.keys(body).includes(k))) {
-      this.packing.broadcastBagTotals(tripId);
-    }
+    // The use case answers 404, the 409 conflict (#1135) and the 400 bag (#2154).
+    const updated = await this.writes.updateItem(tripId, itemId, { name, checked: checked === undefined ? undefined : checked ? 1 : 0, category, weight_grams, bag_id, quantity, packed_quantity, is_private }, Object.keys(body), this.writes.restWriter(tripId, user, socketId), ifMatch);
     return { item: updated };
   }
 
@@ -184,16 +162,7 @@ export class PackingController {
     if (itemId === null) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
-    const deleted = await this.packing.deleteItem(tripId, itemId, user.id);
-    if (!deleted) {
-      throw new HttpException({ error: 'Item not found' }, 404);
-    }
-    // Scope the delete to the people who could see it (owner + recipients, #858).
-    // `deleted` is already a concretely-typed `PackingItemRow` (Plan 3e Task 3's
-    // `PackingItemsRepository`, via `PackingService.deleteItem`'s return type) —
-    // no cast needed, unlike `updated` above (that one's inferred as `unknown`).
-    this.packing.emitToViewers(tripId, 'packing:deleted', { itemId }, deleted, socketId);
-    this.packing.broadcastBagTotals(tripId);
+    await this.writes.deleteItem(tripId, itemId, this.writes.restWriter(tripId, user, socketId));
     return { success: true };
   }
 

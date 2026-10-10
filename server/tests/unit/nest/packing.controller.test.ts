@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
-import { PackingController } from '../../../src/nest/packing/packing.controller';
+import { PackingController as RoutePackingController } from '../../../src/nest/packing/packing.controller';
 import type { PackingService } from '../../../src/nest/packing/packing.service';
+import { PackingWritesService } from '../../../src/nest/packing/packing-writes.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import type { User } from '../../../src/types';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
@@ -49,6 +51,18 @@ function makeService(overrides: Partial<PackingService> = {}): PackingService {
     }
   }) as PackingService['broadcastUpdate'];
   return svc;
+}
+
+/**
+ * The route over the real item use cases (PackingWritesService), with the
+ * permission granted: the 403 lives in trip-access.guard.test.ts, and these
+ * cases pin what the route answers and broadcasts through the service mock.
+ */
+const allowAll = { checkPermission: vi.fn().mockResolvedValue(true) } as unknown as PermissionsService;
+class PackingController extends RoutePackingController {
+  constructor(svc: PackingService) {
+    super(svc, new PackingWritesService(svc, allowAll));
+  }
 }
 
 async function thrown(fn: () => Promise<unknown>): Promise<{ status: number; body: unknown }> {

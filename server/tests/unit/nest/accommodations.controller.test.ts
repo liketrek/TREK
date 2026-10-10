@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import { AccommodationsController } from '../../../src/nest/accommodations/accommodations.controller';
-import type { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
+import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import type { User } from '../../../src/types';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
@@ -10,15 +10,27 @@ const refs = { place_id: 2, start_day_id: 10, end_day_id: 11 };
 /** A write that left the day plan alone, which is what most of these cases are about. */
 const noMirror = { created: null, removed: [], stamped: null };
 
-function makeService(overrides: Partial<AccommodationsService> = {}): AccommodationsService {
-  return {
-    verifyTripAccess: vi.fn().mockReturnValue(trip),
-    canEdit: vi.fn().mockReturnValue(true),
-    broadcast: vi.fn(),
+/**
+ * The real stay use cases (createStay/updateStay/deleteStay and the REST writer)
+ * over stubbed persistence, so these cases pin what the route answers and sends,
+ * not how the controller calls into the service. The override names are the
+ * route-facing ones the cases always used: `get`, `create`, `update`, `remove`,
+ * `validateRefs` and `broadcast` (the realtime transport).
+ */
+function makeService(overrides: object = {}): AccommodationsService {
+  const { broadcast = vi.fn(), validateRefs, get, create, update, remove, ...rest } = overrides as Record<string, unknown>;
+  return Object.assign(Object.create(AccommodationsService.prototype) as AccommodationsService, {
+    trips: { findAccessible: vi.fn().mockResolvedValue(trip) },
+    permissions: { checkPermission: vi.fn().mockResolvedValue(true) },
+    realtime: { broadcast },
     announceMirror: vi.fn(),
-    validateRefs: vi.fn().mockReturnValue([]),
-    ...overrides,
-  } as unknown as AccommodationsService;
+    validateAccommodationRefs: validateRefs ?? vi.fn().mockReturnValue([]),
+    ...(get ? { getAccommodation: get } : {}),
+    ...(create ? { createAccommodation: create } : {}),
+    ...(update ? { updateAccommodation: update } : {}),
+    ...(remove ? { deleteAccommodation: remove } : {}),
+    ...rest,
+  });
 }
 
 async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number; body: unknown }> {

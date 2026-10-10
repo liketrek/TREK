@@ -8,7 +8,8 @@ import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied, adminRequired } from '../../mcp/tools/_shared';
-import { PackingService, isInvalidBagRef } from './packing.service';
+import { PackingService } from './packing.service';
+import { PackingWritesService } from './packing-writes.service';
 import {
   packingCreateBagRequestSchema,
   packingCreateItemRequestSchema,
@@ -50,6 +51,7 @@ export class PackingMcp {
     private readonly packing: PackingService,
     readonly addons: AddonsService,
     private readonly guards: McpToolGuardsService,
+    private readonly writes: PackingWritesService,
   ) {}
 
   // --- PACKING ---
@@ -77,9 +79,7 @@ export class PackingMcp {
     { tripId, name, category, bag_id, quantity, weight_grams, checked, is_private, visibility, recipient_ids }: { tripId: number; name: string; category?: string; bag_id?: number | null; quantity?: number; weight_grams?: number | null; checked?: boolean | number; is_private?: boolean; visibility?: PackingVisibility; recipient_ids?: number[] },
     ctx: McpContext,
   ) {
-    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
-    const item = await this.packing.createItem(tripId, {
+    const item = await this.writes.createItem(tripId, {
       name,
       category: category || 'General',
       bag_id,
@@ -90,13 +90,7 @@ export class PackingMcp {
       is_private,
       visibility,
       recipient_ids,
-    }, ctx.userId);
-    // A referenced bag must exist on this trip (#2154), as on the REST route.
-    if (isInvalidBagRef(item)) return errorResult('Bag not found.');
-    // A restricted item (#858) reaches its owner and recipients only; a Common
-    // one answers null here and goes to the whole room.
-    this.guards.safeBroadcast(tripId, 'packing:created', { item }, this.packing.viewersOf(item));
-    this.packing.broadcastBagTotals(String(tripId));
+    }, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ item });
   }
 
@@ -113,13 +107,9 @@ export class PackingMcp {
     access: { group: 'packing', mode: 'write' },
   })
   async togglePackingItem({ tripId, itemId, checked }: { tripId: number; itemId: number; checked: boolean }, ctx: McpContext) {
-    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
-    const item = await this.packing.updateItem(tripId, itemId, { checked: checked ? 1 : 0 }, ['checked'], undefined, ctx.userId);
-    if (!item) return errorResult('Packing item not found.');
-    // Scoped to the people who may see it, exactly as the REST route does
-    // (#858, #1976). A Common item answers null here and goes to the room.
-    this.guards.safeBroadcast(tripId, 'packing:updated', { item }, this.packing.viewersOf(item));
+    // The update use case: a toggle never changes the privacy, so this is its
+    // plain update to whoever may see the item (#858, #1976).
+    const item = await this.writes.updateItem(tripId, itemId, { checked: checked ? 1 : 0 }, ['checked'], await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ item });
   }
 
@@ -135,14 +125,7 @@ export class PackingMcp {
     access: { group: 'packing', mode: 'write' },
   })
   async deletePackingItem({ tripId, itemId }: { tripId: number; itemId: number }, ctx: McpContext) {
-    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
-    const deleted = await this.packing.deleteItem(tripId, itemId, ctx.userId);
-    if (!deleted) return errorResult('Packing item not found.');
-    // deleteItem hands back the row it removed, so the delete can be scoped to
-    // the same people the item was ever visible to (#1976).
-    this.guards.safeBroadcast(tripId, 'packing:deleted', { itemId }, this.packing.viewersOf(deleted));
-    this.packing.broadcastBagTotals(String(tripId));
+    await this.writes.deleteItem(tripId, itemId, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ success: true });
   }
 
@@ -170,42 +153,12 @@ export class PackingMcp {
     { tripId, itemId, name, category, bag_id, quantity, packed_quantity, weight_grams, is_private }: { tripId: number; itemId: number; name?: string; category?: string; bag_id?: number | null; quantity?: number; packed_quantity?: number | null; weight_grams?: number | null; is_private?: boolean },
     ctx: McpContext,
   ) {
-    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     const fields = { name, category, bag_id, quantity, packed_quantity, weight_grams, is_private };
     // The service reads presence from bodyKeys, so a field has to be named there
     // for an explicit null to clear it rather than read as "leave it alone".
     const bodyKeys = Object.keys(fields).filter(k => fields[k as keyof typeof fields] !== undefined);
-    // Privacy state before the write, so a public↔private flip routes the
-    // broadcast the way the REST route does instead of leaking a freshly
-    // privatized item (or leaving a stale copy on everyone else's screen).
-    const wasPrivate = !!(await this.packing.getItemPrivacy(tripId, itemId))?.is_private;
-    const item = await this.packing.updateItem(tripId, itemId, fields, bodyKeys, undefined, ctx.userId);
-    if (!item) return errorResult('Packing item not found.');
-    // A referenced bag must exist on this trip (#2154), as on the REST route.
-    if (isInvalidBagRef(item)) return errorResult('Bag not found.');
-    this.broadcastItemUpdate(tripId, itemId, item, wasPrivate);
+    const item = await this.writes.updateItem(tripId, itemId, fields, bodyKeys, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ item });
-  }
-
-  /**
-   * The four privacy transitions of an item update (#858), as
-   * PackingService.broadcastUpdate does them for REST, but over safeBroadcast so
-   * the events keep the MCP marker and the tool survives a broadcast failure.
-   */
-  private broadcastItemUpdate(tripId: number, itemId: number, item: { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] }, wasPrivate: boolean) {
-    const viewers = this.packing.viewersOf(item);
-    if (item.is_private) {
-      // Newly restricted: take it off the room's screens first, then hand it
-      // back to the people who may still see it.
-      if (!wasPrivate) this.guards.safeBroadcast(tripId, 'packing:deleted', { itemId });
-      this.guards.safeBroadcast(tripId, wasPrivate ? 'packing:updated' : 'packing:created', { item }, viewers);
-      return;
-    }
-    // Newly common: the members who never had the row need it created, not updated.
-    if (wasPrivate) this.guards.safeBroadcast(tripId, 'packing:created', { item });
-    this.packing.broadcastBagTotals(String(tripId));
-    this.guards.safeBroadcast(tripId, 'packing:updated', { item });
   }
 
   @Tool({

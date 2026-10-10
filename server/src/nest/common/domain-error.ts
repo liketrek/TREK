@@ -18,30 +18,42 @@ import { HttpException } from '@nestjs/common';
  *   call with `errorResult(publicMessage)`.
  *
  * `code` names the refusal for logs and tests; it never reaches the body, so
- * adding one changes no response.
+ * adding one changes no response. `mcpMessage` is for the few refusals whose
+ * MCP wording has always differed from the REST body (the trip gate's
+ * "Trip not found or access denied."); it names that drift in one place
+ * instead of in every tool.
  */
 export class DomainError extends HttpException {
   readonly code: string;
   readonly publicMessage: string;
   readonly details?: Readonly<Record<string, unknown>>;
+  readonly mcpMessage?: string;
 
   constructor(
     status: number,
     publicMessage: string,
-    options: { code?: string; details?: Record<string, unknown> } = {},
+    options: { code?: string; details?: Record<string, unknown>; mcpMessage?: string } = {},
   ) {
-    super({ ...options.details, error: publicMessage }, status);
+    super(bodyOf(publicMessage, options.details), status);
     this.name = 'DomainError';
     this.message = publicMessage;
     this.publicMessage = publicMessage;
     this.code = options.code ?? defaultCode(status);
     if (options.details) this.details = { ...options.details };
+    if (options.mcpMessage !== undefined) this.mcpMessage = options.mcpMessage;
   }
 
   /** The JSON body REST answers with: `{ error, ...details }`. */
   toBody(): Record<string, unknown> {
-    return { ...this.details, error: this.publicMessage };
+    return bodyOf(this.publicMessage, this.details);
   }
+}
+
+/** `error` first, as every hand-written body had it, and never overridden by a detail. */
+function bodyOf(error: string, details: Readonly<Record<string, unknown>> | undefined): Record<string, unknown> {
+  const body: Record<string, unknown> = { error };
+  for (const [key, value] of Object.entries(details ?? {})) if (key !== 'error') body[key] = value;
+  return body;
 }
 
 const CODES: Record<number, string> = {

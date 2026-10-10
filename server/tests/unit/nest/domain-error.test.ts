@@ -41,6 +41,8 @@ describe('DomainError', () => {
     const err = new DomainError(409, 'Taken', { code: 'email_taken', details: { field: 'email' } });
     expect(err.code).toBe('email_taken');
     expect(err.toBody()).toEqual({ field: 'email', error: 'Taken' });
+    // error leads, as in every hand-written body ({ error: 'conflict', server }).
+    expect(Object.keys(err.toBody())).toEqual(['error', 'field']);
     expect(err.getResponse()).toEqual({ field: 'email', error: 'Taken' });
   });
 
@@ -119,6 +121,15 @@ describe('TrekExceptionFilter on a DomainError', () => {
 });
 
 describe('trekMcpErrorMapper', () => {
+  it('prefers the MCP wording of a refusal that has one', () => {
+    expect(
+      trekMcpErrorMapper(new DomainError(404, 'Trip not found', { mcpMessage: 'Trip not found or access denied.' })),
+    ).toEqual({
+      content: [{ type: 'text', text: 'Trip not found or access denied.' }],
+      isError: true,
+    });
+  });
+
   it('turns a DomainError into errorResult(publicMessage)', () => {
     expect(trekMcpErrorMapper(notFound('Trip not found or access denied.'))).toEqual({
       content: [{ type: 'text', text: 'Trip not found or access denied.' }],

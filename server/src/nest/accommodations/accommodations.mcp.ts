@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { PlacesService } from '../places/places.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { UnitOfWork } from '../database/unit-of-work';
-import { AccommodationsService, type MirrorSender } from './accommodations.service';
+import { AccommodationsService } from './accommodations.service';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -43,12 +43,6 @@ export class AccommodationsMcp {
     private readonly uow: UnitOfWork,
   ) {}
 
-  /** The tools' own broadcast, handed to announceMirror so the day stop a booking
-   *  writes is announced exactly as the REST route announces it. */
-  private mirrorSender(tripId: number): MirrorSender {
-    return (event, payload) => this.guards.safeBroadcast(tripId, event, payload as Record<string, unknown>);
-  }
-
   @Tool({
     name: 'create_accommodation',
     description: 'Add an accommodation (hotel, Airbnb, etc.) to a trip, linked to a place and a date range. This also puts the place on its check-in day, so the stay shows up as a stop on the route.',
@@ -73,13 +67,8 @@ export class AccommodationsMcp {
     },
     ctx: McpContext,
   ) {
-    if (!(await this.accommodations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    const errors = await this.accommodations.validateAccommodationRefs(tripId, place_id, start_day_id, end_day_id);
-    if (errors.length > 0) return { content: [{ type: 'text' as const, text: errors.map(e => e.message).join(', ') }], isError: true };
-    const { accommodation, mirror } = await this.accommodations.createAccommodation(tripId, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes });
-    this.guards.safeBroadcast(tripId, 'accommodation:created', { accommodation });
-    await this.accommodations.announceMirror(tripId, mirror, this.mirrorSender(tripId));
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
+    const { accommodation, mirror } = await this.accommodations.createStay(tripId, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes }, writer);
     return ok({ accommodation, assignment: mirror.created });
   }
 
@@ -141,8 +130,9 @@ export class AccommodationsMcp {
       // place as lodging, and place:created is the only announcement it gets here.
       const place = (await result.mirror).stamped ?? result.place;
       this.guards.safeBroadcast(tripId, 'place:created', { place });
-      this.guards.safeBroadcast(tripId, 'accommodation:created', { accommodation: result.accommodation });
-      await this.accommodations.announceMirror(tripId, { ...result.mirror, stamped: null }, this.mirrorSender(tripId));
+      // The same events a booking made on its own sends, the partner reservation's
+      // refetch ping among them; the stamp already went out as place:created.
+      await this.accommodations.announceStayCreated(tripId, { accommodation: result.accommodation, mirror: { ...result.mirror, stamped: null } }, await this.guards.tripWriter(tripId, ctx.userId));
       return ok({ place, accommodation: result.accommodation, assignment: (await result.mirror).created });
     } catch {
       return { content: [{ type: 'text' as const, text: 'Failed to create place and accommodation.' }], isError: true };
@@ -174,13 +164,8 @@ export class AccommodationsMcp {
     },
     ctx: McpContext,
   ) {
-    if (!(await this.accommodations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    const existing = await this.accommodations.getAccommodation(accommodationId, tripId);
-    if (!existing) return { content: [{ type: 'text' as const, text: 'Accommodation not found.' }], isError: true };
-    const { accommodation, mirror } = await this.accommodations.updateAccommodation(accommodationId, existing, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes });
-    this.guards.safeBroadcast(tripId, 'accommodation:updated', { accommodation });
-    await this.accommodations.announceMirror(tripId, mirror, this.mirrorSender(tripId));
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
+    const { accommodation, mirror } = await this.accommodations.updateStay(tripId, accommodationId, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes }, writer);
     // movedAssignment rather than a delete/create pair: an edit carries the booking's
     // own stop across instead of rebuilding it, so the caller sees the same row.
     return ok({ accommodation, assignment: mirror.created, movedAssignment: mirror.moved, removedAssignments: mirror.removed });
@@ -197,14 +182,10 @@ export class AccommodationsMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async deleteAccommodation({ tripId, accommodationId }: { tripId: number; accommodationId: number }, ctx: McpContext) {
-    if (!(await this.accommodations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    if (!(await this.accommodations.getAccommodation(accommodationId, tripId))) return { content: [{ type: 'text' as const, text: 'Accommodation not found.' }], isError: true };
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
     // linkedReservationId stays the first one so the tool's answer keeps its shape;
     // linkedReservationIds carries the rest for a block that had more than one booking.
-    const { linkedReservationId, linkedReservationIds, mirror } = await this.accommodations.deleteAccommodation(accommodationId);
-    await this.accommodations.announceMirror(tripId, mirror, this.mirrorSender(tripId));
-    this.guards.safeBroadcast(tripId, 'accommodation:deleted', { id: accommodationId, linkedReservationId, linkedReservationIds });
+    const { linkedReservationId, linkedReservationIds, mirror } = await this.accommodations.deleteStay(tripId, accommodationId, writer);
     return ok({ success: true, linkedReservationId, linkedReservationIds, removedAssignments: mirror.removed });
   }
 

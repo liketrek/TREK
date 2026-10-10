@@ -4,6 +4,7 @@ import { PackingController } from './packing.controller';
 import { AdminPackingTemplatesController } from './admin-packing-templates.controller';
 import { PackingMcp } from './packing.mcp';
 import { PackingService } from './packing.service';
+import { PackingWritesService } from './packing-writes.service';
 import { PackingRpc } from './packing.rpc';
 import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
@@ -34,7 +35,7 @@ import { TripMembers } from '../../db/entities/TripMembers.entity';
     MikroOrmModule.forFeature([PackingItems, PackingItemContributors, PackingBags, PackingCategoryAssignees, PackingTemplates, PackingTemplateCategories, PackingTemplateItems, Trips, TripMembers]),
     McpSharedModule, NotificationsModule, PermissionsModule, RealtimeModule, PluginGuardsModule, AddonsModule, AuditModule],
   controllers: [PackingController, AdminPackingTemplatesController],
-  providers: [PackingService, PackingMcp, PackingRpc],
+  providers: [PackingService, PackingWritesService, PackingMcp, PackingRpc],
   exports: [PackingService],
 })
 export class PackingModule {}

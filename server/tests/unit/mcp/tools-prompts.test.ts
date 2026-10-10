@@ -147,7 +147,7 @@ beforeAll(async () => {
     await createTestTripsRepo(testDb),
     await createTestTripMembersRepo(testDb),
   );
-  packingMcp = new PackingMcp(promptPackingService, addonsStub, promptGuards);
+  packingMcp = new PackingMcp(promptPackingService, addonsStub, promptGuards, {} as never);
   promptBudget = new BudgetService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new ExchangeRatesService(), new RealtimeService(), await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb)));
   budgetMcp = new BudgetMcp(
   promptBudget,

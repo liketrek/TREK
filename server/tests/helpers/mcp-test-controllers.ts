@@ -32,6 +32,7 @@ import { buildMapsService } from './maps-service';
 import { NotificationsMcp } from '../../src/nest/notifications/notifications.mcp';
 import { NotificationsService } from '../../src/nest/notifications/notifications.service';
 import { PackingMcp } from '../../src/nest/packing/packing.mcp';
+import { PackingWritesService } from '../../src/nest/packing/packing-writes.service';
 import { PackingService } from '../../src/nest/packing/packing.service';
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { PlacesMcp } from '../../src/nest/places/places.mcp';
@@ -388,7 +389,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
       new AirportsMcp(),
       new AuthMcp(),
       new TodoMcp(todoService, addonsService, guards),
-      new PackingMcp(packingService, addonsService, guards),
+      new PackingMcp(packingService, addonsService, guards, new PackingWritesService(packingService, permissionsService)),
       new BudgetMcp(budgetService, exchangeRatesService, new RuntimeEnvService(), new TripMembershipService(await createTestTripsRepo(db), await createTestTripMembersRepo(db)), addonsService, guards, await createTestUnitOfWork(db), await createTestPlacesRepo(db), await createTestTripsRepo(db), await createTestTripMembersRepo(db)),
       new ReservationsMcp(reservationsService, daysService, budgetService, assignmentsService, guards),
       new DayNotesMcp(new DayNotesService(new TripAccessService(await createTestTripsRepo(db)), permissionsService, realtimeService, await createTestDayNotesRepo(db), await createTestDaysRepo(db)), guards),

@@ -82,10 +82,10 @@ export function trekDemoToolGate(isDemoUser: (userId: number) => Promise<boolean
 
 /**
  * A service refusal (`DomainError`) thrown out of a tool answers the call with
- * `errorResult(publicMessage)`: the same text REST sends as `{ error }`, and the
+ * `errorResult(publicMessage)` (or the refusal's own `mcpMessage`): the same text REST sends as `{ error }`, and the
  * same result the tools built by hand from a `{ error, status }` return. Any
  * other error propagates as before. Given to McpModule.forRoot (AppModule) and
  * to the MCP test registry.
  */
 export const trekMcpErrorMapper: McpErrorMapper = (err) =>
-  err instanceof DomainError ? errorResult(err.publicMessage) : undefined;
+  err instanceof DomainError ? errorResult(err.mcpMessage ?? err.publicMessage) : undefined;

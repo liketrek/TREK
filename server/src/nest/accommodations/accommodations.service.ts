@@ -26,6 +26,8 @@ import type { User } from '../../types';
 import { RESERVATION_METADATA } from '../../db/json-columns';
 import { decodeJson, encodeJson } from '../../utils/json-column';
 import { TripAccessService } from '../trip-membership/trip-access.service';
+import { DomainError } from '../common/domain-error';
+import { requireTripWrite, restTripWriter, type TripWriter } from '../common/trip-writer';
 
 type Trip = TripAccess;
 
@@ -72,6 +74,20 @@ export interface DayAccommodation {
   confirmation: string | null;
   notes: string | null;
 }
+
+/** The fields a stay write takes from its caller, before the required ones are checked. */
+export interface StayInput {
+  place_id?: number;
+  start_day_id?: number;
+  end_day_id?: number;
+  check_in?: string | null;
+  check_in_end?: string | null;
+  check_out?: string | null;
+  confirmation?: string | null;
+  notes?: string | null;
+}
+
+const stayNotFound = () => new DomainError(404, 'Accommodation not found', { mcpMessage: 'Accommodation not found.' });
 
 export interface CreateAccommodationData {
   place_id: number;
@@ -167,6 +183,92 @@ export class AccommodationsService {
 
   remove(id: string | number, opts: { keepStop?: boolean } = {}) {
     return this.deleteAccommodation(id, opts);
+  }
+
+  // -------------------------------------------------------------------------
+  // Stay writes, one per use case
+  //
+  // Each holds the whole write for every surface: the trip gate, the reference
+  // checks, the transaction and every event the write sends. The REST route and
+  // the MCP tool are adapters over these, so a client sees the same events
+  // whichever of the two made the change. REST's events are the canonical ones;
+  // MCP used to send fewer (no reservation:created on a booking, no
+  // reservation:deleted/budget:deleted on its cascade).
+  // -------------------------------------------------------------------------
+
+  /** Every referenced place and day must exist on this trip (404). MCP lists every miss. */
+  private async requireStayRefs(tripId: string | number, placeId?: number, startDayId?: number, endDayId?: number): Promise<void> {
+    const errors = await this.validateAccommodationRefs(tripId, placeId, startDayId, endDayId);
+    if (errors.length > 0) {
+      throw new DomainError(404, errors[0].message, { mcpMessage: errors.map((e) => e.message).join(', ') });
+    }
+  }
+
+  /** The REST caller of a stay write: skips the sender's socket, as the route always did. */
+  restWriter(tripId: string, user: User, socketId: string | undefined): TripWriter {
+    return restTripWriter(this.realtime, tripId, user, socketId);
+  }
+
+  private gate(tripId: string | number, writer: TripWriter) {
+    // Coerced, as verifyTripAccess always did for this domain.
+    return requireTripWrite({ access: this.trips, permissions: this.permissions }, 'day_edit', Number(tripId), writer);
+  }
+
+  /** Book a night: the stay, its partner hotel reservation and the day stop it implies. */
+  async createStay(tripId: string | number, input: StayInput, writer: TripWriter) {
+    await this.gate(tripId, writer);
+    const { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } = input;
+    if (!place_id || !start_day_id || !end_day_id) {
+      throw new DomainError(400, 'place_id, start_day_id, and end_day_id are required');
+    }
+    await this.requireStayRefs(tripId, place_id, start_day_id, end_day_id);
+    const result = await this.createAccommodation(tripId, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as CreateAccommodationData);
+    await this.announceStayCreated(tripId, result, writer);
+    return result;
+  }
+
+  /**
+   * The events of a booked night: the stay, the partner reservation it brought (a
+   * refetch ping, the bookings view has no row to apply), then the day stop.
+   * Public for a surface that writes the stay inside a larger transaction.
+   */
+  async announceStayCreated(tripId: string | number, result: { accommodation: unknown; mirror: AccommodationMirror }, writer: TripWriter) {
+    writer.events.emit('accommodation:created', { accommodation: result.accommodation } as TrekWsPayload<'accommodation:created'>);
+    writer.events.emit('reservation:created', {});
+    await this.announceMirror(tripId, result.mirror, (event, payload) => writer.events.emitAll(event, payload), writer.socketId);
+  }
+
+  /** Change a stay; moving it to another day or place carries its own stop along. */
+  async updateStay(tripId: string | number, id: string | number, fields: StayInput, writer: TripWriter) {
+    await this.gate(tripId, writer);
+    const existing = await this.getAccommodation(id, tripId);
+    if (!existing) throw stayNotFound();
+    const { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } = fields;
+    await this.requireStayRefs(tripId, place_id, start_day_id, end_day_id);
+    const result = await this.updateAccommodation(id, existing as DayAccommodation, { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } as Parameters<AccommodationsService['updateAccommodation']>[2]);
+    writer.events.emit('accommodation:updated', { accommodation: result.accommodation } as TrekWsPayload<'accommodation:updated'>);
+    await this.announceMirror(tripId, result.mirror, (event, payload) => writer.events.emitAll(event, payload), writer.socketId);
+    return result;
+  }
+
+  /** Cancel a stay, with the reservations and expenses that hang off it. */
+  async deleteStay(tripId: string | number, id: string | number, writer: TripWriter, opts: { keepStop?: boolean } = {}) {
+    await this.gate(tripId, writer);
+    if (!(await this.getAccommodation(id, tripId))) throw stayNotFound();
+    const result = await this.deleteAccommodation(id, opts);
+    await this.announceMirror(tripId, result.mirror, (event, payload) => writer.events.emitAll(event, payload), writer.socketId);
+    for (const reservationId of result.linkedReservationIds) writer.events.emit('reservation:deleted', { reservationId });
+    for (const itemId of result.deletedBudgetItemIds) writer.events.emit('budget:deleted', { itemId });
+    const accommodationId = Number(id);
+    // REST's payload is the canonical one. The MCP tool always named the stay `id`
+    // and listed the bookings it took along, so its event keeps those keys too.
+    writer.events.emit(
+      'accommodation:deleted',
+      writer.surface === 'mcp'
+        ? ({ accommodationId, id: accommodationId, linkedReservationId: result.linkedReservationId, linkedReservationIds: result.linkedReservationIds } as TrekWsPayload<'accommodation:deleted'>)
+        : { accommodationId },
+    );
+    return result;
   }
 
   // -------------------------------------------------------------------------

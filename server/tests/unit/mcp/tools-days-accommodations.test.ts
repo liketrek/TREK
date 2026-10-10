@@ -318,6 +318,40 @@ describe('Tool: create_accommodation', () => {
     });
   });
 
+  it('MCP-ACCOM-EVT-01: announces the partner hotel reservation, as the REST route does', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id);
+    const day1 = createDay(testDb, trip.id);
+    const day2 = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'create_accommodation',
+        arguments: { tripId: trip.id, place_id: place.id, start_day_id: day1.id, end_day_id: day2.id },
+      });
+      const events = broadcastMock.mock.calls.map((c) => c[1]);
+      expect(events.slice(0, 2)).toEqual(['accommodation:created', 'reservation:created']);
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'reservation:created', { _source: 'mcp' });
+    });
+  });
+
+  it('MCP-ACCOM-EVT-02: a place from another trip is refused with every miss listed, nothing written', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const foreign = createPlace(testDb, otherTrip.id);
+    const day = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_accommodation',
+        arguments: { tripId: trip.id, place_id: foreign.id, start_day_id: day.id, end_day_id: 99999 },
+      });
+      expect(result.isError).toBe(true);
+      expect((result.content as { text: string }[])[0].text).toBe('Place not found, End day not found');
+      expect(await countRows(orm, DayAccommodations, { trip: trip.id })).toBe(0);
+    });
+  });
+
   it('returns access denied for non-member', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
@@ -330,6 +364,7 @@ describe('Tool: create_accommodation', () => {
         arguments: { tripId: trip.id, place_id: place.id, start_day_id: day.id, end_day_id: day.id },
       });
       expect(result.isError).toBe(true);
+      expect((result.content as { text: string }[])[0].text).toBe('Trip not found or access denied.');
     });
   });
 
@@ -381,6 +416,27 @@ describe('Tool: update_accommodation', () => {
         arguments: { tripId: trip.id, accommodationId: 99999, confirmation: 'X' },
       });
       expect(result.isError).toBe(true);
+      expect((result.content as { text: string }[])[0].text).toBe('Accommodation not found.');
+    });
+  });
+
+  it('MCP-ACCOM-EVT-03: moving a stay onto a place of another trip is refused and changes nothing', async () => {
+    // The tool used to write whatever place id it was given; REST has always 404ed it.
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id);
+    const foreign = createPlace(testDb, createTrip(testDb, user.id).id);
+    const day1 = createDay(testDb, trip.id);
+    const day2 = createDay(testDb, trip.id);
+    const acc = createDayAccommodation(testDb, trip.id, place.id, day1.id, day2.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_accommodation',
+        arguments: { tripId: trip.id, accommodationId: acc.id, place_id: foreign.id },
+      });
+      expect(result.isError).toBe(true);
+      expect((result.content as { text: string }[])[0].text).toBe('Place not found');
+      expect(await countRows(orm, DayAccommodations, { id: acc.id, place: place.id })).toBe(1);
     });
   });
 
@@ -419,6 +475,32 @@ describe('Tool: delete_accommodation', () => {
       expect(data.success).toBe(true);
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'accommodation:deleted', expect.objectContaining({ id: acc.id }));
       expect(await findRow(orm, DayAccommodations, { id: acc.id })).toBeNull();
+    });
+  });
+
+  it('MCP-ACCOM-EVT-04: cancelling a booked stay announces the reservation it took along, then the stay', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id);
+    const day1 = createDay(testDb, trip.id);
+    const day2 = createDay(testDb, trip.id);
+    await withHarness(user.id, async (h) => {
+      const created = parseToolResult(await h.client.callTool({
+        name: 'create_accommodation',
+        arguments: { tripId: trip.id, place_id: place.id, start_day_id: day1.id, end_day_id: day2.id },
+      })) as { accommodation: { id: number } };
+      const reservation = await findRow(orm, Reservations, { trip: trip.id, type: 'hotel' });
+      expect(reservation).not.toBeNull();
+      broadcastMock.mockClear();
+      await h.client.callTool({ name: 'delete_accommodation', arguments: { tripId: trip.id, accommodationId: created.accommodation.id } });
+      const events = broadcastMock.mock.calls.map((c) => c[1]);
+      expect(events.slice(-2)).toEqual(['reservation:deleted', 'accommodation:deleted']);
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'reservation:deleted', { reservationId: reservation?.id, _source: 'mcp' });
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'accommodation:deleted',
+        expect.objectContaining({ accommodationId: created.accommodation.id, id: created.accommodation.id }),
+      );
     });
   });
 

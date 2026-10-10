@@ -6,6 +6,7 @@ import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import type { TripEventSink, TripWriter } from '../common/trip-writer';
 
 /**
  * The impure MCP tool guards that used to live as plain functions in
@@ -82,6 +83,28 @@ export class McpToolGuardsService {
     if (tripOwnerId === null) return false;
     const role = await this.users.getRole(userId);
     return this.permissions.checkPermission(action, role ?? 'user', tripOwnerId, userId, tripOwnerId !== userId);
+  }
+
+  /**
+   * The tool caller as a trip use case takes it: its role for the permission
+   * check, and safeBroadcast as the way the write's events leave, so they keep
+   * the MCP marker and a failed broadcast never fails the tool.
+   */
+  async tripWriter(tripId: number, userId: number): Promise<TripWriter> {
+    const role = (await this.users.getRole(userId)) ?? 'user';
+    return { userId, role, surface: 'mcp', events: this.tripEvents(tripId) };
+  }
+
+  /** safeBroadcast in the shape of a TripEventSink. MCP skips no socket, so both doors are the same. */
+  tripEvents(tripId: number): TripEventSink {
+    return {
+      // The three-argument call when nothing scopes it, as every tool made it.
+      emit: (event, payload, onlyUserIds) =>
+        onlyUserIds === undefined
+          ? this.safeBroadcast(tripId, event, payload as Record<string, unknown>)
+          : this.safeBroadcast(tripId, event, payload as Record<string, unknown>, onlyUserIds && [...onlyUserIds]),
+      emitAll: (event, payload) => this.safeBroadcast(tripId, event, payload as Record<string, unknown>),
+    };
   }
 
   /** True when the user has the global admin role (mirrors REST `user.role === 'admin'` gates). */
