@@ -11,6 +11,7 @@ import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { AirtrailClient } from './airtrail.client';
 import { AirtrailLinkService } from './airtrail-link.service';
 import { AirtrailService } from './airtrail.service';
+import { UserConnectionRepositoriesModule } from '../database/user-connection-repositories.module';
 
 /**
  * The AirTrail pieces ReservationsModule may inject: the HTTP client, the
@@ -35,6 +36,7 @@ import { AirtrailService } from './airtrail.service';
     AddonsModule,
     RealtimeModule,
     ReservationsReadModule,
+    UserConnectionRepositoriesModule,
     MikroOrmModule.forFeature([Users, Reservations, ReservationEndpoints, AppSettings]),
   ],
   providers: [AirtrailClient, AirtrailService, AirtrailLinkService],

@@ -28,6 +28,7 @@ import { readUser } from '../../helpers/factories/users';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { UserAirtrailRepository } from '../../../src/db/repositories/UserAirtrail.repository';
 import { AuditService } from '../../../src/nest/audit/audit.service';
 import { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
 import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
@@ -41,7 +42,7 @@ const listFlights = vi.fn();
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   usersRepo = t.repo(Users);
-  svc = new AirtrailService(usersRepo, new AuditService(t.repo(AuditLog), usersRepo), { listFlights } as unknown as AirtrailClient);
+  svc = new AirtrailService(new UserAirtrailRepository(t.orm.em), new AuditService(t.repo(AuditLog), usersRepo), { listFlights } as unknown as AirtrailClient);
 });
 beforeEach(() => {
   resetTestDb(testDb);

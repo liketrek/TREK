@@ -80,6 +80,9 @@ import { CollectionPlaces } from '../../src/db/entities/CollectionPlaces.entity'
 import type { CollectionPlacesRepository } from '../../src/db/repositories/CollectionPlaces.repository';
 import { CollectionPlaceRatings } from '../../src/db/entities/CollectionPlaceRatings.entity';
 import type { CollectionPlaceRatingsRepository } from '../../src/db/repositories/CollectionPlaceRatings.repository';
+import { UserImmichRepository } from '../../src/db/repositories/UserImmich.repository';
+import { UserSynologyRepository } from '../../src/db/repositories/UserSynology.repository';
+import { UserAirtrailRepository } from '../../src/db/repositories/UserAirtrail.repository';
 
 const perHandle = new WeakMap<Database.Database, Promise<UnitOfWork>>();
 const appSettingsPerHandle = new WeakMap<Database.Database, Promise<AppSettingsRepository>>();
@@ -217,6 +220,21 @@ export function createTestUsersRepo(db: Database.Database): Promise<UsersReposit
   const pending = sharedTestOrm(db).then((t) => t.repo(Users));
   usersPerHandle.set(db, pending);
   return pending;
+}
+
+/** The Immich connection repository over the handle's shared ORM (same `users` table as {@link createTestUsersRepo}). */
+export async function createTestUserImmichRepo(db: Database.Database): Promise<UserImmichRepository> {
+  return new UserImmichRepository((await sharedTestOrm(db)).orm.em);
+}
+
+/** The Synology connection repository over the handle's shared ORM. */
+export async function createTestUserSynologyRepo(db: Database.Database): Promise<UserSynologyRepository> {
+  return new UserSynologyRepository((await sharedTestOrm(db)).orm.em);
+}
+
+/** The AirTrail connection repository over the handle's shared ORM. */
+export async function createTestUserAirtrailRepo(db: Database.Database): Promise<UserAirtrailRepository> {
+  return new UserAirtrailRepository((await sharedTestOrm(db)).orm.em);
 }
 
 /**

@@ -140,6 +140,9 @@ import {
   createTestReservationDayPositionsRepo,
   createTestDayAccommodationsRepo,
   createTestUsersRepo,
+  createTestUserImmichRepo,
+  createTestUserSynologyRepo,
+  createTestUserAirtrailRepo,
   createTestCollectionsRepo, createTestCollectionMembersRepo, createTestCollectionLabelsRepo,
   createTestCollectionPlacesRepo, createTestCollectionPlaceRatingsRepo,
   sharedTestOrm,
@@ -405,8 +408,8 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
     // Plan 3g Task 4 constructor-ripple: MA1/MA2/MA6's journey half.
     await createTestJourneysRepo(db), await createTestJourneyContributorsRepo(db), await createTestJourneyPhotosRepo(db),
   );
-  const immichService = new ImmichService(new AuditService(auditLogRepo, usersRepo), memoriesAccess, generalStorage, usersRepo, await createTestUnitOfWork(db));
-  const synologyService = new SynologyService(memoriesAccess, notificationsStub(), usersRepo);
+  const immichService = new ImmichService(new AuditService(auditLogRepo, usersRepo), memoriesAccess, generalStorage, await createTestUserImmichRepo(db), await createTestUnitOfWork(db));
+  const synologyService = new SynologyService(memoriesAccess, notificationsStub(), await createTestUserSynologyRepo(db));
   const trekPhotos = new TrekPhotoRegistrationService(mcpOrm.repo(TrekPhotos), mcpOrm.repo(TripPhotos), await createTestJourneyPhotosRepo(db));
   const captureBackfill = new PhotoCaptureBackfillService(new PhotoResolverService(trekPhotos, new ThumbnailService(addonsService, generalStorage, mcpOrm.repo(TrekPhotos)), new TrekPhotoCacheService(mcpOrm.repo(TrekPhotoCacheMeta), generalStorage), new PhotoProviderRegistry([new ImmichPhotoProvider(immichService), new SynologyPhotoProvider(synologyService)]), generalStorage), trekPhotos, generalStorage);
   return createTestRegistry(
@@ -517,10 +520,10 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
       ), addonsService, authService, new JourneyPhotoCaptureService(captureBackfill, journeyDomain, { reverseGeocode: async () => ({ name: null, address: null }) } as never, mcpOrm.orm)),
       new MemoriesMcp(immichService, synologyService, addonsService, mcpOrm.repo(PhotoProviders)),
       new NotificationsMcp(await makeNotificationsService(db, realtimeService), authService),
-      new AirtrailMcp(new AirtrailService(usersRepo, new AuditService(auditLogRepo, usersRepo), new AirtrailClient()), addonsService),
+      new AirtrailMcp(new AirtrailService(await createTestUserAirtrailRepo(db), new AuditService(auditLogRepo, usersRepo), new AirtrailClient()), addonsService),
       new ReservationImportMcp(new AirtrailImportService(
         await createTestReservationsRepo(db), await createTestReservationEndpointsRepo(db), await createTestDaysRepo(db),
-        realtimeService, reservationsService, new AirtrailClient(), new AirtrailService(usersRepo, new AuditService(auditLogRepo, usersRepo), new AirtrailClient()),
+        realtimeService, reservationsService, new AirtrailClient(), new AirtrailService(await createTestUserAirtrailRepo(db), new AuditService(auditLogRepo, usersRepo), new AirtrailClient()),
         await createTestUnitOfWork(db),
       ), await createTestTripsRepo(db), authService, guards, addonsService),
       new SettingsMcp(new SettingsService(await createTestUnitOfWork(db), appSettings, await createTestSettingsRepo(db)), authService),

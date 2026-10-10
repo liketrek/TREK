@@ -4,7 +4,7 @@
   "src/db/repositories/Places.repository.ts": 1440,
   "src/db/repositories/Reservations.repository.ts": 1675,
   "src/db/repositories/Trips.repository.ts": 1121,
-  "src/db/repositories/Users.repository.ts": 1710,
+  "src/db/repositories/Users.repository.ts": 1446,
   "src/nest/atlas/atlas-geo.ts": 1005,
   "src/nest/atlas/atlas.service.ts": 1182,
   "src/nest/auth/auth.service.ts": 1156,

@@ -1,6 +1,6 @@
 import { Users } from '../entities/Users.entity';
 import { toRow, type AssertRowKeys } from './_shared/rows';
-import { coalesce, coalesceOverrideWhileSame, columnIncrementedBy, currentTimestamp, lower, lowerParam } from '../dialect/sql-functions';
+import { coalesce, columnIncrementedBy, currentTimestamp, lower, lowerParam } from '../dialect/sql-functions';
 import { TrekRepository } from './_shared/trek-repository';
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
 
@@ -41,7 +41,6 @@ export interface UserRow {
   mfa_secret: string | null;
   mfa_backup_codes: string | null;
   immich_url: string | null;
-  immich_access_token: string | null;
   synology_url: string | null;
   synology_username: string | null;
   synology_password: string | null;
@@ -66,7 +65,15 @@ export interface UserRow {
   immich_allow_insecure_tls: number;
 }
 
-const _userRowKeys: AssertRowKeys<UserRow, Users> = true;
+/**
+ * Columns the table still holds but no code reads or writes, left out of
+ * {@link UserRow}: `immich_access_token` predates `immich_api_key` and has been
+ * dead since. The column stays (old databases have it, and migrations are
+ * append-only), so a row read whole still carries it; only the type drops it.
+ */
+type DeadUserColumns = 'immich_access_token';
+
+const _userRowKeys: AssertRowKeys<UserRow, Omit<Users, DeadUserColumns>> = true;
 
 /** `AuthService.registerUser` (AU10) / `OidcService.findOrCreateUser` (O14) — the two column sets `insertUser` covers as one method (Task 1 brief's Required set: "one method, nullable oidc/avatar fields"). */
 export interface NewUserRow {
@@ -1236,164 +1243,6 @@ export class UsersRepository extends TrekRepository<Users> {
   }
 
   // ---------------------------------------------------------------------
-  // Plan 3e Task 7 (memories' provider half) — additive: the Immich/Synology
-  // encrypted-credential statements (IM1-5/SY1-8, inventory §7d, R6). Every
-  // value stays exactly what the SERVICE (`ImmichService`/`SynologyService`)
-  // hands this repository — encrypted, plaintext or null, at the same point
-  // in the pipeline the raw SQL saw it. This repository never calls
-  // `encrypt_api_key`/`decrypt_api_key`/`maybe_encrypt_api_key` itself.
-  // ---------------------------------------------------------------------
-
-  /**
-   * IM1 (`ImmichService.getImmichCredentials`) — `SELECT immich_url,
-   * immich_api_key, immich_allow_insecure_tls FROM users WHERE id = ?`
-   * (the TLS switch joined the read with #2475).
-   */
-  async getImmichCredentials(
-    id: number,
-  ): Promise<{ immich_url: string | null; immich_api_key: string | null; immich_allow_insecure_tls: number | null } | null> {
-    const row = await this.findOne({ id }, { fields: ['immich_url', 'immich_api_key', 'immich_allow_insecure_tls'] });
-    return row
-      ? {
-          immich_url: row.immich_url ?? null,
-          immich_api_key: row.immich_api_key ?? null,
-          immich_allow_insecure_tls: row.immich_allow_insecure_tls ?? null,
-        }
-      : null;
-  }
-
-  /** JV1 (`JourneyService.immichAutoUploadEnabled`) — `SELECT immich_auto_upload FROM users WHERE id = ?`. */
-  async getImmichAutoUpload(id: number): Promise<number | null> {
-    const row = await this.findOne({ id }, { fields: ['immich_auto_upload'] });
-    return row?.immich_auto_upload ?? null;
-  }
-
-  /**
-   * IM2 (`ImmichService.getConnectionSettings`'s prefs read) — `SELECT
-   * immich_auto_upload, immich_allow_insecure_tls FROM users WHERE id = ?`
-   * (the TLS switch joined the read with #2475).
-   */
-  async getImmichConnectionPrefs(
-    id: number,
-  ): Promise<{ immich_auto_upload: number | null; immich_allow_insecure_tls: number | null } | null> {
-    const row = await this.findOne({ id }, { fields: ['immich_auto_upload', 'immich_allow_insecure_tls'] });
-    return row
-      ? { immich_auto_upload: row.immich_auto_upload ?? null, immich_allow_insecure_tls: row.immich_allow_insecure_tls ?? null }
-      : null;
-  }
-
-  /** IM3 (`ImmichService.setImmichAutoUpload`) — `UPDATE users SET immich_auto_upload = ? WHERE id = ?`. */
-  async setImmichAutoUpload(id: number, enabled: number): Promise<void> {
-    await this.nativeUpdate({ id }, { immich_auto_upload: enabled });
-  }
-
-  /**
-   * IM4 (`ImmichService.saveImmichSettings`'s URL branch) — `UPDATE users SET
-   * immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = CASE WHEN
-   * immich_url IS ? THEN COALESCE(?, immich_allow_insecure_tls) ELSE
-   * COALESCE(?, 0) END WHERE id = ?` (#2475).
-   *
-   * One statement, as the legacy write was: SET expressions read the row as
-   * it was, so the CASE compares the STORED url with the new one and decides
-   * the switch inside the UPDATE itself (`coalesceOverrideWhileSame`).
-   * `allow_insecure_tls` null keeps the stored choice while the URL stays the
-   * same, and a new URL without an explicit value starts off.
-   */
-  async setImmichSettings(
-    id: number,
-    immich_url: string,
-    immich_api_key: string | null,
-    allow_insecure_tls: number | null,
-  ): Promise<void> {
-    const platform = this.getEntityManager().getPlatform();
-    await this.nativeUpdate(
-      { id },
-      {
-        immich_url,
-        immich_api_key,
-        immich_allow_insecure_tls: coalesceOverrideWhileSame(platform, allow_insecure_tls, 'immich_allow_insecure_tls', 'immich_url', immich_url),
-      },
-    );
-  }
-
-  /**
-   * IM5 (`ImmichService.saveImmichSettings`'s disconnect branch) — `UPDATE
-   * users SET immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = 0
-   * WHERE id = ?` with a `null` URL: disconnecting always turns the switch off.
-   */
-  async clearImmichSettings(id: number, immich_api_key: string | null): Promise<void> {
-    await this.nativeUpdate({ id }, { immich_url: null, immich_api_key, immich_allow_insecure_tls: 0 });
-  }
-
-  /**
-   * SY1 (`SynologyService._readSynologyUser`) — `SELECT synology_url,
-   * synology_username, synology_password, synology_sid, synology_did,
-   * synology_skip_ssl FROM users WHERE id = ?`, column-filtered in JS by the
-   * legacy code. This method selects only the requested columns (MikroORM's
-   * typed `fields`) rather than all six and filtering after — the RESULT is
-   * identical (only the requested keys populated, matching the legacy
-   * `filtered` object exactly; an unrequested key is `undefined`, same as
-   * the legacy object never having had it set). `null` means no such user
-   * row (SY1's "User not found" branch).
-   *
-   * Explicit per-column `if` guards, not a generic `Pick<UserRow, K>` +
-   * indexed-assignment loop: MikroORM's `fields` option types against
-   * `AutoPath<Users, K, ...>`, which does not resolve for a free type
-   * parameter `K` the way it does for the concrete literal union used here
-   * (the same reason `getApiKeyColumn` above stays non-generic); an
-   * indexed-assignment loop over a union key has the identical problem on
-   * the write side. Six `if`s reads worse but needs neither a generic nor a
-   * cast.
-   */
-  async getSynologyFields(id: number, columns: SynologyUserColumn[]): Promise<SynologyFieldsRow | null> {
-    const row = await this.findOne({ id }, { fields: columns });
-    if (!row) return null;
-    const result: SynologyFieldsRow = {};
-    if (columns.includes('synology_url')) result.synology_url = row.synology_url ?? null;
-    if (columns.includes('synology_username')) result.synology_username = row.synology_username ?? null;
-    if (columns.includes('synology_password')) result.synology_password = row.synology_password ?? null;
-    if (columns.includes('synology_sid')) result.synology_sid = row.synology_sid ?? null;
-    if (columns.includes('synology_did')) result.synology_did = row.synology_did ?? null;
-    if (columns.includes('synology_skip_ssl')) result.synology_skip_ssl = row.synology_skip_ssl;
-    return result;
-  }
-
-  /** SY2 (`SynologyService._clearSynologySID`) — `UPDATE users SET synology_sid = NULL WHERE id = ?`. */
-  async clearSynologySID(id: number): Promise<void> {
-    await this.nativeUpdate({ id }, { synology_sid: null });
-  }
-
-  /** SY3 (`SynologyService._clearSynologySession`) — `UPDATE users SET synology_sid = NULL, synology_did = NULL WHERE id = ?`. */
-  async clearSynologySession(id: number): Promise<void> {
-    await this.nativeUpdate({ id }, { synology_sid: null, synology_did: null });
-  }
-
-  /**
-   * SY4/SY7 (`SynologyService._getSynologySession`'s session-refresh write,
-   * `testSynologyConnection`'s sid persist) — byte-identical `UPDATE users
-   * SET synology_sid = ? WHERE id = ?` at both legacy sites, one method (D4).
-   */
-  async setSynologySid(id: number, synology_sid: string): Promise<void> {
-    await this.nativeUpdate({ id }, { synology_sid });
-  }
-
-  /** SY5 (`SynologyService.updateSynologySettings`) — `UPDATE users SET synology_url = ?, synology_username = ?, synology_password = ?, synology_skip_ssl = ? WHERE id = ?`. */
-  async setSynologySettings(id: number, synology_url: string, synology_username: string, synology_password: string | null, synology_skip_ssl: number): Promise<void> {
-    await this.nativeUpdate({ id }, { synology_url, synology_username, synology_password, synology_skip_ssl });
-  }
-
-  /** SY6 (`SynologyService.getSynologyStatus`) — `SELECT synology_username FROM users WHERE id = ?`. */
-  async getSynologyUsername(id: number): Promise<string | null> {
-    const row = await this.findOne({ id }, { fields: ['synology_username'] });
-    return row?.synology_username ?? null;
-  }
-
-  /** SY8 (`SynologyService.testSynologyConnection`'s did persist) — `UPDATE users SET synology_did = ? WHERE id = ?`. */
-  async setSynologyDid(id: number, synology_did: string): Promise<void> {
-    await this.nativeUpdate({ id }, { synology_did });
-  }
-
-  // ---------------------------------------------------------------------
   // UM11 — UnifiedMemoriesService._notifySharedTripPhotos
   // ---------------------------------------------------------------------
 
@@ -1427,81 +1276,6 @@ export class UsersRepository extends TrekRepository<Users> {
   async findIdUsername(id: number): Promise<{ id: number; username: string } | null> {
     const row = await this.findOne({ id }, { fields: ['id', 'username'] });
     return row ? { id: row.id, username: row.username } : null;
-  }
-
-  // ---------------------------------------------------------------------
-  // Plan 3h Task 4 (`AirtrailService` — R7, the encrypt-in-service
-  // discipline identical to Task 3's `DawarichConnectionsRepository`:
-  // every value below is exactly what the SERVICE hands this repository —
-  // encrypted, plaintext or null, at the same point in the pipeline the
-  // raw SQL saw it. This repository never calls
-  // maybe_encrypt_api_key/decrypt_api_key itself.
-  // ---------------------------------------------------------------------
-
-  /** ATC1 (`airtrail.service.ts#readRow`) — `SELECT airtrail_url, airtrail_api_key, airtrail_allow_insecure_tls, airtrail_write_enabled FROM users WHERE id = ?`. */
-  async getAirtrailConnRow(id: number): Promise<{
-    airtrail_url: string | null;
-    airtrail_api_key: string | null;
-    airtrail_allow_insecure_tls: number | null;
-    airtrail_write_enabled: number | null;
-  } | null> {
-    const row = await this.findOne(
-      { id },
-      { fields: ['airtrail_url', 'airtrail_api_key', 'airtrail_allow_insecure_tls', 'airtrail_write_enabled'] },
-    );
-    return row
-      ? {
-          airtrail_url: row.airtrail_url ?? null,
-          airtrail_api_key: row.airtrail_api_key ?? null,
-          airtrail_allow_insecure_tls: row.airtrail_allow_insecure_tls ?? null,
-          airtrail_write_enabled: row.airtrail_write_enabled ?? null,
-        }
-      : null;
-  }
-
-  /** ATC2 (`airtrail.service.ts#isAirtrailWriteEnabled`) — `SELECT airtrail_write_enabled FROM users WHERE id = ?`. */
-  async getAirtrailWriteEnabled(id: number): Promise<number | null> {
-    const row = await this.findOne({ id }, { fields: ['airtrail_write_enabled'] });
-    return row?.airtrail_write_enabled ?? null;
-  }
-
-  /**
-   * ATC3 (`airtrail.service.ts#saveSettings`, newKey branch) — `UPDATE users
-   * SET airtrail_url = ?, airtrail_api_key = ?, airtrail_allow_insecure_tls
-   * = ?, airtrail_write_enabled = ? WHERE id = ?`. **No transaction** — the
-   * plan's Risks section flags this as a pre-existing asymmetry with
-   * `DawarichConnectionsRepository`'s equivalent `saveSettings` (which DOES
-   * wrap its writes in `uow.transactional`): preserved exactly, not
-   * "fixed" to match Dawarich's shape.
-   */
-  async setAirtrailSettingsWithKey(id: number, url: string | null, apiKey: string, allowInsecureTls: number, writeEnabled: number): Promise<void> {
-    await this.nativeUpdate(
-      { id },
-      { airtrail_url: url, airtrail_api_key: apiKey, airtrail_allow_insecure_tls: allowInsecureTls, airtrail_write_enabled: writeEnabled },
-    );
-  }
-
-  /**
-   * ATC4 (`airtrail.service.ts#saveSettings`, no-newKey branch) — `UPDATE
-   * users SET airtrail_url = ?, airtrail_allow_insecure_tls = ?,
-   * airtrail_write_enabled = ? WHERE id = ?`. Same no-transaction asymmetry
-   * as {@link setAirtrailSettingsWithKey} — preserved, not fixed.
-   */
-  async setAirtrailSettings(id: number, url: string | null, allowInsecureTls: number, writeEnabled: number): Promise<void> {
-    await this.nativeUpdate({ id }, { airtrail_url: url, airtrail_allow_insecure_tls: allowInsecureTls, airtrail_write_enabled: writeEnabled });
-  }
-
-  /**
-   * ATC5 (`airtrail.service.ts#saveSettings`, URL-cleared branch) — `UPDATE
-   * users SET airtrail_api_key = NULL WHERE id = ?`. **SECURITY**:
-   * credential scrub — a cleared URL with no key left makes the connection
-   * meaningless, so the key is dropped too. Same no-transaction asymmetry
-   * as the two methods above — this is a THIRD, separate statement in the
-   * legacy `saveSettings` (its own `if (!trimmedUrl)` branch), not folded
-   * into {@link setAirtrailSettings}.
-   */
-  async clearAirtrailApiKey(id: number): Promise<void> {
-    await this.nativeUpdate({ id }, { airtrail_api_key: null });
   }
 
   // ---------------------------------------------------------------------
@@ -1643,28 +1417,4 @@ export class UsersRepository extends TrekRepository<Users> {
     const row = await this.findOne({ id }, { fields: ['id', 'username', 'display_name', 'avatar'] });
     return row ? { id: row.id, username: row.username, display_name: row.display_name ?? null, avatar: row.avatar ?? null } : null;
   }
-}
-
-/**
- * The six Synology credential/session columns `_readSynologyUser` reads
- * selectively — a closed union, not a dynamic column string, matching
- * `InstanceApiKeyName`'s reasoning above.
- */
-export type SynologyUserColumn = 'synology_url' | 'synology_username' | 'synology_password' | 'synology_sid' | 'synology_did' | 'synology_skip_ssl';
-
-/**
- * {@link UsersRepository.getSynologyFields}'s return shape — structurally
- * identical to `synology.service.ts`'s own `SynologyUserRecord` (every field
- * optional, so an unrequested column is simply absent), deliberately
- * defined here rather than imported from the service: a repository does not
- * depend on a domain service's types, and the two stay structurally
- * assignable without either side casting.
- */
-export interface SynologyFieldsRow {
-  synology_url?: string | null;
-  synology_username?: string | null;
-  synology_password?: string | null;
-  synology_sid?: string | null;
-  synology_did?: string | null;
-  synology_skip_ssl?: number | null;
 }

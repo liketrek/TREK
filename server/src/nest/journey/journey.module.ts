@@ -19,6 +19,7 @@ import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { journeyImageFileFilter, journeyUploadFilename } from './journey.controller';
 import { Users } from '../../db/entities/Users.entity';
 import { JourneyBooks } from '../../db/entities/JourneyBooks.entity';
+import { UserConnectionRepositoriesModule } from '../database/user-connection-repositories.module';
 
 @Module({
   // MemoriesModule: the journey gallery streams provider assets and uploads to Immich.
@@ -38,7 +39,9 @@ import { JourneyBooks } from '../../db/entities/JourneyBooks.entity';
     }),
     StorageModule,
     AuthModule, AddonsModule, MemoriesModule, JourneyDomainModule, JourneyPhotoCaptureModule,
-    // Plan 3g Task 3: `JourneyService` (JV1, `UsersRepository.getImmichAutoUpload`)
+    // JourneyService's JV1 read (`UserImmichRepository.getImmichAutoUpload`).
+    UserConnectionRepositoriesModule,
+    // Plan 3g Task 3: `JourneyService` (JV1, now through the module above)
     // and `JourneyBookService` (JB1-JB7, `JourneyBooksRepository`) both
     // constructed HERE — `@InjectRepository` resolves from this module's own
     // `forFeature` graph, not from `AuthModule`'s (which registers `Users`

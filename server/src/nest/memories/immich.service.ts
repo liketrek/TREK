@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
 import type { Response } from 'express';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { checkSsrf, safeFetch, type SafeFetchOptions } from '../../utils/ssrfGuard';
 import { AuditService } from '../audit/audit.service';
@@ -10,9 +9,8 @@ import fsPromises from 'node:fs/promises';
 import path from 'node:path';
 import { MemoriesAccessService } from './memories-access.service';
 import { describeFetchFailure, fail, handleServiceResult, isWithinLocalDayRange, pipeAsset, shiftCalendarDay, sortAssetsByTakenAtDesc, type Selection } from './memories.helpers';
-import { Users } from '../../db/entities/Users.entity';
 import { UnitOfWork } from '../database/unit-of-work';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { UserImmichRepository } from '../../db/repositories/UserImmich.repository';
 
 const ALBUM_PAGE_SIZE = 1000;
 const ALBUM_MAX_PAGES = 20;
@@ -81,12 +79,12 @@ export class ImmichService {
     private readonly audit: AuditService,
     private readonly access: MemoriesAccessService,
     private readonly storage: StorageService,
-    @InjectRepository(Users) private readonly users: UsersRepository,
+    private readonly immichRepo: UserImmichRepository,
     private readonly uow: UnitOfWork,
   ) {}
 
   async getImmichCredentials(userId: number): Promise<ImmichCreds | null> {
-    const user = await this.users.getImmichCredentials(userId);
+    const user = await this.immichRepo.getImmichCredentials(userId);
     if (!user?.immich_url || !user?.immich_api_key) return null;
     const apiKey = decrypt_api_key(user.immich_api_key);
     if (!apiKey) return null;
@@ -123,7 +121,7 @@ export class ImmichService {
 
   async getConnectionSettings(userId: number) {
     const creds = await this.getImmichCredentials(userId);
-    const prefs = await this.users.getImmichConnectionPrefs(userId);
+    const prefs = await this.immichRepo.getImmichConnectionPrefs(userId);
     return {
       immich_url: creds?.immich_url || '',
       connected: !!(creds?.immich_url && creds?.immich_api_key),
@@ -133,7 +131,7 @@ export class ImmichService {
   }
 
   async setImmichAutoUpload(userId: number, enabled: boolean): Promise<void> {
-    await this.users.setImmichAutoUpload(userId, enabled ? 1 : 0);
+    await this.immichRepo.setImmichAutoUpload(userId, enabled ? 1 : 0);
   }
 
   /**
@@ -165,9 +163,9 @@ export class ImmichService {
       if (immichUrl) {
         const insecure = allowInsecureTls === undefined ? null : Number(allowInsecureTls);
         // The stored URL decides whether an undefined switch keeps its value (IM4).
-        await this.users.setImmichSettings(userId, url, maybe_encrypt_api_key(immichApiKey), insecure);
+        await this.immichRepo.setImmichSettings(userId, url, maybe_encrypt_api_key(immichApiKey), insecure);
       } else {
-        await this.users.clearImmichSettings(userId, maybe_encrypt_api_key(immichApiKey));
+        await this.immichRepo.clearImmichSettings(userId, maybe_encrypt_api_key(immichApiKey));
       }
       if (typeof autoUpload === 'boolean') await this.setImmichAutoUpload(userId, autoUpload);
     });

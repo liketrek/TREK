@@ -47,7 +47,7 @@ import type { MemoriesAccessService } from '../../../src/nest/memories/memories-
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
-import { createTestUnitOfWork, createTestUsersRepo, sharedTestOrm } from '../../helpers/test-uow';
+import { createTestUnitOfWork, createTestUserImmichRepo, sharedTestOrm } from '../../helpers/test-uow';
 import { deleteRows, upsertRow } from '../../helpers/factories/rows';
 import { readUser } from '../../helpers/factories/users';
 import { Users } from '../../../src/db/entities/Users.entity';
@@ -92,8 +92,8 @@ function upstream(opts: { ok?: boolean; status?: number; json?: unknown; url?: s
 }
 
 beforeAll(async () => {
-  const users = await createTestUsersRepo(testDb);
-  svc = new ImmichService(audit as unknown as AuditService, access as unknown as MemoriesAccessService, journeyFx.storage, users, await createTestUnitOfWork(testDb));
+  const immichRepo = await createTestUserImmichRepo(testDb);
+  svc = new ImmichService(audit as unknown as AuditService, access as unknown as MemoriesAccessService, journeyFx.storage, immichRepo, await createTestUnitOfWork(testDb));
 });
 
 beforeEach(async () => {

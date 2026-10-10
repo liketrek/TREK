@@ -14,6 +14,7 @@ import { AuditService } from '../../../src/nest/audit/audit.service';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { UserAirtrailRepository } from '../../../src/db/repositories/UserAirtrail.repository';
 
 // The probe is the only call that would leave the process, so the client is a
 // stub; the credential handling around it runs against the real row.
@@ -24,7 +25,7 @@ let t: TestOrm;
 beforeAll(async () => {
   t = await createTestOrm(db);
   svc = new AirtrailService(
-    t.repo(Users),
+    new UserAirtrailRepository(t.orm.em),
     new AuditService(t.repo(AuditLog), t.repo(Users)),
     { listFlights } as unknown as AirtrailClient,
   );

@@ -5,7 +5,6 @@ import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { createUser, createAdmin, type TestUser } from '../../../helpers/factories';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import { findRow, updateRows } from '../../../helpers/factories/rows';
-import { readUser } from '../../../helpers/factories/users';
 import type { UsersRepository } from '../../../../src/db/repositories/Users.repository';
 import { UserIdentityTakenError } from '../../../../src/db/repositories/Users.repository';
 
@@ -1008,33 +1007,11 @@ describe('UsersRepository — feed tokens (Plan 3d Task 5, FD5-FD8/FD10)', () =>
     expect(await users.findIdAndUsernameByFeedToken('')).toBeUndefined();
   });
 
-  it('M1: getImmichAutoUpload / getSynologyUsername / findUsernameEmail return their column, and the missing-user branch, honestly', async () => {
+  it('M1: findUsernameEmail returns its columns, and the missing-user branch, honestly', async () => {
     const { user } = createUser(testDb, { username: 'imm-user', email: 'imm@example.com' });
-    await updateRows(t, Users, { id: user.id }, { immich_auto_upload: 1, synology_username: 'syno-login' });
-
-    expect(await users.getImmichAutoUpload(user.id)).toBe(1);
-    expect(await users.getImmichAutoUpload(999999)).toBeNull();
-
-    expect(await users.getSynologyUsername(user.id)).toBe('syno-login');
-    expect(await users.getSynologyUsername(999999)).toBeNull();
 
     expect(await users.findUsernameEmail(user.id)).toEqual({ username: 'imm-user', email: 'imm@example.com' });
     expect(await users.findUsernameEmail(999999)).toBeUndefined();
-  });
-
-  it('M1b: getImmichCredentials / getImmichConnectionPrefs carry immich_allow_insecure_tls (#2475), and the missing-user branch', async () => {
-    const { user } = createUser(testDb);
-    await updateRows(t, Users, { id: user.id }, { immich_url: 'https://immich.test', immich_api_key: 'key-1', immich_auto_upload: 1, immich_allow_insecure_tls: 1 });
-
-    expect(await users.getImmichCredentials(user.id)).toEqual({
-      immich_url: 'https://immich.test',
-      immich_api_key: 'key-1',
-      immich_allow_insecure_tls: 1,
-    });
-    expect(await users.getImmichCredentials(999999)).toBeNull();
-
-    expect(await users.getImmichConnectionPrefs(user.id)).toEqual({ immich_auto_upload: 1, immich_allow_insecure_tls: 1 });
-    expect(await users.getImmichConnectionPrefs(999999)).toBeNull();
   });
 });
 
@@ -1138,80 +1115,6 @@ describe('UsersRepository — admin (AD1-AD17) read methods, full-key parity', (
     const legacy = testDb.prepare('SELECT id, email, mfa_enabled FROM users WHERE id = ?').get(admin.id);
     expect(await users.findIdEmailMfaEnabled(admin.id)).toEqual(legacy);
     expect(await users.findIdEmailMfaEnabled(999999)).toBeNull();
-  });
-});
-
-// IM4/IM5 (`ImmichService.saveImmichSettings`, #2475): the self-signed switch
-// is decided INSIDE the UPDATE by `coalesceOverrideWhileSame`, the way the
-// legacy CASE did it. These pin the stored values for every branch against
-// the legacy statement's own text, and that the write stays one statement —
-// a read-then-write would be an interleaving window the legacy SQL never had.
-describe('UsersRepository — Immich settings write (IM4/IM5)', () => {
-  const read = async (id: number) => {
-    const row = await readUser(t, id);
-    return {
-      immich_url: row.immich_url, immich_api_key: row.immich_api_key, immich_allow_insecure_tls: row.immich_allow_insecure_tls,
-    };
-  };
-
-  it('USERSREPO-085 (IM4): setImmichSettings keeps the stored switch on a null value while the URL stays the same, and starts a new URL off', async () => {
-    const { user } = createUser(testDb);
-    await updateRows(t, Users, { id: user.id }, { immich_url: 'https://nas.local', immich_api_key: 'enc-old', immich_allow_insecure_tls: 1 });
-
-    // An older client that does not know the switch cannot clear it by saving.
-    await users.setImmichSettings(user.id, 'https://nas.local', 'enc-new', null);
-    expect(await read(user.id)).toEqual({ immich_url: 'https://nas.local', immich_api_key: 'enc-new', immich_allow_insecure_tls: 1 });
-
-    // Sent explicitly, the value wins over the stored one.
-    await users.setImmichSettings(user.id, 'https://nas.local', 'enc-new', 0);
-    expect((await read(user.id)).immich_allow_insecure_tls).toBe(0);
-    await users.setImmichSettings(user.id, 'https://nas.local', 'enc-new', 1);
-    expect((await read(user.id)).immich_allow_insecure_tls).toBe(1);
-
-    // The switch trusts one server: another URL without it starts off ...
-    await users.setImmichSettings(user.id, 'https://photos.example.com', 'enc-2', null);
-    expect(await read(user.id)).toEqual({ immich_url: 'https://photos.example.com', immich_api_key: 'enc-2', immich_allow_insecure_tls: 0 });
-    // ... and with it, holds for that server.
-    await users.setImmichSettings(user.id, 'https://other.example.com', 'enc-3', 1);
-    expect(await read(user.id)).toEqual({ immich_url: 'https://other.example.com', immich_api_key: 'enc-3', immich_allow_insecure_tls: 1 });
-
-    // A first connection (no stored URL) without the switch starts off too.
-    await updateRows(t, Users, { id: user.id }, { immich_url: null, immich_allow_insecure_tls: 1 });
-    await users.setImmichSettings(user.id, 'https://nas.local', 'enc-4', null);
-    expect(await read(user.id)).toEqual({ immich_url: 'https://nas.local', immich_api_key: 'enc-4', immich_allow_insecure_tls: 0 });
-  });
-
-  it('USERSREPO-086 (IM4): setImmichSettings matches the legacy CASE statement across every (stored url, stored switch, new url, value) combination, in ONE statement', async () => {
-    const { user } = createUser(testDb);
-    // test-sql-allow: legacy statement run raw as the parity oracle for the repository read.
-    const legacy = testDb.prepare(
-      `UPDATE users SET immich_url = ?, immich_api_key = ?,
-         immich_allow_insecure_tls = CASE WHEN immich_url IS ? THEN COALESCE(?, immich_allow_insecure_tls) ELSE COALESCE(?, 0) END
-       WHERE id = ?`,
-    );
-    for (const storedUrl of [null, 'https://nas.local']) {
-      for (const storedFlag of [0, 1]) {
-        for (const newUrl of ['https://nas.local', 'https://photos.example.com']) {
-          for (const value of [null, 0, 1]) {
-            await updateRows(t, Users, { id: user.id }, { immich_url: storedUrl, immich_api_key: null, immich_allow_insecure_tls: storedFlag });
-            legacy.run(newUrl, 'enc-key', newUrl, value, value, user.id);
-            const expected = await read(user.id);
-
-            await updateRows(t, Users, { id: user.id }, { immich_url: storedUrl, immich_api_key: null, immich_allow_insecure_tls: storedFlag });
-            const { queries } = await withQueryCount(() => users.setImmichSettings(user.id, newUrl, 'enc-key', value));
-            expect(queries).toBe(1);
-            expect(await read(user.id)).toEqual(expected);
-          }
-        }
-      }
-    }
-  });
-
-  it('USERSREPO-087 (IM5): clearImmichSettings nulls the URL, stores the key it is handed and always turns the switch off', async () => {
-    const { user } = createUser(testDb);
-    await updateRows(t, Users, { id: user.id }, { immich_url: 'https://nas.local', immich_api_key: 'enc-old', immich_allow_insecure_tls: 1 });
-    await users.clearImmichSettings(user.id, null);
-    expect(await read(user.id)).toEqual({ immich_url: null, immich_api_key: null, immich_allow_insecure_tls: 0 });
   });
 });
 

@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Response } from 'express';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { decrypt_api_key, encrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { safeFetch, SsrfBlockedError, checkSsrf } from '../../utils/ssrfGuard';
 import { MemoriesAccessService } from './memories-access.service';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository, SynologyUserColumn } from '../../db/repositories/Users.repository';
+import { UserSynologyRepository, type SynologyUserColumn } from '../../db/repositories/UserSynology.repository';
 import {
   dayStartEpochSeconds,
   fail,
@@ -139,12 +137,12 @@ export class SynologyService {
   constructor(
     private readonly access: MemoriesAccessService,
     private readonly notifications: NotificationsService,
-    @InjectRepository(Users) private readonly users: UsersRepository,
+    private readonly synologyRepo: UserSynologyRepository,
   ) {}
 
   private async _readSynologyUser(userId: number, columns: SynologyUserColumn[]): Promise<ServiceResult<SynologyUserRecord>> {
       try {
-          const filtered = await this.users.getSynologyFields(userId, columns);
+          const filtered = await this.synologyRepo.getSynologyFields(userId, columns);
 
           if (!filtered) {
               return fail('User not found', 404);
@@ -309,11 +307,11 @@ export class SynologyService {
 
 
   private async _clearSynologySID(userId: number): Promise<void> {
-      await this.users.clearSynologySID(userId);
+      await this.synologyRepo.clearSynologySID(userId);
   }
 
   private async _clearSynologySession(userId: number): Promise<void> {
-      await this.users.clearSynologySession(userId);
+      await this.synologyRepo.clearSynologySession(userId);
   }
 
   private _splitPackedSynologyId(rawId: string): { id: string; cacheKey: string; assetId: string } | null {
@@ -352,7 +350,7 @@ export class SynologyService {
           return resp as ServiceResult<string>;
       }
 
-      await this.users.setSynologySid(userId, encrypt_api_key(resp.data.sid));
+      await this.synologyRepo.setSynologySid(userId, encrypt_api_key(resp.data.sid));
       return success(resp.data.sid);
   }
 
@@ -406,7 +404,7 @@ export class SynologyService {
       }
 
       try {
-          await this.users.setSynologySettings(
+          await this.synologyRepo.setSynologySettings(
               userId,
               synologyUrl,
               synologyUsername,
@@ -425,7 +423,7 @@ export class SynologyService {
       if ('error' in sid) return success({ connected: false, error: sid.error.message });
       if (!sid.data) return success({ connected: false, error: 'Not connected to Synology' });
       try {
-          const synologyUsername = await this.users.getSynologyUsername(userId);
+          const synologyUsername = await this.synologyRepo.getSynologyUsername(userId);
           return success({ connected: true, user: { name: synologyUsername || 'unknown user' } });
       } catch (err: unknown) {
           return success({ connected: true, user: { name: 'unknown user' } });
@@ -446,9 +444,9 @@ export class SynologyService {
 
       // Persist the session so the OTP code is not required again on save.
       // The did (device token) allows future re-logins without OTP.
-      await this.users.setSynologySid(userId, encrypt_api_key(resp.data.sid));
+      await this.synologyRepo.setSynologySid(userId, encrypt_api_key(resp.data.sid));
       if (resp.data.did) {
-          await this.users.setSynologyDid(userId, encrypt_api_key(resp.data.did));
+          await this.synologyRepo.setSynologyDid(userId, encrypt_api_key(resp.data.did));
       }
 
       return success({ connected: true, user: { name: synologyUsername } });

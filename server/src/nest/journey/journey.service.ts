@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { JourneyDomainService } from './journey-domain.service';
 import { JourneyShareService } from './journey-share.service';
 import { ImmichService } from '../memories/immich.service';
@@ -7,8 +6,7 @@ import { PhotoProviderRegistry } from '../memories/photo-provider.registry';
 import { PhotoResolverService } from '../memories/photo-resolver.service';
 import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { UserImmichRepository } from '../../db/repositories/UserImmich.repository';
 import type { Response } from 'express';
 
 /**
@@ -26,7 +24,7 @@ export class JourneyService {
     private readonly photoResolver: PhotoResolverService,
     private readonly journey: JourneyDomainService,
     private readonly share: JourneyShareService,
-    @InjectRepository(Users) private readonly usersRepo: UsersRepository,
+    private readonly immichRepo: UserImmichRepository,
   ) {}
 
   async journeyAddonEnabled(): Promise<boolean> {
@@ -86,9 +84,9 @@ export class JourneyService {
   deleteJourneyShareLink(id: number, userId: number) { return this.share.deleteJourneyShareLink(id, userId); }
 
   // Immich mirror (only when the user opted in via integration settings)
-  // JV1 — `UsersRepository.getImmichAutoUpload`.
+  // JV1 — `UserImmichRepository.getImmichAutoUpload`.
   async immichAutoUploadEnabled(userId: number): Promise<boolean> {
-    return !!(await this.usersRepo.getImmichAutoUpload(userId));
+    return !!(await this.immichRepo.getImmichAutoUpload(userId));
   }
   uploadToImmich(userId: number, relativePath: string, originalName: string) { return this.immich.uploadToImmich(userId, relativePath, originalName); }
 

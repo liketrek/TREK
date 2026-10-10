@@ -18,6 +18,7 @@ import { AuditService } from '../../../src/nest/database/../audit/audit.service'
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { UserAirtrailRepository } from '../../../src/db/repositories/UserAirtrail.repository';
 
 // The free functions became methods with the airtrail fold; same SQL, same
 // behaviour, one instance over the same db handle.
@@ -30,7 +31,7 @@ let t: TestOrm;
 beforeAll(async () => {
   t = await createTestOrm(db);
   svc = new AirtrailService(
-    t.repo(Users),
+    new UserAirtrailRepository(t.orm.em),
     new AuditService(t.repo(AuditLog), t.repo(Users)),
     new AirtrailClient(),
   );
@@ -70,23 +71,23 @@ describe('airtrail saveSettings preserves its pre-existing NO-transaction asymme
   it('ATC-TX-001: AirtrailService is constructed with no UnitOfWork at all — saveSettings has nothing to wrap its writes in', () => {
     // `DawarichService#saveSettings`'s equivalent DOES take a `UnitOfWork` and
     // wraps its writes in `uow.transactional`; AirtrailService's own
-    // constructor (`UsersRepository`, `AuditService`, `AirtrailClient`) never
+    // constructor (`UserAirtrailRepository`, `AuditService`, `AirtrailClient`) never
     // gained one during the Plan 3h Task 4 conversion — a structural
     // guarantee that a future edit re-introducing a transactional wrap here
     // would have to ALSO add a new constructor param to do it, not just
     // touch `saveSettings`'s body.
     const paramTypes = Reflect.getMetadata('design:paramtypes', AirtrailService) as unknown[] | undefined;
     expect(paramTypes).toBeDefined();
-    expect(paramTypes!.map((p) => (p as { name?: string })?.name)).toEqual(['UsersRepository', 'AuditService', 'AirtrailClient']);
+    expect(paramTypes!.map((p) => (p as { name?: string })?.name)).toEqual(['UserAirtrailRepository', 'AuditService', 'AirtrailClient']);
   });
 
-  it('ATC-TX-002: the URL-cleared branch performs its two writes as genuinely separate UsersRepository calls, not one atomic statement', async () => {
+  it('ATC-TX-002: the URL-cleared branch performs its two writes as genuinely separate repository calls, not one atomic statement', async () => {
     const { user } = createUser(db);
     await saveSettings(user.id, 'https://at.example.com', 'secret-key', false, false, null);
 
-    const usersRepo = t.repo(Users);
-    const setSpy = vi.spyOn(usersRepo, 'setAirtrailSettings');
-    const clearSpy = vi.spyOn(usersRepo, 'clearAirtrailApiKey');
+    const airtrailRepo = (svc as unknown as { airtrailRepo: UserAirtrailRepository }).airtrailRepo;
+    const setSpy = vi.spyOn(airtrailRepo, 'setAirtrailSettings');
+    const clearSpy = vi.spyOn(airtrailRepo, 'clearAirtrailApiKey');
     try {
       // Clearing the URL with no key left drops the key too (ATC4 then ATC5) —
       // TWO independent nativeUpdate calls, not a single transactional unit.

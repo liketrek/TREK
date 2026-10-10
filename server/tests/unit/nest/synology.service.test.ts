@@ -48,7 +48,7 @@ import { db as testDb } from '../../../src/db/database';
 import { SynologyService } from '../../../src/nest/memories/synology.service';
 import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
 import { notificationsStub } from '../../helpers/notifications';
-import { createTestUsersRepo, sharedTestOrm } from '../../helpers/test-uow';
+import { createTestUserSynologyRepo, sharedTestOrm } from '../../helpers/test-uow';
 import { deleteRows, upsertRow } from '../../helpers/factories/rows';
 import { readUser } from '../../helpers/factories/users';
 import { Users } from '../../../src/db/entities/Users.entity';
@@ -91,8 +91,7 @@ function httpError(status: number) {
 }
 
 beforeAll(async () => {
-  const users = await createTestUsersRepo(testDb);
-  svc = new SynologyService(access as unknown as MemoriesAccessService, notificationsStub(), users);
+  svc = new SynologyService(access as unknown as MemoriesAccessService, notificationsStub(), await createTestUserSynologyRepo(testDb));
 });
 
 beforeEach(async () => {

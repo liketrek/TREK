@@ -3,6 +3,7 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { MemoriesService } from './memories.service';
 import { MemoriesAccessService } from './memories-access.service';
 import { ImmichService } from './immich.service';
+import { UserConnectionRepositoriesModule } from '../database/user-connection-repositories.module';
 import { SynologyService } from './synology.service';
 import { UnifiedMemoriesService } from './unified-memories.service';
 import { PhotoResolverService } from './photo-resolver.service';
@@ -75,6 +76,7 @@ import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
 @Module({
   imports: [
     NotificationsModule, AddonsModule, AuditModule, TrekPhotosModule, RealtimeModule, SchedulingModule, StorageModule,
+    UserConnectionRepositoriesModule,
     MikroOrmModule.forFeature([TripPhotos, TrekPhotos, TripAlbumLinks, Trips, TrekPhotoCacheMeta, PhotoProviders, Users, Journeys, JourneyContributors, JourneyPhotos]),
   ],
   controllers: [UnifiedMemoriesController, ImmichMemoriesController, SynologyMemoriesController],
