@@ -2,7 +2,7 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import type { GoogleRouteImport, GoogleRoutePreview } from '@trek/shared';
 import { MapsService, GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from '../maps/maps.service';
-import { isDirectionsUrl, parseDirectionsUrl, MAX_DIR_WAYPOINTS } from '../places/maps-dir.helpers';
+import { isDirectionsUrl, parseDirectionsUrl, MAX_DIR_WAYPOINTS } from '../place-import/place-import.service';
 import { safeFetchFollow } from '../../utils/ssrfGuard';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PlacesService } from '../places/places.service';

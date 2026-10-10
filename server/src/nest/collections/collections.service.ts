@@ -73,7 +73,7 @@ import type {
   CollectionImportablesResponse,
 } from '@trek/shared';
 import { NotificationsService } from '../notifications/notifications.service';
-import { collectionFileToGpx, gpxToCollectionFile, type ExportedCollectionFile } from './collection-gpx.helpers';
+import { PlaceImportService, type ExportedCollectionFile } from '../place-import/place-import.service';
 import { UnitOfWork } from '../database/unit-of-work';
 
 /** Links are stored as a JSON TEXT column; parse on read, stringify on write. */
@@ -143,6 +143,7 @@ export class CollectionsService {
     @InjectRepository(PlaceRatings) private readonly tripPlaceRatings: PlaceRatingsRepository,
     @InjectRepository(Tags) private readonly tags: TagsRepository,
     @InjectRepository(Users) private readonly users: UsersRepository,
+    private readonly placeImport: PlaceImportService,
   ) {}
 
   /**
@@ -398,17 +399,16 @@ export class CollectionsService {
    * only ever carry less of it. Same access rule too, since it is the same read.
    */
   async exportCollectionGpx(userId: number, id: number): Promise<CollectionGpxExport> {
-    return collectionFileToGpx(await this.exportCollection(userId, id));
+    return this.placeImport.writeCollectionGpx(await this.exportCollection(userId, id));
   }
 
   /**
-   * A GPX document read into the list file it amounts to. Touches no table:
-   * the file goes back to the browser to be shown, and comes back through
-   * importCollection like any other, so there is one import and one
-   * transaction whatever the format was.
+   * A GPX document read (by place-import) into the list file it amounts to. Touches no table: the file
+   * goes back to the browser to be shown, and comes back through importCollection like any other, so
+   * there is one import and one transaction whatever the format was.
    */
   readCollectionGpx(body: CollectionGpxReadRequest): CollectionGpxReadResult {
-    return gpxToCollectionFile(body.gpx, body.file_name);
+    return this.placeImport.readCollectionGpx(body.gpx, body.file_name);
   }
 
   /**

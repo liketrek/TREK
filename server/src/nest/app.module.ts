@@ -48,6 +48,7 @@ import { JourneyModule } from './journey/journey.module';
 import { LlmParseModule } from './llm-parse/llm-parse.module';
 import { ManagedExtModule } from './managed/managed-ext.module';
 import { MapsModule } from './maps/maps.module';
+import { PlaceImportModule } from './place-import/place-import.module';
 import { McpTransportModule } from './mcp-transport/mcp-transport.module';
 import { MemoriesModule } from './memories/memories.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -119,6 +120,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     SystemNoticesModule,
     GeoModule,
     MapsModule,
+    PlaceImportModule,
     GoogleQuotaModule,
     PlaceEnrichmentModule,
     PlaceShadowModule,

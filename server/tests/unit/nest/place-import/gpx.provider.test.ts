@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
-import { buildGpx, gpxFilename, type GpxExportPlace, type GpxExportDay } from '../../../src/nest/places/gpx-export.helpers';
+import { buildGpx, gpxFilename, type GpxExportPlace, type GpxExportDay } from '../../../../src/nest/place-import/providers/gpx.provider';
 
 const place = (over: Partial<GpxExportPlace> = {}): GpxExportPlace => ({
   name: 'Somewhere', description: null, address: null, lat: 48.8566, lng: 2.3522,

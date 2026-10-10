@@ -24,7 +24,7 @@ import { memoryStorage } from 'multer';
 import { hexColorSchema, placeImageUrlSchema, placeWebsiteSchema } from '@trek/shared';
 import type { User } from '../../types';
 import { PlacesService } from './places.service';
-import { isDirectionsUrl } from './maps-dir.helpers';
+import { isDirectionsUrl } from '../place-import/place-import.service';
 import { isUpdateConflict } from '../common/conflictResult';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';

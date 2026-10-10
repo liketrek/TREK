@@ -12,6 +12,7 @@ import type { TourWaypointsRepository } from '../../db/repositories/TourWaypoint
 import { toRowId } from '../common/row-id';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PlacesService } from '../places/places.service';
+import { PlaceImportService } from '../place-import/place-import.service';
 import { computeTourMetrics, parseRouteGeometry, LOW_CONFIDENCE_THRESHOLD, type GeometryPoint } from './tours.helpers';
 
 export interface ImportGpxAsTourResult {
@@ -23,8 +24,8 @@ export interface ImportGpxAsTourResult {
 /**
  * Tours domain: the `tours` facet table (place_id PK/FK) carries tour-specific
  * metadata while existing places and day assignments are reused.
- * GPX parsing and persistence are reused through PlacesService.prepareGpxRows
- * and importPreparedGpx. Places and facet rows are persisted in one transaction,
+ * GPX parsing goes through PlaceImportService.readGpx, persistence through
+ * PlacesService.importPreparedGpx. Places and facet rows are persisted in one transaction,
  * with tour metrics derived from each place's route_geometry.
  */
 @Injectable()
@@ -38,6 +39,7 @@ export class ToursService {
     @InjectRepository(TourTypes) private readonly tourTypesRepo: TourTypesRepository,
     @InjectRepository(TourWaypoints) private readonly waypointsRepo: TourWaypointsRepository,
     @InjectRepository(Places) private readonly placesRepo: PlacesRepository,
+    private readonly placeImport: PlaceImportService,
   ) {}
 
   private toItem(r: TourListRow): TourListItem {
@@ -196,7 +198,7 @@ export class ToursService {
   }
 
   /**
-   * The tours-mode GPX import prepares rows through PlacesService.prepareGpxRows
+   * The tours-mode GPX import reads rows through PlaceImportService.readGpx
    * with waypoints excluded. PlacesService.importPreparedGpx persists the places
    * in the same transaction as their `tours` facet rows, whose metrics are
    * derived from route_geometry.
@@ -206,7 +208,7 @@ export class ToursService {
    * match_confidence so the client can surface a "with caution" toast.
    */
   async importGpxAsTour(tripId: string, fileBuffer: Buffer, defaultName?: string, socketId?: string): Promise<ImportGpxAsTourResult | null> {
-    const rows = this.places.prepareGpxRows(fileBuffer, {
+    const rows = this.placeImport.readGpx(fileBuffer, {
       importWaypoints: false, importRoutes: true, importTracks: true, defaultName,
     });
     if (rows.length === 0) return null;

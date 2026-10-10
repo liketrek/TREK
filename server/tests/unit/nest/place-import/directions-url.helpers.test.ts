@@ -7,7 +7,7 @@
  * that matter, because the full ones run to four hundred characters of protobuf.
  */
 import { describe, it, expect } from 'vitest';
-import { isDirectionsUrl, parseDirectionsUrl, MAX_DIR_WAYPOINTS } from '../../../src/nest/places/maps-dir.helpers';
+import { isDirectionsUrl, parseDirectionsUrl, MAX_DIR_WAYPOINTS } from '../../../../src/nest/place-import/directions-url.helpers';
 
 describe('isDirectionsUrl', () => {
   it('MAPS-DIR-001: tells a route apart from a list and from a single place', () => {

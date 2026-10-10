@@ -31,6 +31,7 @@ import { RateLimitService } from '../../src/nest/common/rate-limit.service';
 import { VacayService } from '../../src/nest/vacay/vacay.service';
 import { TripsService } from '../../src/nest/trips/trips.service';
 import { PlacesService } from '../../src/nest/places/places.service';
+import { buildPlaceImportService } from './place-import';
 import { CollectionsService } from '../../src/nest/collections/collections.service';
 import { AtlasService } from '../../src/nest/atlas/atlas.service';
 import { buildMapsService } from './maps-service';
@@ -260,6 +261,7 @@ export async function createPluginRpcHostParts(
     await createTestTripsRepo(db), await createTestTripMembersRepo(db),
     await createTestPlacesRepo(db), await createTestPlaceRatingsRepo(db),
     await createTestTagsRepo(db), usersRepo,
+    buildPlaceImportService(),
   );
   const atlas = new AtlasService(
     await createTestBucketListRepo(db), await createTestHiddenCountriesRepo(db),
@@ -309,6 +311,7 @@ export async function createPluginRpcHostParts(
   await createTestTripsRepo(db),
   await createTestBudgetItemsRepo(db),
   await createTestCollectionPlacesRepo(db),
+    buildPlaceImportService(),
   );
   // After accommodations: a hotel booking writes the stay's day stop through it.
   const reservations = new ReservationsService(permissions, budget, realtime, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(db), await createTestReservationEndpointsRepo(db), await createTestReservationTravelersRepo(db)), accommodations, await createTestUnitOfWork(db), await createTestReservationsRepo(db), await createTestReservationEndpointsRepo(db), await createTestReservationTravelersRepo(db), await createTestReservationDayPositionsRepo(db), await createTestDayAccommodationsRepo(db), await createTestDaysRepo(db), await createTestPlacesRepo(db), await createTestDayAssignmentsRepo(db), await createTestTripMembersRepo(db), await createTestUsersRepo(db), await createTestTripsRepo(db), await createTestBudgetItemsRepo(db));

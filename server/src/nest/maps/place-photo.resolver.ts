@@ -29,6 +29,14 @@ export class PlacePhotoResolver {
     private readonly selector: PlacesProviderSelector,
   ) {}
 
+  /**
+   * The photo for one place: disk hit, negative cache, in-flight dedupe, then
+   * Google (for a Google id) and Wikimedia, under the shared photo-fetch slots.
+   *
+   * @txIndependent cache bookkeeping around network fetches: the stored photo,
+   * the negative-cache entry and the image_url backfill are each complete on
+   * their own, and a failed one costs the cache, never the answer.
+   */
   async resolve(
     userId: number,
     placeId: string,

@@ -26,7 +26,7 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { MapsService } from '../maps/maps.service';
 import { PlacesService } from './places.service';
 import { isUpdateConflict } from '../common/conflictResult';
-import { isDirectionsUrl } from './maps-dir.helpers';
+import { isDirectionsUrl } from '../place-import/place-import.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
 
 function parseId(value: string | string[]): number | null {

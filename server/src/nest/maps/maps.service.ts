@@ -27,7 +27,7 @@ import { NEARBY_DEFAULT_LIMIT, NEARBY_DEFAULT_RADIUS_M, nearbyCacheKey, nearestF
 export { readBrandIdentity, readWikiIdentity, type WikiIdentity } from './providers/wiki-identity';
 export { withPhotoFetchSlot } from './photo-fetch-slot';
 export type { BrandLogo, CommonsCandidate } from './providers/wikimedia.client';
-export { GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from './maps-url.resolver';
+export { GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from '../common/google-maps-hosts';
 export { PLACES_PROVIDER_SETTING, PLACES_GOOGLE_ONLY_SETTING, type KeyedProvider } from './places-provider.selector';
 
 // Places near a point (#976): cached longer than the POI boxes, because the

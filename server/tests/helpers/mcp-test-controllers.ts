@@ -36,6 +36,7 @@ import { PackingService } from '../../src/nest/packing/packing.service';
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { PlacesMcp } from '../../src/nest/places/places.mcp';
 import { PlacesService } from '../../src/nest/places/places.service';
+import { buildPlaceImportService } from './place-import';
 import { ReservationsMcp } from '../../src/nest/reservations/reservations.mcp';
 import { ReservationsService } from '../../src/nest/reservations/reservations.service';
 import { ReservationsReadService } from '../../src/nest/reservations/reservations-read.service';
@@ -304,6 +305,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
   await createTestTripsRepo(db),
   await createTestBudgetItemsRepo(db),
   await createTestCollectionPlacesRepo(db),
+    buildPlaceImportService(),
   );
   // Built after it: a hotel booking writes the stay's day stop through this one.
   const reservationsService = new ReservationsService(permissionsService, budgetService, realtimeService, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(db), await createTestReservationEndpointsRepo(db), await createTestReservationTravelersRepo(db)), accommodationsService, await createTestUnitOfWork(db), await createTestReservationsRepo(db), await createTestReservationEndpointsRepo(db), await createTestReservationTravelersRepo(db), await createTestReservationDayPositionsRepo(db), await createTestDayAccommodationsRepo(db), await createTestDaysRepo(db), await createTestPlacesRepo(db), await createTestDayAssignmentsRepo(db), await createTestTripMembersRepo(db), await createTestUsersRepo(db), await createTestTripsRepo(db), await createTestBudgetItemsRepo(db));
@@ -455,6 +457,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
           await createTestTripsRepo(db), await createTestTripMembersRepo(db),
           await createTestPlacesRepo(db), await createTestPlaceRatingsRepo(db),
           await createTestTagsRepo(db), usersRepo,
+          buildPlaceImportService(),
         ),
         // Plan 3h Task 1 — `CollectionsMcp`'s own constructor-ripple fix:
         // `DatabaseService` dropped (CL89's only use), `UsersRepository`

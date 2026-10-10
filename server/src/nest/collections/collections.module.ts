@@ -26,6 +26,7 @@ import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
 import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { MAX_COVER_SIZE } from './collections.controller';
+import { PlaceImportModule } from '../place-import/place-import.module';
 
 /** Collections domain (saved-places library). Registered in AppModule.
  *  Exports CollectionsService for in-container consumers (PluginsModule's
@@ -47,7 +48,7 @@ import { MAX_COVER_SIZE } from './collections.controller';
         }),
     }),
     StorageModule,
-    NotificationsModule, AddonsModule, PermissionsModule, AppConfigModule, PluginGuardsModule,
+    NotificationsModule, AddonsModule, PermissionsModule, AppConfigModule, PluginGuardsModule, PlaceImportModule,
     MikroOrmModule.forFeature([
       Collections, CollectionMembers, CollectionLabels, CollectionPlaces, CollectionPlaceRatings,
       Categories, Users, Trips, TripMembers, Places, PlaceRatings, Tags,

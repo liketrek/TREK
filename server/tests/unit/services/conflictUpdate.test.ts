@@ -31,6 +31,7 @@ import { accommodationsOver } from '../../helpers/accommodations-service';
 import { isUpdateConflict } from '../../../src/nest/common/conflictResult';
 import { PackingService } from '../../../src/nest/packing/packing.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
+import { buildPlaceImportService } from '../../helpers/place-import';
 import { buildMapsService } from '../../helpers/maps-service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
@@ -138,6 +139,7 @@ beforeAll(async () => {
   await createTestTripsRepo(testDb),
   await createTestBudgetItemsRepo(testDb),
   await createTestCollectionPlacesRepo(testDb),
+  buildPlaceImportService(),
 );
 });
 

@@ -27,6 +27,7 @@ vi.mock('../../../src/db/database', () => ({
 vi.mock('../../../src/nest/places/places.service', () => ({ PlacesService: class {} }));
 
 import { ToursService } from '../../../src/nest/tours/tours.service';
+import { buildPlaceImportService } from '../../helpers/place-import';
 import { tourCreateRequestSchema, type TourCreateRequest } from '@trek/shared';
 import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import type { PlacesService } from '../../../src/nest/places/places.service';
@@ -92,6 +93,7 @@ function makeService() {
     { isEnabled: vi.fn(async () => true) } as unknown as TourTypesRepository,
     waypointsRepo as unknown as TourWaypointsRepository,
     placesRepo as unknown as PlacesRepository,
+    buildPlaceImportService(),
   );
   return { uow, toursRepo, waypointsRepo, placesRepo, places, place, service };
 }

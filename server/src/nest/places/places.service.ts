@@ -2,30 +2,20 @@ import path from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { resolveCountryCodeSync } from '../atlas/atlas-geo';
-import { XMLValidator } from 'fast-xml-parser';
 import { TRACK_COLORS, placeMatchStrategies, type PlaceMatchCandidate } from '@trek/shared';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
-import { MapsService, GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from '../maps/maps.service';
-import { isDirectionsUrl, parseDirectionsUrl } from './maps-dir.helpers';
+import { MapsService } from '../maps/maps.service';
+import { PlaceImportService } from '../place-import/place-import.service';
+import type { GpxExportDay, GpxExportOptions, GpxExportPlace } from '../place-import/place-import.service';
+import type { GoogleListPlace, KmlDocumentRead, PreparedGpxPlace } from '../place-import/place-import.types';
 import { toRowId } from '../common/row-id';
 import type { User } from '../../types';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { ratingAggregate } from '../common/rowShape';
-import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
-import {
-  buildCategoryNameLookup,
-  createKmlImportSummary,
-  decodeUtf8WithWarning,
-  extractKmlPlacemarkNodes,
-  parsePlacemarkNode,
-  resolveCategoryIdForFolder,
-} from './kml-import.helpers';
-import { buildGpx, gpxFilename } from './gpx-export.helpers';
-import type { GpxExportDay, GpxExportOptions, GpxExportPlace } from './gpx-export.helpers';
 import { UnsplashService } from '../unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
@@ -64,20 +54,17 @@ const noCancelledStays = (): CancelledStays => ({ reservationIds: [], budgetItem
 import {
   ENRICH_CONCURRENCY,
   ADDRESS_BACKFILL_MAX_PLACES,
+  buildCategoryNameLookup,
   escapeLikePattern,
-  MAX_LIST_RESPONSE_BYTES,
-  googleMapsFeatureIdFromItem,
-  gpxParser,
   externalIdsOf,
   isPlaceDuplicate,
-  kmlParser,
   mapWithConcurrency,
   pickEnrichmentMatch,
   reclaimPhotoCache,
   SEARCH_BIAS_RADIUS_METERS,
+  resolveCategoryIdForFolder,
   trackInsertedInDedupSet,
   trimOrNull,
-  unpackKmzToKml,
   type DedupSet,
   type EnrichablePlace,
   type GpxImportOptions,
@@ -93,14 +80,7 @@ type Trip = TripAccess;
 
 type ImportedPlace = { id: number; route_geometry?: string | null; route_color?: string | null };
 
-/** One place parsed out of a GPX file, not yet persisted. */
-export interface PreparedGpxPlace {
-  name: string;
-  lat: number;
-  lng: number;
-  description: string | null;
-  routeGeometry?: string;
-}
+export type { PreparedGpxPlace } from '../place-import/place-import.types';
 
 /** Fields accepted when creating a place. */
 export interface PlaceCreateInput {
@@ -187,6 +167,8 @@ export class PlacesService {
     @InjectRepository(BudgetItems) private readonly budgetItemsRepo: BudgetItemsRepository,
     // Plan 3h Task 6 (survivors) — additive, SV-PI2's `reclaimPlaceImage` only.
     @InjectRepository(CollectionPlaces) private readonly collectionPlacesRepo: CollectionPlacesRepository,
+    // Reading files and shared lists; this service only persists what it reads.
+    private readonly placeImport: PlaceImportService,
   ) {}
 
   /**
@@ -903,95 +885,18 @@ export class PlacesService {
       day.points.push({ name: stop.name, lat: stop.lat, lng: stop.lng });
     }
 
-    const gpx = buildGpx({ tripTitle: title, places, days: [...days.values()] }, opts);
-    return gpx ? { gpx, filename: gpxFilename(title) } : null;
+    const gpx = this.placeImport.writeTripGpx({ tripTitle: title, places, days: [...days.values()] }, opts);
+    return gpx ? { gpx, filename: this.placeImport.tripGpxFilename(title) } : null;
   }
 
   private async importGpxRows(tripId: string, fileBuffer: Buffer, opts: GpxImportOptions = {}): Promise<GpxImportResult | null> {
-    const rows = this.prepareGpxRows(fileBuffer, opts);
+    const rows = this.placeImport.readGpx(fileBuffer, opts);
     if (!rows.length) return null;
     return await this.uow.transactional(() => this.persistGpxRows(tripId, rows));
   }
 
   /**
-   * Parses a GPX file into the places an import would create, without writing
-   * anything. The Tours import reuses it to build its own selection before
-   * handing the rows to {@link importPreparedGpx}.
-   */
-  prepareGpxRows(fileBuffer: Buffer, opts: GpxImportOptions = {}): PreparedGpxPlace[] {
-    const { importWaypoints = true, importRoutes = true, importTracks = true, defaultName } = opts;
-
-    const parsed = gpxParser.parse(fileBuffer.toString('utf-8'));
-    const gpx = parsed?.gpx;
-    if (!gpx) return [];
-
-    const str = (v: unknown) => (v != null ? String(v).trim() : null);
-    const num = (v: unknown) => { const n = Number.parseFloat(String(v)); return Number.isNaN(n) ? null : n; };
-
-    // Routes and tracks rarely carry their own <name>. Without one they all fall back to the
-    // same generic label, so name-based dedup drops every import after the first. Derive a
-    // base from the source filename (the requested behaviour) and suffix an index so multiple
-    // geometries from one file stay distinct.
-    const rawName = str(defaultName);
-    const baseName = rawName ? rawName.replace(/\.[^.]+$/, '').trim() || rawName : null;
-    let geoSeq = 0;
-    const geoName = (explicit: string | null, fallback: string): string => {
-      if (explicit) return explicit;
-      geoSeq++;
-      const base = baseName || fallback;
-      return geoSeq === 1 ? base : `${base} ${geoSeq}`;
-    };
-
-    const waypoints: PreparedGpxPlace[] = [];
-
-    // 1) Parse <wpt> elements (named waypoints / POIs)
-    if (importWaypoints) {
-      for (const wpt of gpx.wpt ?? []) {
-        const lat = num(wpt['@_lat']);
-        const lng = num(wpt['@_lon']);
-        if (lat === null || lng === null) continue;
-        waypoints.push({ lat, lng, name: str(wpt.name) || `Waypoint ${waypoints.length + 1}`, description: str(wpt.desc) });
-      }
-    }
-
-    // 2) Parse <rte> routes as polyline-places (one place per route with route_geometry)
-    if (importRoutes) {
-      for (const rte of gpx.rte ?? []) {
-        const pts = (rte.rtept ?? [])
-          .map((pt: Record<string, unknown>) => ({ lat: num(pt['@_lat']), lng: num(pt['@_lon']), ele: num(pt['ele']) }))
-          .filter((p: { lat: number | null; lng: number | null; ele: number | null }) => p.lat !== null && p.lng !== null) as Array<{ lat: number; lng: number; ele: number | null }>;
-        if (pts.length === 0) continue;
-        const hasAllEle = pts.every(p => p.ele !== null);
-        const routeGeometry = pts.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-        waypoints.push({ lat: pts[0].lat, lng: pts[0].lng, name: geoName(str(rte.name), 'GPX Route'), description: str(rte.desc), routeGeometry: JSON.stringify(routeGeometry) });
-      }
-    }
-
-    // 3) Extract full track geometry from <trk>
-    if (importTracks) {
-      for (const trk of gpx.trk ?? []) {
-        const trackPoints: { lat: number; lng: number; ele: number | null }[] = [];
-        for (const seg of trk.trkseg ?? []) {
-          for (const pt of seg.trkpt ?? []) {
-            const lat = num(pt['@_lat']);
-            const lng = num(pt['@_lon']);
-            if (lat === null || lng === null) continue;
-            trackPoints.push({ lat, lng, ele: num(pt.ele) });
-          }
-        }
-        if (trackPoints.length === 0) continue;
-        const start = trackPoints[0];
-        const hasAllEle = trackPoints.every(p => p.ele !== null);
-        const routeGeometry = trackPoints.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-        waypoints.push({ lat: start.lat, lng: start.lng, name: geoName(str(trk.name), 'GPX Track'), description: str(trk.desc), routeGeometry: JSON.stringify(routeGeometry) });
-      }
-    }
-
-    return waypoints;
-  }
-
-  /**
-   * Persists rows from {@link prepareGpxRows} and colours their tracks, both in
+   * Persists rows PlaceImportService.readGpx prepared and colours their tracks, both in
    * one transaction. Called from inside the Tours import's own transaction,
    * where this becomes a savepoint, so the places and their tour facets
    * commit or roll back together.
@@ -1080,39 +985,21 @@ export class PlacesService {
   }
 
   private async importMapFileRows(tripId: string, fileBuffer: Buffer, filename: string, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
-    const ext = filename.toLowerCase().split('.').pop();
-    if (ext === 'kmz') return this.importKmzPlaces(tripId, fileBuffer, opts);
-    if (ext === 'kml') return this.importKmlPlaces(tripId, fileBuffer, opts);
-    throw new Error(`Unsupported map file format: .${ext}. Please upload a .kml or .kmz file.`);
+    return this.persistKmlPlaces(tripId, await this.placeImport.readMapFile(fileBuffer, filename), opts);
   }
 
   async importKmzPlaces(tripId: string, kmzBuffer: Buffer, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
-    const kmlBuffer = await unpackKmzToKml(kmzBuffer);
-    return this.importKmlPlaces(tripId, kmlBuffer, opts);
+    return this.persistKmlPlaces(tripId, await this.placeImport.readKmz(kmzBuffer), opts);
   }
 
   async importKmlPlaces(tripId: string, fileBuffer: Buffer, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
+    return this.persistKmlPlaces(tripId, this.placeImport.readKml(fileBuffer), opts);
+  }
+
+  /** The placemarks of a read KML document as places, skipping duplicates. */
+  private async persistKmlPlaces(tripId: string, read: KmlDocumentRead, opts: KmlImportOptions): Promise<PlaceImportResult> {
     const { importPoints = true, importPaths = true } = opts;
-    const decoded = decodeUtf8WithWarning(fileBuffer);
-
-    const validationResult = XMLValidator.validate(decoded.text);
-    if (validationResult !== true) {
-      throw new Error('Malformed KML: invalid XML structure');
-    }
-
-    const parsed = kmlParser.parse(decoded.text);
-    const kmlRoot = parsed?.kml ?? parsed;
-
-    if (!kmlRoot || typeof kmlRoot !== 'object') {
-      throw new Error('Malformed KML: could not parse XML');
-    }
-
-    const placemarkNodes = extractKmlPlacemarkNodes(kmlRoot);
-    const summary = createKmlImportSummary(placemarkNodes.length);
-
-    if (decoded.warning) {
-      summary.warnings.push(decoded.warning);
-    }
+    const { placemarks, summary } = read;
 
     // PL33 — `CategoriesRepository.listIdName` (Plan 3a's repository).
     const categories = await this.categoriesRepo.listIdName();
@@ -1126,8 +1013,7 @@ export class PlacesService {
 
     await this.uow.transactional(async () => {
       let fallbackIndex = 1;
-      for (const node of placemarkNodes) {
-        const parsedPlacemark = parsePlacemarkNode(node);
+      for (const parsedPlacemark of placemarks) {
         const isPath = parsedPlacemark.routeGeometry !== null;
 
         // Unsupported geometry type (polygon, multi-geometry, no geometry, etc.)
@@ -1259,124 +1145,12 @@ export class PlacesService {
   // -------------------------------------------------------------------------
 
   async importGoogleList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
-    let listId: string | null = null;
-    let resolvedUrl = url;
-
-    // SSRF guard: validate user-supplied URL before fetching
-    const ssrf = await checkSsrf(url);
-    if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
-
-    // Follow redirects for short URLs (maps.app.goo.gl, goo.gl). Redirects are
-    // followed manually so every hop is re-checked against the SSRF guard — a
-    // short link that 302s to an internal IP is blocked even though the initial
-    // host is public.
-    if (url.includes('goo.gl') || url.includes('maps.app')) {
-      try {
-        const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
-        resolvedUrl = redirectRes.url;
-      } catch (err) {
-        if (err instanceof SsrfBlockedError) return { error: 'URL is not allowed', status: 400 };
-        throw err;
-      }
-    }
-
-    // A route, once the redirect is followed. The dispatch upstream decides on
-    // the raw URL, and a short link's path is `/<code>` — it matches nothing, so
-    // every route shared from the Google Maps app arrived here and was answered
-    // with "could not extract list ID", which is the complaint the directions
-    // import was written to remove. The Share sheet on a phone produces exactly
-    // this shape, and the box says a directions link works.
-    //
-    // Handed on with the resolved URL, so the hop is not made twice.
-    if (isDirectionsUrl(resolvedUrl)) {
-      return this.importGoogleDirections(tripId, resolvedUrl, opts);
-    }
-
-    // Pattern: /placelists/list/{ID}
-    const plMatch = resolvedUrl.match(/placelists\/list\/([A-Za-z0-9_-]+)/);
-    if (plMatch) listId = plMatch[1];
-
-    // Pattern: !2s{ID} in data URL params
-    if (!listId) {
-      const dataMatch = resolvedUrl.match(/!2s([A-Za-z0-9_-]{15,})/);
-      if (dataMatch) listId = dataMatch[1];
-    }
-
-    if (!listId) {
-      // A single-place share link (…/maps/place/…) carries no list id — point the user at
-      // the place search box instead of a cryptic "could not extract list ID" (#1304).
-      if (resolvedUrl.includes('/maps/place/')) {
-        return { error: 'That link points to a single place, not a list. To add it, paste the link into the place search box instead of using the list import.', status: 400 };
-      }
-      return { error: 'Could not extract list ID from URL. Please use a shared Google Maps list link.', status: 400 };
-    }
-
-    // Fetch list data from Google Maps internal API
-    const apiUrl = `https://www.google.com/maps/preview/entitylist/getlist?authuser=0&hl=en&gl=us&pb=!1m1!1s${encodeURIComponent(listId)}!2e2!3e2!4i500!16b1`;
-    const apiRes = await fetch(apiUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!apiRes.ok) {
-      return { error: 'Failed to fetch list from Google Maps', status: 502 };
-    }
-
-    // Cap the declared body before reading it (transit.service precedent): the
-    // response is attacker-influenced via the list id, and buffering it whole
-    // used to be unbounded.
-    const declared = Number(apiRes.headers?.get('content-length') ?? 0);
-    if (declared > MAX_LIST_RESPONSE_BYTES) {
-      return { error: 'Failed to fetch list from Google Maps', status: 502 };
-    }
-
-    const rawText = await apiRes.text();
-    if (rawText.length > MAX_LIST_RESPONSE_BYTES) {
-      return { error: 'Failed to fetch list from Google Maps', status: 502 };
-    }
-    const jsonStr = rawText.substring(rawText.indexOf('\n') + 1);
-    // The provider hands back a JS-prefixed array; a malformed body is a
-    // provider problem, not a crash — surface the same 400 an unreadable
-    // payload already produced instead of throwing a SyntaxError.
-    let listData: unknown;
-    try {
-      listData = JSON.parse(jsonStr);
-    } catch {
-      return { error: 'Invalid list data received from Google Maps', status: 400 };
-    }
-    if (!Array.isArray(listData)) {
-      return { error: 'Invalid list data received from Google Maps', status: 400 };
-    }
-
-    const meta = listData[0];
-    if (!meta) {
-      return { error: 'Invalid list data received from Google Maps', status: 400 };
-    }
-
-    const listName = meta[4] || 'Google Maps List';
-    const items = meta[8];
-
-    if (!Array.isArray(items) || items.length === 0) {
-      return { error: 'List is empty or could not be read', status: 400 };
-    }
-
-    // Parse place data from items
-    const places: { name: string; lat: number; lng: number; notes: string | null; googleFtid: string | null }[] = [];
-    for (const item of items) {
-      const coords = item?.[1]?.[5];
-      const lat = coords?.[2];
-      const lng = coords?.[3];
-      const name = item?.[2];
-      const note = item?.[3] || null;
-
-      if (name && typeof lat === 'number' && typeof lng === 'number' && !Number.isNaN(lat) && !Number.isNaN(lng)) {
-        places.push({ name, lat, lng, notes: note || null, googleFtid: googleMapsFeatureIdFromItem(item) });
-      }
-    }
-
-    if (places.length === 0) {
-      return { error: 'No places with coordinates found in list', status: 400 };
-    }
+    const read = await this.placeImport.readGoogleList(url);
+    if ('error' in read) return read;
+    // A short link that lands on a route is a directions link: imported as one,
+    // with the resolved URL, so the hop is not made twice.
+    if ('directions' in read) return this.importGoogleDirections(tripId, read.directions, opts);
+    const { listName, places } = read;
 
     const { created, skipped } = await this.storeGooglePlaces(tripId, places);
 
@@ -1396,7 +1170,7 @@ export class PlacesService {
    */
   private async storeGooglePlaces(
     tripId: string,
-    places: { name: string; lat: number; lng: number; notes: string | null; googleFtid: string | null }[],
+    places: GoogleListPlace[],
   ): Promise<{ created: PlaceWithTags[]; skipped: number }> {
     // Rule 21 / M1 (Task 9 fix wave) — same ruling as `importGpxRows`: the
     // caller's `requireTrip` gate already `toRowId`-parsed this `tripId`.
@@ -1469,90 +1243,13 @@ export class PlacesService {
   // -------------------------------------------------------------------------
 
   /**
-   * The stops of a route somebody else planned.
-   *
-   * The other half of the request the list import answers: people share a drive far more
-   * often than they share a list, and until now a pasted `/maps/dir/` link came back as a
-   * cryptic "could not extract list ID". No API key is involved and no call is made to
-   * Google for the link itself — the stops are in the URL, which is the whole reason
-   * this is possible at all.
-   *
-   * A stop the link spells out in coordinates is taken as it stands; one that is only a
-   * name is geocoded, one request each. A name nobody can place is left out rather than
-   * failing the import, because a route of six stops with five findable is five stops
-   * more than the traveller had.
+   * The stops of a route somebody else planned, read and placed by
+   * PlaceImportService (no API key, the stops are in the link), stored here.
    */
   async importGoogleDirections(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
-    const ssrf = await checkSsrf(url);
-    if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
-
-    let parsed: URL;
-    try { parsed = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
-
-    // Short links are resolved hop by hop through the guard, exactly as the list import
-    // does it: a maps.app.goo.gl that 302s to an internal address is still blocked.
-    let resolvedUrl = url;
-    if (GOOGLE_SHORT_HOSTS.includes(parsed.hostname)) {
-      try {
-        const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
-        resolvedUrl = redirectRes.url;
-      } catch (err) {
-        if (err instanceof SsrfBlockedError) return { error: 'URL is not allowed', status: 400 };
-        throw err;
-      }
-    }
-
-    // Checked after resolving, not before: the host that counts is the one the link lands
-    // on, and `/maps/dir/` is a path anybody could serve.
-    let host = '';
-    try { host = new URL(resolvedUrl).hostname; } catch { /* an unparseable hop fails the check below */ }
-    if (!isGoogleMapsHost(host)) {
-      return { error: 'That link is not a Google Maps link.', status: 400 };
-    }
-
-    const waypoints = parseDirectionsUrl(resolvedUrl);
-    if (waypoints.length < 2) {
-      return { error: 'Could not read any stops from that directions link. Open the route in Google Maps and use its Share button.', status: 400 };
-    }
-
-    const places: { name: string; lat: number; lng: number; notes: string | null; googleFtid: string | null }[] = [];
-    let unplaceable = 0;
-    for (const wp of waypoints) {
-      if (wp.lat !== null && wp.lng !== null) {
-        // A stop written as coordinates has no name of its own, and the coordinates are a
-        // better label than "Stop 3": they are what the traveller can look up.
-        places.push({
-          name: wp.name || `${wp.lat.toFixed(5)}, ${wp.lng.toFixed(5)}`,
-          lat: wp.lat,
-          lng: wp.lng,
-          notes: null,
-          googleFtid: null,
-        });
-        continue;
-      }
-      if (!wp.name) continue;
-      try {
-        // Through geocodeQuery, which asks the TREK index first and only falls
-        // through to Nominatim for what it does not know — and does so on the
-        // BACKGROUND lane. That matters here more than anywhere: this loop runs
-        // up to thirty times in one request, each Nominatim call taking the next
-        // slot on a 1.1 s process-wide throttle, so on the interactive lane one
-        // pasted link made everybody else's place search queue behind it for
-        // half a minute. An index hit costs no slot at all.
-        const hit = await this.maps.geocodeQuery(wp.name);
-        // The name from the link, not the one the geocoder answers with: somebody who
-        // typed a nickname into Google should not find a street address on their trip.
-        if (hit) places.push({ name: wp.name, lat: hit.lat, lng: hit.lng, notes: null, googleFtid: null });
-        else unplaceable++;
-      } catch {
-        // A geocoder that is down or rate-limited costs this one stop, not the import.
-        unplaceable++;
-      }
-    }
-
-    if (places.length < 2) {
-      return { error: 'None of the stops in that link could be placed on the map.', status: 400 };
-    }
+    const read = await this.placeImport.readGoogleDirections(url, (query) => this.maps.geocodeQuery(query));
+    if ('error' in read) return read;
+    const { places, unplaceable } = read;
 
     const { created, skipped } = await this.storeGooglePlaces(tripId, places);
     if (created.length) {
@@ -1571,116 +1268,9 @@ export class PlacesService {
   // -------------------------------------------------------------------------
 
   async importNaverList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
-    let resolvedUrl = url;
-    const limit = 20;
-
-    // SSRF guard: validate user-supplied URL before fetching
-    const ssrf = await checkSsrf(url);
-    if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
-
-    // Resolve naver.me short links to the canonical map.naver.com folder URL.
-    // Redirects are followed manually so each hop is re-validated against the
-    // SSRF guard (a short link could otherwise 302 to an internal address).
-    let parsedUrl: URL;
-    try { parsedUrl = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
-    if (parsedUrl.hostname === 'naver.me') {
-      try {
-        const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
-        resolvedUrl = redirectRes.url;
-      } catch (err) {
-        if (err instanceof SsrfBlockedError) return { error: 'URL is not allowed', status: 400 };
-        throw err;
-      }
-    }
-
-    const folderMatch = resolvedUrl.match(/favorite\/myPlace\/folder\/([A-Za-z0-9_-]+)/i);
-    const folderId = folderMatch?.[1] || null;
-    if (!folderId) {
-      return { error: 'Could not extract folder ID from URL. Please use a shared Naver Maps list link.', status: 400 };
-    }
-
-    const fetchPage = async (start: number) => {
-      const apiUrl = `https://pages.map.naver.com/save-pages/api/maps-bookmark/v3/shares/${encodeURIComponent(folderId)}/bookmarks?placeInfo=true&start=${start}&limit=${limit}&sort=lastUseTime&mcids=ALL&createIdNo=true`;
-      const apiRes = await fetch(apiUrl, {
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-        signal: AbortSignal.timeout(15000),
-      });
-
-      if (!apiRes.ok) {
-        return { error: 'Failed to fetch list from Naver Maps', status: 502 } as const;
-      }
-
-      // Same cap as the Google import: the URL is attacker-influenced via the
-      // folder id, and this pager buffers a fresh body on every iteration, so an
-      // uncapped read is worse here than there. The declared length is checked
-      // before the read; the post-read check covers a chunked response that
-      // carries no content-length at all.
-      const declared = Number(apiRes.headers?.get('content-length') ?? 0);
-      if (declared > MAX_LIST_RESPONSE_BYTES) {
-        return { error: 'Failed to fetch list from Naver Maps', status: 502 } as const;
-      }
-
-      try {
-        const rawText = await apiRes.text();
-        if (rawText.length > MAX_LIST_RESPONSE_BYTES) {
-          return { error: 'Failed to fetch list from Naver Maps', status: 502 } as const;
-        }
-        const data = JSON.parse(rawText) as {
-          folder?: { bookmarkCount?: number; name?: string };
-          bookmarkList?: Record<string, unknown>[];
-        };
-        return { data } as const;
-      } catch {
-        return { error: 'Invalid list data received from Naver Maps', status: 400 } as const;
-      }
-    };
-
-    const firstPage = await fetchPage(0);
-    if ('error' in firstPage) {
-      return { error: firstPage.error, status: firstPage.status };
-    }
-
-    const listName = firstPage.data.folder?.name || 'Naver Maps List';
-    const totalCount = typeof firstPage.data.folder?.bookmarkCount === 'number'
-      ? firstPage.data.folder.bookmarkCount
-      : (firstPage.data.bookmarkList?.length || 0);
-
-    const allItems: Record<string, unknown>[] = [...(firstPage.data.bookmarkList || [])];
-    for (let start = limit; start < totalCount; start += limit) {
-      const page = await fetchPage(start);
-      if ('error' in page) {
-        return { error: page.error, status: page.status };
-      }
-      const pageItems = page.data.bookmarkList || [];
-      if (!Array.isArray(pageItems) || pageItems.length === 0) break;
-      allItems.push(...pageItems);
-    }
-
-    if (allItems.length === 0) {
-      return { error: 'List is empty or could not be read', status: 400 };
-    }
-
-    const places: { name: string; lat: number; lng: number; notes: string | null; address: string | null }[] = [];
-    for (const item of allItems) {
-      const lat = Number(item?.py);
-      const lng = Number(item?.px);
-      const name = typeof item?.name === 'string' && item.name.trim()
-        ? item.name.trim()
-        : (typeof item?.displayName === 'string' ? item.displayName.trim() : '');
-      const note = typeof item?.memo === 'string' && item.memo.trim() ? item.memo.trim() : null;
-      const address = typeof item?.address === 'string' && item.address.trim() ? item.address.trim() : null;
-
-      if (name && Number.isFinite(lat) && Number.isFinite(lng)) {
-        places.push({ name, lat, lng, notes: note, address });
-      }
-    }
-
-    if (places.length === 0) {
-      return { error: 'No places with coordinates found in list', status: 400 };
-    }
+    const read = await this.placeImport.readNaverList(url);
+    if ('error' in read) return read;
+    const { listName, places } = read;
 
     // Rule 21 / M1 (Task 9 fix wave) — same ruling as `importGpxRows`: the
     // caller's `requireTrip` gate already `toRowId`-parsed this `tripId`.

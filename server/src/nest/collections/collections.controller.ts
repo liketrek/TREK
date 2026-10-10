@@ -56,7 +56,7 @@ import {
   CollectionGpxReadDto,
 } from './collections.dto';
 import { PlaceRatingDto } from '../places/places.dto';
-import { CollectionGpxError } from './collection-gpx.helpers';
+import { CollectionGpxError } from '../place-import/place-import.types';
 
 export const MAX_COVER_SIZE = 20 * 1024 * 1024;
 // Duplicated on purpose from trips.controller.ts (historical parity — no

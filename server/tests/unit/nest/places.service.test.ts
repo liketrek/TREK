@@ -62,6 +62,7 @@ import fs from 'fs';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
+import { buildPlaceImportService } from '../../helpers/place-import';
 import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { buildMapsService } from '../../helpers/maps-service';
@@ -163,6 +164,7 @@ async function makePlacesService(
   await createTestTripsRepo(testDb),
   await createTestBudgetItemsRepo(testDb),
   await createTestCollectionPlacesRepo(testDb),
+    buildPlaceImportService(),
   );
 }
 

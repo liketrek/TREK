@@ -29,12 +29,13 @@ import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.serv
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
+import { buildPlaceImportService } from '../../helpers/place-import';
 import { buildMapsService } from '../../helpers/maps-service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
 import { ToursService } from '../../../src/nest/tours/tours.service';
-import { gpxParser } from '../../../src/nest/places/places.helpers';
+import { gpxGeometryParser } from '../../../src/nest/place-import/gpx.codec';
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
 import { resetTestDb } from '../../helpers/test-db';
@@ -101,6 +102,7 @@ async function makePlacesService(): Promise<PlacesService> {
     await createTestTripsRepo(testDb),
     await createTestBudgetItemsRepo(testDb),
     await createTestCollectionPlacesRepo(testDb),
+    buildPlaceImportService(),
   );
 }
 
@@ -128,6 +130,7 @@ beforeAll(async () => {
   places = await makePlacesService();
   tours = new ToursService(
     uow, places, await createTestToursRepo(testDb), await createTestTourTypesRepo(testDb), await createTestTourWaypointsRepo(testDb), await createTestPlacesRepo(testDb),
+    buildPlaceImportService(),
   );
 });
 
@@ -221,7 +224,7 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
 
   it('propagates parser failures before entering the transaction', async () => {
     const transactional = vi.spyOn(uow, 'transactional');
-    vi.spyOn(gpxParser, 'parse').mockImplementationOnce(() => { throw new Error('parser failure'); });
+    vi.spyOn(gpxGeometryParser, 'parse').mockImplementationOnce(() => { throw new Error('parser failure'); });
     await expect(tours.importGpxAsTour(tripId, mixedGpx)).rejects.toThrow('parser failure');
     expect(transactional).not.toHaveBeenCalled();
     await expectEmpty();

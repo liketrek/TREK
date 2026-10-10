@@ -1,27 +1,38 @@
+/**
+ * KML and KMZ in: the one place the XML library is configured for KML.
+ *
+ * A KMZ is unpacked to its KML (doc.kml preferred, the decompressed size
+ * capped), the bytes are decoded as UTF-8 (loosely, with a warning, when they
+ * are not), the document is validated and parsed, and every Placemark comes
+ * back with the folder it sat in, its name, a plain-text description, and
+ * either a point or a path's first point plus the path as route geometry.
+ * Which placemarks become places, and under which category, is the importing
+ * domain's decision.
+ */
 import { TextDecoder } from 'util';
+import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import unzipper from 'unzipper';
 import { stripHtmlTags } from '../common/stripHtmlTags';
+import type { KmlDocumentRead, KmlImportSummary, ParsedKmlPlacemark } from './place-import.types';
 
-export interface ParsedKmlPlacemark {
-  name: string | null;
-  description: string | null;
-  lat: number | null;
-  lng: number | null;
-  folderName: string | null;
-  routeGeometry: string | null;
-}
+export type { KmlImportSummary, ParsedKmlPlacemark } from './place-import.types';
 
 export interface KmlPlacemarkNode {
   placemark: any;
   folderName: string | null;
 }
 
-export interface KmlImportSummary {
-  totalPlacemarks: number;
-  createdCount: number;
-  skippedCount: number;
-  warnings: string[];
-  errors: string[];
-}
+const kmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@_',
+  removeNSPrefix: true,
+  isArray: (name) => ['Placemark', 'Folder', 'Document'].includes(name),
+  // Treat <description> as raw text so mixed-content HTML (e.g. <br/>, <i>)
+  // is returned as a string instead of a parsed object.
+  stopNodes: ['*.description'],
+});
+
+export const KMZ_DECOMPRESSED_SIZE_LIMIT = 50 * 1024 * 1024; // 50 MB
 
 const UTF8_DECODER_FATAL = new TextDecoder('utf-8', { fatal: true });
 const UTF8_DECODER_LOOSE = new TextDecoder('utf-8');
@@ -144,25 +155,6 @@ export function createKmlImportSummary(totalPlacemarks: number): KmlImportSummar
   };
 }
 
-export function buildCategoryNameLookup(categories: { id: number; name: string }[]): Map<string, number> {
-  const lookup = new Map<string, number>();
-  for (const category of categories) {
-    const normalizedName = category.name.trim().toLowerCase();
-    if (!normalizedName) continue;
-    if (!lookup.has(normalizedName)) {
-      lookup.set(normalizedName, category.id);
-    }
-  }
-  return lookup;
-}
-
-export function resolveCategoryIdForFolder(folderName: string | null, lookup: Map<string, number>): number | null {
-  if (!folderName) return null;
-  const normalizedFolder = folderName.trim().toLowerCase();
-  if (!normalizedFolder) return null;
-  return lookup.get(normalizedFolder) ?? null;
-}
-
 export function extractKmlPlacemarkNodes(kmlRoot: any): KmlPlacemarkNode[] {
   const nodes: KmlPlacemarkNode[] = [];
 
@@ -210,4 +202,63 @@ export function parsePlacemarkNode(node: KmlPlacemarkNode): ParsedKmlPlacemark {
     folderName: node.folderName,
     routeGeometry,
   };
+}
+
+/**
+ * A KML document as its placemarks (each level's own before its folders'), with the summary the
+ * import fills in. Throws the two messages the import route has always
+ * answered for a broken file.
+ */
+export function readKmlDocument(fileBuffer: Buffer): KmlDocumentRead {
+  const decoded = decodeUtf8WithWarning(fileBuffer);
+
+  const validationResult = XMLValidator.validate(decoded.text);
+  if (validationResult !== true) {
+    throw new Error('Malformed KML: invalid XML structure');
+  }
+
+  const parsed = kmlParser.parse(decoded.text);
+  const kmlRoot = parsed?.kml ?? parsed;
+
+  if (!kmlRoot || typeof kmlRoot !== 'object') {
+    throw new Error('Malformed KML: could not parse XML');
+  }
+
+  const placemarkNodes = extractKmlPlacemarkNodes(kmlRoot);
+  const summary = createKmlImportSummary(placemarkNodes.length);
+
+  if (decoded.warning) {
+    summary.warnings.push(decoded.warning);
+  }
+
+  return { placemarks: placemarkNodes.map(parsePlacemarkNode), summary };
+}
+
+// ---------------------------------------------------------------------------
+// KMZ unpacking
+// ---------------------------------------------------------------------------
+
+export async function unpackKmzToKml(
+  kmzBuffer: Buffer,
+  decompressedSizeLimit = KMZ_DECOMPRESSED_SIZE_LIMIT,
+): Promise<Buffer> {
+  let zip;
+  try {
+    zip = await unzipper.Open.buffer(kmzBuffer);
+  } catch {
+    throw new Error('Invalid KMZ archive.');
+  }
+
+  const kmlEntries = zip.files.filter((entry) => !entry.path.endsWith('/') && entry.path.toLowerCase().endsWith('.kml'));
+  if (kmlEntries.length === 0) {
+    throw new Error('KMZ archive does not contain a KML file.');
+  }
+
+  const preferredEntry = kmlEntries.find((entry) => entry.path.toLowerCase().endsWith('doc.kml')) || kmlEntries[0];
+
+  if (preferredEntry.uncompressedSize > decompressedSizeLimit) {
+    throw new Error('KMZ archive exceeds the maximum allowed decompressed size.');
+  }
+
+  return preferredEntry.buffer();
 }

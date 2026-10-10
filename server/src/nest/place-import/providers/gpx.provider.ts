@@ -1,8 +1,11 @@
-import { XMLBuilder } from 'fast-xml-parser';
+import { Injectable } from '@nestjs/common';
+import { coord, gpxGeometryParser, writeGpx } from '../gpx.codec';
+import type { GpxImportOptions, PreparedGpxPlace } from '../place-import.types';
 
 /**
- * GPX writer, the mirror of the importer in places.helpers.ts. Same library, the
- * builder half rather than the parser half, so nothing new is pulled in.
+ * A trip as GPX and back: the reader that turns a GPX file into the places an
+ * import would create, and the writer that is its mirror. Both go through
+ * gpx.codec (the geometry read mode, the shared document writer).
  *
  * The import decides the shape here: a `<wpt>` becomes a place with coordinates, a
  * `<rte>` or `<trk>` becomes a place carrying `route_geometry`, so writing back is
@@ -46,12 +49,6 @@ export interface GpxExportOptions {
 
 type Pt = { lat: number; lng: number; ele: number | null };
 
-/** Coordinates are written with 7 decimals, ~11 mm, which is past what any consumer
- *  device resolves and keeps the file from carrying float noise. */
-export function coord(n: number): string {
-  return Number(n.toFixed(7)).toString();
-}
-
 function parseGeometry(raw: string | null): Pt[] {
   if (!raw) return [];
   let parsed: unknown;
@@ -80,15 +77,6 @@ function describe(place: GpxExportPlace): string | undefined {
   const parts = [place.description?.trim(), place.address?.trim()].filter(Boolean);
   return parts.length ? parts.join(', ') : undefined;
 }
-
-/** Shared with the list writer in collections/, which writes the same dialect. */
-export const gpxBuilder = new XMLBuilder({
-  ignoreAttributes: false,
-  attributeNamePrefix: '@_',
-  format: true,
-  indentBy: '  ',
-  suppressEmptyNode: true,
-});
 
 /**
  * Build a GPX 1.1 document. Returns null when the selection produced nothing at all,
@@ -154,22 +142,7 @@ export function buildGpx(input: GpxExportInput, opts: GpxExportOptions = {}): st
 
   if (wpt.length === 0 && trk.length === 0 && rte.length === 0) return null;
 
-  const doc = {
-    '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
-    gpx: {
-      '@_version': '1.1',
-      '@_creator': 'TREK',
-      '@_xmlns': 'http://www.topografix.com/GPX/1/1',
-      '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-      '@_xsi:schemaLocation': 'http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd',
-      metadata: { name: input.tripTitle },
-      ...(wpt.length ? { wpt } : {}),
-      ...(rte.length ? { rte } : {}),
-      ...(trk.length ? { trk } : {}),
-    },
-  };
-
-  return gpxBuilder.build(doc);
+  return writeGpx({ metadata: { name: input.tripTitle }, wpt, rte, trk });
 }
 
 /** Filenames land on the receiving filesystem, so its reserved characters are
@@ -186,4 +159,97 @@ export function gpxFilename(tripTitle: string): string {
   // Codepoints, not UTF-16 units: slice() would cut an emoji in half and the
   // lone surrogate is exactly what URI-encoding chokes on.
   return `${[...base].slice(0, 60).join('') || 'trip'}.gpx`;
+}
+
+/**
+ * Parses a GPX file into the places an import would create, without writing
+ * anything. Waypoints become places, each route and each track becomes one
+ * place carrying its geometry.
+ */
+export function prepareGpxRows(fileBuffer: Buffer, opts: GpxImportOptions = {}): PreparedGpxPlace[] {
+  const { importWaypoints = true, importRoutes = true, importTracks = true, defaultName } = opts;
+
+  const parsed = gpxGeometryParser.parse(fileBuffer.toString('utf-8'));
+  const gpx = parsed?.gpx;
+  if (!gpx) return [];
+
+  const str = (v: unknown) => (v != null ? String(v).trim() : null);
+  const num = (v: unknown) => { const n = Number.parseFloat(String(v)); return Number.isNaN(n) ? null : n; };
+
+  // Routes and tracks rarely carry their own <name>. Without one they all fall back to the
+  // same generic label, so name-based dedup drops every import after the first. Derive a
+  // base from the source filename (the requested behaviour) and suffix an index so multiple
+  // geometries from one file stay distinct.
+  const rawName = str(defaultName);
+  const baseName = rawName ? rawName.replace(/\.[^.]+$/, '').trim() || rawName : null;
+  let geoSeq = 0;
+  const geoName = (explicit: string | null, fallback: string): string => {
+    if (explicit) return explicit;
+    geoSeq++;
+    const base = baseName || fallback;
+    return geoSeq === 1 ? base : `${base} ${geoSeq}`;
+  };
+
+  const waypoints: PreparedGpxPlace[] = [];
+
+  // 1) Parse <wpt> elements (named waypoints / POIs)
+  if (importWaypoints) {
+    for (const wpt of gpx.wpt ?? []) {
+      const lat = num(wpt['@_lat']);
+      const lng = num(wpt['@_lon']);
+      if (lat === null || lng === null) continue;
+      waypoints.push({ lat, lng, name: str(wpt.name) || `Waypoint ${waypoints.length + 1}`, description: str(wpt.desc) });
+    }
+  }
+
+  // 2) Parse <rte> routes as polyline-places (one place per route with route_geometry)
+  if (importRoutes) {
+    for (const rte of gpx.rte ?? []) {
+      const pts = (rte.rtept ?? [])
+        .map((pt: Record<string, unknown>) => ({ lat: num(pt['@_lat']), lng: num(pt['@_lon']), ele: num(pt['ele']) }))
+        .filter((p: { lat: number | null; lng: number | null; ele: number | null }) => p.lat !== null && p.lng !== null) as Array<{ lat: number; lng: number; ele: number | null }>;
+      if (pts.length === 0) continue;
+      const hasAllEle = pts.every(p => p.ele !== null);
+      const routeGeometry = pts.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
+      waypoints.push({ lat: pts[0].lat, lng: pts[0].lng, name: geoName(str(rte.name), 'GPX Route'), description: str(rte.desc), routeGeometry: JSON.stringify(routeGeometry) });
+    }
+  }
+
+  // 3) Extract full track geometry from <trk>
+  if (importTracks) {
+    for (const trk of gpx.trk ?? []) {
+      const trackPoints: { lat: number; lng: number; ele: number | null }[] = [];
+      for (const seg of trk.trkseg ?? []) {
+        for (const pt of seg.trkpt ?? []) {
+          const lat = num(pt['@_lat']);
+          const lng = num(pt['@_lon']);
+          if (lat === null || lng === null) continue;
+          trackPoints.push({ lat, lng, ele: num(pt.ele) });
+        }
+      }
+      if (trackPoints.length === 0) continue;
+      const start = trackPoints[0];
+      const hasAllEle = trackPoints.every(p => p.ele !== null);
+      const routeGeometry = trackPoints.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
+      waypoints.push({ lat: start.lat, lng: start.lng, name: geoName(str(trk.name), 'GPX Track'), description: str(trk.desc), routeGeometry: JSON.stringify(routeGeometry) });
+    }
+  }
+
+  return waypoints;
+}
+
+/** The GPX source: a trip file in, a trip file out. */
+@Injectable()
+export class GpxProvider {
+  read(fileBuffer: Buffer, opts: GpxImportOptions = {}): PreparedGpxPlace[] {
+    return prepareGpxRows(fileBuffer, opts);
+  }
+
+  write(input: GpxExportInput, opts: GpxExportOptions = {}): string | null {
+    return buildGpx(input, opts);
+  }
+
+  filename(tripTitle: string): string {
+    return gpxFilename(tripTitle);
+  }
 }

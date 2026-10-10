@@ -138,6 +138,10 @@ export default defineConfig({
         // measuring 99.5/99.0/97.4/100 — the gap the per-domain ratchet exists to
         // close. Set with a few points of slack against the Linux/Windows drift.
         'src/nest/place-enrichment/**/*.ts': { statements: 96, branches: 95, functions: 94, lines: 97 },
+        // New domain: the file and list readers that moved out of places/ and
+        // collections/. On the floor until a full CI run measures it; raise it
+        // with scripts/coverage-thresholds.mjs then, never lower it.
+        'src/nest/place-import/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/place-photos/**/*.ts': { statements: 87, branches: 79, functions: 72, lines: 89 },
         // New domain in this change. Measured over its own suites at
         // 98.3/89.8/96.2/100, and pinned well under that on purpose: the

@@ -50,6 +50,7 @@ import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.se
 import { CollabService } from '../../../src/nest/collab/collab.service';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
+import { buildPlaceImportService } from '../../helpers/place-import';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
 import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
 import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
@@ -173,6 +174,7 @@ beforeAll(async () => {
   await createTestTripsRepo(testDb),
   await createTestBudgetItemsRepo(testDb),
   await createTestCollectionPlacesRepo(testDb),
+  buildPlaceImportService(),
 );
   membersSvc = new TripMembersService(budgetSvc, new UserCleanupService(new MaintenanceRepository((await sharedTestOrm(testDb)).em), budgetSvc, await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb)), new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new RealtimeService(), notificationsStub(), await createTestUnitOfWork(testDb), await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb));
 });

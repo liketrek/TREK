@@ -24,6 +24,7 @@ import { UnsplashModule } from '../unsplash/unsplash.module';
 import { PlacePhotosModule } from '../place-photos/place-photos.module';
 import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
 import { MapsModule } from '../maps/maps.module';
+import { PlaceImportModule } from '../place-import/place-import.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { StorageModule } from '../storage/storage.module';
@@ -55,6 +56,8 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
     StorageModule,
     // AccommodationsDomainModule: deleting a place takes the nights booked at it with
     // it, and the cascade behind a stay belongs to the domain that owns it.
+    // PlaceImportModule reads the GPX/KML files and shared lists this domain imports.
+    PlaceImportModule,
     McpSharedModule, PermissionsModule, QueryHelpersModule, MapsModule, AppConfigModule, UnsplashModule, PlacePhotosModule, JourneyDomainModule, RealtimeModule, PluginGuardsModule, AssignmentsDomainModule, AccommodationsDomainModule,
     // Plan 3c Task 4: `PlacesService`'s and `PlacesMcp`'s own `@InjectRepository`
     // constructor params (`PlacesRepository`, `TagsRepository`,

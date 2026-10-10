@@ -17,9 +17,9 @@ import {
   collectionFileToGpx,
   gpxToCollectionFile,
   type ExportedCollectionFile,
-} from '../../../src/nest/collections/collection-gpx.helpers';
+} from '../../../../src/nest/place-import/providers/collection-gpx.provider';
 
-const fixture = (name: string) => fs.readFileSync(path.join(__dirname, '../../fixtures/gpx', name), 'utf8');
+const fixture = (name: string) => fs.readFileSync(path.join(__dirname, '../../../fixtures/gpx', name), 'utf8');
 
 const listFile = (over: Partial<ExportedCollectionFile> = {}): ExportedCollectionFile => ({
   format: 'trek.collection', version: 1, name: 'Lisbon', places: [], ...over,

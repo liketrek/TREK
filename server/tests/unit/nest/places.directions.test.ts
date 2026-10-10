@@ -34,6 +34,7 @@ import { accommodationsOver } from '../../helpers/accommodations-service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
+import { buildPlaceImportService } from '../../helpers/place-import';
 import type { MapsService } from '../../../src/nest/maps/maps.service';
 import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
@@ -63,24 +64,25 @@ const hit = (name: string, lat: number, lng: number) => ({
 });
 
 async function svc(searchNominatim: OsmClient['searchNominatim']): Promise<PlacesService> {
+  // The address backfill runs fire-and-forget after every import, so the stub answers
+  // it too — otherwise every passing test prints a rejected promise.
+  // geocodeQuery is what the importer calls now: it asks the TREK index first
+  // and falls through to Nominatim on the background lane. Stubbed in terms of
+  // the searchNominatim each case already provides, so the cases keep driving
+  // one seam while the code under test uses the real one.
+  const maps = {
+    searchNominatim,
+    geocodeQuery: async (query: string) => {
+      const hit = (await searchNominatim(query, undefined, 'background'))
+        .find((h: { lat: number | null; lng: number | null }) => h.lat !== null && h.lng !== null);
+      return hit ? { lat: hit.lat as number, lng: hit.lng as number } : null;
+    },
+    reverseGeocode: vi.fn(async () => null),
+  } as unknown as MapsService;
   return new PlacesService(
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     new RealtimeService(),
-    // The address backfill runs fire-and-forget after every import, so the stub answers
-    // it too — otherwise every passing test prints a rejected promise.
-    // geocodeQuery is what the importer calls now: it asks the TREK index first
-    // and falls through to Nominatim on the background lane. Stubbed in terms of
-    // the searchNominatim each case already provides, so the cases keep driving
-    // one seam while the code under test uses the real one.
-    {
-      searchNominatim,
-      geocodeQuery: async (query: string) => {
-        const hit = (await searchNominatim(query, undefined, 'background'))
-          .find((h: { lat: number | null; lng: number | null }) => h.lat !== null && h.lng !== null);
-        return hit ? { lat: hit.lat as number, lng: hit.lng as number } : null;
-      },
-      reverseGeocode: vi.fn(async () => null),
-    } as unknown as MapsService,
+    maps,
     new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
     new UnsplashService(await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), new RuntimeEnvService(), storageFx.storage),
     photoCacheStub,
@@ -102,6 +104,7 @@ async function svc(searchNominatim: OsmClient['searchNominatim']): Promise<Place
   await createTestTripsRepo(testDb),
   await createTestBudgetItemsRepo(testDb),
   await createTestCollectionPlacesRepo(testDb),
+    buildPlaceImportService(),
   );
 }
 

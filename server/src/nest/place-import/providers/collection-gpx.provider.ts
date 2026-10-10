@@ -1,4 +1,4 @@
-import { XMLParser } from 'fast-xml-parser';
+import { Injectable } from '@nestjs/common';
 import type { ZodType } from 'zod';
 import {
   COLLECTION_FILE_FORMAT,
@@ -16,11 +16,13 @@ import {
   type CollectionFileLabel,
   type CollectionFilePlace,
   type CollectionGpxExport,
-  type CollectionGpxProblem,
   type CollectionGpxReadResult,
   type CollectionLink,
 } from '@trek/shared';
-import { coord, gpxBuilder } from '../places/gpx-export.helpers';
+import { coord, gpxTextParser, writeGpx } from '../gpx.codec';
+import { CollectionGpxError } from '../place-import.types';
+
+export { CollectionGpxError } from '../place-import.types';
 
 /**
  * A list as GPX and back (#2301).
@@ -32,16 +34,15 @@ import { coord, gpxBuilder } from '../places/gpx-export.helpers';
  * fields of a place map onto a waypoint, and that table lives in the contract
  * (`COLLECTION_GPX_PLACE_FIELDS`).
  *
- * Same library as the trip importer and exporter in places/, with a reader of
- * its own: the trip parser turns `<name>007</name>` into the number 7 and does
- * not decode character references, which is fine for track geometry and wrong
- * for the names and notes a list is made of.
+ * Same codec as the trip importer and exporter (gpx.codec), in its `text`
+ * read mode: the trip parser turns `<name>007</name>` into the number 7 and
+ * does not decode character references, which is fine for track geometry and
+ * wrong for the names and notes a list is made of.
  */
 
 /** A list file as the exporter builds it, its places already in the file's shape. */
 export type ExportedCollectionFile = Omit<CollectionFile, 'places'> & { places: CollectionFilePlace[] };
 
-const GPX_NAMESPACE = 'http://www.topografix.com/GPX/1/1';
 /** The prefix this writer binds; the reader looks the namespace up instead. */
 const TREK = 'trek';
 /** OsmAnd writes its favourites with the address in its own namespace. */
@@ -148,36 +149,13 @@ export function collectionFileToGpx(file: ExportedCollectionFile): CollectionGpx
     wpt.push(waypoint(place, lat, lng));
   }
 
-  const gpx: string = gpxBuilder.build({
-    '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
-    gpx: {
-      '@_version': '1.1',
-      '@_creator': 'TREK',
-      '@_xmlns': GPX_NAMESPACE,
-      [`@_xmlns:${TREK}`]: COLLECTION_GPX_NAMESPACE,
-      '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-      '@_xsi:schemaLocation': `${GPX_NAMESPACE} ${GPX_NAMESPACE}/gpx.xsd`,
-      metadata: metadata(file),
-      ...(wpt.length ? { wpt } : {}),
-    },
-  });
+  const gpx = writeGpx({ namespaces: { [TREK]: COLLECTION_GPX_NAMESPACE }, metadata: metadata(file), wpt });
   return { name: file.name, gpx, waypoints: wpt.length, omitted };
 }
 
 // ---------------------------------------------------------------------------
 // Reading
 // ---------------------------------------------------------------------------
-
-/** Why a document was refused, carried to the controller as the response's `code`. */
-export class CollectionGpxError extends Error {
-  constructor(
-    readonly code: CollectionGpxProblem,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'CollectionGpxError';
-  }
-}
 
 /**
  * The most elements a document may open before it is parsed at all.
@@ -188,27 +166,6 @@ export class CollectionGpxError extends Error {
  * thousand, so this sits well clear of every genuine file.
  */
 export const MAX_GPX_ELEMENTS = 100_000;
-
-/** Elements that may repeat, so they always parse as arrays. Matched on the local name. */
-const REPEATED = new Set(['wpt', 'rte', 'rtept', 'trk', 'trkseg', 'trkpt', 'link', 'label']);
-
-const localName = (name: string): string => name.slice(name.indexOf(':') + 1);
-
-/**
- * Text stays text (`parseTagValue: false`), so a waypoint called 007 keeps its
- * zeros. `htmlEntities` is on for the numeric character references it also
- * unlocks (`&#233;`), which this library otherwise leaves undecoded. Entities
- * declared in a DOCTYPE never reach it: a document carrying one is refused
- * before parsing.
- */
-const reader = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: '@_',
-  parseTagValue: false,
-  parseAttributeValue: false,
-  htmlEntities: true,
-  isArray: (name, _path, _leaf, isAttribute) => !isAttribute && REPEATED.has(localName(name)),
-});
 
 type XmlNode = Record<string, unknown>;
 
@@ -410,7 +367,7 @@ export function gpxToCollectionFile(source: string, fileName?: string): Collecti
   const xml = refuseBeforeParsing(source);
   let doc: unknown;
   try {
-    doc = reader.parse(xml, true);
+    doc = gpxTextParser.parse(xml, true);
   } catch {
     throw new CollectionGpxError('unreadable', 'That GPX file is not well-formed XML');
   }
@@ -480,4 +437,16 @@ export function gpxToCollectionFile(source: string, fileName?: string): Collecti
   // The envelope above always fits today; this keeps a stricter contract from becoming a 500.
   if (!file) throw new CollectionGpxError('unreadable', 'That GPX file could not be read as a list');
   return { file, skipped, track_points: trackPoints };
+}
+
+/** The GPX source for lists: the list file out as GPX, a GPX file in as a list file. */
+@Injectable()
+export class CollectionGpxProvider {
+  write(file: ExportedCollectionFile): CollectionGpxExport {
+    return collectionFileToGpx(file);
+  }
+
+  read(source: string, fileName?: string): CollectionGpxReadResult {
+    return gpxToCollectionFile(source, fileName);
+  }
 }

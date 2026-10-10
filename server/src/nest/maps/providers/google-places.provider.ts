@@ -286,6 +286,9 @@ export class GooglePlacesClient {
    * download. The outcome tells a place with no photo apart from a call that
    * went wrong, because the negative cache keeps the first for a day and the
    * second for minutes. Throws only when the transport itself does.
+   *
+   * @txIndependent two billed calls with network I/O between them: each counts
+   * against the daily ceiling on its own, as it is made.
    */
   async firstPhoto(placeId: string, apiKey: string): Promise<GooglePhotoOutcome> {
     // Fetch details to get the photo name

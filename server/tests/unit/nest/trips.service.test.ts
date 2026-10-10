@@ -59,6 +59,7 @@ import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
 import { TripsService } from '../../../src/nest/trips/trips.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
+import { buildPlaceImportService } from '../../helpers/place-import';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
 import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
 import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
@@ -280,6 +281,7 @@ beforeAll(async () => {
   await createTestTripsRepo(testDb),
   await createTestBudgetItemsRepo(testDb),
   await createTestCollectionPlacesRepo(testDb),
+  buildPlaceImportService(),
 );
   svc = new TripsService(
   new ReservationsService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), budgetSvc, new RealtimeService(), notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb)), accommodationsSvc, await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb)),

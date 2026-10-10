@@ -40,6 +40,7 @@ vi.mock('../../../src/nest/auth-core/jwt-verify', () => ({ extractToken: vi.fn()
 import { PlacesController } from '../../../src/nest/places/places.controller';
 import { DayAssignmentsController } from '../../../src/nest/assignments/assignments.controller';
 import { ToursService } from '../../../src/nest/tours/tours.service';
+import { buildPlaceImportService } from '../../helpers/place-import';
 import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { TripAccessGuard, TRIP_PERMISSION_KEY } from '../../../src/nest/permissions/trip-access.guard';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
@@ -230,6 +231,7 @@ function tourRepositoryFixture(ownerTripId: number) {
     { isEnabled: vi.fn(async () => true) } as unknown as TourTypesRepository,
     waypointsRepo as unknown as TourWaypointsRepository,
     placesRepo as unknown as PlacesRepository,
+    buildPlaceImportService(),
   );
   return { uow, toursRepo, waypointsRepo, placesRepo, places, service };
 }

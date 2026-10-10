@@ -4,7 +4,7 @@ import { HttpException } from '@nestjs/common';
 import { CollectionsController } from '../../../src/nest/collections/collections.controller';
 import type { CollectionsService } from '../../../src/nest/collections/collections.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
-import { CollectionGpxError } from '../../../src/nest/collections/collection-gpx.helpers';
+import { CollectionGpxError } from '../../../src/nest/place-import/place-import.types';
 import type { User } from '../../../src/types';
 import type { CollectionGpxProblem } from '@trek/shared';
 

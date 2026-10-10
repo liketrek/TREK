@@ -23,6 +23,7 @@ vi.mock('../../../src/config', () => ({
 import { db as testDb } from '../../../src/db/database';
 import { tourCreateRequestSchema, type TourCreateRequest } from '@trek/shared';
 import { ToursService } from '../../../src/nest/tours/tours.service';
+import { buildPlaceImportService } from '../../helpers/place-import';
 import type { PlacesService } from '../../../src/nest/places/places.service';
 import { resetTestDb } from '../../helpers/test-db';
 import { createPlace, createTrip, createUser } from '../../helpers/factories';
@@ -72,6 +73,7 @@ beforeAll(async () => {
     await createTestTourTypesRepo(testDb),
     await createTestTourWaypointsRepo(testDb),
     await createTestPlacesRepo(testDb),
+    buildPlaceImportService(),
   );
 });
 

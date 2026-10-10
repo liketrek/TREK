@@ -14,25 +14,12 @@ import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/
 import { UA, googleFtidFromMapsUrl } from './maps.helpers';
 import { AMAP_SHORT_HOSTS, isAmapHost, parseAmapUrl } from './providers/amap.provider';
 import { OsmClient } from './providers/osm.client';
+import { GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from '../common/google-maps-hosts';
 
 // A Google Maps place page is a few hundred KB; the coordinates sit in the
 // embedded map data near the top, so two megabytes is plenty and keeps an
 // unbounded body out of memory.
 const MAX_MAPS_PAGE_BYTES = 2_000_000;
-
-export const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
-
-/**
- * Google Maps lives on every country domain — google.de, maps.google.co.uk,
- * google.com.au — so the host is matched by shape. A fixed list of .com hosts
- * would quietly stop resolving the ccTLD links people actually paste. The TLD
- * labels stay short (2-3 letters, optionally two of them) so that
- * `google.evil.com` is not a Google host.
- */
-export function isGoogleMapsHost(hostname: string): boolean {
-  return GOOGLE_SHORT_HOSTS.includes(hostname)
-    || /^(www\.|maps\.)?google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(hostname);
-}
 
 export interface ResolvedMapsUrl {
   lat: number;

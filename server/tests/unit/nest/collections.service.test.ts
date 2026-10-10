@@ -39,6 +39,7 @@ import { createUser, createTrip, createPlace, createCategory, createTag, addTrip
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { CollectionsService } from '../../../src/nest/collections/collections.service';
+import { buildPlaceImportService } from '../../helpers/place-import';
 import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
 import { notificationsStub } from '../../helpers/notifications';
@@ -131,6 +132,7 @@ beforeAll(async () => {
     tripsRepoForSpy, await createTestTripMembersRepo(testDb),
     await createTestPlacesRepo(testDb), await createTestPlaceRatingsRepo(testDb),
     await createTestTagsRepo(testDb), await createTestUsersRepo(testDb),
+    buildPlaceImportService(),
   );
   photoCache = new PlacePhotoCacheService(
     makeStorageFixture('photos/google/').storage,
