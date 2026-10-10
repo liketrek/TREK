@@ -14,9 +14,7 @@ import {
   idSchema,
 } from '@trek/shared';
 import type { VacayUpdatePlanRequest } from '@trek/shared';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { UserLookupService } from '../auth-core/user-lookup.service';
 import { ADDON_IDS } from '../../addons';
 import { VacayService } from './vacay.service';
 import { addonGate } from '../addons/addon-gate';
@@ -84,7 +82,7 @@ export class VacayMcp {
   constructor(
     private readonly vacay: VacayService,
     // The invite and share tools need the caller's username and email.
-    @InjectRepository(Users) private readonly users: UsersRepository,
+    private readonly users: UserLookupService,
     readonly addons: AddonsService,
   ) {}
 
@@ -185,7 +183,7 @@ export class VacayMcp {
   })
   async sendVacayInvite({ targetUserId }: { targetUserId: number }, ctx: McpContext) {
     const planId = await this.vacay.getActivePlanId(ctx.userId);
-    const me = await this.users.findUsernameEmail(ctx.userId);
+    const me = await this.users.usernameAndEmail(ctx.userId);
     if (!me) return errorResult('User not found.');
     await this.vacay.sendInvite(planId, ctx.userId, me.username, me.email, targetUserId);
     return ok({ success: true });
@@ -558,7 +556,7 @@ export class VacayMcp {
     access: { group: 'vacay', mode: 'write' },
   })
   async shareVacayCalendar({ targetUserId }: { targetUserId: number }, ctx: McpContext) {
-    const me = await this.users.findUsernameEmail(ctx.userId);
+    const me = await this.users.usernameAndEmail(ctx.userId);
     if (!me) return errorResult('User not found.');
     await this.vacay.shareCalendar(ctx.userId, me.email, targetUserId);
     return ok({ success: true });

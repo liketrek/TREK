@@ -301,8 +301,7 @@
     "trip-read-model -> Trips (owned by trips)",
     "unsplash -> AppSettings (owned by settings)",
     "unsplash -> Users (owned by auth)",
-    "vacay -> SchoolHolidayRegions (owned by school-holidays)",
-    "vacay -> Users (owned by auth)"
+    "vacay -> SchoolHolidayRegions (owned by school-holidays)"
   ],
   "providersImportOrchestrator": []
 }
