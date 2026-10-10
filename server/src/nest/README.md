@@ -177,7 +177,17 @@ and the MCP registry's error mapper (`trekMcpErrorMapper` in
 `src/mcp/nest-mcp-policy.ts`) answers the tool call with `errorResult` of the
 same text, so the controller and the tool need no branch of their own. A caller
 that has to act on a refusal before passing it on (an audit row, a timing pad)
-uses `catchDomainError`.
+uses `catchDomainError`. `npm run lint:service-http` holds the old idioms
+(`status: 4xx` in a service, `new HttpException` in a service, `if (result.error)`
+in a controller or tool) to a count that only shrinks.
+
+A trip-scoped write that both surfaces offer is one service method per use
+case (`AccommodationsService.createStay`, `PackingWritesService.updateItem`):
+the trip gate (`requireTripWrite` in `common/trip-writer.ts`), the reference
+checks, the transaction and every event. The controller hands it a REST
+writer, the tool `McpToolGuardsService.tripWriter`; the writer says how the
+events travel, the use case which ones go out, so a client sees the same
+events whichever surface made the change.
 
 ## Tests
 

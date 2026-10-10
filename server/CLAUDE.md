@@ -29,6 +29,8 @@ npm run probe:pg          # dialect helpers + the repository statements it reach
 npm run lint:tx           # methods writing more than once outside one transaction may only shrink (CI gate)
 npm run lint:test-sql     # raw better-sqlite3 statements in tests/ may only shrink (CI gate)
 npm run lint:query-api    # MikroORM QueryBuilder calls in the repositories may only shrink (CI gate)
+npm run lint:mcp-zod      # inline z. calls per *.mcp.ts may only shrink; tool fields derive from @trek/shared (CI gate)
+npm run lint:service-http # error-envelope idioms (status: 4xx in services, if (result.error) in callers) may only shrink (CI gate)
 npm run contracts:dto-open # open shapes in the createZodDto schemas may only shrink (runs in the unit tests)
 ```
 
@@ -45,6 +47,8 @@ npm run contracts:dto-open # open shapes in the createZodDto schemas may only sh
 **`lint:test-sql`** (`scripts/test-sql-ratchet.mjs`) counts every `.prepare(` under `tests/` per file against `scripts/test-sql-baseline.json`: a file may hold at most its entry, a file without one none. Growth fails, and so does an entry above what its file holds now, so a conversion lands with `npm run lint:test-sql -- --update` (it only lowers and drops entries). Files whose subject is raw SQL (the dialect functions, PRAGMA introspection, the legacy upgrade fixtures) sit in the baseline's `exempt` list with a reason; a single statement that must stay raw carries a `test-sql-allow: <reason>` comment on its line or the line above. `tests/unit/scripts/test-sql-ratchet.test.ts` also runs it on the tree.
 
 **`lint:query-api`** (`scripts/query-api-ratchet.mjs`) counts every `.qb(` and `createQueryBuilder(` under `src/db/repositories/` per file (the `TrekRepository` base that defines `qb` is left out) against `scripts/query-api-baseline.json`: a file may hold at most its entry, a file without one none, and an entry above what its file holds now fails until `npm run lint:query-api -- --update` lowers it (it never raises or adds one). The rule it holds is "Which query API" under SQL dialect below.
+
+**`lint:mcp-zod`** (`scripts/mcp-inline-zod.mjs`) and **`lint:service-http`** (`scripts/service-http-ratchet.mjs`) share the per-file count rules of `scripts/lib/count-ratchet.mjs`: a file may hold at most its entry in its baseline (`scripts/mcp-inline-zod-baseline.json`, `scripts/service-http-baseline.json`), a file without one none, and an entry above what its file holds now fails until `-- --update` lowers it (never raises or adds). `lint:mcp-zod` counts every `z.` in a `*.mcp.ts`: a tool field derives from the request schema in `@trek/shared` or a shared primitive (`idSchema`); a bound REST deliberately lacks stays inline and counted. `lint:service-http` counts, in a `*.service.ts`, the `status: 4xx`/`5xx` literals of a returned `{ error, status }` and every `new HttpException(`, and in a `*.controller.ts` or `*.mcp.ts` every branch on a returned error (`if (result.error)`, `if ('error' in r)`). A service refuses by throwing a `DomainError` (`src/nest/common/domain-error.ts`) instead; `src/nest/README.md` ("Refusals") has the shape.
 
 Single test: `npx vitest run tests/unit/nest/weather.controller.test.ts`, or `npx vitest run -t "returns 401 without cookie"`.
 

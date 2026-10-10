@@ -317,6 +317,18 @@ jobs:
         # code uses Kysely for join reads and the entity methods for CRUD.
         run: cd server && npm run lint:query-api
 
+      - name: Inline zod in the MCP tools may only shrink
+        # Counts the z. calls per *.mcp.ts against
+        # scripts/mcp-inline-zod-baseline.json. A tool field derives from the
+        # request schema in @trek/shared or a shared primitive (idSchema).
+        run: cd server && npm run lint:mcp-zod
+
+      - name: Error envelopes may only shrink
+        # Counts status: 4xx/5xx literals and new HttpException in services, and
+        # if (result.error) branches in controllers and MCP tools, against
+        # scripts/service-http-baseline.json. A service throws a DomainError.
+        run: cd server && npm run lint:service-http
+
       - name: Open request schemas may only shrink
         # Needs the shared build above. Counts open shapes (records of
         # unknown, passthrough, any) in shared's request schemas.
