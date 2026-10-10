@@ -454,7 +454,9 @@ jobs:
         run: cd client && npm run lint:skips
 
       - name: i18n keys check
-        # Every translation key src/ names must exist in shared en.
+        # Every translation key src/ names must exist in shared en, and the
+        # en keys nothing in client, server or plugin-sdk reaches may not rise
+        # above scripts/i18n-unused-baseline.json per en file.
         run: cd client && npm run lint:i18n-keys
 
       - name: Theme tokens check

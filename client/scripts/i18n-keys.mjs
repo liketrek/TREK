@@ -42,14 +42,21 @@
  * A key held in a variable (`t(opt.label)`) is out of reach unless the table
  * names it in a *Key property.
  *
+ * The en keys nothing reaches are a ratchet. Besides src/, the search for
+ * references reads server/src (system notice and notification channel keys
+ * the server sends, *Key properties in its registries) and plugin-sdk/src, so
+ * a key the server uses does not read as dead; those references only count as
+ * reached, they are not held to the rules above. The unused keys per en
+ * domain file may not rise above scripts/i18n-unused-baseline.json, and an
+ * entry above its count fails until --update lowers it. A key reached only
+ * through a variable the scan cannot follow is reached by naming it: in a
+ * *Key property of the table, or as a literal t() where the table is read.
+ *
  *   npm run lint:i18n-keys              check (CI)
  *   npm run lint:i18n-keys -- --unused  also list en keys no literal or pattern reaches
- *
- * The unused list is information, not a gate: keys reached through a
- * variable (`t(item.labelKey)` with the table elsewhere, server-sent error
- * keys) look unused here.
+ *   npm run lint:i18n-keys -- --update  lower the unused-key baseline; it never raises an entry
  */
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -58,6 +65,15 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = join(HERE, '..', 'src');
 const SHARED_SCRIPTS = join(HERE, '..', '..', 'shared', 'scripts');
+const UNUSED_BASELINE = join(HERE, 'i18n-unused-baseline.json');
+
+/**
+ * Where else a translation key can be named: the server sends keys for the
+ * client to translate (system notices, notification channels), and the plugin
+ * SDK names the ones plugin surfaces use. Read only to find which en keys are
+ * reached.
+ */
+export const REFERENCE_ROOTS = [join(HERE, '..', '..', 'server', 'src'), join(HERE, '..', '..', 'plugin-sdk', 'src')];
 
 /** How many en keys a template may reach and still pass without an entry below. */
 export const MAX_IMPLICIT_MATCHES = 30;
@@ -360,13 +376,18 @@ export function scanSource(text, file = '<source>') {
   return { literal, dynamic };
 }
 
+/** en's keys with the domain file each sits in, read with the shared parity tooling's reader. */
+export async function readEnKeyFiles() {
+  const { listDomainFiles, readCatalog } = await import(pathToFileURL(join(SHARED_SCRIPTS, 'i18n-catalog.mjs')).href);
+  const files = new Map();
+  for (const file of listDomainFiles('en')) for (const { key } of readCatalog('en', file)) files.set(key, file);
+  if (files.size === 0) throw new Error('shared/src/i18n/en holds no keys: the reader or the path is broken');
+  return files;
+}
+
 /** en's keys, read from the locale sources with the shared parity tooling's reader. */
 export async function readEnKeys() {
-  const { listDomainFiles, readCatalog } = await import(pathToFileURL(join(SHARED_SCRIPTS, 'i18n-catalog.mjs')).href);
-  const keys = new Set();
-  for (const file of listDomainFiles('en')) for (const { key } of readCatalog('en', file)) keys.add(key);
-  if (keys.size === 0) throw new Error('shared/src/i18n/en holds no keys: the reader or the path is broken');
-  return keys;
+  return new Set((await readEnKeyFiles()).keys());
 }
 
 export const hasKey = (enKeys, key) => enKeys.has(key) || enKeys.has(`${key}.other`);
@@ -387,9 +408,12 @@ export function countMatches(pattern, enKeys) {
  * The verdict over a scan: literal keys en lacks, template keys no en key
  * matches, templates too wide to pass without an allow-list entry,
  * allow-list entries that no file uses any more or that the check no longer
- * needs, and the en keys nothing reaches.
+ * needs, and the en keys nothing reaches. elsewhere holds the references
+ * outside src/ (scanElsewhere), which only count as reaching keys.
+ *
+ * @param {ReturnType<typeof scanElsewhere>} [elsewhere]
  */
-export function evaluate(scan, enKeys, allowed = DYNAMIC_ALLOWED) {
+export function evaluate(scan, enKeys, allowed = DYNAMIC_ALLOWED, elsewhere = { literal: [], dynamic: [] }) {
   const missing = scan.literal.filter(({ key }) => !hasKey(enKeys, key));
   const site = (file, template) => `${file}\n${template}`;
   const allowedSites = new Set(allowed.map((a) => site(a.file, a.template)));
@@ -414,8 +438,13 @@ export function evaluate(scan, enKeys, allowed = DYNAMIC_ALLOWED) {
     const n = reach(a.template, templatePattern(a.template));
     return n !== null && n <= MAX_IMPLICIT_MATCHES;
   });
-  const reached = new Set([...scan.literal.map((l) => l.key), ...allowed.flatMap((a) => a.resolves ?? [])]);
-  const patterns = scan.dynamic.map((d) => d.pattern).filter(Boolean);
+  // References outside src/ (see REFERENCE_ROOTS) only mark keys as reached.
+  const reached = new Set([
+    ...scan.literal.map((l) => l.key),
+    ...elsewhere.literal.map((l) => l.key),
+    ...allowed.flatMap((a) => a.resolves ?? []),
+  ]);
+  const patterns = [...scan.dynamic, ...elsewhere.dynamic].map((d) => d.pattern).filter(Boolean);
   const unused = [...enKeys].filter(
     (k) => !reached.has(k) && !reached.has(base(k)) && !patterns.some((p) => p.test(k) || p.test(base(k)))
   );
@@ -434,6 +463,74 @@ export function scanTree(root = SRC) {
   return scan;
 }
 
+/**
+ * Every key reference under the reference roots, for the unused count. A root
+ * that is missing or names no key at all is fine here: these are extra places
+ * to look, not the code the check is about.
+ *
+ * @param {string[]} [roots]
+ * @returns {{ literal: { file: string, line: number, key: string }[], dynamic: { file: string, line: number, template: string, pattern: RegExp | null, site?: string }[] }}
+ */
+export function scanElsewhere(roots = REFERENCE_ROOTS) {
+  const scan = { literal: [], dynamic: [] };
+  for (const root of roots) {
+    if (!existsSync(root)) continue;
+    for (const path of walk(root)) {
+      const found = scanSource(readFileSync(path, 'utf8'), relative(root, path).split('\\').join('/'));
+      scan.literal.push(...found.literal);
+      scan.dynamic.push(...found.dynamic);
+    }
+  }
+  return scan;
+}
+
+/** The unused keys per en domain file. */
+export function unusedPerFile(unused, keyFiles) {
+  const counts = {};
+  for (const key of unused) {
+    const file = keyFiles.get(key);
+    if (file) counts[file] = (counts[file] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/**
+ * The unused counts held against the baseline: the files that gained unused
+ * keys, the entries above their count (or for a file that is gone), and the
+ * baseline lowered to today, which --update writes. An entry never rises and
+ * a file without one holds no unused key.
+ */
+export function compareUnused(baseline, counts) {
+  const grown = Object.entries(counts).filter(([file, n]) => n > (baseline[file] ?? 0));
+  const lowered = {};
+  for (const [file, allowed] of Object.entries(baseline)) {
+    const now = counts[file] ?? 0;
+    if (now > 0) lowered[file] = Math.min(allowed, now);
+  }
+  const stale = Object.entries(baseline)
+    .filter(([file, allowed]) => lowered[file] !== allowed)
+    .map(([file, allowed]) => ({ file, allowed, now: counts[file] ?? 0 }));
+  return { grown, stale, lowered };
+}
+
+/** The committed baseline, which fails closed: a missing or malformed file is an error, never empty. */
+export function readUnusedBaseline(path = UNUSED_BASELINE) {
+  let value;
+  try {
+    value = JSON.parse(readFileSync(path, 'utf8'));
+  } catch (err) {
+    throw new Error(`scripts/i18n-unused-baseline.json cannot be read (${err.message}); restore it from git`);
+  }
+  const ok =
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.values(value).every((n) => Number.isInteger(n) && n > 0);
+  if (!ok)
+    throw new Error('scripts/i18n-unused-baseline.json is not an object of file → positive count; restore it from git');
+  return value;
+}
+
 // Compared by real path, so the check still runs when the script is started through a symlink.
 const isCli =
   Boolean(process.argv[1]) &&
@@ -442,8 +539,17 @@ const isCli =
 if (isCli) {
   try {
     const scan = scanTree();
-    const enKeys = await readEnKeys();
-    const { missing, unmatched, broad, stale, unused } = evaluate(scan, enKeys);
+    const keyFiles = await readEnKeyFiles();
+    const enKeys = new Set(keyFiles.keys());
+    const { missing, unmatched, broad, stale, unused } = evaluate(scan, enKeys, DYNAMIC_ALLOWED, scanElsewhere());
+    const unusedCounts = unusedPerFile(unused, keyFiles);
+    let unusedBaseline = readUnusedBaseline();
+    if (process.argv.includes('--update')) {
+      unusedBaseline = compareUnused(unusedBaseline, unusedCounts).lowered;
+      const sorted = Object.fromEntries(Object.entries(unusedBaseline).sort(([a], [b]) => (a < b ? -1 : 1)));
+      writeFileSync(UNUSED_BASELINE, JSON.stringify(sorted, null, 2) + '\n');
+    }
+    const unusedVerdict = compareUnused(unusedBaseline, unusedCounts);
     for (const { file, line, key } of missing) {
       console.error(`FAIL  ${file}:${line}: '${key}' is not a key in shared/src/i18n/en`);
     }
@@ -462,13 +568,34 @@ if (isCli) {
           'lacks, or which is narrow enough to pass without it: remove or fix the entry'
       );
     }
+    for (const [file, n] of unusedVerdict.grown) {
+      const keys = unused.filter((k) => keyFiles.get(k) === file).slice(0, 5);
+      console.error(
+        `FAIL  en/${file}: ${n} key(s) nothing in client, server or plugin-sdk reaches, baseline ` +
+          `${unusedBaseline[file] ?? 0} (${keys.join(', ')}). Use the key, or delete it from every locale.`
+      );
+    }
+    for (const { file, allowed, now } of unusedVerdict.stale) {
+      console.error(
+        `FAIL  en/${file} is held at ${allowed} in scripts/i18n-unused-baseline.json, but ${now} key(s) are unused ` +
+          'now. Run npm run lint:i18n-keys -- --update to lower it.'
+      );
+    }
     if (process.argv.includes('--unused')) for (const key of unused.sort()) console.log(`unused  ${key}`);
     console.log(
       `i18n keys: ${new Set(scan.literal.map((l) => l.key)).size} literal and ${scan.dynamic.length} template ` +
-        `reference(s) checked against ${enKeys.size} en keys; ${unused.length} en key(s) reached by neither ` +
-        '(information, --unused lists them)'
+        `reference(s) checked against ${enKeys.size} en keys; ${unused.length} en key(s) reached by neither, ` +
+        `baseline allows ${Object.values(unusedBaseline).reduce((a, b) => a + b, 0)} (--unused lists them)`
     );
-    if (missing.length || unmatched.length || broad.length || stale.length) process.exit(1);
+    if (
+      missing.length ||
+      unmatched.length ||
+      broad.length ||
+      stale.length ||
+      unusedVerdict.grown.length ||
+      unusedVerdict.stale.length
+    )
+      process.exit(1);
   } catch (err) {
     console.error(`FAIL  ${err.message}`);
     process.exit(1);

@@ -1,18 +1,22 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   DYNAMIC_ALLOWED,
   MAX_IMPLICIT_MATCHES,
+  compareUnused,
   countMatches,
   evaluate,
   firstArgument,
   interpolationResults,
   readEnKeys,
+  readUnusedBaseline,
+  scanElsewhere,
   scanSource,
   scanTree,
   templatePattern,
+  unusedPerFile,
 } from '../../../scripts/i18n-keys.mjs';
 
 // FE-I18N-KEYS-001 to FE-I18N-KEYS-015: the client key check (scripts/i18n-keys.mjs).
@@ -193,5 +197,61 @@ describe('i18n key check', () => {
     // A derived pattern is judged under its source template's allow-list entry.
     const two = scanSource("t(`wide.${a ?? 'k0'}.${b}`)", 'a.tsx');
     expect(two.dynamic.map((d) => d.site)).toEqual([undefined, "wide.${a ?? 'k0'}.${b}"]);
+  });
+
+  it('FE-I18N-KEYS-016: a key named only by the server counts as reached, and its references are not judged', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'i18n-elsewhere-'));
+    try {
+      mkdirSync(join(dir, 'registry'));
+      writeFileSync(
+        join(dir, 'registry', 'notices.ts'),
+        "export const n = { titleKey: 'budget.title', bodyKey: 'no.such' }"
+      );
+      writeFileSync(join(dir, 'registry', 'notices.test.ts'), "const k = { titleKey: 'places.count' }");
+      const elsewhere = scanElsewhere([dir, join(dir, 'missing')]);
+      expect(elsewhere.literal.map((l) => l.key)).toEqual(['budget.title', 'no.such']);
+      const verdict = evaluate({ literal: [], dynamic: [] }, EN, [], elsewhere);
+      expect(verdict.unused).not.toContain('budget.title');
+      expect(verdict.unused).toContain('places.count');
+      expect(verdict.missing).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('FE-I18N-KEYS-017: counts unused keys per en file and holds them to a baseline that only shrinks', () => {
+    const files = new Map([
+      ['budget.title', 'budget.ts'],
+      ['places.count', 'places.ts'],
+      ['places.count.one', 'places.ts'],
+    ]);
+    const counts = unusedPerFile(['budget.title', 'places.count', 'places.count.one', 'not.in.en'], files);
+    expect(counts).toEqual({ 'budget.ts': 1, 'places.ts': 2 });
+    expect(compareUnused({ 'budget.ts': 1, 'places.ts': 2 }, counts)).toEqual({
+      grown: [],
+      stale: [],
+      lowered: counts,
+    });
+    const grown = compareUnused({ 'budget.ts': 1, 'places.ts': 1 }, counts);
+    expect(grown.grown).toEqual([['places.ts', 2]]);
+    const stale = compareUnused({ 'budget.ts': 3, 'places.ts': 2, 'gone.ts': 1 }, counts);
+    expect(stale.stale).toEqual([
+      { file: 'budget.ts', allowed: 3, now: 1 },
+      { file: 'gone.ts', allowed: 1, now: 0 },
+    ]);
+    expect(stale.lowered).toEqual({ 'budget.ts': 1, 'places.ts': 2 });
+  });
+
+  it('FE-I18N-KEYS-018: a missing or malformed unused baseline stops the check', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'i18n-baseline-'));
+    try {
+      expect(() => readUnusedBaseline(join(dir, 'none.json'))).toThrow(/cannot be read/);
+      writeFileSync(join(dir, 'bad.json'), '{"a.ts": 0}');
+      expect(() => readUnusedBaseline(join(dir, 'bad.json'))).toThrow(/positive count/);
+      writeFileSync(join(dir, 'ok.json'), '{"a.ts": 2}');
+      expect(readUnusedBaseline(join(dir, 'ok.json'))).toEqual({ 'a.ts': 2 });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

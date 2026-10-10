@@ -48,7 +48,7 @@ cd client && npm run lint:format                   # Prettier outside the baseli
 cd client && npm run lint:layers                   # components never import pages/ or mobile/ (CI gate)
 cd client && npm run lint:offline                  # views may not import src/api/ beyond the baseline (CI gate)
 cd client && npm run lint:skips                    # no .only; skipped tests may only shrink (CI gate)
-cd client && npm run lint:i18n-keys                # every key the client names exists in en (CI gate)
+cd client && npm run lint:i18n-keys                # every key the client names exists in en; unused en keys may only shrink (CI gate)
 cd server && npm run lint:boundaries               # no new import cycles or cross-domain reach-ins (CI gate)
 cd server && npm run lint:dialect                  # SQLite-only SQL spellings may only shrink (CI gate; rules in server/CLAUDE.md)
 cd server && npm run probe:pg                      # dialect helpers + the repository statements it reaches against Postgres (CI job; needs TREK_PG_PROBE_URL)

@@ -20,7 +20,7 @@ npm run lint:offline      # no view file (components/mobile/pages/hooks) imports
 npm run lint:pairs        # each desktop/phone pair in scripts/feature-pairs.json imports its shared hooks, and every file under src/mobile/screens is listed there, in a pair or under mobileOnly with a reason (CI gate; --list prints the pairs)
 npm run lint:dup          # copied code: the lines of a file inside a block that repeats elsewhere (100 tokens over 10 lines, SonarCloud's thresholds; .ts and .tsx read as one language) may only shrink against scripts/dup-baseline.json (CI gate; --list shows each block with its other side, --update lowers it)
 npm run lint:skips        # no .only anywhere; skipped/todo/fixme tests per file may only shrink against scripts/skip-baseline.json (CI gate; skipIf/runIf and Playwright's test.skip(condition, 'why') are fine, but skipIf(true) and runIf(false) count as skips)
-npm run lint:i18n-keys    # every translation key src/ names exists in shared en (CI gate; --unused lists en keys nothing reaches)
+npm run lint:i18n-keys    # every translation key src/ names exists in shared en, and en keys nothing in src/, server/src or plugin-sdk/src reaches may only shrink per en file against scripts/i18n-unused-baseline.json (CI gate; --unused lists them, --update lowers the baseline)
 npm run test              # vitest run (tests/** + co-located src/**/*.test.{ts,tsx}); also test:unit / test:integration / test:coverage
 npm run e2e               # Playwright (CI runs --project=public --project=app; e2e:report opens the last report)
 npm run shots             # Playwright screenshot project (shots:promote to accept)
