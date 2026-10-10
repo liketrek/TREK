@@ -1,5 +1,4 @@
 import type { PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
-import type { Place } from '../../types';
 import { haversineMetres } from '../common/geo';
 import type { KmlImportSummary } from '../place-import/place-import.types';
 import type { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';

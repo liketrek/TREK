@@ -37,7 +37,7 @@
     "@typescript-eslint/no-explicit-any": 491,
     "@typescript-eslint/no-non-null-assertion": 1949,
     "@typescript-eslint/no-misused-promises": 22,
-    "@typescript-eslint/no-unused-vars": 52,
+    "@typescript-eslint/no-unused-vars": 51,
     "@typescript-eslint/no-floating-promises": 33,
     "trek/no-window-globals": 332,
     "trek/no-swallowed-catch": 14,
