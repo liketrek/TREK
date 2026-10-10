@@ -252,11 +252,13 @@ jobs:
         run: cd server && npm run check:db-types
 
       - name: Lint
-        # Type-aware rules build the src + tests program, which outgrows
-        # Node's default ~4 GB heap on the runner.
+        # Errors fail, and the warnings per rule may not pass
+        # scripts/eslint-baseline.json (src, tests and eslint-disable'd
+        # messages counted apart). Type-aware rules build the src + tests
+        # program, which outgrows Node's default ~4 GB heap on the runner.
         env:
           NODE_OPTIONS: --max-old-space-size=8192
-        run: cd server && npm run lint:check
+        run: cd server && npm run lint:warnings
 
       - name: DB call-graph gate (no sync DB-touching methods, no raw transactions)
         run: cd server && npm run db:call-graph -- --sync --tx

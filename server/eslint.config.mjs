@@ -201,6 +201,13 @@ export default tseslint.config(
       'no-empty': 'warn',
       'no-useless-escape': 'warn',
       'prefer-const': 'warn',
+      // Held per rule by lint:warnings (scripts/eslint-baseline.json), so their
+      // count may only fall: sequential awaits in a loop (N round trips where
+      // one batch would do), `!` assertions that strict null checks would have
+      // to prove instead, and console output that bypasses the audit logger.
+      'no-await-in-loop': 'warn',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+      'no-console': 'warn',
     },
   },
   {

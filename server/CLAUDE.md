@@ -9,8 +9,9 @@ npm run dev               # scripts/dev.mjs: tsc -w then node --watch dist/index
 npm run build             # scripts/build.mjs — emits even on type errors (see below)
 npm run typecheck         # tsc --noEmit — the real type gate
 npm run typecheck:tests   # tsc over tests/ — CI runs this too; vitest green does NOT mean typed mocks compile
-npm run lint              # eslint --fix
-npm run lint:check        # eslint, no fix (CI)
+npm run lint              # eslint, no fix
+npm run lint:fix          # eslint --fix
+npm run lint:warnings     # eslint errors fail, warnings per rule may only shrink (CI gate, scripts/eslint-baseline.json)
 npm run test              # vitest run; also test:unit / test:integration / test:ws / test:e2e
 npm run test:coverage     # istanbul coverage; per-domain ratchet over src/nest/**
 npm run gen:plugin-facts  # regenerate the plugin-protocol tables into plugin-sdk/ + shared/

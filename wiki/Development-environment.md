@@ -171,7 +171,8 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run test:watch`         | Run tests in watch mode                  |
 | `npm run test:coverage`      | Run tests with coverage report           |
 | `npm run lint`               | Lint source                              |
-| `npm run lint:check`         | Lint everything, no `--fix` (CI gate)    |
+| `npm run lint:check`         | Lint everything, no `--fix`              |
+| `npm run lint:warnings`      | ESLint, failing on any error and on warnings above the per-rule baseline (CI gate, replaces `lint:check`) |
 | `npm run check:plugin-facts` | Verify generated plugin facts (CI gate)  |
 | `npm run lint:size`          | No source file grows past its line limit or its baseline entry (CI gate) |
 | `npm run lint:boundaries`    | Import cycles and domain boundaries may not grow past their baseline (CI gate) |
