@@ -43,6 +43,17 @@ import {
 import { isVideoMime, isVideoExtension, MAX_VIDEO_SIZE } from '../files/files.constants';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
 import { logError } from '../audit/audit-log.logger';
+import { ResponseContract } from '../common/response-contract';
+import {
+  emptyResponseSchema,
+  journeyListResponseSchema,
+  journeySchema,
+  journeyShareLinkResponseSchema,
+  journeyShareLinkSetResponseSchema,
+  journeyStatsSchema,
+  journeyTracksResponseSchema,
+  successResponseSchema,
+} from '@trek/shared';
 
 /**
  * One filename hook for all four journey upload routes (consumed by
@@ -194,11 +205,13 @@ export class JourneyController {
 
   // ── Static prefix routes (before /:id) ──────────────────────────────────
   @Get()
+  @ResponseContract(journeyListResponseSchema)
   async list(@CurrentUser() user: User) {
     return { journeys: await this.journey.listJourneys(user.id) };
   }
 
   @Post()
+  @ResponseContract(journeySchema)
   create(@CurrentUser() user: User, @Body() body: JourneyCreateDto) {
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
       throw new HttpException({ error: 'Title is required' }, 400);
@@ -233,6 +246,7 @@ export class JourneyController {
   }
 
   @Put('entries/:entryId/photos/reorder')
+  @ResponseContract(successResponseSchema)
   async reorderEntryPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: JourneyReorderEntryPhotosDto, @Headers('x-socket-id') socketId?: string) {
     if (!(await this.journey.reorderEntryPhotos(Number(entryId), user.id, body.orderedIds, socketId))) {
       throw new HttpException({ error: 'Entry not found' }, 404);
@@ -241,6 +255,7 @@ export class JourneyController {
   }
 
   @Delete('entries/:entryId')
+  @ResponseContract(successResponseSchema)
   async deleteEntry(@CurrentUser() user: User, @Param('entryId') entryId: string, @Headers('x-socket-id') socketId?: string) {
     if (!(await this.journey.deleteEntry(Number(entryId), user.id, socketId))) {
       throw new HttpException({ error: 'Entry not found' }, 404);
@@ -385,6 +400,7 @@ export class JourneyController {
 
   @Delete('entries/:entryId/photos/:journeyPhotoId')
   @HttpCode(204)
+  @ResponseContract(emptyResponseSchema)
   async unlinkPhoto(@CurrentUser() user: User, @Param('entryId') entryId: string, @Param('journeyPhotoId') journeyPhotoId: string): Promise<void> {
     if (!(await this.journey.unlinkPhotoFromEntry(Number(entryId), Number(journeyPhotoId), user.id))) {
       throw new HttpException({ error: 'Not found or not allowed' }, 404);
@@ -401,6 +417,7 @@ export class JourneyController {
   }
 
   @Delete('photos/:photoId')
+  @ResponseContract(successResponseSchema)
   async deletePhoto(@CurrentUser() user: User, @Param('photoId') photoId: string) {
     const photo = await this.journey.deletePhoto(Number(photoId), user.id);
     if (!photo) {
@@ -531,6 +548,7 @@ export class JourneyController {
 
   @Delete(':id/gallery/:journeyPhotoId')
   @HttpCode(204)
+  @ResponseContract(emptyResponseSchema)
   async deleteGalleryPhoto(@CurrentUser() user: User, @Param('journeyPhotoId') journeyPhotoId: string): Promise<void> {
     const photo = await this.journey.deleteGalleryPhoto(Number(journeyPhotoId), user.id);
     if (!photo) {
@@ -576,6 +594,7 @@ export class JourneyController {
   }
 
   @Delete(':id')
+  @ResponseContract(successResponseSchema)
   async remove(@CurrentUser() user: User, @Param('id') id: string) {
     if (!(await this.journey.deleteJourney(Number(id), user.id))) {
       throw new HttpException({ error: 'Journey not found' }, 404);
@@ -586,6 +605,7 @@ export class JourneyController {
   // ── Journey trips ───────────────────────────────────────────────────────
   @Post(':id/trips')
   @HttpCode(200) // Express answers with res.json (200).
+  @ResponseContract(successResponseSchema)
   async addTrip(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyAddTripDto) {
     if (!body.trip_id) {
       throw new HttpException({ error: 'trip_id required' }, 400);
@@ -597,6 +617,7 @@ export class JourneyController {
   }
 
   @Delete(':id/trips/:tripId')
+  @ResponseContract(successResponseSchema)
   async removeTrip(@CurrentUser() user: User, @Param('id') id: string, @Param('tripId') tripId: string) {
     if (!(await this.journey.removeTripFromJourney(Number(id), Number(tripId), user.id))) {
       throw new HttpException({ error: 'Not allowed' }, 403);
@@ -620,6 +641,7 @@ export class JourneyController {
    * planner is all it takes for it to show up here.
    */
   @Get(':id/tracks')
+  @ResponseContract(journeyTracksResponseSchema)
   async listTracks(@CurrentUser() user: User, @Param('id') id: string) {
     const tracks = await this.journey.journeyTracks(Number(id), user.id);
     if (!tracks) {
@@ -638,6 +660,7 @@ export class JourneyController {
    * designing and never while printing.
    */
   @Get(':id/stats')
+  @ResponseContract(journeyStatsSchema)
   async stats(@CurrentUser() user: User, @Param('id') id: string) {
     const stats = await this.journey.journeyStats(Number(id), user.id);
     if (!stats) {
@@ -702,6 +725,7 @@ export class JourneyController {
 
   @Delete(':id/book')
   @HttpCode(204)
+  @ResponseContract(emptyResponseSchema)
   async deleteBook(@CurrentUser() user: User, @Param('id') id: string) {
     const removed = await this.books.deleteBook(Number(id), user.id);
     if (removed === null) {
@@ -736,6 +760,7 @@ export class JourneyController {
   }
 
   @Put(':id/entries/reorder')
+  @ResponseContract(successResponseSchema)
   async reorderEntries(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyReorderEntriesDto, @Headers('x-socket-id') socketId?: string) {
     const orderedIds = body.orderedIds;
     if (!Array.isArray(orderedIds) || !orderedIds.every((v) => Number.isFinite(Number(v)))) {
@@ -749,6 +774,7 @@ export class JourneyController {
 
   // ── Contributors ────────────────────────────────────────────────────────
   @Post(':id/contributors')
+  @ResponseContract(successResponseSchema)
   async addContributor(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyContributorAddDto) {
     if (!body.user_id) {
       throw new HttpException({ error: 'user_id required' }, 400);
@@ -760,6 +786,7 @@ export class JourneyController {
   }
 
   @Patch(':id/contributors/:userId')
+  @ResponseContract(successResponseSchema)
   async updateContributor(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string, @Body() body: JourneyContributorUpdateDto) {
     if (!(await this.journey.updateContributorRole(Number(id), user.id, Number(userId), body.role as 'editor' | 'viewer'))) {
       throw new HttpException({ error: 'Not allowed' }, 403);
@@ -768,6 +795,7 @@ export class JourneyController {
   }
 
   @Delete(':id/contributors/:userId')
+  @ResponseContract(successResponseSchema)
   async removeContributor(@CurrentUser() user: User, @Param('id') id: string, @Param('userId') userId: string) {
     if (!(await this.journey.removeContributor(Number(id), user.id, Number(userId)))) {
       throw new HttpException({ error: 'Not allowed' }, 403);
@@ -798,6 +826,7 @@ export class JourneyController {
 
   // ── Share Link ──────────────────────────────────────────────────────────
   @Get(':id/share-link')
+  @ResponseContract(journeyShareLinkResponseSchema)
   async getShareLink(@CurrentUser() user: User, @Param('id') id: string) {
     // Reading the token is owner-only. It refuses like its siblings rather than
     // answering with a null link: "not published" and "not yours to see" are
@@ -812,6 +841,7 @@ export class JourneyController {
 
   @Post(':id/share-link')
   @HttpCode(200) // Express answers with res.json (200).
+  @ResponseContract(journeyShareLinkSetResponseSchema)
   async setShareLink(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyShareLinkDto) {
     const result = await this.journey.createOrUpdateJourneyShareLink(Number(id), user.id, {
       share_timeline: body.share_timeline as boolean | undefined,
@@ -826,6 +856,7 @@ export class JourneyController {
   }
 
   @Delete(':id/share-link')
+  @ResponseContract(successResponseSchema)
   async deleteShareLink(@CurrentUser() user: User, @Param('id') id: string) {
     if (!(await this.journey.deleteJourneyShareLink(Number(id), user.id))) {
       throw new HttpException({ error: 'Not allowed' }, 403);

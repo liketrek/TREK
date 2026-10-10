@@ -46,6 +46,15 @@ vi.mock('../../src/nest/memories/photo-resolver.service', async (importOriginal)
   return actual;
 });
 
+// Whole rows, as the service returns them: the routes answer under their
+// @ResponseContract, and a stub missing columns would fail it.
+const journeyRow = (id: number) => ({
+  id, user_id: 1, title: 'J', subtitle: null, cover_gradient: null, status: 'draft',
+  created_at: 1_760_000_000_000, updated_at: 1_760_000_000_000, cover_image: null,
+  show_trip_tracks: 1, show_verdict: 1, show_mood: 1, show_weather: 1, status_override: null, photo_location: 1,
+});
+const journeyListRow = { ...journeyRow(1), entry_count: 0, photo_count: 0, place_count: 0, trip_date_min: null, trip_date_max: null };
+
 const { jsvc } = vi.hoisted(() => ({
   jsvc: {
     listJourneys: vi.fn(), createJourney: vi.fn(), getJourneyFull: vi.fn(),
@@ -115,8 +124,8 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     seedUser(db as never, { id: 1 });
     app = await build();
     server = app.getHttpServer();
-    jsvc.listJourneys.mockReturnValue([{ id: 1, title: 'J' }]);
-    jsvc.createJourney.mockReturnValue({ id: 9, title: 'J' });
+    jsvc.listJourneys.mockReturnValue([journeyListRow]);
+    jsvc.createJourney.mockReturnValue(journeyRow(9));
     sharesvc.getPublicJourney.mockReturnValue({ id: 9 });
   });
 
@@ -147,13 +156,13 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
   it('200 list with a session', async () => {
     const res = await request(server).get('/api/journeys').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ journeys: [{ id: 1, title: 'J' }] });
+    expect(res.body).toEqual({ journeys: [journeyListRow] });
   });
 
   it('201 create, 400 without a title', async () => {
     const ok = await request(server).post('/api/journeys').set('Cookie', sessionCookie(1)).send({ title: 'J' });
     expect(ok.status).toBe(201);
-    expect(ok.body).toEqual({ id: 9, title: 'J' });
+    expect(ok.body).toEqual(journeyRow(9));
     const bad = await request(server).post('/api/journeys').set('Cookie', sessionCookie(1)).send({});
     expect(bad.status).toBe(400);
     expect(bad.body).toEqual({ error: 'Title is required' });

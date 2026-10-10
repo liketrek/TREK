@@ -28,7 +28,7 @@
     "src/nest/integrations/airtrail.controller.ts": 6,
     "src/nest/integrations/dawarich.controller.ts": 15,
     "src/nest/journey/journey-public.controller.ts": 3,
-    "src/nest/journey/journey.controller.ts": 40,
+    "src/nest/journey/journey.controller.ts": 20,
     "src/nest/llm-parse/llm-capabilities.controller.ts": 1,
     "src/nest/llm-parse/llm-local.controller.ts": 2,
     "src/nest/maps/maps.controller.ts": 11,
@@ -96,7 +96,6 @@
     "src/nest/trip-invite/trip-invite.controller.ts": 5,
     "src/nest/trip-members/trip-members.controller.ts": 7,
     "src/nest/trips/trips.controller.ts": 12,
-    "src/nest/vacay/vacay.controller.ts": 33,
     "src/nest/weather/weather.controller.ts": 2
   }
 }

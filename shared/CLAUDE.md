@@ -35,6 +35,8 @@ One folder per domain exporting Zod schemas plus inferred types (`export type X 
 
 **Schemas mirror the exact wire behavior of existing routes** (`weather/weather.schema.ts` is the example): strings stay strings if the route never coerced them, optional fields reflect partial response subsets, and bespoke 4xx error strings are reproduced in the server controller, not derived from the schema. Don't "tidy up" a schema to be stricter than the contract it documents.
 
+**Response schemas** (`<x>ResponseSchema`, with the row schemas they are built from) describe what a route answers, and the server checks them: a handler declares one with `@ResponseContract(schema)` (`server/src/nest/common/response-contract.ts`), and under `NODE_ENV=test` every response it sends is parsed against it, so the e2e and integration suites fail on drift. They follow the wire exactly as the routes have always sent it, flags as 0/1 and times as stored where that is what goes out, booleans where the service converts. Objects are not strict: an extra key passes, a declared one that is missing or of another type fails. `successResponseSchema` (`{ success: true }`) and `emptyResponseSchema` (a 204) live in `src/common/`. They are exported from the barrel for the client to type its calls with; the client's own copies in `types.ts` have not moved onto them yet.
+
 ## Rules for new contracts
 
 The parity rule governs **existing** routes; it is not a license to mint new debt:

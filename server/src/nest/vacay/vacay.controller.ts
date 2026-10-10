@@ -31,6 +31,23 @@ import {
 } from './vacay.dto';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
+import { ResponseContract } from '../common/response-contract';
+import {
+  successResponseSchema,
+  vacayAvailableUsersResponseSchema,
+  vacayCompanyHolidayResponseSchema,
+  vacayEntriesResponseSchema,
+  vacayHolidayCalendarResponseSchema,
+  vacayPlanResponseSchema,
+  vacayPlanUpdateResponseSchema,
+  vacayShareAvailableUsersResponseSchema,
+  vacaySharedCalendarsResponseSchema,
+  vacaySharesResponseSchema,
+  vacayStatsResponseSchema,
+  vacayToggleEntryResponseSchema,
+  vacayYearSettingsResponseSchema,
+  vacayYearsResponseSchema,
+} from '@trek/shared';
 
 /**
  * /api/addons/vacay — shared vacation-day planner.
@@ -54,11 +71,13 @@ export class VacayController {
   constructor(private readonly vacay: VacayService) {}
 
   @Get('plan')
+  @ResponseContract(vacayPlanResponseSchema)
   getPlan(@CurrentUser() user: User) {
     return this.vacay.getPlanData(user.id);
   }
 
   @Put('plan')
+  @ResponseContract(vacayPlanUpdateResponseSchema)
   async updatePlan(@CurrentUser() user: User, @Body() body: VacayUpdatePlanDto, @Headers('x-socket-id') socketId?: string) {
     const planId = await this.vacay.getActivePlanId(user.id);
     return this.vacay.updatePlan(planId, body, socketId);
@@ -66,6 +85,7 @@ export class VacayController {
 
   @Post('plan/holiday-calendars')
   @HttpCode(200)
+  @ResponseContract(vacayHolidayCalendarResponseSchema)
   async addHolidayCalendar(
     @CurrentUser() user: User,
     @Body() body: VacayAddHolidayCalendarDto,
@@ -77,6 +97,7 @@ export class VacayController {
   }
 
   @Put('plan/holiday-calendars/:id')
+  @ResponseContract(vacayHolidayCalendarResponseSchema)
   async updateHolidayCalendar(
     @CurrentUser() user: User,
     @Param('id') idParam: string,
@@ -93,6 +114,7 @@ export class VacayController {
   }
 
   @Delete('plan/holiday-calendars/:id')
+  @ResponseContract(successResponseSchema)
   async deleteHolidayCalendar(@CurrentUser() user: User, @Param('id') idParam: string, @Headers('x-socket-id') socketId?: string) {
     const id = Number.parseInt(idParam);
     const planId = await this.vacay.getActivePlanId(user.id);
@@ -103,6 +125,7 @@ export class VacayController {
   }
 
   @Put('color')
+  @ResponseContract(successResponseSchema)
   async setColor(
     @CurrentUser() user: User,
     @Body() body: VacaySetColorDto,
@@ -119,6 +142,7 @@ export class VacayController {
 
   @Post('invite')
   @HttpCode(200)
+  @ResponseContract(successResponseSchema)
   async invite(@CurrentUser() user: User, @Body() body: VacayInviteDto) {
     if (!body.user_id) {
       throw new HttpException({ error: 'user_id required' }, 400);
@@ -130,6 +154,7 @@ export class VacayController {
 
   @Post('invite/accept')
   @HttpCode(200)
+  @ResponseContract(successResponseSchema)
   async acceptInvite(@CurrentUser() user: User, @Body() body: VacayInviteActionDto, @Headers('x-socket-id') socketId?: string) {
     await this.vacay.acceptInvite(user.id, body.plan_id as number, socketId);
     return { success: true };
@@ -137,6 +162,7 @@ export class VacayController {
 
   @Post('invite/decline')
   @HttpCode(200)
+  @ResponseContract(successResponseSchema)
   async declineInvite(@CurrentUser() user: User, @Body() body: VacayInviteActionDto, @Headers('x-socket-id') socketId?: string) {
     await this.vacay.declineInvite(user.id, body.plan_id as number, socketId);
     return { success: true };
@@ -144,6 +170,7 @@ export class VacayController {
 
   @Post('invite/cancel')
   @HttpCode(200)
+  @ResponseContract(successResponseSchema)
   async cancelInvite(@CurrentUser() user: User, @Body() body: VacayInviteDto) {
     const plan = await this.vacay.getActivePlan(user.id);
     await this.vacay.cancelInvite(plan.id, body.user_id as number);
@@ -152,18 +179,21 @@ export class VacayController {
 
   @Post('dissolve')
   @HttpCode(200)
+  @ResponseContract(successResponseSchema)
   async dissolve(@CurrentUser() user: User, @Headers('x-socket-id') socketId?: string) {
     await this.vacay.dissolvePlan(user.id, socketId);
     return { success: true };
   }
 
   @Get('available-users')
+  @ResponseContract(vacayAvailableUsersResponseSchema)
   async availableUsers(@CurrentUser() user: User) {
     const planId = await this.vacay.getActivePlanId(user.id);
     return { users: await this.vacay.getAvailableUsers(user.id, planId) };
   }
 
   @Get('years')
+  @ResponseContract(vacayYearsResponseSchema)
   async years(@CurrentUser() user: User) {
     const planId = await this.vacay.getActivePlanId(user.id);
     return { years: await this.vacay.listYears(planId) };
@@ -171,6 +201,7 @@ export class VacayController {
 
   @Post('years')
   @HttpCode(200)
+  @ResponseContract(vacayYearsResponseSchema)
   async addYear(@CurrentUser() user: User, @Body() body: VacayAddYearDto, @Headers('x-socket-id') socketId?: string) {
     if (!body.year) {
       throw new HttpException({ error: 'Year required' }, 400);
@@ -180,6 +211,7 @@ export class VacayController {
   }
 
   @Delete('years/:year')
+  @ResponseContract(vacayYearsResponseSchema)
   async deleteYear(@CurrentUser() user: User, @Param('year') yearParam: string, @Headers('x-socket-id') socketId?: string) {
     const year = Number.parseInt(yearParam);
     const planId = await this.vacay.getActivePlanId(user.id);
@@ -187,11 +219,13 @@ export class VacayController {
   }
 
   @Get('year-settings')
+  @ResponseContract(vacayYearSettingsResponseSchema)
   async yearSettings(@CurrentUser() user: User) {
     return { settings: await this.vacay.getYearSettings(user.id) };
   }
 
   @Put('year-settings')
+  @ResponseContract(vacayYearSettingsResponseSchema)
   async updateYearSettings(
     @CurrentUser() user: User,
     @Body() body: VacayYearSettingsDto,
@@ -200,6 +234,7 @@ export class VacayController {
   }
 
   @Get('entries/:year')
+  @ResponseContract(vacayEntriesResponseSchema)
   async entries(@CurrentUser() user: User, @Param('year') year: string) {
     const planId = await this.vacay.getActivePlanId(user.id);
     // Entries load over the caller's leave-year window (#737), so a shifted year
@@ -209,6 +244,7 @@ export class VacayController {
 
   @Post('entries/toggle')
   @HttpCode(200)
+  @ResponseContract(vacayToggleEntryResponseSchema)
   async toggleEntry(
     @CurrentUser() user: User,
     @Body() body: VacayToggleEntryDto,
@@ -232,6 +268,7 @@ export class VacayController {
 
   @Post('entries/company-holiday')
   @HttpCode(200)
+  @ResponseContract(vacayCompanyHolidayResponseSchema)
   async companyHoliday(
     @CurrentUser() user: User,
     @Body() body: VacayCompanyHolidayDto,
@@ -242,6 +279,7 @@ export class VacayController {
   }
 
   @Get('stats/:year')
+  @ResponseContract(vacayStatsResponseSchema)
   async stats(@CurrentUser() user: User, @Param('year') yearParam: string) {
     const year = Number.parseInt(yearParam);
     const planId = await this.vacay.getActivePlanId(user.id);
@@ -249,6 +287,7 @@ export class VacayController {
   }
 
   @Put('stats/:year')
+  @ResponseContract(successResponseSchema)
   async updateStats(
     @CurrentUser() user: User,
     @Param('year') yearParam: string,
@@ -266,12 +305,14 @@ export class VacayController {
   }
 
   @Get('shares')
+  @ResponseContract(vacaySharesResponseSchema)
   shares(@CurrentUser() user: User) {
     return this.vacay.listShares(user.id);
   }
 
   @Post('shares')
   @HttpCode(200)
+  @ResponseContract(successResponseSchema)
   async share(
     @CurrentUser() user: User,
     @Body() body: VacayShareDto,
@@ -285,16 +326,19 @@ export class VacayController {
   }
 
   @Get('shares/available-users')
+  @ResponseContract(vacayShareAvailableUsersResponseSchema)
   async shareAvailableUsers(@CurrentUser() user: User) {
     return { users: await this.vacay.getShareAvailableUsers(user.id) };
   }
 
   @Get('shares/calendars/:year')
+  @ResponseContract(vacaySharedCalendarsResponseSchema)
   async sharedCalendars(@CurrentUser() user: User, @Param('year') year: string) {
     return { calendars: await this.vacay.getSharedCalendars(user.id, year) };
   }
 
   @Put('shares/:id')
+  @ResponseContract(successResponseSchema)
   async updateShare(
     @CurrentUser() user: User,
     @Param('id') idParam: string,
@@ -308,6 +352,7 @@ export class VacayController {
   }
 
   @Delete('shares/:id')
+  @ResponseContract(successResponseSchema)
   async deleteShare(@CurrentUser() user: User, @Param('id') idParam: string, @Headers('x-socket-id') socketId?: string) {
     if (!(await this.vacay.removeShare(Number.parseInt(idParam), user.id, socketId))) {
       throw new HttpException({ error: 'Share not found' }, 404);
@@ -315,24 +360,28 @@ export class VacayController {
     return { success: true };
   }
 
+  // response-contract-exempt: passes the holiday provider's answer through as it came; its shape is the provider's.
   @Get('holidays/countries')
   async holidayCountries() {
     const result = await this.vacay.getCountries();
     return result.data;
   }
 
+  // response-contract-exempt: passes the holiday provider's answer through as it came; its shape is the provider's.
   @Get('holidays/:year/:country')
   async holidays(@Param('year') year: string, @Param('country') country: string) {
     const result = await this.vacay.getHolidays(year, country);
     return result.data;
   }
 
+  // response-contract-exempt: passes the holiday provider's answer through as it came; its shape is the provider's.
   @Get('school-holidays/regions/:country')
   async schoolHolidayRegions(@Param('country') country: string) {
     const result = await this.vacay.getSchoolHolidayRegions(country, country.toUpperCase() === 'DE' ? 'DE' : 'EN');
     return result.data;
   }
 
+  // response-contract-exempt: passes the holiday provider's answer through as it came; its shape is the provider's.
   @Get('school-holidays/:year/:country')
   async schoolHolidaysForCountry(
     @Param('year') year: string,
@@ -342,6 +391,7 @@ export class VacayController {
     return this.schoolHolidays(year, country, undefined, group);
   }
 
+  // response-contract-exempt: passes the holiday provider's answer through as it came; its shape is the provider's.
   @Get('school-holidays/:year/:country/:subdivision')
   async schoolHolidaysForSubdivision(
     @Param('year') year: string,
