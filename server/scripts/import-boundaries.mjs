@@ -80,14 +80,12 @@ export const PUBLIC_SUFFIXES = [
 
 /**
  * Entry points that are public although their name does not say so: the
- * plugin RPC kit every domain's *.rpc.ts is written against, and the gates
- * and helpers every controller shares. Adding to this list is a design
+ * gates and helpers every controller shares. (The plugin RPC kit every
+ * domain's *.rpc.ts is written against sits outside src/nest, in
+ * src/nest-rpc, next to src/nest-mcp.) Adding to this list is a design
  * decision for review, not a way past the check.
  */
 export const PUBLIC_FILES = [
-  'plugins/host/rpc-kit/',
-  'plugins/host/rpc-params.ts',
-  'plugins/host/rpc-errors.ts',
   'audit/client-ip.ts',
   'addons/addon-gate.ts',
   'addons/mcp-addon-gate.ts',

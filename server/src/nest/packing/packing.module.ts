@@ -5,7 +5,7 @@ import { AdminPackingTemplatesController } from './admin-packing-templates.contr
 import { PackingMcp } from './packing.mcp';
 import { PackingService } from './packing.service';
 import { PackingRpc } from './packing.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AuditModule } from '../audit/audit.module';

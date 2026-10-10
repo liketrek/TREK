@@ -15,7 +15,7 @@ import Database from 'better-sqlite3';
 import { PluginSupervisor, type SupervisorHooks, type SupervisorTuning } from '../../../src/nest/plugins/supervisor/plugin-supervisor';
 import { PluginRpcHost, type HostDeps } from '../../../src/nest/plugins/host/rpc-host';
 import { PluginDataDb } from '../../../src/nest/plugins/host/plugin-data.service';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
 import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
 import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';

@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { PermissionsService } from '../../permissions/permissions.service';
-import { AddonsService } from '../../addons/addons.service';
-import { Users } from '../../../db/entities/Users.entity';
-import type { UsersRepository } from '../../../db/repositories/Users.repository';
-import { Trips } from '../../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../../db/repositories/Trips.repository';
+import { PermissionsService } from '../nest/permissions/permissions.service';
+import { AddonsService } from '../nest/addons/addons.service';
+import { Users } from '../db/entities/Users.entity';
+import type { UsersRepository } from '../db/repositories/Users.repository';
+import { Trips } from '../db/entities/Trips.entity';
+import type { TripsRepository } from '../db/repositories/Trips.repository';
 import { BadParams, ForbiddenResource } from './rpc-errors';
 import { num } from './rpc-params';
 import type { PluginRpcContext } from './rpc-kit/types';

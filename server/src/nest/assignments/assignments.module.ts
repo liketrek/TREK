@@ -4,7 +4,7 @@ import { DaysModule } from '../days/days.module';
 import { DayAssignmentsController, AssignmentOpsController } from './assignments.controller';
 import { AssignmentsDomainModule } from './assignments-domain.module';
 import { ItineraryRpc } from './itinerary.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { AssignmentsMcp } from './assignments.mcp';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';

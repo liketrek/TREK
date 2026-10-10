@@ -10,8 +10,8 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
 import { TagsRpc } from '../../../src/nest/tags/tags.rpc';
 import { DayNotesRpc } from '../../../src/nest/day-notes/day-notes.rpc';
 import { PlacesRpc } from '../../../src/nest/places/places.rpc';
@@ -30,7 +30,7 @@ import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
 import { makeDeps } from '../../helpers/rpc-host-deps';
-import { schemaMessage } from '../../../src/nest/plugins/host/rpc-params';
+import { schemaMessage } from '../../../src/nest-rpc/rpc-params';
 
 const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
 const err = (r: unknown) => (r as RpcError).error;

@@ -6,7 +6,7 @@ import { FilesService } from './files.service';
 import { FilesRpc } from './files.rpc';
 import { FilesMcp } from './files.mcp';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AppConfigModule } from '../app-config/app-config.module';

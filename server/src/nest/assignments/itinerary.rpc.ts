@@ -1,8 +1,8 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { PluginGuards } from '../plugins/host/plugin-guards.service';
-import { ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, str } from '../plugins/host/rpc-params';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
+import { ForbiddenResource } from '../../nest-rpc/rpc-errors';
+import { num, str } from '../../nest-rpc/rpc-params';
+import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
 import { RealtimeService } from '../realtime/realtime.service';
 import { AssignmentsService } from './assignments.service';
 

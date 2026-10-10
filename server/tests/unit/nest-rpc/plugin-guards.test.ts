@@ -5,13 +5,13 @@
  * them, so these tests pin the exact strings rather than just the refusal.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../../../src/nest/plugins/host/rpc-errors';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../../src/nest-rpc/rpc-errors';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import type { PluginRpcContext } from '../../../src/nest/plugins/host/rpc-kit/types';
+import type { PluginRpcContext } from '../../../src/nest-rpc/rpc-kit/types';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { createSnapshotTestDb } from '../../helpers/db-mock';

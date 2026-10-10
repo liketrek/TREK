@@ -1,6 +1,6 @@
-import { PluginController, PluginMethod, PluginOpenMethod } from '../rpc-kit/decorators';
-import { asArgs, asTxOps, str } from '../rpc-params';
-import type { PluginRpcContext } from '../rpc-kit/types';
+import { PluginController, PluginMethod, PluginOpenMethod } from '../../../../nest-rpc/rpc-kit/decorators';
+import { asArgs, asTxOps, str } from '../../../../nest-rpc/rpc-params';
+import type { PluginRpcContext } from '../../../../nest-rpc/rpc-kit/types';
 import { PluginUserSettingsService } from '../../plugin-user-settings.service';
 
 /**

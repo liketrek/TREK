@@ -15,7 +15,7 @@ import { BudgetMcp } from './budget.mcp';
 import { ExchangeRatesService } from './exchange-rates.service';
 import { ExchangeRatesRpc } from './exchange-rates.rpc';
 import { CostsRpc } from './costs.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AppConfigModule } from '../app-config/app-config.module';

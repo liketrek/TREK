@@ -3,7 +3,7 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { TrekPhotosModule } from '../photos/trek-photos.module';
 import { JourneyDomainService } from './journey-domain.service';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { JourneyShareService } from './journey-share.service';
 import { SettingsModule } from '../settings/settings.module';
 import { Journeys } from '../../db/entities/Journeys.entity';

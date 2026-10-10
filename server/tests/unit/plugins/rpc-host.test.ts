@@ -9,9 +9,9 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { PluginRpcHost, BadParams, ForbiddenResource, type HostDeps } from '../../../src/nest/plugins/host/rpc-host';
-import { PluginController, PluginMethod, PluginOpenMethod } from '../../../src/nest/plugins/host/rpc-kit/decorators';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import type { PluginRpcContext } from '../../../src/nest/plugins/host/rpc-kit/types';
+import { PluginController, PluginMethod, PluginOpenMethod } from '../../../src/nest-rpc/rpc-kit/decorators';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import type { PluginRpcContext } from '../../../src/nest-rpc/rpc-kit/types';
 import type { RpcRequest, RpcResponse, RpcError } from '../../../src/nest/plugins/protocol/envelope';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 

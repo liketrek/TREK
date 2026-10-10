@@ -4,7 +4,7 @@ import {
   METHOD_PERMISSION,
   UNCONDITIONAL_METHODS,
   isKnownPermission,
-} from '../../protocol/envelope';
+} from '../../nest/plugins/protocol/envelope';
 import { getEntry, isPluginController, type ClassRef } from './metadata';
 import type {
   PluginHookContract,

@@ -3,7 +3,7 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { VacayController } from './vacay.controller';
 import { VacayService } from './vacay.service';
 import { VacayRpc } from './vacay.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { VacayMcp } from './vacay.mcp';
 import { AuthModule } from '../auth/auth.module';
 import { AddonsModule } from '../addons/addons.module';

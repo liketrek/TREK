@@ -34,7 +34,7 @@ import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { createUser } from '../../helpers/factories';
 import { createTestAddonsService } from '../../helpers/test-addons';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
 import { PluginSupervisor } from '../../../src/nest/plugins/supervisor/plugin-supervisor';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { RpcRateLimiter, DEFAULT_RPC_LIMIT } from '../../../src/nest/plugins/host/rate-limit';

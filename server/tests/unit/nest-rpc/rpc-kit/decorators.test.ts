@@ -10,8 +10,8 @@ import {
   PluginHook,
   PluginMethod,
   PluginOpenMethod,
-} from '../../../../src/nest/plugins/host/rpc-kit/decorators';
-import { getEntry, isPluginController, type ClassRef } from '../../../../src/nest/plugins/host/rpc-kit/metadata';
+} from '../../../../src/nest-rpc/rpc-kit/decorators';
+import { getEntry, isPluginController, type ClassRef } from '../../../../src/nest-rpc/rpc-kit/metadata';
 
 const entryOf = (ctor: unknown, methodName: string) => getEntry(ctor as ClassRef, methodName);
 

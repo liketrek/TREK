@@ -1,7 +1,7 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { PluginGuards } from '../plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
+import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
 import { ADDON_IDS } from '../../addons';
 import { VacayService } from './vacay.service';
 

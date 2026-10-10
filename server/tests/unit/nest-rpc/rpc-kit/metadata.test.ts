@@ -10,8 +10,8 @@ import {
   isPluginController,
   markController,
   type ClassRef,
-} from '../../../../src/nest/plugins/host/rpc-kit/metadata';
-import type { PluginRpcEntry } from '../../../../src/nest/plugins/host/rpc-kit/types';
+} from '../../../../src/nest-rpc/rpc-kit/metadata';
+import type { PluginRpcEntry } from '../../../../src/nest-rpc/rpc-kit/types';
 
 const methodEntry = (methodName: string, method: 'tags.list' | 'tags.create' = 'tags.list'): PluginRpcEntry => ({
   kind: 'method',

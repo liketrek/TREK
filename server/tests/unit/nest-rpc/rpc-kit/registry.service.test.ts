@@ -5,8 +5,8 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import type { DiscoveryService, MetadataScanner } from '@nestjs/core';
-import { PluginRpcRegistryService } from '../../../../src/nest/plugins/host/rpc-kit/registry.service';
-import { PluginController, PluginMethod } from '../../../../src/nest/plugins/host/rpc-kit/decorators';
+import { PluginRpcRegistryService } from '../../../../src/nest-rpc/rpc-kit/registry.service';
+import { PluginController, PluginMethod } from '../../../../src/nest-rpc/rpc-kit/decorators';
 
 @PluginController()
 class TagsRpc {

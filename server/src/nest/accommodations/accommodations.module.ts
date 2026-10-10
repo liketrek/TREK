@@ -6,7 +6,7 @@ import { PlacesModule } from '../places/places.module';
 import { AccommodationsDomainModule } from './accommodations-domain.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RealtimeModule } from '../realtime/realtime.module';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 
 /**

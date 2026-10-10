@@ -15,7 +15,7 @@ import { Tags } from '../../db/entities/Tags.entity';
 import { CollectionsController } from './collections.controller';
 import { CollectionsService } from './collections.service';
 import { CollectionsRpc } from './collections.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { CollectionsMcp } from './collections.mcp';
 import { AddonsModule } from '../addons/addons.module';

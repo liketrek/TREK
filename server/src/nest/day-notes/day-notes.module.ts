@@ -6,7 +6,7 @@ import { DayNotesMcp } from './day-notes.mcp';
 import { DayNotesRpc } from './day-notes.rpc';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RealtimeModule } from '../realtime/realtime.module';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { DayNotes } from '../../db/entities/DayNotes.entity';
 import { Days } from '../../db/entities/Days.entity';

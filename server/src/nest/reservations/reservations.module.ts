@@ -9,7 +9,7 @@ import { PermissionsModule } from '../permissions/permissions.module';
 import { ReservationsController } from './reservations.controller';
 import { ReservationsService } from './reservations.service';
 import { ReservationsRpc } from './reservations.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { ReservationsMcp } from './reservations.mcp';
 import { UpcomingReservationsController } from './upcoming-reservations.controller';

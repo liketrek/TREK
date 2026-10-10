@@ -124,7 +124,7 @@ describe('import-boundaries.mjs', () => {
       'nest/b/b.helpers.ts': 'export const h = 1;\n',
       'nest/b/b.types.ts': 'export interface T { x: number }\n',
       'nest/common/row-id.ts': 'export const id = 1;\n',
-      'nest/plugins/host/rpc-kit/decorators.ts': 'export const Rpc = 1;\n',
+      'nest/audit/client-ip.ts': 'export const Rpc = 1;\n',
     };
     const ok = serverRoot({
       ...files,
@@ -132,7 +132,7 @@ describe('import-boundaries.mjs', () => {
         "import { B } from '../b/b.service';",
         "import type { T } from '../b/b.types';",
         "import { id } from '../common/row-id';",
-        "import { Rpc } from '../plugins/host/rpc-kit/decorators';",
+        "import { Rpc } from '../audit/client-ip';",
         'export const a: [unknown, T | null, number, number] = [B, null, id, Rpc];',
         '',
       ].join('\n'),

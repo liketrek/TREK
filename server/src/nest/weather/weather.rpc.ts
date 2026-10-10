@@ -1,5 +1,5 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { num } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import { num } from '../../nest-rpc/rpc-params';
 import { WeatherService } from './weather.service';
 
 /**

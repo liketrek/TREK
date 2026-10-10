@@ -8,8 +8,8 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
 import { CollabRpc } from '../../../src/nest/collab/collab.rpc';
 import { AtlasRpc } from '../../../src/nest/atlas/atlas.rpc';
 import { BucketItemExistsError } from '../../../src/nest/atlas/atlas.service';

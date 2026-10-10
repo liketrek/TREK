@@ -4,7 +4,7 @@ import { TodoController } from './todo.controller';
 import { TodoMcp } from './todo.mcp';
 import { TodoService } from './todo.service';
 import { TodoRpc } from './todo.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AddonsModule } from '../addons/addons.module';

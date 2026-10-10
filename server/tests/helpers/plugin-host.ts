@@ -3,9 +3,9 @@ import { PluginRuntimeService } from '../../src/nest/plugins/plugin-runtime.serv
 import { PluginUserSettingsService } from '../../src/nest/plugins/plugin-user-settings.service';
 import type { PluginRegistryService } from '../../src/nest/plugins/registry/registry.service';
 import { PluginRpcHostFactory } from '../../src/nest/plugins/host/plugin-rpc-host.factory';
-import { PluginRpcRegistryService } from '../../src/nest/plugins/host/rpc-kit/registry.service';
-import { createTestPluginRegistry } from '../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../src/nest/plugins/host/plugin-guards.service';
+import { PluginRpcRegistryService } from '../../src/nest-rpc/rpc-kit/registry.service';
+import { createTestPluginRegistry } from '../../src/nest-rpc/rpc-kit/testing';
+import { PluginGuards } from '../../src/nest-rpc/plugin-guards.service';
 import { DbRpc } from '../../src/nest/plugins/host/rpc/db.rpc';
 import { MetaRpc } from '../../src/nest/plugins/host/rpc/meta.rpc';
 import { HostSurfaceRpc } from '../../src/nest/plugins/host/rpc/host-surface.rpc';

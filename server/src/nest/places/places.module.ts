@@ -13,7 +13,7 @@ import { JourneyDomainModule } from '../journey/journey-domain.module';
 import { PlacesController } from './places.controller';
 import { PlacesService } from './places.service';
 import { PlacesRpc } from './places.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PlacesMcp } from './places.mcp';
 import { PermissionsModule } from '../permissions/permissions.module';

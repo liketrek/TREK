@@ -14,7 +14,7 @@ import { TripsController } from './trips.controller';
 import { TripsService } from './trips.service';
 import { TripPromptsMcp } from './trip-prompts.mcp';
 import { TripsRpc } from './trips.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { AppConfigModule } from '../app-config/app-config.module';

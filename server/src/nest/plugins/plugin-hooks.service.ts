@@ -1,4 +1,4 @@
-import { PluginController, PluginHook } from './host/rpc-kit/decorators';
+import { PluginController, PluginHook } from '../../nest-rpc/rpc-kit/decorators';
 import { PluginRuntimeService } from './plugin-runtime.service';
 
 /** What a notification channel is handed for one message. */

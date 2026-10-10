@@ -40,8 +40,8 @@ import {
   createUser,
   linkTripToJourney,
 } from '../../helpers/factories';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import type { PluginRpcContext } from '../../../src/nest/plugins/host/rpc-kit/types';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import type { PluginRpcContext } from '../../../src/nest-rpc/rpc-kit/types';
 import type { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { KNOWN_PERMISSIONS, type RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
 import {

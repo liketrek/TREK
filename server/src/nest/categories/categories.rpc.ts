@@ -1,4 +1,4 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import { CategoriesService } from './categories.service';
 
 /**

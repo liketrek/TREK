@@ -8,9 +8,9 @@ import {
 } from '../protocol/envelope';
 import type { PluginDataDb } from './plugin-data.service';
 import { auditResource, isAuditable } from './plugin-audit';
-import { BadParams, ForbiddenResource } from './rpc-errors';
+import { BadParams, ForbiddenResource } from '../../../nest-rpc/rpc-errors';
 import { shapePluginOutput } from '../protocol/output-contract';
-import type { PluginRpcRegistry } from './rpc-kit/registry';
+import type { PluginRpcRegistry } from '../../../nest-rpc/rpc-kit/registry';
 
 // Both used to be declared here. They now live in rpc-errors.ts so decorated
 // *.rpc.ts handlers can throw them without importing the router, and are re-exported

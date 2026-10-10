@@ -12,7 +12,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import { PluginsRuntimeModule } from '../../../src/nest/plugins/plugins-runtime.module';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
 import { HOOK_PERMISSION } from '../../../src/nest/plugins/protocol/envelope';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
 

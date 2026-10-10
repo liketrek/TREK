@@ -4,9 +4,9 @@
  * schema and real-service side is output-contract.schema.test.ts.
  */
 import { describe, expect, it } from 'vitest';
-import { PluginController, PluginMethod } from '../../../src/nest/plugins/host/rpc-kit/decorators';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import type { PluginRpcContext } from '../../../src/nest/plugins/host/rpc-kit/types';
+import { PluginController, PluginMethod } from '../../../src/nest-rpc/rpc-kit/decorators';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import type { PluginRpcContext } from '../../../src/nest-rpc/rpc-kit/types';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import { KNOWN_METHODS, UNCONDITIONAL_METHODS, type RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
 import {

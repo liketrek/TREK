@@ -64,7 +64,9 @@ remains as the platform underneath `@nestjs/platform-express`.
   dispatches, audits and maps errors. `PluginHostDepsFactory` — the 26-argument
   wiring sheet named throughout the log below — is now
   `PluginRpcHostFactory` and injects two things. See
-  `plugins/host/rpc-kit/README.md`.
+  `src/nest-rpc/rpc-kit/README.md` (the kit, `rpc-params`, `rpc-errors` and
+  `PluginGuards` moved to `src/nest-rpc/`, a kernel layer beside `src/nest-mcp/`,
+  so a domain's `*.rpc.ts` no longer depends on the plugins domain).
 - **Plugin module split (complete):** `PluginsModule` was 21 controllers, 24 domain
   imports and 10 providers in one class, so `AdminModule` importing it for one
   cascade-disable call inherited the whole graph. It is now `PluginsRuntimeModule`

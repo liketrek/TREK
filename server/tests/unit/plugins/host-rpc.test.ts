@@ -54,9 +54,9 @@ const { llmExtract } = vi.hoisted(() => ({
 }));
 vi.mock('../../../src/nest/llm-parse/llm-client.factory', () => ({ createLlmClient: vi.fn(() => ({ extract: llmExtract })) }));
 import { PluginRpcHostFactory, type PluginCallRouter } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
-import { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
+import { PluginRpcRegistryService } from '../../../src/nest-rpc/rpc-kit/registry.service';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
 import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
 import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
 import { MetaRpc } from '../../../src/nest/plugins/host/rpc/meta.rpc';

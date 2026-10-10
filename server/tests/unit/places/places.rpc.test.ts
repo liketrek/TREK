@@ -9,8 +9,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
 import { PlacesRpc } from '../../../src/nest/places/places.rpc';
 import { PlacesModule } from '../../../src/nest/places/places.module';
 import type { PlacesService } from '../../../src/nest/places/places.service';

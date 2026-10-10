@@ -6,8 +6,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
 import { TodoRpc } from '../../../src/nest/todo/todo.rpc';
 import { TodoModule } from '../../../src/nest/todo/todo.module';
 import type { TodoService } from '../../../src/nest/todo/todo.service';

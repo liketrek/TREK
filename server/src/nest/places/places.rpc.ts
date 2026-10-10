@@ -1,9 +1,9 @@
 import { placeCreateRequestSchema, placeImageUrlSchema, placeUpdateRequestSchema, placeWebsiteSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { PluginGuards } from '../plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, schemaMessage } from '../plugins/host/rpc-params';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
+import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
 import { RealtimeService } from '../realtime/realtime.service';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 import { PlacesService } from './places.service';

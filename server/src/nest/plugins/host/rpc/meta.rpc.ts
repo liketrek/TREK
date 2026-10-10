@@ -1,9 +1,9 @@
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { PluginController, PluginMethod } from '../rpc-kit/decorators';
-import { PluginGuards } from '../plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../rpc-errors';
-import { num, str } from '../rpc-params';
-import type { PluginRpcContext } from '../rpc-kit/types';
+import { PluginController, PluginMethod } from '../../../../nest-rpc/rpc-kit/decorators';
+import { PluginGuards } from '../../../../nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../../../nest-rpc/rpc-errors';
+import { num, str } from '../../../../nest-rpc/rpc-params';
+import type { PluginRpcContext } from '../../../../nest-rpc/rpc-kit/types';
 import { PluginEntityMetadata } from '../../../../db/entities/PluginEntityMetadata.entity';
 import type { PluginEntityMetadataRepository } from '../../../../db/repositories/PluginEntityMetadata.repository';
 import { Trips } from '../../../../db/entities/Trips.entity';

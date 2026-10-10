@@ -4,7 +4,7 @@ import { AtlasController } from './atlas.controller';
 import { TravelStatsController } from './travel-stats.controller';
 import { AtlasService } from './atlas.service';
 import { AtlasRpc } from './atlas.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { AtlasMcp } from './atlas.mcp';
 import { AddonsModule } from '../addons/addons.module';
 import { PublicStatsController } from './public-stats.controller';

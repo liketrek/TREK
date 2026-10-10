@@ -10,12 +10,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { BadParams, ForbiddenResource } from '../../../src/nest/plugins/host/rpc-errors';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import { BadParams, ForbiddenResource } from '../../../src/nest-rpc/rpc-errors';
 import { TagsRpc } from '../../../src/nest/tags/tags.rpc';
 import { TagsModule } from '../../../src/nest/tags/tags.module';
 import type { TagsService } from '../../../src/nest/tags/tags.service';
-import type { PluginRpcContext } from '../../../src/nest/plugins/host/rpc-kit/types';
+import type { PluginRpcContext } from '../../../src/nest-rpc/rpc-kit/types';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 

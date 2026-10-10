@@ -3,8 +3,8 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { PluginCapabilityAudit } from '../../../db/entities/PluginCapabilityAudit.entity';
 import type { PluginCapabilityAuditRepository } from '../../../db/repositories/PluginCapabilityAudit.repository';
 import { PluginRpcHost } from './rpc-host';
-import type { PluginRpcRegistry } from './rpc-kit/registry';
-import { PluginRpcRegistryService } from './rpc-kit/registry.service';
+import type { PluginRpcRegistry } from '../../../nest-rpc/rpc-kit/registry';
+import { PluginRpcRegistryService } from '../../../nest-rpc/rpc-kit/registry.service';
 import { appendAudit } from './plugin-audit';
 import { getPluginDataDb } from './plugin-host-state';
 

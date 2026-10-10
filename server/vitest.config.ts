@@ -215,6 +215,9 @@ export default defineConfig({
         // The folded-in nest-mcp decorator/registry layer keeps the 80% floor
         // its own workspace gate enforced (tests/unit/nest-mcp/).
         'src/nest-mcp/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
+        // The plugin RPC kit (rpc-kit, rpc-params, rpc-errors, PluginGuards), moved
+        // out of src/nest/plugins with its tests (tests/unit/nest-rpc/).
+        'src/nest-rpc/**/*.ts': { statements: 92, branches: 85, functions: 95, lines: 94 },
         'src/systemNotices/**/*.ts': { statements: 84, branches: 67, functions: 93, lines: 85 },
         'src/utils/**/*.ts': { statements: 92, branches: 87, functions: 89, lines: 96 },
         // index.ts, bootstrap.ts, scheduler.ts, config.ts, websocket.ts and the

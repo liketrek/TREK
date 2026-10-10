@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { PermissionsModule } from '../../permissions/permissions.module';
-import { AddonsModule } from '../../addons/addons.module';
-import { Users } from '../../../db/entities/Users.entity';
-import { Trips } from '../../../db/entities/Trips.entity';
+import { PermissionsModule } from '../nest/permissions/permissions.module';
+import { AddonsModule } from '../nest/addons/addons.module';
+import { Users } from '../db/entities/Users.entity';
+import { Trips } from '../db/entities/Trips.entity';
 import { PluginGuards } from './plugin-guards.service';
 
 /**

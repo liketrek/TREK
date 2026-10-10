@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AllowedFileTypesModule } from '../files/allowed-file-types.module';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { StorageModule } from '../storage/storage.module';
 import { DemoModule } from '../common/demo.module';
 import { JourneyDomainModule } from './journey-domain.module';

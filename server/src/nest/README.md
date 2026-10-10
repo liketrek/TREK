@@ -16,7 +16,7 @@ server/src/nest/<domain>/<domain>.service.ts     # business logic, an injectable
 server/src/nest/<domain>/<domain>.controller.ts  # REST routes, thin: validate, call the service, shape the reply
 server/src/nest/<domain>/<domain>.module.ts      # registered in app.module.ts
 server/src/nest/<domain>/<domain>.mcp.ts         # MCP tools/resources/prompts (@Tool, @Resource, @Prompt)
-server/src/nest/<domain>/<domain>.rpc.ts         # plugin RPC methods (@PluginMethod), see plugins/host/rpc-kit/README.md
+server/src/nest/<domain>/<domain>.rpc.ts         # plugin RPC methods (@PluginMethod), see src/nest-rpc/rpc-kit/README.md
 server/src/nest/<domain>/<name>.job.ts           # a cron, registered on scheduling/CronRegistrarService
 server/src/nest/<domain>/<domain>.helpers.ts     # pure functions the service and its tests share
 ```

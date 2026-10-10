@@ -11,8 +11,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
+import { PluginRpcRegistryService } from '../../../src/nest-rpc/rpc-kit/registry.service';
 import {
   KNOWN_METHODS,
   KNOWN_PERMISSIONS,

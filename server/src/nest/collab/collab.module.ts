@@ -4,7 +4,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { CollabController, collabNoteFileFilter, MAX_NOTE_FILE_SIZE } from './collab.controller';
 import { CollabService } from './collab.service';
 import { CollabRpc } from './collab.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { CollabMcp } from './collab.mcp';
 import { PermissionsModule } from '../permissions/permissions.module';

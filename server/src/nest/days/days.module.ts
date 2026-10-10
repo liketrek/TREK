@@ -7,7 +7,7 @@ import { DaysRpc } from './days.rpc';
 import { DayRemovalService } from './day-removal.service';
 import { AccommodationsDomainModule } from '../accommodations/accommodations-domain.module';
 import { AssignmentsDomainModule } from '../assignments/assignments-domain.module';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { QueryHelpersModule } from '../query-helpers/query-helpers.module';

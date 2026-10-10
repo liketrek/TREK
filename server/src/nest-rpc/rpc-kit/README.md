@@ -2,14 +2,16 @@
 
 Conceptually this is `trek-plugin-host`: `@PluginController`, `@PluginMethod`,
 `@PluginOpenMethod` and `@PluginHook`, plus the registry that binds them into the
-per-plugin dispatch map. It lives inside `server/` rather than in its own workspace,
+per-plugin dispatch map. It lives in `server/src/nest-rpc/`, beside `src/nest-mcp/` and
+outside every domain, so a domain's `*.rpc.ts` does not depend on the plugins
+domain. It is not its own workspace,
 and this file records why, and what extracting it later would cost.
 
 ## What the decorators buy
 
 The method-to-permission association used to exist twice: declaratively in
-`METHOD_PERMISSION` (`../../protocol/envelope.ts`) and imperatively as the
-`if (has('...'))` blocks in `../rpc-host.ts`, with nothing asserting they agree.
+`METHOD_PERMISSION` (`src/nest/plugins/protocol/envelope.ts`) and imperatively as the
+`if (has('...'))` blocks in `src/nest/plugins/host/rpc-host.ts`, with nothing asserting they agree.
 `protocol-paths.test.ts` checked that each method had *some* permission, never that it
 was *the same* permission the router gates on, and `plugin-audit.ts`'s `isAuditable`
 silently inherits any drift.
@@ -29,7 +31,8 @@ A `@PluginMethod` declaration is checked against that table twice:
 The kit may import:
 
 - `@nestjs/common` and `@nestjs/core`,
-- **type-only** from `../../protocol/envelope` and `../plugin-data.service`.
+- **type-only** from `../../nest/plugins/protocol/envelope` and
+  `../../nest/plugins/host/plugin-data.service`.
 
 Nothing else. It must not reach into `rpc-host.ts`, the deps factory, the supervisor,
 or any domain service. `registry.ts` is the single exception that imports envelope

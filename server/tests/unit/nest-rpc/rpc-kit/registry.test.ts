@@ -11,10 +11,10 @@ import {
   PluginHook,
   PluginMethod,
   PluginOpenMethod,
-} from '../../../../src/nest/plugins/host/rpc-kit/decorators';
-import { PluginRpcRegistry } from '../../../../src/nest/plugins/host/rpc-kit/registry';
-import { createTestPluginRegistry } from '../../../../src/nest/plugins/host/rpc-kit/testing';
-import type { PluginRpcContext } from '../../../../src/nest/plugins/host/rpc-kit/types';
+} from '../../../../src/nest-rpc/rpc-kit/decorators';
+import { PluginRpcRegistry } from '../../../../src/nest-rpc/rpc-kit/registry';
+import { createTestPluginRegistry } from '../../../../src/nest-rpc/rpc-kit/testing';
+import type { PluginRpcContext } from '../../../../src/nest-rpc/rpc-kit/types';
 
 const ctxFor = (actingUserId: number | undefined): PluginRpcContext => ({
   pluginId: 'p',
