@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripAccess, TripsRepository } from '../../db/repositories/Trips.repository';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * "May this user see this trip?" for every domain that is not the trips domain.

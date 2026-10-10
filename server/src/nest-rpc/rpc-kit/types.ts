@@ -1,5 +1,5 @@
-import type { HookKey, HookPermission, KnownMethod, UnconditionalMethod } from '../../nest/plugins/protocol/envelope';
 import type { PluginDataDb } from '../../nest/plugins/host/plugin-data.service';
+import type { HookKey, HookPermission, KnownMethod, UnconditionalMethod } from '../../nest/plugins/protocol/envelope';
 
 /**
  * Everything a plugin RPC handler may see. Built PER DISPATCH, never cached.

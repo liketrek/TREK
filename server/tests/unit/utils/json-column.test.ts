@@ -1,10 +1,3 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
-
-const logMock = vi.hoisted(() => ({ logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
-vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
-
-import { decodeJson, decodeJsonResult, encodeJson, logJsonFailure, type JsonColumn } from '../../../src/utils/json-column';
 import {
   COLLAB_POLL_OPTIONS,
   JOURNEY_ENTRY_PROS_CONS,
@@ -17,6 +10,19 @@ import {
   RESERVATION_METADATA,
   USER_MFA_BACKUP_CODES,
 } from '../../../src/db/json-columns';
+import {
+  decodeJson,
+  decodeJsonResult,
+  encodeJson,
+  logJsonFailure,
+  type JsonColumn,
+} from '../../../src/utils/json-column';
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+
+const logMock = vi.hoisted(() => ({ logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
+vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
 
 const LIST: JsonColumn<string[]> = { column: 't.list', schema: z.array(z.string()), fallback: () => [] };
 
@@ -44,7 +50,10 @@ describe('decodeJsonResult', () => {
     const doubled = JSON.stringify(JSON.stringify({ price: '12' }));
     expect(decodeJsonResult(RESERVATION_METADATA, doubled)).toEqual({ ok: true, value: { price: '12' } });
     expect(decodeJsonResult(LIST, JSON.stringify(JSON.stringify(['a'])))).toEqual({ ok: false, reason: 'schema' });
-    expect(decodeJsonResult(RESERVATION_METADATA, JSON.stringify('{broken'))).toEqual({ ok: false, reason: 'invalid-json' });
+    expect(decodeJsonResult(RESERVATION_METADATA, JSON.stringify('{broken'))).toEqual({
+      ok: false,
+      reason: 'invalid-json',
+    });
   });
 });
 
@@ -61,9 +70,13 @@ describe('decodeJson', () => {
 
   it('JSONCOL-012: broken text and the wrong shape fall back and are logged with the column and context', () => {
     expect(decodeJson(LIST, '{not json', 'row 7')).toEqual([]);
-    expect(logMock.logWarn).toHaveBeenLastCalledWith('[json] t.list (row 7): stored value is not valid JSON, using the fallback');
+    expect(logMock.logWarn).toHaveBeenLastCalledWith(
+      '[json] t.list (row 7): stored value is not valid JSON, using the fallback',
+    );
     expect(decodeJson(LIST, '{"a":1}')).toEqual([]);
-    expect(logMock.logWarn).toHaveBeenLastCalledWith('[json] t.list: stored value has the wrong shape, using the fallback');
+    expect(logMock.logWarn).toHaveBeenLastCalledWith(
+      '[json] t.list: stored value has the wrong shape, using the fallback',
+    );
   });
 
   it('JSONCOL-013: every fallback is a fresh value', () => {
@@ -94,7 +107,12 @@ describe('the declared columns', () => {
   });
 
   it('JSONCOL-031: the OAuth lists fail closed to an empty list', () => {
-    for (const col of [OAUTH_TOKEN_SCOPES, OAUTH_CLIENT_ALLOWED_SCOPES, OAUTH_CLIENT_REDIRECT_URIS, OAUTH_CONSENT_SCOPES]) {
+    for (const col of [
+      OAUTH_TOKEN_SCOPES,
+      OAUTH_CLIENT_ALLOWED_SCOPES,
+      OAUTH_CLIENT_REDIRECT_URIS,
+      OAUTH_CONSENT_SCOPES,
+    ]) {
       expect(decodeJson(col, '["trips:read"]')).toEqual(['trips:read']);
       expect(decodeJson(col, 'garbage')).toEqual([]);
       expect(decodeJson(col, '[1]')).toEqual([]);

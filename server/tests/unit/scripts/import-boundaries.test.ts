@@ -180,20 +180,31 @@ describe('import-boundaries.mjs', () => {
 
   it('BOUND-012: a provider may not import the orchestrator above it, type-only included', () => {
     const dir = serverRoot({
-      'nest/maps/maps.service.ts': "import { Osm } from './providers/osm.client';\nexport class MapsService { o = Osm; }\n",
-      'nest/maps/providers/osm.client.ts': "import type { MapsService } from '../maps.service';\nexport class Osm { m?: MapsService; }\n",
+      'nest/maps/maps.service.ts':
+        "import { Osm } from './providers/osm.client';\nexport class MapsService { o = Osm; }\n",
+      'nest/maps/providers/osm.client.ts':
+        "import type { MapsService } from '../maps.service';\nexport class Osm { m?: MapsService; }\n",
       'nest/docs/docs.service.ts': 'export class DocsService {}\n',
-      'nest/docs/providers/webdav/client.ts': "import { DocsService } from '../../docs.service';\nexport const c = DocsService;\n",
-      'nest/trips/providers/geo.ts': "import { MapsService } from '../../maps/maps.service';\nexport const g = MapsService;\n",
+      'nest/docs/providers/webdav/client.ts':
+        "import { DocsService } from '../../docs.service';\nexport const c = DocsService;\n",
+      'nest/trips/providers/geo.ts':
+        "import { MapsService } from '../../maps/maps.service';\nexport const g = MapsService;\n",
       // A provider importing another service of its own domain is not the orchestrator.
       'nest/docs/docs-cache.service.ts': 'export class DocsCacheService {}\n',
-      'nest/docs/providers/cached.ts': "import { DocsCacheService } from '../docs-cache.service';\nexport const k = DocsCacheService;\n",
+      'nest/docs/providers/cached.ts':
+        "import { DocsCacheService } from '../docs-cache.service';\nexport const k = DocsCacheService;\n",
     });
     const { status, out } = run(dir);
     expect(status).toBe(1);
-    expect(out).toContain('FAIL  providersImportOrchestrator: nest/maps/providers/osm.client.ts -> nest/maps/maps.service.ts');
-    expect(out).toContain('FAIL  providersImportOrchestrator: nest/docs/providers/webdav/client.ts -> nest/docs/docs.service.ts');
-    expect(out).toContain('FAIL  providersImportOrchestrator: nest/trips/providers/geo.ts -> nest/maps/maps.service.ts');
+    expect(out).toContain(
+      'FAIL  providersImportOrchestrator: nest/maps/providers/osm.client.ts -> nest/maps/maps.service.ts',
+    );
+    expect(out).toContain(
+      'FAIL  providersImportOrchestrator: nest/docs/providers/webdav/client.ts -> nest/docs/docs.service.ts',
+    );
+    expect(out).toContain(
+      'FAIL  providersImportOrchestrator: nest/trips/providers/geo.ts -> nest/maps/maps.service.ts',
+    );
     expect(out).not.toContain('providers/cached.ts');
   });
 
@@ -257,7 +268,8 @@ describe('import-boundaries.mjs', () => {
     const owners = JSON.stringify({ Trips: 'trips', Todos: 'todo' });
     const files = {
       'nest/trips/trips.service.ts': '@InjectRepository(Trips) class S {}\nexport { S };\n',
-      'nest/todo/todo.service.ts': '@InjectRepository(Todos) class T {}\n@InjectRepository(Trips) class U {}\nexport { T, U };\n',
+      'nest/todo/todo.service.ts':
+        '@InjectRepository(Todos) class T {}\n@InjectRepository(Trips) class U {}\nexport { T, U };\n',
     };
     const withOwners = (baseline: unknown) => {
       const dir = serverRoot(files, baseline);

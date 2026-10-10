@@ -1,14 +1,15 @@
-import type { EntityManager } from '@mikro-orm/core';
-import type { SqlEntityManager } from '@mikro-orm/sql';
 import { Users } from '../entities/Users.entity';
 import { TrekRepository } from './_shared/trek-repository';
+import type { EntityManager } from '@mikro-orm/core';
+import type { SqlEntityManager } from '@mikro-orm/sql';
 
 /**
  * The six Synology credential/session columns `_readSynologyUser` reads
  * selectively — a closed union, not a dynamic column string, matching
  * `InstanceApiKeyName`'s reasoning in `Users.repository.ts`.
  */
-export type SynologyUserColumn = 'synology_url' | 'synology_username' | 'synology_password' | 'synology_sid' | 'synology_did' | 'synology_skip_ssl';
+export type SynologyUserColumn =
+  'synology_url' | 'synology_username' | 'synology_password' | 'synology_sid' | 'synology_did' | 'synology_skip_ssl';
 
 /**
  * {@link UserSynologyRepository.getSynologyFields}'s return shape — structurally
@@ -94,7 +95,13 @@ export class UserSynologyRepository extends TrekRepository<Users> {
   }
 
   /** SY5 (`SynologyService.updateSynologySettings`) — `UPDATE users SET synology_url = ?, synology_username = ?, synology_password = ?, synology_skip_ssl = ? WHERE id = ?`. */
-  async setSynologySettings(id: number, synology_url: string, synology_username: string, synology_password: string | null, synology_skip_ssl: number): Promise<void> {
+  async setSynologySettings(
+    id: number,
+    synology_url: string,
+    synology_username: string,
+    synology_password: string | null,
+    synology_skip_ssl: number,
+  ): Promise<void> {
     await this.nativeUpdate({ id }, { synology_url, synology_username, synology_password, synology_skip_ssl });
   }
 

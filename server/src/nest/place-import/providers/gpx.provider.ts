@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import { coord, gpxGeometryParser, writeGpx } from '../gpx.codec';
 import type { GpxImportOptions, PreparedGpxPlace } from '../place-import.types';
+import { Injectable } from '@nestjs/common';
 
 /**
  * A trip as GPX and back: the reader that turns a GPX file into the places an
@@ -98,7 +98,7 @@ export function buildGpx(input: GpxExportInput, opts: GpxExportOptions = {}): st
         name: place.name,
         desc: describe(place),
         trkseg: {
-          trkpt: geometry.map(p => ({
+          trkpt: geometry.map((p) => ({
             '@_lat': coord(p.lat),
             '@_lon': coord(p.lng),
             ...(p.ele != null ? { ele: coord(p.ele) } : {}),
@@ -131,7 +131,7 @@ export function buildGpx(input: GpxExportInput, opts: GpxExportOptions = {}): st
           : String(day.dayNumber);
       rte.push({
         name: label,
-        rtept: day.points.map(p => ({
+        rtept: day.points.map((p) => ({
           '@_lat': coord(p.lat),
           '@_lon': coord(p.lng),
           name: p.name,
@@ -174,7 +174,10 @@ export function prepareGpxRows(fileBuffer: Buffer, opts: GpxImportOptions = {}):
   if (!gpx) return [];
 
   const str = (v: unknown) => (v != null ? String(v).trim() : null);
-  const num = (v: unknown) => { const n = Number.parseFloat(String(v)); return Number.isNaN(n) ? null : n; };
+  const num = (v: unknown) => {
+    const n = Number.parseFloat(String(v));
+    return Number.isNaN(n) ? null : n;
+  };
 
   // Routes and tracks rarely carry their own <name>. Without one they all fall back to the
   // same generic label, so name-based dedup drops every import after the first. Derive a
@@ -198,7 +201,12 @@ export function prepareGpxRows(fileBuffer: Buffer, opts: GpxImportOptions = {}):
       const lat = num(wpt['@_lat']);
       const lng = num(wpt['@_lon']);
       if (lat === null || lng === null) continue;
-      waypoints.push({ lat, lng, name: str(wpt.name) || `Waypoint ${waypoints.length + 1}`, description: str(wpt.desc) });
+      waypoints.push({
+        lat,
+        lng,
+        name: str(wpt.name) || `Waypoint ${waypoints.length + 1}`,
+        description: str(wpt.desc),
+      });
     }
   }
 
@@ -207,11 +215,19 @@ export function prepareGpxRows(fileBuffer: Buffer, opts: GpxImportOptions = {}):
     for (const rte of gpx.rte ?? []) {
       const pts = (rte.rtept ?? [])
         .map((pt: Record<string, unknown>) => ({ lat: num(pt['@_lat']), lng: num(pt['@_lon']), ele: num(pt['ele']) }))
-        .filter((p: { lat: number | null; lng: number | null; ele: number | null }) => p.lat !== null && p.lng !== null) as Array<{ lat: number; lng: number; ele: number | null }>;
+        .filter(
+          (p: { lat: number | null; lng: number | null; ele: number | null }) => p.lat !== null && p.lng !== null,
+        ) as Array<{ lat: number; lng: number; ele: number | null }>;
       if (pts.length === 0) continue;
-      const hasAllEle = pts.every(p => p.ele !== null);
-      const routeGeometry = pts.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-      waypoints.push({ lat: pts[0].lat, lng: pts[0].lng, name: geoName(str(rte.name), 'GPX Route'), description: str(rte.desc), routeGeometry: JSON.stringify(routeGeometry) });
+      const hasAllEle = pts.every((p) => p.ele !== null);
+      const routeGeometry = pts.map((p) => (hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]));
+      waypoints.push({
+        lat: pts[0].lat,
+        lng: pts[0].lng,
+        name: geoName(str(rte.name), 'GPX Route'),
+        description: str(rte.desc),
+        routeGeometry: JSON.stringify(routeGeometry),
+      });
     }
   }
 
@@ -229,9 +245,15 @@ export function prepareGpxRows(fileBuffer: Buffer, opts: GpxImportOptions = {}):
       }
       if (trackPoints.length === 0) continue;
       const start = trackPoints[0];
-      const hasAllEle = trackPoints.every(p => p.ele !== null);
-      const routeGeometry = trackPoints.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-      waypoints.push({ lat: start.lat, lng: start.lng, name: geoName(str(trk.name), 'GPX Track'), description: str(trk.desc), routeGeometry: JSON.stringify(routeGeometry) });
+      const hasAllEle = trackPoints.every((p) => p.ele !== null);
+      const routeGeometry = trackPoints.map((p) => (hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]));
+      waypoints.push({
+        lat: start.lat,
+        lng: start.lng,
+        name: geoName(str(trk.name), 'GPX Track'),
+        description: str(trk.desc),
+        routeGeometry: JSON.stringify(routeGeometry),
+      });
     }
   }
 

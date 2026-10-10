@@ -84,7 +84,9 @@ export interface GpxDocument {
 
 /** A GPX 1.1 document, elements in the schema's order (metadata, wpt, rte, trk). */
 export function writeGpx(doc: GpxDocument): string {
-  const namespaces = Object.fromEntries(Object.entries(doc.namespaces ?? {}).map(([prefix, uri]) => [`@_xmlns:${prefix}`, uri]));
+  const namespaces = Object.fromEntries(
+    Object.entries(doc.namespaces ?? {}).map(([prefix, uri]) => [`@_xmlns:${prefix}`, uri]),
+  );
   return gpxBuilder.build({
     '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
     gpx: {

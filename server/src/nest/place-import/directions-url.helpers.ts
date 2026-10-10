@@ -108,7 +108,10 @@ function fromPath(url: URL): DirWaypoint[] {
     // The viewport and the blob end the list of stops; everything after them belongs to
     // how the map was framed, not to where the car goes.
     if (part.startsWith('@')) continue;
-    if (part.startsWith('data=')) { data = part; continue; }
+    if (part.startsWith('data=')) {
+      data = part;
+      continue;
+    }
     if (data) continue;
     const wp = asWaypoint(decodeSegment(part));
     if (wp) names.push(wp);
@@ -119,7 +122,7 @@ function fromPath(url: URL): DirWaypoint[] {
   // match cannot be lined up — Google drops the pair for "your location" and adds pairs
   // of its own for a route through several countries — and half a link read confidently
   // is worse than a link read as names and geocoded.
-  const pairs = [...(data.matchAll(DATA_LNG_LAT))]
+  const pairs = [...data.matchAll(DATA_LNG_LAT)]
     .map((m) => ({ lng: Number.parseFloat(m[1]), lat: Number.parseFloat(m[2]) }))
     .filter((p) => onEarth(p.lat, p.lng));
   if (pairs.length !== names.length) return names;

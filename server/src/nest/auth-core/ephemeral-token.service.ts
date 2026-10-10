@@ -1,4 +1,3 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import {
   createEphemeralToken,
   consumeEphemeralToken,
@@ -7,6 +6,7 @@ import {
   stopTokenCleanup,
   type EphemeralTokenMeta,
 } from './ephemeral-tokens';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 
 /**
  * The injectable face of the ephemeral-token store, and the owner of its

@@ -7,18 +7,18 @@
  * MapsService.getPlaceDetails / getPlaceDetailsExpanded delegate here and hand
  * in whether the index is switched on, which is a deployment property they own.
  */
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { normalizePlaceWebsite } from '@trek/shared';
 import { PlaceDetailsCache } from '../../db/entities/PlaceDetailsCache.entity';
 import type { PlaceDetailsCacheRepository } from '../../db/repositories/PlaceDetailsCache.repository';
+import { indexPlaceDetails } from './maps-index.helpers';
+import { toApiLang, isGooglePlaceId, OSM_PLACE_ID } from './maps.helpers';
+import { PlacesProviderSelector } from './places-provider.selector';
+import { isAmapPlaceId } from './providers/amap.provider';
 import { GooglePlacesClient } from './providers/google-places.provider';
 import { OsmClient } from './providers/osm.client';
-import { isAmapPlaceId } from './providers/amap.provider';
-import { PlacesProviderSelector } from './places-provider.selector';
 import { trekPlacesById } from './trek-places.client';
-import { toApiLang, isGooglePlaceId, OSM_PLACE_ID } from './maps.helpers';
-import { indexPlaceDetails } from './maps-index.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { normalizePlaceWebsite } from '@trek/shared';
 
 /**
  * A details row as the cache holds it. A row written before #2483 still has a
@@ -66,10 +66,12 @@ export class PlaceDetailsResolver {
       // resolveOsmIdentity applies everywhere: within range, and sharing a
       // substantial word of the name. A confident description of the building
       // next door is worse than none.
-      const osm = await this.osm.resolveOsmIdentity(found.name, found.lat, found.lng, {
-        lang,
-        maxDistanceM: 150,
-      }).catch(() => null);
+      const osm = await this.osm
+        .resolveOsmIdentity(found.name, found.lat, found.lng, {
+          lang,
+          maxDistanceM: 150,
+        })
+        .catch(() => null);
 
       return { place: indexPlaceDetails(found, osm?.tags ?? null, placeId) };
     }
@@ -122,7 +124,13 @@ export class PlaceDetailsResolver {
     if (!place) return { place: null };
 
     try {
-      await this.placeDetailsCache.upsertEntry({ place_id: placeId, lang: langKey, expanded: 0, payload_json: JSON.stringify(place), fetched_at: Date.now() });
+      await this.placeDetailsCache.upsertEntry({
+        place_id: placeId,
+        lang: langKey,
+        expanded: 0,
+        payload_json: JSON.stringify(place),
+        fetched_at: Date.now(),
+      });
     } catch (dbErr) {
       console.error('Failed to cache place details:', dbErr);
     }
@@ -184,10 +192,18 @@ export class PlaceDetailsResolver {
       if (cached) return { place: cachedDetails(cached.payload_json) };
     }
 
-    const place = await this.googlePlaces.provider({ key: apiKey, source: null, userId }).placeDetailsExpanded(placeId, lang);
+    const place = await this.googlePlaces
+      .provider({ key: apiKey, source: null, userId })
+      .placeDetailsExpanded(placeId, lang);
 
     try {
-      await this.placeDetailsCache.upsertEntry({ place_id: placeId, lang: langKey, expanded: 1, payload_json: JSON.stringify(place), fetched_at: Date.now() });
+      await this.placeDetailsCache.upsertEntry({
+        place_id: placeId,
+        lang: langKey,
+        expanded: 1,
+        payload_json: JSON.stringify(place),
+        fetched_at: Date.now(),
+      });
     } catch (dbErr) {
       console.error('Failed to cache expanded place details:', dbErr);
     }

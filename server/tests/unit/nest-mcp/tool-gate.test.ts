@@ -55,7 +55,10 @@ describe('tool gate', () => {
     const result = await harness.client.callTool({ name: 'write_it', arguments: { n: 1 } });
     expect(result).toEqual(REFUSAL);
     expect(mcp.calls).toBe(0);
-    expect(gate).toHaveBeenCalledWith(expect.objectContaining({ name: 'write_it', annotations: { readOnlyHint: false } }), asCtx({ userId: 3 }));
+    expect(gate).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'write_it', annotations: { readOnlyHint: false } }),
+      asCtx({ userId: 3 }),
+    );
   });
 
   it('runs the handler with its arguments when the gate returns undefined', async () => {
@@ -85,7 +88,11 @@ describe('tool gate', () => {
       options: { name: 'dyn', inputSchema: {}, access: () => true },
       handler: () => ({ content: [{ type: 'text', text: 'dynamic ran' }] }),
     };
-    harness = await createAttachHarness(createTestRegistry([], { toolGate: gate }), {}, { dynamicTools: () => [dynamic] });
+    harness = await createAttachHarness(
+      createTestRegistry([], { toolGate: gate }),
+      {},
+      { dynamicTools: () => [dynamic] },
+    );
     expect(textOf(await harness.client.callTool({ name: 'dyn', arguments: {} }))).toBe('dynamic ran');
     expect(gate).not.toHaveBeenCalled();
   });
@@ -98,15 +105,19 @@ describe('tool gate', () => {
         return REFUSAL;
       },
     });
-    harness = await createAttachHarness(registry, {}, {
-      onInvoke: () => order.push('onInvoke'),
-      around: async (_info, call) => {
-        order.push('around:in');
-        const out = await call();
-        order.push('around:out');
-        return out;
+    harness = await createAttachHarness(
+      registry,
+      {},
+      {
+        onInvoke: () => order.push('onInvoke'),
+        around: async (_info, call) => {
+          order.push('around:in');
+          const out = await call();
+          order.push('around:out');
+          return out;
+        },
       },
-    });
+    );
     await harness.client.callTool({ name: 'write_it', arguments: { n: 1 } });
     expect(order).toEqual(['onInvoke', 'around:in', 'gate', 'around:out']);
   });
@@ -151,7 +162,10 @@ describe('McpModule.forRoot toolGate', () => {
     harness = await createAttachHarness(moduleRef.get(McpRegistryService), { userId: 1 });
     expect(await harness.client.callTool({ name: 'write_it', arguments: { n: 1 } })).toEqual(REFUSAL);
     moduleRef.get(Verdicts).refuse = false;
-    expect(JSON.parse(textOf(await harness.client.callTool({ name: 'write_it', arguments: { n: 1 } })))).toEqual({ n: 1, userId: 1 });
+    expect(JSON.parse(textOf(await harness.client.callTool({ name: 'write_it', arguments: { n: 1 } })))).toEqual({
+      n: 1,
+      userId: 1,
+    });
     await moduleRef.close();
   });
 
@@ -159,7 +173,10 @@ describe('McpModule.forRoot toolGate', () => {
     const moduleRef = await Test.createTestingModule({ imports: [GatedModule, McpModule.forRoot()] }).compile();
     await moduleRef.init();
     harness = await createAttachHarness(moduleRef.get(McpRegistryService), { userId: 2 });
-    expect(JSON.parse(textOf(await harness.client.callTool({ name: 'write_it', arguments: { n: 3 } })))).toEqual({ n: 3, userId: 2 });
+    expect(JSON.parse(textOf(await harness.client.callTool({ name: 'write_it', arguments: { n: 3 } })))).toEqual({
+      n: 3,
+      userId: 2,
+    });
     await moduleRef.close();
   });
 });

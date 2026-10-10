@@ -1,7 +1,7 @@
-import type { EntityManager } from '@mikro-orm/core';
-import type { SqlEntityManager } from '@mikro-orm/sql';
 import { Users } from '../entities/Users.entity';
 import { TrekRepository } from './_shared/trek-repository';
+import type { EntityManager } from '@mikro-orm/core';
+import type { SqlEntityManager } from '@mikro-orm/sql';
 
 /**
  * The AirTrail connection a user keeps on their own `users` row
@@ -57,10 +57,21 @@ export class UserAirtrailRepository extends TrekRepository<Users> {
    * wrap its writes in `uow.transactional`): preserved exactly, not
    * "fixed" to match Dawarich's shape.
    */
-  async setAirtrailSettingsWithKey(id: number, url: string | null, apiKey: string, allowInsecureTls: number, writeEnabled: number): Promise<void> {
+  async setAirtrailSettingsWithKey(
+    id: number,
+    url: string | null,
+    apiKey: string,
+    allowInsecureTls: number,
+    writeEnabled: number,
+  ): Promise<void> {
     await this.nativeUpdate(
       { id },
-      { airtrail_url: url, airtrail_api_key: apiKey, airtrail_allow_insecure_tls: allowInsecureTls, airtrail_write_enabled: writeEnabled },
+      {
+        airtrail_url: url,
+        airtrail_api_key: apiKey,
+        airtrail_allow_insecure_tls: allowInsecureTls,
+        airtrail_write_enabled: writeEnabled,
+      },
     );
   }
 
@@ -70,8 +81,16 @@ export class UserAirtrailRepository extends TrekRepository<Users> {
    * airtrail_write_enabled = ? WHERE id = ?`. Same no-transaction asymmetry
    * as {@link setAirtrailSettingsWithKey} — preserved, not fixed.
    */
-  async setAirtrailSettings(id: number, url: string | null, allowInsecureTls: number, writeEnabled: number): Promise<void> {
-    await this.nativeUpdate({ id }, { airtrail_url: url, airtrail_allow_insecure_tls: allowInsecureTls, airtrail_write_enabled: writeEnabled });
+  async setAirtrailSettings(
+    id: number,
+    url: string | null,
+    allowInsecureTls: number,
+    writeEnabled: number,
+  ): Promise<void> {
+    await this.nativeUpdate(
+      { id },
+      { airtrail_url: url, airtrail_allow_insecure_tls: allowInsecureTls, airtrail_write_enabled: writeEnabled },
+    );
   }
 
   /**

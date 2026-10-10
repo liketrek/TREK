@@ -9,11 +9,12 @@
  * Which placemarks become places, and under which category, is the importing
  * domain's decision.
  */
-import { TextDecoder } from 'util';
-import { XMLParser, XMLValidator } from 'fast-xml-parser';
-import unzipper from 'unzipper';
 import { stripHtmlTags } from '../common/stripHtmlTags';
 import type { KmlDocumentRead, KmlImportSummary, ParsedKmlPlacemark } from './place-import.types';
+
+import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import unzipper from 'unzipper';
+import { TextDecoder } from 'util';
 
 export type { KmlImportSummary, ParsedKmlPlacemark } from './place-import.types';
 
@@ -110,14 +111,16 @@ export function sanitizeKmlDescription(value: unknown): string | null {
   return decoded || null;
 }
 
-export function parseKmlLineStringCoordinates(value: unknown): Array<{ lat: number; lng: number; ele: number | null }> | null {
+export function parseKmlLineStringCoordinates(
+  value: unknown,
+): Array<{ lat: number; lng: number; ele: number | null }> | null {
   const coordinates = asTrimmedString(value);
   if (!coordinates) return null;
 
   const points = coordinates
     .trim()
     .split(/\s+/)
-    .map(coord => {
+    .map((coord) => {
       const parts = coord.split(',');
       const lng = Number.parseFloat(parts[0] ?? '');
       const lat = Number.parseFloat(parts[1] ?? '');
@@ -189,8 +192,8 @@ export function parsePlacemarkNode(node: KmlPlacemarkNode): ParsedKmlPlacemark {
     const linePts = parseKmlLineStringCoordinates(node.placemark?.LineString?.coordinates);
     if (linePts) {
       pathFirstPt = { lat: linePts[0].lat, lng: linePts[0].lng };
-      const hasAllEle = linePts.every(p => p.ele !== null);
-      routeGeometry = JSON.stringify(linePts.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]));
+      const hasAllEle = linePts.every((p) => p.ele !== null);
+      routeGeometry = JSON.stringify(linePts.map((p) => (hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng])));
     }
   }
 
@@ -249,7 +252,9 @@ export async function unpackKmzToKml(
     throw new Error('Invalid KMZ archive.');
   }
 
-  const kmlEntries = zip.files.filter((entry) => !entry.path.endsWith('/') && entry.path.toLowerCase().endsWith('.kml'));
+  const kmlEntries = zip.files.filter(
+    (entry) => !entry.path.endsWith('/') && entry.path.toLowerCase().endsWith('.kml'),
+  );
   if (kmlEntries.length === 0) {
     throw new Error('KMZ archive does not contain a KML file.');
   }

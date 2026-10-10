@@ -1,10 +1,10 @@
+import { decodeEntryRow } from '../../../src/nest/journey/journey-entry-row';
+import type { JourneyEntry } from '../../../src/types';
+
 import { describe, expect, it, vi } from 'vitest';
 
 const logMock = vi.hoisted(() => ({ logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
-
-import { decodeEntryRow } from '../../../src/nest/journey/journey-entry-row';
-import type { JourneyEntry } from '../../../src/types';
 
 const row = (over: Partial<JourneyEntry> = {}): JourneyEntry =>
   ({
@@ -44,6 +44,8 @@ describe('decodeEntryRow', () => {
     const wire = decodeEntryRow(row({ tags: '{oops', pros_cons: 'not json' }));
     expect(wire.tags).toEqual([]);
     expect(wire.pros_cons).toBeNull();
-    expect(logMock.logWarn).toHaveBeenCalledWith('[json] journey_entries.tags (journey entry 5): stored value is not valid JSON, using the fallback');
+    expect(logMock.logWarn).toHaveBeenCalledWith(
+      '[json] journey_entries.tags (journey entry 5): stored value is not valid JSON, using the fallback',
+    );
   });
 });

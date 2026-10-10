@@ -1,8 +1,8 @@
-import type { EntityManager } from '@mikro-orm/core';
-import type { SqlEntityManager } from '@mikro-orm/sql';
+import { coalesceOverrideWhileSame } from '../dialect/sql-functions';
 import { Users } from '../entities/Users.entity';
 import { TrekRepository } from './_shared/trek-repository';
-import { coalesceOverrideWhileSame } from '../dialect/sql-functions';
+import type { EntityManager } from '@mikro-orm/core';
+import type { SqlEntityManager } from '@mikro-orm/sql';
 
 /**
  * The Immich connection a user keeps on their own `users` row (`immich_url`,
@@ -26,9 +26,11 @@ export class UserImmichRepository extends TrekRepository<Users> {
    * immich_api_key, immich_allow_insecure_tls FROM users WHERE id = ?`
    * (the TLS switch joined the read with #2475).
    */
-  async getImmichCredentials(
-    id: number,
-  ): Promise<{ immich_url: string | null; immich_api_key: string | null; immich_allow_insecure_tls: number | null } | null> {
+  async getImmichCredentials(id: number): Promise<{
+    immich_url: string | null;
+    immich_api_key: string | null;
+    immich_allow_insecure_tls: number | null;
+  } | null> {
     const row = await this.findOne({ id }, { fields: ['immich_url', 'immich_api_key', 'immich_allow_insecure_tls'] });
     return row
       ? {
@@ -55,7 +57,10 @@ export class UserImmichRepository extends TrekRepository<Users> {
   ): Promise<{ immich_auto_upload: number | null; immich_allow_insecure_tls: number | null } | null> {
     const row = await this.findOne({ id }, { fields: ['immich_auto_upload', 'immich_allow_insecure_tls'] });
     return row
-      ? { immich_auto_upload: row.immich_auto_upload ?? null, immich_allow_insecure_tls: row.immich_allow_insecure_tls ?? null }
+      ? {
+          immich_auto_upload: row.immich_auto_upload ?? null,
+          immich_allow_insecure_tls: row.immich_allow_insecure_tls ?? null,
+        }
       : null;
   }
 
@@ -88,7 +93,13 @@ export class UserImmichRepository extends TrekRepository<Users> {
       {
         immich_url,
         immich_api_key,
-        immich_allow_insecure_tls: coalesceOverrideWhileSame(platform, allow_insecure_tls, 'immich_allow_insecure_tls', 'immich_url', immich_url),
+        immich_allow_insecure_tls: coalesceOverrideWhileSame(
+          platform,
+          allow_insecure_tls,
+          'immich_allow_insecure_tls',
+          'immich_url',
+          immich_url,
+        ),
       },
     );
   }

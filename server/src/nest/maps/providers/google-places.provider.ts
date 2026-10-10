@@ -15,11 +15,9 @@
  * orchestrator depends on its providers, not the other way round
  * (lint:boundaries holds that).
  */
-import { Injectable } from '@nestjs/common';
-import { normalizePlaceWebsite } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../../app-config';
-import type { ApiKeySource } from '../../settings/instance-api-keys';
 import { GoogleQuotaService } from '../../google-quota/google-quota.service';
+import type { ApiKeySource } from '../../settings/instance-api-keys';
 import {
   googleFtidFromMapsUrl,
   isGooglePlaceId,
@@ -37,6 +35,8 @@ import type {
   SearchBias,
   ViewportBias,
 } from './places-provider';
+import { Injectable } from '@nestjs/common';
+import { normalizePlaceWebsite } from '@trek/shared';
 
 // ── Google API call counter ───────────────────────────────────────────────────
 
@@ -160,7 +160,11 @@ const DETAILS_FIELD_MASK =
   'id,displayName,formattedAddress,location,rating,userRatingCount,websiteUri,nationalPhoneNumber,regularOpeningHours,googleMapsUri';
 
 /** A Google error answer as the Error the callers have always thrown: Google's message, Google's status. */
-function googleError(data: { error?: { message?: string } }, fallback: string, status: number): Error & { status: number } {
+function googleError(
+  data: { error?: { message?: string } },
+  fallback: string,
+  status: number,
+): Error & { status: number } {
   const err = new Error(data.error?.message || fallback) as Error & { status: number };
   err.status = status;
   return err;
@@ -223,12 +227,20 @@ export class GooglePlacesClient {
    * call for the whole strip, while every reference turned into an image is a
    * separate billed /media call. Callers fetch bytes only for what they show.
    */
-  async fetchGooglePhotoRefs(placeId: string, apiKey: string, cap: number): Promise<{ name: string; attribution: string | null }[]> {
+  async fetchGooglePhotoRefs(
+    placeId: string,
+    apiKey: string,
+    cap: number,
+  ): Promise<{ name: string; attribution: string | null }[]> {
     if (!isGooglePlaceId(placeId) || cap < 1) return [];
     try {
-      const res = await this.fetch(`https://places.googleapis.com/v1/places/${placeId}`, `fetchGooglePhotoRefs(${placeId})`, {
-        headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'photos' },
-      });
+      const res = await this.fetch(
+        `https://places.googleapis.com/v1/places/${placeId}`,
+        `fetchGooglePhotoRefs(${placeId})`,
+        {
+          headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'photos' },
+        },
+      );
       if (!res.ok) return [];
       const data = (await res.json()) as GooglePlaceDetails;
       return (data.photos ?? []).slice(0, cap).map((photo) => ({
@@ -292,12 +304,16 @@ export class GooglePlacesClient {
    */
   async firstPhoto(placeId: string, apiKey: string): Promise<GooglePhotoOutcome> {
     // Fetch details to get the photo name
-    const detailsRes = await this.fetch(`https://places.googleapis.com/v1/places/${placeId}`, `getPlacePhoto/details(${placeId})`, {
-      headers: {
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'photos',
+    const detailsRes = await this.fetch(
+      `https://places.googleapis.com/v1/places/${placeId}`,
+      `getPlacePhoto/details(${placeId})`,
+      {
+        headers: {
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'photos',
+        },
       },
-    });
+    );
     const body = await detailsRes.text();
     if (!detailsRes.ok) {
       console.error('Google Places photo details error:', detailsRes.status, body.slice(0, 200));
@@ -384,10 +400,19 @@ export class GooglePlacesProvider implements PlacesProvider {
   }
 
   /** Places of any kind around a point, nearest first by Google's own ranking (#976). */
-  async searchNearby(origin: { lat: number; lng: number }, radius: number, limit: number, lang: string): Promise<ProviderPlace[]> {
+  async searchNearby(
+    origin: { lat: number; lng: number },
+    radius: number,
+    limit: number,
+    lang: string,
+  ): Promise<ProviderPlace[]> {
     const response = await this.client.fetch('https://places.googleapis.com/v1/places:searchNearby', 'searchNearby', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': this.credential.key, 'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': this.credential.key,
+        'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK,
+      },
       body: JSON.stringify({
         maxResultCount: limit,
         rankPreference: 'DISTANCE',
@@ -403,7 +428,12 @@ export class GooglePlacesProvider implements PlacesProvider {
     return (data.places || []).filter(isOpenGooglePlace).map(googlePlaceRecord);
   }
 
-  async autocomplete(input: string, lang?: string, bias?: ViewportBias, sessionToken?: string): Promise<ProviderSuggestion[]> {
+  async autocomplete(
+    input: string,
+    lang?: string,
+    bias?: ViewportBias,
+    sessionToken?: string,
+  ): Promise<ProviderSuggestion[]> {
     const body: Record<string, unknown> = {
       input,
       languageCode: toApiLang(lang),

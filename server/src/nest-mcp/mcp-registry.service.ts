@@ -17,7 +17,11 @@ export class McpRegistryService extends McpRegistry implements OnModuleInit {
     @Inject(MCP_MODULE_OPTIONS) options: McpModuleOptions,
     @Inject(MCP_TOOL_GATE) toolGate: McpToolGate | null,
   ) {
-    super({ accessPolicy: options.accessPolicy, validateAccess: options.validateAccess, toolGate: toolGate ?? undefined });
+    super({
+      accessPolicy: options.accessPolicy,
+      validateAccess: options.validateAccess,
+      toolGate: toolGate ?? undefined,
+    });
   }
 
   onModuleInit(): void {

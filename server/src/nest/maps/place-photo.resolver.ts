@@ -8,16 +8,16 @@
  * failed" (minutes), the in-flight dedupe of concurrent requests for one place
  * and the shared photo-fetch slots. MapsService.getPlacePhoto delegates to it.
  */
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { Places } from '../../db/entities/Places.entity';
 import type { PlacesRepository } from '../../db/repositories/Places.repository';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+import { isGooglePlaceId } from './maps.helpers';
+import { withPhotoFetchSlot } from './photo-fetch-slot';
+import { PlacesProviderSelector } from './places-provider.selector';
 import { GooglePlacesClient } from './providers/google-places.provider';
 import { WikimediaClient } from './providers/wikimedia.client';
-import { PlacesProviderSelector } from './places-provider.selector';
-import { withPhotoFetchSlot } from './photo-fetch-slot';
-import { isGooglePlaceId } from './maps.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class PlacePhotoResolver {
@@ -63,7 +63,10 @@ export class PlacePhotoResolver {
     if (existing !== undefined) {
       const result = await existing;
       if (!result) return noPhoto;
-      return { photoUrl: `/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`, attribution: result.attribution };
+      return {
+        photoUrl: `/api/maps/place-photo/${encodeURIComponent(placeId)}/bytes`,
+        attribution: result.attribution,
+      };
     }
 
     // Tells the two empty outcomes apart for the negative cache below: a place that

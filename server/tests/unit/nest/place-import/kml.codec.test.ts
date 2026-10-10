@@ -1,6 +1,3 @@
-import { describe, it, expect } from 'vitest';
-import path from 'path';
-import fs from 'fs';
 import {
   decodeUtf8WithWarning,
   extractKmlPlacemarkNodes,
@@ -12,6 +9,10 @@ import {
   unpackKmzToKml,
 } from '../../../../src/nest/place-import/kml.codec';
 import { buildCategoryNameLookup, resolveCategoryIdForFolder } from '../../../../src/nest/places/places.helpers';
+
+import fs from 'fs';
+import path from 'path';
+import { describe, it, expect } from 'vitest';
 
 describe('kmlImportUtils', () => {
   it('sanitizes HTML descriptions with br to newline', () => {
@@ -152,7 +153,13 @@ describe('readKmlDocument', () => {
       <Placemark><name>Walk</name><LineString><coordinates>13.4,52.5 13.5,52.6</coordinates></LineString></Placemark>
       </Document></kml>`;
     const read = readKmlDocument(Buffer.from(kml, 'utf-8'));
-    expect(read.summary).toMatchObject({ totalPlacemarks: 2, createdCount: 0, skippedCount: 0, warnings: [], errors: [] });
+    expect(read.summary).toMatchObject({
+      totalPlacemarks: 2,
+      createdCount: 0,
+      skippedCount: 0,
+      warnings: [],
+      errors: [],
+    });
     expect(read.placemarks.map((p) => [p.name, p.folderName, p.routeGeometry !== null])).toEqual([
       ['Walk', null, true],
       ['Cafe', 'Food', false],
@@ -160,11 +167,17 @@ describe('readKmlDocument', () => {
   });
 
   it('refuses a document that is not well-formed XML with the route message', () => {
-    expect(() => readKmlDocument(Buffer.from('<kml><Placemark></kml>', 'utf-8'))).toThrow('Malformed KML: invalid XML structure');
+    expect(() => readKmlDocument(Buffer.from('<kml><Placemark></kml>', 'utf-8'))).toThrow(
+      'Malformed KML: invalid XML structure',
+    );
   });
 
   it('keeps reading a file that is not valid UTF-8 and says so in the summary', () => {
-    const bytes = Buffer.concat([Buffer.from('<kml><Placemark><name>'), Buffer.from([0xff]), Buffer.from('</name></Placemark></kml>')]);
+    const bytes = Buffer.concat([
+      Buffer.from('<kml><Placemark><name>'),
+      Buffer.from([0xff]),
+      Buffer.from('</name></Placemark></kml>'),
+    ]);
     expect(readKmlDocument(bytes).summary.warnings).toEqual([
       'The uploaded file is not valid UTF-8. Some characters may be shown incorrectly.',
     ]);

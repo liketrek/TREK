@@ -1,10 +1,10 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { PermissionsModule } from '../nest/permissions/permissions.module';
-import { AddonsModule } from '../nest/addons/addons.module';
-import { Users } from '../db/entities/Users.entity';
 import { Trips } from '../db/entities/Trips.entity';
+import { Users } from '../db/entities/Users.entity';
+import { AddonsModule } from '../nest/addons/addons.module';
+import { PermissionsModule } from '../nest/permissions/permissions.module';
 import { PluginGuards } from './plugin-guards.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * A leaf module whose only job is to hand PluginGuards to the domain modules.

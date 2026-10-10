@@ -1,12 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
 import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
+import { getPhotoProviderConfig } from '../../../../src/nest/common/photo-provider-config';
 import {
   DEFAULT_TRANSIT_PROVIDER,
   readTransitProvider,
   TRANSIT_PROVIDER_SETTING,
   writeTransitProvider,
 } from '../../../../src/nest/common/transit-provider';
-import { getPhotoProviderConfig } from '../../../../src/nest/common/photo-provider-config';
+
+import { describe, expect, it, vi } from 'vitest';
 
 function settings(value: string | null) {
   return { getValue: vi.fn(async () => value), setValue: vi.fn(async () => undefined) };
@@ -20,8 +21,12 @@ describe('transit provider setting', () => {
   });
 
   it('falls back to Transitous for a missing row or a name this version does not know', async () => {
-    expect(await readTransitProvider(settings(null) as unknown as AppSettingsRepository)).toBe(DEFAULT_TRANSIT_PROVIDER);
-    expect(await readTransitProvider(settings('rail-x') as unknown as AppSettingsRepository)).toBe(DEFAULT_TRANSIT_PROVIDER);
+    expect(await readTransitProvider(settings(null) as unknown as AppSettingsRepository)).toBe(
+      DEFAULT_TRANSIT_PROVIDER,
+    );
+    expect(await readTransitProvider(settings('rail-x') as unknown as AppSettingsRepository)).toBe(
+      DEFAULT_TRANSIT_PROVIDER,
+    );
   });
 
   it('writes the name under its one key and hands it back', async () => {

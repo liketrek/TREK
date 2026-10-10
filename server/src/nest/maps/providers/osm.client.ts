@@ -16,9 +16,8 @@
  * Never imports MapsService: providers sit below the orchestrator
  * (lint:boundaries holds that).
  */
-import { Injectable } from '@nestjs/common';
-import { normalizePlaceWebsite } from '@trek/shared';
 import { nominatimFetch, type GeoLane } from '../../geo/nominatim.client';
+import { nearbyOverpassQuery, overpassNearbyRecords } from '../maps-nearby.helpers';
 import {
   UA,
   toApiLang,
@@ -35,8 +34,9 @@ import {
   OSM_PLACE_ID,
   type OverpassPoi,
 } from '../maps.helpers';
-import { nearbyOverpassQuery, overpassNearbyRecords } from '../maps-nearby.helpers';
 import { readWikiIdentity } from './wiki-identity';
+import { Injectable } from '@nestjs/common';
+import { normalizePlaceWebsite } from '@trek/shared';
 
 function nominatimCategory(item: { class?: string; type?: string }): string | null {
   if (!item.class || !item.type || item.type === 'yes') return null;
@@ -202,7 +202,12 @@ export class OsmClient {
    * whole import. Yielding does not make the import faster, it stops it from
    * being the only thing the process will do for half a minute.
    */
-  async searchNominatim(query: string, lang?: string, lane: GeoLane = 'interactive', bias?: { lat: number; lng: number }) {
+  async searchNominatim(
+    query: string,
+    lang?: string,
+    lane: GeoLane = 'interactive',
+    bias?: { lat: number; lng: number },
+  ) {
     const params = new URLSearchParams({
       q: query,
       format: 'json',
@@ -259,7 +264,10 @@ export class OsmClient {
   }
 
   /** Suggestions out of a Nominatim search, for an install with neither the index nor a key. */
-  async autocompleteNominatim(input: string, lang?: string): Promise<{ suggestions: { placeId: string; mainText: string; secondaryText: string }[]; source: 'nominatim' }> {
+  async autocompleteNominatim(
+    input: string,
+    lang?: string,
+  ): Promise<{ suggestions: { placeId: string; mainText: string; secondaryText: string }[]; source: 'nominatim' }> {
     try {
       const places = await this.searchNominatim(input, lang);
       const suggestions = places
@@ -472,11 +480,7 @@ export class OsmClient {
     // Nominatim's extratags carry the wikidata/wikipedia/commons tags too, so
     // a place keeps its pictures and its description when Overpass times out
     // instead of falling back to "photographed within 300m".
-    const details = buildOsmDetails(
-      { ...(nominatim?.extratags ?? {}), ...(element?.tags ?? {}) },
-      osmType,
-      osmId,
-    );
+    const details = buildOsmDetails({ ...(nominatim?.extratags ?? {}), ...(element?.tags ?? {}) }, osmType, osmId);
 
     return {
       ...details,
@@ -517,7 +521,12 @@ export class OsmClient {
   }
 
   /** Places of any kind around a point, from the Overpass mirrors, nearest first (#976). */
-  async nearby(origin: { lat: number; lng: number }, radius: number, limit: number, osmLang: string): Promise<Record<string, unknown>[]> {
+  async nearby(
+    origin: { lat: number; lng: number },
+    radius: number,
+    limit: number,
+    osmLang: string,
+  ): Promise<Record<string, unknown>[]> {
     const elements = await overpassFetch(nearbyOverpassQuery(origin.lat, origin.lng, radius, limit));
     return overpassNearbyRecords(elements, origin, osmLang, limit);
   }
@@ -586,8 +595,7 @@ export class OsmClient {
       // `operator` comes last but matters for the road categories: petrol stations,
       // charging points and service areas are routinely mapped with an operator and no
       // name, and dropping those would empty the road trip corridor over long stretches.
-      const name =
-        tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || tags.operator || null;
+      const name = tags[`name:${osmLang}`] || tags['int_name'] || tags.name || tags.brand || tags.operator || null;
       if (!name) continue; // unnamed POIs aren't useful to add to a plan
       // A shut-down place is not somewhere to plan a visit (#1341). OSM usually
       // re-tags one with a `disused:`/`abandoned:` prefix, and those never match

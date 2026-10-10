@@ -12,11 +12,12 @@
  * column both ask through this client. It never imports MapsService:
  * providers sit below the orchestrator (lint:boundaries holds that).
  */
-import { Injectable } from '@nestjs/common';
-import { Jimp } from 'jimp';
-import { safeFetchFollow } from '../../../utils/ssrfGuard';
 import { discardBody, exceedsDeclaredLength, readCapped } from '../../../utils/cappedFetch';
+import { safeFetchFollow } from '../../../utils/ssrfGuard';
 import { UA, stripWikiMarkup, parseWikipediaTag } from '../maps.helpers';
+import { Injectable } from '@nestjs/common';
+
+import { Jimp } from 'jimp';
 
 interface WikidataSnak {
   mainsnak?: { datavalue?: { value?: string } };
@@ -84,7 +85,11 @@ function wikidataImageClaims(claims: WikidataClaims, limit: number): string[] {
 
 /** `File:` prefix off, underscores and case normalised — Commons treats these as one title. */
 function normalizeFileTitle(title: string): string {
-  return title.replace(/^File:/i, '').replaceAll('_', ' ').trim().toLowerCase();
+  return title
+    .replace(/^File:/i, '')
+    .replaceAll('_', ' ')
+    .trim()
+    .toLowerCase();
 }
 
 /**
@@ -325,7 +330,11 @@ export class WikimediaClient {
       // The same six seconds the Wikidata hop above allows. Without a deadline
       // this waited on undici's five-minute default, holding a request context
       // and a socket per stalled logo while the pin sat on its fallback icon.
-      const imgRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) }, { bypassInternalIpAllowed: true });
+      const imgRes = await safeFetchFollow(
+        url,
+        { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) },
+        { bypassInternalIpAllowed: true },
+      );
       if (!imgRes.ok) return remember(null);
 
       if (exceedsDeclaredLength(imgRes, BRAND_LOGO_MAX_BYTES)) {
@@ -360,7 +369,11 @@ export class WikimediaClient {
     try {
       const wiki = await this.fetchWikimediaPhoto(lat, lng, name);
       if (!wiki) return { kind: 'none' };
-      const imgRes = await safeFetchFollow(wiki.photoUrl, { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) }, { bypassInternalIpAllowed: true });
+      const imgRes = await safeFetchFollow(
+        wiki.photoUrl,
+        { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) },
+        { bypassInternalIpAllowed: true },
+      );
       if (!imgRes.ok) return { kind: 'failed' };
       if (exceedsDeclaredLength(imgRes, WIKIMEDIA_PHOTO_MAX_BYTES)) {
         discardBody(imgRes);
@@ -376,7 +389,11 @@ export class WikimediaClient {
 
   // ── Wikimedia Commons photo lookup ─────────────────────────────────────────
 
-  async fetchWikimediaPhoto(lat: number, lng: number, name?: string): Promise<{ photoUrl: string; attribution: string | null } | null> {
+  async fetchWikimediaPhoto(
+    lat: number,
+    lng: number,
+    name?: string,
+  ): Promise<{ photoUrl: string; attribution: string | null } | null> {
     // Strategy 1: Search Wikipedia for the place name -> get the article image
     if (name) {
       try {
@@ -397,7 +414,9 @@ export class WikimediaClient {
           signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
         });
         if (res.ok) {
-          const data = (await res.json()) as { query?: { pages?: Record<string, { thumbnail?: { source?: string } }> } };
+          const data = (await res.json()) as {
+            query?: { pages?: Record<string, { thumbnail?: { source?: string } }> };
+          };
           const pages = data.query?.pages;
           if (pages) {
             for (const page of Object.values(pages)) {
@@ -592,7 +611,11 @@ export class WikimediaClient {
    * tag — which is most of them, because mappers add one or the other. One
    * request, a few hundred bytes.
    */
-  async fetchWikidataSitelinks(wikidataId: string, sites: string[], signal?: AbortSignal): Promise<Record<string, string>> {
+  async fetchWikidataSitelinks(
+    wikidataId: string,
+    sites: string[],
+    signal?: AbortSignal,
+  ): Promise<Record<string, string>> {
     const qid = wikidataId.trim();
     if (!/^Q\d+$/.test(qid) || sites.length === 0) return {};
     const params = new URLSearchParams({
@@ -642,10 +665,13 @@ export class WikimediaClient {
     const qid = wikidataId.trim();
     if (!/^Q\d+$/.test(qid)) return empty;
     try {
-      const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&props=claims&ids=${qid}&format=json`, {
-        headers: { 'User-Agent': UA },
-        signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
-      });
+      const res = await fetch(
+        `https://www.wikidata.org/w/api.php?action=wbgetentities&props=claims&ids=${qid}&format=json`,
+        {
+          headers: { 'User-Agent': UA },
+          signal: AbortSignal.timeout(WIKI_TIMEOUT_MS),
+        },
+      );
       if (!res.ok) return empty;
       const data = (await res.json()) as { entities?: Record<string, { claims?: WikidataClaims }> };
       const claims = data.entities?.[qid]?.claims;

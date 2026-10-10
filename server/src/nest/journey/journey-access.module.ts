@@ -1,7 +1,7 @@
-import { Global, Module } from '@nestjs/common';
 import { JOURNEY_ACCESS } from '../realtime/journey-access.types';
 import { JourneyDomainModule } from './journey-domain.module';
 import { JourneyDomainService } from './journey-domain.service';
+import { Global, Module } from '@nestjs/common';
 
 /**
  * Binds the realtime gateway's JOURNEY_ACCESS port to JourneyDomainService.

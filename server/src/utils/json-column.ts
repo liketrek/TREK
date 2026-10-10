@@ -1,5 +1,6 @@
-import type { ZodType } from 'zod';
 import { logWarn } from '../nest/audit/audit-log.logger';
+
+import type { ZodType } from 'zod';
 
 /**
  * One JSON-in-TEXT column: where it lives, the shape it holds, and what a reader
@@ -27,8 +28,7 @@ export interface JsonColumn<T> {
 export type JsonDecodeFailure = 'empty' | 'invalid-json' | 'schema';
 
 export type JsonDecodeResult<T> =
-  | { ok: true; value: T; reason?: never }
-  | { ok: false; value?: never; reason: JsonDecodeFailure };
+  { ok: true; value: T; reason?: never } | { ok: false; value?: never; reason: JsonDecodeFailure };
 
 /**
  * Decode a stored value without a fallback, for the readers that react to a
@@ -65,7 +65,9 @@ export function decodeJson<T>(col: JsonColumn<T>, raw: unknown, context?: string
 
 /** Log a row whose JSON did not decode; for callers of {@link decodeJsonResult} that handle the failure themselves. */
 export function logJsonFailure(col: JsonColumn<unknown>, reason: JsonDecodeFailure, context?: string): void {
-  logWarn(`[json] ${col.column}${context ? ` (${context})` : ''}: stored value ${reason === 'schema' ? 'has the wrong shape' : 'is not valid JSON'}, using the fallback`);
+  logWarn(
+    `[json] ${col.column}${context ? ` (${context})` : ''}: stored value ${reason === 'schema' ? 'has the wrong shape' : 'is not valid JSON'}, using the fallback`,
+  );
 }
 
 /** The text to store for a value, checked against the column's shape first (a mismatch throws: it is a bug in the writer). */

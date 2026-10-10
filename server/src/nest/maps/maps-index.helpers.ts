@@ -4,11 +4,18 @@
  * need no branch per source. Pure: the calls themselves are trek-places.client's,
  * the decision to make them is MapsService's.
  */
+import { buildOsmDetails, parsePoiCategories } from './maps.helpers';
+import { POI_RESULT_CAP, type PoiSearchResult } from './providers/osm.client';
+import {
+  POI_CATEGORY_TO_TREK,
+  isOsmHit,
+  osmPlaceId,
+  toPlaceRecord,
+  type TrekPlace,
+  type TrekSearchHit,
+} from './trek-places.client';
 import { normalizePlaceWebsite } from '@trek/shared';
 import type { MapsAutocompleteResult } from '@trek/shared';
-import { buildOsmDetails, parsePoiCategories } from './maps.helpers';
-import { POI_CATEGORY_TO_TREK, isOsmHit, osmPlaceId, toPlaceRecord, type TrekPlace, type TrekSearchHit } from './trek-places.client';
-import { POI_RESULT_CAP, type PoiSearchResult } from './providers/osm.client';
 
 type PoiBbox = { south: number; west: number; north: number; east: number };
 
@@ -69,7 +76,10 @@ export function indexPoiPlan(category: string, bbox: PoiBbox, limit: number): In
   // Half the diagonal, so the circle covers the viewport corners rather
   // than leaving the edges of the map empty.
   const reach = Math.round(
-    Math.hypot((bbox.north - bbox.south) * 111_320, (bbox.east - bbox.west) * 111_320 * Math.cos((lat * Math.PI) / 180)) / 2,
+    Math.hypot(
+      (bbox.north - bbox.south) * 111_320,
+      (bbox.east - bbox.west) * 111_320 * Math.cos((lat * Math.PI) / 180),
+    ) / 2,
   );
   const radius = Math.min(20000, Math.max(300, reach));
   // The same budget the Overpass path spends: per category, capped, so a
@@ -182,7 +192,11 @@ export function indexSuggestions(found: TrekSearchHit[]): MapsAutocompleteResult
  * disappeared from its card afterwards, which reads like data loss. `osmTags`
  * is null when no OSM match passed the identity gates.
  */
-export function indexPlaceDetails(found: TrekPlace, osmTags: Record<string, string> | null, placeId: string): Record<string, unknown> {
+export function indexPlaceDetails(
+  found: TrekPlace,
+  osmTags: Record<string, string> | null,
+  placeId: string,
+): Record<string, unknown> {
   const record = toPlaceRecord(found);
   // Hours the index read off the operator's own site, run through the same
   // expansion OSM's go through — the client reads a list of weekday lines,
@@ -194,7 +208,8 @@ export function indexPlaceDetails(found: TrekPlace, osmTags: Record<string, stri
   // fallback, not the first choice: an OSM entry describes this exact
   // object and gets corrected by people who walked past, where a chain's
   // website often carries one set of hours for every branch.
-  const fromSite = typeof found.hours?.osm === 'string' ? buildOsmDetails({ opening_hours: found.hours.osm }, '', '') : null;
+  const fromSite =
+    typeof found.hours?.osm === 'string' ? buildOsmDetails({ opening_hours: found.hours.osm }, '', '') : null;
   if (!osmTags) {
     return fromSite?.opening_hours
       ? {

@@ -8,13 +8,13 @@
  * caller to reverse-geocode: inside China Amap answers that before Nominatim,
  * and choosing who answers is MapsService's job, not this resolver's.
  */
-import { Injectable } from '@nestjs/common';
-import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
 import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
+import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
+import { GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from '../common/google-maps-hosts';
 import { UA, googleFtidFromMapsUrl } from './maps.helpers';
 import { AMAP_SHORT_HOSTS, isAmapHost, parseAmapUrl } from './providers/amap.provider';
 import { OsmClient } from './providers/osm.client';
-import { GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from '../common/google-maps-hosts';
+import { Injectable } from '@nestjs/common';
 
 // A Google Maps place page is a few hundred KB; the coordinates sit in the
 // embedded map data near the top, so two megabytes is plenty and keeps an
@@ -31,8 +31,7 @@ export interface ResolvedMapsUrl {
 
 /** A Google link resolved in full, or an Amap point still to be named. */
 export type MapsLink =
-  | { kind: 'resolved'; result: ResolvedMapsUrl }
-  | { kind: 'amap'; lat: number; lng: number; name: string | null };
+  { kind: 'resolved'; result: ResolvedMapsUrl } | { kind: 'amap'; lat: number; lng: number; name: string | null };
 
 // Extract coordinates from a string (URL or page body). Google Maps encodes
 // them several ways: /@lat,lng,zoom · !3dlat!4dlng (map data param) · ?q=/?ll=.
@@ -48,7 +47,11 @@ function extractCoords(s: string): { lat: number; lng: number } | null {
 
 async function followRedirects(target: string, init?: RequestInit): Promise<Response> {
   try {
-    return await safeFetchFollow(target, { signal: AbortSignal.timeout(10000), ...init }, { bypassInternalIpAllowed: true });
+    return await safeFetchFollow(
+      target,
+      { signal: AbortSignal.timeout(10000), ...init },
+      { bypassInternalIpAllowed: true },
+    );
   } catch (err) {
     if (err instanceof SsrfBlockedError) {
       throw Object.assign(new Error('URL blocked by SSRF check'), { status: 403 });
@@ -79,7 +82,11 @@ export class MapsUrlResolver {
     }
 
     let resolvedHost = '';
-    try { resolvedHost = new URL(resolvedUrl).hostname; } catch { /* keep the empty host, both host branches are skipped */ }
+    try {
+      resolvedHost = new URL(resolvedUrl).hostname;
+    } catch {
+      /* keep the empty host, both host branches are skipped */
+    }
 
     // Amap links first, and on their own: they spell the coordinate `lng,lat`
     // in GCJ-02, which the Google patterns below would read as a WGS-84

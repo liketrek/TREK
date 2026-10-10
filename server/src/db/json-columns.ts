@@ -1,5 +1,6 @@
-import { z } from 'zod';
 import type { JsonColumn } from '../utils/json-column';
+
+import { z } from 'zod';
 
 /**
  * The JSON-in-TEXT columns the services decode, one declaration each: the shape

@@ -5,9 +5,10 @@
  * provider adds as a unit: the interface's reverse answer, the counted
  * transport and the credential each request carries.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
 import type { GoogleQuotaService } from '../../../src/nest/google-quota/google-quota.service';
+import { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const quota = () => ({ exhausted: vi.fn(async () => false), record: vi.fn(async () => {}) });
 
@@ -32,10 +33,14 @@ describe('GooglePlacesProvider', () => {
   });
 
   it('GPROV-002: a text search sends the credential it was built with and counts the call', async () => {
-    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => ok({ places: [{ id: 'ChIJ1', displayName: { text: 'Dom' } }] }));
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+      ok({ places: [{ id: 'ChIJ1', displayName: { text: 'Dom' } }] }),
+    );
     vi.stubGlobal('fetch', fetchMock);
     const { q, client: c } = client();
-    const places = await c.provider({ key: 'secret', source: 'instance', userId: 7 }).searchText('dom', 'de', { lat: 50, lng: 7, radius: 900000 });
+    const places = await c
+      .provider({ key: 'secret', source: 'instance', userId: 7 })
+      .searchText('dom', 'de', { lat: 50, lng: 7, radius: 900000 });
     expect(places).toEqual([expect.objectContaining({ google_place_id: 'ChIJ1', name: 'Dom', source: 'google' })]);
     expect(q.record).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
@@ -55,11 +60,16 @@ describe('GooglePlacesProvider', () => {
   });
 
   it('GPROV-004: a details error keeps Google message and status', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: { message: 'API key not valid' } }), { status: 403 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ error: { message: 'API key not valid' } }), { status: 403 })),
+    );
     const { client: c } = client();
-    await expect(c.provider({ key: 'k', source: null, userId: 0 }).placeDetailsExpanded('ChIJ1')).rejects.toMatchObject({
-      message: 'API key not valid',
-      status: 403,
-    });
+    await expect(c.provider({ key: 'k', source: null, userId: 0 }).placeDetailsExpanded('ChIJ1')).rejects.toMatchObject(
+      {
+        message: 'API key not valid',
+        status: 403,
+      },
+    );
   });
 });

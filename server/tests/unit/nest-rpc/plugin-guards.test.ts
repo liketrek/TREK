@@ -4,21 +4,22 @@
  * the legacy router, because rpc-host.test.ts asserts them and shipped plugins read
  * them, so these tests pin the exact strings rather than just the refusal.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../../src/nest-rpc/rpc-errors';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import type { PluginRpcContext } from '../../../src/nest-rpc/rpc-kit/types';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { createUser } from '../../helpers/factories';
 import { updateRows } from '../../helpers/factories/rows';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
  * The guards read `actingUserId` and nothing else off the context, so the two per-host
@@ -122,12 +123,16 @@ describe('PluginGuards — requireTripEdit and canEditAs', () => {
 
   it('PGUARD-009 no access wins over no permission, and names the trip', async () => {
     const { guards } = build({ allow: false });
-    await expect(guards.requireTripEdit(2, 42, 'trip_edit')).rejects.toThrow(new ForbiddenResource('no access to trip 2'));
+    await expect(guards.requireTripEdit(2, 42, 'trip_edit')).rejects.toThrow(
+      new ForbiddenResource('no access to trip 2'),
+    );
   });
 
   it('PGUARD-010 access without the edit permission is a different message', async () => {
     const { guards } = build({ allow: false });
-    await expect(guards.requireTripEdit(1, 42, 'trip_edit')).rejects.toThrow(new ForbiddenResource('no permission to edit trip 1'));
+    await expect(guards.requireTripEdit(1, 42, 'trip_edit')).rejects.toThrow(
+      new ForbiddenResource('no permission to edit trip 1'),
+    );
   });
 
   it('PGUARD-011 canEditAs returns false rather than throwing when there is no access', async () => {
@@ -243,7 +248,9 @@ describe('PluginGuards — requireAddon', () => {
   });
 
   it('PGUARD-016 a disabled addon is refused with the noun in the message', async () => {
-    await expect(build({ addonOn: false }).guards.requireAddon('budget', 'costs')).rejects.toThrow(new ForbiddenResource('the costs addon is disabled'));
+    await expect(build({ addonOn: false }).guards.requireAddon('budget', 'costs')).rejects.toThrow(
+      new ForbiddenResource('the costs addon is disabled'),
+    );
   });
 });
 

@@ -1,10 +1,11 @@
+import { JWT_SECRET } from '../../config';
+import type { UserSessionsRepository } from '../../db/repositories/UserSessions.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { dbNow } from '../../db/types';
+import type { User } from '../../types';
+
 import type { Request } from 'express';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '../../config';
-import type { User } from '../../types';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
-import type { UserSessionsRepository } from '../../db/repositories/UserSessions.repository';
-import { dbNow } from '../../db/types';
 
 /**
  * The canonical JWT session check. Every auth surface goes through here — the

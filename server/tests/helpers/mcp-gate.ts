@@ -5,9 +5,9 @@
  * keep their stubs instead of attaching a whole registry (which would also run
  * the `when` gates those stubs cannot answer).
  */
-import { getEntry, type ClassRef } from '../../src/nest-mcp/metadata';
 import { trekDemoToolGate } from '../../src/mcp/nest-mcp-policy';
 import type { McpContext } from '../../src/nest-mcp';
+import { getEntry, type ClassRef } from '../../src/nest-mcp/metadata';
 
 export async function callGatedTool(
   instance: object,

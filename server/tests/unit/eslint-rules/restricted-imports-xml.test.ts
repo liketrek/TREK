@@ -26,7 +26,13 @@ async function flags(file: string, source: string): Promise<boolean> {
   const linter = new Linter({ configType: 'flat' });
   const result = linter.verify(
     source,
-    [{ files: ['**/*.ts'], languageOptions: { parser: tsParser }, rules: { 'no-restricted-imports': ['error', ...(options as object[])] } }],
+    [
+      {
+        files: ['**/*.ts'],
+        languageOptions: { parser: tsParser },
+        rules: { 'no-restricted-imports': ['error', ...(options as object[])] },
+      },
+    ],
     'probe.ts',
   );
   return result.some((m) => m.ruleId === 'no-restricted-imports');

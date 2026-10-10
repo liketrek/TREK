@@ -30,14 +30,20 @@ function serverRoot(files: Record<string, string>, baseline: unknown = { counts:
     writeFileSync(path.join(dir, file), text);
   }
   if (baseline !== null) {
-    writeFileSync(path.join(dir, 'scripts/query-api-baseline.json'), typeof baseline === 'string' ? baseline : JSON.stringify(baseline));
+    writeFileSync(
+      path.join(dir, 'scripts/query-api-baseline.json'),
+      typeof baseline === 'string' ? baseline : JSON.stringify(baseline),
+    );
   }
   return dir;
 }
 
 function run(dir: string, ...args: string[]): { status: number | null; out: string } {
   try {
-    const stdout = execFileSync(process.execPath, [SCRIPT, `--dir=${dir}`, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const stdout = execFileSync(process.execPath, [SCRIPT, `--dir=${dir}`, ...args], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     return { status: 0, out: stdout };
   } catch (err) {
     const { status, stdout, stderr } = err as { status: number | null; stdout: string; stderr: string };
@@ -57,9 +63,13 @@ describe('query-api-ratchet.mjs', () => {
   });
 
   it('QAPI-002: fails a new file holding one, and counts createQueryBuilder too', () => {
-    const { status, out } = run(serverRoot({ [`${REPOS}/New.repository.ts`]: `${calls(1)}em.createQueryBuilder(X);\n` }));
+    const { status, out } = run(
+      serverRoot({ [`${REPOS}/New.repository.ts`]: `${calls(1)}em.createQueryBuilder(X);\n` }),
+    );
     expect(status).toBe(1);
-    expect(out).toContain(`FAIL  ${REPOS}/New.repository.ts: 2 QueryBuilder call(s), a file without a baseline entry may hold none.`);
+    expect(out).toContain(
+      `FAIL  ${REPOS}/New.repository.ts: 2 QueryBuilder call(s), a file without a baseline entry may hold none.`,
+    );
   });
 
   it('QAPI-003: holds a baselined file to its entry', () => {
@@ -77,7 +87,13 @@ describe('query-api-ratchet.mjs', () => {
   it('QAPI-005: an entry above its file fails until --update lowers it, and --update never raises or adds one', () => {
     const dir = serverRoot(
       { [`${REPOS}/A.repository.ts`]: calls(1), [`${REPOS}/B.repository.ts`]: calls(4) },
-      { counts: { [`${REPOS}/A.repository.ts`]: 3, [`${REPOS}/Gone.repository.ts`]: 1, [`${REPOS}/B.repository.ts`]: 2 } },
+      {
+        counts: {
+          [`${REPOS}/A.repository.ts`]: 3,
+          [`${REPOS}/Gone.repository.ts`]: 1,
+          [`${REPOS}/B.repository.ts`]: 2,
+        },
+      },
     );
     const stale = run(dir);
     expect(stale.status).toBe(1);
@@ -85,7 +101,9 @@ describe('query-api-ratchet.mjs', () => {
     expect(stale.out).toContain(`FAIL  ${REPOS}/Gone.repository.ts is held at 1`);
 
     run(dir, '--update');
-    const lowered = JSON.parse(readFileSync(path.join(dir, 'scripts/query-api-baseline.json'), 'utf8')) as { counts: Record<string, number> };
+    const lowered = JSON.parse(readFileSync(path.join(dir, 'scripts/query-api-baseline.json'), 'utf8')) as {
+      counts: Record<string, number>;
+    };
     expect(lowered.counts).toEqual({ [`${REPOS}/A.repository.ts`]: 1, [`${REPOS}/B.repository.ts`]: 2 });
   });
 

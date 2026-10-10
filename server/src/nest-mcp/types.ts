@@ -1,6 +1,6 @@
 import type { Scope, ScopeGroup } from '../mcp/scopes';
-
 import type { InjectionToken, ModuleMetadata } from '@nestjs/common';
+
 import type { ZodRawShape, ZodType } from 'zod';
 
 /**

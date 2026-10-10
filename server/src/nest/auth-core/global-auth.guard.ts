@@ -1,12 +1,13 @@
+import { UserSessions } from '../../db/entities/UserSessions.entity';
+import { Users } from '../../db/entities/Users.entity';
+import { extractToken, verifyJwtAndLoadUser } from './jwt-verify';
+import { IS_PUBLIC, OPTIONAL_AUTH } from './public.decorator';
+import { EntityManager } from '@mikro-orm/core';
 import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
-import { EntityManager } from '@mikro-orm/core';
+
 import type { Request } from 'express';
-import { Users } from '../../db/entities/Users.entity';
-import { UserSessions } from '../../db/entities/UserSessions.entity';
-import { extractToken, verifyJwtAndLoadUser } from './jwt-verify';
-import { IS_PUBLIC, OPTIONAL_AUTH } from './public.decorator';
 
 /**
  * Default-deny. Registered as an APP_GUARD, so a route is authenticated unless
@@ -50,7 +51,10 @@ export class GlobalAuthGuard implements CanActivate {
 
     if (this.reflector.getAllAndOverride(OPTIONAL_AUTH, [handler, controller])) {
       const token = extractToken(req);
-      (req as { user: unknown }).user = (token ? await verifyJwtAndLoadUser(token, this.em.getRepository(Users), this.em.getRepository(UserSessions)) : null) || null;
+      (req as { user: unknown }).user =
+        (token
+          ? await verifyJwtAndLoadUser(token, this.em.getRepository(Users), this.em.getRepository(UserSessions))
+          : null) || null;
       return true;
     }
 
@@ -67,7 +71,10 @@ export class GlobalAuthGuard implements CanActivate {
     ];
     if (declared.length > 0) {
       const declaredToken = extractToken(req);
-      (req as { user: unknown }).user = (declaredToken ? await verifyJwtAndLoadUser(declaredToken, this.em.getRepository(Users), this.em.getRepository(UserSessions)) : null) || null;
+      (req as { user: unknown }).user =
+        (declaredToken
+          ? await verifyJwtAndLoadUser(declaredToken, this.em.getRepository(Users), this.em.getRepository(UserSessions))
+          : null) || null;
       return true;
     }
 

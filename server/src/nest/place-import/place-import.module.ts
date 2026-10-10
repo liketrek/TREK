@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
 import { PlaceImportService } from './place-import.service';
-import { GpxProvider } from './providers/gpx.provider';
 import { CollectionGpxProvider } from './providers/collection-gpx.provider';
-import { KmlProvider } from './providers/kml.provider';
-import { GoogleListProvider } from './providers/google-list.provider';
 import { GoogleDirectionsProvider } from './providers/google-directions.provider';
+import { GoogleListProvider } from './providers/google-list.provider';
+import { GpxProvider } from './providers/gpx.provider';
+import { KmlProvider } from './providers/kml.provider';
 import { NaverListProvider } from './providers/naver-list.provider';
+import { Module } from '@nestjs/common';
 
 /**
  * Place import (leaf module): reads places out of GPX, KML/KMZ, Google lists,

@@ -1,4 +1,3 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ADMIN_FORM_SETTING_KEYS,
   APP_SETTINGS,
@@ -14,6 +13,8 @@ import {
 } from '../../../src/nest/common/app-settings.registry';
 import { MANAGED_LOCKED_SETTING_KEYS } from '../../../src/nest/common/managed';
 
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 /** A stand-in for AppSettingsRepository.getValue over a fixed set of rows. */
 function repoOf(rows: Record<string, string>) {
   const getValue = vi.fn(async (key: string) => (key in rows ? rows[key] : null));
@@ -25,19 +26,40 @@ afterEach(() => vi.unstubAllEnvs());
 describe('the derived key lists', () => {
   it('APPSET-001: the admin form answers the keys it always has, in the same order', () => {
     expect([...ADMIN_FORM_SETTING_KEYS]).toEqual([
-      'allow_registration', 'allowed_file_types', 'require_mfa',
-      'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify',
-      'notification_channels', 'admin_webhook_url', 'admin_ntfy_server', 'admin_ntfy_topic', 'admin_ntfy_token',
+      'allow_registration',
+      'allowed_file_types',
+      'require_mfa',
+      'smtp_host',
+      'smtp_port',
+      'smtp_user',
+      'smtp_pass',
+      'smtp_from',
+      'smtp_skip_tls_verify',
+      'notification_channels',
+      'admin_webhook_url',
+      'admin_ntfy_server',
+      'admin_ntfy_topic',
+      'admin_ntfy_token',
       'notify_trip_reminder',
-      'password_login', 'password_registration', 'oidc_login', 'oidc_registration',
-      'passkey_login', 'webauthn_rp_id', 'webauthn_origins',
+      'password_login',
+      'password_registration',
+      'oidc_login',
+      'oidc_registration',
+      'passkey_login',
+      'webauthn_rp_id',
+      'webauthn_origins',
       'places_provider',
     ]);
   });
 
   it('APPSET-002: the masked and the encrypted keys', () => {
     expect([...MASKED_ADMIN_SETTING_KEYS].sort()).toEqual(['admin_ntfy_token', 'admin_webhook_url', 'smtp_pass']);
-    expect([...ENCRYPTED_APP_SETTING_KEYS].sort()).toEqual(['admin_ntfy_token', 'admin_webhook_url', 'oidc_client_secret', 'smtp_pass']);
+    expect([...ENCRYPTED_APP_SETTING_KEYS].sort()).toEqual([
+      'admin_ntfy_token',
+      'admin_webhook_url',
+      'oidc_client_secret',
+      'smtp_pass',
+    ]);
     expect((APP_SETTINGS.smtp_pass as AppSettingDef).encrypted).toBe('always');
     expect((APP_SETTINGS.admin_webhook_url as AppSettingDef).encrypted).toBe('if-plain');
   });
@@ -45,10 +67,20 @@ describe('the derived key lists', () => {
   it('APPSET-003: the public config reads the keys it always read', () => {
     expect([...PUBLIC_CONFIG_SETTING_KEYS].sort()).toEqual(
       [
-        'places_provider', 'oidc_display_name', 'oidc_issuer', 'oidc_client_id', 'require_mfa',
-        'notification_channel', 'notify_trip_reminder', 'smtp_host', 'notification_channels',
-        'places_photos_enabled', 'places_autocomplete_enabled', 'places_details_enabled',
-        'places_enrich_enabled', 'place_shadow_enabled',
+        'places_provider',
+        'oidc_display_name',
+        'oidc_issuer',
+        'oidc_client_id',
+        'require_mfa',
+        'notification_channel',
+        'notify_trip_reminder',
+        'smtp_host',
+        'notification_channels',
+        'places_photos_enabled',
+        'places_autocomplete_enabled',
+        'places_details_enabled',
+        'places_enrich_enabled',
+        'place_shadow_enabled',
       ].sort(),
     );
   });
@@ -108,7 +140,14 @@ describe('isOidcConfigured', () => {
     vi.stubEnv('OIDC_ISSUER', '');
     vi.stubEnv('OIDC_CLIENT_ID', '');
     expect(isOidcConfiguredIn(new Map())).toBe(false);
-    expect(isOidcConfiguredIn(new Map([['oidc_issuer', 'https://idp'], ['oidc_client_id', 'trek']]))).toBe(true);
+    expect(
+      isOidcConfiguredIn(
+        new Map([
+          ['oidc_issuer', 'https://idp'],
+          ['oidc_client_id', 'trek'],
+        ]),
+      ),
+    ).toBe(true);
     vi.stubEnv('OIDC_CLIENT_ID', 'trek');
     expect(isOidcConfiguredIn(new Map([['oidc_issuer', 'https://idp']]))).toBe(true);
   });

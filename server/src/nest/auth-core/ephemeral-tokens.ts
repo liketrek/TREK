@@ -27,11 +27,7 @@ export interface EphemeralTokenMeta {
 
 const store = new Map<string, TokenEntry>();
 
-export function createEphemeralToken(
-  userId: number,
-  purpose: string,
-  meta?: EphemeralTokenMeta,
-): string | null {
+export function createEphemeralToken(userId: number, purpose: string, meta?: EphemeralTokenMeta): string | null {
   if (store.size >= MAX_STORE_SIZE) return null;
   const token = crypto.randomBytes(32).toString('hex');
   const ttl = TTL[purpose] ?? 60_000;
@@ -52,10 +48,7 @@ export function consumeEphemeralToken(token: string, purpose: string): number | 
  * token was minted with. Used by the WebSocket handshake so a token issued
  * before a password change can be rejected even within its short TTL.
  */
-export function consumeEphemeralTokenWithMeta(
-  token: string,
-  purpose: string,
-): { userId: number; pv?: number } | null {
+export function consumeEphemeralTokenWithMeta(token: string, purpose: string): { userId: number; pv?: number } | null {
   const entry = store.get(token);
   if (!entry) return null;
   store.delete(token);

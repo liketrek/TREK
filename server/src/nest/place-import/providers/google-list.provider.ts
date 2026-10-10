@@ -9,10 +9,10 @@
  * attacker-influenced through the list id. Every refusal is the exact message
  * and status the import route has always answered.
  */
-import { Injectable } from '@nestjs/common';
 import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../../../utils/ssrfGuard';
 import { isDirectionsUrl } from '../directions-url.helpers';
 import type { DirectionsRedirect, GoogleListPlace, ListImportError, ListRead } from '../place-import.types';
+import { Injectable } from '@nestjs/common';
 
 /** Cap on a provider list-import response body — the payload is attacker-influenced via the list id. */
 export const MAX_LIST_RESPONSE_BYTES = 8 * 1024 * 1024; // 8 MB
@@ -37,10 +37,7 @@ export function googleMapsHexId(value: unknown): string | null {
 
 export function googleMapsFeatureIdFromItem(item: unknown): string | null {
   if (!Array.isArray(item)) return null;
-  const candidates = [
-    Array.isArray(item[1]) ? item[1][6] : null,
-    Array.isArray(item[7]) ? item[7][1] : null,
-  ];
+  const candidates = [Array.isArray(item[1]) ? item[1][6] : null, Array.isArray(item[7]) ? item[7][1] : null];
 
   for (const ids of candidates) {
     if (!Array.isArray(ids) || ids.length < 2) continue;
@@ -100,7 +97,11 @@ export class GoogleListProvider {
       // A single-place share link (…/maps/place/…) carries no list id — point the user at
       // the place search box instead of a cryptic "could not extract list ID" (#1304).
       if (resolvedUrl.includes('/maps/place/')) {
-        return { error: 'That link points to a single place, not a list. To add it, paste the link into the place search box instead of using the list import.', status: 400 };
+        return {
+          error:
+            'That link points to a single place, not a list. To add it, paste the link into the place search box instead of using the list import.',
+          status: 400,
+        };
       }
       return { error: 'Could not extract list ID from URL. Please use a shared Google Maps list link.', status: 400 };
     }

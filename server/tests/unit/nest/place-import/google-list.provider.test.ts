@@ -3,6 +3,13 @@
  * places.helpers.test.ts with its code) and the answers the import route
  * gets back from it.
  */
+import {
+  GoogleListProvider,
+  googleMapsFeatureIdFromItem,
+  googleMapsHexId,
+} from '../../../../src/nest/place-import/providers/google-list.provider';
+import { SsrfBlockedError } from '../../../../src/utils/ssrfGuard';
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const { mockCheckSsrf, mockFollow } = vi.hoisted(() => ({
@@ -14,13 +21,6 @@ vi.mock('../../../../src/utils/ssrfGuard', () => ({
   safeFetchFollow: mockFollow,
   SsrfBlockedError: class SsrfBlockedError extends Error {},
 }));
-
-import {
-  GoogleListProvider,
-  googleMapsFeatureIdFromItem,
-  googleMapsHexId,
-} from '../../../../src/nest/place-import/providers/google-list.provider';
-import { SsrfBlockedError } from '../../../../src/utils/ssrfGuard';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -49,7 +49,9 @@ describe('googleMapsHexId / googleMapsFeatureIdFromItem', () => {
 
   it('reads the ftid pair from either item slot, else null', () => {
     expect(googleMapsFeatureIdFromItem([null, [0, 0, 0, 0, 0, 0, ['0x1', '0x2']]])).toBe('0x1:0x2');
-    expect(googleMapsFeatureIdFromItem([null, null, null, null, null, null, null, [null, ['0x3', '0x4']]])).toBe('0x3:0x4');
+    expect(googleMapsFeatureIdFromItem([null, null, null, null, null, null, null, [null, ['0x3', '0x4']]])).toBe(
+      '0x3:0x4',
+    );
     expect(googleMapsFeatureIdFromItem([null, [0, 0, 0, 0, 0, 0, ['0x1']]])).toBeNull();
     expect(googleMapsFeatureIdFromItem('not an array')).toBeNull();
   });
@@ -60,7 +62,10 @@ describe('GoogleListProvider.read', () => {
     mockCheckSsrf.mockResolvedValueOnce({ allowed: false });
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    expect(await new GoogleListProvider().read('https://10.0.0.1/maps')).toEqual({ error: 'URL is not allowed', status: 400 });
+    expect(await new GoogleListProvider().read('https://10.0.0.1/maps')).toEqual({
+      error: 'URL is not allowed',
+      status: 400,
+    });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -83,17 +88,26 @@ describe('GoogleListProvider.read', () => {
       [null, [null, null, null, null, null, [null, null, null, null]], 'No coords'],
     ];
     const body = `)]}'\n${JSON.stringify([[null, null, null, null, 'Trip ideas', null, null, null, items]])}`;
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(body, { status: 200 })));
-    expect(await new GoogleListProvider().read('https://www.google.com/maps/placelists/list/ABCDEFGHIJKLMNOP')).toEqual({
-      listName: 'Trip ideas',
-      places: [{ name: 'Cafe', lat: 52.5, lng: 13.4, notes: 'note', googleFtid: '0x1:0x2' }],
-    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(body, { status: 200 })),
+    );
+    expect(await new GoogleListProvider().read('https://www.google.com/maps/placelists/list/ABCDEFGHIJKLMNOP')).toEqual(
+      {
+        listName: 'Trip ideas',
+        places: [{ name: 'Cafe', lat: 52.5, lng: 13.4, notes: 'note', googleFtid: '0x1:0x2' }],
+      },
+    );
   });
 });
 
 describe('GoogleListProvider.read: what Google sends back', () => {
   const LIST = 'https://www.google.com/maps/@52,13,10z/data=!4m3!11m2!2sABCDEFGHIJKLMNOPQRS!3e3';
-  const respond = (body: string, init: ResponseInit = { status: 200 }) => vi.stubGlobal('fetch', vi.fn(async () => new Response(body, init)));
+  const respond = (body: string, init: ResponseInit = { status: 200 }) =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(body, init)),
+    );
   const read = () => new GoogleListProvider().read(LIST);
 
   it('finds the list id in the data parameter too', async () => {
@@ -128,7 +142,10 @@ describe('GoogleListProvider.read: what Google sends back', () => {
 
   it('refuses a short link the guard blocks on a hop, and lets a network failure through', async () => {
     mockFollow.mockRejectedValueOnce(new SsrfBlockedError('blocked'));
-    expect(await new GoogleListProvider().read('https://maps.app.goo.gl/x')).toEqual({ error: 'URL is not allowed', status: 400 });
+    expect(await new GoogleListProvider().read('https://maps.app.goo.gl/x')).toEqual({
+      error: 'URL is not allowed',
+      status: 400,
+    });
     mockFollow.mockRejectedValueOnce(new Error('network'));
     await expect(new GoogleListProvider().read('https://maps.app.goo.gl/x')).rejects.toThrow('network');
   });

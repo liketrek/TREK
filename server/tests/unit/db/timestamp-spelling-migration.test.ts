@@ -4,10 +4,18 @@
  * canonical `YYYY-MM-DD HH:MM:SS` text; canonical values, NULLs and anything
  * not in the full ISO shape stay as they are, and a second run changes nothing.
  */
-import { describe, expect, it } from 'vitest';
-import { createMigrationOrm, migrateTo, pendingNames, rawExec, rawQuery, runMigrationDirect } from '../../helpers/migration-step';
 import { Migration20200101042700_timestamps_stored_in_one_spelling } from '../../../src/db/migrations/Migration20200101042700_timestamps_stored_in_one_spelling';
+import {
+  createMigrationOrm,
+  migrateTo,
+  pendingNames,
+  rawExec,
+  rawQuery,
+  runMigrationDirect,
+} from '../../helpers/migration-step';
 import type { MikroORM } from '@mikro-orm/sqlite';
+
+import { describe, expect, it } from 'vitest';
 
 const TARGET = 'Migration20200101042700_timestamps_stored_in_one_spelling';
 
@@ -22,16 +30,31 @@ async function ormBeforeTarget(): Promise<MikroORM> {
 
 async function seed(orm: MikroORM): Promise<void> {
   await rawExec(orm, "INSERT INTO users (id, username, email, password_hash) VALUES (1, 'owner', 'owner@test', 'x')");
-  await rawExec(orm, "INSERT INTO collections (id, owner_id, name, updated_at) VALUES (1, 1, 'iso', '2026-03-04T05:06:07.890Z')");
-  await rawExec(orm, "INSERT INTO collections (id, owner_id, name, updated_at) VALUES (2, 1, 'canonical', '2026-03-04 05:06:07')");
+  await rawExec(
+    orm,
+    "INSERT INTO collections (id, owner_id, name, updated_at) VALUES (1, 1, 'iso', '2026-03-04T05:06:07.890Z')",
+  );
+  await rawExec(
+    orm,
+    "INSERT INTO collections (id, owner_id, name, updated_at) VALUES (2, 1, 'canonical', '2026-03-04 05:06:07')",
+  );
   await rawExec(orm, "INSERT INTO collections (id, owner_id, name, updated_at) VALUES (3, 1, 'null', NULL)");
-  await rawExec(orm, "INSERT INTO collections (id, owner_id, name, updated_at) VALUES (4, 1, 'offset', '2026-03-04T05:06:07+02:00')");
-  await rawExec(orm, "INSERT INTO collections (id, owner_id, name, updated_at) VALUES (5, 1, 'no-millis', '2026-03-04T05:06:07Z')");
+  await rawExec(
+    orm,
+    "INSERT INTO collections (id, owner_id, name, updated_at) VALUES (4, 1, 'offset', '2026-03-04T05:06:07+02:00')",
+  );
+  await rawExec(
+    orm,
+    "INSERT INTO collections (id, owner_id, name, updated_at) VALUES (5, 1, 'no-millis', '2026-03-04T05:06:07Z')",
+  );
   await rawExec(
     orm,
     "INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at) VALUES (1, 1, 'h1', '2026-05-06T07:08:09.123Z'), (2, 1, 'h2', '2026-05-06 07:08:09')",
   );
-  await rawExec(orm, "INSERT INTO oauth_clients (id, name, client_id, client_secret_hash) VALUES ('c', 'Client', 'cid', 'x')");
+  await rawExec(
+    orm,
+    "INSERT INTO oauth_clients (id, name, client_id, client_secret_hash) VALUES ('c', 'Client', 'cid', 'x')",
+  );
   await rawExec(
     orm,
     `INSERT INTO oauth_tokens (id, client_id, user_id, access_token_hash, refresh_token_hash, access_token_expires_at, refresh_token_expires_at)
@@ -43,7 +66,10 @@ async function seed(orm: MikroORM): Promise<void> {
 const read = async (orm: MikroORM) => ({
   collections: await rawQuery(orm, 'SELECT id, updated_at FROM collections ORDER BY id'),
   resets: await rawQuery(orm, 'SELECT id, expires_at FROM password_reset_tokens ORDER BY id'),
-  tokens: await rawQuery(orm, 'SELECT id, access_token_expires_at, refresh_token_expires_at FROM oauth_tokens ORDER BY id'),
+  tokens: await rawQuery(
+    orm,
+    'SELECT id, access_token_expires_at, refresh_token_expires_at FROM oauth_tokens ORDER BY id',
+  ),
 });
 
 const EXPECTED = {

@@ -1,9 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/core';
-import type { Request } from 'express';
-import { Users } from '../../db/entities/Users.entity';
 import { UserSessions } from '../../db/entities/UserSessions.entity';
+import { Users } from '../../db/entities/Users.entity';
 import { extractToken, verifyJwtAndLoadUser } from './jwt-verify';
+import { EntityManager } from '@mikro-orm/core';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * Mirrors the legacy `optionalAuth` middleware: populates req.user with the
@@ -21,7 +22,10 @@ export class OptionalJwtGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request>();
     const token = extractToken(req);
-    (req as { user: unknown }).user = (token ? await verifyJwtAndLoadUser(token, this.em.getRepository(Users), this.em.getRepository(UserSessions)) : null) || null;
+    (req as { user: unknown }).user =
+      (token
+        ? await verifyJwtAndLoadUser(token, this.em.getRepository(Users), this.em.getRepository(UserSessions))
+        : null) || null;
     return true;
   }
 }

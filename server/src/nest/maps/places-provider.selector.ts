@@ -10,18 +10,18 @@
  * this class only resolves it, through the same app_settings and users rows
  * the key chain always read, in the same order.
  */
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { isOutsideChina } from '@trek/shared';
 import { readEnv } from '../../app-config';
-import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { Users } from '../../db/entities/Users.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { GoogleQuotaService } from '../google-quota/google-quota.service';
-import { isPlacesProviderChoice, type PlacesProviderChoice } from './providers/places-provider';
+import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
 import { AmapPlacesProvider, AmapTipStash, isAmapPlaceId } from './providers/amap.provider';
+import { isPlacesProviderChoice, type PlacesProviderChoice } from './providers/places-provider';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { isOutsideChina } from '@trek/shared';
 
 /**
  * The app_settings row that names the keyed places provider.
@@ -44,8 +44,7 @@ export const PLACES_GOOGLE_ONLY_SETTING = 'places_google_only';
  * credential, an Amap provider, or nobody (the OpenStreetMap stack alone).
  */
 export type KeyedProvider =
-  | { id: 'google'; key: string; source: ApiKeySource | null }
-  | { id: 'amap'; provider: AmapPlacesProvider };
+  { id: 'google'; key: string; source: ApiKeySource | null } | { id: 'amap'; provider: AmapPlacesProvider };
 
 @Injectable()
 export class PlacesProviderSelector {
@@ -130,7 +129,8 @@ export class PlacesProviderSelector {
       const google = await this.resolveMapsKey(userId);
       // Past the daily ceiling (#1582) the key is spent for today: answer as if
       // there were none, so `auto` moves on and OpenStreetMap fills in.
-      if (google.key && !(await this.googleQuota.exhausted())) return { id: 'google', key: google.key, source: google.source };
+      if (google.key && !(await this.googleQuota.exhausted()))
+        return { id: 'google', key: google.key, source: google.source };
       // An explicit 'google' choice with no key is not a reason to query Amap
       // instead: this install is on Google and is misconfigured. OSM answers,
       // the way a keyless install has always been answered.

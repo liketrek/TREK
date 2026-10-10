@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import pkg from '../../../package.json';
 import { runningVersion } from '../../../src/app-config';
 import { hostVersion } from '../../../src/nest/plugins/install/host-compat';
-import pkg from '../../../package.json';
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => {
   vi.unstubAllEnvs();

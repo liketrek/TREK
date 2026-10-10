@@ -1,11 +1,3 @@
-import { Injectable } from '@nestjs/common';
-import type { CollectionGpxExport, CollectionGpxReadResult } from '@trek/shared';
-import { GpxProvider, type GpxExportInput, type GpxExportOptions } from './providers/gpx.provider';
-import { CollectionGpxProvider, type ExportedCollectionFile } from './providers/collection-gpx.provider';
-import { KmlProvider } from './providers/kml.provider';
-import { GoogleListProvider } from './providers/google-list.provider';
-import { GoogleDirectionsProvider } from './providers/google-directions.provider';
-import { NaverListProvider } from './providers/naver-list.provider';
 import type {
   DirectionsRead,
   DirectionsRedirect,
@@ -17,6 +9,14 @@ import type {
   NaverListPlace,
   PreparedGpxPlace,
 } from './place-import.types';
+import { CollectionGpxProvider, type ExportedCollectionFile } from './providers/collection-gpx.provider';
+import { GoogleDirectionsProvider } from './providers/google-directions.provider';
+import { GoogleListProvider } from './providers/google-list.provider';
+import { GpxProvider, type GpxExportInput, type GpxExportOptions } from './providers/gpx.provider';
+import { KmlProvider } from './providers/kml.provider';
+import { NaverListProvider } from './providers/naver-list.provider';
+import { Injectable } from '@nestjs/common';
+import type { CollectionGpxExport, CollectionGpxReadResult } from '@trek/shared';
 
 // The directions-link reading is also what the road trip planner reads a
 // shared route with, and what the import routes dispatch on.

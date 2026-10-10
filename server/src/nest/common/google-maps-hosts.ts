@@ -15,6 +15,5 @@ export const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
  * `google.evil.com` is not a Google host.
  */
 export function isGoogleMapsHost(hostname: string): boolean {
-  return GOOGLE_SHORT_HOSTS.includes(hostname)
-    || /^(www\.|maps\.)?google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(hostname);
+  return GOOGLE_SHORT_HOSTS.includes(hostname) || /^(www\.|maps\.)?google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(hostname);
 }

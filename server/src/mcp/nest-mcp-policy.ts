@@ -1,4 +1,12 @@
-import { demoDenied, type McpAccessGroup, type McpAccessMode, type McpAccessPolicy, type McpAccessValidator, type McpToolGate, type ToolOptions } from '../nest-mcp';
+import {
+  demoDenied,
+  type McpAccessGroup,
+  type McpAccessMode,
+  type McpAccessPolicy,
+  type McpAccessValidator,
+  type McpToolGate,
+  type ToolOptions,
+} from '../nest-mcp';
 import { ALL_SCOPES, canRead, canWrite, type Scope, type ScopeGroup } from './scopes';
 
 /** The mode half of every scope: 'read' | 'write' | 'delete' | 'share'. */

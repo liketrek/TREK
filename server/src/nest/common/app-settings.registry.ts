@@ -1,6 +1,7 @@
-import { z } from 'zod';
 import { readEnv } from '../../app-config';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+
+import { z } from 'zod';
 
 /**
  * The instance-wide settings (`app_settings`) the server reads by name, in one
@@ -51,10 +52,25 @@ export const APP_SETTINGS = {
   allow_registration: { schema: flag, default: 'true', adminForm: true },
   allowed_file_types: { schema: text, default: null, adminForm: true },
   require_mfa: { schema: flag, default: 'false', adminForm: true, publicConfig: true },
-  smtp_host: { schema: text, default: null, env: (e) => e.smtp.host, adminForm: true, managedLocked: true, publicConfig: true },
+  smtp_host: {
+    schema: text,
+    default: null,
+    env: (e) => e.smtp.host,
+    adminForm: true,
+    managedLocked: true,
+    publicConfig: true,
+  },
   smtp_port: { schema: intText, default: null, env: (e) => e.smtp.port, adminForm: true, managedLocked: true },
   smtp_user: { schema: text, default: null, env: (e) => e.smtp.user, adminForm: true, managedLocked: true },
-  smtp_pass: { schema: text, default: null, env: (e) => e.smtp.pass, adminForm: true, masked: true, encrypted: 'always', managedLocked: true },
+  smtp_pass: {
+    schema: text,
+    default: null,
+    env: (e) => e.smtp.pass,
+    adminForm: true,
+    masked: true,
+    encrypted: 'always',
+    managedLocked: true,
+  },
   smtp_from: { schema: text, default: null, env: (e) => e.smtp.from, adminForm: true, managedLocked: true },
   smtp_skip_tls_verify: { schema: flag, default: 'false', adminForm: true, managedLocked: true },
   notification_channels: { schema: text, default: null, adminForm: true, publicConfig: true },
@@ -101,7 +117,8 @@ export const APP_SETTINGS = {
 export type AppSettingKey = keyof typeof APP_SETTINGS;
 
 const ENTRIES = Object.entries(APP_SETTINGS) as Array<[AppSettingKey, AppSettingDef]>;
-const keysWhere = (pick: (def: AppSettingDef) => unknown): AppSettingKey[] => ENTRIES.filter(([, def]) => pick(def)).map(([key]) => key);
+const keysWhere = (pick: (def: AppSettingDef) => unknown): AppSettingKey[] =>
+  ENTRIES.filter(([, def]) => pick(def)).map(([key]) => key);
 
 /** The admin settings form's keys, in the order its answer has always listed them. */
 export const ADMIN_FORM_SETTING_KEYS: readonly AppSettingKey[] = keysWhere((d) => d.adminForm);
