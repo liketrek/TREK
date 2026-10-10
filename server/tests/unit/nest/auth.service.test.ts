@@ -50,6 +50,7 @@ vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() 
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
+import { asLegacyResult } from '../../helpers/domain-error';
 import { db as testDb } from '../../../src/db/database';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { UsersRepository } from '../../../src/db/repositories/Users.repository';
@@ -205,7 +206,7 @@ describe('requestPasswordReset — OIDC/SSO accounts', () => {
 describe('getAppSettings', () => {
   it('AUTH-DB-013: returns 403 for non-admin', async () => {
     const { user } = createUser(testDb);
-    const result = await svc.getAppSettings(user.id);
+    const result = await asLegacyResult(svc.getAppSettings(user.id));
     expect(result.status).toBe(403);
     expect(result.error).toMatch(/admin/i);
   });
@@ -213,7 +214,7 @@ describe('getAppSettings', () => {
   it('AUTH-DB-014: returns settings object for admin with known key allow_registration', async () => {
     const { user } = createAdmin(testDb);
     await appSetting('allow_registration', 'true');
-    const result = await svc.getAppSettings(user.id);
+    const result = await asLegacyResult(svc.getAppSettings(user.id));
     expect(result.status).toBeUndefined();
     expect(result.data).toBeDefined();
     expect(result.data).toHaveProperty('allow_registration', 'true');
@@ -332,7 +333,7 @@ describe('setupMfa', () => {
   it('AUTH-DB-022: returns 403 in demo mode for demo@nomad.app', async () => {
     vi.stubEnv('DEMO_MODE', 'true');
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const result = await svc.setupMfa(user.id, 'demo@nomad.app');
+    const result = await asLegacyResult(svc.setupMfa(user.id, 'demo@nomad.app'));
     expect(result.status).toBe(403);
     expect(result.error).toMatch(/demo mode/i);
     vi.unstubAllEnvs();
@@ -341,14 +342,14 @@ describe('setupMfa', () => {
   it('AUTH-DB-023: returns 400 when MFA is already enabled', async () => {
     const { user } = createUser(testDb);
     await updateRows(orm, Users, { id: user.id }, { mfa_enabled: 1 });
-    const result = await svc.setupMfa(user.id, user.email);
+    const result = await asLegacyResult(svc.setupMfa(user.id, user.email));
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/already enabled/i);
   });
 
   it('AUTH-DB-024: returns secret and otpauth_url when MFA setup starts successfully', async () => {
     const { user } = createUser(testDb);
-    const result = await svc.setupMfa(user.id, user.email);
+    const result = await asLegacyResult(svc.setupMfa(user.id, user.email));
     expect(result.error).toBeUndefined();
     expect(typeof result.secret).toBe('string');
     expect(result.secret!.length).toBeGreaterThan(0);
@@ -365,7 +366,7 @@ describe('setupMfa', () => {
 describe('enableMfa', () => {
   it('AUTH-DB-025: returns 400 when no verification code is provided', async () => {
     const { user } = createUser(testDb);
-    const result = await svc.enableMfa(user.id, undefined);
+    const result = await asLegacyResult(svc.enableMfa(user.id, undefined));
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/code is required/i);
   });
@@ -373,7 +374,7 @@ describe('enableMfa', () => {
   it('AUTH-DB-026: returns 400 when there is no pending MFA setup', async () => {
     const { user } = createUser(testDb);
     // No setupMfa called first, so no pending entry exists
-    const result = await svc.enableMfa(user.id, '123456');
+    const result = await asLegacyResult(svc.enableMfa(user.id, '123456'));
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/no mfa setup in progress/i);
   });
@@ -387,10 +388,10 @@ describe('disableMfa', () => {
   it('AUTH-DB-027: returns 403 in demo mode for demo@nomad.app', async () => {
     vi.stubEnv('DEMO_MODE', 'true');
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const result = await svc.disableMfa(user.id, 'demo@nomad.app', {
+    const result = await asLegacyResult(svc.disableMfa(user.id, 'demo@nomad.app', {
       password: 'password123',
       code: '000000',
-    });
+    }));
     expect(result.status).toBe(403);
     expect(result.error).toMatch(/demo mode/i);
     vi.unstubAllEnvs();
@@ -399,11 +400,11 @@ describe('disableMfa', () => {
   it('AUTH-DB-028: returns 400 when password or code is missing', async () => {
     const { user } = createUser(testDb);
 
-    const missingCode = await svc.disableMfa(user.id, user.email, { password: 'pass', code: undefined });
+    const missingCode = await asLegacyResult(svc.disableMfa(user.id, user.email, { password: 'pass', code: undefined }));
     expect(missingCode.status).toBe(400);
     expect(missingCode.error).toMatch(/password and authenticator code/i);
 
-    const missingPassword = await svc.disableMfa(user.id, user.email, { password: undefined, code: '123456' });
+    const missingPassword = await asLegacyResult(svc.disableMfa(user.id, user.email, { password: undefined, code: '123456' }));
     expect(missingPassword.status).toBe(400);
     expect(missingPassword.error).toMatch(/password and authenticator code/i);
   });
@@ -411,7 +412,7 @@ describe('disableMfa', () => {
   it('AUTH-DB-029: returns 400 when MFA is not enabled on the account', async () => {
     const { user } = createUser(testDb);
     // mfa_enabled defaults to 0 / not set
-    const result = await svc.disableMfa(user.id, user.email, { password: 'password123', code: '000000' });
+    const result = await asLegacyResult(svc.disableMfa(user.id, user.email, { password: 'password123', code: '000000' }));
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/not enabled/i);
   });
@@ -423,7 +424,7 @@ describe('disableMfa', () => {
 
 describe('validateInviteToken', () => {
   it('AUTH-DB-030: returns 404 for unknown token', async () => {
-    const result = await svc.validateInviteToken('no-such-token');
+    const result = await asLegacyResult(svc.validateInviteToken('no-such-token'));
     expect(result.status).toBe(404);
   });
 
@@ -432,13 +433,13 @@ describe('validateInviteToken', () => {
     const invite = createInviteToken(testDb, { max_uses: 1 });
     // manually set used_count = 1 to simulate exhaustion
     await updateRows(orm, InviteTokens, { id: invite.id }, { used_count: 1 });
-    const result = await svc.validateInviteToken(invite.token);
+    const result = await asLegacyResult(svc.validateInviteToken(invite.token));
     expect(result.status).toBe(410);
   });
 
   it('AUTH-DB-032: returns 410 when expired', async () => {
     const invite = createInviteToken(testDb, { expires_at: '2000-01-01T00:00:00.000Z' });
-    const result = await svc.validateInviteToken(invite.token);
+    const result = await asLegacyResult(svc.validateInviteToken(invite.token));
     expect(result.status).toBe(410);
   });
 });
@@ -454,7 +455,7 @@ describe('registerUser — OIDC-only / registration-disabled', () => {
     await insertRow(orm, AppSettings, { key: 'oidc_issuer', value: 'https://x' });
     await insertRow(orm, AppSettings, { key: 'oidc_client_id', value: 'id' });
 
-    const result = await svc.registerUser({ username: 'u', email: 'new@x.com', password: 'Secure123!' });
+    const result = await asLegacyResult(svc.registerUser({ username: 'u', email: 'new@x.com', password: 'Secure123!' }));
     expect(result.status).toBe(403);
     expect(result.error).toMatch(/password registration is disabled/i);
   });
@@ -463,7 +464,7 @@ describe('registerUser — OIDC-only / registration-disabled', () => {
     createUser(testDb); // ensure userCount > 0
     await appSetting('allow_registration', 'false');
 
-    const result = await svc.registerUser({ username: 'u2', email: 'n2@x.com', password: 'Secure123!' });
+    const result = await asLegacyResult(svc.registerUser({ username: 'u2', email: 'n2@x.com', password: 'Secure123!' }));
     expect(result.status).toBe(403);
   });
 });
@@ -495,7 +496,7 @@ describe('changePassword — OIDC-only mode', () => {
     await appSetting('oidc_issuer', 'https://x');
     await appSetting('oidc_client_id', 'id');
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' });
+    const result = await asLegacyResult(svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }));
     expect(result.status).toBe(403);
   });
 });
@@ -511,7 +512,7 @@ describe('changePassword — session invalidation', () => {
     expect(await pvOf(user.id)).toBe(0);
     expect(await mcpCount(user.id)).toBe(1);
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' });
+    const result = await asLegacyResult(svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }));
 
     expect(result.success).toBe(true);
     expect(typeof result.token).toBe('string'); // fresh session for the current device
@@ -525,7 +526,7 @@ describe('changePassword — session invalidation', () => {
 
     expect(await verifyJwtAndLoadUser(stolen, await createTestUsersRepo(testDb), await createTestUserSessionsRepo(testDb))).not.toBeNull();
 
-    await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' });
+    await asLegacyResult(svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }));
 
     expect(await verifyJwtAndLoadUser(stolen, await createTestUsersRepo(testDb), await createTestUserSessionsRepo(testDb))).toBeNull(); // invalidated by the pv bump
   });
@@ -534,7 +535,7 @@ describe('changePassword — session invalidation', () => {
     const { user, password } = createUser(testDb);
     await svc.generateToken({ id: user.id });
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }, undefined, {}, false);
+    const result = await asLegacyResult(svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }, undefined, {}, false));
 
     expect(result).toEqual({ success: true });
     expect(await pvOf(user.id)).toBe(1);
@@ -548,7 +549,7 @@ describe('changePassword — session invalidation', () => {
     const jwt = require('jsonwebtoken');
     const { user, password } = createUser(testDb);
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }, true);
+    const result = await asLegacyResult(svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }, true));
     expect(result.success).toBe(true);
     const decoded = jwt.decode(result.token!) as { remember?: boolean; iat: number; exp: number };
     expect(decoded.remember).toBe(true);
@@ -580,7 +581,7 @@ describe('changePassword — session invalidation', () => {
     await addPushDevice(user.id, 'https://web.push.apple.com/mine-2');
     await addPushDevice(other.id, 'https://fcm.googleapis.com/fcm/send/theirs');
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' });
+    const result = await asLegacyResult(svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }));
 
     expect(result.success).toBe(true);
     expect(await pushDeviceCount(user.id)).toBe(0);
@@ -591,7 +592,7 @@ describe('changePassword — session invalidation', () => {
     const { user } = createUser(testDb);
     await addPushDevice(user.id, 'https://fcm.googleapis.com/fcm/send/mine');
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: 'wrong', new_password: 'New1234!' });
+    const result = await asLegacyResult(svc.changePassword(user.id, user.email, { current_password: 'wrong', new_password: 'New1234!' }));
 
     expect(result.status).toBe(401);
     expect(await pushDeviceCount(user.id)).toBe(1);
@@ -614,7 +615,7 @@ describe('changePassword — session invalidation', () => {
     expect(await mcpCount(user.id)).toBe(1);
     expect(await pushDeviceCount(user.id)).toBe(1);
     // The new hash rolled back as well, so the old password is still the one that counts.
-    expect((await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' })).success)
+    expect((await asLegacyResult(svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }))).success)
       .toBe(true);
   });
 });
@@ -628,7 +629,7 @@ describe('disableMfa — require_mfa policy', () => {
     const { user } = createUser(testDb);
     await appSetting('require_mfa', 'true');
 
-    const result = await svc.disableMfa(user.id, user.email, { password: 'pass', code: '123456' });
+    const result = await asLegacyResult(svc.disableMfa(user.id, user.email, { password: 'pass', code: '123456' }));
     expect(result.status).toBe(403);
     expect(result.error).toMatch(/cannot be disabled/i);
   });
@@ -640,7 +641,7 @@ describe('disableMfa — require_mfa policy', () => {
 
 describe('verifyMfaLogin — validation', () => {
   it('AUTH-DB-038: returns 400 when mfa_token or code is missing', async () => {
-    const result = await svc.verifyMfaLogin({ mfa_token: undefined, code: undefined });
+    const result = await asLegacyResult(svc.verifyMfaLogin({ mfa_token: undefined, code: undefined }));
     expect(result.status).toBe(400);
   });
 
@@ -648,7 +649,7 @@ describe('verifyMfaLogin — validation', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const jwt = require('jsonwebtoken');
     const tok = jwt.sign({ id: 1, purpose: 'wrong' }, 'test-secret', { expiresIn: '5m', algorithm: 'HS256' });
-    const result = await svc.verifyMfaLogin({ mfa_token: tok, code: '123456' });
+    const result = await asLegacyResult(svc.verifyMfaLogin({ mfa_token: tok, code: '123456' }));
     expect(result.status).toBe(401);
     expect(result.error).toMatch(/invalid/i);
   });
@@ -657,7 +658,7 @@ describe('verifyMfaLogin — validation', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const jwt = require('jsonwebtoken');
     const tok = jwt.sign({ id: 99999, purpose: 'mfa_login' }, 'test-secret', { expiresIn: '5m', algorithm: 'HS256' });
-    const result = await svc.verifyMfaLogin({ mfa_token: tok, code: '123456' });
+    const result = await asLegacyResult(svc.verifyMfaLogin({ mfa_token: tok, code: '123456' }));
     expect(result.status).toBe(401);
   });
 });
@@ -789,16 +790,16 @@ describe('getAppConfig', () => {
 describe('demoLogin', () => {
   it('AUTH-DB-053: 404 outside demo mode', async () => {
     vi.stubEnv('DEMO_MODE', '');
-    expect(await svc.demoLogin()).toEqual({ error: 'Not found', status: 404 });
+    expect(await asLegacyResult(svc.demoLogin())).toEqual({ error: 'Not found', status: 404 });
     vi.unstubAllEnvs();
   });
 
   it('AUTH-DB-054: 500 when the demo user row is missing; token + safe user when present', async () => {
     vi.stubEnv('DEMO_MODE', 'true');
-    expect(await svc.demoLogin()).toEqual({ error: 'Demo user not found', status: 500 });
+    expect(await asLegacyResult(svc.demoLogin())).toEqual({ error: 'Demo user not found', status: 500 });
     // demoLogin looks up DEMO_EMAIL_PRIMARY specifically (not any demo alias).
     const { user } = createUser(testDb, { email: 'demo@trek.app' });
-    const result = await svc.demoLogin({ userAgent: 'Demo visitor' });
+    const result = await asLegacyResult(svc.demoLogin({ userAgent: 'Demo visitor' }));
     expect(typeof result.token).toBe('string');
     expect(result.user).not.toHaveProperty('password_hash');
     expect((await sessionRows(testDb, user.id)).map((r) => r.user_agent)).toEqual(['Demo visitor']);
@@ -809,7 +810,7 @@ describe('demoLogin', () => {
 describe('validateInviteToken — valid path', () => {
   it('AUTH-DB-055: returns valid with usage metadata', async () => {
     const invite = createInviteToken(testDb, { max_uses: 5 });
-    const result = await svc.validateInviteToken(invite.token);
+    const result = await asLegacyResult(svc.validateInviteToken(invite.token));
     expect(result.valid).toBe(true);
     expect(result.max_uses).toBe(5);
     expect(result.used_count).toBe(0);
@@ -818,7 +819,7 @@ describe('validateInviteToken — valid path', () => {
 
 describe('registerUser — success paths', () => {
   it('AUTH-DB-056: first user becomes admin and gets a token', async () => {
-    const result = await svc.registerUser({ username: 'first', email: 'first@x.com', password: 'Secure123!' });
+    const result = await asLegacyResult(svc.registerUser({ username: 'first', email: 'first@x.com', password: 'Secure123!' }));
     expect(result.error).toBeUndefined();
     expect(typeof result.token).toBe('string');
     expect((result.user as { role: string }).role).toBe('admin');
@@ -827,11 +828,11 @@ describe('registerUser — success paths', () => {
 
   it('AUTH-DB-057: missing fields / bad email / duplicate answer their bespoke 400/409s', async () => {
     createUser(testDb, { username: 'taken', email: 'taken@x.com' });
-    expect(await svc.registerUser({ username: '', email: 'a@x.com', password: 'Secure123!' }))
+    expect(await asLegacyResult(svc.registerUser({ username: '', email: 'a@x.com', password: 'Secure123!' })))
       .toEqual({ error: 'Username, email and password are required', status: 400 });
-    expect(await svc.registerUser({ username: 'u', email: 'not-an-email', password: 'Secure123!' }))
+    expect(await asLegacyResult(svc.registerUser({ username: 'u', email: 'not-an-email', password: 'Secure123!' })))
       .toEqual({ error: 'Invalid email format', status: 400 });
-    expect(await svc.registerUser({ username: 'TAKEN', email: 'other@x.com', password: 'Secure123!' }))
+    expect(await asLegacyResult(svc.registerUser({ username: 'TAKEN', email: 'other@x.com', password: 'Secure123!' })))
       .toEqual({ error: 'Registration failed. Please try different credentials.', status: 409 });
   });
 
@@ -839,7 +840,7 @@ describe('registerUser — success paths', () => {
     createUser(testDb);
     await appSetting('allow_registration', 'false');
     const invite = createInviteToken(testDb, { max_uses: 2 });
-    const result = await svc.registerUser({ username: 'invited', email: 'invited@x.com', password: 'Secure123!', invite_token: invite.token });
+    const result = await asLegacyResult(svc.registerUser({ username: 'invited', email: 'invited@x.com', password: 'Secure123!', invite_token: invite.token }));
     expect(result.error).toBeUndefined();
     const { used_count } = (await findRow(orm, InviteTokens, { id: invite.id })) ?? {};
     expect(used_count).toBe(1);
@@ -911,20 +912,20 @@ describe('getCurrentUser', () => {
 describe('deleteAccount', () => {
   it('AUTH-DB-065: refuses to delete the last admin', async () => {
     const { user } = createAdmin(testDb);
-    expect(await svc.deleteAccount(user.id, user.email, 'admin'))
+    expect(await asLegacyResult(svc.deleteAccount(user.id, user.email, 'admin')))
       .toEqual({ error: 'Cannot delete the last admin account', status: 400 });
   });
 
   it('AUTH-DB-066: demo mode blocks deletion', async () => {
     vi.stubEnv('DEMO_MODE', 'true');
-    expect(await svc.deleteAccount(1, 'demo@nomad.app', 'user'))
+    expect(await asLegacyResult(svc.deleteAccount(1, 'demo@nomad.app', 'user')))
       .toEqual({ error: 'Account deletion is disabled in demo mode.', status: 403 });
     vi.unstubAllEnvs();
   });
 
   it('AUTH-DB-067: deletes a regular user row', async () => {
     const { user } = createUser(testDb);
-    expect(await svc.deleteAccount(user.id, user.email, 'user')).toEqual({ success: true });
+    expect(await asLegacyResult(svc.deleteAccount(user.id, user.email, 'user'))).toEqual({ success: true });
     expect(await findRow(orm, Users, { id: user.id })).toBeNull();
   });
 });
@@ -932,12 +933,12 @@ describe('deleteAccount', () => {
 describe('updateAppSettings', () => {
   it('AUTH-DB-071: 403 for non-admin', async () => {
     const { user } = createUser(testDb);
-    expect((await svc.updateAppSettings(user.id, {})).status).toBe(403);
+    expect((await asLegacyResult(svc.updateAppSettings(user.id, {}))).status).toBe(403);
   });
 
   it('AUTH-DB-072: require_mfa=true refuses when the admin has neither MFA nor a passkey', async () => {
     const { user } = createAdmin(testDb);
-    const result = await svc.updateAppSettings(user.id, { require_mfa: true });
+    const result = await asLegacyResult(svc.updateAppSettings(user.id, { require_mfa: true }));
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/secure your own account/i);
   });
@@ -945,7 +946,7 @@ describe('updateAppSettings', () => {
   it('AUTH-DB-073: require_mfa=true is allowed once the admin has MFA enabled', async () => {
     const { user } = createAdmin(testDb);
     await updateRows(orm, Users, { id: user.id }, { mfa_enabled: 1 });
-    const result = await svc.updateAppSettings(user.id, { require_mfa: true });
+    const result = await asLegacyResult(svc.updateAppSettings(user.id, { require_mfa: true }));
     expect(result.success).toBe(true);
     expect(result.auditSummary).toMatchObject({ require_mfa: true });
     await deleteRows(orm, AppSettings, { key: 'require_mfa' });
@@ -953,7 +954,7 @@ describe('updateAppSettings', () => {
 
   it('AUTH-DB-074: lockout prevention refuses disabling every login method', async () => {
     const { user } = createAdmin(testDb);
-    const result = await svc.updateAppSettings(user.id, { password_login: 'false', oidc_login: 'false' });
+    const result = await asLegacyResult(svc.updateAppSettings(user.id, { password_login: 'false', oidc_login: 'false' }));
     expect(result).toEqual({ error: 'Cannot disable all login methods. At least one must remain enabled.', status: 400 });
   });
 
@@ -962,7 +963,7 @@ describe('updateAppSettings', () => {
     // longer flags (or needs) a scheduler restart.
     const { user } = createAdmin(testDb);
     await appSetting('smtp_pass', 'stored');
-    const result = await svc.updateAppSettings(user.id, { smtp_pass: '••••••••', notification_channels: 'email' });
+    const result = await asLegacyResult(svc.updateAppSettings(user.id, { smtp_pass: '••••••••', notification_channels: 'email' }));
     expect(result.success).toBe(true);
     const value = await readAppSetting(orm, 'smtp_pass');
     expect(value).toBe('stored'); // sentinel never overwrites the secret
@@ -974,9 +975,9 @@ describe('updateAppSettings', () => {
 describe('MFA success flows', () => {
   it('AUTH-DB-076: setup → enable with a valid TOTP code returns backup codes and persists the encrypted secret', async () => {
     const { user } = createUser(testDb);
-    const setup = await svc.setupMfa(user.id, user.email);
+    const setup = await asLegacyResult(svc.setupMfa(user.id, user.email));
     const code = authenticator.generate(setup.secret!);
-    const result = await svc.enableMfa(user.id, code);
+    const result = await asLegacyResult(svc.enableMfa(user.id, code));
     expect(result.success).toBe(true);
     expect(result.backup_codes).toHaveLength(10);
     const row = await readUser(orm, user.id);
@@ -986,15 +987,15 @@ describe('MFA success flows', () => {
 
   it('AUTH-DB-077: enable with a wrong code answers 401 and keeps the pending secret', async () => {
     const { user } = createUser(testDb);
-    await svc.setupMfa(user.id, user.email);
-    expect(await svc.enableMfa(user.id, '000000')).toEqual({ error: 'Invalid verification code', status: 401 });
+    await asLegacyResult(svc.setupMfa(user.id, user.email));
+    expect(await asLegacyResult(svc.enableMfa(user.id, '000000'))).toEqual({ error: 'Invalid verification code', status: 401 });
   });
 
   it('AUTH-DB-078: disableMfa succeeds with the right password + TOTP code', async () => {
     const { user, password } = createUser(testDb);
     const secret = authenticator.generateSecret();
     await updateRows(orm, Users, { id: user.id }, { mfa_enabled: 1, mfa_secret: 'enc:' + secret });
-    const result = await svc.disableMfa(user.id, user.email, { password, code: authenticator.generate(secret) });
+    const result = await asLegacyResult(svc.disableMfa(user.id, user.email, { password, code: authenticator.generate(secret) }));
     expect(result).toEqual({ success: true, mfa_enabled: false });
     const row = await readUser(orm, user.id);
     expect(row.mfa_enabled).toBe(0);
@@ -1005,7 +1006,7 @@ describe('MFA success flows', () => {
     const { user } = createUser(testDb);
     const secret = authenticator.generateSecret();
     await updateRows(orm, Users, { id: user.id }, { mfa_enabled: 1, mfa_secret: 'enc:' + secret });
-    expect(await svc.disableMfa(user.id, user.email, { password: 'wrong', code: authenticator.generate(secret) }))
+    expect(await asLegacyResult(svc.disableMfa(user.id, user.email, { password: 'wrong', code: authenticator.generate(secret) })))
       .toEqual({ error: 'Incorrect password', status: 401 });
   });
 
@@ -1015,7 +1016,7 @@ describe('MFA success flows', () => {
     await updateRows(orm, Users, { id: user.id }, { mfa_enabled: 1, mfa_secret: 'enc:' + secret });
     const interstitial = await svc.loginUser({ email: user.email, password });
     expect(interstitial.mfa_required).toBe(true);
-    const result = await svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: authenticator.generate(secret) });
+    const result = await asLegacyResult(svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: authenticator.generate(secret) }));
     expect(typeof result.token).toBe('string');
     expect(result.auditUserId).toBe(user.id);
   });
@@ -1029,7 +1030,7 @@ describe('MFA success flows', () => {
       mfa_enabled: 1, mfa_secret: 'enc:' + secret, mfa_backup_codes: JSON.stringify(codes.map(hashBackupCode)), updated_at: '2000-01-01T00:00:00.000Z',
     });
     const interstitial = await svc.loginUser({ email: user.email, password });
-    const result = await svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: 'AAAA-1111' });
+    const result = await asLegacyResult(svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: 'AAAA-1111' }));
     expect(typeof result.token).toBe('string');
     const row = await readUser(orm, user.id);
     expect(JSON.parse(row.mfa_backup_codes)).toHaveLength(1); // used code spliced out
@@ -1038,7 +1039,7 @@ describe('MFA success flows', () => {
     expect(row.updated_at).not.toBe('2000-01-01T00:00:00.000Z');
     // the spent code no longer verifies
     const again = await svc.loginUser({ email: user.email, password });
-    expect((await svc.verifyMfaLogin({ mfa_token: again.mfa_token, code: 'AAAA-1111' })).status).toBe(401);
+    expect((await asLegacyResult(svc.verifyMfaLogin({ mfa_token: again.mfa_token, code: 'AAAA-1111' }))).status).toBe(401);
   });
 });
 
@@ -1047,12 +1048,12 @@ describe('resetPassword', () => {
     const { user } = createUser(testDb);
     const issued = await svc.requestPasswordReset(user.email, '1.2.3.4');
     expect(issued.reason).toBe('issued');
-    const result = await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' });
+    const result = await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }));
     expect(result).toEqual({ success: true, userId: user.id });
     const row = await readUser(orm, user.id);
     expect(row.password_version).toBe(1);
     // token is burned — a second use answers the bespoke 400
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh456!' }))
+    expect(await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh456!' })))
       .toEqual({ error: 'This reset link has already been used', status: 400 });
   });
 
@@ -1064,7 +1065,7 @@ describe('resetPassword', () => {
     await addPushDevice(other.id, 'https://fcm.googleapis.com/fcm/send/theirs');
     const issued = await svc.requestPasswordReset(user.email, null);
 
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
+    expect(await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })))
       .toEqual({ success: true, userId: user.id });
 
     expect(await countRows(orm, McpTokens, { user: user.id })).toBe(0);
@@ -1087,21 +1088,21 @@ describe('resetPassword', () => {
     const row = await readUser(orm, user.id);
     expect(row.password_version).toBe(0);
     // Nothing was burned, so the same link still completes the reset.
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
+    expect(await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })))
       .toEqual({ success: true, userId: user.id });
     expect(await pushDeviceCount(user.id)).toBe(0);
   });
 
   it('AUTH-DB-083: bespoke 400s for missing/unknown/expired tokens', async () => {
-    expect(await svc.resetPassword({ new_password: 'Fresh123!' })).toEqual({ error: 'Reset token is required', status: 400 });
-    expect(await svc.resetPassword({ token: 't' })).toEqual({ error: 'New password is required', status: 400 });
-    expect(await svc.resetPassword({ token: 'unknown-token', new_password: 'Fresh123!' }))
+    expect(await asLegacyResult(svc.resetPassword({ new_password: 'Fresh123!' }))).toEqual({ error: 'Reset token is required', status: 400 });
+    expect(await asLegacyResult(svc.resetPassword({ token: 't' }))).toEqual({ error: 'New password is required', status: 400 });
+    expect(await asLegacyResult(svc.resetPassword({ token: 'unknown-token', new_password: 'Fresh123!' })))
       .toEqual({ error: 'Invalid or expired reset link', status: 400 });
 
     const { user } = createUser(testDb);
     const issued = await svc.requestPasswordReset(user.email, null);
     await updateRows(orm, PasswordResetTokens, { user: user.id }, { expires_at: '2000-01-01T00:00:00.000Z' });
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
+    expect(await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })))
       .toEqual({ error: 'Reset link has expired. Please request a new one.', status: 400 });
   });
 
@@ -1113,7 +1114,7 @@ describe('resetPassword', () => {
 
     const aMinuteAgo = new Date(Date.now() - 60_000).toISOString().slice(0, 19).replace('T', ' ');
     await updateRows(orm, PasswordResetTokens, { user: user.id }, { expires_at: aMinuteAgo });
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery ?? '', new_password: 'Fresh123!' }))
+    expect(await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery ?? '', new_password: 'Fresh123!' })))
       .toEqual({ error: 'Reset link has expired. Please request a new one.', status: 400 });
   });
 
@@ -1123,10 +1124,10 @@ describe('resetPassword', () => {
     await updateRows(orm, Users, { id: user.id }, { mfa_enabled: 1, mfa_secret: 'enc:' + secret, mfa_backup_codes: JSON.stringify([hashBackupCode('CCCC-3333')]) });
     const issued = await svc.requestPasswordReset(user.email, null);
     // no code → mfa_required interstitial, token NOT burned
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
+    expect(await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })))
       .toEqual({ mfa_required: true, status: 200 });
     // wrong code → 401
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: '000000' }))
+    expect(await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: '000000' })))
       .toEqual({ error: 'Invalid MFA code', status: 401 });
 
     // AU44 vs AU33 (F3, task-5-review-security.md): resetPassword's backup-code
@@ -1141,7 +1142,7 @@ describe('resetPassword', () => {
     const setBackupCodesAndTouchSpy = vi.spyOn(usersRepo, 'setBackupCodesAndTouch');
     try {
       // backup code → success + code consumed
-      expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: 'CCCC-3333' }))
+      expect(await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!', mfa_code: 'CCCC-3333' })))
         .toEqual({ success: true, userId: user.id });
       expect(setBackupCodesSpy).toHaveBeenCalledTimes(1);
       expect(setBackupCodesAndTouchSpy).not.toHaveBeenCalled();
@@ -1203,7 +1204,7 @@ describe('auth quirk fixes', () => {
     await updateRows(orm, InviteTokens, { id: invite.id }, { trip: trip.id });
     joinTripAsMember.mockImplementationOnce(() => { throw new Error('boom'); });
 
-    const result = await svc.registerUser({ username: 'rollback', email: 'rollback@x.com', password: 'Secure123!', invite_token: invite.token });
+    const result = await asLegacyResult(svc.registerUser({ username: 'rollback', email: 'rollback@x.com', password: 'Secure123!', invite_token: invite.token }));
 
     expect(result).toEqual({ error: 'Error creating user', status: 500 });
     expect(await findRow(orm, Users, { email: 'rollback@x.com' })).toBeNull();
@@ -1217,7 +1218,7 @@ describe('auth quirk fixes', () => {
     await updateRows(orm, Users, { id: user.id }, { mfa_enabled: 1, mfa_secret: 'enc:' + secret, mfa_backup_codes: JSON.stringify([hashBackupCode('DDDD-4444')]) });
     const interstitial = await svc.loginUser({ email: user.email, password });
 
-    const result = await svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: 'DDDD-4444' });
+    const result = await asLegacyResult(svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: 'DDDD-4444' }));
 
     expect(typeof result.token).toBe('string');
     const row = await readUser(orm, user.id);
@@ -1281,7 +1282,7 @@ describe('registerUser loses the race for an email', () => {
   it('AUTH-IDENT-001: a signup the database refuses after the check passed answers the same 409, not a 500', async () => {
     createUser(testDb, { username: 'anna', email: 'anna@x.com' });
     vi.spyOn(UsersRepository.prototype, 'findIdByEmailOrUsernameCI').mockResolvedValue(null);
-    expect(await svc.registerUser({ username: 'anna2', email: 'ANNA@x.com', password: 'Secure123!' })).toEqual({
+    expect(await asLegacyResult(svc.registerUser({ username: 'anna2', email: 'ANNA@x.com', password: 'Secure123!' }))).toEqual({
       error: 'Registration failed. Please try different credentials.',
       status: 409,
     });
@@ -1325,7 +1326,7 @@ describe('session tracking', () => {
     const laptop = await svc.generateToken({ id: user.id });
     const phone = await svc.generateToken({ id: user.id });
 
-    const result = await svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }, undefined, { userAgent: 'Safari' });
+    const result = await asLegacyResult(svc.changePassword(user.id, user.email, { current_password: password, new_password: 'New1234!' }, undefined, { userAgent: 'Safari' }));
 
     expect(await svc.verifyJwtToken(laptop)).toBeNull();
     expect(await svc.verifyJwtToken(phone)).toBeNull();
@@ -1338,7 +1339,7 @@ describe('session tracking', () => {
     const token = await svc.generateToken({ id: user.id });
     const issued = await svc.requestPasswordReset(user.email, null);
 
-    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })).toEqual({ success: true, userId: user.id });
+    expect(await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))).toEqual({ success: true, userId: user.id });
     expect(await active(user.id)).toEqual([]);
     expect(await svc.verifyJwtToken(token)).toBeNull();
   });
@@ -1351,7 +1352,7 @@ describe('session tracking', () => {
     const elsewhere = await svc.generateToken({ id: user.id });
     const hereId = (decodeJwt(here) as { jti: string }).jti;
 
-    expect(await svc.disableMfa(user.id, user.email, { password, code: authenticator.generate(secret) }, hereId)).toEqual({ success: true, mfa_enabled: false });
+    expect(await asLegacyResult(svc.disableMfa(user.id, user.email, { password, code: authenticator.generate(secret) }, hereId))).toEqual({ success: true, mfa_enabled: false });
     expect(await svc.verifyJwtToken(here)).not.toBeNull();
     expect(await svc.verifyJwtToken(elsewhere)).toBeNull();
   });
@@ -1362,7 +1363,7 @@ describe('session tracking', () => {
     await updateRows(orm, Users, { id: user.id }, { mfa_enabled: 1, mfa_secret: 'enc:' + secret });
     const token = await svc.generateToken({ id: user.id });
 
-    expect((await svc.disableMfa(user.id, user.email, { password: 'wrong', code: authenticator.generate(secret) })).status).toBe(401);
+    expect((await asLegacyResult(svc.disableMfa(user.id, user.email, { password: 'wrong', code: authenticator.generate(secret) }))).status).toBe(401);
     expect(await svc.verifyJwtToken(token)).not.toBeNull();
   });
 
@@ -1372,13 +1373,13 @@ describe('session tracking', () => {
     await updateRows(orm, Users, { id: user.id }, { mfa_enabled: 1, mfa_secret: 'enc:' + secret });
     const interstitial = await svc.loginUser({ email: user.email, password });
 
-    const result = await svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: authenticator.generate(secret) }, { userAgent: 'Edge' });
+    const result = await asLegacyResult(svc.verifyMfaLogin({ mfa_token: interstitial.mfa_token, code: authenticator.generate(secret) }, { userAgent: 'Edge' }));
     expect(await svc.verifyJwtToken(result.token!)).not.toBeNull();
     expect((await sessionRows(testDb, user.id)).map((row) => row.user_agent)).toEqual(['Edge']);
   });
 
   it('AUTH-SESS-009: register records the first session with its device', async () => {
-    const result = await svc.registerUser({ username: 'sess-reg', email: 'sess-reg@example.test', password: 'Secure123!' }, { userAgent: 'Chrome' });
+    const result = await asLegacyResult(svc.registerUser({ username: 'sess-reg', email: 'sess-reg@example.test', password: 'Secure123!' }, { userAgent: 'Chrome' }));
     const userId = (decodeJwt(result.token!) as { id: number }).id;
     expect((await sessionRows(testDb, userId)).map((row) => row.user_agent)).toEqual(['Chrome']);
   });

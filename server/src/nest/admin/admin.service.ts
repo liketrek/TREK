@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import bcrypt from 'bcryptjs';
@@ -167,22 +168,22 @@ export class AdminService {
     const password = data.password?.trim();
 
     if (!username || !email || !password) {
-      return { error: 'Username, email and password are required', status: 400 };
+      throw new DomainError(400, 'Username, email and password are required');
     }
 
     const pwCheck = validatePassword(password);
-    if (!pwCheck.ok) return { error: pwCheck.reason, status: 400 };
+    if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason);
 
     if (data.role && !['user', 'admin'].includes(data.role)) {
-      return { error: 'Invalid role', status: 400 };
+      throw new DomainError(400, 'Invalid role');
     }
 
     // Guests (#1362) live in a reserved synthetic namespace; never let one block a real account.
     const existingUsername = await this.users.findIdByUsernameExact(username);
-    if (existingUsername) return { error: 'Username already taken', status: 409 };
+    if (existingUsername) throw new DomainError(409, 'Username already taken');
 
     const existingEmail = await this.users.findIdByEmailCI(email);
-    if (existingEmail) return { error: 'Email already taken', status: 409 };
+    if (existingEmail) throw new DomainError(409, 'Email already taken');
 
     const passwordHash = bcrypt.hashSync(password, BCRYPT_COST);
 
@@ -193,7 +194,7 @@ export class AdminService {
       });
     } catch (err) {
       // Another write took the name or address between the check and the insert.
-      if (err instanceof UserIdentityTakenError) return { error: identityTakenMessage(err), status: 409 };
+      if (err instanceof UserIdentityTakenError) throw new DomainError(409, identityTakenMessage(err));
       throw err;
     }
 
@@ -213,29 +214,29 @@ export class AdminService {
     const { role, password } = data;
     const user = await this.users.findById(userId);
 
-    if (!user) return { error: 'User not found', status: 404 };
+    if (!user) throw new DomainError(404, 'User not found');
 
     if (role && !['user', 'admin'].includes(role)) {
-      return { error: 'Invalid role', status: 400 };
+      throw new DomainError(400, 'Invalid role');
     }
 
     // An empty string used to fall through `username || null` into COALESCE and
     // silently mean "leave unchanged". Say so instead of pretending it worked.
-    if (username === '') return { error: 'Username cannot be empty', status: 400 };
-    if (email === '') return { error: 'Email cannot be empty', status: 400 };
+    if (username === '') throw new DomainError(400, 'Username cannot be empty');
+    if (email === '') throw new DomainError(400, 'Email cannot be empty');
 
     if (username && username !== user.username) {
       const conflict = await this.users.findIdByUsernameExactExcluding(username, userId);
-      if (conflict) return { error: 'Username already taken', status: 409 };
+      if (conflict) throw new DomainError(409, 'Username already taken');
     }
     if (email && email !== user.email) {
       const conflict = await this.users.findIdByEmailCI(email, userId);
-      if (conflict) return { error: 'Email already taken', status: 409 };
+      if (conflict) throw new DomainError(409, 'Email already taken');
     }
 
     if (password) {
       const pwCheck = validatePassword(password);
-      if (!pwCheck.ok) return { error: pwCheck.reason, status: 400 };
+      if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason);
     }
     const passwordHash = password ? bcrypt.hashSync(password, BCRYPT_COST) : null;
 
@@ -248,7 +249,7 @@ export class AdminService {
       const currentRole = await this.users.getRole(userId);
       if (currentRole === 'admin') {
         const adminCount = await this.users.countAdmins();
-        if (adminCount <= 1) return { error: 'Cannot remove the last admin', status: 400 };
+        if (adminCount <= 1) throw new DomainError(400, 'Cannot remove the last admin');
       }
     }
 
@@ -291,7 +292,7 @@ export class AdminService {
         }
       });
     } catch (err) {
-      if (err instanceof UserIdentityTakenError) return { error: identityTakenMessage(err), status: 409 };
+      if (err instanceof UserIdentityTakenError) throw new DomainError(409, identityTakenMessage(err));
       throw err;
     }
 
@@ -318,11 +319,11 @@ export class AdminService {
     // SECURITY: plain JS comparison, deliberately kept exactly here — never
     // folded into a repository method's WHERE clause (R4).
     if (Number.parseInt(id) === currentUserId) {
-      return { error: 'Cannot delete own account', status: 400 };
+      throw new DomainError(400, 'Cannot delete own account');
     }
 
     const userToDel = await this.users.findIdAndEmail(Number(id));
-    if (!userToDel) return { error: 'User not found', status: 404 };
+    if (!userToDel) throw new DomainError(404, 'User not found');
 
     await this.userCleanup.deleteUserCompletely(userToDel.id);
     await emitUserDeleted(userToDel.id); // let plugins erase their own per-user data
@@ -344,15 +345,15 @@ export class AdminService {
    * making that reachable from here would turn a stolen admin session into a
    * way to strip the second factor off the very account it came from.
    */
-  async resetUserMfa(id: string, actingUserId: number): Promise<{ error?: string; status?: number; success?: boolean; email?: string }> {
+  async resetUserMfa(id: string, actingUserId: number): Promise<{ success?: boolean; email?: string }> {
     const targetId = Number(id);
     // SECURITY: plain JS comparison, deliberately kept exactly here — never
     // folded into a repository method's WHERE clause (R4).
     if (targetId === actingUserId) {
-      return { error: 'Use Settings to change your own two-factor setup', status: 400 };
+      throw new DomainError(400, 'Use Settings to change your own two-factor setup');
     }
     const target = await this.users.findIdEmailMfaEnabled(targetId);
-    if (!target) return { error: 'User not found', status: 404 };
+    if (!target) throw new DomainError(404, 'User not found');
 
     // Same three columns disableMfa clears, so an admin reset and a self-service
     // disable leave the account in exactly one state rather than two; the
@@ -426,9 +427,9 @@ export class AdminService {
 
   // ── Demo Baseline ──────────────────────────────────────────────────────────
 
-  async saveDemoBaseline(): Promise<{ error?: string; status?: number; message?: string }> {
+  async saveDemoBaseline(): Promise<{ message?: string }> {
     if (!readEnv().demo.enabled) {
-      return { error: 'Not found', status: 404 };
+      throw new DomainError(404, 'Not found');
     }
     try {
       // Lazy require: demo-reset is a demo-only module.
@@ -437,7 +438,7 @@ export class AdminService {
       return { message: 'Demo baseline saved. Hourly resets will restore to this state.' };
     } catch (err: unknown) {
       console.error(err);
-      return { error: 'Failed to save baseline', status: 500 };
+      throw new DomainError(500, 'Failed to save baseline');
     }
   }
 
@@ -676,28 +677,28 @@ export class AdminService {
     const addon = await this.addonsRepo.findById(id);
     const provider = await this.photoProviders.findById(id);
     const docProvider = await this.documentProviders.findById(id);
-    if (!addon && !provider && !docProvider) return { error: 'Addon not found', status: 404 };
+    if (!addon && !provider && !docProvider) throw new DomainError(404, 'Addon not found');
 
     // The whole addon, not just its config: on a centrally administered install
     // the operator owns the endpoint, the model and the per-document cost, so
     // there is nothing here for an instance admin to set — including whether it
     // runs at all. listAddons hides the row; this closes the route behind it.
     if (readEnv().managed.enabled && id === ADDON_IDS.LLM_PARSING) {
-      return { error: MANAGED_FORBIDDEN_ERROR.error, status: 403 };
+      throw new DomainError(403, MANAGED_FORBIDDEN_ERROR.error);
     }
 
     // Photo providers are Journey's shelf rows — their whole UI lives inside
     // journeys, so enabling one under a disabled journey addon would only
     // advertise an integration nothing can reach.
     if (provider && data.enabled === true && !(await this.addons.isAddonEnabled(ADDON_IDS.JOURNEY))) {
-      return { error: 'Enable the Journey addon first', status: 409 };
+      throw new DomainError(409, 'Enable the Journey addon first');
     }
 
     // Same rule one shelf down: a document provider only exists to serve the
     // file manager, so switching one on under a disabled Documents addon would
     // advertise a sync nothing can reach.
     if (docProvider && data.enabled === true && !(await this.addons.isAddonEnabled(ADDON_IDS.DOCUMENTS))) {
-      return { error: 'Enable the Documents addon first', status: 409 };
+      throw new DomainError(409, 'Enable the Documents addon first');
     }
 
     await this.uow.transactional(async () => {
@@ -784,17 +785,16 @@ export class AdminService {
 
   // ── JWT Rotation ───────────────────────────────────────────────────────────
 
-  rotateJwtSecret(): { error?: string; status?: number } {
+  rotateJwtSecret(): void {
     const newSecret = crypto.randomBytes(32).toString('hex');
     const { dataDir, jwtSecretFile: secretFile } = this.dataPaths;
     try {
       if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
       fs.writeFileSync(secretFile, newSecret, { mode: 0o600 });
     } catch {
-      return { error: 'Failed to persist new JWT secret to disk', status: 500 };
+      throw new DomainError(500, 'Failed to persist new JWT secret to disk');
     }
     updateJwtSecret(newSecret);
-    return {};
   }
 
   invalidateMcpSessions() { invalidateMcpSessions(); }

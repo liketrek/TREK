@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import crypto, { randomBytes, randomUUID } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -745,10 +746,10 @@ export class OauthService {
 
   async adminRevokeOAuthSession(id: string) {
     const tokenId = toRowId(id);
-    if (tokenId === null) return { error: 'Session not found', status: 404 };
+    if (tokenId === null) throw new DomainError(404, 'Session not found');
 
     const row = await this.tokens.findById(tokenId);
-    if (!row) return { error: 'Session not found', status: 404 };
+    if (!row) throw new DomainError(404, 'Session not found');
     await this.tokens.revokeById(tokenId);
     revokeUserSessionsForClient(row.user_id, row.client_id);
     return {};

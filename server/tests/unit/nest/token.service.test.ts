@@ -33,6 +33,7 @@ vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() 
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
+import { asLegacyResult } from '../../helpers/domain-error';
 import { db as testDb } from '../../../src/db/database';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { resetTestDb } from '../../helpers/test-db';
@@ -79,19 +80,19 @@ afterAll(() => {
 describe('MCP token service', () => {
   it('AUTH-DB-041: createMcpToken returns 400 when name is missing', async () => {
     const { user } = createUser(testDb);
-    const result = await svc.createMcpToken(user.id, undefined);
+    const result = await asLegacyResult(svc.createMcpToken(user.id, undefined));
     expect(result.status).toBe(400);
   });
 
   it('AUTH-DB-042: createMcpToken returns 400 when name exceeds 100 chars', async () => {
     const { user } = createUser(testDb);
-    const result = await svc.createMcpToken(user.id, 'a'.repeat(101));
+    const result = await asLegacyResult(svc.createMcpToken(user.id, 'a'.repeat(101)));
     expect(result.status).toBe(400);
   });
 
   it('AUTH-DB-043: createMcpToken creates token and returns raw_token', async () => {
     const { user } = createUser(testDb);
-    const result = await svc.createMcpToken(user.id, 'My Token');
+    const result = await asLegacyResult(svc.createMcpToken(user.id, 'My Token'));
     expect(result.token).toBeDefined();
     expect((result.token as any).raw_token).toMatch(/^trek_/);
   });
@@ -101,22 +102,22 @@ describe('MCP token service', () => {
     for (let i = 0; i < 10; i++) {
       await insertRow(await sharedTestOrm(testDb), McpTokens, { user: user.id, name: `Token ${i}`, token_hash: `hash${i}`, token_prefix: `trek_prefix${i}` });
     }
-    const result = await svc.createMcpToken(user.id, 'One More');
+    const result = await asLegacyResult(svc.createMcpToken(user.id, 'One More'));
     expect(result.status).toBe(400);
   });
 
   it('AUTH-DB-045: deleteMcpToken returns 404 for non-existent token', async () => {
     const { user } = createUser(testDb);
-    const result = await svc.deleteMcpToken(user.id, '99999');
+    const result = await asLegacyResult(svc.deleteMcpToken(user.id, '99999'));
     expect(result.status).toBe(404);
   });
 
   it('AUTH-DB-046: deleteMcpToken deletes the token and returns success', async () => {
     const { user } = createUser(testDb);
-    const created = await svc.createMcpToken(user.id, 'Deletable Token');
+    const created = await asLegacyResult(svc.createMcpToken(user.id, 'Deletable Token'));
     const tokenId = String((created.token as any).id);
 
-    const result = await svc.deleteMcpToken(user.id, tokenId);
+    const result = await asLegacyResult(svc.deleteMcpToken(user.id, tokenId));
     expect(result).toEqual({ success: true });
 
     const row = await tokenRow(tokenId);
@@ -125,19 +126,19 @@ describe('MCP token service', () => {
 
   it('AUTH-DB-092: deleteMcpToken succeeds even when the session sweep throws (best-effort)', async () => {
     const { user } = createUser(testDb);
-    const created = await svc.createMcpToken(user.id, 'sweep-down');
+    const created = await asLegacyResult(svc.createMcpToken(user.id, 'sweep-down'));
     const tokenId = String((created.token as { id: number }).id);
     vi.mocked(revokeUserSessions).mockImplementationOnce(() => { throw new Error('sweep down'); });
 
-    expect(await svc.deleteMcpToken(user.id, tokenId)).toEqual({ success: true });
+    expect(await asLegacyResult(svc.deleteMcpToken(user.id, tokenId))).toEqual({ success: true });
     expect(await tokenRow(tokenId)).toBeNull();
   });
 
   it('TOKEN-001: listMcpTokens is scoped to the caller and never exposes the hash', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
-    await svc.createMcpToken(user.id, 'mine');
-    await svc.createMcpToken(other.id, 'theirs');
+    await asLegacyResult(svc.createMcpToken(user.id, 'mine'));
+    await asLegacyResult(svc.createMcpToken(other.id, 'theirs'));
 
     const mine = await svc.listMcpTokens(user.id) as Record<string, unknown>[];
     expect(mine).toHaveLength(1);
@@ -148,21 +149,21 @@ describe('MCP token service', () => {
   it('TOKEN-002: deleteMcpToken refuses a token that belongs to someone else', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
-    const created = await svc.createMcpToken(other.id, 'not-yours');
+    const created = await asLegacyResult(svc.createMcpToken(other.id, 'not-yours'));
     const tokenId = String((created.token as { id: number }).id);
 
-    expect(await svc.deleteMcpToken(user.id, tokenId)).toEqual({ error: 'Token not found', status: 404 });
+    expect(await asLegacyResult(svc.deleteMcpToken(user.id, tokenId))).toEqual({ error: 'Token not found', status: 404 });
     expect(await tokenRow(tokenId)).not.toBeNull();
   });
 
   it('TOKEN-017: deleteMcpToken 404s (not 500) on a non-numeric id — Plan 3b Task 2 review, F1', async () => {
     const { user } = createUser(testDb);
-    expect(await svc.deleteMcpToken(user.id, 'abc')).toEqual({ error: 'Token not found', status: 404 });
+    expect(await asLegacyResult(svc.deleteMcpToken(user.id, 'abc'))).toEqual({ error: 'Token not found', status: 404 });
   });
 
   it('TOKEN-018: deleteMcpToken 404s on a hex-shaped id — Number("0x10") is 16, a safe integer a bare Number() conversion would accept, but SQLite affinity never would (Plan 3b Task 2 review, F1)', async () => {
     const { user } = createUser(testDb);
-    expect(await svc.deleteMcpToken(user.id, '0x10')).toEqual({ error: 'Token not found', status: 404 });
+    expect(await asLegacyResult(svc.deleteMcpToken(user.id, '0x10'))).toEqual({ error: 'Token not found', status: 404 });
   });
 });
 
@@ -177,7 +178,7 @@ describe('MCP token service', () => {
 describe('API key service', () => {
   it('TOKEN-010: an API key does not verify as an MCP token', async () => {
     const { user } = createUser(testDb);
-    const created = await svc.createApiToken(user.id, 'dawarich');
+    const created = await asLegacyResult(svc.createApiToken(user.id, 'dawarich'));
     const raw = (created.token as { raw_token: string }).raw_token;
 
     expect((await svc.verifyApiToken(raw))?.id).toBe(user.id);
@@ -186,7 +187,7 @@ describe('API key service', () => {
 
   it('TOKEN-011: an MCP token does not verify as an API key', async () => {
     const { user } = createUser(testDb);
-    const created = await svc.createMcpToken(user.id, 'claude');
+    const created = await asLegacyResult(svc.createMcpToken(user.id, 'claude'));
     const raw = (created.token as { raw_token: string }).raw_token;
 
     expect((await svc.verifyMcpToken(raw))?.id).toBe(user.id);
@@ -195,8 +196,8 @@ describe('API key service', () => {
 
   it('TOKEN-012: each list shows only its own kind', async () => {
     const { user } = createUser(testDb);
-    await svc.createMcpToken(user.id, 'claude');
-    await svc.createApiToken(user.id, 'dawarich');
+    await asLegacyResult(svc.createMcpToken(user.id, 'claude'));
+    await asLegacyResult(svc.createApiToken(user.id, 'dawarich'));
 
     const mcp = await svc.listMcpTokens(user.id) as Record<string, unknown>[];
     const api = await svc.listApiTokens(user.id) as Record<string, unknown>[];
@@ -206,11 +207,11 @@ describe('API key service', () => {
 
   it('TOKEN-013: deleting across kinds 404s, identically to an unknown id', async () => {
     const { user } = createUser(testDb);
-    const mcpId = String((await svc.createMcpToken(user.id, 'claude')).token!.id as number);
-    const apiId = String((await svc.createApiToken(user.id, 'dawarich')).token!.id as number);
+    const mcpId = String((await asLegacyResult(svc.createMcpToken(user.id, 'claude'))).token!.id as number);
+    const apiId = String((await asLegacyResult(svc.createApiToken(user.id, 'dawarich'))).token!.id as number);
 
-    expect(await svc.deleteApiToken(user.id, mcpId)).toEqual({ error: 'Token not found', status: 404 });
-    expect(await svc.deleteMcpToken(user.id, apiId)).toEqual({ error: 'Token not found', status: 404 });
+    expect(await asLegacyResult(svc.deleteApiToken(user.id, mcpId))).toEqual({ error: 'Token not found', status: 404 });
+    expect(await asLegacyResult(svc.deleteMcpToken(user.id, apiId))).toEqual({ error: 'Token not found', status: 404 });
     // Neither row was touched: a wrong-kind delete must not be a way to revoke
     // someone's assistant access from the API-key screen.
     expect(await tokenRow(mcpId)).not.toBeNull();
@@ -219,16 +220,16 @@ describe('API key service', () => {
 
   it('TOKEN-014: the ten-token ceiling counts each kind on its own', async () => {
     const { user } = createUser(testDb);
-    for (let i = 0; i < 10; i += 1) await svc.createMcpToken(user.id, `mcp-${i}`);
+    for (let i = 0; i < 10; i += 1) await asLegacyResult(svc.createMcpToken(user.id, `mcp-${i}`));
 
-    expect((await svc.createMcpToken(user.id, 'one-too-many')).status).toBe(400);
+    expect((await asLegacyResult(svc.createMcpToken(user.id, 'one-too-many'))).status).toBe(400);
     // A full MCP shelf must not lock the user out of minting an API key.
-    expect((await svc.createApiToken(user.id, 'dawarich')).status).toBeUndefined();
+    expect((await asLegacyResult(svc.createApiToken(user.id, 'dawarich'))).status).toBeUndefined();
   });
 
   it('TOKEN-015: an API key is stored hashed, with only a prefix in the clear', async () => {
     const { user } = createUser(testDb);
-    const created = await svc.createApiToken(user.id, 'dawarich');
+    const created = await asLegacyResult(svc.createApiToken(user.id, 'dawarich'));
     const raw = (created.token as { raw_token: string }).raw_token;
 
     const row = (await findRow(await sharedTestOrm(testDb), McpTokens, { user: user.id }))!;
@@ -239,7 +240,7 @@ describe('API key service', () => {
 
   it('TOKEN-016: verifying an API key records last_used_at, so a stale key is visible', async () => {
     const { user } = createUser(testDb);
-    const raw = (await svc.createApiToken(user.id, 'dawarich')).token!.raw_token as string;
+    const raw = (await asLegacyResult(svc.createApiToken(user.id, 'dawarich'))).token!.raw_token as string;
 
     const before = await svc.listApiTokens(user.id) as Record<string, unknown>[];
     expect(before[0].last_used_at).toBeNull();
@@ -265,7 +266,7 @@ describe('MCP token service (admin view)', () => {
   });
 
   it('ADMIN-SVC-069 — adminDeleteMcpToken returns 404 for non-existent token', async () => {
-    const result = await svc.adminDeleteMcpToken('99999') as any;
+    const result = await asLegacyResult(svc.adminDeleteMcpToken('99999')) as any;
     expect(result.status).toBe(404);
     expect(result.error).toBeDefined();
   });
@@ -273,8 +274,8 @@ describe('MCP token service (admin view)', () => {
   it('TOKEN-003: listAllMcpTokens spans users and carries the owner username', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
-    await svc.createMcpToken(user.id, 'a');
-    await svc.createMcpToken(other.id, 'b');
+    await asLegacyResult(svc.createMcpToken(user.id, 'a'));
+    await asLegacyResult(svc.createMcpToken(other.id, 'b'));
 
     // `listAllMcpTokens` returns the repository's own typed
     // `McpTokenWithUsernameRow[]` now (Plan 3b Task 2) — no cast needed
@@ -289,26 +290,26 @@ describe('MCP token service (admin view)', () => {
 
   it('TOKEN-004: adminDeleteMcpToken removes any user token and revokes that user', async () => {
     const { user } = createUser(testDb);
-    const created = await svc.createMcpToken(user.id, 'admin-killed');
+    const created = await asLegacyResult(svc.createMcpToken(user.id, 'admin-killed'));
     const tokenId = String((created.token as { id: number }).id);
 
-    expect(await svc.adminDeleteMcpToken(tokenId)).toEqual({});
+    expect(await asLegacyResult(svc.adminDeleteMcpToken(tokenId))).toEqual({});
     expect(await tokenRow(tokenId)).toBeNull();
     expect(revokeUserSessions).toHaveBeenCalledWith(user.id);
   });
 
   it('TOKEN-005: adminDeleteMcpToken 404s on an unknown id without revoking anyone', async () => {
-    expect(await svc.adminDeleteMcpToken('99999')).toEqual({ error: 'Token not found', status: 404 });
+    expect(await asLegacyResult(svc.adminDeleteMcpToken('99999'))).toEqual({ error: 'Token not found', status: 404 });
     expect(revokeUserSessions).not.toHaveBeenCalled();
   });
 
   it('TOKEN-019: adminDeleteMcpToken 404s (not 500) on a non-numeric id, without revoking anyone — Plan 3b Task 2 review, F1', async () => {
-    expect(await svc.adminDeleteMcpToken('abc')).toEqual({ error: 'Token not found', status: 404 });
+    expect(await asLegacyResult(svc.adminDeleteMcpToken('abc'))).toEqual({ error: 'Token not found', status: 404 });
     expect(revokeUserSessions).not.toHaveBeenCalled();
   });
 
   it('TOKEN-020: adminDeleteMcpToken 404s on a hex-shaped id (Plan 3b Task 2 review, F1)', async () => {
-    expect(await svc.adminDeleteMcpToken('0x10')).toEqual({ error: 'Token not found', status: 404 });
+    expect(await asLegacyResult(svc.adminDeleteMcpToken('0x10'))).toEqual({ error: 'Token not found', status: 404 });
     expect(revokeUserSessions).not.toHaveBeenCalled();
   });
 });
@@ -329,7 +330,7 @@ describe('ephemeral tokens', () => {
   it('AUTH-DB-087: createWsToken returns the ephemeral token when the store answers', async () => {
     const { user } = createUser(testDb);
     vi.mocked(createEphemeralToken).mockReturnValueOnce('ws-tok');
-    expect(await svc.createWsToken(user.id)).toEqual({ token: 'ws-tok' });
+    expect(await asLegacyResult(svc.createWsToken(user.id))).toEqual({ token: 'ws-tok' });
   });
 
   it('TOKEN-006: createWsToken binds the caller password_version, so a pre-reset token is rejected on connect', async () => {
@@ -337,20 +338,20 @@ describe('ephemeral tokens', () => {
     await updateRows(await sharedTestOrm(testDb), Users, { id: user.id }, { password_version: 7 });
     vi.mocked(createEphemeralToken).mockReturnValueOnce('ws-tok');
 
-    await svc.createWsToken(user.id);
+    await asLegacyResult(svc.createWsToken(user.id));
     expect(createEphemeralToken).toHaveBeenCalledWith(user.id, 'ws', { pv: 7 });
   });
 
   it('TOKEN-007: createWsToken falls back to pv 0 for a user row without one', async () => {
     vi.mocked(createEphemeralToken).mockReturnValueOnce('ws-tok');
-    await svc.createWsToken(99999);
+    await asLegacyResult(svc.createWsToken(99999));
     expect(createEphemeralToken).toHaveBeenCalledWith(99999, 'ws', { pv: 0 });
   });
 
   it('TOKEN-008: createWsToken reports 503 when the store refuses', async () => {
     const { user } = createUser(testDb);
     vi.mocked(createEphemeralToken).mockReturnValueOnce(null as unknown as string);
-    expect(await svc.createWsToken(user.id)).toEqual({ error: 'Service unavailable', status: 503 });
+    expect(await asLegacyResult(svc.createWsToken(user.id))).toEqual({ error: 'Service unavailable', status: 503 });
   });
 });
 
@@ -361,7 +362,7 @@ describe('ephemeral tokens', () => {
 describe('verifyMcpToken', () => {
   it('AUTH-BR-002: verifyMcpToken resolves a freshly created token to its user', async () => {
     const { user } = createUser(testDb);
-    const created = await svc.createMcpToken(user.id, 'bridge-case');
+    const created = await asLegacyResult(svc.createMcpToken(user.id, 'bridge-case'));
     const raw = (created.token as { raw_token: string }).raw_token;
 
     const resolved = await svc.verifyMcpToken(raw);
@@ -371,7 +372,7 @@ describe('verifyMcpToken', () => {
 
   it('TOKEN-009: a successful verify stamps last_used_at, a failed one changes nothing', async () => {
     const { user } = createUser(testDb);
-    const created = await svc.createMcpToken(user.id, 'stamped');
+    const created = await asLegacyResult(svc.createMcpToken(user.id, 'stamped'));
     const raw = (created.token as { raw_token: string }).raw_token;
     const id = (created.token as { id: number }).id;
     expect((await tokenRow(id))!.last_used_at).toBeNull();
@@ -385,7 +386,7 @@ describe('verifyMcpToken', () => {
 
   it('TOKEN-010: verifyMcpToken returns identity columns only, never the password hash', async () => {
     const { user } = createUser(testDb);
-    const created = await svc.createMcpToken(user.id, 'lean');
+    const created = await asLegacyResult(svc.createMcpToken(user.id, 'lean'));
     const raw = (created.token as { raw_token: string }).raw_token;
 
     const resolved = await svc.verifyMcpToken(raw) as unknown as Record<string, unknown>;

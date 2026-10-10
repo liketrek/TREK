@@ -10,6 +10,7 @@ import { PasskeyEnabledGuard } from '../../../../src/nest/auth/passkey-enabled.g
 import { PasskeyController } from '../../../../src/nest/auth/passkey.controller';
 import type { PasskeyService } from '../../../../src/nest/auth/passkey.service';
 import { setAuthCookie } from '../../../../src/nest/common/cookie';
+import { DomainError } from '../../../../src/nest/common/domain-error';
 import { RateLimitService } from '../../../../src/nest/common/rate-limit.service';
 import type { User } from '../../../../src/types';
 import type { EntityManager } from '@mikro-orm/core';
@@ -240,7 +241,7 @@ describe('PasskeyController', () => {
   }
 
   it('register/options maps a service error, else returns the options', async () => {
-    passkey.passkeyRegisterOptions.mockResolvedValue({ error: 'Incorrect password', status: 401 });
+    passkey.passkeyRegisterOptions.mockRejectedValue(new DomainError(401, 'Incorrect password'));
     expect(await thrownAsync(() => pc(rl()).registerOptions(user, { password: 'x' }, req))).toEqual({
       status: 401,
       body: { error: 'Incorrect password' },
@@ -250,7 +251,7 @@ describe('PasskeyController', () => {
   });
 
   it('register/verify maps a service error, else audits and returns the credential', async () => {
-    passkey.passkeyRegisterVerify.mockResolvedValue({ error: 'Verification failed', status: 400 } as never);
+    passkey.passkeyRegisterVerify.mockRejectedValue(new DomainError(400, 'Verification failed'));
     expect(await thrownAsync(() => pc(rl()).registerVerify(user, {}, req))).toEqual({
       status: 400,
       body: { error: 'Verification failed' },
@@ -261,7 +262,7 @@ describe('PasskeyController', () => {
   });
 
   it('login/options maps a service error, else returns the options', async () => {
-    passkey.passkeyLoginOptions.mockResolvedValue({ error: 'Not configured', status: 503 } as never);
+    passkey.passkeyLoginOptions.mockRejectedValue(new DomainError(503, 'Not configured'));
     expect(await thrownAsync(() => pc(rl()).loginOptions(req))).toEqual({
       status: 503,
       body: { error: 'Not configured' },
@@ -297,7 +298,7 @@ describe('PasskeyController', () => {
     passkey.listPasskeys.mockResolvedValue([{ id: 'a' }]);
     expect(await pc(rl()).list(user)).toEqual({ credentials: [{ id: 'a' }] });
 
-    passkey.renamePasskey.mockResolvedValue({ error: 'Not found', status: 404 });
+    passkey.renamePasskey.mockRejectedValue(new DomainError(404, 'Not found'));
     expect(await thrownAsync(() => pc(rl()).rename(user, 'cid', { name: 'x' }))).toEqual({
       status: 404,
       body: { error: 'Not found' },
@@ -305,7 +306,7 @@ describe('PasskeyController', () => {
     passkey.renamePasskey.mockResolvedValue({ success: true });
     expect(await pc(rl()).rename(user, 'cid', { name: 'x' })).toEqual({ success: true });
 
-    passkey.deletePasskey.mockResolvedValue({ error: 'Incorrect password', status: 401 });
+    passkey.deletePasskey.mockRejectedValue(new DomainError(401, 'Incorrect password'));
     expect(await thrownAsync(() => pc(rl()).remove(user, 'cid', { password: 'x' }, req))).toEqual({
       status: 401,
       body: { error: 'Incorrect password' },

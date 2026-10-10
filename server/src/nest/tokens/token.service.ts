@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { randomBytes, createHash } from 'crypto';
@@ -108,13 +109,13 @@ export class TokenService {
     return await this.createToken(userId, rawName, 'api', scopes);
   }
 
-  private async createToken(userId: number, rawName: unknown, kind: TokenKind, scopes?: readonly string[]): Promise<{ error?: string; status?: number; token?: Record<string, unknown> }> {
+  private async createToken(userId: number, rawName: unknown, kind: TokenKind, scopes?: readonly string[]): Promise<{ token?: Record<string, unknown> }> {
     const name = rawName as string | undefined;
-    if (!name?.trim()) return { error: 'Token name is required', status: 400 };
-    if (name.trim().length > 100) return { error: 'Token name must be 100 characters or less', status: 400 };
+    if (!name?.trim()) throw new DomainError(400, 'Token name is required');
+    if (name.trim().length > 100) throw new DomainError(400, 'Token name must be 100 characters or less');
 
     const tokenCount = await this.tokens.countByUserAndKind(userId, kind);
-    if (tokenCount >= 10) return { error: 'Maximum of 10 tokens per user reached', status: 400 };
+    if (tokenCount >= 10) throw new DomainError(400, 'Maximum of 10 tokens per user reached');
 
     const rawToken = 'trek_' + randomBytes(24).toString('hex');
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
@@ -162,7 +163,7 @@ export class TokenService {
    * happily delete a token the MCP panel manages, and the user would find a key
    * missing from a screen they never opened.
    */
-  private async deleteToken(userId: number, tokenId: string, kind: TokenKind): Promise<{ error?: string; status?: number; success?: boolean }> {
+  private async deleteToken(userId: number, tokenId: string, kind: TokenKind): Promise<{ success?: boolean }> {
     // Convert, VALIDATE, and answer the legacy not-found before any
     // repository call (program rule 15): the legacy statement bound
     // `tokenId` straight into `WHERE id = ?` and let SQLite's affinity rules
@@ -170,9 +171,9 @@ export class TokenService {
     // leniency, so a bare `Number()` turned a 404 into a 500 (Plan 3b Task 2
     // review, F1).
     const id = toRowId(tokenId);
-    if (id === null) return { error: 'Token not found', status: 404 };
+    if (id === null) throw new DomainError(404, 'Token not found');
     const token = await this.tokens.findOwnedByKind(id, userId, kind);
-    if (!token) return { error: 'Token not found', status: 404 };
+    if (!token) throw new DomainError(404, 'Token not found');
     await this.tokens.deleteById(id);
     // Best-effort, like the changePassword/resetPassword revocations: a session
     // sweep failure must not turn a successful token delete into a 500.
@@ -184,12 +185,12 @@ export class TokenService {
   // Ephemeral tokens
   // -------------------------------------------------------------------------
 
-  async createWsToken(userId: number): Promise<{ error?: string; status?: number; token?: string }> {
+  async createWsToken(userId: number): Promise<{ token?: string }> {
     // Bind the ws-token to the user's current password_version so a token minted
     // before a password reset is rejected on connect (defence-in-depth session gate).
     const pv = (await this.users.getPasswordVersion(userId)) ?? 0;
     const token = this.ephemeral.create(userId, 'ws', { pv });
-    if (!token) return { error: 'Service unavailable', status: 503 };
+    if (!token) throw new DomainError(503, 'Service unavailable');
     return { token };
   }
 
@@ -222,9 +223,9 @@ export class TokenService {
     // Same guard as `deleteToken` above — convert, VALIDATE, answer the
     // legacy 404 before any repository call (F1).
     const numericId = toRowId(id);
-    if (numericId === null) return { error: 'Token not found', status: 404 };
+    if (numericId === null) throw new DomainError(404, 'Token not found');
     const token = await this.tokens.findBasic(numericId);
-    if (!token) return { error: 'Token not found', status: 404 };
+    if (!token) throw new DomainError(404, 'Token not found');
     await this.tokens.deleteById(numericId);
     revokeUserSessions(token.user_id);
     return {};

@@ -12,6 +12,7 @@ import { Public } from '../auth-core/public.decorator';
 import { MfaExempt } from '../auth-core/mfa-policy.guard';
 import { extractToken, verifiedSessionClaims } from '../auth-core/jwt-verify';
 import { SessionsService, sessionClientFrom } from '../sessions/sessions.service';
+import { catchDomainError, DomainError } from '../common/domain-error';
 
 const WINDOW = 15 * 60 * 1000;
 const LOGIN_MIN_LATENCY_MS = 350;
@@ -60,9 +61,6 @@ export class AuthPublicController {
   @HttpCode(200)
   async demoLogin(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const result = await this.auth.demoLogin(sessionClientFrom(req));
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     this.auth.setAuthCookie(res, result.token!, req);
     return { token: result.token, user: result.user };
   }
@@ -72,9 +70,6 @@ export class AuthPublicController {
   async invite(@Param('token') token: string, @Req() req: Request) {
     await this.limit('login', req, 10);
     const result = await this.auth.validateInviteToken(token);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     return { valid: result.valid, max_uses: result.max_uses, used_count: result.used_count, expires_at: result.expires_at };
   }
 
@@ -84,9 +79,6 @@ export class AuthPublicController {
   async register(@Body() body: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     await this.limit('login', req, 10);
     const result = await this.auth.registerUser(body, sessionClientFrom(req));
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     await this.audit.writeAudit({ userId: result.auditUserId!, action: 'user.register', ip: getClientIp(req), details: result.auditDetails });
     this.auth.setAuthCookie(res, result.token!, req);
     return { token: result.token, user: result.user };
@@ -156,10 +148,10 @@ export class AuthPublicController {
     // a dedicated bucket) — without it reset tokens could be guessed unthrottled.
     await this.limit('reset', req, 5);
     const ip = getClientIp(req);
-    const result = await this.auth.resetPassword(body);
-    if (result.error) {
-      await this.audit.writeAudit({ userId: null, action: 'user.password_reset_fail', ip, details: { reason: result.error } });
-      throw new HttpException({ error: result.error }, result.status!);
+    const result = await catchDomainError(() => this.auth.resetPassword(body));
+    if (result instanceof DomainError) {
+      await this.audit.writeAudit({ userId: null, action: 'user.password_reset_fail', ip, details: { reason: result.publicMessage } });
+      throw result;
     }
     if (result.mfa_required) {
       return { mfa_required: true };
@@ -174,9 +166,6 @@ export class AuthPublicController {
   async verifyMfaLogin(@Body() body: MfaVerifyLoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     await this.limit('mfa', req, 5);
     const result = await this.auth.verifyMfaLogin(body, sessionClientFrom(req));
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     await this.audit.writeAudit({ userId: result.auditUserId!, action: 'user.login', ip: getClientIp(req), details: { mfa: true } });
     this.auth.setAuthCookie(res, result.token!, req, result.remember);
     return { token: result.token, user: result.user };

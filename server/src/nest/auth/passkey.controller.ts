@@ -53,7 +53,6 @@ export class PasskeyController {
     // The Origin header is only a pre-ceremony sanity input (see PasskeyService)
     // — the RP ID itself is never derived from request headers.
     const result = await this.passkeys.passkeyRegisterOptions(user.id, body?.password, req.headers.origin);
-    if (result.error) throw new HttpException({ error: result.error }, result.status!);
     return result.options;
   }
 
@@ -63,7 +62,6 @@ export class PasskeyController {
   @UseGuards(PasskeyEnabledGuard, JwtAuthGuard)
   async registerVerify(@CurrentUser() user: User, @Body() body: PasskeyRegisterVerifyDto, @Req() req: Request) {
     const result = await this.passkeys.passkeyRegisterVerify(user.id, body);
-    if (result.error) throw new HttpException({ error: result.error }, result.status!);
     await this.audit.writeAudit({ userId: user.id, action: 'user.passkey_register', ip: getClientIp(req) });
     return { success: true, credential: result.credential };
   }
@@ -76,7 +74,6 @@ export class PasskeyController {
   async loginOptions(@Req() req: Request) {
     await this.limit('login', req, 10);
     const result = await this.passkeys.passkeyLoginOptions(req.headers.origin);
-    if (result.error) throw new HttpException({ error: result.error }, result.status!);
     return result.options;
   }
 
@@ -112,8 +109,7 @@ export class PasskeyController {
   @Patch('credentials/:id')
   @UseGuards(JwtAuthGuard)
   async rename(@CurrentUser() user: User, @Param('id') id: string, @Body() body: PasskeyRenameDto) {
-    const result = await this.passkeys.renamePasskey(user.id, id, body?.name);
-    if (result.error) throw new HttpException({ error: result.error }, result.status!);
+    await this.passkeys.renamePasskey(user.id, id, body?.name);
     return { success: true };
   }
 
@@ -121,8 +117,7 @@ export class PasskeyController {
   @UseGuards(JwtAuthGuard)
   async remove(@CurrentUser() user: User, @Param('id') id: string, @Body() body: PasskeyDeleteDto, @Req() req: Request) {
     await this.limit('login', req, 5);
-    const result = await this.passkeys.deletePasskey(user.id, id, body?.password);
-    if (result.error) throw new HttpException({ error: result.error }, result.status!);
+    await this.passkeys.deletePasskey(user.id, id, body?.password);
     await this.audit.writeAudit({ userId: user.id, action: 'user.passkey_delete', resource: String(id), ip: getClientIp(req) });
     return { success: true };
   }

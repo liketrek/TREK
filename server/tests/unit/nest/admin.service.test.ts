@@ -9,6 +9,7 @@
  * integration tests don't exercise. VCJOB-001 pins the version-check cron path
  * (it replaced ADMIN-BR-001 when the old admin bridge died with the cron move).
  */
+import { asLegacyResult } from '../../helpers/domain-error';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import { ADDON_IDS, MCP_GATED_ADDON_IDS } from '../../../src/addons';
@@ -196,18 +197,18 @@ beforeAll(async () => {
 // Legacy free-function names bound to the service, so the moved cases below read
 // exactly as they did before the fold.
 const listUsers = () => svc.listUsers();
-const svcCreateUser = (d: Parameters<AdminService['createUser']>[0]) => svc.createUser(d);
-const updateUser = (id: string, d: Parameters<AdminService['updateUser']>[1]) => svc.updateUser(id, d);
-const deleteUser = (id: string, actingId: number) => svc.deleteUser(id, actingId);
+const svcCreateUser = (d: Parameters<AdminService['createUser']>[0]) => asLegacyResult(svc.createUser(d));
+const updateUser = (id: string, d: Parameters<AdminService['updateUser']>[1]) => asLegacyResult(svc.updateUser(id, d));
+const deleteUser = (id: string, actingId: number) => asLegacyResult(svc.deleteUser(id, actingId));
 const getStats = () => svc.getStats();
 const getPermissions = () => svc.getPermissions();
 const savePermissions = (p: Record<string, string>) => svc.savePermissions(p);
 const getAuditLog = (q: { limit?: string; offset?: string }) => svc.getAuditLog(q);
-const saveDemoBaseline = () => svc.saveDemoBaseline();
+const saveDemoBaseline = () => asLegacyResult(svc.saveDemoBaseline());
 const getGithubReleases = (perPage?: string, page?: string) => svc.getGithubReleases(perPage, page);
 const checkVersion = () => svc.checkVersion();
 const listAddons = () => svc.listAddons();
-const updateAddon = (id: string, d: Parameters<AdminService['updateAddon']>[1]) => svc.updateAddon(id, d);
+const updateAddon = (id: string, d: Parameters<AdminService['updateAddon']>[1]) => asLegacyResult(svc.updateAddon(id, d));
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -831,7 +832,7 @@ describe('resetUserMfa', () => {
     await auth.generateToken({ id: user.id });
     await auth.generateToken({ id: admin.user.id });
 
-    expect((await svc.resetUserMfa(String(user.id), admin.user.id)) as { success?: boolean }).toMatchObject({ success: true });
+    expect((await asLegacyResult(svc.resetUserMfa(String(user.id), admin.user.id))) as { success?: boolean }).toMatchObject({ success: true });
     expect(await liveSessions(user.id)).toBe(0);
     expect(await liveSessions(admin.user.id)).toBe(1);
   });
@@ -843,7 +844,7 @@ describe('resetUserMfa', () => {
     const admin = createAdmin(testDb);
     const { user } = createUserWithMfa(testDb);
 
-    const result = (await svc.resetUserMfa(String(user.id), admin.user.id)) as { success?: boolean; email?: string };
+    const result = (await asLegacyResult(svc.resetUserMfa(String(user.id), admin.user.id))) as { success?: boolean; email?: string };
 
     expect(result.success).toBe(true);
     expect(result.email).toBe(user.email);
@@ -859,7 +860,7 @@ describe('resetUserMfa', () => {
     // self-service path in Settings asks for the current password.
     const admin = createAdmin(testDb);
 
-    const result = (await svc.resetUserMfa(String(admin.user.id), admin.user.id)) as { error?: string; status?: number };
+    const result = (await asLegacyResult(svc.resetUserMfa(String(admin.user.id), admin.user.id))) as { error?: string; status?: number };
 
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/your own/i);
@@ -868,7 +869,7 @@ describe('resetUserMfa', () => {
   it('ADMIN-SVC-085 — 404 for a user that is not there', async () => {
     const admin = createAdmin(testDb);
 
-    expect((await svc.resetUserMfa('99999', admin.user.id)) as { status?: number }).toMatchObject({ status: 404 });
+    expect((await asLegacyResult(svc.resetUserMfa('99999', admin.user.id))) as { status?: number }).toMatchObject({ status: 404 });
   });
 });
 

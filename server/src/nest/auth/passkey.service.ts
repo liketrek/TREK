@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import bcrypt from 'bcryptjs';
@@ -40,6 +41,9 @@ const NOT_CONFIGURED = { error: 'Passkey login is not configured for this server
 // One generic message for every authentication failure so the endpoint can't be
 // used to tell "no such credential" apart from "bad signature" (CWE-203).
 const AUTH_FAILED = { error: 'Authentication failed', status: 401 } as const;
+
+/** One of the canned `{ error, status }` pairs above, raised. */
+const refusal = (r: { error: string; status: number }) => new DomainError(r.status, r.error);
 
 // Reference-compared sentinel (oidc invite_exhausted precedent): thrown inside
 // the register transaction to keep the duplicate 409 distinct from the generic
@@ -224,19 +228,19 @@ export class PasskeyService {
     userId: number,
     password: string | undefined,
     requestOrigin?: string,
-  ): Promise<{ error?: string; status?: number; options?: Awaited<ReturnType<typeof generateRegistrationOptions>> }> {
+  ): Promise<{ options?: Awaited<ReturnType<typeof generateRegistrationOptions>> }> {
     const cfg = await this.webauthn.resolve();
-    if (!cfg) return { ...NOT_CONFIGURED };
-    if (this.originCannotVerify(cfg, requestOrigin)) return { ...NOT_CONFIGURED };
+    if (!cfg) throw refusal(NOT_CONFIGURED);
+    if (this.originCannotVerify(cfg, requestOrigin)) throw refusal(NOT_CONFIGURED);
 
     const user = await this.users.findById(userId);
-    if (!user) return { error: 'User not found', status: 404 };
+    if (!user) throw new DomainError(404, 'User not found');
 
     // Re-authentication: a hijacked session must not be able to silently plant an
     // attacker-controlled passkey. Require the current password (parity with the
     // change-password / disable-MFA step-up).
     if (!password || !user.password_hash || !bcrypt.compareSync(password, user.password_hash)) {
-      return { error: 'Incorrect password', status: 401 };
+      throw new DomainError(401, 'Incorrect password');
     }
 
     const existing = await this.webauthnCredentials.listExcludeCredentials(userId);
@@ -264,20 +268,20 @@ export class PasskeyService {
   async passkeyRegisterVerify(
     userId: number,
     body: { attestationResponse?: unknown; name?: unknown },
-  ): Promise<{ error?: string; status?: number; success?: boolean; credential?: unknown }> {
+  ): Promise<{ success?: boolean; credential?: unknown }> {
     const cfg = await this.webauthn.resolve();
-    if (!cfg) return { ...NOT_CONFIGURED };
+    if (!cfg) throw refusal(NOT_CONFIGURED);
 
     const resp = body?.attestationResponse;
-    if (!resp) return { error: 'Invalid registration response', status: 400 };
+    if (!resp) throw new DomainError(400, 'Invalid registration response');
 
     const challenge = challengeFromResponse(resp);
-    if (!challenge) return { error: 'Invalid registration response', status: 400 };
+    if (!challenge) throw new DomainError(400, 'Invalid registration response');
 
     const now = Date.now();
     const claimed = await this.claimChallenge(challenge, 'registration', now);
     if (!claimed || claimed.user_id !== userId) {
-      return { error: 'Registration challenge expired. Please try again.', status: 400 };
+      throw new DomainError(400, 'Registration challenge expired. Please try again.');
     }
 
     const expectedOrigin = this.expectedOrigins(cfg, resp);
@@ -296,11 +300,11 @@ export class PasskeyService {
       this.logger.warn(
         `Passkey registration rejected (expectedRPID=${cfg.rpID}, expectedOrigin=[${expectedOrigin.join(', ')}]): ${err instanceof Error ? err.message : String(err)}`,
       );
-      return { error: 'Could not register this passkey.', status: 400 };
+      throw new DomainError(400, 'Could not register this passkey.');
     }
 
     if (!verification.verified || !verification.registrationInfo) {
-      return { error: 'Could not register this passkey.', status: 400 };
+      throw new DomainError(400, 'Could not register this passkey.');
     }
 
     // Persist ONLY the values the verifier vouches for — never anything parsed
@@ -329,9 +333,9 @@ export class PasskeyService {
       });
     } catch (err) {
       if (err === DUPLICATE_CREDENTIAL) {
-        return { error: 'This passkey is already registered.', status: 409 };
+        throw new DomainError(409, 'This passkey is already registered.');
       }
-      return { error: 'Could not register this passkey.', status: 400 };
+      throw new DomainError(400, 'Could not register this passkey.');
     }
 
     const created = (await this.webauthnCredentials.findCreatedCredential(credential.id))!;
@@ -343,13 +347,11 @@ export class PasskeyService {
   // -------------------------------------------------------------------------
 
   async passkeyLoginOptions(requestOrigin?: string): Promise<{
-    error?: string;
-    status?: number;
     options?: Awaited<ReturnType<typeof generateAuthenticationOptions>>;
   }> {
     const cfg = await this.webauthn.resolve();
-    if (!cfg) return { ...NOT_CONFIGURED };
-    if (this.originCannotVerify(cfg, requestOrigin)) return { ...NOT_CONFIGURED };
+    if (!cfg) throw refusal(NOT_CONFIGURED);
+    if (this.originCannotVerify(cfg, requestOrigin)) throw refusal(NOT_CONFIGURED);
 
     const now = Date.now();
     await this.purgeExpiredChallenges(now);
@@ -452,9 +454,9 @@ export class PasskeyService {
     return rows.map((r) => ({ ...r, backed_up: r.backed_up === 1 }));
   }
 
-  async renamePasskey(userId: number, id: string, name: unknown): Promise<{ error?: string; status?: number; success?: boolean }> {
+  async renamePasskey(userId: number, id: string, name: unknown): Promise<{ success?: boolean }> {
     const cleanName = sanitizeName(name);
-    if (!cleanName) return { error: 'Name is required', status: 400 };
+    if (!cleanName) throw new DomainError(400, 'Name is required');
     // Convert, VALIDATE, and answer the legacy not-found before the
     // repository call (program rule 15): the legacy `UPDATE ... WHERE id = ?
     // AND user_id = ?` bound `Number(id)` as a plain parameter — a
@@ -466,10 +468,10 @@ export class PasskeyService {
     // reference and throws — a 500 where the legacy 404'd (Plan 3b Task 3
     // review, F1).
     const rowId = toRowId(id);
-    if (rowId === null) return { error: 'Passkey not found', status: 404 };
+    if (rowId === null) throw new DomainError(404, 'Passkey not found');
     // Ownership enforced in SQL (404 on miss, never a 403 that leaks existence).
     const changes = await this.webauthnCredentials.renameOwned(rowId, userId, cleanName);
-    if (changes === 0) return { error: 'Passkey not found', status: 404 };
+    if (changes === 0) throw new DomainError(404, 'Passkey not found');
     return { success: true };
   }
 
@@ -477,27 +479,27 @@ export class PasskeyService {
     userId: number,
     id: string,
     password: string | undefined,
-  ): Promise<{ error?: string; status?: number; success?: boolean }> {
+  ): Promise<{ success?: boolean }> {
     // Re-auth before removing a credential (a hijacked session must not be able to
     // strip the victim's passkeys). Deleting is always allowed because every
     // account keeps a usable password as recovery fallback — losing all passkeys
     // can never lock anyone out.
     const passwordHash = await this.users.getPasswordHash(userId);
     if (!passwordHash || !password || !bcrypt.compareSync(password, passwordHash)) {
-      return { error: 'Incorrect password', status: 401 };
+      throw new DomainError(401, 'Incorrect password');
     }
     // Same guard as `renamePasskey` (F1) — placed after the password check
     // to match the legacy statement order exactly (a wrong password still
     // answers 401 before a bad id is ever considered).
     const rowId = toRowId(id);
-    if (rowId === null) return { error: 'Passkey not found', status: 404 };
+    if (rowId === null) throw new DomainError(404, 'Passkey not found');
     const changes = await this.webauthnCredentials.deleteOwned(rowId, userId);
-    if (changes === 0) return { error: 'Passkey not found', status: 404 };
+    if (changes === 0) throw new DomainError(404, 'Passkey not found');
     return { success: true };
   }
 
   /** Admin: clear all of a user's passkeys (e.g. on suspected compromise). */
-  async adminResetPasskeys(targetUserId: number): Promise<{ error?: string; status?: number; success?: boolean; deleted?: number; email?: string }> {
+  async adminResetPasskeys(targetUserId: number): Promise<{ success?: boolean; deleted?: number; email?: string }> {
     // `AdminService.resetUserPasskeys` converts the route param with a bare
     // `Number(id)` before calling in — a non-numeric id arrives here as
     // `NaN`, still typed `number` at the JS level. Same F1 guard: validate
@@ -505,9 +507,9 @@ export class PasskeyService {
     // `SELECT id, email FROM users WHERE id = ?` bound `Number(id)` too and
     // simply matched no row).
     const rowId = toRowId(targetUserId);
-    if (rowId === null) return { error: 'User not found', status: 404 };
+    if (rowId === null) throw new DomainError(404, 'User not found');
     const target = await this.users.findIdAndEmail(rowId);
-    if (!target) return { error: 'User not found', status: 404 };
+    if (!target) throw new DomainError(404, 'User not found');
     const deleted = await this.webauthnCredentials.deleteAllForUser(rowId);
     return { success: true, deleted, email: target.email };
   }

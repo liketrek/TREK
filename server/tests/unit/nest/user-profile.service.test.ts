@@ -31,6 +31,7 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
+import { asLegacyResult } from '../../helpers/domain-error';
 import { db as testDb } from '../../../src/db/database';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { resetTestDb } from '../../helpers/test-db';
@@ -83,21 +84,21 @@ afterAll(() => {
 describe('updateSettings', () => {
   it('AUTH-DB-001: updates username successfully', async () => {
     const { user } = createUser(testDb);
-    const result = await profile.updateSettings(user.id, { username: 'newname' });
+    const result = await asLegacyResult(profile.updateSettings(user.id, { username: 'newname' }));
     expect(result.success).toBe(true);
     expect(result.user?.username).toBe('newname');
   });
 
   it('AUTH-DB-002: returns 400 when username is too short (< 2 chars)', async () => {
     const { user } = createUser(testDb);
-    const result = await profile.updateSettings(user.id, { username: 'x' });
+    const result = await asLegacyResult(profile.updateSettings(user.id, { username: 'x' }));
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/between 2 and 50/i);
   });
 
   it('AUTH-DB-003: returns 400 when username has invalid characters (spaces)', async () => {
     const { user } = createUser(testDb);
-    const result = await profile.updateSettings(user.id, { username: 'bad name' });
+    const result = await asLegacyResult(profile.updateSettings(user.id, { username: 'bad name' }));
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/only contain/i);
   });
@@ -105,21 +106,21 @@ describe('updateSettings', () => {
   it('AUTH-DB-004: returns 409 when username is already taken by another user', async () => {
     const { user: user1 } = createUser(testDb, { username: 'alice' });
     const { user: user2 } = createUser(testDb, { username: 'bob' });
-    const result = await profile.updateSettings(user2.id, { username: user1.username });
+    const result = await asLegacyResult(profile.updateSettings(user2.id, { username: user1.username }));
     expect(result.status).toBe(409);
     expect(result.error).toMatch(/already taken/i);
   });
 
   it('AUTH-DB-005: updates email successfully', async () => {
     const { user } = createUser(testDb);
-    const result = await profile.updateSettings(user.id, { email: 'new@example.com' });
+    const result = await asLegacyResult(profile.updateSettings(user.id, { email: 'new@example.com' }));
     expect(result.success).toBe(true);
     expect(result.user?.email).toBe('new@example.com');
   });
 
   it('AUTH-DB-006: returns 400 for invalid email format', async () => {
     const { user } = createUser(testDb);
-    const result = await profile.updateSettings(user.id, { email: 'not-an-email' });
+    const result = await asLegacyResult(profile.updateSettings(user.id, { email: 'not-an-email' }));
     expect(result.status).toBe(400);
     expect(result.error).toMatch(/invalid email/i);
   });
@@ -127,14 +128,14 @@ describe('updateSettings', () => {
   it('AUTH-DB-007: returns 409 when email is already taken by another user', async () => {
     const { user: user1 } = createUser(testDb, { email: 'taken@example.com' });
     const { user: user2 } = createUser(testDb);
-    const result = await profile.updateSettings(user2.id, { email: user1.email });
+    const result = await asLegacyResult(profile.updateSettings(user2.id, { email: user1.email }));
     expect(result.status).toBe(409);
     expect(result.error).toMatch(/already taken/i);
   });
 
   it('AUTH-DB-008: returns success with no field changes when empty body is passed', async () => {
     const { user } = createUser(testDb);
-    const result = await profile.updateSettings(user.id, {});
+    const result = await asLegacyResult(profile.updateSettings(user.id, {}));
     expect(result.success).toBe(true);
   });
 });
@@ -146,7 +147,7 @@ describe('updateSettings', () => {
 describe('getSettings', () => {
   it('AUTH-DB-009: returns 403 for non-admin user', async () => {
     const { user } = createUser(testDb);
-    const result = await profile.getSettings(user.id);
+    const result = await asLegacyResult(profile.getSettings(user.id));
     expect(result.status).toBe(403);
     expect(result.error).toMatch(/admin/i);
   });
@@ -154,7 +155,7 @@ describe('getSettings', () => {
   it('AUTH-DB-010: returns maps_api_key and openweather_api_key for admin', async () => {
     const { user } = createAdmin(testDb);
     await setUserColumns(user.id, { maps_api_key: 'maps-key-value', openweather_api_key: 'weather-key-value' });
-    const result = await profile.getSettings(user.id);
+    const result = await asLegacyResult(profile.getSettings(user.id));
     expect(result.status).toBeUndefined();
     expect(result.settings).toBeDefined();
     expect(result.settings).toHaveProperty('maps_api_key');
@@ -167,7 +168,7 @@ describe('getSettings', () => {
     // Returned to the client masked, never in plaintext.
     expect(result.user.unsplash_api_key).toBe('-----key');
     // getSettings returns the stored key to the admin.
-    expect((await profile.getSettings(user.id)).settings?.unsplash_api_key).toBe('unsplash-secret-key');
+    expect((await asLegacyResult(profile.getSettings(user.id))).settings?.unsplash_api_key).toBe('unsplash-secret-key');
   });
 
   it('AUTH-DB-010c: a key set in the environment comes back as its variable name, not a value (#1881)', async () => {
@@ -176,7 +177,7 @@ describe('getSettings', () => {
     try {
       const { user } = createAdmin(testDb);
       await profile.updateApiKeys(user.id, { maps_api_key: 'stored-but-overridden', unsplash_api_key: 'stored-unsplash' });
-      const settings = (await profile.getSettings(user.id)).settings;
+      const settings = (await asLegacyResult(profile.getSettings(user.id))).settings;
       // Neither the stored value nobody searches with nor the operator's own.
       expect(settings?.maps_api_key).toBeNull();
       expect(settings?.env_keys).toEqual({ maps_api_key: 'PLACES_API_KEY' });
@@ -191,7 +192,7 @@ describe('getSettings', () => {
 
   it('AUTH-DB-010d: without a variable env_keys is empty', async () => {
     const { user } = createAdmin(testDb);
-    expect((await profile.getSettings(user.id)).settings?.env_keys).toEqual({});
+    expect((await asLegacyResult(profile.getSettings(user.id))).settings?.env_keys).toEqual({});
   });
 });
 
@@ -226,16 +227,14 @@ describe('listUsers', () => {
 describe('validateKeys', () => {
   it('AUTH-DB-015: returns 403 for non-admin', async () => {
     const { user } = createUser(testDb);
-    const result = await profile.validateKeys(user.id);
+    const result = await asLegacyResult(profile.validateKeys(user.id));
     expect(result.status).toBe(403);
     expect(result.error).toMatch(/admin/i);
-    expect(result.maps).toBe(false);
-    expect(result.weather).toBe(false);
   });
 
   it('AUTH-DB-016: returns { maps: false, weather: false } when no API keys are stored', async () => {
     const { user } = createAdmin(testDb);
-    const result = await profile.validateKeys(user.id);
+    const result = await asLegacyResult(profile.validateKeys(user.id));
     expect(result.maps).toBe(false);
     expect(result.weather).toBe(false);
     expect(result.maps_details).toBeNull();
@@ -251,7 +250,7 @@ describe('validateKeys', () => {
       text: async () => '',
     } as Response);
 
-    const result = await profile.validateKeys(user.id);
+    const result = await asLegacyResult(profile.validateKeys(user.id));
     expect(result.maps).toBe(true);
     expect(result.maps_details?.ok).toBe(true);
 
@@ -266,7 +265,7 @@ describe('validateKeys', () => {
       .spyOn(global, 'fetch')
       .mockRejectedValueOnce(new Error('Network failure'));
 
-    const result = await profile.validateKeys(user.id);
+    const result = await asLegacyResult(profile.validateKeys(user.id));
     expect(result.maps).toBe(false);
     expect(result.maps_details?.error_status).toBe('FETCH_ERROR');
     expect(result.maps_details?.error_message).toBe('Network failure');
@@ -286,7 +285,7 @@ describe('validateKeys', () => {
       text: async () => '',
     } as Response);
 
-    await profile.validateKeys(user.id);
+    await asLegacyResult(profile.validateKeys(user.id));
     const headers = (fetchSpy.mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>;
     expect(headers.Referer).toBe('https://trek.example.com');
 
@@ -309,7 +308,7 @@ describe('validateKeys', () => {
       // key belongs to whoever runs the box, and the panel used to answer
       // "no maps key" while every search on that same install worked.
       const { user } = createAdmin(testDb);
-      const result = await profile.validateKeys(user.id);
+      const result = await asLegacyResult(profile.validateKeys(user.id));
       const headers = (fetchSpy.mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>;
       expect(headers['X-Goog-Api-Key']).toBe('operator-key');
       expect(result.maps).toBe(true);
@@ -334,7 +333,7 @@ describe('validateKeys', () => {
       text: async () => '',
     } as Response);
 
-    await profile.validateKeys(user.id);
+    await asLegacyResult(profile.validateKeys(user.id));
     const headers = (fetchSpy.mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>;
     expect(headers['X-Goog-Api-Key']).toBe('live-instance-key');
     // And it asks for the fields the real search asks for, so a key restricted
@@ -454,9 +453,9 @@ describe('instance-wide API keys', () => {
     const { user } = createAdmin(testDb);
     await setUserColumns(user.id, { maps_api_key: 'stale-personal-key' });
     await setAppSetting(await sharedTestOrm(testDb), 'maps_api_key', 'live-instance-key');
-    expect((await profile.getSettings(user.id)).settings?.maps_api_key).toBe('live-instance-key');
+    expect((await asLegacyResult(profile.getSettings(user.id))).settings?.maps_api_key).toBe('live-instance-key');
     // openweather is per-user and unaffected.
-    expect((await profile.getSettings(user.id)).settings?.openweather_api_key).toBeNull();
+    expect((await asLegacyResult(profile.getSettings(user.id))).settings?.openweather_api_key).toBeNull();
   });
 
   it('AUTH-DB-106: updateMapsKey mirrors for an admin and stays personal for a member', async () => {
@@ -470,7 +469,7 @@ describe('instance-wide API keys', () => {
 
   it('AUTH-DB-107: updateSettings mirrors the key half without touching name/email handling', async () => {
     const { user } = createAdmin(testDb);
-    const result = await profile.updateSettings(user.id, { maps_api_key: 'from-settings-route', username: 'renamed' });
+    const result = await asLegacyResult(profile.updateSettings(user.id, { maps_api_key: 'from-settings-route', username: 'renamed' }));
     expect(result.success).toBe(true);
     expect(result.user?.username).toBe('renamed');
     expect(await instanceRow('maps_api_key')).toBe('from-settings-route');
@@ -508,7 +507,7 @@ describe('changedKeys', () => {
       expect(result.changedKeys).toEqual([]);
       expect(await instanceRow('maps_api_key')).toBeUndefined();
       expect((await profile.updateMapsKey(user.id, 'operator-owns-this')).changedKeys).toEqual([]);
-      expect((await profile.updateSettings(user.id, { maps_api_key: 'operator-owns-this' })).changedKeys).toEqual([]);
+      expect((await asLegacyResult(profile.updateSettings(user.id, { maps_api_key: 'operator-owns-this' }))).changedKeys).toEqual([]);
     } finally {
       if (prev === undefined) delete process.env.TREK_MANAGED;
       else process.env.TREK_MANAGED = prev;
@@ -522,7 +521,7 @@ describe('updateSettings loses the race for an email', () => {
     const { user } = createUser(testDb, { email: 'carl@example.com' });
     const check = vi.spyOn(UsersRepository.prototype, 'findIdByEmailCI').mockResolvedValue(null);
     try {
-      const result = await profile.updateSettings(user.id, { email: 'ANNA@example.com' });
+      const result = await asLegacyResult(profile.updateSettings(user.id, { email: 'ANNA@example.com' }));
       expect(result).toEqual({ error: 'Email already taken', status: 409 });
     } finally {
       check.mockRestore();

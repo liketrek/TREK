@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import crypto from 'crypto';
@@ -101,7 +102,7 @@ export class RegistrationInvitesService {
     const numericId = toRowId(id);
     // RI6 — the 404 check.
     if (numericId === null || (await this.inviteTokens.findIdById(numericId)) === null) {
-      return { error: 'Invite not found', status: 404 };
+      throw new DomainError(404, 'Invite not found');
     }
     // RI7.
     await this.inviteTokens.deleteById(numericId);

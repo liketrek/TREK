@@ -79,14 +79,13 @@ export const conflict = (message: string, details?: Record<string, unknown>) =>
  * Runs `fn` and returns the DomainError it raised instead of throwing it; any
  * other error propagates. For the few callers that must act on a refusal before
  * passing it on (an audit row, a constant-time pad) and for service tests.
+ * Test the result with `instanceof DomainError`.
  */
-export async function catchDomainError<T>(
-  fn: () => Promise<T> | T,
-): Promise<{ ok: true; value: T } | { ok: false; error: DomainError }> {
+export async function catchDomainError<T>(fn: () => Promise<T> | T): Promise<T | DomainError> {
   try {
-    return { ok: true, value: await fn() };
+    return await fn();
   } catch (err) {
-    if (err instanceof DomainError) return { ok: false, error: err };
+    if (err instanceof DomainError) return err;
     throw err;
   }
 }

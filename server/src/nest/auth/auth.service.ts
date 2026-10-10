@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -129,7 +130,6 @@ setInterval(() => {
 }, 5 * 60 * 1000).unref?.();
 
 export interface ResetPasswordOutcome {
-  error?: string;
   status?: number;
   success?: boolean;
   /** When true the client must collect a TOTP/backup code and call again. */
@@ -410,28 +410,28 @@ export class AuthService {
   // Auth: register, login, demo
   // -------------------------------------------------------------------------
 
-  async demoLogin(client?: SessionClient): Promise<{ error?: string; status?: number; token?: string; user?: Record<string, unknown> }> {
+  async demoLogin(client?: SessionClient): Promise<{ token?: string; user?: Record<string, unknown> }> {
     if (!readEnv().demo.enabled) {
-      return { error: 'Not found', status: 404 };
+      throw new DomainError(404, 'Not found');
     }
     const user = await this.usersRepo.findByEmailExact(DEMO_EMAIL_PRIMARY);
-    if (!user) return { error: 'Demo user not found', status: 500 };
+    if (!user) throw new DomainError(500, 'Demo user not found');
     const token = await this.generateToken(user, undefined, client);
     const safe = stripUserForClient(toClientUser(user)) as Record<string, unknown>;
     return { token, user: { ...safe, avatar_url: avatarUrl(user) } };
   }
 
-  async validateInviteToken(token: string): Promise<{ error?: string; status?: number; valid?: boolean; max_uses?: number; used_count?: number; expires_at?: string | null }> {
+  async validateInviteToken(token: string): Promise<{ valid?: boolean; max_uses?: number; used_count?: number; expires_at?: string | null }> {
     const invite = await this.inviteTokens.findByToken(token);
-    if (!invite) return { error: 'Invalid invite link', status: 404 };
-    if (invite.max_uses > 0 && invite.used_count >= invite.max_uses) return { error: 'Invite link has been fully used', status: 410 };
-    if (invite.expires_at && new Date(invite.expires_at) < new Date()) return { error: 'Invite link has expired', status: 410 };
+    if (!invite) throw new DomainError(404, 'Invalid invite link');
+    if (invite.max_uses > 0 && invite.used_count >= invite.max_uses) throw new DomainError(410, 'Invite link has been fully used');
+    if (invite.expires_at && new Date(invite.expires_at) < new Date()) throw new DomainError(410, 'Invite link has expired');
     // A nullable column stays null on the wire: `?? undefined` would make
     // JSON.stringify drop the key for a never-expiring invite.
     return { valid: true, max_uses: invite.max_uses, used_count: invite.used_count, expires_at: invite.expires_at };
   }
 
-  async registerUser(rawBody: unknown, client?: SessionClient): Promise<{ error?: string; status?: number; token?: string; user?: Record<string, unknown>; auditUserId?: number; auditDetails?: Record<string, unknown> }> {
+  async registerUser(rawBody: unknown, client?: SessionClient): Promise<{ token?: string; user?: Record<string, unknown>; auditUserId?: number; auditDetails?: Record<string, unknown> }> {
     const body = rawBody as { username?: string; email?: string; password?: string; invite_token?: string };
     const username = typeof body.username === 'string' ? body.username.trim() : '';
     const email = typeof body.email === 'string' ? body.email.trim() : '';
@@ -442,27 +442,27 @@ export class AuthService {
     let validInvite: Awaited<ReturnType<InviteTokensRepository['findByToken']>> = null;
     if (invite_token) {
       validInvite = await this.inviteTokens.findByToken(invite_token);
-      if (!validInvite) return { error: 'Invalid invite link', status: 400 };
-      if (validInvite.max_uses > 0 && validInvite.used_count >= validInvite.max_uses) return { error: 'Invite link has been fully used', status: 410 };
-      if (validInvite.expires_at && new Date(validInvite.expires_at) < new Date()) return { error: 'Invite link has expired', status: 410 };
+      if (!validInvite) throw new DomainError(400, 'Invalid invite link');
+      if (validInvite.max_uses > 0 && validInvite.used_count >= validInvite.max_uses) throw new DomainError(410, 'Invite link has been fully used');
+      if (validInvite.expires_at && new Date(validInvite.expires_at) < new Date()) throw new DomainError(410, 'Invite link has expired');
     }
 
     if (userCount > 0 && !validInvite) {
       const toggles = await this.resolveAuthToggles();
       if (!toggles.password_registration) {
-        return { error: 'Password registration is disabled. Contact your administrator.', status: 403 };
+        throw new DomainError(403, 'Password registration is disabled. Contact your administrator.');
       }
     }
 
     if (!username || !email || !password) {
-      return { error: 'Username, email and password are required', status: 400 };
+      throw new DomainError(400, 'Username, email and password are required');
     }
 
     const pwCheck = validatePassword(password);
-    if (!pwCheck.ok) return { error: pwCheck.reason, status: 400 };
+    if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason);
 
     if (!EMAIL_REGEX.test(email)) {
-      return { error: 'Invalid email format', status: 400 };
+      throw new DomainError(400, 'Invalid email format');
     }
 
     const password_hash = bcrypt.hashSync(password, BCRYPT_COST);
@@ -476,7 +476,7 @@ export class AuthService {
         // Ignore guests (#1362): their synthetic username/email must never block a real signup.
         const existingUserId = await this.usersRepo.findIdByEmailOrUsernameCI(email, username);
         if (existingUserId !== null) {
-          return { error: 'Registration failed. Please try different credentials.', status: 409 };
+          throw new DomainError(409, 'Registration failed. Please try different credentials.');
         }
         const isFirstUser = (await this.usersRepo.countNonGuest()) === 0;
         const role = isFirstUser ? 'admin' : 'user';
@@ -509,10 +509,11 @@ export class AuthService {
     } catch (err) {
       // The check above runs in the transaction, but a concurrent signup can
       // still win the insert; the database's unique indexes refuse the second.
+      if (err instanceof DomainError) throw err;
       if (err instanceof UserIdentityTakenError) {
-        return { error: 'Registration failed. Please try different credentials.', status: 409 };
+        throw new DomainError(409, 'Registration failed. Please try different credentials.');
       }
-      return { error: 'Error creating user', status: 500 };
+      throw new DomainError(500, 'Error creating user');
     }
   }
 
@@ -623,25 +624,25 @@ export class AuthService {
     remember?: boolean,
     client?: SessionClient,
     issueSession = true,
-  ): Promise<{ error?: string; status?: number; success?: boolean; token?: string }> {
+  ): Promise<{ success?: boolean; token?: string }> {
     const body = rawBody as { current_password?: string; new_password?: string };
     if (await this.isOidcOnlyMode()) {
-      return { error: 'Password authentication is disabled.', status: 403 };
+      throw new DomainError(403, 'Password authentication is disabled.');
     }
     if (readEnv().demo.enabled && isDemoEmail(userEmail)) {
-      return { error: 'Password change is disabled in demo mode.', status: 403 };
+      throw new DomainError(403, 'Password change is disabled in demo mode.');
     }
 
     const { current_password, new_password } = body;
-    if (!current_password) return { error: 'Current password is required', status: 400 };
-    if (!new_password) return { error: 'New password is required', status: 400 };
+    if (!current_password) throw new DomainError(400, 'Current password is required');
+    if (!new_password) throw new DomainError(400, 'New password is required');
 
     const pwCheck = validatePassword(new_password);
-    if (!pwCheck.ok) return { error: pwCheck.reason, status: 400 };
+    if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason);
 
     const user = await this.usersRepo.getPasswordHashAndVersion(userId);
     if (!user || !bcrypt.compareSync(current_password, user.password_hash)) {
-      return { error: 'Current password is incorrect', status: 401 };
+      throw new DomainError(401, 'Current password is incorrect');
     }
 
     const hash = bcrypt.hashSync(new_password, BCRYPT_COST);
@@ -671,14 +672,14 @@ export class AuthService {
     return { success: true, token };
   }
 
-  async deleteAccount(userId: number, userEmail: string, userRole: string): Promise<{ error?: string; status?: number; success?: boolean }> {
+  async deleteAccount(userId: number, userEmail: string, userRole: string): Promise<{ success?: boolean }> {
     if (readEnv().demo.enabled && isDemoEmail(userEmail)) {
-      return { error: 'Account deletion is disabled in demo mode.', status: 403 };
+      throw new DomainError(403, 'Account deletion is disabled in demo mode.');
     }
     if (userRole === 'admin') {
       const adminCount = await this.usersRepo.countAdmins();
       if (adminCount <= 1) {
-        return { error: 'Cannot delete the last admin account', status: 400 };
+        throw new DomainError(400, 'Cannot delete the last admin account');
       }
     }
     await this.userCleanup.deleteUserCompletely(userId);
@@ -700,9 +701,9 @@ export class AuthService {
   // work, not with a move.
   // -------------------------------------------------------------------------
 
-  async getAppSettings(userId: number): Promise<{ error?: string; status?: number; data?: Record<string, string> }> {
+  async getAppSettings(userId: number): Promise<{ data?: Record<string, string> }> {
     const role = await this.usersRepo.getRole(userId);
-    if (role !== 'admin') return { error: 'Admin access required', status: 403 };
+    if (role !== 'admin') throw new DomainError(403, 'Admin access required');
 
     const result: Record<string, string> = {};
     for (const key of ADMIN_FORM_SETTING_KEYS) {
@@ -716,8 +717,6 @@ export class AuthService {
     userId: number,
     rawBody: unknown
   ): Promise<{
-    error?: string;
-    status?: number;
     success?: boolean;
     auditSummary?: Record<string, unknown>;
     auditDebugDetails?: Record<string, unknown>;
@@ -726,7 +725,7 @@ export class AuthService {
   }> {
     const body = rawBody as Record<string, unknown>;
     const role = await this.usersRepo.getRole(userId);
-    if (role !== 'admin') return { error: 'Admin access required', status: 403 };
+    if (role !== 'admin') throw new DomainError(403, 'Admin access required');
 
     const { require_mfa } = body;
     if (require_mfa === true || require_mfa === 'true') {
@@ -735,10 +734,7 @@ export class AuthService {
       // their own account with a passkey may enable it too (not only TOTP).
       const adminHasPasskey = await this.webauthnCredentials.hasAny(userId);
       if (!(adminMfa?.mfa_enabled === 1) && !adminHasPasskey) {
-        return {
-          error: 'Secure your own account with two-factor authentication or a passkey before requiring it for all users.',
-          status: 400,
-        };
+        throw new DomainError(400, 'Secure your own account with two-factor authentication or a passkey before requiring it for all users.');
       }
     }
 
@@ -749,7 +745,7 @@ export class AuthService {
       const nextPasswordLogin = body.password_login !== undefined ? (String(body.password_login) === 'true') : current.password_login;
       const nextOidcLogin = body.oidc_login !== undefined ? (String(body.oidc_login) === 'true') : current.oidc_login;
       if (!nextPasswordLogin && (!nextOidcLogin || !oidcConfigured)) {
-        return { error: 'Cannot disable all login methods. At least one must remain enabled.', status: 400 };
+        throw new DomainError(400, 'Cannot disable all login methods. At least one must remain enabled.');
       }
     }
 
@@ -807,13 +803,13 @@ export class AuthService {
   // MFA
   // -------------------------------------------------------------------------
 
-  async setupMfa(userId: number, userEmail: string): Promise<{ error?: string; status?: number; secret?: string; otpauth_url?: string; qrPromise?: Promise<string> }> {
+  async setupMfa(userId: number, userEmail: string): Promise<{ secret?: string; otpauth_url?: string; qrPromise?: Promise<string> }> {
     if (readEnv().demo.enabled && isDemoEmail(userEmail)) {
-      return { error: 'MFA is not available in demo mode.', status: 403 };
+      throw new DomainError(403, 'MFA is not available in demo mode.');
     }
     const row = await this.usersRepo.getMfaEnabled(userId);
     if (row?.mfa_enabled) {
-      return { error: 'MFA is already enabled', status: 400 };
+      throw new DomainError(400, 'MFA is already enabled');
     }
     let secret: string, otpauth_url: string;
     try {
@@ -822,24 +818,24 @@ export class AuthService {
       otpauth_url = authenticator.keyuri(userEmail, 'TREK', secret);
     } catch (err) {
       console.error('[MFA] Setup error:', err);
-      return { error: 'MFA setup failed', status: 500 };
+      throw new DomainError(500, 'MFA setup failed');
     }
     return { secret, otpauth_url, qrPromise: QRCode.toString(otpauth_url, { type: 'svg', width: 250 }) };
   }
 
-  async enableMfa(userId: number, rawCode: unknown): Promise<{ error?: string; status?: number; success?: boolean; mfa_enabled?: boolean; backup_codes?: string[] }> {
+  async enableMfa(userId: number, rawCode: unknown): Promise<{ success?: boolean; mfa_enabled?: boolean; backup_codes?: string[] }> {
     const code = rawCode as string | undefined;
     if (!code) {
-      return { error: 'Verification code is required', status: 400 };
+      throw new DomainError(400, 'Verification code is required');
     }
     const pending = this.getPendingMfaSecret(userId);
     if (!pending) {
-      return { error: 'No MFA setup in progress. Start the setup again.', status: 400 };
+      throw new DomainError(400, 'No MFA setup in progress. Start the setup again.');
     }
     const tokenStr = String(code).replace(/\s/g, '');
     const ok = authenticator.verify({ token: tokenStr, secret: pending });
     if (!ok) {
-      return { error: 'Invalid verification code', status: 401 };
+      throw new DomainError(401, 'Invalid verification code');
     }
     const backupCodes = generateBackupCodes();
     const backupHashes = backupCodes.map(hashBackupCodeBcrypt);
@@ -854,31 +850,31 @@ export class AuthService {
     userEmail: string,
     rawBody: unknown,
     currentSessionId?: string,
-  ): Promise<{ error?: string; status?: number; success?: boolean; mfa_enabled?: boolean }> {
+  ): Promise<{ success?: boolean; mfa_enabled?: boolean }> {
     const body = rawBody as { password?: string; code?: string };
     if (readEnv().demo.enabled && isDemoEmail(userEmail)) {
-      return { error: 'MFA cannot be changed in demo mode.', status: 403 };
+      throw new DomainError(403, 'MFA cannot be changed in demo mode.');
     }
     const policy = await readAppSetting(this.appSettings, 'require_mfa');
     if (policy === 'true') {
-      return { error: 'Two-factor authentication cannot be disabled while it is required for all users.', status: 403 };
+      throw new DomainError(403, 'Two-factor authentication cannot be disabled while it is required for all users.');
     }
     const { password, code } = body;
     if (!password || !code) {
-      return { error: 'Password and authenticator code are required', status: 400 };
+      throw new DomainError(400, 'Password and authenticator code are required');
     }
     const user = await this.usersRepo.findById(userId);
     if (!user?.mfa_enabled || !user.mfa_secret) {
-      return { error: 'MFA is not enabled', status: 400 };
+      throw new DomainError(400, 'MFA is not enabled');
     }
     if (!user.password_hash || !bcrypt.compareSync(password, user.password_hash)) {
-      return { error: 'Incorrect password', status: 401 };
+      throw new DomainError(401, 'Incorrect password');
     }
     const secret = decryptMfaSecret(user.mfa_secret);
     const tokenStr = String(code).replace(/\s/g, '');
     const ok = authenticator.verify({ token: tokenStr, secret });
     if (!ok) {
-      return { error: 'Invalid verification code', status: 401 };
+      throw new DomainError(401, 'Invalid verification code');
     }
     // Every other session ends with the second factor; this one just proved both.
     await this.uow.transactional(async () => {
@@ -890,8 +886,6 @@ export class AuthService {
   }
 
   async verifyMfaLogin(rawBody: unknown, client?: SessionClient): Promise<{
-    error?: string;
-    status?: number;
     token?: string;
     user?: Record<string, unknown>;
     remember?: boolean;
@@ -901,16 +895,16 @@ export class AuthService {
     const { mfa_token, code, remember_me } = body;
     const remember = remember_me === true;
     if (!mfa_token || !code) {
-      return { error: 'Verification token and code are required', status: 400 };
+      throw new DomainError(400, 'Verification token and code are required');
     }
     try {
       const decoded = jwt.verify(mfa_token, JWT_SECRET, { algorithms: ['HS256'] }) as { id: number; purpose?: string };
       if (decoded.purpose !== 'mfa_login') {
-        return { error: 'Invalid verification token', status: 401 };
+        throw new DomainError(401, 'Invalid verification token');
       }
       const user = await this.usersRepo.findById(decoded.id);
       if (!user || user.mfa_enabled !== 1 || !user.mfa_secret) {
-        return { error: 'Invalid session', status: 401 };
+        throw new DomainError(401, 'Invalid session');
       }
       const secret = decryptMfaSecret(user.mfa_secret);
       const tokenStr = String(code).trim();
@@ -921,7 +915,7 @@ export class AuthService {
         // any store older than the bcrypt migration keeps working.
         const idx = hashes.findIndex((h) => matchBackupCode(tokenStr, h));
         if (idx === -1) {
-          return { error: 'Invalid verification code', status: 401 };
+          throw new DomainError(401, 'Invalid verification code');
         }
         hashes.splice(idx, 1);
         // Consume the backup code and record the login atomically — the code
@@ -941,8 +935,9 @@ export class AuthService {
         remember,
         auditUserId: Number(user.id),
       };
-    } catch {
-      return { error: 'Invalid or expired verification token', status: 401 };
+    } catch (err) {
+      if (err instanceof DomainError) throw err;
+      throw new DomainError(401, 'Invalid or expired verification token');
     }
   }
 
@@ -1021,28 +1016,28 @@ export class AuthService {
     const body = rawBody as { token?: string; new_password?: string; mfa_code?: string };
     const { token, new_password, mfa_code } = body;
     if (!token || typeof token !== 'string') {
-      return { error: 'Reset token is required', status: 400 };
+      throw new DomainError(400, 'Reset token is required');
     }
     if (!new_password || typeof new_password !== 'string') {
-      return { error: 'New password is required', status: 400 };
+      throw new DomainError(400, 'New password is required');
     }
     // Check the policy BEFORE touching the token so an invalid password
     // does not burn the user's one-time link.
     const pwCheck = validatePassword(new_password);
-    if (!pwCheck.ok) return { error: pwCheck.reason!, status: 400 };
+    if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason!);
 
     const tokenHash = hashResetToken(token);
     const row = await this.passwordResetTokens.findByTokenHash(tokenHash);
 
-    if (!row) return { error: 'Invalid or expired reset link', status: 400 };
-    if (row.consumed_at) return { error: 'This reset link has already been used', status: 400 };
+    if (!row) throw new DomainError(400, 'Invalid or expired reset link');
+    if (row.consumed_at) throw new DomainError(400, 'This reset link has already been used');
     if ((parseDbTimestamp(row.expires_at)?.getTime() ?? Number.NaN) < Date.now()) {
-      return { error: 'Reset link has expired. Please request a new one.', status: 400 };
+      throw new DomainError(400, 'Reset link has expired. Please request a new one.');
     }
 
     const user = await this.usersRepo.findResetTarget(row.user_id);
 
-    if (!user) return { error: 'Invalid or expired reset link', status: 400 };
+    if (!user) throw new DomainError(400, 'Invalid or expired reset link');
 
     // MFA gate. If enabled, require a valid TOTP or backup code.
     const mfaOn = user.mfa_enabled === 1;
@@ -1050,7 +1045,7 @@ export class AuthService {
     if (mfaOn) {
       if (!user.mfa_secret) {
         // Data inconsistency — fail closed.
-        return { error: 'MFA is enabled but not configured. Contact your administrator.', status: 500 };
+        throw new DomainError(500, 'MFA is enabled but not configured. Contact your administrator.');
       }
       const supplied = typeof mfa_code === 'string' ? mfa_code.trim() : '';
       if (!supplied) return { mfa_required: true, status: 200 };
@@ -1060,7 +1055,7 @@ export class AuthService {
       if (!okTotp) {
         const hashes = parseBackupCodeHashes(user.mfa_backup_codes);
         const idx = hashes.findIndex((h) => matchBackupCode(supplied, h));
-        if (idx === -1) return { error: 'Invalid MFA code', status: 401 };
+        if (idx === -1) throw new DomainError(401, 'Invalid MFA code');
         backupCodeConsumedIndex = idx;
       }
     }

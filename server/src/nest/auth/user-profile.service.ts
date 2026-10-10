@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { readEnv, getAppUrl } from '../../app-config';
@@ -184,29 +185,29 @@ export class UserProfileService {
   async updateSettings(
     userId: number,
     rawBody: unknown
-  ): Promise<{ error?: string; status?: number; success?: boolean; user?: Record<string, unknown>; changedKeys?: string[] }> {
+  ): Promise<{ success?: boolean; user?: Record<string, unknown>; changedKeys?: string[] }> {
     const body = rawBody as { maps_api_key?: string; openweather_api_key?: string; unsplash_api_key?: string; amap_api_key?: string; username?: string; email?: string };
     const { maps_api_key, openweather_api_key, unsplash_api_key, amap_api_key, username, email } = body;
 
     if (username !== undefined) {
       const trimmed = username.trim();
       if (!trimmed || trimmed.length < 2 || trimmed.length > 50) {
-        return { error: 'Username must be between 2 and 50 characters', status: 400 };
+        throw new DomainError(400, 'Username must be between 2 and 50 characters');
       }
       if (!/^[a-zA-Z0-9_.-]+$/.test(trimmed)) {
-        return { error: 'Username can only contain letters, numbers, underscores, dots and hyphens', status: 400 };
+        throw new DomainError(400, 'Username can only contain letters, numbers, underscores, dots and hyphens');
       }
       const conflict = await this.usersRepo.findIdByUsernameCI(trimmed, userId);
-      if (conflict) return { error: 'Username already taken', status: 409 };
+      if (conflict) throw new DomainError(409, 'Username already taken');
     }
 
     if (email !== undefined) {
       const trimmed = email.trim();
       if (!trimmed || !EMAIL_REGEX.test(trimmed)) {
-        return { error: 'Invalid email format', status: 400 };
+        throw new DomainError(400, 'Invalid email format');
       }
       const conflict = await this.usersRepo.findIdByEmailCI(trimmed, userId);
-      if (conflict) return { error: 'Email already taken', status: 409 };
+      if (conflict) throw new DomainError(409, 'Email already taken');
     }
 
     // The name and email half of this body stays the user's own in every mode;
@@ -241,7 +242,7 @@ export class UserProfileService {
       } catch (err) {
         // Another write took the name or address between the check above and this one.
         if (err instanceof UserIdentityTakenError) {
-          return { error: err.field === 'email' ? 'Email already taken' : 'Username already taken', status: 409 };
+          throw new DomainError(409, err.field === 'email' ? 'Email already taken' : 'Username already taken');
         }
         throw err;
       }
@@ -258,9 +259,9 @@ export class UserProfileService {
     };
   }
 
-  async getSettings(userId: number): Promise<{ error?: string; status?: number; settings?: Record<string, unknown> }> {
+  async getSettings(userId: number): Promise<{ settings?: Record<string, unknown> }> {
     const user = await this.usersRepo.getApiKeyColumns(userId);
-    if (user?.role !== 'admin') return { error: 'Admin access required', status: 403 };
+    if (user?.role !== 'admin') throw new DomainError(403, 'Admin access required');
 
     // The one endpoint in the codebase that hands back a stored key in the
     // clear. That is fine when the admin pasted it in themselves and wrong when
@@ -348,9 +349,9 @@ export class UserProfileService {
   // Key validation
   // -------------------------------------------------------------------------
 
-  async validateKeys(userId: number): Promise<{ error?: string; status?: number; maps: boolean; weather: boolean; maps_details: null | { ok: boolean; status: number | null; status_text: string | null; error_message: string | null; error_status: string | null; error_raw: string | null } }> {
+  async validateKeys(userId: number): Promise<{ maps: boolean; weather: boolean; maps_details: null | { ok: boolean; status: number | null; status_text: string | null; error_message: string | null; error_status: string | null; error_raw: string | null } }> {
     const user = await this.usersRepo.getRoleAndWeatherKey(userId);
-    if (user?.role !== 'admin') return { error: 'Admin access required', status: 403, maps: false, weather: false, maps_details: null };
+    if (user?.role !== 'admin') throw new DomainError(403, 'Admin access required');
 
     const result: {
       maps: boolean;

@@ -119,9 +119,6 @@ export class AuthController {
     const remember = decodeSessionClaims(cookie)?.remember;
     const cookieSession = typeof cookie === 'string' && cookie.length > 0;
     const result = await this.auth.changePassword(user.id, user.email, body, remember, sessionClientFrom(req), cookieSession);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     // Refresh this device's cookie with the new password_version so the user
     // stays logged in here while all other sessions are invalidated.
     if (result.token) this.auth.setAuthCookie(res, result.token, req, remember);
@@ -131,10 +128,7 @@ export class AuthController {
 
   @Delete('me')
   async deleteAccount(@CurrentUser() user: User, @Req() req: Request) {
-    const result = await this.auth.deleteAccount(user.id, user.email, user.role);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
+    await this.auth.deleteAccount(user.id, user.email, user.role);
     await this.audit.writeAudit({ userId: user.id, action: 'user.account_delete', ip: getClientIp(req) });
     return { success: true };
   }
@@ -180,9 +174,6 @@ export class AuthController {
   @Put('me/settings')
   async updateSettings(@CurrentUser() user: User, @Body() body: SettingsUpdateDto, @Req() req: Request) {
     const result = await this.profile.updateSettings(user.id, body);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     await this.auditApiKeys(user.id, result.changedKeys ?? [], req);
     return { success: result.success, user: result.user };
   }
@@ -190,9 +181,6 @@ export class AuthController {
   @Get('me/settings')
   async getSettings(@CurrentUser() user: User) {
     const result = await this.profile.getSettings(user.id);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     return { settings: result.settings };
   }
 
@@ -226,9 +214,6 @@ export class AuthController {
   @Get('validate-keys')
   async validateKeys(@CurrentUser() user: User) {
     const result = await this.profile.validateKeys(user.id);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     return { maps: result.maps, weather: result.weather, maps_details: result.maps_details };
   }
 
@@ -236,9 +221,6 @@ export class AuthController {
   @MfaExempt('the setup screen reads the policy it is asking the user to satisfy')
   async getAppSettings(@CurrentUser() user: User) {
     const result = await this.auth.getAppSettings(user.id);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     return result.data;
   }
 
@@ -246,9 +228,6 @@ export class AuthController {
   @MfaExempt('an admin locked out by their own policy must still be able to lift it')
   async updateAppSettings(@CurrentUser() user: User, @Body() body: AppSettingsUpdateDto, @Req() req: Request) {
     const result = await this.auth.updateAppSettings(user.id, body);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     await this.audit.writeAudit({ userId: user.id, action: 'settings.app_update', ip: getClientIp(req), details: result.auditSummary, debugDetails: result.auditDebugDetails });
     // Named so the settings tab can say which fields the operator holds rather
     // than showing a saved value that silently did not save.
@@ -264,9 +243,6 @@ export class AuthController {
   @HttpCode(200)
   async mfaSetup(@CurrentUser() user: User) {
     const result = await this.auth.setupMfa(user.id, user.email);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     try {
       const qr_svg = await result.qrPromise!;
       return { secret: result.secret, otpauth_url: result.otpauth_url, qr_svg };
@@ -282,9 +258,6 @@ export class AuthController {
   async mfaEnable(@CurrentUser() user: User, @Body() body: MfaEnableDto, @Req() req: Request) {
     await this.limit('mfa', req, 5);
     const result = await this.auth.enableMfa(user.id, body.code);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     await this.audit.writeAudit({ userId: user.id, action: 'user.mfa_enable', ip: getClientIp(req) });
     return { success: true, mfa_enabled: result.mfa_enabled, backup_codes: result.backup_codes };
   }
@@ -294,9 +267,6 @@ export class AuthController {
   async mfaDisable(@CurrentUser() user: User, @Body() body: MfaDisableDto, @Req() req: Request) {
     await this.limit('login', req, 5);
     const result = await this.auth.disableMfa(user.id, user.email, body, currentSessionId(req));
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     await this.audit.writeAudit({ userId: user.id, action: 'user.mfa_disable', ip: getClientIp(req) });
     return { success: true, mfa_enabled: result.mfa_enabled };
   }
@@ -312,18 +282,12 @@ export class AuthController {
   async createMcpToken(@CurrentUser() user: User, @Body() body: McpTokenCreateDto, @Req() req: Request) {
     await this.limit('login', req, 5);
     const result = await this.tokens.createMcpToken(user.id, body.name);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     return { token: result.token };
   }
 
   @Delete('mcp-tokens/:id')
   async deleteMcpToken(@CurrentUser() user: User, @Param('id') id: string) {
-    const result = await this.tokens.deleteMcpToken(user.id, id);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
+    await this.tokens.deleteMcpToken(user.id, id);
     return { success: true };
   }
 
@@ -352,18 +316,12 @@ export class AuthController {
     // before this field existed does. Narrowing stays opt-in so the change
     // cannot break an integration that is already running.
     const result = await this.tokens.createApiToken(user.id, body.name, body.scopes);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     return { token: result.token };
   }
 
   @Delete('api-tokens/:id')
   async deleteApiToken(@CurrentUser() user: User, @Param('id') id: string) {
-    const result = await this.tokens.deleteApiToken(user.id, id);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
+    await this.tokens.deleteApiToken(user.id, id);
     return { success: true };
   }
 
@@ -377,9 +335,6 @@ export class AuthController {
     // 503-ing every other user's ws and download tokens.
     await this.limitUser('ws_token', user.id, 120);
     const result = await this.tokens.createWsToken(user.id);
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     return { token: result.token };
   }
 

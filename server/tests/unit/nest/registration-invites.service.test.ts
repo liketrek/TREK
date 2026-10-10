@@ -7,6 +7,7 @@
  * stays greppable. Constructed directly (no TestingModule, repo convention).
  */
 
+import { asLegacyResult } from '../../helpers/domain-error';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
@@ -58,14 +59,14 @@ describe('Invites', () => {
   it('ADMIN-SVC-027 — deleteInvite removes invite', async () => {
     const { user: admin } = createAdmin(testDb);
     const invite = createInviteToken(testDb, { created_by: admin.id }) as any;
-    const result = await svc.deleteInvite(String(invite.id)) as any;
+    const result = await asLegacyResult(svc.deleteInvite(String(invite.id))) as any;
     expect(result.error).toBeUndefined();
     const check = await findRow(await sharedTestOrm(testDb), InviteTokens, { id: invite.id });
     expect(check).toBeNull();
   });
 
   it('ADMIN-SVC-028 — deleteInvite returns 404 for non-existent invite', async () => {
-    const result = await svc.deleteInvite('99999') as any;
+    const result = await asLegacyResult(svc.deleteInvite('99999')) as any;
     expect(result.status).toBe(404);
   });
 
@@ -73,7 +74,7 @@ describe('Invites', () => {
     const { user: admin } = createAdmin(testDb);
     await insertRow(await sharedTestOrm(testDb), InviteTokens, { id: 16, token: 'hex-survivor', max_uses: 1, used_count: 0, expires_at: null, createdByRef: admin.id });
 
-    const result = await svc.deleteInvite('0x10');
+    const result = await asLegacyResult(svc.deleteInvite('0x10'));
 
     expect(result).toEqual({ error: 'Invite not found', status: 404 });
     expect(await findRow(await sharedTestOrm(testDb), InviteTokens, { id: 16 })).not.toBeNull();

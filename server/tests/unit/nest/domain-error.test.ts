@@ -64,7 +64,7 @@ describe('DomainError', () => {
 
 describe('catchDomainError', () => {
   it('returns the value of a call that succeeds', async () => {
-    expect(await catchDomainError(() => 5)).toEqual({ ok: true, value: 5 });
+    expect(await catchDomainError(() => 5)).toBe(5);
   });
 
   it('returns the DomainError a call raised', async () => {
@@ -73,7 +73,7 @@ describe('catchDomainError', () => {
       await catchDomainError(async () => {
         throw err;
       }),
-    ).toEqual({ ok: false, error: err });
+    ).toBe(err);
   });
 
   it('rethrows any other error', async () => {

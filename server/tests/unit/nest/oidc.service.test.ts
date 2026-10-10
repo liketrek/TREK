@@ -9,6 +9,7 @@
  * ReDoS-sensitive issuer trailing-slash regex. Constructed directly (no
  * TestingModule, repo convention) over a real in-memory SQLite database.
  */
+import { asLegacyResult } from '../../helpers/domain-error';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import { generateKeyPairSync } from 'crypto';
 import jwtLib from 'jsonwebtoken';
@@ -1487,7 +1488,7 @@ describe('OIDC configured — the four checks', () => {
     const configSaysSo = (await auth.getAppConfig(null)).oidc_configured;
     // 3: turning password login off is refused when OIDC is not configured (oidc_login is on by default).
     const admin = createAdmin(testDb).user;
-    const save = await auth.updateAppSettings(admin.id, { password_login: false });
+    const save = await asLegacyResult(auth.updateAppSettings(admin.id, { password_login: false }));
     const lockoutSaysSo = save.error === undefined;
     await deleteRows(o, AppSettings, { key: { $in: ['password_login'] } });
     // 4: the provider config.

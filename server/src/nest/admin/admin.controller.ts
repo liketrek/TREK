@@ -29,15 +29,6 @@ import { NotificationsService } from '../notifications/notifications.service';
 import type { User } from '../../types';
 import { ManagedForbidden } from '../common/managed';
 
-/** Throw the legacy {error,status} envelope when a service call reports failure. */
-function ok<T>(result: T): Exclude<T, { error: string }> {
-  if (result && typeof result === 'object' && 'error' in (result as Record<string, unknown>)) {
-    const r = result as unknown as { error: string; status?: number };
-    throw new HttpException({ error: r.error }, r.status ?? 400);
-  }
-  return result as Exclude<T, { error: string }>;
-}
-
 /**
  * /api/admin — admin-only control surface (users, stats, permissions, audit log,
  * OIDC settings, invites, feature toggles, packing templates, addons, MCP/OAuth
@@ -76,14 +67,14 @@ export class AdminController {
   @Post('users')
   @HttpCode(201)
   async createUser(@CurrentUser() user: User, @Body() body: AdminUserCreateDto, @Req() req: Request) {
-    const result = ok(await this.admin.createUser(body as Parameters<AdminService['createUser']>[0]));
+    const result = await this.admin.createUser(body as Parameters<AdminService['createUser']>[0]);
     await this.audit.writeAudit({ userId: user.id, action: 'admin.user_create', resource: String(result.insertedId), ip: getClientIp(req), details: result.auditDetails });
     return { user: result.user };
   }
 
   @Put('users/:id')
   async updateUser(@CurrentUser() user: User, @Param('id') id: string, @Body() body: AdminUserUpdateDto, @Req() req: Request) {
-    const result = ok(await this.admin.updateUser(id, body));
+    const result = await this.admin.updateUser(id, body);
     await this.audit.writeAudit({ userId: user.id, action: 'admin.user_update', resource: String(id), ip: getClientIp(req), details: { targetUser: result.previousEmail, fields: result.changed } });
     logInfo(`Admin ${user.email} edited user ${result.previousEmail} (fields: ${result.changed.join(', ')})`);
     return { user: result.user };
@@ -91,7 +82,7 @@ export class AdminController {
 
   @Delete('users/:id')
   async deleteUser(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
-    const result = ok(await this.admin.deleteUser(id, user.id));
+    const result = await this.admin.deleteUser(id, user.id);
     await this.audit.writeAudit({ userId: user.id, action: 'admin.user_delete', resource: String(id), ip: getClientIp(req), details: { targetUser: result.email } });
     logInfo(`Admin ${user.email} deleted user ${result.email}`);
     return { success: true };
@@ -99,14 +90,14 @@ export class AdminController {
 
   @Delete('users/:id/passkeys')
   async resetUserPasskeys(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
-    const result = ok(await this.admin.resetUserPasskeys(id));
+    const result = await this.admin.resetUserPasskeys(id);
     await this.audit.writeAudit({ userId: user.id, action: 'admin.user_passkeys_reset', resource: String(id), ip: getClientIp(req), details: { targetUser: result.email, deleted: result.deleted } });
     return { success: true, deleted: result.deleted };
   }
 
   @Delete('users/:id/mfa')
   async resetUserMfa(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
-    const result = ok(await this.admin.resetUserMfa(id, user.id));
+    const result = await this.admin.resetUserMfa(id, user.id);
     await this.audit.writeAudit({ userId: user.id, action: 'admin.user_mfa_reset', resource: String(id), ip: getClientIp(req), details: { targetUser: result.email } });
     return { success: true };
   }
@@ -132,9 +123,6 @@ export class AdminController {
   @HttpCode(200)
   async saveDemoBaseline(@CurrentUser() user: User, @Req() req: Request) {
     const result = await this.admin.saveDemoBaseline();
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
     await this.audit.writeAudit({ userId: user.id, action: 'admin.demo_baseline_save', ip: getClientIp(req) });
     return { success: true, message: result.message };
   }
@@ -175,7 +163,7 @@ export class AdminController {
 
   @Delete('invites/:id')
   async deleteInvite(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
-    ok(await this.invites.deleteInvite(id));
+    await this.invites.deleteInvite(id);
     await this.audit.writeAudit({ userId: user.id, action: 'admin.invite_delete', resource: String(id), ip: getClientIp(req) });
     return { success: true };
   }
@@ -290,7 +278,7 @@ export class AdminController {
 
   @Put('addons/:id')
   async updateAddon(@CurrentUser() user: User, @Param('id') id: string, @Body() body: AdminAddonUpdateDto, @Req() req: Request) {
-    const result = await ok(await this.admin.updateAddon(id, body));
+    const result = await this.admin.updateAddon(id, body);
     await this.audit.writeAudit({ userId: user.id, action: 'admin.addon_update', resource: String(id), ip: getClientIp(req), details: result.auditDetails });
     // Sessions only need re-creating when the registered MCP surface can
     // actually change — an enabled-flip of an MCP-relevant addon. Config-only
@@ -316,7 +304,7 @@ export class AdminController {
 
   @Delete('mcp-tokens/:id')
   async deleteMcpToken(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
-    ok(await this.tokens.adminDeleteMcpToken(id));
+    await this.tokens.adminDeleteMcpToken(id);
     await this.audit.writeAudit({ userId: user.id, action: 'admin.mcp_token_delete', resource: String(id), ip: getClientIp(req) });
     return { success: true };
   }
@@ -326,7 +314,7 @@ export class AdminController {
 
   @Delete('oauth-sessions/:id')
   async revokeOAuthSession(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
-    ok(await this.oauth.adminRevokeOAuthSession(id));
+    await this.oauth.adminRevokeOAuthSession(id);
     await this.audit.writeAudit({ userId: user.id, action: 'admin.oauth_session_revoke', resource: String(id), ip: getClientIp(req) });
     return { success: true };
   }
@@ -336,10 +324,7 @@ export class AdminController {
   @Post('rotate-jwt-secret')
   @HttpCode(200)
   async rotateJwtSecret(@CurrentUser() user: User, @Req() req: Request) {
-    const result = this.admin.rotateJwtSecret();
-    if (result.error) {
-      throw new HttpException({ error: result.error }, result.status!);
-    }
+    this.admin.rotateJwtSecret();
     await this.audit.writeAudit({ userId: user.id, action: 'admin.rotate_jwt_secret', ip: getClientIp(req) });
     return { success: true };
   }
