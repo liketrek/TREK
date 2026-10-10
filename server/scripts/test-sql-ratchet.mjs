@@ -22,8 +22,9 @@
  *     file that is gone fails;
  *   - a single statement that has to stay raw carries a comment with
  *     `test-sql-allow:` and a reason, on its own line or the line above
- *     (a statement broken into a method chain stays covered on the chain
- *     lines that continue it). A marker with no reason does not count.
+ *     (when Prettier has broken the statement below it up, the marker
+ *     covers the first call in that statement). A marker with no reason
+ *     does not count.
  *
  *   npm run lint:test-sql              check against the baseline (CI)
  *   npm run lint:test-sql -- --update  lower the counts to what the files hold now;
@@ -46,40 +47,51 @@ const SOURCE = /\.(?:[cm]?[jt]s)$/;
 const PREPARE = /\.prepare\(/g;
 const ALLOW = /test-sql-allow:\s*\S/;
 
-/** A line that continues the method chain of the line above it (`.prepare(...)` below `db`). */
-const CHAIN = /^\s*\./;
+const HAS_PREPARE = /\.prepare\(/;
+
+/** How many lines below its marker a statement Prettier has broken up may reach its call. */
+const REACH = 8;
 
 /**
- * The lines an allow marker covers: its own, the line right below it, and the
- * method-chain lines that continue that statement. Prettier breaks a long
- * `db.prepare('...').all()` into `db` on one line and `.prepare(` on the next,
- * which puts the call two lines below the marker without changing what the
- * marker is about.
+ * What the allow markers cover. A marker excuses every call on its own line
+ * and on the line right below it. When that line holds no call, because
+ * Prettier broke the statement up (`const rows = (` above `db.prepare(`, `db`
+ * above `.prepare(`, a `for` head above its body), it excuses the first call
+ * further down in that same statement: up to the line that ends it with `;`,
+ * never past a blank line, at most REACH lines below the marker.
  */
-function allowedLines(lines) {
-  const allowed = new Set();
+function allowances(lines) {
+  const wholeLines = new Set();
+  const firstCallOnly = new Set();
   lines.forEach((line, i) => {
     if (!ALLOW.test(line)) return;
-    allowed.add(i);
-    allowed.add(i + 1);
-    for (let j = i + 2; j < lines.length && CHAIN.test(lines[j]); j++) allowed.add(j);
+    wholeLines.add(i);
+    wholeLines.add(i + 1);
+    if (HAS_PREPARE.test(lines[i + 1] ?? '')) return;
+    for (let j = i + 1; j < lines.length && j <= i + REACH; j++) {
+      if (lines[j].trim() === '') return;
+      if (j > i + 1 && HAS_PREPARE.test(lines[j])) {
+        firstCallOnly.add(j);
+        return;
+      }
+      if (lines[j].trimEnd().endsWith(';')) return;
+    }
   });
-  return allowed;
+  return { wholeLines, firstCallOnly };
 }
 
 /**
- * The raw statements in one file's text: every `.prepare(` except those on a
- * line that carries an allow marker with a reason, or in the statement right
- * below one (its first line and the chain lines that continue it).
+ * The raw statements in one file's text: every `.prepare(` except those an
+ * allow marker with a reason covers (see allowances).
  */
 export function countPrepares(text) {
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
-  const allowed = allowedLines(lines);
+  const { wholeLines, firstCallOnly } = allowances(lines);
   let total = 0;
   lines.forEach((line, i) => {
     const hits = line.match(PREPARE)?.length ?? 0;
-    if (hits === 0 || allowed.has(i)) return;
-    total += hits;
+    if (hits === 0 || wholeLines.has(i)) return;
+    total += firstCallOnly.has(i) ? hits - 1 : hits;
   });
   return total;
 }

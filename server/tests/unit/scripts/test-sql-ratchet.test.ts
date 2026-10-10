@@ -118,17 +118,25 @@ describe('test-sql-ratchet.mjs', () => {
     expect(run(serverRoot({ 'tests/a.test.ts': text })).status).toBe(0);
   });
 
-  it('TSQL-005b: a marker covers a statement broken into a method chain, and no further', () => {
-    const chained =
-      `// test-sql-allow: the raw statement is the legacy oracle\n` +
-      `const legacy = testDb\n  ${CALL}'SELECT 1')\n  .all();\n`;
-    expect(run(serverRoot({ 'tests/a.test.ts': chained })).status).toBe(0);
+  it('TSQL-005b: a marker covers the first call of a statement Prettier broke up', () => {
+    const marker = '// test-sql-allow: the raw statement is the legacy oracle\n';
+    const chained = `${marker}const legacy = testDb\n  ${CALL}'SELECT 1')\n  .all();\n`;
+    const wrapped = `${marker}const n = (\n  testDb${CALL}'SELECT 1').get() as { n: number }\n).n;\n`;
+    const loop = `${marker}for (const id of ids)\n  testDb${CALL}'DELETE FROM x WHERE id = ?').run(id);\n`;
+    expect(run(serverRoot({ 'tests/a.test.ts': chained + wrapped + loop })).status).toBe(0);
+  });
 
-    // The chain ends at the first line that does not start with a dot.
-    const past = `${chained}const other = testDb\n  ${CALL}'SELECT 2')\n  .all();\n`;
-    const { status, out } = run(serverRoot({ 'tests/b.test.ts': past }));
-    expect(status).toBe(1);
-    expect(out).toContain('tests/b.test.ts: 1 raw statement(s)');
+  it('TSQL-005c: the cover ends with the statement, after the first call, and REACH lines down', () => {
+    const marker = '// test-sql-allow: reason\n';
+    // The statement below the marker ends on its first line; the next one is not covered.
+    const ended = run(serverRoot({ 'tests/a.test.ts': `${marker}const a = 1;\nconst b = testDb\n  ${CALL}'x').get();\n` }));
+    expect(ended.out).toContain('tests/a.test.ts: 1 raw statement(s)');
+    // Only the first call of the statement is covered.
+    const two = `${marker}const rows = [\n  testDb${CALL}'a').get(),\n  testDb${CALL}'b').get(),\n];\n`;
+    expect(run(serverRoot({ 'tests/b.test.ts': two })).out).toContain('tests/b.test.ts: 1 raw statement(s)');
+    // A call more than REACH (8) lines below the marker is not covered.
+    const far = `${marker}const x = f(\n${'  1,\n'.repeat(8)}  testDb${CALL}'c').get(),\n);\n`;
+    expect(run(serverRoot({ 'tests/c.test.ts': far })).out).toContain('tests/c.test.ts: 1 raw statement(s)');
   });
 
   it('TSQL-006: a marker without a reason, or two lines up, does not count', () => {
