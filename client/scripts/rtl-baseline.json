@@ -1,8 +1,6 @@
 {
   "components/Admin/AdminPluginsPanel.tsx": 2,
   "components/Budget/BudgetPanelMemberChips.tsx": 6,
-  "components/Budget/BudgetPanelPieChart.tsx": 1,
-  "components/Budget/BudgetPanelSummary.tsx": 2,
   "components/Budget/CostsPanel.tsx": 3,
   "components/Budget/ReceiptPreviewModal.tsx": 2,
   "components/Collab/CollabChatEmojiPicker.tsx": 3,
