@@ -19,6 +19,7 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
 
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { buildMapsService } from '../../helpers/maps-service';
 import {
   nearbyCacheKey,
   nearbyOverpassQuery,
@@ -64,7 +65,7 @@ function make(opts: { index?: boolean; google?: boolean } = {}) {
   // No app_settings row and no per-user key: every setting reads as absent.
   const noAppSettings = { getValue: async () => null } as unknown as AppSettingsRepository;
   const noUsers = { getApiKeyColumn: async () => null } as unknown as UsersRepository;
-  const svc = new MapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
+  const svc = buildMapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
   vi.spyOn(svc, 'keyedProvider').mockResolvedValue(
     opts.google ? ({ id: 'google', key: 'test-key', source: 'user-row' } as Awaited<ReturnType<MapsService['keyedProvider']>>) : null,
   );

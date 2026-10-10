@@ -36,6 +36,11 @@ vi.mock('../../../src/nest/maps/trek-places.client', () => ({
 
 import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
 import type { MapsService } from '../../../src/nest/maps/maps.service';
+import type { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
+
+/** Every seam enrichment reaches: the maps orchestrator and the outbound clients it injects beside it. */
+type Seams<T> = { [K in keyof T]: T[K] };
+type EnrichmentSeams = Seams<MapsService> & Seams<GooglePlacesClient>;
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
@@ -49,7 +54,7 @@ const EXTRACT = {
   source: 'wikipedia' as const,
 };
 
-function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
+function mapsStub(over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) {
   return {
     getMapsKey: vi.fn(() => null as string | null),
     photosDisabled: vi.fn(() => false),
@@ -69,7 +74,7 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
     details: vi.fn(async () => ({ place: null })),
     trekPlacesEnabled: vi.fn(() => true),
     ...over,
-  } as unknown as MapsService;
+  } as unknown as EnrichmentSeams;
 }
 
 const cacheStub = () =>
@@ -83,7 +88,7 @@ function cacheRepoStub(): PlaceDetailsCacheRepository {
   return { findEntry: mockFindEntry, upsertEntry: mockUpsertEntry } as unknown as PlaceDetailsCacheRepository;
 }
 
-const make = (maps: MapsService) => new PlaceEnrichmentService(cacheRepoStub(), appSettingsStub(), maps, cacheStub());
+const make = (maps: EnrichmentSeams) => new PlaceEnrichmentService(cacheRepoStub(), appSettingsStub(), maps as unknown as MapsService, cacheStub(), maps as unknown as GooglePlacesClient);
 
 beforeEach(() => {
   mockGetValue.mockReset();
@@ -346,7 +351,7 @@ describe('filling Google gaps from the free sources', () => {
     'opening_hours': 'Mo-Su 11:30-23:00',
   };
 
-  const googlePlaceAlsoInOsm = (over: Partial<Record<keyof MapsService, unknown>> = {}) =>
+  const googlePlaceAlsoInOsm = (over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) =>
     mapsStub({
       getMapsKey: vi.fn(() => 'key'),
       details: vi.fn(async () => ({ place: { source: 'google', rating: 4.6, rating_count: 4495 } })),

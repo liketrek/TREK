@@ -32,6 +32,11 @@ vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KE
 import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
 import { readBrandIdentity } from '../../../src/nest/maps/maps.service';
 import type { MapsService } from '../../../src/nest/maps/maps.service';
+import type { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
+
+/** Every seam enrichment reaches: the maps orchestrator and the outbound clients it injects beside it. */
+type Seams<T> = { [K in keyof T]: T[K] };
+type EnrichmentSeams = Seams<MapsService> & Seams<GooglePlacesClient>;
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
@@ -51,7 +56,7 @@ const CHAIN_EXTRACT = {
   source: 'wikipedia' as const,
 };
 
-function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
+function mapsStub(over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) {
   return {
     getMapsKey: vi.fn(() => null as string | null),
     photosDisabled: vi.fn(() => false),
@@ -70,7 +75,7 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
     resolveOsmIdentity: vi.fn(async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null),
     details: vi.fn(async () => ({ place: null })),
     ...over,
-  } as unknown as MapsService;
+  } as unknown as EnrichmentSeams;
 }
 
 const cacheStub = () =>
@@ -84,10 +89,10 @@ function cacheRepoStub(): PlaceDetailsCacheRepository {
   return { findEntry: mockFindEntry, upsertEntry: mockUpsertEntry } as unknown as PlaceDetailsCacheRepository;
 }
 
-const make = (maps: MapsService) => new PlaceEnrichmentService(cacheRepoStub(), appSettingsStub(), maps, cacheStub());
+const make = (maps: EnrichmentSeams) => new PlaceEnrichmentService(cacheRepoStub(), appSettingsStub(), maps as unknown as MapsService, cacheStub(), maps as unknown as GooglePlacesClient);
 
 /** A place whose own identity is empty but that belongs to a chain. */
-const branchOfAChain = (over: Partial<Record<keyof MapsService, unknown>> = {}) =>
+const branchOfAChain = (over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) =>
   mapsStub({
     resolveOsmIdentity: vi.fn(async () => ({ tags: BRANCH_TAGS, osmUrl: null, matchedName: "L'Osteria" })),
     ...over,

@@ -64,6 +64,7 @@ import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { buildMapsService } from '../../helpers/maps-service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
@@ -135,7 +136,7 @@ const KML_FIXTURE = path.join(__dirname, '../../fixtures/test.kml');
 const placesStorageFx = makeStorageFixture('');
 
 async function makePlacesService(
-  maps: MapsService = new MapsService(photoCacheStub, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota),
+  maps: MapsService = buildMapsService(photoCacheStub, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota),
 ): Promise<PlacesService> {
   return new PlacesService(
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),

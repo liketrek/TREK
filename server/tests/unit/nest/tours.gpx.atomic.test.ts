@@ -29,7 +29,7 @@ import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.serv
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
-import { MapsService } from '../../../src/nest/maps/maps.service';
+import { buildMapsService } from '../../helpers/maps-service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
@@ -80,7 +80,7 @@ async function makePlacesService(): Promise<PlacesService> {
   return new PlacesService(
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     new RealtimeService(),
-    new MapsService(photoCacheStub, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota),
+    buildMapsService(photoCacheStub, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota),
     new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
     new UnsplashService(await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), new RuntimeEnvService(), storage),
     photoCacheStub,

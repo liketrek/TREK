@@ -98,6 +98,9 @@ export const PUBLIC_FILES = [
   'audit/client-ip.ts',
   'addons/addon-gate.ts',
   'addons/mcp-addon-gate.ts',
+  // The maps domain's outbound clients. MapsModule exports them so enrichment
+  // asks Google and Wikimedia directly instead of through a MapsService facade.
+  'maps/providers/google-places.provider.ts',
 ];
 
 function walk(dir, files = []) {

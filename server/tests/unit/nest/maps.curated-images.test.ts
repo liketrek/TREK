@@ -23,10 +23,10 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-import { MapsService } from '../../../src/nest/maps/maps.service';
+import { buildMapsService } from '../../helpers/maps-service';
 import { noGoogleQuota } from '../../helpers/google-quota';
 
-const svcOf = () => new MapsService({} as never, {} as never, {} as never, {} as never, {} as never, noGoogleQuota);
+const svcOf = () => buildMapsService({} as never, {} as never, {} as never, {} as never, {} as never, noGoogleQuota);
 
 const filePage = (over: Record<string, unknown> = {}) => ({
   pageid: 4711,

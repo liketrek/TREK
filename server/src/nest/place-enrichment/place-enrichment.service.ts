@@ -27,6 +27,7 @@ import {
 } from '../maps/maps.service';
 import { buildOsmDetails, isGooglePlaceId, parseWikipediaTag, rankCommonsCandidates, toWikiLang } from '../maps/maps.helpers';
 import { trekPlacesById } from '../maps/trek-places.client';
+import { GooglePlacesClient } from '../maps/providers/google-places.provider';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { readAppSetting } from '../common/app-settings.registry';
 
@@ -323,6 +324,7 @@ export class PlaceEnrichmentService {
     @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
     private readonly maps: MapsService,
     private readonly photoCache: PlacePhotoCacheService,
+    private readonly googlePlaces: GooglePlacesClient,
   ) {}
 
   /**
@@ -469,7 +471,7 @@ export class PlaceEnrichmentService {
     // Google's listing is one call for the whole strip and knows nothing about
     // the free sources, so it runs alongside them rather than in the ladder.
     const googlePending = wantsGoogle
-      ? this.maps.fetchGooglePhotoRefs(placeId, apiKey!, GOOGLE_CAP)
+      ? this.googlePlaces.fetchGooglePhotoRefs(placeId, apiKey!, GOOGLE_CAP)
       : Promise.resolve([] as { name: string; attribution: string | null }[]);
 
     // The free ladder, in order of how much anyone vouched that the picture
@@ -543,7 +545,7 @@ export class PlaceEnrichmentService {
           sourceUrl: null,
           source: 'google' as const,
         },
-        fetchBytes: () => this.maps.fetchGooglePhotoBytes(ref.name, apiKey!),
+        fetchBytes: () => this.googlePlaces.fetchGooglePhotoBytes(ref.name, apiKey!),
       })),
       ...ranked.map((pick) => ({
         identity: `commons:${pick.pageId ?? pick.photoUrl}`,
@@ -712,7 +714,7 @@ export class PlaceEnrichmentService {
 
     const apiKey = await this.maps.getMapsKey(userId);
     if (apiKey && !(await this.maps.detailsDisabled()) && isGooglePlaceId(placeId)) {
-      const summary = await this.maps.fetchEditorialSummary(placeId, apiKey, req.lang);
+      const summary = await this.googlePlaces.fetchEditorialSummary(placeId, apiKey, req.lang);
       if (summary) {
         return {
           text: summary,

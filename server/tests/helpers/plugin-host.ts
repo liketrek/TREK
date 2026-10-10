@@ -33,7 +33,7 @@ import { TripsService } from '../../src/nest/trips/trips.service';
 import { PlacesService } from '../../src/nest/places/places.service';
 import { CollectionsService } from '../../src/nest/collections/collections.service';
 import { AtlasService } from '../../src/nest/atlas/atlas.service';
-import { MapsService } from '../../src/nest/maps/maps.service';
+import { buildMapsService } from './maps-service';
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { AuditService } from '../../src/nest/audit/audit.service';
 import { createTestAddonsService } from './test-addons';
@@ -299,7 +299,7 @@ export async function createPluginRpcHostParts(
   );
   // After it: deleting a place cancels the nights booked at it through this one.
   const places = new PlacesService(
-    permissions, realtime, new MapsService(photoCache, appSettings, usersRepo, await createTestPlaceDetailsCacheRepo(db), await createTestPlacesRepo(db), noGoogleQuota), queryHelpers, unsplash, photoCache, journey, generalStorage, accommodations, await createTestUnitOfWork(db),
+    permissions, realtime, buildMapsService(photoCache, appSettings, usersRepo, await createTestPlaceDetailsCacheRepo(db), await createTestPlacesRepo(db), noGoogleQuota), queryHelpers, unsplash, photoCache, journey, generalStorage, accommodations, await createTestUnitOfWork(db),
     await createTestPlacesRepo(db),
     await createTestTagsRepo(db),
     await createTestPlaceRatingsRepo(db),

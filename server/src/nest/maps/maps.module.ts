@@ -3,6 +3,7 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { MapsController } from './maps.controller';
 import { MapsService } from './maps.service';
 import { MapsMcp } from './maps.mcp';
+import { GooglePlacesClient } from './providers/google-places.provider';
 import { PlacePhotosModule } from '../place-photos/place-photos.module';
 import { StorageModule } from '../storage/storage.module';
 import { GoogleQuotaModule } from '../google-quota/google-quota.module';
@@ -28,7 +29,7 @@ import { Places } from '../../db/entities/Places.entity';
 @Module({
   imports: [PlacePhotosModule, StorageModule, GoogleQuotaModule, MikroOrmModule.forFeature([AppSettings, Users, PlaceDetailsCache, Places])],
   controllers: [MapsController],
-  providers: [MapsService, MapsMcp],
-  exports: [MapsService],
+  providers: [MapsService, MapsMcp, GooglePlacesClient],
+  exports: [MapsService, GooglePlacesClient],
 })
 export class MapsModule {}

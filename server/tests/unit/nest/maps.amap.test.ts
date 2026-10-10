@@ -61,6 +61,7 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 }));
 
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { buildMapsService } from '../../helpers/maps-service';
 import { trekPlacesSearch } from '../../../src/nest/maps/trek-places.client';
 import {
   AmapPlacesProvider,
@@ -127,7 +128,7 @@ const photoCacheStub = {
   serveKey: vi.fn(() => null),
 } as unknown as PlacePhotoCacheService;
 
-const svc = new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+const svc = buildMapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
 
 /** A provider over a fixed key, which is all these cases need. */
 function provider(tips = new AmapTipStash()): AmapPlacesProvider {

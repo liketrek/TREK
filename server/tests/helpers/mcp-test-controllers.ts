@@ -28,7 +28,7 @@ import { WeatherMcp } from '../../src/nest/weather/weather.mcp';
 import { WeatherService } from '../../src/nest/weather/weather.service';
 import { AirportsMcp } from '../../src/nest/airports/airports.mcp';
 import { AuthMcp } from '../../src/nest/auth/auth.mcp';
-import { MapsService } from '../../src/nest/maps/maps.service';
+import { buildMapsService } from './maps-service';
 import { NotificationsMcp } from '../../src/nest/notifications/notifications.mcp';
 import { NotificationsService } from '../../src/nest/notifications/notifications.service';
 import { PackingMcp } from '../../src/nest/packing/packing.mcp';
@@ -243,7 +243,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
   // Exactly one instance, shared by maps, places and share: its stampede guard
   // and its on-disk set only work if all three readers see the same maps.
   const placePhotoCache = new PlacePhotoCacheService(makeStorageFixture('photos/google/').storage, await createTestGooglePlacePhotoMetaRepo(db), await createTestPlacesRepo(db), await createTestCollectionPlacesRepo(db));
-  const mapsService = new MapsService(placePhotoCache, appSettings, usersRepo, await createTestPlaceDetailsCacheRepo(db), await createTestPlacesRepo(db), noGoogleQuota);
+  const mapsService = buildMapsService(placePhotoCache, appSettings, usersRepo, await createTestPlaceDetailsCacheRepo(db), await createTestPlacesRepo(db), noGoogleQuota);
   const journeyDomain = new JourneyDomainService(
     realtimeService, new TrekPhotoRegistrationService(mcpOrm.repo(TrekPhotos), mcpOrm.repo(TripPhotos), await createTestJourneyPhotosRepo(db)), await createTestUnitOfWork(db),
     // Plan 3g Task 1 — the constructor-ripple fix (R9): four journey-owned

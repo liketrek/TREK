@@ -51,6 +51,11 @@ import {
   nearbyWouldMislead,
 } from '../../../src/nest/place-enrichment/place-enrichment.service';
 import type { MapsService } from '../../../src/nest/maps/maps.service';
+import type { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
+
+/** Every seam enrichment reaches: the maps orchestrator and the outbound clients it injects beside it. */
+type Seams<T> = { [K in keyof T]: T[K] };
+type EnrichmentSeams = Seams<MapsService> & Seams<GooglePlacesClient>;
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
@@ -67,7 +72,7 @@ const REQ = { lat: 50.9, lng: 6.96, name: 'Museum Ludwig', placeId: 'ChIJmuseum'
 const OSM_REQ = { ...REQ, placeId: 'way:12345' };
 
 /** Every MapsService seam the service touches, all inert by default. */
-function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
+function mapsStub(over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) {
   return {
     getMapsKey: vi.fn(() => null as string | null),
     photosDisabled: vi.fn(() => false),
@@ -87,7 +92,7 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
     details: vi.fn(async () => ({ place: null })),
     trekPlacesEnabled: vi.fn(() => true),
     ...over,
-  } as unknown as MapsService;
+  } as unknown as EnrichmentSeams;
 }
 
 function cacheStub(over: Record<string, unknown> = {}) {
@@ -102,8 +107,8 @@ function cacheStub(over: Record<string, unknown> = {}) {
   } as unknown as PlacePhotoCacheService;
 }
 
-function make(maps: MapsService, cache: PlacePhotoCacheService) {
-  return new PlaceEnrichmentService(cacheRepoStub(), appSettingsStub(), maps, cache);
+function make(maps: EnrichmentSeams, cache: PlacePhotoCacheService) {
+  return new PlaceEnrichmentService(cacheRepoStub(), appSettingsStub(), maps as unknown as MapsService, cache, maps as unknown as GooglePlacesClient);
 }
 
 let candidateSeq = 0;

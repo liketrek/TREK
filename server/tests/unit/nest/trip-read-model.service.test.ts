@@ -55,7 +55,7 @@ import { TripMembersService } from '../../../src/nest/trip-members/trip-members.
 import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { makeAccommodationsService } from '../../helpers/accommodations-service';
-import { MapsService } from '../../../src/nest/maps/maps.service';
+import { buildMapsService } from '../../helpers/maps-service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { notificationsStub } from '../../helpers/notifications';
 import { accommodationsOver } from '../../helpers/accommodations-service';
@@ -153,7 +153,7 @@ beforeAll(async () => {
   );
   placesSvc = new PlacesService(
   new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new RealtimeService(),
-  new MapsService(photoCache, await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestPlaceDetailsCacheRepo(testDb), await createTestPlacesRepo(testDb), noGoogleQuota), new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
+  buildMapsService(photoCache, await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestPlaceDetailsCacheRepo(testDb), await createTestPlacesRepo(testDb), noGoogleQuota), new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
   new UnsplashService(await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), new RuntimeEnvService(), makeStorageFixture('').storage), photoCache,
   new JourneyDomainService(
     new RealtimeService(), new TrekPhotoRegistrationService((await sharedTestOrm(testDb)).repo(TrekPhotos), (await sharedTestOrm(testDb)).repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)), await createTestUnitOfWork(testDb),

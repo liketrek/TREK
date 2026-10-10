@@ -65,6 +65,7 @@ import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-rea
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { accommodationsOver, makeAccommodationsService } from '../../helpers/accommodations-service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { buildMapsService } from '../../helpers/maps-service';
 import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
@@ -257,7 +258,7 @@ beforeAll(async () => {
   placesSvc = new PlacesService(
   new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
   new RealtimeService(),
-  new MapsService(photoCache, await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestPlaceDetailsCacheRepo(testDb), await createTestPlacesRepo(testDb), noGoogleQuota),
+  buildMapsService(photoCache, await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestPlaceDetailsCacheRepo(testDb), await createTestPlacesRepo(testDb), noGoogleQuota),
   new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
   new UnsplashService(await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), new RuntimeEnvService(), coversFx.storage),
   photoCache,

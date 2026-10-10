@@ -11,7 +11,8 @@ vi.mock('../../../src/db/database', () => ({
 
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
 
-import { MapsService } from '../../../src/nest/maps/maps.service';
+import { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
+import { buildMapsService } from '../../helpers/maps-service';
 import { GoogleTransitProvider } from '../../../src/nest/transit/google-transit.provider';
 import type { GoogleQuotaService } from '../../../src/nest/google-quota/google-quota.service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
@@ -30,7 +31,7 @@ const appSettingsStub = (settings: Record<string, string> = {}) =>
 const usersStub = { getApiKeyColumn: async () => null } as unknown as UsersRepository;
 
 const svcWith = (q: ReturnType<typeof quota>) =>
-  new MapsService(
+  buildMapsService(
     {} as PlacePhotoCacheService,
     appSettingsStub(),
     usersStub,
@@ -65,9 +66,9 @@ describe('Google daily ceiling in MapsService', () => {
 
   it('MAPS-QUOTA-003: every Places call is counted against the day', async () => {
     const q = quota(false);
-    const svc = svcWith(q);
+    const google = new GooglePlacesClient(q as unknown as GoogleQuotaService);
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ editorialSummary: { text: 'Hi' } }), { status: 200 })));
-    await svc.fetchEditorialSummary('ChIJ1', 'key');
+    await google.fetchEditorialSummary('ChIJ1', 'key');
     expect(q.record).toHaveBeenCalledTimes(1);
   });
 });

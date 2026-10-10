@@ -24,6 +24,7 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
 
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { buildMapsService } from '../../helpers/maps-service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import { noGoogleQuota } from '../../helpers/google-quota';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
@@ -94,7 +95,7 @@ function make(enabled = true, rows: Record<string, string> = {}) {
   const appSettings = {
     getValue: async (key: string) => (rows[key] !== undefined ? rows[key] : null),
   } as unknown as AppSettingsRepository;
-  return new MapsService({} as PlacePhotoCacheService, appSettings, noUsers, {} as never, {} as never, noGoogleQuota);
+  return buildMapsService({} as PlacePhotoCacheService, appSettings, noUsers, {} as never, {} as never, noGoogleQuota);
 }
 
 /** Google's autocomplete envelope, which is not the shape its text search answers in. */

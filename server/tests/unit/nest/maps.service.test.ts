@@ -173,6 +173,7 @@ const photoCacheStub = {
 } as unknown as PlacePhotoCacheService;
 
 import { MapsService, withPhotoFetchSlot, readWikiIdentity } from '../../../src/nest/maps/maps.service';
+import { buildMapsParts, buildMapsService } from '../../helpers/maps-service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
@@ -230,7 +231,7 @@ const placesStub = {
 // through a repository stub that flows into the SAME mockDbGet/mockDbRun/
 // mockInstanceGet/mockProviderGet functions, so they keep firing exactly as
 // they did for the legacy module.
-const svc = new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+const { svc, google } = buildMapsParts(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
 
 /**
  * Switch the TREK Places index off for one case.
@@ -2757,7 +2758,7 @@ function makeSettingsRepo(row?: { value: string }) {
 }
 
 function settingsSvc(row?: { value: string }) {
-  return new MapsService(photoCacheStub, makeSettingsRepo(row).repo, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+  return buildMapsService(photoCacheStub, makeSettingsRepo(row).repo, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
 }
 
 describe('kill-switch settings reads', () => {
@@ -2781,7 +2782,7 @@ describe('kill-switch settings reads', () => {
 
   it('queries the matching app_settings key', async () => {
     const { repo: settingsRepo, getValue } = makeSettingsRepo({ value: 'true' });
-    const s = new MapsService(photoCacheStub, settingsRepo, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+    const s = buildMapsService(photoCacheStub, settingsRepo, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
     await s.autocompleteDisabled();
     expect(getValue).toHaveBeenCalledWith('places_autocomplete_enabled');
     await s.detailsDisabled();
@@ -3203,7 +3204,7 @@ describe('fetchGooglePhotoRefs (fetch stubbed)', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const out = await svc.fetchGooglePhotoRefs('ChIJabc', 'key', 2);
+    const out = await google.fetchGooglePhotoRefs('ChIJabc', 'key', 2);
     expect(out).toEqual([
       { name: 'places/p/photos/a', attribution: 'Alice' },
       { name: 'places/p/photos/b', attribution: null },
@@ -3216,21 +3217,21 @@ describe('fetchGooglePhotoRefs (fetch stubbed)', () => {
   it('MAPS-127: never calls Google for an id Google cannot resolve', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    expect(await svc.fetchGooglePhotoRefs('node:123', 'key', 3)).toEqual([]);
-    expect(await svc.fetchGooglePhotoRefs('ChIJabc~p1', 'key', 3)).toEqual([]);
-    expect(await svc.fetchGooglePhotoRefs('ChIJabc', 'key', 0)).toEqual([]);
+    expect(await google.fetchGooglePhotoRefs('node:123', 'key', 3)).toEqual([]);
+    expect(await google.fetchGooglePhotoRefs('ChIJabc~p1', 'key', 3)).toEqual([]);
+    expect(await google.fetchGooglePhotoRefs('ChIJabc', 'key', 0)).toEqual([]);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('MAPS-128: yields nothing on an error response, a photo-less place or a throw', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
-    expect(await svc.fetchGooglePhotoRefs('ChIJabc', 'key', 3)).toEqual([]);
+    expect(await google.fetchGooglePhotoRefs('ChIJabc', 'key', 3)).toEqual([]);
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
-    expect(await svc.fetchGooglePhotoRefs('ChIJabc', 'key', 3)).toEqual([]);
+    expect(await google.fetchGooglePhotoRefs('ChIJabc', 'key', 3)).toEqual([]);
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    expect(await svc.fetchGooglePhotoRefs('ChIJabc', 'key', 3)).toEqual([]);
+    expect(await google.fetchGooglePhotoRefs('ChIJabc', 'key', 3)).toEqual([]);
   });
 });
 
@@ -3242,7 +3243,7 @@ describe('fetchGooglePhotoBytes (fetch stubbed)', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const bytes = await svc.fetchGooglePhotoBytes('places/p/photos/a', 'key', 600);
+    const bytes = await google.fetchGooglePhotoBytes('places/p/photos/a', 'key', 600);
     expect(bytes).toBeInstanceOf(Buffer);
     expect(bytes!.length).toBe(3);
     expect(String(fetchMock.mock.calls[0][0])).toBe(
@@ -3252,13 +3253,13 @@ describe('fetchGooglePhotoBytes (fetch stubbed)', () => {
 
   it('MAPS-130: returns null for an error response, an empty body or a throw', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, arrayBuffer: async () => new ArrayBuffer(0) }));
-    expect(await svc.fetchGooglePhotoBytes('places/p/photos/a', 'key')).toBeNull();
+    expect(await google.fetchGooglePhotoBytes('places/p/photos/a', 'key')).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => new ArrayBuffer(0) }));
-    expect(await svc.fetchGooglePhotoBytes('places/p/photos/a', 'key')).toBeNull();
+    expect(await google.fetchGooglePhotoBytes('places/p/photos/a', 'key')).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    expect(await svc.fetchGooglePhotoBytes('places/p/photos/a', 'key')).toBeNull();
+    expect(await google.fetchGooglePhotoBytes('places/p/photos/a', 'key')).toBeNull();
   });
 });
 
@@ -3270,7 +3271,7 @@ describe('fetchEditorialSummary (fetch stubbed)', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    expect(await svc.fetchEditorialSummary('ChIJabc', 'key', 'de')).toBe('A museum in Cologne.');
+    expect(await google.fetchEditorialSummary('ChIJabc', 'key', 'de')).toBe('A museum in Cologne.');
     // reviews would move this into the Enterprise SKU — see the method comment.
     expect(fetchMock.mock.calls[0][1].headers['X-Goog-FieldMask']).toBe('editorialSummary');
     expect(String(fetchMock.mock.calls[0][0])).toContain('languageCode=de');
@@ -3279,17 +3280,17 @@ describe('fetchEditorialSummary (fetch stubbed)', () => {
   it('MAPS-132: skips non-Google ids and swallows every miss', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    expect(await svc.fetchEditorialSummary('node:1', 'key')).toBeNull();
+    expect(await google.fetchEditorialSummary('node:1', 'key')).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
-    expect(await svc.fetchEditorialSummary('ChIJabc', 'key')).toBeNull();
+    expect(await google.fetchEditorialSummary('ChIJabc', 'key')).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
-    expect(await svc.fetchEditorialSummary('ChIJabc', 'key')).toBeNull();
+    expect(await google.fetchEditorialSummary('ChIJabc', 'key')).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    expect(await svc.fetchEditorialSummary('ChIJabc', 'key')).toBeNull();
+    expect(await google.fetchEditorialSummary('ChIJabc', 'key')).toBeNull();
   });
 });
 
@@ -3481,7 +3482,7 @@ describe('readWikiIdentity', () => {
 describe('brandLogo', () => {
   // A fresh service per case: the logo cache lives on the instance, and a hit from
   // one case would answer the next one's question before its fetch stub ran.
-  const service = (): MapsService => new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+  const service = (): MapsService => buildMapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
 
   const claimResponse = (file: string | null) => ({
     ok: true,

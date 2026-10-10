@@ -31,7 +31,7 @@ import { accommodationsOver } from '../../helpers/accommodations-service';
 import { isUpdateConflict } from '../../../src/nest/common/conflictResult';
 import { PackingService } from '../../../src/nest/packing/packing.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
-import { MapsService } from '../../../src/nest/maps/maps.service';
+import { buildMapsService } from '../../helpers/maps-service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
@@ -116,7 +116,7 @@ beforeAll(async () => {
   places = new PlacesService(
   new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
   realtime,
-  new MapsService(photoCache, await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestPlaceDetailsCacheRepo(testDb), await createTestPlacesRepo(testDb), noGoogleQuota),
+  buildMapsService(photoCache, await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), await createTestPlaceDetailsCacheRepo(testDb), await createTestPlacesRepo(testDb), noGoogleQuota),
   new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb)),
   new UnsplashService(await createTestAppSettingsRepo(testDb), await createTestUsersRepo(testDb), runtimeEnv, makeStorageFixture('').storage),
   photoCache,
