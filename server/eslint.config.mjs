@@ -140,6 +140,27 @@ const MCP_DEMO_SELECTORS = [
   { selector: "CallExpression[callee.name='demoDenied']", message: DEMO_GATE_MESSAGE },
 ];
 
+// XML is read in exactly two places: the GPX and KML codecs of place-import, and
+// the WebDAV client (PROPFIND answers). One parser setup per format instead of
+// one per caller is what keeps a GPX read in one module the same as in another.
+const XML_PARSER_PATH = {
+  name: 'fast-xml-parser',
+  message:
+    'XML is parsed in src/nest/place-import (gpx.codec.ts, kml.codec.ts) and the WebDAV client only. Read GPX/KML through PlaceImportService instead of configuring another parser.',
+};
+
+const DRIVER_PATH = {
+  name: 'better-sqlite3',
+  message:
+    'The SQLite driver is an implementation detail of src/db. Go through the ORM (src/db/entities + src/db/repositories) or UnitOfWork; the handle itself is owned by src/db/database.ts.',
+};
+
+const SERVICES_WALL = {
+  group: ['**/services/*', '**/services/**/*'],
+  message:
+    'src/services/ is deleted. New backend code goes to src/nest/<domain>/ (service + controller + module, registered in app.module.ts). See src/nest/README.md.',
+};
+
 export default tseslint.config(
   gitignore({ strict: false }),
   {
@@ -319,25 +340,31 @@ export default tseslint.config(
       'src/db/reseat-booked-nights.ts',
     ],
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            {
-              name: 'better-sqlite3',
-              message:
-                'The SQLite driver is an implementation detail of src/db. Go through the ORM (src/db/entities + src/db/repositories) or UnitOfWork; the handle itself is owned by src/db/database.ts.',
-            },
-          ],
-          patterns: [
-            {
-              group: ['**/services/*', '**/services/**/*'],
-              message:
-                'src/services/ is deleted. New backend code goes to src/nest/<domain>/ (service + controller + module, registered in app.module.ts). See src/nest/README.md.',
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': ['error', { paths: [DRIVER_PATH, XML_PARSER_PATH], patterns: [SERVICES_WALL] }],
+    },
+  },
+  {
+    // The files the block above leaves out for the driver still may not parse
+    // XML: restated with XML_PARSER_PATH and the services wall only.
+    files: [
+      'src/db/database.ts',
+      'src/db/connection.ts',
+      'src/db/orm-driver.ts',
+      'src/db/durability.ts',
+      'src/nest/plugins/host/plugin-data.service.ts',
+      'src/db/reseat-booked-nights.ts',
+    ],
+    rules: {
+      'no-restricted-imports': ['error', { paths: [XML_PARSER_PATH], patterns: [SERVICES_WALL] }],
+    },
+  },
+  {
+    // The two homes of the XML parser (see XML_PARSER_PATH). Restated without
+    // it, for the same flat-config reason as above: this block's options
+    // replace the previous block's for the files it matches.
+    files: ['src/nest/place-import/**/*.ts', 'src/nest/doc-sync/providers/webdav.client.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { paths: [DRIVER_PATH], patterns: [SERVICES_WALL] }],
     },
   },
   {
@@ -372,6 +399,7 @@ export default tseslint.config(
               message:
                 'Repositories are dialect-neutral: import from @mikro-orm/sql / @mikro-orm/core. The driver lives in src/db/orm-driver.ts.',
             },
+            XML_PARSER_PATH,
           ],
           patterns: [
             {
@@ -433,6 +461,9 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
+          // Restated for the flat-config reason above: without them the kit
+          // would drop the driver and XML walls every other src file holds.
+          paths: [DRIVER_PATH, XML_PARSER_PATH],
           patterns: [
             {
               // A regex rather than gitignore-style groups: the two allowed files sit
