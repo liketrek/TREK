@@ -1,30 +1,36 @@
-import { http, HttpResponse } from 'msw';
+import { reservationCreateRequestSchema, reservationSchema, reservationUpdateRequestSchema } from '@trek/shared';
+import { HttpResponse } from 'msw';
+import { z } from 'zod';
 import { buildReservation } from '../../factories';
+import { contractHandler } from '../contract';
+
+const reservationResponse = z.object({ reservation: reservationSchema });
 
 export const reservationsHandlers = [
-  http.get('/api/trips/:id/reservations', ({ params }) => {
-    return HttpResponse.json({
-      reservations: [buildReservation({ trip_id: Number(params.id) })],
-    });
-  }),
+  contractHandler(
+    'get',
+    '/api/trips/:id/reservations',
+    { response: z.object({ reservations: z.array(reservationSchema) }) },
+    ({ params }) => ({ reservations: [buildReservation({ trip_id: Number(params.id) })] })
+  ),
 
-  http.post('/api/trips/:id/reservations', async ({ params, request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    const reservation = buildReservation({ trip_id: Number(params.id), ...body });
-    return HttpResponse.json({ reservation });
-  }),
+  contractHandler(
+    'post',
+    '/api/trips/:id/reservations',
+    { request: reservationCreateRequestSchema, response: reservationResponse },
+    ({ params, body }) => ({ reservation: buildReservation({ trip_id: Number(params.id), ...body }) })
+  ),
 
-  http.put('/api/trips/:id/reservations/:reservationId', async ({ params, request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    const reservation = buildReservation({
-      id: Number(params.reservationId),
-      trip_id: Number(params.id),
-      ...body,
-    });
-    return HttpResponse.json({ reservation });
-  }),
+  contractHandler(
+    'put',
+    '/api/trips/:id/reservations/:reservationId',
+    { request: reservationUpdateRequestSchema, response: reservationResponse },
+    ({ params, body }) => ({
+      reservation: buildReservation({ id: Number(params.reservationId), trip_id: Number(params.id), ...body }),
+    })
+  ),
 
-  http.delete('/api/trips/:id/reservations/:reservationId', () => {
-    return HttpResponse.json({ success: true });
-  }),
+  contractHandler('delete', '/api/trips/:id/reservations/:reservationId', {}, () =>
+    HttpResponse.json({ success: true })
+  ),
 ];
