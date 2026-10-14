@@ -71,7 +71,7 @@ export function collapseRepeatedBookingTotal(nodes: Node[], documentText: string
   if (!printed.onTotal || printed.lines >= priced.length) return nodes;
 
   // The first to depart keeps it; a tie keeps the order the model gave.
-  const keeper = priced.reduce((first, node) => (departure(node) < departure(first) ? node : first));
+  const keeper = priced.reduce((first, node) => (departure(node) < departure(first) ? node : first), priced[0]);
   return nodes.map((node) => {
     if (node === keeper || priceOf(node) == null) return node;
     const { price: _price, priceCurrency: _currency, ...rest } = node;
