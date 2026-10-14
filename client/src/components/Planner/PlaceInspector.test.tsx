@@ -901,6 +901,13 @@ describe('PlaceInspector', () => {
     expect(container.querySelector('input[type="file"]')).toBeNull();
   });
 
+  it('FE-PLANNER-INSPECTOR-044b: with upload but no files, the files row does not open to nothing', () => {
+    render(<PlaceInspector {...defaultProps} files={[]} />);
+    const row = screen.getByRole('button', { name: 'Files' });
+    expect(row).toBeDisabled();
+    expect(row).toHaveAttribute('aria-expanded', 'false');
+  });
+
   // ── Participants section hidden when tripMembers <= 1 ─────────────────────
 
   it('FE-PLANNER-INSPECTOR-045: participants section hidden when tripMembers has only 1 member', () => {

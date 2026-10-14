@@ -76,6 +76,7 @@ export type TripFile = z.infer<typeof tripFileSchema>;
 export const tripFileListItemSchema = tripFileSchema.extend({
   linked_reservation_ids: z.array(z.number()),
   linked_place_ids: z.array(z.number()),
+  linked_assignment_ids: z.array(z.number()),
   linked_budget_item_ids: z.array(z.number()),
 });
 export type TripFileListItem = z.infer<typeof tripFileListItemSchema>;

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { filesForPlace } from '../../../src/utils/placeFiles'
 import type { Reservation, TripFile } from '../../../src/types'
 
-// FE-UTIL-PLACEFILES-001 to FE-UTIL-PLACEFILES-006
+// FE-UTIL-PLACEFILES-001 to FE-UTIL-PLACEFILES-008
 
 const file = (over: Partial<TripFile>): TripFile => ({
   id: 1, trip_id: 5, original_name: 'a.pdf', url: '/uploads/a.pdf',
@@ -53,5 +53,21 @@ describe('filesForPlace', () => {
     const bookingFileGone = file({ id: 9, reservation_id: 90, deleted_at: '2026-09-01' })
     expect(filesForPlace([gone, bookingFileGone], 7, [booking({ id: 90, place_id: 7 })])).toEqual([])
     expect(filesForPlace([file({ id: 10, place_id: 7 })], undefined, [])).toEqual([])
+  })
+
+  it('FE-UTIL-PLACEFILES-007: reaches a hotel booking through the stay on the place', () => {
+    // A hotel booking keeps place_id empty; the place is the stay's (#2363).
+    const stay = booking({ id: 90, place_id: null, assignment_id: null, accommodation_place_id: 7 })
+    const stored = file({ id: 11, reservation_id: 90 })
+    const linked = file({ id: 12, linked_reservation_ids: [90] })
+    expect(filesForPlace([stored, linked], 7, [stay]).map(f => f.id)).toEqual([11, 12])
+    // A stay on another place lends nothing to this one.
+    expect(filesForPlace([stored], 7, [{ ...stay, accommodation_place_id: 8 }])).toEqual([])
+  })
+
+  it('FE-UTIL-PLACEFILES-008: keeps a file pinned to one of the place\'s stops', () => {
+    const pinned = file({ id: 13, linked_assignment_ids: [11] })
+    expect(filesForPlace([pinned], 7, [], [11]).map(f => f.id)).toEqual([13])
+    expect(filesForPlace([pinned], 7, [], [12])).toEqual([])
   })
 })

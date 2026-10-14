@@ -1189,12 +1189,12 @@ function PlaceExtras({ openingHours, weekdayIndex, hoursExpanded, setHoursExpand
         >
           <div className={BOX}>
             <button type="button" onClick={() => setFilesExpanded(f => !f)} aria-expanded={filesExpanded}
-              className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-start transition-colors hover:bg-surface-hover">
+              disabled={!placeFiles.length} className="group flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-start transition-colors enabled:hover:bg-surface-hover">
               <FileText size={13} strokeWidth={2} className="flex-none text-content-faint" />
               <span className="min-w-0 flex-1 truncate font-medium text-content-secondary" style={fs(12, 'body')}>
                 {placeFiles.length > 0 ? t('inspector.filesCount', { count: placeFiles.length }) : t('inspector.files')}
               </span>
-              {filesExpanded ? <ChevronUp size={13} className="flex-none text-content-faint" /> : <ChevronDown size={13} className="flex-none text-content-faint" />}
+              {filesExpanded ? <ChevronUp size={13} className="flex-none text-content-faint group-disabled:hidden" /> : <ChevronDown size={13} className="flex-none text-content-faint group-disabled:hidden" />}
             </button>
             {filesExpanded && placeFiles.length > 0 && (
               <div className="flex flex-col gap-0.5 border-t border-edge-faint p-1">

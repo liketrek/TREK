@@ -105,6 +105,8 @@ export interface TripFile {
   reservation_title?: string
   linked_reservation_ids?: (number | null)[]
   linked_place_ids?: (number | null)[]
+  /** Stops in the plan the file is pinned to (MCP's link_trip_file, plugins). */
+  linked_assignment_ids?: (number | null)[]
   /** Served download path — always present on list/create/update responses (formatFile). */
   url: string
 }

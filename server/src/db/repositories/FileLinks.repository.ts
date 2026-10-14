@@ -25,6 +25,7 @@ export interface FileLinkWithReservationRow extends FileLinkRow {
 export interface FileLinkTargetRow {
   file_id: number;
   reservation_id: number | null;
+  assignment_id: number | null;
   place_id: number | null;
   budget_item_id: number | null;
 }
@@ -64,7 +65,7 @@ export class FileLinksRepository extends TrekRepository<FileLinks> {
     if (file_ids.length === 0) return [];
     return await this.kysely<FileLinksKyselyDB>()
       .selectFrom('file_links')
-      .select(['file_id', 'reservation_id', 'place_id', 'budget_item_id'])
+      .select(['file_id', 'reservation_id', 'assignment_id', 'place_id', 'budget_item_id'])
       .where('file_id', 'in', file_ids)
       .execute();
   }

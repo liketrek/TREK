@@ -574,6 +574,7 @@ export const PLUGIN_ENTITY_FIELDS = {
     'url',
     'linked_reservation_ids',
     'linked_place_ids',
+    'linked_assignment_ids',
     'linked_budget_item_ids',
   ],
   budgetItem: [

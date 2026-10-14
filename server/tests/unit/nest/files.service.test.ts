@@ -354,6 +354,19 @@ describe('listFiles', () => {
     const empty = createTrip(testDb, user.id);
     expect(await svc.listFiles(empty.id, false)).toEqual([]);
   });
+
+  it('FILE-SVC-014b: lists the stops a file is pinned to, which MCP and plugins can link', async () => {
+    const { user, trip } = seedTrip();
+    const day = createDay(testDb, trip.id);
+    const stop = createDayAssignment(testDb, day.id, createPlace(testDb, trip.id).id);
+    const pinned = await makeFile(trip.id, user.id);
+    const bare = await makeFile(trip.id, user.id);
+    await svc.createFileLink(pinned.id, { assignment_id: stop.id });
+
+    const files = (await svc.listFiles(trip.id, false)) as Record<string, unknown>[];
+    expect(files.find((f) => f.id === pinned.id).linked_assignment_ids).toEqual([stop.id]);
+    expect(files.find((f) => f.id === bare.id).linked_assignment_ids).toEqual([]);
+  });
 });
 
 // ── receipts on an expense ────────────────────────────────────────────────────

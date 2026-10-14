@@ -349,6 +349,8 @@ export class FilesService {
         ...formatFile(f),
         linked_reservation_ids: fileLinks.filter((l) => l.reservation_id).map((l) => l.reservation_id),
         linked_place_ids: fileLinks.filter((l) => l.place_id).map((l) => l.place_id),
+        // MCP's link_trip_file and plugins can pin a file to one stop of the plan.
+        linked_assignment_ids: fileLinks.filter((l) => l.assignment_id).map((l) => l.assignment_id),
         linked_budget_item_ids: fileLinks.filter((l) => l.budget_item_id).map((l) => l.budget_item_id),
       };
     });
