@@ -612,6 +612,27 @@ describe('Navbar layout (#1983)', () => {
     expect(pill.style.overflowX).toBe('auto');
   });
 
+  it('keeps both columns at their content width, so the actions never spill over the pill', () => {
+    withAddons(8);
+    const { container } = render(<Navbar />);
+    const nav = container.querySelector('nav') as HTMLElement;
+    const columns = Array.from(nav.children).filter(c => c.classList.contains('flex-1'));
+    // A min-w-0 column shrinks below its content and its justify-end children
+    // overflow leftwards across the pill (5.0.0-pre.1 feedback).
+    for (const c of columns) {
+      expect(c.classList.contains('min-w-0')).toBe(false);
+      expect(c.classList.contains('min-w-max')).toBe(true);
+    }
+  });
+
+  it('shows the prerelease badge in the brand column, beside the logo', () => {
+    seedStore(useAuthStore, { isPrerelease: true, appVersion: '5.0.0-pre.1' });
+    const { container } = render(<Navbar />);
+    const nav = container.querySelector('nav') as HTMLElement;
+    const brandColumn = nav.children[0] as HTMLElement;
+    expect(brandColumn.contains(screen.getByText('5.0.0-pre.1'))).toBe(true);
+  });
+
   it('still renders every addon as a reachable link, however many there are', () => {
     withAddons(8);
     render(<Navbar />);
