@@ -26,9 +26,13 @@ The addon supports three providers:
 |----------|-----------|-------|
 | **Local (Ollama)** | Your own hardware | No booking data leaves your network. Recommended for privacy; runs on a CPU. |
 | **OpenAI** | OpenAI's API, or any **OpenAI-compatible** endpoint through a custom base URL | Needs an API key. |
-| **Anthropic** | Anthropic's API | Needs an API key. **Reads PDFs natively, scans included.** |
+| **Anthropic** | Anthropic's API, or a gateway that speaks its Messages API through a custom base URL | Needs an API key. **Reads PDFs natively, scans included.** |
 
 > **Scanned PDFs:** local and OpenAI-compatible models get the document's *extracted text*. A scanned PDF has no text layer. When the model reads images, the first two pages are drawn as images and sent like a photo; otherwise those providers return nothing for it. **Anthropic** receives the PDF itself and reads scans either way.
+>
+> **Long documents:** extracted text is sent up to 24,000 characters to a cloud model (OpenAI, Anthropic for anything that is not a PDF, OpenAI-compatible), and up to 6,000 to a local model (16,000 for a flight itinerary), since a CPU reads every character. A longer document keeps its start and its end, where the total and the payment summary sit, and loses the middle. The import then warns *long document, the middle part was not read*, so check the booking in the review. A self-hosted server whose context is too small for 24,000 characters (vLLM or llama.cpp with 8k tokens, say) refuses the request; TREK then asks once more with 8,000 characters, start and end kept, and warns the same way. Ollama's OpenAI-compatible endpoint cuts a long prompt without saying so, so use the **Local** provider for Ollama.
+>
+> **A total for the whole booking:** a round trip that states one total for all flights gets that price once, on the first flight, so saving every leg does not book the purchase twice. Fares the document lists per leg stay on their legs.
 >
 > **Photos:** a photo (JPG, PNG, WEBP) goes to the model as an image, with every provider, as long as the model reads images. See [Photos](#photos).
 
@@ -39,7 +43,7 @@ Once the addon is on, a configuration panel appears right under it in [Admin-Add
 > *Set instance-wide config (applies to all users). Leave blank to let each user configure their own provider.*
 
 - **Provider**: Local · OpenAI-compatible, OpenAI, or Anthropic.
-- **Base URL**: for every provider except Anthropic. It defaults to `http://localhost:11434/v1` for a local Ollama server and `https://api.openai.com/v1` for OpenAI. Any OpenAI-compatible endpoint goes here.
+- **Base URL**: empty means the provider's own address: `http://localhost:11434/v1` for a local Ollama server, `https://api.openai.com/v1` for OpenAI and `https://api.anthropic.com` for Anthropic. Any OpenAI-compatible endpoint goes here. For Anthropic it can name a gateway that speaks the Anthropic Messages API; give it without `/v1`, since TREK adds `/v1/messages`, and the gateway has to accept PDF document blocks and forced tool calls. Picking another provider empties the field, so an address meant for one never receives another provider's key.
 - **API key**: optional for a local server (the field says *(often not required)*), required for the cloud providers. It is stored **encrypted** and shown masked (`••••••••`) once saved; leaving it unchanged keeps the stored key.
 - **Model**: the model id, for example `qwen3.5:4b`, `gpt-4o` or `claude-opus-4-8`.
 - **Model reads images**: **Automatic**, **Yes** or **No**. With the Local provider, **Automatic** asks the Ollama server what the model can do (`/api/show`) and follows its answer. With OpenAI or Anthropic, **Automatic** means no. **Yes** and **No** apply as set, whatever the server or the model id says. Photos are only accepted when this comes out as yes.

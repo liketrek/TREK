@@ -1,5 +1,6 @@
 import { readEnv } from '../../../../src/app-config';
 import { AnthropicClient } from '../../../../src/nest/llm-parse/clients/anthropic.client';
+import { LlmContextOverflowError } from '../../../../src/nest/llm-parse/clients/context-overflow';
 import { OpenAiCompatibleClient } from '../../../../src/nest/llm-parse/clients/openai-compatible.client';
 import type { LlmExtractionInput } from '../../../../src/nest/llm-parse/llm-provider.interface';
 import {
@@ -141,6 +142,23 @@ describe('OpenAiCompatibleClient', () => {
     mockFetch(() => jsonResponse({ error: 'bad' }, false, 401));
     await expect(new OpenAiCompatibleClient().extract(baseInput)).rejects.toThrow(/401/);
     expect(safeFetchLlmMock).toHaveBeenCalledTimes(1); // no retry on non-400
+  });
+
+  it('stops at a context-length 400: no response_format makes the prompt shorter (#2652)', async () => {
+    mockFetch(() =>
+      jsonResponse(
+        {
+          error: {
+            message:
+              "This model's maximum context length is 8192 tokens. However, your messages resulted in 9500 tokens.",
+          },
+        },
+        false,
+        400,
+      ),
+    );
+    await expect(new OpenAiCompatibleClient().extract(baseInput)).rejects.toBeInstanceOf(LlmContextOverflowError);
+    expect(safeFetchLlmMock).toHaveBeenCalledTimes(1);
   });
 
   it('retries once with json_object when the server rejects json_schema (400)', async () => {
@@ -523,6 +541,34 @@ describe('OpenAiCompatibleClient — NuExtract path', () => {
 });
 
 describe('AnthropicClient', () => {
+  it('talks to a Messages gateway set as the base URL, and to Anthropic without one (#2655)', async () => {
+    const fetchFn = mockFetch(() =>
+      jsonResponse({
+        stop_reason: 'tool_use',
+        content: [{ type: 'tool_use', name: 'emit_reservations', input: { reservations: [] } }],
+      }),
+    );
+    await new AnthropicClient().extract({ ...baseInput, apiKey: 'k', baseUrl: 'http://gateway.lan:4000/' });
+    await new AnthropicClient().extract({ ...baseInput, apiKey: 'k' });
+    expect(fetchFn.mock.calls[0][0]).toBe('http://gateway.lan:4000/v1/messages');
+    expect(fetchFn.mock.calls[1][0]).toBe('https://api.anthropic.com/v1/messages');
+    const body = JSON.parse((fetchFn.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.tool_choice).toMatchObject({ type: 'tool', name: 'emit_reservations' });
+  });
+
+  it('tells a prompt too long for a gateway apart from other refusals', async () => {
+    mockFetch(() =>
+      jsonResponse({ error: { message: 'prompt is too long: 210000 tokens > 200000 maximum' } }, false, 400),
+    );
+    await expect(new AnthropicClient().extract({ ...baseInput, apiKey: 'k' })).rejects.toBeInstanceOf(
+      LlmContextOverflowError,
+    );
+    mockFetch(() => jsonResponse({ error: { message: 'invalid x-api-key' } }, false, 401));
+    const refused = new AnthropicClient().extract({ ...baseInput, apiKey: 'k' });
+    await expect(refused).rejects.toThrow(/401/);
+    await expect(refused).rejects.not.toBeInstanceOf(LlmContextOverflowError);
+  });
+
   it('sends the pages of a scanned PDF as image blocks after the first', async () => {
     const fetchFn = mockFetch(() =>
       jsonResponse({

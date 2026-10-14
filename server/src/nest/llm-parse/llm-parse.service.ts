@@ -1,5 +1,7 @@
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import type { KiReservation } from '../booking-import/kitinerary.types';
+import { collapseRepeatedBookingTotal } from './booking-total';
+import { LlmContextOverflowError } from './clients/context-overflow';
 import { toIsoCurrency } from './currency-code';
 import { capImage, imageMimeType, renderPdfPages } from './image-input';
 import { createLlmClient } from './llm-client.factory';
@@ -24,6 +26,13 @@ import {
 } from './router/extraction-router';
 import { extractEnforced } from './router/ollama-format.client';
 import { isPdf, extractText } from './text-extract';
+import {
+  CLOUD_TEXT_WINDOW,
+  COMPACT_TEXT_WINDOW,
+  fitTextWindow,
+  LOCAL_FLIGHT_TEXT_WINDOW,
+  LOCAL_TEXT_WINDOW,
+} from './text-window';
 import { Injectable } from '@nestjs/common';
 import { kiReservationSchema, type ReceiptScanResult } from '@trek/shared';
 
@@ -155,6 +164,9 @@ export class LlmParseService {
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
     };
+    // The whole extracted text, kept for a second, shorter try (see extractFitting).
+    let fullText: string | undefined;
+    const longDocument = `${file.originalName}: long document, the middle part was not read`;
 
     const imageType = imageMimeType(file.originalName);
     if (imageType && !(await this.visionFor(config))) {
@@ -173,18 +185,25 @@ export class LlmParseService {
         );
       } else if (config.provider === 'anthropic' && isPdf(file.originalName)) {
         input.file = { mimeType: MIME_BY_EXT['.pdf'], data: file.buffer };
+        // Not for the model, which reads the PDF itself: only to check its prices against (#2651).
+        fullText = await extractText(file.buffer, file.originalName).catch(() => undefined);
         console.debug(
           `[DEBUG] Extracted (native PDF, ${file.buffer.length} bytes) sent to ${config.provider}: ${file.originalName}`,
         );
       } else {
-        input.text = await extractText(file.buffer, file.originalName);
-        // Cap the text fed to the model. A flight itinerary lists its legs throughout a long
-        // document, so it keeps a generous window; a single booking has the essentials up top,
-        // so cap it tighter to keep CPU prompt-eval fast (a 11-page rental voucher was ~200s at
-        // 16k, the booking data sits in the first ~2k). Cloud single-shot keeps the tight cap.
-        const MAX_EXTRACT_CHARS =
-          config.provider !== 'local' ? 4000 : detectFlightNumbers(input.text).length > 0 ? 16000 : 6000;
-        if (input.text.length > MAX_EXTRACT_CHARS) input.text = input.text.slice(0, MAX_EXTRACT_CHARS);
+        const extracted = await extractText(file.buffer, file.originalName);
+        fullText = extracted;
+        // Cap the text fed to the model (the windows and why are in text-window.ts). A longer
+        // document loses its middle, never its end, where the total is, and the import says so.
+        const textWindow =
+          config.provider !== 'local'
+            ? CLOUD_TEXT_WINDOW
+            : detectFlightNumbers(extracted).length > 0
+              ? LOCAL_FLIGHT_TEXT_WINDOW
+              : LOCAL_TEXT_WINDOW;
+        const fitted = fitTextWindow(extracted, textWindow);
+        input.text = fitted.text;
+        if (fitted.omitted > 0) warnings.push(longDocument);
         // The extracted text IS the booking: traveller name, address, booking
         // reference. On a centrally administered install that would land in the
         // operator's log, which is a processing nobody asked for and nobody needs.
@@ -253,7 +272,9 @@ export class LlmParseService {
 
     let raw: Record<string, unknown>[];
     try {
-      raw = await createLlmClient(config).extract(input);
+      raw = await this.extractFitting(input, config, fullText, () => {
+        if (!warnings.includes(longDocument)) warnings.push(longDocument);
+      });
       // Same reason: the model answers with the fields it read out of the document.
       // Parsed, not raw — this prints the nodes the client already read out of the
       // response, so its single quotes and bare keys are util.inspect's, not the
@@ -289,7 +310,40 @@ export class LlmParseService {
       kiItems.push(normalized as unknown as KiReservation);
     }
 
-    return { kiItems, warnings };
+    // The whole document, not the window the model read: a total sits at its end.
+    const priced = collapseRepeatedBookingTotal(kiItems as unknown as Record<string, unknown>[], fullText);
+    return { kiItems: priced as unknown as KiReservation[], warnings };
+  }
+
+  /**
+   * One extraction call, and one more with a shorter text when the server says
+   * the prompt does not fit its context. Every cloud provider gets the full
+   * window first, OpenAI-compatible gateways included (#2652); a self-hosted
+   * server with a small context then gets the compact window instead of failing.
+   */
+  private async extractFitting(
+    input: LlmExtractionInput,
+    config: ResolvedLlmConfig,
+    fullText: string | undefined,
+    onShortened: () => void,
+  ): Promise<Record<string, unknown>[]> {
+    const client = createLlmClient(config);
+    try {
+      return await client.extract(input);
+    } catch (err) {
+      // A PDF read natively has no text window to shorten; a second try would only send more.
+      if (
+        !(err instanceof LlmContextOverflowError) ||
+        input.file ||
+        !fullText ||
+        fullText.length <= COMPACT_TEXT_WINDOW
+      ) {
+        throw err;
+      }
+      input.text = fitTextWindow(fullText, COMPACT_TEXT_WINDOW).text;
+      onShortened();
+      return await client.extract(input);
+    }
   }
 }
 

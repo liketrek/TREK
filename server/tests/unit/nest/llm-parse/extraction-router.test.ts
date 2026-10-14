@@ -7,6 +7,7 @@ import {
   routeExtraction,
   routeImageExtraction,
 } from '../../../../src/nest/llm-parse/router/extraction-router';
+import { fitTextWindow } from '../../../../src/nest/llm-parse/text-window';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -174,6 +175,26 @@ describe('routeExtraction', () => {
     expect(flat.booking_reference).toBe('ABC123');
     expect(flat.price).toBe('99,00');
     expect(flat.currency).toBe('EUR');
+  });
+
+  it('reads a long document cut to its start and end like the whole one, the marker changes nothing (#2652)', async () => {
+    const legs = 'Example Airways\nEX 101 LIS-OPO 2026-11-03 08:10\nEX 102 OPO-LIS 2026-11-07 19:40\nPNR: EX4Y2Z';
+    const text = `${legs}\n${'Fare conditions apply.\n'.repeat(1000)}Total amount: 200.00 USD\n`;
+    const fitted = fitTextWindow(text, 6000);
+    expect(fitted.text).toMatch(/\[\.\.\. \d+ characters omitted \.\.\.\]/);
+    expect(detectFlightNumbers(fitted.text)).toEqual(['EX101', 'EX102']);
+    extractEnforced.mockResolvedValue({
+      flights: [
+        { vehicle_number: 'EX101', from_code: 'LIS', to_code: 'OPO', departure_time: '2026-11-03T08:10' },
+        { vehicle_number: 'EX102', from_code: 'OPO', to_code: 'LIS', departure_time: '2026-11-07T19:40' },
+      ],
+    });
+    await routeExtraction(fitted.text, CTX);
+    const flats = mapToKi.mock.calls[0][0];
+    expect(flats).toHaveLength(2);
+    expect(flats[0].booking_reference).toBe('EX4Y2Z');
+    expect(flats[0].price).toBe('200.00');
+    expect(flats[0].currency).toBe('USD');
   });
 
   it("lets the document's currency override the model but keeps a price the model already found", async () => {

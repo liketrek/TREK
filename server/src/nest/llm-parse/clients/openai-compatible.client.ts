@@ -2,6 +2,7 @@ import { readEnv } from '../../../app-config';
 import { safeFetchLlm } from '../../../utils/ssrfGuard';
 import { parseLenientJson, toReservationList } from '../lenient-json';
 import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
+import { isContextOverflow, LlmContextOverflowError } from './context-overflow';
 import { isNuExtractModel, buildNuExtractUserText, nuExtractToKiReservations } from './nuextract';
 
 const MAX_TOKENS = 4096;
@@ -153,6 +154,9 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
     // system prompt already dictates the exact output shape and mentions JSON,
     // which json_object mode requires.
     while (!res.ok && res.status === 400) {
+      // No response_format makes a prompt shorter, so a context overflow ends the ladder.
+      if (isContextOverflow(detail))
+        throw new LlmContextOverflowError(`LLM request failed (400): ${detail.slice(0, 300)}`);
       let named = false;
       if (!tried.tokenParam && detail.includes('max_completion_tokens')) {
         shape.tokenParam = 'max_completion_tokens';

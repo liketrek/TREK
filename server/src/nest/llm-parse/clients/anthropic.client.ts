@@ -2,6 +2,7 @@ import { readEnv } from '../../../app-config';
 import { safeFetchLlm } from '../../../utils/ssrfGuard';
 import { toReservationList } from '../lenient-json';
 import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
+import { isContextOverflow, LlmContextOverflowError } from './context-overflow';
 import { UnreadableLlmResponse } from './openai-compatible.client';
 
 const MAX_TOKENS = 8192;
@@ -79,7 +80,10 @@ export class AnthropicClient implements LlmExtractionClient {
 
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
-      throw new Error(`Anthropic request failed (${res.status}): ${detail.slice(0, 300)}`);
+      const message = `Anthropic request failed (${res.status}): ${detail.slice(0, 300)}`;
+      // A gateway in front of a smaller model can run out of context (#2652, #2655).
+      if (res.status === 400 && isContextOverflow(detail)) throw new LlmContextOverflowError(message);
+      throw new Error(message);
     }
 
     const data = (await res.json()) as {

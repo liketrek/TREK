@@ -1,4 +1,5 @@
 import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import { LlmContextOverflowError } from '../../../../src/nest/llm-parse/clients/context-overflow';
 import type { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
 import type { LlmLocalService } from '../../../../src/nest/llm-parse/llm-local.service';
 import { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
@@ -116,7 +117,8 @@ describe('LlmParseService', () => {
     const input = extract.mock.calls[0][0];
     expect(input.file).toEqual({ mimeType: 'application/pdf', data: expect.any(Buffer) });
     expect(input.text).toBeUndefined();
-    expect(extractText).not.toHaveBeenCalled();
+    // Read only to check a repeated booking total against (#2651); the model never sees it.
+    expect(extractText).toHaveBeenCalledTimes(1);
   });
 
   it('warns when a pdf yields no readable text (e.g. a scan)', async () => {
@@ -204,8 +206,13 @@ describe('LlmParseService', () => {
     extractText.mockResolvedValue(long);
     detectFlightNumbers.mockReturnValue([]);
     routeExtraction.mockResolvedValue({ kiItems: [], warnings: [] });
-    await svc().parse(file('hotel.txt'), 1);
-    expect(routeExtraction.mock.calls[0][0]).toHaveLength(6000); // single booking → tighter cap
+    const res = await svc().parse(file('hotel.txt'), 1);
+    // single booking → tighter cap, keeping the start and the end
+    const sent = routeExtraction.mock.calls[0][0] as string;
+    expect(sent).toBe(`${'x'.repeat(4500)}
+[... 1000 characters omitted ...]
+${'x'.repeat(1500)}`);
+    expect(res.warnings).toEqual(['hotel.txt: long document, the middle part was not read']);
   });
 
   it('degrades to a warning when the local router throws', async () => {
@@ -332,7 +339,8 @@ describe('LlmParseService: cleaning up an AI answer (#2477)', () => {
     resolveLlmConfig.mockReturnValue(cfg({ provider: 'anthropic' }));
     extract.mockResolvedValue([stay({ priceCurrency: 'ZZZ' })]);
     const res = await svc().parse(file('b.pdf', '%PDF'), 1);
-    expect(extractText).not.toHaveBeenCalled();
+    // The text read for the total check is not a document the currency is asked from.
+    expect(extract.mock.calls[0][0].text).toBeUndefined();
     expect(res.kiItems[0]).not.toHaveProperty('priceCurrency');
   });
 
@@ -551,5 +559,137 @@ describe('LlmParseService: a scanned PDF', () => {
     resolveLlmConfig.mockReturnValue(cfg({ vision: 'on' }));
     await svc().parse(file('empty.txt', ''), 1);
     expect(renderPdfPages).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * A long confirmation keeps its total near the end (#2652): two Example Airways
+ * legs up top, then itinerary and footer text, then the payment block. Synthetic.
+ */
+describe('LlmParseService: a long document', () => {
+  const legs = [
+    'Example Airways booking confirmation',
+    'Booking reference: EX4Y2Z',
+    'EX 101  Lisbon (LIS) to Porto (OPO)  2026-11-03 08:10 - 09:05',
+    'EX 102  Porto (OPO) to Lisbon (LIS)  2026-11-07 19:40 - 20:35',
+  ].join('\n');
+  const filler = (chars: number) =>
+    'Baggage, check-in and fare conditions apply as published. '.repeat(Math.ceil(chars / 58)).slice(0, chars);
+  const confirmation = (fillerChars: number) =>
+    `${legs}\n${filler(fillerChars)}\nPayment summary\nTotal paid: USD 200.00\nThank you for flying with us.`;
+
+  it('sends an early total and leaves a short document untouched, without a warning', async () => {
+    const doc = `${legs}\nTotal paid: USD 200.00\n${filler(1500)}`;
+    extractText.mockResolvedValue(doc);
+    const res = await svc().parse(file('confirmation.txt'), 1);
+    expect(extract.mock.calls[0][0].text).toBe(doc);
+    expect(res.warnings).toEqual([]);
+  });
+
+  it('sends a total that sits past the first 4,000 characters to a cloud model', async () => {
+    const doc = confirmation(6000);
+    expect(doc.indexOf('Total paid')).toBeGreaterThan(4000);
+    extractText.mockResolvedValue(doc);
+    const res = await svc().parse(file('confirmation.txt'), 1);
+    const sent = extract.mock.calls[0][0].text as string;
+    expect(sent).toBe(doc);
+    expect(sent).toContain('Total paid: USD 200.00');
+    expect(res.warnings).toEqual([]);
+  });
+
+  it('keeps the start and the end of a document longer than the window, and says so', async () => {
+    const doc = confirmation(60_000);
+    extractText.mockResolvedValue(doc);
+    const res = await svc().parse(file('confirmation.txt'), 1);
+    const sent = extract.mock.calls[0][0].text as string;
+    expect(sent.length).toBeLessThan(doc.length);
+    expect(sent.startsWith(legs)).toBe(true);
+    expect(sent).toContain('Total paid: USD 200.00');
+    expect(sent.endsWith('Thank you for flying with us.')).toBe(true);
+    expect(sent).toMatch(/\[\.\.\. \d+ characters omitted \.\.\.\]/);
+    expect(res.warnings).toEqual(['confirmation.txt: long document, the middle part was not read']);
+  });
+
+  it('keeps the start and the end for a local model too, inside its own window', async () => {
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local' }));
+    routeExtraction.mockResolvedValue({ kiItems: [{ '@type': 'FlightReservation' }], warnings: ['note'] });
+    const doc = confirmation(9000);
+    extractText.mockResolvedValue(doc);
+    const res = await svc().parse(file('confirmation.txt'), 1);
+    const sent = routeExtraction.mock.calls[0][0] as string;
+    expect(sent.startsWith(legs)).toBe(true);
+    expect(sent).toContain('Total paid: USD 200.00');
+    expect(sent).toMatch(/\[\.\.\. \d+ characters omitted \.\.\.\]/);
+    expect(res.warnings).toEqual(['confirmation.txt: long document, the middle part was not read', 'note']);
+  });
+});
+
+/** Too long for a small self-hosted server, and a total shared by two flights (#2651, #2652). */
+describe('LlmParseService: a server that runs out of context, and a shared booking total', () => {
+  const legs =
+    'Example Airways\nBooking reference: DEMO77\nEX100 LIS-OPO 2031-02-05 12:00\nEX101 OPO-LIS 2031-02-08 07:00';
+  const doc = `${legs}\n${'Fare conditions apply.\n'.repeat(1500)}Payment summary\nTotal paid: USD 200.00\n`;
+  const flight = (n: string, dep: string) => ({
+    '@type': 'FlightReservation',
+    reservationNumber: 'DEMO77',
+    price: 200,
+    priceCurrency: 'USD',
+    reservationFor: { '@type': 'Flight', flightNumber: n, departureTime: dep },
+  });
+
+  it('asks once more with the compact window when the server says the prompt does not fit', async () => {
+    extractText.mockResolvedValue(doc);
+    extract
+      .mockRejectedValueOnce(
+        new LlmContextOverflowError("LLM request failed (400): This model's maximum context length is 8192 tokens"),
+      )
+      .mockResolvedValueOnce([{ '@type': 'FlightReservation' }]);
+    const res = await svc().parse(file('confirmation.txt'), 1);
+    expect(extract).toHaveBeenCalledTimes(2);
+    const second = extract.mock.calls[1][0].text as string;
+    expect(second.length).toBeLessThan(8_100);
+    expect(second.startsWith(legs)).toBe(true);
+    expect(second).toContain('Total paid: USD 200.00');
+    expect(res.kiItems).toHaveLength(1);
+    expect(res.warnings).toEqual(['confirmation.txt: long document, the middle part was not read']);
+  });
+
+  it('does not retry a PDF read natively, which has no text window to shorten', async () => {
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'anthropic' }));
+    extractText.mockResolvedValue(doc);
+    extract.mockRejectedValueOnce(new LlmContextOverflowError('Anthropic request failed (400): prompt is too long'));
+    const res = await svc().parse(file('ticket.pdf', '%PDF'), 1);
+    expect(extract).toHaveBeenCalledTimes(1);
+    expect(res.warnings).toHaveLength(1);
+    expect(res.warnings[0]).toMatch(/AI parsing failed/);
+  });
+
+  it('does not retry any other failure', async () => {
+    extractText.mockResolvedValue(doc);
+    extract.mockRejectedValueOnce(new Error('LLM request failed (401): bad key'));
+    const res = await svc().parse(file('confirmation.txt'), 1);
+    expect(extract).toHaveBeenCalledTimes(1);
+    expect(res.warnings[0]).toMatch(/AI parsing failed/);
+  });
+
+  it('keeps a total both flights repeat on the first to depart only', async () => {
+    extractText.mockResolvedValue(doc);
+    extract.mockResolvedValue([flight('EX101', '2031-02-08T07:00:00'), flight('EX100', '2031-02-05T12:00:00')]);
+    const res = await svc().parse(file('confirmation.txt'), 1);
+    const [late, early] = res.kiItems as unknown as Record<string, unknown>[];
+    expect(early).toMatchObject({ price: 200, priceCurrency: 'USD' });
+    expect(late).not.toHaveProperty('price');
+    expect(late).not.toHaveProperty('priceCurrency');
+  });
+
+  it('checks a native PDF against its text too, without sending that text', async () => {
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'anthropic' }));
+    extractText.mockResolvedValue(doc);
+    extract.mockResolvedValue([flight('EX100', '2031-02-05T12:00:00'), flight('EX101', '2031-02-08T07:00:00')]);
+    const res = await svc().parse(file('ticket.pdf', '%PDF'), 1);
+    expect(extract.mock.calls[0][0].text).toBeUndefined();
+    const [first, second] = res.kiItems as unknown as Record<string, unknown>[];
+    expect(first).toHaveProperty('price', 200);
+    expect(second).not.toHaveProperty('price');
   });
 });

@@ -21,6 +21,12 @@ describe('llm-prompt', () => {
     for (const t of KI_RESERVATION_TYPES) expect(prompt).toContain(t);
   });
 
+  it('puts a total for the whole booking on one leg, not on each (#2651)', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain('A total for the whole booking belongs on exactly one reservation');
+    expect(prompt).toContain('never repeat it on each leg');
+  });
+
   it('instructs JSON-only output wrapped in reservations', () => {
     const prompt = buildSystemPrompt();
     expect(prompt).toMatch(/"reservations"/);
