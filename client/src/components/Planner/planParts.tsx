@@ -49,7 +49,9 @@ export interface MenuEntry {
 /**
  * The "…" of a row or card: the actions a right-click also offers, for the
  * mouse that doesn't right-click and for the keyboard. Quiet at rest, it comes
- * forward with its row's hover or focus (the row carries the `group` class).
+ * forward with its row's hover or keyboard focus (the row carries the `group`
+ * class). Keyboard focus only: a row a click selected keeps the focus, and the
+ * button stayed out on it after the mouse had left.
  */
 export function MoreButton({ label, items, size = 26, alwaysVisible = false, className = '' }: {
   label: string
@@ -66,8 +68,8 @@ export function MoreButton({ label, items, size = 26, alwaysVisible = false, cla
     <>
       <Tooltip label={label} disabled={!!menu.menu}>
         <button type="button" aria-label={label} aria-haspopup="menu"
-          onClick={e => menu.open(e, entries, true)}
-          className={`grid flex-none place-items-center rounded-full text-content-muted transition-opacity hover:bg-surface-card hover:text-content focus-visible:opacity-100 ${alwaysVisible || menu.menu ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100'} ${className}`}
+          onClick={e => menu.open(e, entries, true)} data-menu-open={menu.menu ? '' : undefined}
+          className={`grid flex-none place-items-center rounded-full text-content-muted transition-opacity hover:bg-surface-card hover:text-content focus-visible:opacity-100 ${alwaysVisible || menu.menu ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-has-[:focus-visible]:opacity-100 [@media(hover:none)]:opacity-100'} ${className}`}
           style={{ width: size, height: size }}>
           <MoreHorizontal size={15} strokeWidth={2} />
         </button>

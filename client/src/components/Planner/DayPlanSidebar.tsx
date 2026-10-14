@@ -34,6 +34,7 @@ import { routeModeIcon, useRouteModeOptions } from './routeModes'
 import { Tooltip } from '../shared/Tooltip'
 import { NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { BarButton, MoreButton, SoftPill, TimePill, tintOf } from './planParts'
+import './dayPlanRows.css'
 
 /** The round white button a row carries on its right (a route on the map, a journey's legs). */
 const ROW_ROUND = 'grid flex-none place-items-center rounded-full bg-surface-card shadow-sm transition-colors'
@@ -60,7 +61,7 @@ import { useDayNotes } from '../../hooks/useDayNotes'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { RES_ICONS, getNoteIcon } from './DayPlanSidebar.constants'
 import { withDayPlanDefaults } from './DayPlanSidebar.defaults'
-import { noteSurface } from './noteSurface'
+import { dayBodyStyle, noteSurface } from './noteSurface'
 import { findTodayDayId } from './today'
 import { markdownLinkComponents } from '../shared/markdownLink'
 import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
@@ -1282,7 +1283,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   const canManageShare = can('share_manage', trip)
   const [lockHoverId, setLockHoverId] = useState(null)
   const [undoHover, setUndoHover] = useState(false)
-  const [hoveredAssignmentId, setHoveredAssignmentId] = useState<number | null>(null)
   // Transit rows fold their itinerary out inline (#1065).
   const [expandedTransitIds, setExpandedTransitIds] = useState<Set<number>>(new Set())
   // Deleting a note asks for confirmation first — the edit/delete icons sit close together and are
@@ -1731,7 +1731,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   className="border-t border-edge-faint px-1.5 pb-1.5 pt-1.5"
                   // The activity list — the largest region and the one behind the
                   // densest text, so its tint is the faintest of the three.
-                  style={{ background: dayTintBackground(dayTint, 'activity', '--day-tint-activity') ?? undefined }}
+                  style={dayBodyStyle(dayTintBackground(dayTint, 'activity', '--day-tint-activity'))}
                   onDragOver={e => { e.preventDefault(); const cur = dropTargetRef.current; if (draggingId && (!cur || cur.startsWith('end-'))) setDropTargetKey(`end-${day.id}`) }}
                   onDrop={e => {
                     e.preventDefault()
@@ -1975,8 +1975,6 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               selectPlace()
                             }}
                             onContextMenu={e => ctxMenu.open(e, placeMenu())}
-                            onMouseEnter={() => setHoveredAssignmentId(assignment.id)}
-                            onMouseLeave={() => setHoveredAssignmentId(null)}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 8,
                               paddingBlock: 6, paddingInlineEnd: 4, paddingInlineStart: gripsShown ? 2 : 8,
@@ -2134,7 +2132,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               )}
                             </div>
                             {/* The row's own controls, with room between them so each is its own target. */}
-                            <div className="flex flex-none items-center gap-2.5 ps-1">
+                            <div className="dp-row-actions flex flex-none items-center gap-2.5 ps-1">
                             {canEditDays && <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
                               <button type="button" onClick={moveUp} disabled={idx === 0} aria-label={t('dayplan.moveUp')} className="flex text-content-faint hover:text-content disabled:cursor-default disabled:text-edge">
                                 <ChevronUp size={12} strokeWidth={2} />
@@ -2143,14 +2141,14 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 <ChevronDown size={12} strokeWidth={2} />
                               </button>
                             </div>}
-                            {canEditDays && onAddBookingToAssignment && (hoveredAssignmentId === assignment.id || isPlaceSelected) && (
+                            {canEditDays && onAddBookingToAssignment && (
                               <Tooltip label={t('reservations.addBooking')} placement="top">
                                 <button type="button" aria-label={t('reservations.addBooking')}
                                   onClick={e => {
                                     e.stopPropagation()
                                     onAddBookingToAssignment(day.id, assignment.id)
                                   }}
-                                  className="grid h-6 w-6 flex-none place-items-center rounded-full bg-surface-card text-content-muted shadow-sm hover:text-content"
+                                  className="dp-add-booking grid h-6 w-6 flex-none place-items-center rounded-full bg-surface-card text-content-muted shadow-sm hover:text-content"
                                 >
                                   <Ticket size={12} strokeWidth={2} />
                                 </button>
@@ -2500,7 +2498,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             background: noteSkin.background,
                             opacity: draggingId === `note-${note.id}` ? 0.4 : 1,
                             transition: 'background 0.1s', cursor: canEditDays ? 'pointer' : 'default', userSelect: 'none',
-                          }}
+                            '--dp-note-tint': noteSkin.background,
+                          } as React.CSSProperties}
                         >
                           {canEditDays && !dragDisabled && <div className="dp-grip flex flex-none cursor-grab items-center text-content-faint opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-40">
                             <GripVertical size={13} strokeWidth={1.8} />
@@ -2521,17 +2520,17 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                               </div>
                             )}
                           </div>
-                        {canEditDays && <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
+                        {canEditDays && <div className="dp-note-actions flex flex-none items-center">
+                        <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
                           <button type="button" onClick={e => { e.stopPropagation(); void moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} aria-label={t('dayplan.moveUp')} className="flex text-content-faint hover:text-content disabled:cursor-default disabled:text-edge"><ChevronUp size={12} strokeWidth={2} /></button>
                           <button type="button" onClick={e => { e.stopPropagation(); void moveNote(day.id, note.id, 'down') }} disabled={noteIdx === merged.length - 1} aria-label={t('dayplan.moveDown')} className="flex text-content-faint hover:text-content disabled:cursor-default disabled:text-edge"><ChevronDown size={12} strokeWidth={2} /></button>
-                        </div>}
-                        {canEditDays && (
+                        </div>
                           <MoreButton label={t('files.menu')} size={24} items={[
                             { label: t('common.edit'), icon: Pencil, onClick: () => openEditNote(day.id, note) },
                             { divider: true },
                             { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => setPendingDeleteNote({ dayId: day.id, noteId: note.id }) },
                           ]} />
-                        )}
+                        </div>}
                         </div>
                         </React.Fragment>
                       )

@@ -253,9 +253,9 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
   background: none !important;
   padding: 1px 2px;
 }
-/* Reveal on row hover (and on keyboard focus, so the buttons are reachable by Tab). */
-.dp-row:hover .reorder-buttons,
-.dp-row:focus-within .reorder-buttons {
+/* Reveal on row hover and on keyboard focus (Tab), not on the focus a click leaves on the row. */
+.dp-row:hover .reorder-buttons, .dp-row:focus-visible .reorder-buttons,
+.dp-row:has(:focus-visible) .reorder-buttons {
   opacity: 1;
   pointer-events: auto;
 }

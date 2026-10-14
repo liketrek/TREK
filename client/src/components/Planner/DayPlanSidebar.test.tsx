@@ -4015,8 +4015,7 @@ describe('DayPlanSidebar', () => {
     expect(document.querySelectorAll('img[src*="a.jpg"]')).toHaveLength(1)
   })
 
-  it('FE-PLANNER-DAYPLAN-165: the add-booking shortcut appears while the row is hovered', async () => {
-    const user = userEvent.setup()
+  it('FE-PLANNER-DAYPLAN-165: the add-booking shortcut comes out with the row hover in CSS, like the "…"', () => {
     const place = buildPlace({ id: 1, name: 'Hover place' })
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
     const a = buildAssignment({ id: 11, day_id: 10, order_index: 0, place })
@@ -4024,13 +4023,12 @@ describe('DayPlanSidebar', () => {
     render(<DayPlanSidebar {...makeDefaultProps({
       days: [day], places: [place], assignments: { '10': [a] }, onAddBookingToAssignment,
     })} />)
-    const row = dragRow(screen.getByText('Hover place'))
-    expect(screen.queryByLabelText('Add booking')).not.toBeInTheDocument()
-    fireEvent.mouseEnter(row)
-    await user.click(screen.getByLabelText('Add booking'))
+    // Already in the row, hidden and inert until the row is hovered. Waiting for a
+    // React hover state put it on screen a beat after the arrows and the "…".
+    const button = screen.getByLabelText('Add booking')
+    expect(button).toHaveClass('dp-add-booking')
+    fireEvent.click(button)
     expect(onAddBookingToAssignment).toHaveBeenCalledWith(10, 11)
-    fireEvent.mouseLeave(row)
-    expect(screen.queryByLabelText('Add booking')).not.toBeInTheDocument()
   })
 
   it('FE-PLANNER-DAYPLAN-166: the lock tooltip switches once a stop is pinned, and unlocking clears it', async () => {

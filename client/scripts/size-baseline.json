@@ -11,7 +11,7 @@
   "src/components/Map/RouteCalculator.ts": 1195,
   "src/components/PDF/TripPDF.tsx": 1082,
   "src/components/Planner/DayDetailPanel.test.tsx": 2333,
-  "src/components/Planner/DayPlanSidebar.test.tsx": 5380,
+  "src/components/Planner/DayPlanSidebar.test.tsx": 5378,
   "src/components/Planner/DayPlanSidebar.tsx": 2973,
   "src/components/Planner/PlaceFormModal.test.tsx": 2864,
   "src/components/Planner/PlaceFormModal.tsx": 1250,

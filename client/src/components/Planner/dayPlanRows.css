@@ -1,0 +1,69 @@
+/* Day plan rows: the controls that only show on hover take no room at rest
+   either, so a row's text runs to the edge of its card. A place gives way while
+   they are out (its one line truncates). A note's text wraps over several
+   lines, so its controls fade in over the end of the text instead of
+   reflowing it. Hover, keyboard focus and an open menu bring them out, the
+   focus a click leaves on a row does not; on touch they stay in the row, like
+   the reorder arrows (index.css). */
+@media (hover: hover) and (pointer: fine) {
+  .dp-row:not(:hover):not(:focus-visible):not(:has(:focus-visible)):not(:has([data-menu-open])) .dp-row-actions {
+    max-width: 0;
+    overflow: hidden;
+    padding-inline-start: 0;
+  }
+  /* The fade is the note's own surface: its tint over the day's tint (a plugin
+     may set one) over the card, drawn as layers because a tint alone is
+     see-through. All come from theme variables, so it matches in light and
+     dark and for every note colour. */
+  .dp-note-actions {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    padding-inline: 32px 4px;
+    border-start-end-radius: 11px;
+    border-end-end-radius: 11px;
+    background:
+      linear-gradient(to left, var(--dp-note-tint) 60%, transparent),
+      linear-gradient(to left, var(--dp-day-tint, transparent) 60%, transparent),
+      linear-gradient(to left, var(--bg-card) 60%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+  }
+  [dir='rtl'] .dp-note-actions {
+    background:
+      linear-gradient(to right, var(--dp-note-tint) 60%, transparent),
+      linear-gradient(to right, var(--dp-day-tint, transparent) 60%, transparent),
+      linear-gradient(to right, var(--bg-card) 60%, transparent);
+  }
+  .dp-row:hover .dp-note-actions,
+  .dp-row:focus-visible .dp-note-actions,
+  .dp-row:has(:focus-visible) .dp-note-actions,
+  .dp-row:has([data-menu-open]) .dp-note-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* The add-booking ticket beside a place's arrows and "...": out with the row's
+   hover in CSS like them. A React hover state re-rendered the whole day list
+   first, so it always came out a beat behind the others. A picked place shows
+   no controls of its own; on touch, with no hover, the ticket stays out. */
+.dp-add-booking {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.dp-row:hover .dp-add-booking,
+.dp-row:focus-visible .dp-add-booking,
+.dp-row:has(:focus-visible) .dp-add-booking,
+.dp-row:has([data-menu-open]) .dp-add-booking {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (hover: none) {
+  .dp-add-booking {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
