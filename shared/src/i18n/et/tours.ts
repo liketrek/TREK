@@ -50,7 +50,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Tagasi retkede juurde',
   'tours.planner.restored': 'Salvestamata mustand taastatud',
   'tours.planner.discardChanges': 'Loobu muudatustest',
-  'tours.planner.discardUnsaved': 'Loobu salvestamata muudatustest',
   'tours.planner.newTourConfirmTitle': 'Kas alustada uut retke?',
   'tours.planner.newTourConfirmBody':
     'Selle retke salvestamata muudatused lähevad kaotsi. Salvestatud retki ei muudeta.',
@@ -143,5 +142,24 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Süstaretk',
   'tourTypes.walk': 'Linna- / vaatamisväärsuste jalutuskäik',
   'tourTypes.food': 'Toidu- / veiniretk',
+  'tours.terrain.play': 'Esita ülelend',
+  'tours.terrain.pause': 'Paus',
+  'tours.terrain.restart': 'Alusta otsast',
+  'tours.terrain.speed': 'Kiirus',
+  'tours.terrain.exaggeration': 'Reljeef',
+  'tours.terrain.overview': 'Ülevaade',
+  'tours.terrain.colorByGrade': 'Kalle',
+  'tours.terrain.gradeMix': 'Kallete jaotus',
+  'tours.terrain.band.flat': 'alla 5%',
+  'tours.terrain.band.gentle': '5 kuni 10%',
+  'tours.terrain.band.moderate': '10 kuni 18%',
+  'tours.terrain.band.steep': '18 kuni 27%',
+  'tours.terrain.band.verySteep': '27% ja rohkem',
+  'tours.terrain.attribution': 'Kõrgused: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': 'Ava paremal retk, et seda 3D-s üle lennata ja kalde järgi värvida.',
+  'tours.terrain.steepestShort': 'kuni {grade}%',
+  'tours.terrain.preloading': 'Maastiku laadimine: {percent}%',
+  'tours.terrain.clickToPlan':
+    'Klõpsa maastikul, et punkte lisada. Kui marsruut on olemas, saab selle üle lennata ja kalde järgi värvida.',
 };
 export default tours;

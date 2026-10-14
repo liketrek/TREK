@@ -50,7 +50,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Về danh sách chuyến tham quan',
   'tours.planner.restored': 'Đã khôi phục bản nháp chưa lưu',
   'tours.planner.discardChanges': 'Bỏ thay đổi',
-  'tours.planner.discardUnsaved': 'Bỏ thay đổi chưa lưu',
   'tours.planner.newTourConfirmTitle': 'Bắt đầu chuyến tham quan mới?',
   'tours.planner.newTourConfirmBody':
     'Các thay đổi chưa lưu của chuyến tham quan này sẽ bị bỏ. Các chuyến tham quan đã lưu sẽ không thay đổi.',
@@ -143,5 +142,24 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Chèo kayak',
   'tourTypes.walk': 'Đi bộ trong thành phố / ngắm cảnh',
   'tourTypes.food': 'Chuyến khám phá ẩm thực / rượu vang',
+  'tours.terrain.play': 'Phát chuyến bay',
+  'tours.terrain.pause': 'Tạm dừng',
+  'tours.terrain.restart': 'Bắt đầu lại',
+  'tours.terrain.speed': 'Tốc độ',
+  'tours.terrain.exaggeration': 'Địa hình',
+  'tours.terrain.overview': 'Tổng quan',
+  'tours.terrain.colorByGrade': 'Độ dốc',
+  'tours.terrain.gradeMix': 'Phân bố độ dốc',
+  'tours.terrain.band.flat': 'dưới 5 %',
+  'tours.terrain.band.gentle': 'từ 5 đến 10 %',
+  'tours.terrain.band.moderate': 'từ 10 đến 18 %',
+  'tours.terrain.band.steep': 'từ 18 đến 27 %',
+  'tours.terrain.band.verySteep': 'từ 27 % trở lên',
+  'tours.terrain.attribution': 'Độ cao: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': 'Mở một chuyến tham quan ở bên phải để bay qua ở chế độ 3D và tô màu theo độ dốc.',
+  'tours.terrain.steepestShort': 'tối đa {grade} %',
+  'tours.terrain.preloading': 'Đang tải cảnh quan: {percent} %',
+  'tours.terrain.clickToPlan':
+    'Nhấp vào địa hình để đặt điểm. Khi đã có tuyến đường, bạn có thể bay qua và tô màu theo độ dốc.',
 };
 export default tours;

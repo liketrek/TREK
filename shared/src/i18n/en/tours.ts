@@ -50,7 +50,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Back to Tours',
   'tours.planner.restored': 'Unsaved draft restored',
   'tours.planner.discardChanges': 'Discard changes',
-  'tours.planner.discardUnsaved': 'Discard unsaved changes',
   'tours.planner.newTourConfirmTitle': 'Start a new tour?',
   'tours.planner.newTourConfirmBody':
     'Your unsaved changes to this tour will be discarded. Saved tours will not be changed.',
@@ -142,5 +141,24 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Kayak',
   'tourTypes.walk': 'City / sightseeing walk',
   'tourTypes.food': 'Food/wine tour',
+  'tours.terrain.play': 'Play flyover',
+  'tours.terrain.pause': 'Pause',
+  'tours.terrain.restart': 'Start over',
+  'tours.terrain.speed': 'Speed',
+  'tours.terrain.exaggeration': 'Relief',
+  'tours.terrain.overview': 'Overview',
+  'tours.terrain.colorByGrade': 'Grade',
+  'tours.terrain.gradeMix': 'Grade mix',
+  'tours.terrain.band.flat': 'under 5 %',
+  'tours.terrain.band.gentle': '5 to 10 %',
+  'tours.terrain.band.moderate': '10 to 18 %',
+  'tours.terrain.band.steep': '18 to 27 %',
+  'tours.terrain.band.verySteep': '27 % and more',
+  'tours.terrain.attribution': 'Elevation: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': 'Open a tour on the right to fly it in 3D and colour it by grade.',
+  'tours.terrain.steepestShort': 'max {grade} %',
+  'tours.terrain.preloading': 'Loading the landscape: {percent} %',
+  'tours.terrain.clickToPlan':
+    'Click the terrain to set points. Once there is a route, it can be flown and coloured by grade.',
 };
 export default tours;

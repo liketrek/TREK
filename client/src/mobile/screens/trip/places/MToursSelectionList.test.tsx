@@ -127,6 +127,17 @@ describe('MToursSelectionList', () => {
     expect(screen.getByRole('button', { name: 'Zum Tag hinzufügen' })).toHaveClass('w-full')
   })
 
+  it('shows no T-badge for an imported tour that carries no difficulty', () => {
+    const imported = { ...tour, has_waypoints: false, max_hiking_difficulty: null }
+    render(<MToursSelectionList planner={{ ...planner(), tours: [imported] }} shell={shell()} filter="all" />)
+
+    const row = screen.getByRole('option', { name: new RegExp(tour.name) })
+    expect(row).not.toHaveTextContent(/T\d/)
+    expect(row).not.toHaveTextContent('Tnull')
+    expect(screen.queryByTitle(/^T\d/)).not.toBeInTheDocument()
+    expect(screen.getByText(en['tours.badge.gpx'] as string)).toBeInTheDocument()
+  })
+
   it('does not refresh Tours merely because the mobile assignment sheet closes', () => {
     const { rerender } = render(<MToursSelectionList planner={planner()} shell={shell({ id: 'bract' })} filter="all" />)
 

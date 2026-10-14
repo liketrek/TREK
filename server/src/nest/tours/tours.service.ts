@@ -67,7 +67,7 @@ export class ToursService {
       difficulty: r.difficulty,
       wanderer_ref: r.wanderer_ref,
       match_confidence: r.match_confidence,
-      max_hiking_difficulty: r.max_hiking_difficulty ?? 2,
+      max_hiking_difficulty: r.max_hiking_difficulty,
       planned: Boolean(r.planned),
       caution: r.match_confidence !== null && r.match_confidence < LOW_CONFIDENCE_THRESHOLD,
       has_waypoints: Boolean(r.has_waypoints),
@@ -309,7 +309,7 @@ export class ToursService {
           planned_duration_minutes: null,
           break_additional_minutes: null,
           match_confidence: matchConfidence,
-          max_hiking_difficulty: 2,
+          max_hiking_difficulty: null,
         });
         tours.push(
           this.toItem({
@@ -327,7 +327,7 @@ export class ToursService {
             difficulty: null,
             wanderer_ref: null,
             match_confidence: matchConfidence,
-            max_hiking_difficulty: 2,
+            max_hiking_difficulty: null,
             planned: 0,
             has_waypoints: 0,
           }),

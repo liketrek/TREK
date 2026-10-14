@@ -51,7 +51,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Vissza a túrákhoz',
   'tours.planner.restored': 'Nem mentett vázlat visszaállítva',
   'tours.planner.discardChanges': 'Módosítások elvetése',
-  'tours.planner.discardUnsaved': 'Nem mentett módosítások elvetése',
   'tours.planner.newTourConfirmTitle': 'Új túrát kezdesz?',
   'tours.planner.newTourConfirmBody': 'A túra nem mentett módosításai elvesznek. A mentett túrák nem változnak.',
   'tours.planner.newTourConfirm': 'Módosítások elvetése és új túra kezdése',
@@ -145,5 +144,25 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Kajakozás',
   'tourTypes.walk': 'Városi / városnéző séta',
   'tourTypes.food': 'Gasztro- / bortúra',
+  'tours.terrain.play': 'Átrepülés lejátszása',
+  'tours.terrain.pause': 'Szünet',
+  'tours.terrain.restart': 'Újrakezdés',
+  'tours.terrain.speed': 'Sebesség',
+  'tours.terrain.exaggeration': 'Domborzat',
+  'tours.terrain.overview': 'Áttekintés',
+  'tours.terrain.colorByGrade': 'Meredekség',
+  'tours.terrain.gradeMix': 'Meredekség megoszlása',
+  'tours.terrain.band.flat': '5% alatt',
+  'tours.terrain.band.gentle': '5 és 10% között',
+  'tours.terrain.band.moderate': '10 és 18% között',
+  'tours.terrain.band.steep': '18 és 27% között',
+  'tours.terrain.band.verySteep': '27% vagy több',
+  'tours.terrain.attribution': 'Magasság: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour':
+    'Nyiss meg jobb oldalt egy túrát, hogy 3D-ben átrepülhesd és meredekség szerint színezhesd.',
+  'tours.terrain.steepestShort': 'max. {grade}%',
+  'tours.terrain.preloading': 'A táj betöltése: {percent}%',
+  'tours.terrain.clickToPlan':
+    'Kattints a terepre pontok elhelyezéséhez. Ha már van útvonal, átrepülheted és meredekség szerint színezheted.',
 };
 export default tours;

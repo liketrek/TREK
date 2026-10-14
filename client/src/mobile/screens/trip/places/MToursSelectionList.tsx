@@ -70,11 +70,13 @@ export default function MToursSelectionList({ planner, shell, filter, canAssign:
               <span className="shrink-0 rounded-md border border-[color:var(--m-rowbr)] px-1.5 py-0.5 text-[10px] font-medium text-m-faint">
                 {hikeSourceBadgeLabel(tour, t)}
               </span>
-              <span
-                title={t(`tours.planner.difficulty.t${tour.max_hiking_difficulty}`)}
-                aria-label={t(`tours.planner.difficulty.t${tour.max_hiking_difficulty}`)}
-                className="shrink-0 rounded-md border border-[color:var(--m-rowbr)] px-1.5 py-0.5 text-[10px] font-semibold text-m-muted"
-              >T{tour.max_hiking_difficulty}</span>
+              {tour.max_hiking_difficulty != null && (
+                <span
+                  title={t(`tours.planner.difficulty.t${tour.max_hiking_difficulty}`)}
+                  aria-label={t(`tours.planner.difficulty.t${tour.max_hiking_difficulty}`)}
+                  className="shrink-0 rounded-md border border-[color:var(--m-rowbr)] px-1.5 py-0.5 text-[10px] font-semibold text-m-muted"
+                >T{tour.max_hiking_difficulty}</span>
+              )}
               {tour.caution && (
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[color:var(--warning)] px-1.5 py-0.5 text-[10px] text-[color:var(--warning)]" aria-label={t('tours.caution.badge')} title={t('tours.caution.tooltip')}>
                   <AlertTriangle className="h-3 w-3" strokeWidth={2} aria-hidden="true" />{t('tours.caution.badge')}

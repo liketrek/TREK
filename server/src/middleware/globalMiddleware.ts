@@ -285,6 +285,8 @@ export function applyGlobalMiddleware(
             'ws:',
             'wss:',
             'https://nominatim.openstreetmap.org',
+            // Open elevation tiles (Mapzen Terrarium on AWS Open Data) for the 3D tour view.
+            'https://elevation-tiles-prod.s3.amazonaws.com',
             'https://overpass-api.de',
             'https://places.googleapis.com',
             'https://api.openweathermap.org',

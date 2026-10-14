@@ -52,7 +52,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Torna alle escursioni',
   'tours.planner.restored': 'Bozza non salvata ripristinata',
   'tours.planner.discardChanges': 'Scarta modifiche',
-  'tours.planner.discardUnsaved': 'Scarta modifiche non salvate',
   'tours.planner.newTourConfirmTitle': 'Iniziare una nuova escursione?',
   'tours.planner.newTourConfirmBody':
     'Le modifiche non salvate a questa escursione verranno scartate. Le escursioni salvate non verranno modificate.',
@@ -145,5 +144,24 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Escursione in kayak',
   'tourTypes.walk': 'Passeggiata urbana / turistica',
   'tourTypes.food': 'Tour enogastronomico',
+  'tours.terrain.play': 'Avvia il sorvolo',
+  'tours.terrain.pause': 'Pausa',
+  'tours.terrain.restart': 'Ricomincia',
+  'tours.terrain.speed': 'Velocità',
+  'tours.terrain.exaggeration': 'Rilievo',
+  'tours.terrain.overview': 'Panoramica',
+  'tours.terrain.colorByGrade': 'Pendenza',
+  'tours.terrain.gradeMix': 'Distribuzione delle pendenze',
+  'tours.terrain.band.flat': 'meno del 5 %',
+  'tours.terrain.band.gentle': 'dal 5 al 10 %',
+  'tours.terrain.band.moderate': 'dal 10 al 18 %',
+  'tours.terrain.band.steep': 'dal 18 al 27 %',
+  'tours.terrain.band.verySteep': '27 % e oltre',
+  'tours.terrain.attribution': 'Quote: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': "Apri un'escursione a destra per sorvolarla in 3D e colorarla in base alla pendenza.",
+  'tours.terrain.steepestShort': 'mass. {grade} %',
+  'tours.terrain.preloading': 'Caricamento del paesaggio: {percent} %',
+  'tours.terrain.clickToPlan':
+    "Fai clic sul terreno per aggiungere punti. Appena c'è un percorso, puoi sorvolarlo e colorarlo in base alla pendenza.",
 };
 export default tours;

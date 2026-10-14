@@ -630,8 +630,7 @@ export function MapViewGL({
   onPlannerWaypointClick,
   onPlannerWaypointMove,
   routeProfileFocus = null,
-  viewBaseLayer,
-  onViewBaseLayerChange,
+  viewBaseLayer, onViewBaseLayerChange, onToggleTerrain3d,
   roadtripVias,
   onMoveVia,
   onRemoveVia,
@@ -2354,7 +2353,8 @@ export function MapViewGL({
       }}>
         {onToggleFollow && <MapLockPill locked={!followSelection} onToggle={onToggleFollow} />}
         {hasViewBaseLayer
-          ? <TourMapLayerSwitcher active={baseLayer as TourBaseLayer} onChange={onViewBaseLayerChange} />
+          ? <TourMapLayerSwitcher active={baseLayer as TourBaseLayer} onChange={onViewBaseLayerChange}
+              onToggleTerrain={onToggleTerrain3d} />
           : <MapLayerSwitcher active={globalBaseLayer as BaseLayer} onToggle={toggleBaseLayer} />}
       </div>
       {/* Hover tooltip — cursor-following name/category/address card, identical to

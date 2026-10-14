@@ -75,7 +75,8 @@ export const tourSchema = z.object({
   // Nullable reference to a tour in wanderer.
   wanderer_ref: z.string().nullable(),
   match_confidence: z.number().min(0).max(1).nullable(),
-  max_hiking_difficulty: tourMaxHikingDifficultySchema,
+  // NULL for a GPX import: the track carries no difficulty. A drawn tour always has one.
+  max_hiking_difficulty: tourMaxHikingDifficultySchema.nullable(),
 });
 export type Tour = z.infer<typeof tourSchema>;
 

@@ -53,7 +53,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Retour aux sorties',
   'tours.planner.restored': 'Brouillon non enregistré restauré',
   'tours.planner.discardChanges': 'Abandonner les modifications',
-  'tours.planner.discardUnsaved': 'Abandonner les modifications non enregistrées',
   'tours.planner.newTourConfirmTitle': 'Commencer une nouvelle sortie ?',
   'tours.planner.newTourConfirmBody':
     'Les modifications non enregistrées de cette sortie seront perdues. Les sorties enregistrées resteront inchangées.',
@@ -148,5 +147,24 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Sortie en kayak',
   'tourTypes.walk': 'Balade urbaine / touristique',
   'tourTypes.food': 'Circuit gastronomique / œnologique',
+  'tours.terrain.play': 'Lancer le survol',
+  'tours.terrain.pause': 'Pause', // same-as-en
+  'tours.terrain.restart': 'Recommencer',
+  'tours.terrain.speed': 'Vitesse',
+  'tours.terrain.exaggeration': 'Relief', // same-as-en
+  'tours.terrain.overview': "Vue d'ensemble",
+  'tours.terrain.colorByGrade': 'Pente',
+  'tours.terrain.gradeMix': 'Répartition des pentes',
+  'tours.terrain.band.flat': 'moins de 5 %',
+  'tours.terrain.band.gentle': 'de 5 à 10 %',
+  'tours.terrain.band.moderate': 'de 10 à 18 %',
+  'tours.terrain.band.steep': 'de 18 à 27 %',
+  'tours.terrain.band.verySteep': '27 % et plus',
+  'tours.terrain.attribution': 'Altitudes : Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': 'Ouvrez une sortie à droite pour la survoler en 3D et la colorer selon la pente.',
+  'tours.terrain.steepestShort': 'max. {grade} %',
+  'tours.terrain.preloading': 'Chargement du paysage : {percent} %',
+  'tours.terrain.clickToPlan':
+    "Cliquez sur le relief pour placer des points. Dès qu'un itinéraire existe, il peut être survolé et coloré selon la pente.",
 };
 export default tours;

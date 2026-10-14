@@ -50,7 +50,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Turlara dön',
   'tours.planner.restored': 'Kaydedilmemiş taslak geri yüklendi',
   'tours.planner.discardChanges': 'Değişiklikleri sil',
-  'tours.planner.discardUnsaved': 'Kaydedilmemiş değişiklikleri sil',
   'tours.planner.newTourConfirmTitle': 'Yeni bir tur başlatılsın mı?',
   'tours.planner.newTourConfirmBody':
     'Bu turdaki kaydedilmemiş değişiklikler silinecek. Kaydedilmiş turlar değişmeyecek.',
@@ -143,5 +142,24 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Kayak kanosu',
   'tourTypes.walk': 'Şehir / gezi yürüyüşü',
   'tourTypes.food': 'Yemek / şarap turu',
+  'tours.terrain.play': 'Uçuşu oynat',
+  'tours.terrain.pause': 'Duraklat',
+  'tours.terrain.restart': 'Baştan başlat',
+  'tours.terrain.speed': 'Hız',
+  'tours.terrain.exaggeration': 'Rölyef',
+  'tours.terrain.overview': 'Genel bakış',
+  'tours.terrain.colorByGrade': 'Eğim',
+  'tours.terrain.gradeMix': 'Eğim dağılımı',
+  'tours.terrain.band.flat': "%5'in altı",
+  'tours.terrain.band.gentle': '%5 ile %10 arası',
+  'tours.terrain.band.moderate': '%10 ile %18 arası',
+  'tours.terrain.band.steep': '%18 ile %27 arası',
+  'tours.terrain.band.verySteep': '%27 ve üzeri',
+  'tours.terrain.attribution': 'Yükseklik: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': 'Bir turu 3D olarak uçmak ve eğime göre renklendirmek için sağ taraftan açın.',
+  'tours.terrain.steepestShort': 'en fazla %{grade}',
+  'tours.terrain.preloading': 'Manzara yükleniyor: %{percent}',
+  'tours.terrain.clickToPlan':
+    'Nokta eklemek için araziye tıklayın. Bir rota oluştuğunda üzerinden uçabilir ve eğime göre renklendirebilirsiniz.',
 };
 export default tours;

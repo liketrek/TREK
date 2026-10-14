@@ -2,6 +2,7 @@ import {
   MAX_PLANNED_TOUR_DURATION_MINUTES,
   plannedTourDurationMinutesSchema,
   tourCreateRequestSchema,
+  tourListItemSchema,
   tourMaxHikingDifficultySchema,
   tourWebsiteSchema,
 } from './tours.schema';
@@ -23,6 +24,31 @@ const baseRequest = {
 describe('Tours maximum hiking difficulty', () => {
   it('defaults create requests to T2', () => {
     expect(tourCreateRequestSchema.parse(baseRequest).max_hiking_difficulty).toBe(2);
+  });
+
+  it('keeps a drawn tour from saving without one', () => {
+    expect(() => tourCreateRequestSchema.parse({ ...baseRequest, max_hiking_difficulty: null })).toThrow();
+  });
+
+  it('lets a GPX-imported tour carry none', () => {
+    const imported = {
+      place_id: 1,
+      tour_type: 'hike',
+      distance: 4.2,
+      elevation_gain: null,
+      elevation_loss: null,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 0.3,
+      max_hiking_difficulty: null,
+      name: 'Ridge walk',
+      planned: false,
+      caution: true,
+      has_waypoints: false,
+    };
+    expect(tourListItemSchema.parse(imported).max_hiking_difficulty).toBeNull();
+    expect(() => tourListItemSchema.parse({ ...imported, max_hiking_difficulty: 7 })).toThrow();
   });
 
   it('accepts only integer values from T1 through T6', () => {

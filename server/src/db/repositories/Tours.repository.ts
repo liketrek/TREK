@@ -24,7 +24,7 @@ export interface TourListRow {
   difficulty: string | null;
   wanderer_ref: string | null;
   match_confidence: number | null;
-  max_hiking_difficulty: number;
+  max_hiking_difficulty: number | null;
   planned: number;
   has_waypoints: number;
 }
@@ -43,7 +43,7 @@ export interface TourRow {
   wanderer_ref: string | null;
   match_confidence: number | null;
   created_at: string | null;
-  max_hiking_difficulty: number;
+  max_hiking_difficulty: number | null;
 }
 const _tourRowKeys: AssertRowKeys<TourRow, Tours> = true;
 
@@ -58,7 +58,7 @@ export interface TourInsert {
   planned_duration_minutes: number | null;
   break_additional_minutes?: number | null;
   match_confidence: number | null;
-  max_hiking_difficulty: number;
+  max_hiking_difficulty: number | null;
 }
 
 /** What a route edit replaces on an existing tour. */

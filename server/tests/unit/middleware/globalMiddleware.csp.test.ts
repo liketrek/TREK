@@ -96,6 +96,21 @@ describe('global CSP: the imagery host (#2307)', () => {
   });
 });
 
+describe('global CSP: the elevation tiles of the 3D tour view', () => {
+  it('allows the Terrarium tiles, which MapLibre and the flyover preload fetch', async () => {
+    // The 3D view drapes the route over Mapzen's open elevation model on AWS Open
+    // Data. MapLibre reads raster-dem tiles through fetch, and the corridor preload
+    // warms the cache with fetch too, so both land on connect-src; img-src is not asked.
+    expect(await connectSrcSources()).toContain('https://elevation-tiles-prod.s3.amazonaws.com');
+  });
+
+  it('names that one bucket host, not every S3 bucket', async () => {
+    const sources = await connectSrcSources();
+    expect(sources).not.toContain('https://*.s3.amazonaws.com');
+    expect(sources).not.toContain('https://*.amazonaws.com');
+  });
+});
+
 describe('global CSP: script-src', () => {
   it("allows 'wasm-unsafe-eval' so the WASM decoders keep running", async () => {
     expect(await directiveSources('script-src')).toContain("'wasm-unsafe-eval'");

@@ -463,11 +463,14 @@ describe('Tours e2e (real guards + temp SQLite)', () => {
         name: 'Alpine loop',
         tour_type: 'hike',
         match_confidence: 1,
-        max_hiking_difficulty: 2,
+        max_hiking_difficulty: null,
         has_waypoints: false,
       });
       expect(await placeColumns(tour.place_id, 'trip_id')).toEqual({ trip_id: 5 });
-      expect((await findRow(orm, Tours, { place: tour.place_id }))?.tour_type).toBe('hike');
+      expect(await findRow(orm, Tours, { place: tour.place_id })).toMatchObject({
+        tour_type: 'hike',
+        max_hiking_difficulty: null,
+      });
       expect(broadcast.mock.calls.map((c) => c[1])).toEqual(expect.arrayContaining(['tours:changed', 'place:created']));
     });
 

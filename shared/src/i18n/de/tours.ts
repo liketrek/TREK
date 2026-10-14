@@ -51,7 +51,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Zurück zu den Touren',
   'tours.planner.restored': 'Ungespeicherter Entwurf wiederhergestellt',
   'tours.planner.discardChanges': 'Änderungen verwerfen',
-  'tours.planner.discardUnsaved': 'Ungespeicherte Änderungen verwerfen',
   'tours.planner.newTourConfirmTitle': 'Neue Tour beginnen?',
   'tours.planner.newTourConfirmBody':
     'Ungespeicherte Änderungen an dieser Tour gehen verloren. Gespeicherte Touren bleiben erhalten.',
@@ -145,6 +144,25 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Kajaktour',
   'tourTypes.walk': 'Stadt- und Spaziergang',
   'tourTypes.food': 'Genusstour',
+  'tours.terrain.play': 'Flug abspielen',
+  'tours.terrain.pause': 'Pause', // same-as-en
+  'tours.terrain.restart': 'Von vorn',
+  'tours.terrain.speed': 'Tempo',
+  'tours.terrain.exaggeration': 'Relief', // same-as-en
+  'tours.terrain.overview': 'Übersicht',
+  'tours.terrain.colorByGrade': 'Steigung',
+  'tours.terrain.gradeMix': 'Steigungsanteile',
+  'tours.terrain.band.flat': 'unter 5 %',
+  'tours.terrain.band.gentle': '5 bis 10 %',
+  'tours.terrain.band.moderate': '10 bis 18 %',
+  'tours.terrain.band.steep': '18 bis 27 %',
+  'tours.terrain.band.verySteep': 'ab 27 %',
+  'tours.terrain.attribution': 'Höhen: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': 'Öffne rechts eine Tour, um sie in 3D abzufliegen und nach Steigung einzufärben.',
+  'tours.terrain.steepestShort': 'max. {grade} %',
+  'tours.terrain.preloading': 'Landschaft wird vorgeladen: {percent} %',
+  'tours.terrain.clickToPlan':
+    'Klicke ins Gelände, um Punkte zu setzen. Sobald eine Route steht, lässt sie sich abfliegen und nach Steigung einfärben.',
 };
 
 export default tours;

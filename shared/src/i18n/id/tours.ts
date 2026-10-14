@@ -50,7 +50,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Kembali ke daftar tur',
   'tours.planner.restored': 'Draf yang belum disimpan telah dipulihkan',
   'tours.planner.discardChanges': 'Buang perubahan',
-  'tours.planner.discardUnsaved': 'Buang perubahan yang belum disimpan',
   'tours.planner.newTourConfirmTitle': 'Mulai tur baru?',
   'tours.planner.newTourConfirmBody':
     'Perubahan yang belum disimpan pada tur ini akan dibuang. Tur yang sudah disimpan tidak akan diubah.',
@@ -142,5 +141,25 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Berkayak',
   'tourTypes.walk': 'Jalan-jalan kota / wisata',
   'tourTypes.food': 'Tur kuliner / anggur',
+  'tours.terrain.play': 'Putar penerbangan',
+  'tours.terrain.pause': 'Jeda',
+  'tours.terrain.restart': 'Mulai ulang',
+  'tours.terrain.speed': 'Kecepatan',
+  'tours.terrain.exaggeration': 'Relief', // same-as-en
+  'tours.terrain.overview': 'Ikhtisar',
+  'tours.terrain.colorByGrade': 'Kemiringan',
+  'tours.terrain.gradeMix': 'Sebaran kemiringan',
+  'tours.terrain.band.flat': 'di bawah 5%',
+  'tours.terrain.band.gentle': '5 hingga 10%',
+  'tours.terrain.band.moderate': '10 hingga 18%',
+  'tours.terrain.band.steep': '18 hingga 27%',
+  'tours.terrain.band.verySteep': '27% atau lebih',
+  'tours.terrain.attribution': 'Ketinggian: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour':
+    'Buka tur di sebelah kanan untuk menerbanginya dalam 3D dan mewarnainya menurut kemiringan.',
+  'tours.terrain.steepestShort': 'maks. {grade}%',
+  'tours.terrain.preloading': 'Memuat lanskap: {percent}%',
+  'tours.terrain.clickToPlan':
+    'Klik medan untuk menambahkan titik. Setelah ada rute, rute itu bisa diterbangi dan diwarnai menurut kemiringan.',
 };
 export default tours;

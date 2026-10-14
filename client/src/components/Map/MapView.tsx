@@ -834,8 +834,7 @@ export const MapView = memo(function MapView({
   onPlannerWaypointClick,
   onPlannerWaypointMove,
   routeProfileFocus = null,
-  viewBaseLayer,
-  onViewBaseLayerChange,
+  viewBaseLayer, onViewBaseLayerChange, onToggleTerrain3d,
 }: MapViewProps) {
   const globalBaseLayer = useSettingsStore(s => s.settings.map_base_layer) || 'default'
   const updateSetting = useSettingsStore(s => s.updateSetting)
@@ -1384,7 +1383,8 @@ export const MapView = memo(function MapView({
     <div style={{ position: 'absolute', left: leftWidth + MAP_LAYER_SWITCHER_INSET, bottom: switcherBottom, zIndex: 1000, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
       {onToggleFollow && <MapLockPill locked={!followSelection} onToggle={onToggleFollow} />}
       {hasViewBaseLayer
-        ? <TourMapLayerSwitcher active={baseLayer} onChange={onViewBaseLayerChange} />
+        ? <TourMapLayerSwitcher active={baseLayer} onChange={onViewBaseLayerChange}
+            onToggleTerrain={onToggleTerrain3d} />
         : <MapLayerSwitcher active={globalBaseLayer} onToggle={toggleBaseLayer} />}
     </div>
     </div>

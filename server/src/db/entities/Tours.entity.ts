@@ -1,4 +1,4 @@
-import { Collection, EntityRepositoryType, type Opt, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
+import { Collection, EntityRepositoryType, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { ToursRepository } from '../repositories/Tours.repository';
 import { Places } from './Places.entity';
 import { TourTypes } from './TourTypes.entity';
@@ -18,7 +18,7 @@ export class Tours {
   wanderer_ref?: string | null;
   match_confidence?: number | null;
   created_at?: string | null;
-  max_hiking_difficulty: number & Opt = 2;
+  max_hiking_difficulty?: number | null = 2;
   planned_duration_minutes?: number | null;
   break_additional_minutes?: number | null;
   tourTypeRef!: Ref<TourTypes>;
@@ -40,7 +40,7 @@ export const ToursSchema = defineEntity({
     wanderer_ref: p.text().nullable(),
     match_confidence: p.double().nullable(),
     created_at: p.text().nullable().defaultRaw(`CURRENT_TIMESTAMP`),
-    max_hiking_difficulty: p.integer().default(2),
+    max_hiking_difficulty: p.integer().nullable(),
     planned_duration_minutes: p.integer().nullable(),
     break_additional_minutes: p.integer().nullable(),
     tourTypeRef: () => p.manyToOne(TourTypes).ref().joinColumn('tour_type').hidden().index('idx_tours_tour_type'),

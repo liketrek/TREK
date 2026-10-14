@@ -209,7 +209,7 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
     expect(result.tours[0]).toMatchObject({
       name: 'walk',
       tour_type: 'hike',
-      max_hiking_difficulty: 2,
+      max_hiking_difficulty: null,
       planned: false,
       has_waypoints: false,
       caution: true,

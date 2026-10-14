@@ -1,4 +1,5 @@
-import { Map as MapIcon, Mountain, Satellite } from 'lucide-react'
+import { Map as MapIcon, Mountain, Rotate3d, Satellite } from 'lucide-react'
+import type { CSSProperties } from 'react'
 import { useTranslation } from '../../i18n'
 import { Tooltip } from '../shared/Tooltip'
 import { MAP_CONTROL_SHADOW } from './mapControlShadow'
@@ -71,13 +72,26 @@ const TOUR_LAYERS = [
   { id: 'satellite', labelKey: 'map.baseLayer.satellite', Icon: Satellite },
 ] as const
 
+/** A pill segment of the Tours control; `filled` lets its class paint the background. */
+const segmentStyle = (filled: boolean): CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+  minHeight: 34, borderRadius: 999, border: 'none', cursor: 'pointer',
+  background: filled ? undefined : 'transparent', padding: '0 10px',
+  fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600,
+})
+
 /** Per-view Tours control. It never reads or writes the global map setting. */
 export function TourMapLayerSwitcher({
   active,
   onChange,
+  onToggleTerrain,
+  terrainActive = false,
 }: {
   active: TourBaseLayer
   onChange: (layer: TourBaseLayer) => void
+  /** Offers the 3D terrain switch beside the base layers. */
+  onToggleTerrain?: () => void
+  terrainActive?: boolean
 }) {
   const { t } = useTranslation()
 
@@ -93,18 +107,28 @@ export function TourMapLayerSwitcher({
             onClick={() => onChange(id)}
             aria-pressed={selected}
             className={selected ? 'bg-accent-soft text-accent' : 'text-content-muted'}
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              minHeight: 34, borderRadius: 999, border: 'none', cursor: 'pointer',
-              background: selected ? undefined : 'transparent', padding: '0 10px',
-              fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600,
-            }}
+            style={segmentStyle(selected)}
           >
             <Icon size={15} strokeWidth={2} />
             <span>{label}</span>
           </button>
         )
       })}
+      {onToggleTerrain && (
+        <>
+          <span aria-hidden className="mx-0.5 h-5 w-px bg-edge" />
+          <button
+            type="button"
+            onClick={onToggleTerrain}
+            aria-pressed={terrainActive}
+            className={terrainActive ? 'bg-accent text-accent-text' : 'text-content-muted'}
+            style={segmentStyle(terrainActive)}
+          >
+            <Rotate3d size={15} strokeWidth={2} />
+            <span>3D</span>
+          </button>
+        </>
+      )}
     </div>
   )
 }

@@ -26,11 +26,23 @@ export function TourTile({ size = 34, color, raised = false }: { size?: number; 
   )
 }
 
+/** The T-scale badge; a GPX import carries no difficulty, so it gets none. */
+function TourDifficultyPill({ level, t }: { level: TourListItem['max_hiking_difficulty']; t: Translate }) {
+  if (level == null) return null
+  const label = t(`tours.planner.difficulty.t${level}`)
+  return (
+    <Tooltip label={label}>
+      <span aria-label={label} className="inline-flex">
+        <SoftPill>T{level}</SoftPill>
+      </span>
+    </Tooltip>
+  )
+}
+
 /** The facts of a tour as white pills: how far, how much up and down, how hard, where it came from. */
 export function TourFactPills({ tour, className = '' }: { tour: TourListItem; className?: string }) {
   const { t } = useTranslation()
   const unit = useSettingsStore(state => state.settings.distance_unit)
-  const difficulty = t(`tours.planner.difficulty.t${tour.max_hiking_difficulty}`)
   const times = tourPlannedTimes(tour)
   return (
     <div data-testid="tour-metrics" className={`flex min-w-0 flex-wrap items-center gap-1 ${className}`}>
@@ -68,11 +80,7 @@ export function TourFactPills({ tour, className = '' }: { tour: TourListItem; cl
           </span>
         </SoftPill>
       )}
-      <Tooltip label={difficulty}>
-        <span aria-label={difficulty} className="inline-flex">
-          <SoftPill>T{tour.max_hiking_difficulty}</SoftPill>
-        </span>
-      </Tooltip>
+      <TourDifficultyPill level={tour.max_hiking_difficulty} t={t} />
       <SoftPill>{hikeSourceBadgeLabel(tour, t)}</SoftPill>
       {tour.caution && (
         <Tooltip label={t('tours.caution.tooltip')}>

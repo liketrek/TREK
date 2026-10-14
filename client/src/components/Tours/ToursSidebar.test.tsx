@@ -112,6 +112,16 @@ describe('ToursSidebar', () => {
     expect(screen.getByRole('button', { name: /Day one/ })).toBeInTheDocument()
   })
 
+  it('shows no T-badge for an imported tour that carries no difficulty', () => {
+    const imported = { ...tour, name: 'Imported GPX walk', has_waypoints: false, max_hiking_difficulty: null }
+    render(<ToursSidebar tripId={1} days={[]} tours={[imported]} onAssignToDay={vi.fn()} onSelectTour={vi.fn()} />)
+
+    const metrics = within(screen.getByRole('option', { name: /Imported GPX walk/ })).getByTestId('tour-metrics')
+    expect(metrics).not.toHaveTextContent(/T\d/)
+    expect(metrics).not.toHaveTextContent('Tnull')
+    expect(within(metrics).queryByLabelText(/^T\d/)).not.toBeInTheDocument()
+  })
+
   it('leaves the post-write refresh to the shared assignment handler', async () => {
     let resolveAssignment!: () => void
     const assignment = new Promise<void>(resolve => { resolveAssignment = resolve })

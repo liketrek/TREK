@@ -166,7 +166,7 @@ describe('Tours English and German copy', () => {
     fireEvent.click(screen.getByRole('button', { name: toursText(de, 'tours.planner.backToTours') }))
     expect(screen.getByRole('heading', { name: toursText(de, 'tours.planner.discardTitle') })).toBeInTheDocument()
     expect(screen.getByText(toursText(de, 'tours.planner.discardBody'))).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: toursText(de, 'tours.planner.discardUnsaved') })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: toursText(de, 'tours.planner.discardChanges') })).toBeInTheDocument()
     assertNoRawToursKeys()
 
     rerender(<TourPlannerRail planner={planner({

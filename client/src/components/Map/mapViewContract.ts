@@ -116,6 +116,8 @@ export interface MapViewProps {
   routeProfileFocus?: RouteProfileFocus | null;
   viewBaseLayer?: TourBaseLayer;
   onViewBaseLayerChange?: (layer: TourBaseLayer) => void;
+  /** Offers the 3D terrain switch in the tour layer pill. */
+  onToggleTerrain3d?: () => void;
   /**
    * An explicit stretch of map to frame, independent of the day being shown.
    *

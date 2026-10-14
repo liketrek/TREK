@@ -49,7 +49,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': '투어 목록으로',
   'tours.planner.restored': '저장하지 않은 초안을 복원했습니다',
   'tours.planner.discardChanges': '변경 사항 버리기',
-  'tours.planner.discardUnsaved': '저장하지 않은 변경 사항 버리기',
   'tours.planner.newTourConfirmTitle': '새 투어를 시작할까요?',
   'tours.planner.newTourConfirmBody':
     '이 투어의 저장하지 않은 변경 사항은 삭제됩니다. 저장된 투어는 변경되지 않습니다.',
@@ -140,5 +139,24 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': '카약',
   'tourTypes.walk': '도심 산책 / 관광',
   'tourTypes.food': '미식 / 와인 투어',
+  'tours.terrain.play': '비행 재생',
+  'tours.terrain.pause': '일시정지',
+  'tours.terrain.restart': '처음부터',
+  'tours.terrain.speed': '속도',
+  'tours.terrain.exaggeration': '기복',
+  'tours.terrain.overview': '전체 보기',
+  'tours.terrain.colorByGrade': '경사',
+  'tours.terrain.gradeMix': '경사 분포',
+  'tours.terrain.band.flat': '5 % 미만',
+  'tours.terrain.band.gentle': '5~10 %',
+  'tours.terrain.band.moderate': '10~18 %',
+  'tours.terrain.band.steep': '18~27 %',
+  'tours.terrain.band.verySteep': '27 % 이상',
+  'tours.terrain.attribution': '고도: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': '오른쪽에서 투어를 열면 3D로 비행하고 경사별로 색을 입힐 수 있습니다.',
+  'tours.terrain.steepestShort': '최대 {grade} %',
+  'tours.terrain.preloading': '지형 불러오는 중: {percent} %',
+  'tours.terrain.clickToPlan':
+    '지형을 클릭해 지점을 추가하세요. 경로가 생기면 비행하고 경사별로 색을 입힐 수 있습니다.',
 };
 export default tours;

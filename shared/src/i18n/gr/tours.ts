@@ -53,7 +53,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Πίσω στις εκδρομές',
   'tours.planner.restored': 'Το μη αποθηκευμένο πρόχειρο επαναφέρθηκε',
   'tours.planner.discardChanges': 'Απόρριψη αλλαγών',
-  'tours.planner.discardUnsaved': 'Απόρριψη μη αποθηκευμένων αλλαγών',
   'tours.planner.newTourConfirmTitle': 'Έναρξη νέας εκδρομής;',
   'tours.planner.newTourConfirmBody':
     'Οι μη αποθηκευμένες αλλαγές αυτής της εκδρομής θα απορριφθούν. Οι αποθηκευμένες εκδρομές δεν θα αλλάξουν.',
@@ -152,5 +151,24 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Καγιάκ',
   'tourTypes.walk': 'Περίπατος στην πόλη / στα αξιοθέατα',
   'tourTypes.food': 'Γαστρονομική / οινική εκδρομή',
+  'tours.terrain.play': 'Αναπαραγωγή πτήσης',
+  'tours.terrain.pause': 'Παύση',
+  'tours.terrain.restart': 'Από την αρχή',
+  'tours.terrain.speed': 'Ταχύτητα',
+  'tours.terrain.exaggeration': 'Ανάγλυφο',
+  'tours.terrain.overview': 'Επισκόπηση',
+  'tours.terrain.colorByGrade': 'Κλίση',
+  'tours.terrain.gradeMix': 'Κατανομή κλίσεων',
+  'tours.terrain.band.flat': 'κάτω από 5 %',
+  'tours.terrain.band.gentle': '5 έως 10 %',
+  'tours.terrain.band.moderate': '10 έως 18 %',
+  'tours.terrain.band.steep': '18 έως 27 %',
+  'tours.terrain.band.verySteep': '27 % και άνω',
+  'tours.terrain.attribution': 'Υψόμετρα: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': 'Άνοιξε μια εκδρομή δεξιά για να την πετάξεις σε 3D και να τη χρωματίσεις κατά κλίση.',
+  'tours.terrain.steepestShort': 'έως {grade} %',
+  'tours.terrain.preloading': 'Φόρτωση τοπίου: {percent} %',
+  'tours.terrain.clickToPlan':
+    'Κάνε κλικ στο έδαφος για να ορίσεις σημεία. Μόλις υπάρξει διαδρομή, μπορείς να την πετάξεις και να τη χρωματίσεις κατά κλίση.',
 };
 export default tours;

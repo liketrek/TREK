@@ -64,25 +64,19 @@ function RailTitle({ title, sub, aside }: { title: string; sub?: ReactNode; asid
 
 function DurationInfo({ description, label }: { description: string; label: string }) {
   const id = useId()
-  const [open, setOpen] = useState(false)
+  // Hover, focus and a tap show the explanation as a tooltip; nothing unfolds in the form.
   return (
-    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5">
-      <Tooltip label={description}>
-        <button
-          type="button"
-          aria-label={label}
-          aria-expanded={open}
-          aria-controls={id}
-          onClick={() => setOpen(value => !value)}
-          className="grid h-5 w-5 flex-none place-items-center rounded-full text-content-faint transition-colors hover:bg-surface-card hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-        >
-          <Info size={13} strokeWidth={2} aria-hidden="true" />
-        </button>
-      </Tooltip>
-      <span id={id} hidden={!open} role="note" className="basis-full text-content-muted" style={fs(10.5, 'body')}>
-        {description}
-      </span>
-    </span>
+    <Tooltip label={description}>
+      <button
+        type="button"
+        aria-label={label}
+        aria-describedby={id}
+        className="grid h-5 w-5 flex-none place-items-center rounded-full text-content-faint transition-colors hover:bg-surface-card hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+      >
+        <Info size={13} strokeWidth={2} aria-hidden="true" />
+        <span id={id} className="sr-only">{description}</span>
+      </button>
+    </Tooltip>
   )
 }
 
@@ -236,7 +230,7 @@ export function TourPlannerRail({ planner, canEdit: editPermission, canAssign: a
           onConfirm={planner.returnToNeutral}
           title={t('tours.planner.discardTitle')}
           message={t('tours.planner.discardBody')}
-          confirmLabel={t('tours.planner.discardUnsaved')}
+          confirmLabel={t('tours.planner.discardChanges')}
         />
         <NewTourConfirmDialog planner={planner} canEdit={canEdit} />
         <ConfirmDialog

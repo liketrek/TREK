@@ -13,7 +13,7 @@ export interface ToursTable {
   wanderer_ref: InsertOptional<string | null>;
   match_confidence: InsertOptional<number | null>;
   created_at: InsertOptional<string | null>;
-  max_hiking_difficulty: InsertOptional<number>;
+  max_hiking_difficulty: InsertOptional<number | null>;
   planned_duration_minutes: InsertOptional<number | null>;
   break_additional_minutes: InsertOptional<number | null>;
 }

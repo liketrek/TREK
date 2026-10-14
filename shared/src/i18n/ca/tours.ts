@@ -51,7 +51,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Torna a excursions',
   'tours.planner.restored': 'Esborrany sense desar restaurat',
   'tours.planner.discardChanges': 'Descarta els canvis',
-  'tours.planner.discardUnsaved': 'Descarta els canvis sense desar',
   'tours.planner.newTourConfirmTitle': 'Vols començar una nova excursió?',
   'tours.planner.newTourConfirmBody':
     "Es descartaran els canvis sense desar d'aquesta excursió. Les excursions desades no es modificaran.",
@@ -144,5 +143,24 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Ruta en caiac',
   'tourTypes.walk': 'Passeig urbà / turístic',
   'tourTypes.food': 'Ruta gastronòmica / enològica',
+  'tours.terrain.play': 'Reprodueix el sobrevol',
+  'tours.terrain.pause': 'Pausa',
+  'tours.terrain.restart': 'Torna a començar',
+  'tours.terrain.speed': 'Velocitat',
+  'tours.terrain.exaggeration': 'Relleu',
+  'tours.terrain.overview': 'Vista general',
+  'tours.terrain.colorByGrade': 'Pendent',
+  'tours.terrain.gradeMix': 'Distribució dels pendents',
+  'tours.terrain.band.flat': 'menys del 5 %',
+  'tours.terrain.band.gentle': 'del 5 al 10 %',
+  'tours.terrain.band.moderate': 'del 10 al 18 %',
+  'tours.terrain.band.steep': 'del 18 al 27 %',
+  'tours.terrain.band.verySteep': '27 % o més',
+  'tours.terrain.attribution': 'Altituds: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': 'Obre una excursió a la dreta per sobrevolar-la en 3D i acolorir-la segons el pendent.',
+  'tours.terrain.steepestShort': 'màx. {grade} %',
+  'tours.terrain.preloading': 'Carregant el paisatge: {percent} %',
+  'tours.terrain.clickToPlan':
+    'Fes clic al terreny per afegir punts. Quan hi hagi una ruta, es podrà sobrevolar i acolorir segons el pendent.',
 };
 export default tours;

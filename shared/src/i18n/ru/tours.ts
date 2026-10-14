@@ -53,7 +53,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'К турам',
   'tours.planner.restored': 'Несохранённый черновик восстановлен',
   'tours.planner.discardChanges': 'Отменить изменения',
-  'tours.planner.discardUnsaved': 'Отменить несохранённые изменения',
   'tours.planner.newTourConfirmTitle': 'Начать новый тур?',
   'tours.planner.newTourConfirmBody':
     'Несохранённые изменения этого тура будут отменены. Сохранённые туры не изменятся.',
@@ -148,5 +147,24 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Каякинг',
   'tourTypes.walk': 'Прогулка по городу / достопримечательностям',
   'tourTypes.food': 'Гастрономический / винный тур',
+  'tours.terrain.play': 'Запустить облёт',
+  'tours.terrain.pause': 'Пауза',
+  'tours.terrain.restart': 'С начала',
+  'tours.terrain.speed': 'Скорость',
+  'tours.terrain.exaggeration': 'Рельеф',
+  'tours.terrain.overview': 'Обзор',
+  'tours.terrain.colorByGrade': 'Уклон',
+  'tours.terrain.gradeMix': 'Распределение уклонов',
+  'tours.terrain.band.flat': 'до 5 %',
+  'tours.terrain.band.gentle': 'от 5 до 10 %',
+  'tours.terrain.band.moderate': 'от 10 до 18 %',
+  'tours.terrain.band.steep': 'от 18 до 27 %',
+  'tours.terrain.band.verySteep': '27 % и больше',
+  'tours.terrain.attribution': 'Высоты: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': 'Откройте тур справа, чтобы облететь его в 3D и раскрасить по уклону.',
+  'tours.terrain.steepestShort': 'макс. {grade} %',
+  'tours.terrain.preloading': 'Загрузка ландшафта: {percent} %',
+  'tours.terrain.clickToPlan':
+    'Нажмите на рельеф, чтобы поставить точки. Когда появится маршрут, его можно облететь и раскрасить по уклону.',
 };
 export default tours;

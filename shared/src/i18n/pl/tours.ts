@@ -53,7 +53,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Wróć do wycieczek',
   'tours.planner.restored': 'Przywrócono niezapisany szkic',
   'tours.planner.discardChanges': 'Odrzuć zmiany',
-  'tours.planner.discardUnsaved': 'Odrzuć niezapisane zmiany',
   'tours.planner.newTourConfirmTitle': 'Rozpocząć nową wycieczkę?',
   'tours.planner.newTourConfirmBody':
     'Niezapisane zmiany tej wycieczki zostaną odrzucone. Zapisane wycieczki nie zostaną zmienione.',
@@ -147,5 +146,25 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Kajak',
   'tourTypes.walk': 'Spacer po mieście / zwiedzanie',
   'tourTypes.food': 'Wycieczka kulinarna / winiarska',
+  'tours.terrain.play': 'Odtwórz przelot',
+  'tours.terrain.pause': 'Pauza',
+  'tours.terrain.restart': 'Od początku',
+  'tours.terrain.speed': 'Prędkość',
+  'tours.terrain.exaggeration': 'Rzeźba terenu',
+  'tours.terrain.overview': 'Przegląd',
+  'tours.terrain.colorByGrade': 'Nachylenie',
+  'tours.terrain.gradeMix': 'Rozkład nachylenia',
+  'tours.terrain.band.flat': 'poniżej 5%',
+  'tours.terrain.band.gentle': 'od 5 do 10%',
+  'tours.terrain.band.moderate': 'od 10 do 18%',
+  'tours.terrain.band.steep': 'od 18 do 27%',
+  'tours.terrain.band.verySteep': '27% i więcej',
+  'tours.terrain.attribution': 'Wysokości: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour':
+    'Otwórz wycieczkę po prawej, aby przelecieć nad nią w 3D i pokolorować ją według nachylenia.',
+  'tours.terrain.steepestShort': 'maks. {grade}%',
+  'tours.terrain.preloading': 'Wczytywanie krajobrazu: {percent}%',
+  'tours.terrain.clickToPlan':
+    'Kliknij teren, aby dodać punkty. Gdy powstanie trasa, można nad nią przelecieć i pokolorować ją według nachylenia.',
 };
 export default tours;

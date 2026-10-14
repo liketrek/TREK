@@ -399,7 +399,7 @@ describe('TourPlannerRail', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Enter a whole value from 0 to 1,440 minutes.')
   })
 
-  it('RS-02: Info controls are keyboard focusable, use shared tooltips, and expose touch disclosures', async () => {
+  it('RS-02: Info controls are keyboard focusable and explain themselves only through the shared tooltip', async () => {
     render(<TourPlannerRail planner={planner({
       mode: { type: 'new-draft' }, hasUnsavedChanges: true, walkingDurationMinutes: 80,
       breakAdditionalMinutes: 50, plannedTotalMinutes: 130,
@@ -407,22 +407,19 @@ describe('TourPlannerRail', () => {
 
     const breaksInfo = screen.getByRole('button', { name: 'About breaks and additional time' })
     expect(breaksInfo.tabIndex).toBe(0)
-    expect(breaksInfo).toHaveAttribute('aria-expanded', 'false')
-    expect(breaksInfo).toHaveAttribute('aria-controls')
+    expect(breaksInfo).not.toHaveAttribute('aria-expanded')
+    expect(breaksInfo).toHaveAccessibleDescription('Optional whole minutes added to calculated walking time.')
     expect(breaksInfo).toHaveClass('focus-visible:outline')
-    const matches = vi.spyOn(breaksInfo, 'matches').mockImplementation(selector => selector === ':focus-visible')
-    fireEvent.focus(breaksInfo)
+    fireEvent.mouseEnter(breaksInfo)
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Optional whole minutes added to calculated walking time.')
-    fireEvent.blur(breaksInfo)
-    matches.mockRestore()
+    fireEvent.mouseLeave(breaksInfo)
+
+    // A click shows nothing beyond the tooltip: no explanation unfolds in the form.
     fireEvent.click(breaksInfo)
-    expect(breaksInfo).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('note')).toHaveTextContent('Optional whole minutes added to calculated walking time.')
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
 
     const totalInfo = screen.getByRole('button', { name: 'About planned total duration' })
-    expect(totalInfo).toHaveAttribute('aria-expanded', 'false')
-    fireEvent.click(totalInfo)
-    expect(screen.getByText('Calculated planned total duration.')).toBeInTheDocument()
+    expect(totalInfo).toHaveAccessibleDescription('Calculated planned total duration.')
   })
 
   it('RS-01: marks unsafe website values invalid and does not offer Save', () => {
@@ -803,7 +800,7 @@ describe('TourPlannerRail', () => {
     expect(dirty.returnToNeutral).not.toHaveBeenCalled()
     expect(screen.getByRole('heading', { name: 'Edit tour' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Back to Tours' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Discard unsaved changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }))
     expect(dirty.returnToNeutral).toHaveBeenCalledOnce()
   })
 

@@ -1,4 +1,4 @@
-// FE-COMP-MAPLAYER-001 to FE-COMP-MAPLAYER-006
+// FE-COMP-MAPLAYER-001 to FE-COMP-MAPLAYER-010
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '../../../tests/helpers/render'
@@ -69,5 +69,31 @@ describe('MapLayerSwitcher', () => {
     expect(button.style.width).toBe('34px')
     expect(button.style.height).toBe('34px')
     expect(parseFloat(button.style.width) + 2 * parseFloat(shell.style.padding)).toBe(MAP_ROUND_CONTROL_SIZE)
+  })
+})
+
+describe('TourMapLayerSwitcher 3D switch', () => {
+  it('FE-COMP-MAPLAYER-009: offers no 3D switch on a map that has no terrain mode', () => {
+    render(<TourMapLayerSwitcher active="default" onChange={() => {}} />)
+    expect(screen.queryByRole('button', { name: '3D' })).toBeNull()
+  })
+
+  it('FE-COMP-MAPLAYER-010: toggles the terrain mode and shows whether it is on', () => {
+    const onToggleTerrain = vi.fn()
+    const { rerender } = render(<TourMapLayerSwitcher active="topo" onChange={() => {}} onToggleTerrain={onToggleTerrain} />)
+    const off = screen.getByRole('button', { name: '3D' })
+    expect(off).toHaveAttribute('aria-pressed', 'false')
+    expect(off).toHaveClass('text-content-muted')
+    expect(off.style.background).toBe('transparent')
+    fireEvent.click(off)
+    expect(onToggleTerrain).toHaveBeenCalledTimes(1)
+
+    rerender(<TourMapLayerSwitcher active="topo" onChange={() => {}} onToggleTerrain={onToggleTerrain} terrainActive />)
+    const on = screen.getByRole('button', { name: '3D' })
+    expect(on).toHaveAttribute('aria-pressed', 'true')
+    expect(on).toHaveClass('bg-accent', 'text-accent-text')
+    expect(on.style.background).toBe('')
+    // The base layer stays selectable beside it.
+    expect(screen.getByRole('button', { name: 'Topo' })).toHaveAttribute('aria-pressed', 'true')
   })
 })

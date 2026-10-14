@@ -51,7 +51,6 @@ const tours: TranslationStrings = {
   'tours.planner.backToTours': 'Terug naar tochten',
   'tours.planner.restored': 'Niet-opgeslagen concept hersteld',
   'tours.planner.discardChanges': 'Wijzigingen verwerpen',
-  'tours.planner.discardUnsaved': 'Niet-opgeslagen wijzigingen verwerpen',
   'tours.planner.newTourConfirmTitle': 'Een nieuwe tocht starten?',
   'tours.planner.newTourConfirmBody':
     'Je niet-opgeslagen wijzigingen aan deze tocht worden verworpen. Opgeslagen tochten blijven ongewijzigd.',
@@ -144,5 +143,24 @@ const tours: TranslationStrings = {
   'tourTypes.kayak': 'Kajaktocht',
   'tourTypes.walk': 'Stadswandeling / bezienswaardigheden',
   'tourTypes.food': 'Culinaire tocht / wijntocht',
+  'tours.terrain.play': 'Overvlucht afspelen',
+  'tours.terrain.pause': 'Pauzeren',
+  'tours.terrain.restart': 'Opnieuw beginnen',
+  'tours.terrain.speed': 'Snelheid',
+  'tours.terrain.exaggeration': 'Reliëf',
+  'tours.terrain.overview': 'Overzicht',
+  'tours.terrain.colorByGrade': 'Helling',
+  'tours.terrain.gradeMix': 'Hellingsverdeling',
+  'tours.terrain.band.flat': 'onder de 5 %',
+  'tours.terrain.band.gentle': '5 tot 10 %',
+  'tours.terrain.band.moderate': '10 tot 18 %',
+  'tours.terrain.band.steep': '18 tot 27 %',
+  'tours.terrain.band.verySteep': '27 % en meer',
+  'tours.terrain.attribution': 'Hoogtes: Mapzen Terrain Tiles (AWS Open Data)',
+  'tours.terrain.pickTour': 'Open rechts een tocht om er in 3D overheen te vliegen en hem op helling te kleuren.',
+  'tours.terrain.steepestShort': 'max. {grade} %',
+  'tours.terrain.preloading': 'Landschap wordt geladen: {percent} %',
+  'tours.terrain.clickToPlan':
+    'Klik in het terrein om punten te zetten. Zodra er een route is, kun je eroverheen vliegen en hem op helling kleuren.',
 };
 export default tours;
