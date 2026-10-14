@@ -871,11 +871,18 @@ export class AuthService {
       throw new DomainError(401, 'Incorrect password');
     }
     const secret = decryptMfaSecret(user.mfa_secret);
-    const tokenStr = String(code).replace(/\s/g, '');
-    const ok = authenticator.verify({ token: tokenStr, secret });
-    if (!ok) {
+    const tokenStr = String(code).trim();
+    const okTotp = authenticator.verify({ token: tokenStr.replace(/\s/g, ''), secret });
+    // Recovery codes already work at login. Accept them here too, but only
+    // after the account password has been verified and while the existing
+    // rate limit / instance MFA policy allow this operation.
+    const okRecovery = !okTotp && parseBackupCodeHashes(user.mfa_backup_codes)
+      .some((hash) => matchBackupCode(tokenStr, hash));
+    if (!okTotp && !okRecovery) {
       throw new DomainError(401, 'Invalid verification code');
     }
+    // Disabling MFA clears the old secret and *all* backup codes atomically.
+    // A recovery code used here cannot be replayed after re-enrolment.
     // Every other session ends with the second factor; this one just proved both.
     await this.uow.transactional(async () => {
       await this.usersRepo.disableMfa(userId);
