@@ -607,7 +607,7 @@ export class ReservationsMcp {
 
   @Tool({
     name: 'list_upcoming_reservations',
-    description: 'The next bookings across ALL of the user\'s trips, soonest first: "what is coming up?", "when is my next flight?". Prefer this over get_trip_summary when no particular trip is in question, or when the trip is unknown. Hotel stays appear as their check-in and check-out moments (the stay itself covers a range and is not a point in time), which no per-trip reservation list reports. Cancelled bookings and archived trips are left out.',
+    description: 'The next bookings across ALL of the user\'s trips, soonest first: "what is coming up?", "when is my next flight?". Prefer this over get_trip_summary when no particular trip is in question, or when the trip is unknown. Hotel stays appear as their check-in and check-out moments (the stay itself covers a range and is not a point in time), which no per-trip reservation list reports. Cancelled bookings, planned public-transit journeys and archived trips are left out.',
     inputSchema: {
       limit: z.number().int().min(1).max(50).optional().describe('How many entries to return, soonest first (default 6, the dashboard widget\'s size)'),
     },

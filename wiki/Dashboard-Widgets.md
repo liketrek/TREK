@@ -58,7 +58,7 @@ Clocks refresh every 30 seconds and are always shown in 24-hour time — the 12-
 
 ## Upcoming reservations
 
-**Upcoming reservations** lists the next six bookings across all your trips that are not archived, soonest first. A booking counts when its time is still ahead, or, without a time, when its day is today or later; cancelled bookings are left out. A hotel stay is not listed as a whole: its **Check-in** and **Check-out** appear as two entries of their own. Each row shows the date, the time in your 12 or 24 hour format, the title with a **Pending** tag while the booking is not confirmed, and the booking's type as an icon. Click a row to open its trip. With nothing ahead the widget reads *Nothing booked yet.*
+**Upcoming reservations** lists the next six bookings across all your trips that are not archived, soonest first. A booking counts when its time is still ahead, or, without a time, when its day is today or later; cancelled bookings are left out. A hotel stay is not listed as a whole: its **Check-in** and **Check-out** appear as two entries of their own. Public-transit connections planned with the transit search are not listed either; a train or bus you booked is. Each row shows the date, the time in your 12 or 24 hour format, the title with a **Pending** tag while the booking is not confirmed, and the booking's type as an icon. Click a row to open its trip. With nothing ahead the widget reads *Nothing booked yet.*
 
 ---
 

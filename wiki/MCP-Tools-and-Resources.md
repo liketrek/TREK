@@ -147,7 +147,7 @@ Requires `reservations:read` or `reservations:write` scope.
 | `reorder_reservations` | Reorder reservations within a day. |
 | `set_reservation_travelers` | Set who is travelling on a booking, from the trip roster (members and guests). Replaces the list; an empty array clears it. Ids that are not on the trip come back under `ignored_user_ids` rather than being attached. |
 | `link_hotel_accommodation` | Set or update a hotel reservation's check-in/out day links and place. |
-| `list_upcoming_reservations` | The next bookings across all of the user's trips, soonest first, for "what is coming up?" when no particular trip is in question. Hotel stays appear as their check-in and check-out moments. Cancelled bookings and archived trips are left out. `limit` defaults to 6, at most 50. Requires `reservations:read`. |
+| `list_upcoming_reservations` | The next bookings across all of the user's trips, soonest first, for "what is coming up?" when no particular trip is in question. Hotel stays appear as their check-in and check-out moments. Cancelled bookings, planned public-transit journeys and archived trips are left out. `limit` defaults to 6, at most 50. Requires `reservations:read`. |
 
 ### Budget
 

@@ -1067,6 +1067,19 @@ describe('Tool: list_upcoming_reservations', () => {
     expect(rows.map((r) => r.title)).toEqual(['Still on']);
   });
 
+  it('leaves out planned public-transit journeys and keeps a booked train, as the dashboard does', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await seedBooking(trip.id, 'Metro to the museum', `${dateInDays(1)}T09:00:00`, {
+      type: 'transit',
+      status: 'confirmed',
+    });
+    await seedBooking(trip.id, 'Night train', `${dateInDays(2)}T21:00:00`, { type: 'train', status: 'confirmed' });
+
+    const rows = await upcoming(user.id);
+    expect(rows.map((r) => r.title)).toEqual(['Night train']);
+  });
+
   it('returns the dashboard six by default and honours a limit', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

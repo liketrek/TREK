@@ -1084,7 +1084,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
               .as('at_time'),
           ])
           .where('r.status', '!=', 'cancelled')
-          .where((eb) => eb(eb.fn.coalesce(eb.ref('r.type'), eb.val('')), '!=', 'hotel'))
+          .where((eb) => eb(eb.fn.coalesce(eb.ref('r.type'), eb.val('')), 'not in', ['hotel', 'transit']))
           .$castTo<EntriesRow>();
 
         const checkins = qb

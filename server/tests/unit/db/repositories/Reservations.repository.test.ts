@@ -312,6 +312,7 @@ const LEGACY_LIST_UPCOMING = `
       LEFT JOIN places p ON r.place_id = p.id
       WHERE r.status != 'cancelled'
         AND COALESCE(r.type, '') != 'hotel'
+        AND COALESCE(r.type, '') != 'transit'
 
       UNION ALL
 
@@ -397,6 +398,11 @@ describe('ReservationsRepository — RS20 (listUpcomingForUser)', () => {
     await setReservation(cancelled.id, { reservation_time: '2999-01-03T10:00:00', status: 'cancelled' });
     const hotelDated = createReservation(testDb, tripOwned.id, { title: 'Hotel dated', type: 'hotel' });
     await setReservation(hotelDated.id, { reservation_time: '2999-01-03T10:00:00' });
+    // A planned public-transit journey is routing, not a booking; a booked train is one.
+    const transit = createReservation(testDb, tripOwned.id, { title: 'Metro A to B', type: 'transit' });
+    await setReservation(transit.id, { reservation_time: '2999-01-03T11:00:00', status: 'confirmed' });
+    const train = createReservation(testDb, tripOwned.id, { title: 'Booked train', type: 'train' });
+    await setReservation(train.id, { reservation_time: '2999-01-03T12:00:00', status: 'confirmed' });
 
     // A NULL-typed booking still shows.
     const untyped = createReservation(testDb, tripOwned.id, { title: 'Untyped' });
@@ -456,6 +462,8 @@ describe('ReservationsRepository — RS20 (listUpcomingForUser)', () => {
     // linked "<id>.0" booking.
     const baseline = await reservationsRepo.listUpcomingForUser(owner.id, '2000-01-01', '2000-01-01T00:00', 20);
     expect(baseline.map((r) => r.title)).not.toContain('Hidden');
+    expect(baseline.map((r) => r.title)).not.toContain('Metro A to B');
+    expect(baseline.map((r) => r.title)).toContain('Booked train');
     const tieIndex = baseline.findIndex((r) => r.title === 'Tie 1');
     expect(baseline[tieIndex + 1]?.title).toBe('Tie 2');
     expect(baseline.some((r) => r.title === 'Hotel Ibis')).toBe(true);

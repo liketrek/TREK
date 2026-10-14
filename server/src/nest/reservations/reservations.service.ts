@@ -423,7 +423,7 @@ export class ReservationsService {
    * panel's auto-created booking, stamps the start day into reservation_time
    * once and never restamps it, so moving the stay left the widget showing the
    * old date. Both halves of the report come from reading a hotel's date off
-   * fields hotels do not use.
+   * fields hotels do not use. Planned transit journeys (type 'transit') are routing, not bookings.
    *
    * RS20 — Task 4 (calendar + listUpcoming + the visibility predicate
    * consumers). Ruling (ii): ONE fully typed Kysely statement, in

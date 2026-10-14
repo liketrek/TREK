@@ -173,6 +173,17 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
     expect(titles).not.toContain('Stay');
   });
 
+  it('200 upcoming feed leaves planned public transit out and keeps booked trains and buses', async () => {
+    await seedReservation(tripId, 'Metro leg', 'transit', { reservation_time: '2998-12-30T08:00:00' });
+    await seedReservation(tripId, 'Booked train', 'train', { reservation_time: '2998-12-30T09:00:00' });
+    await seedReservation(tripId, 'Booked bus', 'bus', { reservation_time: '2998-12-30T10:00:00' });
+    const res = await request(server).get('/api/reservations/upcoming').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    const titles = res.body.reservations.map((r: { title: string }) => r.title);
+    expect(titles).toEqual(expect.arrayContaining(['Booked train', 'Booked bus']));
+    expect(titles).not.toContain('Metro leg');
+  });
+
   it('404 when trip not accessible (reservations)', async () => {
     // Plan 3c Task 0b: TripAccessGuard reads TripsRepository.findAccessible
     // directly now, a real query — `canAccessTrip.mockReturnValue(...)` no
