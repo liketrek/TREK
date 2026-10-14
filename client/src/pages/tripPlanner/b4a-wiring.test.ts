@@ -187,8 +187,10 @@ test('B4A desktop page delegates Tours state and permissions to its page hook', 
   const mapClickGate = collect(mapStage, node => ts.isJsxAttribute(node)
     && node.name.getText(mapStage) === 'onMapClick'
     && node.initializer && ts.isJsxExpression(node.initializer)
-    && !!node.initializer.expression && node.initializer.expression.getText(mapStage).includes('canPlaceEdit'))
+    && !!node.initializer.expression && /canEditRoute|canPlaceEdit/.test(node.initializer.expression.getText(mapStage)))
   assert.ok(mapClickGate.length > 0)
+  // The gate the 2D and 3D maps share is derived from the place permission.
+  assert.match(mapStageText, /const canEditRoute = canPlaceEdit && /)
 })
 
 test('B4A dedicated desktop controller retains GPX, draft, focus, and saved rail wiring', () => {
