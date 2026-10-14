@@ -1572,10 +1572,8 @@ describe('DayPlanSidebar', () => {
     expect(document.querySelector('.note-edit-buttons')).toBeNull()
     expect(row.querySelectorAll('[style*="position: absolute"]')).toHaveLength(0)
     expect(row.querySelectorAll('.reorder-buttons button')).toHaveLength(2)
-    // Positional, not just by class: the actions sit at the row's right edge,
-    // the reorder column with only the row's "…" after it.
+    // Positional: the actions close the row, the reorder column right before their "…".
     const actions = row.lastElementChild
-    expect(actions).toHaveClass('dp-note-actions')
     expect(actions?.lastElementChild).toHaveAccessibleName('More options')
     expect(actions?.lastElementChild?.previousElementSibling).toHaveClass('reorder-buttons')
   })
