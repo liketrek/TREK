@@ -106,6 +106,9 @@ export function useJourneyEntryForm({
   const locationSearchSeqRef = useRef(0);
   const [mood, setMood] = useState(entry.mood || '');
   const [weather, setWeather] = useState(entry.weather || '');
+  // The icon the form filled in by itself (see the weather effect below). It is a
+  // suggestion, not an edit, so leaving the dialog must not ask about it.
+  const [suggestedWeather, setSuggestedWeather] = useState('');
   const [statsExcluded, setStatsExcluded] = useState(entry.stats_excluded ?? false);
   // The trip this day belongs to, when the journey does not follow it yet (#2265).
   const tripSuggestion = useJourneyTripSuggestion(
@@ -155,7 +158,7 @@ export function useJourneyEntryForm({
       ((locationLat ?? null) !== (entry.location_lat ?? null) ||
         (locationLng ?? null) !== (entry.location_lng ?? null))) ||
     mood !== (entry.mood || '') ||
-    weather !== (entry.weather || '') ||
+    (weather !== (entry.weather || '') && weather !== suggestedWeather) ||
     statsExcluded !== (entry.stats_excluded ?? false) ||
     isDraft !== (entry.is_draft ?? false) ||
     joinRows(pros) !== (entry.pros_cons?.pros ?? []).join('\n') ||
@@ -234,9 +237,17 @@ export function useJourneyEntryForm({
    * day from the ERA5 archive, so writing up last Tuesday gets last Tuesday's weather.
    *
    * Only ever fills an empty field, and each place and day is tried once, so a cleared
-   * icon stays cleared and a chosen one is never overwritten.
+   * icon stays cleared and a chosen one is never overwritten. The tried place and day
+   * are forgotten on unmount only, so StrictMode's mount, cleanup, mount in development
+   * asks again, while picking or clearing an icon does not.
    */
   const weatherTriedRef = useRef<string | null>(null);
+  useEffect(
+    () => () => {
+      weatherTriedRef.current = null;
+    },
+    []
+  );
   useEffect(() => {
     if (!autoFillWeather) return;
     if (typeof locationLat !== 'number' || typeof locationLng !== 'number') return;
@@ -253,9 +264,10 @@ export function useJourneyEntryForm({
         // does not stop it reaching here in production.
         if (!active || !result || result.error || typeof result.main !== 'string') return;
         const category = journeyWeatherCategory(result.main, result.description ?? '');
-        // Re-checked rather than trusted from the closure: the request is a
-        // round trip and the traveller may have picked an icon while it was out.
-        setWeather((current) => current || category);
+        // No need to re-check the field: picking an icon while the request was out
+        // re-runs this effect, whose cleanup has already set `active` to false.
+        setSuggestedWeather(category);
+        setWeather(category);
       })
       .catch(() => {
         /* no weather is a fine outcome for a journal entry */

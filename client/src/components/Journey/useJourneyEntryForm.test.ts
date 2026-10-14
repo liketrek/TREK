@@ -1,7 +1,7 @@
 // FE-JRN-ENTRYFORM-001 to FE-JRN-ENTRYFORM-024: the journey entry form logic behind both
 // the desktop editor dialog and the phone entry sheet.
 import { act, renderHook, waitFor } from '@testing-library/react';
-import type React from 'react';
+import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import { journeyApi, mapsApi, weatherApi } from '../../api/client';
@@ -339,6 +339,51 @@ describe('useJourneyEntryForm', () => {
 
     setup({ entry: entry({ weather: '' }) });
     expect(get).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-JRN-ENTRYFORM-016b: the weather it fills in is a suggestion, so an untouched entry closes without asking', async () => {
+    vi.spyOn(weatherApi, 'get').mockResolvedValue({ main: 'Rain', description: 'light rain' } as never);
+    const { result } = setup({ entry: entry({ weather: '' }), autoFillWeather: true });
+    await waitFor(() => expect(result.current.weather).toBe('rainy'));
+    // 5.0.0-pre.1 feedback: Cancel asked about unsaved changes nobody made.
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => result.current.setWeather('sunny'));
+    expect(result.current.isDirty).toBe(true);
+    act(() => result.current.setWeather(''));
+    expect(result.current.isDirty).toBe(false);
+    act(() => result.current.setWeather('rainy'));
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('FE-JRN-ENTRYFORM-016d: an icon picked while the forecast is out, then cleared, stays cleared', async () => {
+    let answer: (value: unknown) => void = () => {};
+    const get = vi
+      .spyOn(weatherApi, 'get')
+      .mockImplementation(() => new Promise((resolve) => (answer = resolve)) as never);
+    const { result } = setup({ entry: entry({ weather: '' }), autoFillWeather: true });
+    act(() => result.current.setWeather('sunny'));
+    await act(async () => answer({ main: 'Rain', description: 'light rain' }));
+    act(() => result.current.setWeather(''));
+    expect(result.current.weather).toBe('');
+    expect(get).toHaveBeenCalledTimes(1);
+  });
+
+  it("FE-JRN-ENTRYFORM-016c: StrictMode's double mount does not swallow the weather", async () => {
+    vi.spyOn(weatherApi, 'get').mockResolvedValue({ main: 'Rain', description: 'light rain' } as never);
+    const props: JourneyEntryFormOptions = {
+      entry: entry({ weather: '' }),
+      journeyId: 3,
+      trips: [],
+      galleryPhotos: [],
+      onSave: vi.fn().mockResolvedValue(4),
+      onUploadPhotos: vi.fn().mockResolvedValue({ ok: [], failed: [] }),
+      onDone: vi.fn(),
+      autoFillWeather: true,
+    };
+    // The first mount's answer is dropped by its cleanup; the second mount has to ask again.
+    const { result } = renderHook(() => useJourneyEntryForm(props), { wrapper: React.StrictMode });
+    await waitFor(() => expect(result.current.weather).toBe('rainy'));
   });
 
   it('FE-JRN-ENTRYFORM-017: quick capture locates the traveller and names the place and the weather', async () => {
