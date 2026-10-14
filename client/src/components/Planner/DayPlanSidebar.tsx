@@ -2521,10 +2521,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             )}
                           </div>
                         {canEditDays && <div className="dp-note-actions flex flex-none items-center">
-                        <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
-                          <button type="button" onClick={e => { e.stopPropagation(); void moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} aria-label={t('dayplan.moveUp')} className="flex text-content-faint hover:text-content disabled:cursor-default disabled:text-edge"><ChevronUp size={12} strokeWidth={2} /></button>
-                          <button type="button" onClick={e => { e.stopPropagation(); void moveNote(day.id, note.id, 'down') }} disabled={noteIdx === merged.length - 1} aria-label={t('dayplan.moveDown')} className="flex text-content-faint hover:text-content disabled:cursor-default disabled:text-edge"><ChevronDown size={12} strokeWidth={2} /></button>
-                        </div>
+                          <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
+                            <button type="button" onClick={e => { e.stopPropagation(); void moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} aria-label={t('dayplan.moveUp')} className="flex text-content-faint hover:text-content disabled:cursor-default disabled:text-edge"><ChevronUp size={12} strokeWidth={2} /></button>
+                            <button type="button" onClick={e => { e.stopPropagation(); void moveNote(day.id, note.id, 'down') }} disabled={noteIdx === merged.length - 1} aria-label={t('dayplan.moveDown')} className="flex text-content-faint hover:text-content disabled:cursor-default disabled:text-edge"><ChevronDown size={12} strokeWidth={2} /></button>
+                          </div>
                           <MoreButton label={t('files.menu')} size={24} items={[
                             { label: t('common.edit'), icon: Pencil, onClick: () => openEditNote(day.id, note) },
                             { divider: true },

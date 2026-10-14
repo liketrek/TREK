@@ -703,7 +703,10 @@ describe('useAdmin', () => {
 
   it('FE-ADMHOOK-036d: the open users tab asks again who is online, without the spinner', async () => {
     const ticks: Array<() => void> = [];
-    const spy = vi.spyOn(window, 'setInterval').mockImplementation(((fn: () => void) => {
+    const realSetInterval = window.setInterval.bind(window);
+    // Only the hook's 30 s refresh is caught; waitFor keeps its own polling.
+    const spy = vi.spyOn(window, 'setInterval').mockImplementation(((fn: () => void, ms?: number) => {
+      if (ms !== 30_000) return realSetInterval(fn, ms);
       ticks.push(fn);
       return 0;
     }) as unknown as typeof window.setInterval);
