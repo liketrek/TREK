@@ -7,6 +7,7 @@ import { DialogSection, fs } from '../shared/DialogShell'
 import { AddRowButton, EditorField, GRID_2, INPUT } from '../shared/dialogParts'
 import { cleanWeek, readWeek, weekdayNames, writeWeek } from './placeHours'
 import { useTranslation } from '../../i18n'
+import { NO_AUTOFILL } from '../../utils/noAutofill'
 
 interface Props {
   /** Anchor for the "add by hand" jump from an empty search. */
@@ -80,14 +81,14 @@ export function PlaceContactFields({ id: anchorId, phone, email, openingHours, o
           <div className="relative">
             <Phone size={13} strokeWidth={2} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-content-faint" />
             <input id={`${id}-phone`} type="tel" value={phone} onChange={e => onChange('phone', e.target.value)}
-              maxLength={50} placeholder="+49 …" className={`${INPUT} ps-8`} />
+              maxLength={50} placeholder="+49 …" className={`${INPUT} ps-8`} {...NO_AUTOFILL} />
           </div>
         </EditorField>
         <EditorField label={t('places.formEmail')} htmlFor={`${id}-email`}>
           <div className="relative">
             <Mail size={13} strokeWidth={2} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-content-faint" />
             <input id={`${id}-email`} type="email" value={email} onChange={e => onChange('email', e.target.value)}
-              maxLength={254} placeholder="info@…" className={`${INPUT} ps-8`} />
+              maxLength={254} placeholder="info@…" className={`${INPUT} ps-8`} {...NO_AUTOFILL} />
           </div>
         </EditorField>
       </div>

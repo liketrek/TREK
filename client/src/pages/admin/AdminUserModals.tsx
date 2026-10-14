@@ -31,6 +31,7 @@ import { SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER } from '../../components/Settin
 import type { TranslationFn } from '../../types';
 import type { useAdmin } from './useAdmin';
 import PasswordChecklist from '../../components/shared/PasswordChecklist';
+import { NO_AUTOFILL } from '../../utils/noAutofill';
 
 interface AdminUserModalsProps {
   admin: ReturnType<typeof useAdmin>;
@@ -66,6 +67,8 @@ function PasswordInput({
       <input
         id={id}
         type={shown ? 'text' : 'password'}
+        // Another user's password: never the admin's own, and a manager may offer a fresh one.
+        autoComplete="new-password"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -166,6 +169,7 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
               onChange={(e) => setCreateForm((f) => ({ ...f, username: e.target.value }))}
               placeholder={t('settings.username')}
               className={INPUT}
+              {...NO_AUTOFILL}
             />
           </EditorField>
           <EditorField label={`${t('common.email')} *`} htmlFor={`${createId}-email`}>
@@ -176,6 +180,7 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
               onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
               placeholder={t('common.email')}
               className={INPUT}
+              {...NO_AUTOFILL}
             />
           </EditorField>
         </div>
@@ -239,6 +244,7 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                   value={editForm.username}
                   onChange={(e) => setEditForm((f) => ({ ...f, username: e.target.value }))}
                   className={INPUT}
+                  {...NO_AUTOFILL}
                 />
               </EditorField>
               <EditorField label={t('common.email')} htmlFor={`${editId}-email`}>
@@ -248,6 +254,7 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                   value={editForm.email}
                   onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
                   className={INPUT}
+                  {...NO_AUTOFILL}
                 />
               </EditorField>
             </div>

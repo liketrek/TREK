@@ -6,6 +6,7 @@ import type { useAdmin } from '../../../pages/admin/useAdmin'
 import MSheet from '../../components/MSheet'
 import MSegmented from '../../components/MSegmented'
 import { MAdminButton, MAdminField, MAdminInput, MAdminSecretInput, MAdminSheetFrame } from './MAdminUi'
+import { NO_AUTOFILL } from '../../../utils/noAutofill'
 
 interface MAdminSheetsProps {
   admin: ReturnType<typeof useAdmin>
@@ -78,6 +79,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                 value={createForm.username}
                 onChange={(e) => setCreateForm((f) => ({ ...f, username: e.target.value }))}
                 placeholder={t('settings.username')}
+                {...NO_AUTOFILL}
               />
             </MAdminField>
             <MAdminField label={`${t('common.email')} *`}>
@@ -86,6 +88,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                 value={createForm.email}
                 onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
                 placeholder={t('common.email')}
+                {...NO_AUTOFILL}
               />
             </MAdminField>
             <MAdminField label={`${t('common.password')} *`}>
@@ -93,6 +96,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                 value={createForm.password}
                 onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
                 placeholder={t('common.password')}
+                autoComplete="new-password"
               />
             </MAdminField>
             <MAdminField label={t('settings.role')}>
@@ -127,6 +131,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                   type="text"
                   value={editForm.username}
                   onChange={(e) => setEditForm((f) => ({ ...f, username: e.target.value }))}
+                  {...NO_AUTOFILL}
                 />
               </MAdminField>
               <MAdminField label={t('common.email')}>
@@ -134,6 +139,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                  {...NO_AUTOFILL}
                 />
               </MAdminField>
               <MAdminField label={t('admin.newPassword')} hint={t('admin.newPasswordHint')}>
@@ -141,6 +147,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                   value={editForm.password}
                   onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
                   placeholder={t('admin.newPasswordPlaceholder')}
+                  autoComplete="new-password"
                 />
               </MAdminField>
               <MAdminField label={t('settings.role')}>

@@ -73,5 +73,19 @@ describe('PlaceContactFields (#2472)', () => {
     await user.click(screen.getByRole('button', { name: 'Take over from the place details' }))
     expect(JSON.parse(onChange.mock.lastCall![1])).toEqual(looked)
   })
+
+  it('FE-PLANNER-CONTACT-005: the place\'s phone and e-mail keep password managers out', () => {
+    render(<Harness onChange={vi.fn()} />)
+    // A place's address is not the user's login; 1Password filled it in (5.0.0-pre.1 feedback).
+    for (const label of ['Phone', 'E-mail']) {
+      const field = screen.getByLabelText(label)
+      expect(field).toHaveAttribute('data-1p-ignore', 'true')
+      expect(field).toHaveAttribute('data-lpignore', 'true')
+      expect(field).toHaveAttribute('data-bwignore', 'true')
+      expect(field).toHaveAttribute('autocomplete', 'off')
+    }
+    // Still an e-mail field, so the keyboard and the browser's check stay.
+    expect(screen.getByLabelText('E-mail')).toHaveAttribute('type', 'email')
+  })
 })
 
