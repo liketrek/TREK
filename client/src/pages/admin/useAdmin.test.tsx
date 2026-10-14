@@ -701,6 +701,49 @@ describe('useAdmin', () => {
     expect(toastCalls).toContainEqual({ type: 'success', message: 'User updated' });
   });
 
+  it('FE-ADMHOOK-036d: the open users tab asks again who is online, without the spinner', async () => {
+    const ticks: Array<() => void> = [];
+    const spy = vi.spyOn(window, 'setInterval').mockImplementation(((fn: () => void) => {
+      ticks.push(fn);
+      return 0;
+    }) as unknown as typeof window.setInterval);
+    try {
+      const { result } = await mountAdmin();
+      expect(result.current.users[1].online).not.toBe(true);
+      server.use(http.get('/api/admin/users', () => HttpResponse.json({ users: [me, { ...alice, online: true }] })));
+      await act(async () => {
+        ticks.forEach((tick) => tick());
+      });
+      await waitFor(() => expect(result.current.users[1].online).toBe(true));
+      expect(result.current.isLoading).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('FE-ADMHOOK-036c: a saved row keeps what the list derives (avatar, activity, online)', async () => {
+    server.use(
+      http.put('/api/admin/users/:id', ({ params }) =>
+        // The update answers with the account fields only.
+        HttpResponse.json({ user: { id: Number(params.id), username: 'alice2', email: 'a2@e.com', role: 'user', created_at: '2026-01-01 00:00:00' } })
+      )
+    );
+    const { result } = await mountAdmin();
+    const before = result.current.users[1];
+    act(() => result.current.handleEditUser(before));
+    act(() => result.current.setEditForm({ username: 'alice2', email: 'a2@e.com', role: 'user', password: '' }));
+    await act(async () => {
+      await result.current.handleSaveUser();
+    });
+
+    const after = result.current.users[1];
+    expect(after).toMatchObject({ username: 'alice2', email: 'a2@e.com' });
+    expect(after.last_login).toBe(before.last_login);
+    expect(after.online).toBe(before.online);
+    expect(after.avatar_url).toBe(before.avatar_url);
+    expect(after.created_at).toBe(before.created_at);
+  });
+
   it('FE-ADMHOOK-037: handleSaveUser refuses a password shorter than eight characters', async () => {
     let called = false;
     server.use(

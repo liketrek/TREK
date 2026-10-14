@@ -10,12 +10,14 @@ The **Users** card shows the number of accounts in its head and a table of every
 
 | Column | Description |
 |--------|-------------|
-| **User** | Avatar, username, and an always-visible presence dot (green = online, grey = offline) |
+| **User** | Avatar, username, and an always-visible presence dot (green = has TREK open, grey = offline) |
 | **Email** | Account email address |
 | **Role** | Badge showing **Administrator** or **User** |
 | **Created** | Account creation date |
-| **Last Login** | Date and time of most recent login |
+| **Last Active** | When the account last signed in or used TREK, whichever is later. A session renews itself while it is used, so someone can be active daily without signing in for weeks. The year shows once it is not the current one. |
 | **Actions** | Edit and delete buttons |
+
+The dots and the last activity refresh every 30 seconds while the list is open, and right away when you come back to the tab.
 
 Your own row is highlighted and marked **(You)**. Its delete button is disabled: you cannot delete your own account.
 

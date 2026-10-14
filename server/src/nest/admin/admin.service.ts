@@ -108,6 +108,13 @@ const VERSION_FAILURE_TTL = 60_000;
  * and module-scoped pieces (compareVersions, isDocker, the version cache) live
  * in admin.helpers.ts.
  */
+/** The later of two stored timestamps; both are canonical UTC text, which sorts as it reads. */
+function latest(a: string | null | undefined, b: string | null | undefined): string | null {
+  if (!a) return b ?? null;
+  if (!b) return a;
+  return a > b ? a : b;
+}
+
 /** The 409 the up-front checks give, for a write that lost the race to another one. */
 function identityTakenMessage(err: UserIdentityTakenError): string {
   return err.field === 'email' ? 'Email already taken' : 'Username already taken';
@@ -148,6 +155,7 @@ export class AdminService {
     // Guests (#1362) are accountless trip participants, not real users — keep them out
     // of admin user management entirely.
     const users = await this.users.listForAdmin();
+    const lastSeen = await this.sessions.lastSeenByUser();
     let onlineUserIds = new Set<number>();
     try {
       // The catch stays here rather than in the facade: an admin list that shows
@@ -163,6 +171,10 @@ export class AdminService {
       created_at: utcSuffix(u.created_at),
       updated_at: utcSuffix(u.updated_at as string),
       last_login: utcSuffix(u.last_login),
+      // The later of the last sign-in and the last request. The cookie renews
+      // itself while someone keeps using TREK, so they may not have signed in
+      // for weeks and still have been here an hour ago.
+      last_active: utcSuffix(latest(u.last_login, lastSeen.get(u.id))),
       online: onlineUserIds.has(u.id),
     }));
   }

@@ -83,7 +83,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'อีเมล',
   'admin.table.role': 'บทบาท',
   'admin.table.created': 'สร้างแล้ว',
-  'admin.table.lastLogin': 'เข้าสู่ระบบครั้งล่าสุด',
+  'admin.table.lastActive': 'ใช้งานล่าสุด',
   'admin.table.actions': 'การดำเนินการ',
   'admin.you': '(คุณ)',
   'admin.editUser': 'แก้ไขผู้ใช้',

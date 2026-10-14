@@ -164,6 +164,15 @@ export class SessionsService {
     await this.sessions.touchLastSeen(id, now);
   }
 
+  /**
+   * When each account was last active: the newest `last_seen_at` of its
+   * sessions. A sign-in is rare once the cookie renews itself on every visit,
+   * so this is what tells an admin who is still using the instance.
+   */
+  async lastSeenByUser(): Promise<Map<number, string>> {
+    return this.sessions.lastSeenByUser();
+  }
+
   /** The user's active sessions, most recently used first, the one in `currentId` flagged. */
   async list(userId: number, currentId?: string): Promise<UserSession[]> {
     const rows = await this.sessions.listActiveForUser(userId, dbNow());

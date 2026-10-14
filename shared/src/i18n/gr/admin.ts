@@ -91,7 +91,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'Email',
   'admin.table.role': 'Ρόλος',
   'admin.table.created': 'Δημιουργήθηκε',
-  'admin.table.lastLogin': 'Τελευταία Σύνδεση',
+  'admin.table.lastActive': 'Τελευταία Δραστηριότητα',
   'admin.table.actions': 'Ενέργειες',
   'admin.you': '(Εσείς)',
   'admin.editUser': 'Επεξεργασία Χρήστη',

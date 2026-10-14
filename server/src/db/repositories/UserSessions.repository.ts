@@ -1,5 +1,6 @@
 import type { UserSessions } from '../entities/UserSessions.entity';
 import { Users } from '../entities/Users.entity';
+import type { DB } from '../kysely/db';
 import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -152,6 +153,20 @@ export class UserSessionsRepository extends TrekRepository<UserSessions> {
         : { user: userId, revoked_at: null, id: { $ne: exceptId } },
       { revoked_at: now },
     );
+  }
+
+  /**
+   * `SELECT user_id, MAX(last_seen_at) FROM user_sessions GROUP BY user_id`: when
+   * each account last made an authenticated request, over every row the nightly
+   * purge has kept, revoked ones included (the activity still happened).
+   */
+  async lastSeenByUser(): Promise<Map<number, string>> {
+    const rows = await this.kysely<Pick<DB, 'user_sessions'>>()
+      .selectFrom('user_sessions')
+      .select((eb) => ['user_id', eb.fn.max('last_seen_at').as('last_seen_at')])
+      .groupBy('user_id')
+      .execute();
+    return new Map(rows.map((row) => [Number(row.user_id), String(row.last_seen_at)]));
   }
 
   /**

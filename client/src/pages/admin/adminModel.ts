@@ -7,9 +7,35 @@ export interface AdminUser {
   role: 'admin' | 'user'
   created_at: string
   last_login?: string | null
+  /** The later of the last sign-in and the last request the account made. */
+  last_active?: string | null
   online?: boolean
   oidc_issuer?: string | null
   avatar_url?: string | null
+}
+
+/**
+ * The row after an edit. The update answers with the account fields only, so
+ * what the list derives (avatar, last activity, online) stays from the row; a
+ * reply that replaced the whole row showed the user as never signed in.
+ */
+export function mergeSavedUser(row: AdminUser, saved: Pick<AdminUser, 'username' | 'email' | 'role'>): AdminUser {
+  return { ...row, username: saved.username, email: saved.email, role: saved.role }
+}
+
+/** When a user was last active, with the year once it is not this one. */
+export function formatLastActive(iso: string | null | undefined, locale: string, hour12: boolean, now = new Date()): string {
+  if (!iso) return '—'
+  const at = new Date(iso)
+  const sameYear = at.getFullYear() === now.getFullYear()
+  return at.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+    ...(sameYear ? {} : { year: 'numeric' }),
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12,
+  })
 }
 
 export interface AdminStats {

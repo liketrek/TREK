@@ -92,7 +92,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'البريد الإلكتروني',
   'admin.table.role': 'الدور',
   'admin.table.created': 'تم الإنشاء',
-  'admin.table.lastLogin': 'آخر تسجيل دخول',
+  'admin.table.lastActive': 'آخر نشاط',
   'admin.table.actions': 'الإجراءات',
   'admin.you': '(أنت)',
   'admin.editUser': 'تعديل المستخدم',

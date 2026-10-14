@@ -36,7 +36,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'Correu',
   'admin.table.role': 'Rol',
   'admin.table.created': 'Creat',
-  'admin.table.lastLogin': 'Últim accés',
+  'admin.table.lastActive': 'Última activitat',
   'admin.table.actions': 'Accions',
   'admin.you': '(Tu)',
   'admin.editUser': 'Editar usuari',

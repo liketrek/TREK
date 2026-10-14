@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import apiClient, { adminApi, authApi } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
@@ -8,7 +8,7 @@ import { useTranslation } from '../../i18n'
 import { getApiErrorMessage } from '../../types'
 import { useToast } from '../../components/shared/Toast'
 import { managedAdminTabs } from '../../managed'
-import type { AdminUser, AdminStats, OidcConfig, UpdateInfo } from './adminModel'
+import { mergeSavedUser, type AdminUser, type AdminStats, type OidcConfig, type UpdateInfo } from './adminModel'
 import type { TransitProvider, TransitKeySource } from '@trek/shared'
 import { passwordErrorKey } from '../../utils/passwordError'
 
@@ -34,6 +34,9 @@ const ADMIN_TAB_IDS = [
  * because `managed` arrives with /app-config, after the first render.
  */
 const MANAGED_HIDDEN = ['storage', 'github', 'backup']
+
+/** How often the open users list asks again who is online and active. */
+const USERS_REFRESH_MS = 30_000
 
 /**
  * Admin page logic — owns every admin data slice (users, stats, invites, auth
@@ -246,6 +249,34 @@ export function useAdmin() {
     }
   }
 
+  // Who is online and when someone was last active change while the list is
+  // open; it was read once and went stale until a reload. Refreshed quietly
+  // while the users tab is in view, and at once when the page comes back.
+  // Bumped by every local change to the list; a refresh asked before one is out of date.
+  const usersWrites = useRef(0)
+  useEffect(() => {
+    if (activeTab !== 'users') return
+    let cancelled = false
+    const refresh = async () => {
+      if (document.visibilityState !== 'visible') return
+      const asked = usersWrites.current
+      try {
+        const data = await adminApi.users()
+        if (!cancelled && asked === usersWrites.current) setUsers(data.users)
+      } catch {
+        /* the list on screen stays; the next tick asks again */
+      }
+    }
+    const timer = window.setInterval(() => { void refresh() }, USERS_REFRESH_MS)
+    const onVisible = () => { void refresh() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [activeTab])
+
   const loadAppConfig = async () => {
     try {
       const config = await authApi.getAppConfig()
@@ -420,6 +451,7 @@ export function useAdmin() {
     }
     try {
       const data = await adminApi.createUser(createForm)
+      usersWrites.current += 1
       setUsers(prev => [data.user, ...prev])
       setShowCreateUser(false)
       setCreateForm({ username: '', email: '', password: '', role: 'user' })
@@ -484,7 +516,8 @@ export function useAdmin() {
         payload.password = editForm.password.trim()
       }
       const data = await adminApi.updateUser(editingUser.id, payload)
-      setUsers(prev => prev.map(u => u.id === editingUser.id ? data.user : u))
+      usersWrites.current += 1
+      setUsers(prev => prev.map(u => u.id === editingUser.id ? mergeSavedUser(u, data.user) : u))
       setEditingUser(null)
       toast.success(t('admin.toast.userUpdated'))
     } catch (err: unknown) {
@@ -502,6 +535,7 @@ export function useAdmin() {
     if (!opts.confirmed && !confirm(t('admin.deleteUser', { name: user.username }))) return
     try {
       await adminApi.deleteUser(user.id)
+      usersWrites.current += 1
       setUsers(prev => prev.filter(u => u.id !== user.id))
       toast.success(t('admin.toast.userDeleted'))
     } catch (err: unknown) {

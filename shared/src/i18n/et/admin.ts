@@ -89,7 +89,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'E-post',
   'admin.table.role': 'Roll',
   'admin.table.created': 'Loodud',
-  'admin.table.lastLogin': 'Viimane sisselogimine',
+  'admin.table.lastActive': 'Viimati aktiivne',
   'admin.table.actions': 'Toimingud',
   'admin.you': '(Sina)',
   'admin.editUser': 'Muuda kasutajat',

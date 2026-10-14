@@ -39,7 +39,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'E-mail',
   'admin.table.role': 'Role',
   'admin.table.created': 'Vytvořeno',
-  'admin.table.lastLogin': 'Poslední přihlášení',
+  'admin.table.lastActive': 'Naposledy aktivní',
   'admin.table.actions': 'Akce',
   'admin.you': '(Vy)',
   'admin.editUser': 'Upravit uživatele',

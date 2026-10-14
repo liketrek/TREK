@@ -35,7 +35,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'E-mail',
   'admin.table.role': 'Szerepkör',
   'admin.table.created': 'Létrehozva',
-  'admin.table.lastLogin': 'Utolsó belépés',
+  'admin.table.lastActive': 'Utoljára aktív',
   'admin.table.actions': 'Műveletek',
   'admin.you': '(Te)',
   'admin.editUser': 'Felhasználó szerkesztése',

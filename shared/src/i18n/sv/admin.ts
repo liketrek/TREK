@@ -88,7 +88,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'E-post',
   'admin.table.role': 'Roll',
   'admin.table.created': 'Skapad',
-  'admin.table.lastLogin': 'Senast inloggad',
+  'admin.table.lastActive': 'Senast aktiv',
   'admin.table.actions': 'Åtgärder',
   'admin.you': '(Du)',
   'admin.editUser': 'Redigera anvädnare',

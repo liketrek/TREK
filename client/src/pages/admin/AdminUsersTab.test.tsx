@@ -102,6 +102,15 @@ describe('AdminUsersTab', () => {
     expect(screen.getByText('A')).toBeInTheDocument();
   });
 
+  it('FE-ADMUSR-006b: the column shows the last activity, not only the last sign-in', () => {
+    renderTab({
+      users: [buildAdminUser({ id: 5, username: 'busy', last_login: '2025-06-01T10:30:00.000Z', last_active: '2025-06-09T18:00:00.000Z' })],
+    });
+
+    expect(screen.getByRole('columnheader', { name: 'Last Active' })).toBeInTheDocument();
+    expect(screen.getByText(/9 Jun|Jun 9/)).toBeInTheDocument();
+  });
+
   it('FE-ADMUSR-006: renders an em dash when the user never logged in', () => {
     renderTab({ users: [buildAdminUser({ id: 4, username: 'never', last_login: null })] });
 

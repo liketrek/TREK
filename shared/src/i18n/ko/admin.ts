@@ -82,7 +82,7 @@ const admin: TranslationStrings = {
   'admin.table.email': '이메일',
   'admin.table.role': '역할',
   'admin.table.created': '생성일',
-  'admin.table.lastLogin': '마지막 로그인',
+  'admin.table.lastActive': '마지막 활동',
   'admin.table.actions': '작업',
   'admin.you': '(나)',
   'admin.editUser': '사용자 편집',

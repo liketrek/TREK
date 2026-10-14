@@ -34,7 +34,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'E-mail',
   'admin.table.role': 'Rola',
   'admin.table.created': 'Utworzono',
-  'admin.table.lastLogin': 'Ostatnie logowanie',
+  'admin.table.lastActive': 'Ostatnia aktywność',
   'admin.table.actions': 'Akcje',
   'admin.you': '(Ty)',
   'admin.editUser': 'Edytuj użytkownika',

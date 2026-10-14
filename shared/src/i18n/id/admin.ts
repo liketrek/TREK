@@ -83,7 +83,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'Email',
   'admin.table.role': 'Peran',
   'admin.table.created': 'Dibuat',
-  'admin.table.lastLogin': 'Login Terakhir',
+  'admin.table.lastActive': 'Terakhir Aktif',
   'admin.table.actions': 'Tindakan',
   'admin.you': '(Kamu)',
   'admin.editUser': 'Edit Pengguna',

@@ -32,7 +32,7 @@ const admin: TranslationStrings = {
   'admin.table.email': '邮箱',
   'admin.table.role': '角色',
   'admin.table.created': '创建时间',
-  'admin.table.lastLogin': '最后登录',
+  'admin.table.lastActive': '最后活动',
   'admin.table.actions': '操作',
   'admin.you': '（你）',
   'admin.editUser': '编辑用户',

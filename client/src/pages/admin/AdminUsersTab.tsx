@@ -9,7 +9,7 @@ import { EditorField, Segmented } from '../../components/shared/dialogParts'
 import { SettingsCard, SettingRows, SettingsHint, StatusPill, SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, SETTINGS_ICON_BUTTON } from '../../components/Settings/settingsKit'
 import type { TranslationFn } from '../../types'
 import type { useAdmin } from './useAdmin'
-import { inviteStatus } from './adminModel'
+import { formatLastActive, inviteStatus } from './adminModel'
 
 interface AdminUsersTabProps {
   admin: ReturnType<typeof useAdmin>
@@ -73,7 +73,7 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
                   <th className={TH}>{t('admin.table.email')}</th>
                   <th className={TH}>{t('admin.table.role')}</th>
                   <th className={TH}>{t('admin.table.created')}</th>
-                  <th className={TH}>{t('admin.table.lastLogin')}</th>
+                  <th className={TH}>{t('admin.table.lastActive')}</th>
                   <th className={`${TH} text-end`}>{t('admin.table.actions')}</th>
                 </tr>
               </thead>
@@ -114,7 +114,8 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
                         {new Date(u.created_at).toLocaleDateString(locale)}
                       </td>
                       <td className={`${TD} whitespace-nowrap font-geist tabular-nums text-content-muted`} style={fs(12)}>
-                        {u.last_login ? new Date(u.last_login).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12 }) : '—'}
+                        {/* Activity, not only sign-ins: a renewing cookie keeps people signed in for weeks. */}
+                        {formatLastActive(u.last_active ?? u.last_login, locale, hour12)}
                       </td>
                       <td className={TD}>
                         <div className="flex items-center justify-end gap-1.5">

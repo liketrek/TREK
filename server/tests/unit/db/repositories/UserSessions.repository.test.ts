@@ -274,4 +274,18 @@ describe('UserSessionsRepository', () => {
       user_agent: 'First',
     });
   });
+  it('SESSREPO-014: lastSeenByUser gives each account its newest last_seen_at, revoked rows included', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const { user: idle } = createUser(testDb);
+    await add('a', user.id);
+    await add('b', user.id);
+    await add('c', other.id);
+    await sessions.touchLastSeen('a', NOW);
+    await revoke(['c'], NOW);
+    const seen = await sessions.lastSeenByUser();
+    expect(seen.get(user.id)).toBe(NOW);
+    expect(seen.get(other.id)).toBe(EARLIER);
+    expect(seen.has(idle.id)).toBe(false);
+  });
 });

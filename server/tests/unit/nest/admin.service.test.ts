@@ -275,6 +275,34 @@ describe('listUsers', () => {
     expect(users.length).toBeGreaterThanOrEqual(2);
     expect(users.every((u: any) => u.online === false)).toBe(true);
   });
+
+  it('ADMIN-SVC-001b — last_active is the later of the last sign-in and the last request', async () => {
+    const { user: busy } = createUser(testDb);
+    const { user: quiet } = createUser(testDb);
+    const { user: never } = createUser(testDb);
+    await updateRows(orm, Users, { id: busy.id }, { last_login: '2026-10-01 08:00:00' });
+    await updateRows(orm, Users, { id: quiet.id }, { last_login: '2026-10-05 08:00:00' });
+    // The cookie renewed itself for a week: no new sign-in, but requests until the 8th.
+    await insertRow(orm, UserSessions, {
+      id: 'busy-session',
+      user: busy.id,
+      created_at: '2026-10-01 08:00:00',
+      last_seen_at: '2026-10-08 17:30:00',
+      expires_at: '2999-01-01 00:00:00',
+    });
+    await insertRow(orm, UserSessions, {
+      id: 'quiet-session',
+      user: quiet.id,
+      created_at: '2026-10-02 08:00:00',
+      last_seen_at: '2026-10-02 09:00:00',
+      expires_at: '2999-01-01 00:00:00',
+    });
+    const users = await listUsers();
+    const of = (id: number) => users.find((u) => u.id === id);
+    expect(of(busy.id)).toMatchObject({ last_login: '2026-10-01T08:00:00Z', last_active: '2026-10-08T17:30:00Z' });
+    expect(of(quiet.id)).toMatchObject({ last_login: '2026-10-05T08:00:00Z', last_active: '2026-10-05T08:00:00Z' });
+    expect(of(never.id)).toMatchObject({ last_login: null, last_active: null });
+  });
 });
 
 // ── createUser ────────────────────────────────────────────────────────────────

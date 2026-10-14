@@ -80,7 +80,7 @@ const admin: TranslationStrings = {
   'admin.table.email': '郵箱',
   'admin.table.role': '角色',
   'admin.table.created': '建立時間',
-  'admin.table.lastLogin': '最後登入',
+  'admin.table.lastActive': '最後活動',
   'admin.table.actions': '操作',
   'admin.you': '（你）',
   'admin.editUser': '編輯使用者',

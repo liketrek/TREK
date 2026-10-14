@@ -77,7 +77,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'メール',
   'admin.table.role': '権限',
   'admin.table.created': '作成日',
-  'admin.table.lastLogin': '最終ログイン',
+  'admin.table.lastActive': '最終アクティブ',
   'admin.table.actions': '操作',
   'admin.you': '（あなた）',
   'admin.editUser': 'ユーザーを編集',

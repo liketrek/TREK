@@ -84,7 +84,7 @@ const admin: TranslationStrings = {
   'admin.table.email': 'Email',
   'admin.table.role': 'Vai trò',
   'admin.table.created': 'Tạo',
-  'admin.table.lastLogin': 'Đăng nhập lần cuối',
+  'admin.table.lastActive': 'Hoạt động lần cuối',
   'admin.table.actions': 'hành động',
   'admin.you': '(Bạn)',
   'admin.editUser': 'Chỉnh sửa người dùng',
