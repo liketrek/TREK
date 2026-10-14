@@ -497,6 +497,20 @@ describe('Category filter dropdown', () => {
     expect(screen.getByRole('button', { name: 'Museum' })).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('FE-PLANNER-SIDEBAR-023b: the list opens across the whole filter row, not off its icon', async () => {
+    const user = userEvent.setup();
+    const cat = buildCategory({ name: 'Museum', color: '#3b82f6' });
+    render(<PlacesSidebar {...defaultProps} categories={[cat]} />);
+    await openCategories(user);
+    // Hung off an icon near the end of the row, the list ran out of the sidebar.
+    const list = screen.getByRole('button', { name: 'Museum' }).closest('.trek-popover-enter') as HTMLElement;
+    expect(list).toHaveClass('inset-x-0');
+    // Its positioning ancestor is the row that holds every filter.
+    let anchor = list.parentElement;
+    while (anchor && !anchor.classList.contains('relative')) anchor = anchor.parentElement;
+    expect(anchor).toContainElement(screen.getByRole('button', { name: 'Show' }));
+  });
+
   it('FE-PLANNER-SIDEBAR-024: selecting a category filters places', async () => {
     const user = userEvent.setup();
     const cat = buildCategory({ name: 'Park', color: '#22c55e' });

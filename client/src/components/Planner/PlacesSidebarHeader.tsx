@@ -87,7 +87,8 @@ export function PlacesHeader(S: SidebarState) {
           </BandButton>
         )}
       </div>
-      <div className="flex items-center gap-1.5">
+      {/* The filters' lists open across this whole row (see FilterDropdown). */}
+      <div className="relative flex items-center gap-1.5">
         <ShowDropdown {...S} />
         <CategoryFilter {...S} />
         <RatingFilter {...S} />
@@ -172,9 +173,10 @@ function ShowDropdown(S: SidebarState) {
 }
 
 /**
- * A filter as one icon on the tabs row, opening a small list under it; closes on a
+ * A filter as one icon on the tabs row, opening a list under the row; closes on a
  * click outside or Escape. A badge marks it while it is narrowing the list, and the
- * tooltip says to what.
+ * tooltip says to what. The list spans the whole row rather than hanging off its
+ * trigger: hung off an icon near the end, it ran out of the sidebar and was cut off.
  */
 function FilterDropdown({ label, active, badge, icon, open, setOpen, name, children, wide = false, count }: {
   /** What is in force: on the trigger when `wide`, else in the tooltip ("All categories", "4+"). */
@@ -210,7 +212,7 @@ function FilterDropdown({ label, active, badge, icon, open, setOpen, name, child
     }
   }, [open, setOpen])
   return (
-    <div ref={wrapRef} className={`relative ${wide ? 'min-w-0 flex-1' : 'flex-none'}`}>
+    <div ref={wrapRef} className={wide ? 'min-w-0 flex-1' : 'flex-none'}>
       {wide ? (
         <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} aria-haspopup="listbox" aria-label={name}
           className={`${CONTROL} flex w-full min-w-0 items-center gap-1.5 bg-surface-card px-2.5 font-semibold transition-colors ${active || open ? 'text-content' : 'text-content-secondary hover:text-content'}`}
@@ -233,7 +235,7 @@ function FilterDropdown({ label, active, badge, icon, open, setOpen, name, child
       </Tooltip>
       )}
       {open && (
-        <div className={`trek-popover-enter absolute ${wide ? 'start-0' : 'end-0'} top-full z-50 mt-1.5 flex max-h-[min(60vh,360px)] flex-col overflow-y-auto rounded-[12px] border border-edge-secondary bg-surface-card p-1.5 shadow-popover`} style={{ width: 'max-content', minWidth: 180, maxWidth: 260 }}>
+        <div className="trek-popover-enter absolute inset-x-0 top-full z-50 mt-1.5 flex max-h-[min(60vh,360px)] flex-col overflow-y-auto rounded-[12px] border border-edge-secondary bg-surface-card p-1.5 shadow-popover">
           {children}
         </div>
       )}
