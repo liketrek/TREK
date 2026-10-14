@@ -14,7 +14,7 @@ import { Tooltip } from '../shared/Tooltip'
 import { fs } from '../shared/DialogShell'
 import { EditorField, INPUT, Segmented } from '../shared/dialogParts'
 import { SettingsCard, SettingsHint, StatusPill, SETTINGS_BUTTON_PRIMARY } from '../Settings/settingsKit'
-import { type Addon, type CollabFeatures, COLLAB_SUB_FEATURES, getAddonLabel, MASKED, RECOMMENDED_MODELS } from './addons/addonModel'
+import { type Addon, type CollabFeatures, ANTHROPIC_HINT, COLLAB_SUB_FEATURES, getAddonLabel, MASKED, RECOMMENDED_MODELS } from './addons/addonModel'
 import { useAddonManager } from './addons/useAddonManager'
 import { useLlmParsingConfig } from './addons/useLlmParsingConfig'
 import { ImmichIcon, SynologyIcon } from './addons/PhotoProviderIcons'
@@ -265,7 +265,7 @@ const SMALL_BUTTON = 'inline-flex flex-none items-center rounded-[9px] px-2.5 py
 function LlmParsingConfig({ addon }: { addon: Addon }) {
   const { t } = useTranslation()
   const {
-    provider, setProvider, model, setModel, baseUrl, setBaseUrl, apiKey, setApiKey, vision, setVision, saving,
+    provider, setProvider, model, setModel, baseUrl, setBaseUrl, baseUrlPlaceholder, apiKey, setApiKey, vision, setVision, saving,
     installed, modelsErr, loadingModels, pulling, pullPct, pullStatus, isInstalled, loadModels, pull, save,
   } = useLlmParsingConfig(addon)
   const fieldId = useId()
@@ -288,15 +288,13 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
       <EditorField label="Provider">
         <CustomSelect value={provider} onChange={v => setProvider(String(v))} options={providerOptions} />
       </EditorField>
-      {provider !== 'anthropic' && (
-        <EditorField label="Base URL" htmlFor={`${fieldId}-url`}>
-          <input id={`${fieldId}-url`} type="url" autoComplete="off" className={INPUT} value={baseUrl} onChange={e => setBaseUrl(e.target.value)} onBlur={loadModels} placeholder={provider === 'local' ? 'http://localhost:11434/v1' : 'https://api.openai.com/v1'} />
-        </EditorField>
-      )}
+      <EditorField label="Base URL" htmlFor={`${fieldId}-url`}>
+        <input id={`${fieldId}-url`} type="url" autoComplete="off" className={INPUT} value={baseUrl} onChange={e => setBaseUrl(e.target.value)} onBlur={loadModels} placeholder={baseUrlPlaceholder} />
+      </EditorField>
       <EditorField
         label="API key"
         htmlFor={`${fieldId}-key`}
-        hint={provider === 'anthropic' ? 'Anthropic reads PDFs (including scans) natively. Local/OpenAI models receive extracted text — scanned PDFs need Anthropic.' : undefined}
+        hint={provider === 'anthropic' ? ANTHROPIC_HINT : undefined}
       >
         <input id={`${fieldId}-key`} type="password" className={INPUT} value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={apiKey === MASKED ? MASKED : provider === 'local' ? '(often not required)' : 'sk-…'} />
       </EditorField>

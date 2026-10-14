@@ -646,6 +646,8 @@ describe('AddonManager', () => {
     await user.click(screen.getByRole('button', { name: 'OpenAI' }));
     await user.click(screen.getByRole('button', { name: 'Anthropic' }));
     expect(screen.queryByPlaceholderText('https://api.openai.com/v1')).not.toBeInTheDocument();
+    // A gateway can stand in for Anthropic too, so the field stays (#2655).
+    expect(screen.getByPlaceholderText('https://api.anthropic.com')).toHaveValue('');
     expect(screen.getByPlaceholderText('claude-opus-4-8')).toBeInTheDocument();
     expect(screen.getByText(/Anthropic reads PDFs/)).toBeInTheDocument();
   });

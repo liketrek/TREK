@@ -14,6 +14,7 @@ import {
   type Addon,
   type CollabFeatures,
   type ProviderOption,
+  ANTHROPIC_HINT,
   COLLAB_SUB_FEATURES,
   getAddonLabel,
   MASKED,
@@ -255,7 +256,7 @@ function MSubRow({ icon: Icon, providerIcon: ProviderIcon, title, subtitle, enab
 function LlmParsingConfig({ addon }: { addon: Addon }) {
   const { t } = useTranslation()
   const {
-    provider, setProvider, model, setModel, baseUrl, setBaseUrl, apiKey, setApiKey, vision, setVision, saving,
+    provider, setProvider, model, setModel, baseUrl, setBaseUrl, baseUrlPlaceholder, apiKey, setApiKey, vision, setVision, saving,
     installed, modelsErr, loadingModels, pulling, pullPct, pullStatus, isInstalled, loadModels, pull, save,
   } = useLlmParsingConfig(addon)
 
@@ -302,18 +303,16 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
             })}
           </div>
         </MAdminField>
-        {provider !== 'anthropic' && (
-          <MAdminField label="Base URL">
-            <MAdminInput
-              type="url"
-              autoComplete="off"
-              value={baseUrl}
-              onChange={e => setBaseUrl(e.target.value)}
-              onBlur={loadModels}
-              placeholder={provider === 'local' ? 'http://localhost:11434/v1' : 'https://api.openai.com/v1'}
-            />
-          </MAdminField>
-        )}
+        <MAdminField label="Base URL">
+          <MAdminInput
+            type="url"
+            autoComplete="off"
+            value={baseUrl}
+            onChange={e => setBaseUrl(e.target.value)}
+            onBlur={loadModels}
+            placeholder={baseUrlPlaceholder}
+          />
+        </MAdminField>
         <MAdminField label="API key">
           <MAdminSecretInput
             value={apiKey}
@@ -322,9 +321,7 @@ function LlmParsingConfig({ addon }: { addon: Addon }) {
           />
         </MAdminField>
         {provider === 'anthropic' && (
-          <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">
-            Anthropic reads PDFs (including scans) natively. Local/OpenAI models receive extracted text — scanned PDFs need Anthropic.
-          </p>
+          <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">{ANTHROPIC_HINT}</p>
         )}
       </section>
 

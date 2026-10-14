@@ -4,7 +4,7 @@ import { useEffect, useEffectEvent, useState } from 'react';
 import { adminApi } from '../../../api/client';
 import { getApiErrorMessage } from '../../../types';
 import { useToast } from '../../shared/Toast';
-import { type Addon, DEFAULT_OLLAMA_URL } from './addonModel';
+import { type Addon, DEFAULT_OLLAMA_URL, LLM_BASE_URL_PLACEHOLDER } from './addonModel';
 
 /**
  * Instance-wide AI-parsing config behind both admin shells. When set, it applies to the
@@ -15,7 +15,7 @@ import { type Addon, DEFAULT_OLLAMA_URL } from './addonModel';
 export function useLlmParsingConfig(addon: Addon) {
   const toast = useToast();
   const cfg = addon.config ?? {};
-  const [provider, setProvider] = useState<string>((cfg.provider as string) ?? 'local');
+  const [provider, setProviderState] = useState<string>((cfg.provider as string) ?? 'local');
   const [model, setModel] = useState<string>((cfg.model as string) ?? '');
   const [baseUrl, setBaseUrl] = useState<string>((cfg.baseUrl as string) ?? '');
   const [apiKey, setApiKey] = useState<string>((cfg.apiKey as string) ?? '');
@@ -29,6 +29,18 @@ export function useLlmParsingConfig(addon: Addon) {
   const [pulling, setPulling] = useState<string | null>(null);
   const [pullPct, setPullPct] = useState(0);
   const [pullStatus, setPullStatus] = useState('');
+
+  /**
+   * A different provider never inherits the last one's endpoint: an Ollama address
+   * left in the field would quietly receive the OpenAI or Anthropic key. Back on the
+   * saved provider, its saved address returns. Any provider, Anthropic included, may
+   * keep an address the admin typed for it (#2655); empty means the provider default.
+   */
+  const setProvider = (next: string) => {
+    if (next !== provider) setBaseUrl(next === cfg.provider ? ((cfg.baseUrl as string) ?? '') : '');
+    setProviderState(next);
+  };
+  const baseUrlPlaceholder = LLM_BASE_URL_PLACEHOLDER[provider] ?? LLM_BASE_URL_PLACEHOLDER.openai;
 
   const effectiveUrl = baseUrl.trim() || DEFAULT_OLLAMA_URL;
   const isInstalled = (id: string) => installed.some((n) => n === id || n.startsWith(id + ':') || n.startsWith(id));
@@ -89,7 +101,7 @@ export function useLlmParsingConfig(addon: Addon) {
         config: {
           provider,
           model: model.trim(),
-          baseUrl: provider === 'anthropic' ? '' : baseUrl.trim(),
+          baseUrl: baseUrl.trim(),
           apiKey,
           vision,
         },
@@ -109,6 +121,7 @@ export function useLlmParsingConfig(addon: Addon) {
     setModel,
     baseUrl,
     setBaseUrl,
+    baseUrlPlaceholder,
     apiKey,
     setApiKey,
     vision,

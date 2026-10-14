@@ -52,15 +52,19 @@ describe('useLlmParsingConfig', () => {
     expect(result.current.isInstalled('llama3')).toBe(false);
   });
 
-  it('FE-HOOK-LLMCFG-003: a cloud provider lists nothing until switched to local, then uses the typed URL', async () => {
+  it('FE-HOOK-LLMCFG-003: a cloud provider lists nothing; switched to local it starts from the default, then uses the typed URL', async () => {
     const { result } = renderHook(() =>
       useLlmParsingConfig(llm({ provider: 'openai', baseUrl: ' http://box:11434/v1 ' }))
     );
     expect(adminApi.llmLocalModels).not.toHaveBeenCalled();
     await act(() => result.current.loadModels());
     expect(adminApi.llmLocalModels).not.toHaveBeenCalled();
+    // The OpenAI address does not follow to another provider (#2655).
     act(() => result.current.setProvider('local'));
-    await waitFor(() => expect(adminApi.llmLocalModels).toHaveBeenCalledWith('http://box:11434/v1'));
+    await waitFor(() => expect(adminApi.llmLocalModels).toHaveBeenCalledWith(DEFAULT_OLLAMA_URL));
+    act(() => result.current.setBaseUrl(' http://box:11434/v1 '));
+    await act(() => result.current.loadModels());
+    expect(adminApi.llmLocalModels).toHaveBeenLastCalledWith('http://box:11434/v1');
   });
 
   it('FE-HOOK-LLMCFG-004: an unreachable server shows its message and empties the list', async () => {
@@ -148,7 +152,7 @@ describe('useLlmParsingConfig', () => {
     expect(result.current.saving).toBe(false);
   });
 
-  it('FE-HOOK-LLMCFG-009: Anthropic is saved with an empty base URL, whatever was typed before', async () => {
+  it("FE-HOOK-LLMCFG-009: switching to Anthropic drops the previous provider's base URL", async () => {
     const { result } = renderHook(() => useLlmParsingConfig(llm({ provider: 'openai', baseUrl: 'https://o/v1' })));
     act(() => {
       result.current.setProvider('anthropic');
@@ -158,6 +162,50 @@ describe('useLlmParsingConfig', () => {
     expect(vi.mocked(adminApi.updateAddon).mock.calls[0][1]).toEqual({
       config: { provider: 'anthropic', model: '', baseUrl: '', apiKey: '', vision: 'off' },
     });
+  });
+
+  it('FE-HOOK-LLMCFG-009b: an Anthropic gateway URL survives a save (#2655)', async () => {
+    const { result } = renderHook(() =>
+      useLlmParsingConfig(llm({ provider: 'anthropic', model: 'gateway-model', baseUrl: 'http://gateway.lan:4000' }))
+    );
+    expect(result.current.baseUrl).toBe('http://gateway.lan:4000');
+    await act(() => result.current.save());
+    expect(vi.mocked(adminApi.updateAddon).mock.calls[0][1].config).toMatchObject({
+      provider: 'anthropic',
+      baseUrl: 'http://gateway.lan:4000',
+    });
+  });
+
+  it('FE-HOOK-LLMCFG-009c: a URL typed after picking Anthropic is saved, trimmed', async () => {
+    const { result } = renderHook(() => useLlmParsingConfig(llm({ provider: 'local' })));
+    act(() => result.current.setProvider('anthropic'));
+    act(() => result.current.setBaseUrl(' http://gw:4000 '));
+    await act(() => result.current.save());
+    expect(vi.mocked(adminApi.updateAddon).mock.calls[0][1].config).toMatchObject({ baseUrl: 'http://gw:4000' });
+  });
+
+  it('FE-HOOK-LLMCFG-009d: away and back again brings the saved URL back; staying put keeps a typed one', () => {
+    const { result } = renderHook(() =>
+      useLlmParsingConfig(llm({ provider: 'anthropic', baseUrl: 'http://gateway.lan:4000' }))
+    );
+    act(() => result.current.setProvider('local'));
+    expect(result.current.baseUrl).toBe('');
+    act(() => result.current.setProvider('openai'));
+    expect(result.current.baseUrl).toBe('');
+    act(() => result.current.setProvider('anthropic'));
+    expect(result.current.baseUrl).toBe('http://gateway.lan:4000');
+    act(() => result.current.setBaseUrl('http://typed:4000'));
+    act(() => result.current.setProvider('anthropic'));
+    expect(result.current.baseUrl).toBe('http://typed:4000');
+  });
+
+  it('FE-HOOK-LLMCFG-009e: the placeholder names the address an empty field stands for', () => {
+    const { result } = renderHook(() => useLlmParsingConfig(llm({ provider: 'local' })));
+    expect(result.current.baseUrlPlaceholder).toBe('http://localhost:11434/v1');
+    act(() => result.current.setProvider('openai'));
+    expect(result.current.baseUrlPlaceholder).toBe('https://api.openai.com/v1');
+    act(() => result.current.setProvider('anthropic'));
+    expect(result.current.baseUrlPlaceholder).toBe('https://api.anthropic.com');
   });
 
   it('FE-HOOK-LLMCFG-010: a failed save toasts and clears saving', async () => {

@@ -64,6 +64,19 @@ export function getAddonLabel(t: (key: string) => string, addon: Addon): { name:
 export const MASKED = '••••••••';
 export const DEFAULT_OLLAMA_URL = 'http://localhost:11434/v1';
 
+/** What an empty Base URL stands for with each provider, shown as its placeholder. */
+export const LLM_BASE_URL_PLACEHOLDER: Record<string, string> = {
+  local: DEFAULT_OLLAMA_URL,
+  openai: 'https://api.openai.com/v1',
+  // The Anthropic client appends /v1/messages itself, so a gateway is given without /v1.
+  anthropic: 'https://api.anthropic.com',
+};
+
+/** Under the Anthropic key: what only Anthropic can read, and what a gateway in its place needs (#2655). */
+export const ANTHROPIC_HINT =
+  'Anthropic reads PDFs (including scans) natively. Local and OpenAI models receive extracted text, so scanned PDFs need Anthropic. ' +
+  'A gateway in place of api.anthropic.com goes in Base URL without /v1 and has to accept PDF document blocks and forced tool calls.';
+
 /** Curated models the local extractor is tuned for, pullable via Ollama. The router drives
  *  one model per document via Ollama's grammar-constrained `format`; "thinking" is disabled
  *  automatically, so the Qwen3 family works without any tuning. A host only needs one. */

@@ -574,6 +574,7 @@ describe('MAdminAddonManager', () => {
 
     await user.click(screen.getByRole('button', { name: 'Anthropic' }));
     expect(screen.queryByPlaceholderText('https://api.openai.com/v1')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('https://api.anthropic.com')).toHaveValue('');
     expect(screen.getByPlaceholderText('claude-opus-4-8')).toBeInTheDocument();
     expect(screen.getByText(/Anthropic reads PDFs/)).toBeInTheDocument();
   });
