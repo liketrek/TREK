@@ -169,23 +169,44 @@ function mapFlight(r: KiReservation, source: ParsedBookingItem['source']): Parse
   };
 }
 
-/** True when flight `b` is a short layover connection that continues flight `a`. */
-function sameConnection(a: KiReservation, b: KiReservation): boolean {
-  const fa = a.reservationFor as KiFlight | undefined;
+/** The longest layover that still makes one journey, as AirTrail's import joins legs. */
+const MAX_LAYOVER_MS = 24 * 3600 * 1000;
+
+/** Epoch ms of a kitinerary time, NaN when it is missing or cannot be read. */
+function instantMs(dt: KiDateTimeish): number {
+  const iso = toIsoString(dt);
+  return iso ? new Date(iso).getTime() : Number.NaN;
+}
+
+/**
+ * True when flight `b` continues the `chain` of connecting flights. It has to
+ * leave from where the chain's last flight landed, must not land anywhere the
+ * chain has already been (that is a return, however soon it flies), and has to
+ * leave within a day. The day is counted from the last flight's arrival, or
+ * from its departure when no arrival is known (an AI import often has none).
+ * A missing or unreadable departure fails both comparisons: two flights whose
+ * order cannot be told apart stay two bookings, where a guess had folded a
+ * return days earlier into the outbound one (#2653).
+ */
+function sameConnection(chain: KiReservation[], b: KiReservation): boolean {
+  const fa = chain[chain.length - 1].reservationFor as KiFlight | undefined;
   const fb = b.reservationFor as KiFlight | undefined;
   if (!fa || !fb) return false;
   const arrIata = fa.arrivalAirport?.iataCode?.toUpperCase();
   const depIata = fb.departureAirport?.iataCode?.toUpperCase();
   if (!arrIata || !depIata || arrIata !== depIata) return false; // must connect at the same airport
-  const arrIso = toIsoString(fa.arrivalTime);
-  const depIso = toIsoString(fb.departureTime);
-  if (arrIso && depIso) {
-    const gapMs = new Date(depIso).getTime() - new Date(arrIso).getTime();
-    // A real layover is forward in time and short — anything longer (e.g. a
-    // round-trip return days later) stays a separate booking.
-    if (gapMs < 0 || gapMs > 24 * 3600 * 1000) return false;
-  }
-  return true;
+  const visited = new Set<string>();
+  chain.forEach((leg, i) => {
+    const f = leg.reservationFor as KiFlight | undefined;
+    if (i === 0 && f?.departureAirport?.iataCode) visited.add(f.departureAirport.iataCode.toUpperCase());
+    if (f?.arrivalAirport?.iataCode) visited.add(f.arrivalAirport.iataCode.toUpperCase());
+  });
+  const nextArr = fb.arrivalAirport?.iataCode?.toUpperCase();
+  if (nextArr && visited.has(nextArr)) return false;
+  const arrived = instantMs(fa.arrivalTime);
+  const from = Number.isNaN(arrived) ? instantMs(fa.departureTime) : arrived;
+  const gapMs = instantMs(fb.departureTime) - from;
+  return gapMs >= 0 && gapMs <= MAX_LAYOVER_MS;
 }
 
 /** Collapse several connecting flight legs (same PNR) into one multi-leg booking. */
@@ -657,7 +678,7 @@ export function mapReservations(
         kiItems[i + 1]['@type'] === 'FlightReservation' &&
         pnr != null &&
         (kiItems[i + 1].reservationNumber ?? null) === pnr &&
-        sameConnection(group[group.length - 1], kiItems[i + 1])
+        sameConnection(group, kiItems[i + 1])
       ) {
         group.push(kiItems[++i]);
       }

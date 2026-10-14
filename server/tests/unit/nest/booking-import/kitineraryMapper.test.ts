@@ -1,4 +1,5 @@
 import { mapReservations } from '../../../../src/nest/booking-import/kitinerary-mapper';
+import type { KiReservation } from '../../../../src/nest/booking-import/kitinerary.types';
 
 import { describe, it, expect } from 'vitest';
 
@@ -8,14 +9,21 @@ const airport = (iata: string, lat: number, lng: number) => ({
   geo: { latitude: lat, longitude: lng },
 });
 
-const flight = (pnr: string, dep: any, arr: any, depTime: string, arrTime: string, flightNumber: string) => ({
+const flight = (
+  pnr: string,
+  dep: any,
+  arr: any,
+  depTime: string,
+  arrTime: string | undefined,
+  flightNumber: string,
+) => ({
   '@type': 'FlightReservation',
   reservationNumber: pnr,
   reservationFor: {
     departureAirport: dep,
     arrivalAirport: arr,
     departureTime: depTime,
-    arrivalTime: arrTime,
+    ...(arrTime === undefined ? {} : { arrivalTime: arrTime }),
     airline: { name: 'Lufthansa', iataCode: 'LH' },
     flightNumber,
   },
@@ -24,6 +32,16 @@ const flight = (pnr: string, dep: any, arr: any, depTime: string, arrTime: strin
 const FRA = airport('FRA', 50.04, 8.57);
 const BER = airport('BER', 52.36, 13.5);
 const HND = airport('HND', 35.55, 139.78);
+const ICN = airport('ICN', 37.46, 126.44);
+const SFO = airport('SFO', 37.62, -122.38);
+const JFK = airport('JFK', 40.64, -73.78);
+const BOS = airport('BOS', 42.36, -71.01);
+const HAM = airport('HAM', 53.63, 9.99);
+const ZRH = airport('ZRH', 47.46, 8.55);
+
+/** The synthetic legs as the mapper's input type. */
+const legs = (...nodes: ReturnType<typeof flight>[]) => nodes as unknown as KiReservation[];
+const meta = (item: { metadata?: unknown }) => (item.metadata ?? {}) as { flight_number?: string; legs?: unknown[] };
 
 describe('kitinerary mapper — multi-leg flight grouping', () => {
   it('groups two connecting same-PNR legs into one multi-leg booking', () => {
@@ -63,6 +81,104 @@ describe('kitinerary mapper — multi-leg flight grouping', () => {
     expect(items).toHaveLength(2);
     expect((items[0].metadata as any).legs).toBeUndefined();
     expect((items[1].metadata as any).legs).toBeUndefined();
+  });
+
+  it('keeps a return listed first apart when the arrival time is missing (#2653)', () => {
+    // The second leg departs three days BEFORE the first: no connection, however
+    // well the airports line up.
+    const { items } = mapReservations(
+      legs(
+        flight('DEMO77', SFO, JFK, '2031-02-08T10:00:00', undefined, 'EX101'),
+        flight('DEMO77', JFK, SFO, '2031-02-05T08:00:00', undefined, 'EX100'),
+      ),
+      'synthetic.txt',
+    );
+
+    expect(items).toHaveLength(2);
+    expect(items.map((i) => meta(i).flight_number)).toEqual(['EX101', 'EX100']);
+    expect(items.every((i) => meta(i).legs === undefined)).toBe(true);
+  });
+
+  it('does not take a missing arrival as a layover of three weeks', () => {
+    const { items } = mapReservations(
+      legs(
+        flight('GAP1', SFO, JFK, '2031-02-05T08:00:00', undefined, 'EX1'),
+        flight('GAP1', JFK, BOS, '2031-02-26T08:00:00', '2031-02-26T09:30:00', 'EX2'),
+      ),
+      'test.json',
+    );
+
+    expect(items).toHaveLength(2);
+  });
+
+  it('still joins a connection the AI import gave no arrival times', () => {
+    // The prompt tells the model to leave an arrival out rather than guess it.
+    const { items } = mapReservations(
+      legs(
+        flight('AI1', FRA, BER, '2026-06-11T08:00:00', undefined, 'LH 40'),
+        flight('AI1', BER, HND, '2026-06-11T11:00:00', undefined, 'LH 41'),
+      ),
+      'test.json',
+    );
+
+    expect(items).toHaveLength(1);
+    expect(meta(items[0]).legs).toHaveLength(2);
+  });
+
+  it('treats an arrival time it cannot read like a missing one', () => {
+    const { items } = mapReservations(
+      legs(
+        flight('TBD1', FRA, BER, '2026-06-11T08:00:00', 'TBD', 'LH 20'),
+        flight('TBD1', BER, HND, '2026-06-11T11:00:00', '2026-06-12T06:00:00', 'LH 21'),
+        flight('TBD2', FRA, BER, '2026-06-11T08:00:00', 'TBD', 'LH 22'),
+        flight('TBD2', BER, HND, '2026-06-14T11:00:00', '2026-06-15T06:00:00', 'LH 23'),
+      ),
+      'test.json',
+    );
+
+    expect(items.map((i) => meta(i).legs?.length ?? 1)).toEqual([2, 1, 1]);
+  });
+
+  it('keeps an out-and-back on the same day as two flights', () => {
+    const { items } = mapReservations(
+      legs(
+        flight('DAY1', FRA, BER, '2026-06-11T08:00:00', '2026-06-11T09:00:00', 'LH 10'),
+        flight('DAY1', BER, FRA, '2026-06-11T18:00:00', '2026-06-11T19:00:00', 'LH 11'),
+      ),
+      'test.json',
+    );
+
+    expect(items).toHaveLength(2);
+  });
+
+  it('ends a chain at a leg that lands where the chain has already been', () => {
+    // Out via FRA and back via FRA on one day, one booking reference.
+    const { items } = mapReservations(
+      legs(
+        flight('TWO', HAM, FRA, '2026-06-11T07:00:00', '2026-06-11T08:00:00', 'LH 50'),
+        flight('TWO', FRA, ZRH, '2026-06-11T09:00:00', '2026-06-11T10:00:00', 'LH 51'),
+        flight('TWO', ZRH, FRA, '2026-06-11T17:00:00', '2026-06-11T18:00:00', 'LH 52'),
+        flight('TWO', FRA, HAM, '2026-06-11T19:00:00', '2026-06-11T20:00:00', 'LH 53'),
+      ),
+      'test.json',
+    );
+
+    expect(items.map((i) => meta(i).legs?.length)).toEqual([2, 2]);
+  });
+
+  it('still joins a chain of three short connections into one booking', () => {
+    const { items } = mapReservations(
+      legs(
+        flight('CH3', FRA, BER, '2026-06-11T08:00:00', '2026-06-11T09:00:00', 'LH 30'),
+        flight('CH3', BER, HND, '2026-06-11T11:00:00', '2026-06-12T06:00:00', 'LH 31'),
+        flight('CH3', HND, ICN, '2026-06-12T09:00:00', '2026-06-12T11:30:00', 'LH 32'),
+      ),
+      'test.json',
+    );
+
+    expect(items).toHaveLength(1);
+    expect(meta(items[0]).legs).toHaveLength(3);
+    expect((items[0].endpoints ?? []).map((e) => e.role)).toEqual(['from', 'stop', 'stop', 'to']);
   });
 
   it('leaves a single flight unchanged (two endpoints, no legs array)', () => {
