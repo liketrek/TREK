@@ -38,7 +38,7 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     availableTrips: [], selectedTripIds: new Set<number>(), setSelectedTripIds: vi.fn(),
     searchOpen: false, setSearchOpen: vi.fn(), searchQuery: '', setSearchQuery: vi.fn(),
     searchInputRef: { current: null },
-    activeSuggestion: undefined, setDismissedSuggestions: vi.fn(),
+    activeSuggestion: undefined, dismissSuggestion: vi.fn(),
     activeJourney: null, activeJourneyIsLive: false,
     filteredJourneys: journeys,
     openCreateModal: vi.fn(), handleCreate: vi.fn(), totalPlaces: 0,
@@ -116,9 +116,7 @@ describe('JourneyPage wiring', () => {
     expect(screen.getByText('Trip just ended')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
-    const updater = (hook.setDismissedSuggestions as ReturnType<typeof vi.fn>).mock.calls[0][0] as
-      (prev: Set<number>) => Set<number>;
-    expect([...updater(new Set<number>())]).toEqual([42]);
+    expect(hook.dismissSuggestion).toHaveBeenCalledWith(42);
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Create Journey' })[1]);
     expect(hook.openCreateModal).toHaveBeenCalledWith(42);
