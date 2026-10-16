@@ -70,6 +70,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Το ταξίδι μόλις τελείωσε',
   'journey.frontpage.suggestionText': 'Μετατρέψτε το <strong>{title}</strong> σε Ταξίδι',
   'journey.frontpage.dismiss': 'Απόρριψη',
+  'journey.frontpage.dismissError': 'Δεν ήταν δυνατή η απόκρυψη αυτής της πρότασης',
   'journey.frontpage.journeyName': 'Όνομα Ταξιδιού',
   'journey.frontpage.namePlaceholder': 'π.χ. Νοτιοανατολική Ασία 2026',
   'journey.frontpage.selectTrips': 'Επιλογή Ταξιδιών',

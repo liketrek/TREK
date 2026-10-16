@@ -69,6 +69,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Perjalanan baru saja selesai',
   'journey.frontpage.suggestionText': 'Ubah <strong>{title}</strong> menjadi Journey',
   'journey.frontpage.dismiss': 'Tutup',
+  'journey.frontpage.dismissError': 'Saran ini tidak dapat disembunyikan',
   'journey.frontpage.journeyName': 'Nama Journey',
   'journey.frontpage.namePlaceholder': 'mis. Asia Tenggara 2026',
   'journey.frontpage.selectTrips': 'Pilih Perjalanan',

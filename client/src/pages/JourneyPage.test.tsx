@@ -12,6 +12,8 @@ import { useAddonStore } from '../store/addonStore';
 import { usePermissionsStore } from '../store/permissionsStore';
 import JourneyPage from './JourneyPage';
 
+const { mockToastError } = vi.hoisted(() => ({ mockToastError: vi.fn() }));
+
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
 const mockNavigate = vi.fn();
@@ -22,6 +24,10 @@ vi.mock('react-router', async () => {
 
 vi.mock('../components/Layout/Navbar', () => ({
   default: () => <nav data-testid="navbar" />,
+}));
+
+vi.mock('../components/shared/Toast', () => ({
+  useToast: () => ({ error: mockToastError }),
 }));
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -79,7 +85,6 @@ function setupDefaultHandlers(journeys: ReturnType<typeof buildJourneyListItem>[
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
-  delete window.__addToast;
   mockNavigate.mockReset();
   resetAllStores();
   seedDefaults();
@@ -223,8 +228,7 @@ describe('JourneyPage', () => {
   it('FE-PAGE-JOURNEY-007d: keeps the suggestion visible and reports a storage failure', async () => {
     const user = userEvent.setup();
     const suggestion = { id: 992, title: 'Coast Trip', start_date: '2026-03-01', end_date: '2026-03-02', place_count: 2 };
-    const addToast = vi.fn();
-    window.__addToast = addToast;
+    mockToastError.mockClear();
     const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('Storage is full', 'QuotaExceededError');
     });
@@ -236,10 +240,9 @@ describe('JourneyPage', () => {
     render(<JourneyPage />);
     await user.click(await screen.findByRole('button', { name: 'Dismiss' }));
 
-    expect(addToast).toHaveBeenCalledWith('Could not dismiss this suggestion', 'error', undefined);
+    expect(mockToastError).toHaveBeenCalledWith('Could not dismiss this suggestion');
     expect(screen.getByText(/Trip just ended/i)).toBeInTheDocument();
     setItem.mockRestore();
-    delete window.__addToast;
   });
 
   it('FE-PAGE-JOURNEY-007e: deletes dismissed IDs absent from the suggestions response', async () => {

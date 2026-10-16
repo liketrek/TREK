@@ -69,6 +69,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': '旅行剛結束',
   'journey.frontpage.suggestionText': '將 <strong>{title}</strong> 變成一段旅程',
   'journey.frontpage.dismiss': '忽略',
+  'journey.frontpage.dismissError': '無法忽略此建議',
   'journey.frontpage.journeyName': '旅程名稱',
   'journey.frontpage.namePlaceholder': '例如 東南亞 2026',
   'journey.frontpage.selectTrips': '選擇旅行',

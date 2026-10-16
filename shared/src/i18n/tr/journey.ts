@@ -70,6 +70,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Seyahat yeni bitti',
   'journey.frontpage.suggestionText': "<strong>{title}</strong> seyahatini Journey'e dönüştür",
   'journey.frontpage.dismiss': 'Kapat',
+  'journey.frontpage.dismissError': 'Bu öneri gizlenemedi',
   'journey.frontpage.journeyName': 'Journey Adı',
   'journey.frontpage.namePlaceholder': 'örn. Güneydoğu Asya 2026',
   'journey.frontpage.selectTrips': 'Seyahat Seç',

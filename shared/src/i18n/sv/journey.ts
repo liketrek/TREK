@@ -70,6 +70,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Resan har just avslutats',
   'journey.frontpage.suggestionText': 'Förvandla <strong>{title}</strong> till en Journey',
   'journey.frontpage.dismiss': 'Stäng',
+  'journey.frontpage.dismissError': 'Det gick inte att dölja förslaget',
   'journey.frontpage.journeyName': 'Journey namn',
   'journey.frontpage.namePlaceholder': 't.ex. Sydostasien 2026',
   'journey.frontpage.selectTrips': 'Välj resor',

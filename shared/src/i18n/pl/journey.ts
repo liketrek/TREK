@@ -72,6 +72,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Podróż właśnie się zakończyła',
   'journey.frontpage.suggestionText': 'Zamień <strong>{title}</strong> w dziennik podróży',
   'journey.frontpage.dismiss': 'Odrzuć',
+  'journey.frontpage.dismissError': 'Nie udało się ukryć tej sugestii',
   'journey.frontpage.journeyName': 'Nazwa dziennika podróży',
   'journey.frontpage.namePlaceholder': 'np. Azja Południowo-Wschodnia 2026',
   'journey.frontpage.selectTrips': 'Wybierz podróże',

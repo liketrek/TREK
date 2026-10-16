@@ -70,6 +70,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Viaggio appena terminato',
   'journey.frontpage.suggestionText': 'Trasforma <strong>{title}</strong> in un diario di viaggio',
   'journey.frontpage.dismiss': 'Ignora',
+  'journey.frontpage.dismissError': 'Impossibile ignorare questo suggerimento',
   'journey.frontpage.journeyName': 'Nome del diario',
   'journey.frontpage.namePlaceholder': 'es. Sud-est asiatico 2026',
   'journey.frontpage.selectTrips': 'Seleziona viaggi',

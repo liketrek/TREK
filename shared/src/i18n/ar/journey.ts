@@ -141,6 +141,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Trip just ended', // en-fallback
   'journey.frontpage.suggestionText': 'Turn <strong>{title}</strong> into a Journey', // en-fallback
   'journey.frontpage.dismiss': 'Dismiss', // en-fallback
+  'journey.frontpage.dismissError': 'تعذر تجاهل هذا الاقتراح',
   'journey.frontpage.journeyName': 'Journey Name', // en-fallback
   'journey.frontpage.namePlaceholder': 'e.g. Southeast Asia 2026', // en-fallback
   'journey.frontpage.selectTrips': 'Select Trips', // en-fallback

@@ -70,6 +70,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Az út épp véget ért',
   'journey.frontpage.suggestionText': 'Alakítsd a(z) <strong>{title}</strong> útinaplóvá',
   'journey.frontpage.dismiss': 'Elvetés',
+  'journey.frontpage.dismissError': 'Nem sikerült elrejteni ezt a javaslatot',
   'journey.frontpage.journeyName': 'Útinapló neve',
   'journey.frontpage.namePlaceholder': 'pl. Délkelet-Ázsia 2026',
   'journey.frontpage.selectTrips': 'Utak kiválasztása',

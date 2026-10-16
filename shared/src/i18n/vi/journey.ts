@@ -69,6 +69,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Chuyến đi vừa kết thúc',
   'journey.frontpage.suggestionText': 'Biến <strong>{title}</strong> thành một cuộc hành trình',
   'journey.frontpage.dismiss': 'Miễn nhiệm',
+  'journey.frontpage.dismissError': 'Không thể ẩn gợi ý này',
   'journey.frontpage.journeyName': 'Tên hành trình',
   'journey.frontpage.namePlaceholder': 'ví dụ. Đông Nam Á 2026',
   'journey.frontpage.selectTrips': 'Chọn chuyến đi',

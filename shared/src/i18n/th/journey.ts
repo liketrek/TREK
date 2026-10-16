@@ -69,6 +69,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'การเดินทางเพิ่งสิ้นสุด',
   'journey.frontpage.suggestionText': 'เปลี่ยน <strong>{title}</strong> ให้เป็นการเดินทาง',
   'journey.frontpage.dismiss': 'ยกเลิก',
+  'journey.frontpage.dismissError': 'ไม่สามารถซ่อนคำแนะนำนี้ได้',
   'journey.frontpage.journeyName': 'ชื่อการเดินทาง',
   'journey.frontpage.namePlaceholder': 'เช่น เอเชียตะวันออกเฉียงใต้ 2026',
   'journey.frontpage.selectTrips': 'เลือกการเดินทาง',

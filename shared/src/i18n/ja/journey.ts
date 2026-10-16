@@ -69,6 +69,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': '旅行が終了しました',
   'journey.frontpage.suggestionText': '<strong>{title}</strong>を日記にしよう',
   'journey.frontpage.dismiss': '閉じる',
+  'journey.frontpage.dismissError': 'この提案を非表示にできませんでした',
   'journey.frontpage.journeyName': '日記名',
   'journey.frontpage.namePlaceholder': '例：東南アジア 2026',
   'journey.frontpage.selectTrips': '旅行を選択',

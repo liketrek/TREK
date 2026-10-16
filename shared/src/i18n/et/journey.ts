@@ -70,6 +70,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Reis just lõppes',
   'journey.frontpage.suggestionText': 'Tee reisist <strong>{title}</strong> reisilugu',
   'journey.frontpage.dismiss': 'Jäta kõrvale',
+  'journey.frontpage.dismissError': 'Soovitust ei saanud peita',
   'journey.frontpage.journeyName': 'Reisiloo nimi',
   'journey.frontpage.namePlaceholder': 'Nt Kagu-Aasia 2026',
   'journey.frontpage.selectTrips': 'Vali reisid',

@@ -78,8 +78,6 @@ export function useJourney() {
 
   useEffect(() => {
     let cancelled = false
-    setSuggestions([])
-    setDismissedSuggestions(readDismissedSuggestions(userId))
     journeyApi.suggestions().then(d => {
       if (cancelled) return
       const trips = d.trips || []
@@ -92,7 +90,7 @@ export function useJourney() {
         try {
           saveDismissedSuggestions(userId, retained)
         } catch {
-          toast.error(t('journey.frontpage.dismissError'))
+          // Pruning is best effort; a failed write leaves the old IDs to retry later.
         }
       }
     }).catch(() => {})
