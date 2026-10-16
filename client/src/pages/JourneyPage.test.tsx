@@ -78,6 +78,8 @@ function setupDefaultHandlers(journeys: ReturnType<typeof buildJourneyListItem>[
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.localStorage.clear();
+  delete window.__addToast;
   mockNavigate.mockReset();
   resetAllStores();
   seedDefaults();
@@ -193,6 +195,77 @@ describe('JourneyPage', () => {
     });
   });
 
+  it('FE-PAGE-JOURNEY-007c: keeps a dismissed suggestion hidden after remount', async () => {
+    const user = userEvent.setup();
+    const suggestions = [
+      { id: 991, title: 'Kyoto Weekend', start_date: '2026-03-01', end_date: '2026-03-02', place_count: 2 },
+      { id: 993, title: 'Lisbon Loop', start_date: '2026-04-01', end_date: '2026-04-02', place_count: 3 },
+    ];
+    server.use(
+      http.get('/api/journeys', () => HttpResponse.json({ journeys: [] })),
+      http.get('/api/journeys/suggestions', () => HttpResponse.json({ trips: suggestions })),
+    );
+
+    const firstRender = render(<JourneyPage />);
+    const dismissButton = await screen.findByRole('button', { name: 'Dismiss' });
+    await user.click(dismissButton);
+
+    expect(await screen.findByText(/Lisbon Loop/)).toBeInTheDocument();
+    const dismissedRecord = JSON.parse(window.localStorage.getItem(`trek:journey:dismissed-suggestions:v1:${useAuthStore.getState().user?.id}`) || '[]');
+    expect(dismissedRecord).toContain(991);
+    firstRender.unmount();
+
+    render(<JourneyPage />);
+    expect(await screen.findByText(/Lisbon Loop/)).toBeInTheDocument();
+    expect(screen.queryByText(/Kyoto Weekend/)).not.toBeInTheDocument();
+  });
+
+  it('FE-PAGE-JOURNEY-007d: keeps the suggestion visible and reports a storage failure', async () => {
+    const user = userEvent.setup();
+    const suggestion = { id: 992, title: 'Coast Trip', start_date: '2026-03-01', end_date: '2026-03-02', place_count: 2 };
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Storage is full', 'QuotaExceededError');
+    });
+    server.use(
+      http.get('/api/journeys', () => HttpResponse.json({ journeys: [] })),
+      http.get('/api/journeys/suggestions', () => HttpResponse.json({ trips: [suggestion] })),
+    );
+
+    render(<JourneyPage />);
+    await user.click(await screen.findByRole('button', { name: 'Dismiss' }));
+
+    expect(addToast).toHaveBeenCalledWith('Could not dismiss this suggestion', 'error', undefined);
+    expect(screen.getByText(/Trip just ended/i)).toBeInTheDocument();
+    setItem.mockRestore();
+    delete window.__addToast;
+  });
+
+  it('FE-PAGE-JOURNEY-007e: deletes dismissed IDs absent from the suggestions response', async () => {
+    const userId = useAuthStore.getState().user?.id;
+    const absentTripId = 994;
+    const stillDismissedTripId = 995;
+    const returnedTripId = 996;
+    const key = `trek:journey:dismissed-suggestions:v1:${userId}`;
+    window.localStorage.setItem(key, JSON.stringify([absentTripId, stillDismissedTripId]));
+    server.use(
+      http.get('/api/journeys', () => HttpResponse.json({ journeys: [] })),
+      http.get('/api/journeys/suggestions', () => HttpResponse.json({
+        trips: [
+          { id: returnedTripId, title: 'Returned Trip', start_date: '2026-04-01', end_date: '2026-04-02', place_count: 2 },
+          { id: stillDismissedTripId, title: 'Still Dismissed', start_date: '2026-05-01', end_date: '2026-05-02', place_count: 2 },
+        ],
+      })),
+    );
+
+    render(<JourneyPage />);
+
+    expect(await screen.findByText(/Returned Trip/)).toBeInTheDocument();
+    expect(screen.queryByText(/Still Dismissed/)).not.toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(key) || '[]')).toEqual([stillDismissedTripId]);
+  });
+
   // FE-PAGE-JOURNEY-007b — XSS regression: the suggestion banner interpolates
   // a user-controlled trip title into an HTML template that is later passed to
   // dangerouslySetInnerHTML. The sanitiser in @trek/shared must drop any script
@@ -266,7 +339,7 @@ describe('JourneyPage', () => {
     });
 
     // Click dismiss
-    await user.click(screen.getByText(/Dismiss/i));
+    await user.click(screen.getByRole('button', { name: 'Dismiss' }));
 
     await waitFor(() => {
       expect(screen.queryByText(/Trip just ended/i)).not.toBeInTheDocument();

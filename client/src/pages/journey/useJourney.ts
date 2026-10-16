@@ -1,10 +1,47 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useJourneyStore } from '../../store/journeyStore'
+import { useAuthStore } from '../../store/authStore'
 import { journeyApi } from '../../api/client'
 import { useToast } from '../../components/shared/Toast'
 import { useTranslation } from '../../i18n'
 import { computeJourneyLifecycle } from '../../utils/journeyLifecycle'
+
+function dismissedSuggestionsKey(userId: number | undefined): string {
+  return `trek:journey:dismissed-suggestions:v1:${userId ?? 'anonymous'}`
+}
+
+function readDismissedSuggestions(userId: number | undefined): Set<number> {
+  try {
+    const value: unknown = JSON.parse(window.localStorage.getItem(dismissedSuggestionsKey(userId)) || '[]')
+    if (!Array.isArray(value)) return new Set()
+
+    const dismissed = new Set<number>()
+    for (const item of value) {
+      if (Number.isInteger(item)) {
+        dismissed.add(item)
+        continue
+      }
+      if (!item || typeof item !== 'object') {
+        continue
+      }
+      const record = item as { id?: unknown; dismissedAt?: unknown }
+      if (typeof record.id === 'number' && Number.isInteger(record.id)) dismissed.add(record.id)
+    }
+    return dismissed
+  } catch {
+    return new Set()
+  }
+}
+
+function saveDismissedSuggestions(userId: number | undefined, dismissed: Set<number>): void {
+  const key = dismissedSuggestionsKey(userId)
+  if (dismissed.size === 0) {
+    window.localStorage.removeItem(key)
+    return
+  }
+  window.localStorage.setItem(key, JSON.stringify([...dismissed]))
+}
 
 /**
  * Journey list page logic — owns the journey store load, the create-journey
@@ -18,6 +55,7 @@ export function useJourney() {
   const toast = useToast()
   const { t } = useTranslation()
   const { journeys, loading, loadJourneys, createJourney } = useJourneyStore()
+  const userId = useAuthStore(s => s.user?.id)
 
   const [showCreate, setShowCreate] = useState(false)
   const [newTitle, setNewTitle] = useState('')
@@ -30,14 +68,36 @@ export function useJourney() {
 
   // suggestion
   const [suggestions, setSuggestions] = useState<any[]>([])
-  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<number>>(new Set())
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<number>>(() => readDismissedSuggestions(userId))
 
   const [searchParams, setSearchParams] = useSearchParams()
 
   useEffect(() => {
     loadJourneys()
-    journeyApi.suggestions().then(d => setSuggestions(d.trips || [])).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    setSuggestions([])
+    setDismissedSuggestions(readDismissedSuggestions(userId))
+    journeyApi.suggestions().then(d => {
+      if (cancelled) return
+      const trips = d.trips || []
+      const suggestionIds = new Set<number>(trips.map((trip: { id: number }) => trip.id))
+      const stored = readDismissedSuggestions(userId)
+      const retained = new Set([...stored].filter(id => suggestionIds.has(id)))
+      setSuggestions(trips)
+      setDismissedSuggestions(retained)
+      if (retained.size !== stored.size) {
+        try {
+          saveDismissedSuggestions(userId, retained)
+        } catch {
+          toast.error(t('journey.frontpage.dismissError'))
+        }
+      }
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [userId])
 
   // The bottom-nav "+" opens the new-journey modal via ?create=1.
   useEffect(() => {
@@ -48,6 +108,17 @@ export function useJourney() {
   }, [searchParams])
 
   const activeSuggestion = suggestions.find(s => !dismissedSuggestions.has(s.id))
+
+  const dismissSuggestion = (tripId: number) => {
+    const next = new Set(dismissedSuggestions)
+    next.add(tripId)
+    try {
+      saveDismissedSuggestions(userId, next)
+      setDismissedSuggestions(next)
+    } catch {
+      toast.error(t('journey.frontpage.dismissError'))
+    }
+  }
 
   // The frontpage always features one journey as the hero. A journey tied to a
   // currently-running trip wins; otherwise we fall back to the most recent one
@@ -118,7 +189,7 @@ export function useJourney() {
     showCreate, setShowCreate, newTitle, setNewTitle, newSubtitle, setNewSubtitle,
     availableTrips, selectedTripIds, setSelectedTripIds,
     searchOpen, setSearchOpen, searchQuery, setSearchQuery, searchInputRef,
-    activeSuggestion, setDismissedSuggestions,
+    activeSuggestion, dismissSuggestion,
     activeJourney, activeJourneyIsLive, filteredJourneys,
     openCreateModal, handleCreate, totalPlaces,
   }

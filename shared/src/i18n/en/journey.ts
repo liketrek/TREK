@@ -70,6 +70,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Trip just ended',
   'journey.frontpage.suggestionText': 'Turn <strong>{title}</strong> into a Journey',
   'journey.frontpage.dismiss': 'Dismiss',
+  'journey.frontpage.dismissError': 'Could not dismiss this suggestion',
   'journey.frontpage.journeyName': 'Journey Name',
   'journey.frontpage.namePlaceholder': 'e.g. Southeast Asia 2026',
   'journey.frontpage.selectTrips': 'Select Trips',
