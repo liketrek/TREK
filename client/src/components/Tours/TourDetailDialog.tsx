@@ -29,7 +29,7 @@ import remarkGfm from 'remark-gfm';
 import { translateApiError, useTranslation } from '../../i18n';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useTripStore } from '../../store/tripStore';
-import type { Assignment, AssignmentsMap, Day, Place, TripFile } from '../../types';
+import type { Assignment, AssignmentsMap, Day, DistanceUnit, Place, TripFile } from '../../types';
 import { openFile } from '../../utils/fileDownload';
 import { filesForPlace } from '../../utils/placeFiles';
 import { analyzeRouteGeometry } from '../../utils/routeGeometry';
@@ -111,6 +111,48 @@ function assignmentForSelectedDay(
     (selectedAssignmentId ? dayAssignments.find((assignment) => assignment.id === selectedAssignmentId) : null) ??
     dayAssignments.find((assignment) => assignment.place?.id === placeId) ??
     null
+  );
+}
+
+/** The tour's measures, its times and its profile. Without heights the distance joins the times in one row. */
+function TourDetailMeasures({
+  analysis,
+  unit,
+  timeFields,
+  trackColor,
+  placeId,
+}: {
+  analysis: NonNullable<ReturnType<typeof analyzeRouteGeometry>>;
+  unit: DistanceUnit;
+  timeFields: TourMetricField[];
+  trackColor: string;
+  placeId: number;
+}) {
+  return (
+    <div className="flex flex-none flex-col gap-2">
+      {analysis.minEle == null && analysis.gain == null ? (
+        <TourMetricFields
+          analysis={analysis}
+          unit={unit}
+          extra={timeFields}
+          columns={timeFields.length === 1 ? 2 : timeFields.length === 2 ? 3 : undefined}
+        />
+      ) : (
+        <>
+          <TourMetricFields analysis={analysis} unit={unit} columns={5} />
+          {timeFields.length > 0 && <TourFactFields fields={timeFields} columns={3} />}
+        </>
+      )}
+      {analysis.distanceIndexedProfileSamples.length >= 2 && (
+        <div className={`${BOX} p-2`}>
+          <ElevationProfile
+            samples={analysis.distanceIndexedProfileSamples}
+            color={trackColor}
+            gradientId={`tour-elevation-${placeId}`}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -590,31 +632,13 @@ export default function TourDetailDialog({
       </DialogSection>
 
       {analysis && (
-        <div className="flex flex-none flex-col gap-2">
-          {analysis.minEle == null && analysis.gain == null ? (
-            // Without heights the distance is the only measure: it joins the times in one row.
-            <TourMetricFields
-              analysis={analysis}
-              unit={distanceUnit}
-              extra={timeFields}
-              columns={timeFields.length === 1 ? 2 : timeFields.length === 2 ? 3 : undefined}
-            />
-          ) : (
-            <>
-              <TourMetricFields analysis={analysis} unit={distanceUnit} columns={5} />
-              {timeFields.length > 0 && <TourFactFields fields={timeFields} columns={3} />}
-            </>
-          )}
-          {analysis.distanceIndexedProfileSamples.length >= 2 && (
-            <div className={`${BOX} p-2`}>
-              <ElevationProfile
-                samples={analysis.distanceIndexedProfileSamples}
-                color={trackColor}
-                gradientId={`tour-elevation-${place.id}`}
-              />
-            </div>
-          )}
-        </div>
+        <TourDetailMeasures
+          analysis={analysis}
+          unit={distanceUnit}
+          timeFields={timeFields}
+          trackColor={trackColor}
+          placeId={place.id}
+        />
       )}
 
       {description && (
