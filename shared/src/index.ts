@@ -51,6 +51,7 @@ export * from './place/track-colors';
 export * from './tours/tours.schema';
 export * from './tours/tour-provenance.schema';
 export * from './tours/tours.metrics';
+export * from './tours/tour-gpx-import.schema';
 export * from './wanderer/wanderer.schema';
 export * from './geo/haversine';
 export * from './collection/collection.schema';

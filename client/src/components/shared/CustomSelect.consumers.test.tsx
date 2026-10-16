@@ -8,6 +8,7 @@ import type { TourPlannerController } from '../Tours/planner/useTourPlanner'
 import ToursSidebar from '../Tours/ToursSidebar'
 import type { Day } from '../../types'
 import CustomSelect from './CustomSelect'
+import { hikePlannerDefaults } from '../../../tests/helpers/tourPlannerStub'
 
 vi.mock('../../repo/tourRepo', () => ({ tourRepo: {} }))
 vi.mock('../../store/settingsStore', () => ({
@@ -29,6 +30,7 @@ const days = [{ id: 7, trip_id: 1, day_number: 1, title: 'Summit day', date: '20
 
 function planner(overrides: Partial<TourPlannerController> = {}): TourPlannerController {
   return {
+    ...hikePlannerDefaults(),
     mode: { type: 'new-draft' }, maxHikingDifficulty: 2,
     setMaxHikingDifficulty: vi.fn(), name: '', setName: vi.fn(),
     status: 'empty', waypoints: [], route: [], routeAnalysis: null,

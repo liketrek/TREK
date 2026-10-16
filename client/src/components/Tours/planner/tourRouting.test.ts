@@ -70,6 +70,44 @@ describe('routeWalkingTour', () => {
     expect(await routeWalkingTour([{ lat: 47.38, lng: 11.0 }, { lat: 47.39, lng: 11.01, fixedLeg: leg }, { lat: 47.392, lng: 11.012 }])).toBeNull()
   })
 
+  it('TOUR-ROUTING-022: hand-drawn legs ask no router and come back as their own parts, routed runs as theirs', async () => {
+    const free = (from: [number, number], to: [number, number]) => ({ kind: 'free' as const, geometry: [from, to] })
+    valhallaRun.mockResolvedValueOnce({ total: { coordinates: [[47.392, 11.012], [47.395, 11.015], [47.4, 11.02]], distance: 900, duration: 700 } })
+
+    const routed = await routeWalkingTour([
+      { lat: 47.38, lng: 11.0, fixedLeg: free([47.38, 11.0], [47.39, 11.01]) },
+      { lat: 47.39, lng: 11.01, fixedLeg: free([47.39, 11.01], [47.392, 11.012]) },
+      { lat: 47.392, lng: 11.012 },
+      { lat: 47.4, lng: 11.02 },
+    ])
+
+    expect(valhallaRun).toHaveBeenCalledTimes(1)
+    expect(routed?.parts.map(part => part.free)).toEqual([true, false])
+    // The drawn stretch is sampled along its length, from its first point through the waypoint between to its last.
+    const drawn = routed?.parts[0].coordinates ?? []
+    expect(drawn[0]).toEqual([47.38, 11.0])
+    expect(drawn).toContainEqual([47.39, 11.01])
+    expect(drawn[drawn.length - 1]).toEqual([47.392, 11.012])
+    expect(drawn.length).toBeGreaterThan(50)
+    expect(routed?.parts[1].coordinates).toEqual([[47.392, 11.012], [47.395, 11.015], [47.4, 11.02]])
+    expect(routed?.coordinates[routed.coordinates.length - 1]).toEqual([47.4, 11.02])
+  })
+
+  it('TOUR-ROUTING-023: a tour drawn wholly by hand, a paddle tour, never asks the router', async () => {
+    const free = (from: [number, number], to: [number, number]) => ({ kind: 'free' as const, geometry: [from, to] })
+    const routed = await routeWalkingTour([
+      { lat: 53.3, lng: 12.9, fixedLeg: free([53.3, 12.9], [53.31, 12.92]) },
+      { lat: 53.31, lng: 12.92 },
+    ])
+    expect(valhallaRun).not.toHaveBeenCalled()
+    expect(routed?.parts).toHaveLength(1)
+    expect(routed?.parts[0]).toMatchObject({ free: true })
+    expect(routed?.parts[0].coordinates[0]).toEqual([53.3, 12.9])
+    const line = routed?.parts[0].coordinates ?? []
+    expect(line[line.length - 1]).toEqual([53.31, 12.92])
+    expect(routed?.distanceMeters).toBeGreaterThan(1500)
+  })
+
   it.each([1, 2, 3, 4, 5, 6] as const)('TOUR-ROUTING-002: forwards T%i unchanged to Valhalla', async difficulty => {
     await routeWalkingTour(waypoints, undefined, difficulty)
 

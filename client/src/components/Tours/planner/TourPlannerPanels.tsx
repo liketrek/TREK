@@ -17,8 +17,9 @@ import TourListRow from '../TourListRow'
 import ElevationProfile from '../../shared/ElevationProfile'
 import { formatPlannedTourDuration, hikeSourceBadgeLabel, tourSource } from '../tourPresentation'
 import { CardAction, FoldButton, RailCard, RailFacts, TourDayMenu, TourListCard, TourNotice, TourSection } from '../tourParts'
-import { tourMetricFacts } from '../tourFacts'
+import { movingTimeLabel, tourMetricFacts, withoutHeights } from '../tourFacts'
 import { TourDetailsSection, TourNameField } from './TourEditorFields'
+import { TourTypeFields } from './TourTypeFields'
 import TourWaypointList from './TourWaypointList'
 import type { DistanceIndexedProfileSample, RouteProfileFocus } from '../../../utils/routeGeometry'
 import type { TourPlannerController, TourPlannerStatus } from './useTourPlanner'
@@ -239,7 +240,7 @@ function GpxViewRail({
     tour.duration != null
       ? [
           {
-            label: t('tours.planner.inspector.duration'),
+            label: movingTimeLabel(tour, t('tours.planner.inspector.duration'), t),
             value: t('tours.durationMinutes', { count: Math.max(1, Math.round(tour.duration)) }),
           },
         ]
@@ -304,6 +305,8 @@ export function TourPlannerRail({ planner,
   const [pendingDifficulty, setPendingDifficulty] = useState<1 | 2 | 3 | 4 | 5 | 6 | null>(null)
   const alpineAcknowledged = useRef(false)
   const isSaving = planner.isSaving
+  // Nothing in the editor changes while the viewer may not edit or a save is in flight.
+  const locked = !canEdit || isSaving
   const requestClose = () => {
     if (isSaving) return
     if (planner.hasUnsavedChanges) setConfirmDiscard(true)
@@ -330,22 +333,24 @@ export function TourPlannerRail({ planner,
             <ArrowLeft size={16} strokeWidth={2} />
           </BarButton>
           <RailTitle title={t(isSavedEdit ? 'tours.planner.editTitle' : 'tours.planner.newTitle')} aside={<RailStatusBadges planner={planner} />} />
-          <BarButton label={t('tours.planner.undo')} onClick={() => { if (canEdit && !isSaving) planner.undo() }} disabled={!canEdit || isSaving || !planner.canUndo}>
+          <BarButton label={t('tours.planner.undo')} onClick={() => { if (canEdit && !isSaving) planner.undo() }} disabled={locked || !planner.canUndo}>
             <Undo2 size={15} strokeWidth={2} />
           </BarButton>
-          <BarButton label={t('tours.planner.redo')} onClick={() => { if (canEdit && !isSaving) planner.redo() }} disabled={!canEdit || isSaving || !planner.canRedo}>
+          <BarButton label={t('tours.planner.redo')} onClick={() => { if (canEdit && !isSaving) planner.redo() }} disabled={locked || !planner.canRedo}>
             <Redo2 size={15} strokeWidth={2} />
           </BarButton>
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-3.5">
-          <TourNameField planner={planner} locked={!canEdit || isSaving} />
+          <TourNameField planner={planner} locked={locked} />
+
+          <TourTypeFields planner={planner} locked={locked} />
 
           {recordedTrack?.available && <RecordedTrackCard recordedTrack={recordedTrack} disabled={isSaving} />}
 
           <TourWaypointList planner={planner} canEdit={canEdit} isSaving={isSaving} />
 
-          <TourDetailsSection planner={planner} locked={!canEdit || isSaving} onDifficultyChange={changeDifficulty} />
+          <TourDetailsSection planner={planner} locked={locked} onDifficultyChange={changeDifficulty} />
         </div>
 
         <div className="flex flex-none flex-col border-t border-edge-faint px-3 py-3">
@@ -353,7 +358,7 @@ export function TourPlannerRail({ planner,
             <DialogButton icon={<RotateCcw size={14} strokeWidth={2} />} onClick={requestClose} disabled={isSaving || (!planner.hasUnsavedChanges && !isSavedEdit)}>
               {t('common.discard')}
             </DialogButton>
-            <DialogButton variant="primary" icon={<Save size={14} strokeWidth={2} />} onClick={() => { if (canEdit && !isSaving) void planner.save() }} disabled={!canEdit || isSaving || !planner.canSave}>
+            <DialogButton variant="primary" icon={<Save size={14} strokeWidth={2} />} onClick={() => { if (canEdit && !isSaving) void planner.save() }} disabled={locked || !planner.canSave}>
               {t('common.save')}
             </DialogButton>
           </div>
@@ -518,6 +523,35 @@ interface TourPlannerToursRailProps extends TourPermissionProps {
   gpxImport?: TourGpxImport
 }
 
+/** The time facts of the overview: the estimate (walking, or paddling for a paddle tour), the breaks and the planned total. */
+function plannerTimeFields(planner: TourPlannerController, t: Translate) {
+  return [
+    planner.isPaddle ? {
+      label: t('tours.paddle.timeEstimated'),
+      shortLabel: t('tours.paddle.timeEstimatedShort'),
+      info: { label: t('tours.paddle.timeEstimatedInfoLabel'), description: t('tours.paddle.timeEstimatedInfo') },
+      value: planner.walkingDurationMinutes == null
+        ? t('tours.planner.walkingTimeUnknown')
+        : formatPlannedTourDuration(planner.walkingDurationMinutes),
+    } : {
+      label: t('tours.planner.walkingEstimated'),
+      shortLabel: t('tours.planner.walkingEstimatedShort'),
+      info: { label: t('tours.planner.walkingEstimatedInfoLabel'), description: t('tours.planner.walkingEstimatedInfo') },
+      value: planner.walkingDurationMinutes == null
+        ? t('tours.planner.walkingTimeUnknown')
+        : formatPlannedTourDuration(planner.walkingDurationMinutes),
+    },
+    {
+      label: t('tours.planner.breaksShort'),
+      value: planner.breakAdditionalMinutes == null ? '—' : formatPlannedTourDuration(planner.breakAdditionalMinutes),
+    },
+    {
+      label: `${t('tours.planner.plannedShort')}${planner.plannedDurationMinutes != null ? ` (${t('tours.planner.plannedTotalManual')})` : ''}`,
+      value: planner.plannedTotalMinutes == null ? t('tours.planner.walkingTimeUnknown') : formatPlannedTourDuration(planner.plannedTotalMinutes),
+    },
+  ]
+}
+
 export function TourPlannerToursRail({ planner, tours, days, loading, onAssignToDay, onViewGpxTour, onDeleteTour,
   gpxImport, canEdit: editPermission, canAssign: assignPermission }: TourPlannerToursRailProps) {
   const { canEdit, canAssign } = useTourPermissions({ canEdit: editPermission ?? planner.canEdit, canAssign: assignPermission ?? planner.canAssign })
@@ -528,7 +562,8 @@ export function TourPlannerToursRail({ planner, tours, days, loading, onAssignTo
   const dayAssignment = useTourDayAssignment({ canAssign, onAssignToDay })
   const isSaving = planner.isSaving
   const hasRoute = (planner.mode.type === 'new-draft' || planner.mode.type === 'edit-saved') && planner.route !== null
-  const routeAnalysis = planner.routeAnalysis
+  // A paddle tour's heights are read off the banks, not the water: they stay unknown.
+  const routeAnalysis = planner.isPaddle && planner.routeAnalysis ? withoutHeights(planner.routeAnalysis) : planner.routeAnalysis
 
   // A finished save is said once, as the app says it everywhere: a toast.
   // Once per save: the toast helper and t are fresh objects on every render, so the
@@ -561,24 +596,7 @@ export function TourPlannerToursRail({ planner, tours, days, loading, onAssignTo
     selectTour(tour)
   }
 
-  const tourTimeFields = [
-    {
-      label: t('tours.planner.walkingEstimated'),
-      shortLabel: t('tours.planner.walkingEstimatedShort'),
-      info: { label: t('tours.planner.walkingEstimatedInfoLabel'), description: t('tours.planner.walkingEstimatedInfo') },
-      value: planner.walkingDurationMinutes == null
-        ? t('tours.planner.walkingTimeUnknown')
-        : formatPlannedTourDuration(planner.walkingDurationMinutes),
-    },
-    {
-      label: t('tours.planner.breaksShort'),
-      value: planner.breakAdditionalMinutes == null ? '—' : formatPlannedTourDuration(planner.breakAdditionalMinutes),
-    },
-    {
-      label: `${t('tours.planner.plannedShort')}${planner.plannedDurationMinutes != null ? ` (${t('tours.planner.plannedTotalManual')})` : ''}`,
-      value: planner.plannedTotalMinutes == null ? t('tours.planner.walkingTimeUnknown') : formatPlannedTourDuration(planner.plannedTotalMinutes),
-    },
-  ]
+  const tourTimeFields = plannerTimeFields(planner, t)
 
   return (
     <aside className="flex h-full min-h-0 flex-col" aria-label={t('tours.planner.tripTours')}>
@@ -603,7 +621,7 @@ export function TourPlannerToursRail({ planner, tours, days, loading, onAssignTo
               <div className="flex flex-col gap-3">
                 <FerrataCrossingBadges />
               <RailFacts facts={tourMetricFacts(routeAnalysis, distanceUnit, t, tourTimeFields)} />
-            {routeAnalysis && (
+            {routeAnalysis && !planner.isPaddle && (
               <ElevationSection
                 id="tour-planner-editable-elevation-profile"
                 samples={routeAnalysis.distanceIndexedProfileSamples}

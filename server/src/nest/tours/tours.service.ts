@@ -30,9 +30,13 @@ import {
   MAX_PLANNED_TOUR_DURATION_MINUTES,
   plannedTourDurationMinutesSchema,
   tourWebsiteSchema,
+  type PaddleBoatType,
+  type PaddleWaterContext,
   type TourCreateRequest,
   type TourCreateResponse,
   type TourDetailResponse,
+  type TourGpxImportFields,
+  type TourGpxPreviewResponse,
   type TourListItem,
   type TourOrigin,
   type TourProvenance,
@@ -88,6 +92,9 @@ export class ToursService {
       max_hiking_difficulty: r.max_hiking_difficulty,
       derived_from_place_id: r.derived_from_place_id,
       origin: r.origin as TourOrigin,
+      boat_type: r.boat_type as PaddleBoatType | null,
+      water_context: r.water_context as PaddleWaterContext | null,
+      paddle_speed_kmh: r.paddle_speed_kmh,
       has_recorded_track: Boolean(r.has_recorded_track),
       planned: Boolean(r.planned),
       caution: r.match_confidence !== null && r.match_confidence < LOW_CONFIDENCE_THRESHOLD,
@@ -98,11 +105,14 @@ export class ToursService {
   /** The route a create or an update writes: metrics derived from the geometry, duration stored in minutes. */
   private routeFields(input: TourCreateRequest): TourUpdate {
     const metrics = computeTourMetrics(input.route_geometry as GeometryPoint[]);
+    // A paddle tour drawn here has its heights read off the banks at the points set, not
+    // off the water: its ascent and descent stay unknown rather than wrong.
+    const heightsKnown = input.tour_type !== 'kayak';
     return {
       tour_type: input.tour_type,
       distance: metrics.distanceKm,
-      elevation_gain: metrics.elevationGainM,
-      elevation_loss: metrics.elevationLossM,
+      elevation_gain: heightsKnown ? metrics.elevationGainM : null,
+      elevation_loss: heightsKnown ? metrics.elevationLossM : null,
       duration: input.duration_seconds == null ? null : Math.round(input.duration_seconds / 60),
       ...(input.planned_duration_minutes !== undefined
         ? { planned_duration_minutes: input.planned_duration_minutes }
@@ -112,6 +122,9 @@ export class ToursService {
         : {}),
       match_confidence: 1,
       max_hiking_difficulty: input.max_hiking_difficulty,
+      boat_type: input.boat_type ?? null,
+      water_context: input.water_context ?? null,
+      paddle_speed_kmh: input.paddle_speed_kmh ?? null,
     };
   }
 
@@ -316,9 +329,13 @@ export class ToursService {
         duration: null,
         match_confidence: metrics.hasElevation ? 1 : 0.3,
         // The grade its source gave, on the one scale tours use; a GPX file gives none.
-        max_hiking_difficulty: row.wanderer_ref
-          ? wandererDifficultyToSac(row.difficulty as WandererDifficulty | null)
-          : null,
+        max_hiking_difficulty:
+          row.wanderer_ref && row.tour_type === 'hike'
+            ? wandererDifficultyToSac(row.difficulty as WandererDifficulty | null)
+            : null,
+        boat_type: row.boat_type as PaddleBoatType | null,
+        water_context: row.water_context as PaddleWaterContext | null,
+        paddle_speed_kmh: row.paddle_speed_kmh,
       });
       await this.waypointsRepo.deleteForPlace(pid);
       await this.toursRepo.clearRecordedTrack(pid);
@@ -377,6 +394,9 @@ export class ToursService {
         break_additional_minutes: source.break_additional_minutes,
         match_confidence: source.match_confidence,
         max_hiking_difficulty: source.max_hiking_difficulty,
+        boat_type: source.boat_type as PaddleBoatType | null,
+        water_context: source.water_context as PaddleWaterContext | null,
+        paddle_speed_kmh: source.paddle_speed_kmh,
         wanderer_ref: source.wanderer_ref,
         difficulty: source.difficulty,
         derived_from_place_id: pid,
@@ -471,14 +491,16 @@ export class ToursService {
     fileBuffer: Buffer,
     fileName?: string,
     socketId?: string,
+    fields: TourGpxImportFields = { tour_type: 'hike' },
   ): Promise<ImportGpxAsTourResult | null> {
-    const rows = this.placeImport.readGpx(fileBuffer, {
-      importWaypoints: false,
-      importRoutes: true,
-      importTracks: true,
-      defaultName: fileName,
-    });
+    const rows = this.readGpxTracks(fileBuffer, fileName);
     if (rows.length === 0) return null;
+    await this.assertTourTypeEnabled(fields.tour_type);
+    const paddle = {
+      boat_type: fields.boat_type ?? null,
+      water_context: fields.water_context ?? null,
+      paddle_speed_kmh: null,
+    };
 
     const tours: TourListItem[] = [];
     const result = await this.uow.transactional(async () => {
@@ -489,7 +511,8 @@ export class ToursService {
         const matchConfidence = metrics.hasElevation ? 1 : 0.3;
         await this.toursRepo.insertTour({
           place_id: place.id,
-          tour_type: 'hike',
+          tour_type: fields.tour_type,
+          ...paddle,
           distance: metrics.distanceKm,
           elevation_gain: metrics.elevationGainM,
           elevation_loss: metrics.elevationLossM,
@@ -507,7 +530,8 @@ export class ToursService {
             name: place.name,
             description: place.description ?? null,
             website: place.website ?? null,
-            tour_type: 'hike',
+            tour_type: fields.tour_type,
+            ...paddle,
             distance: metrics.distanceKm,
             elevation_gain: metrics.elevationGainM,
             elevation_loss: metrics.elevationLossM,
@@ -543,6 +567,42 @@ export class ToursService {
       }
     }
     return { tours, caution: tours.some((t) => t.caution), skipped: result.skipped };
+  }
+
+  /**
+   * PAD-02: what a GPX file would import, read with the import's own parser
+   * and duplicate rule and written nowhere. Null when the file holds no track
+   * or route, the import's own refusal.
+   */
+  async previewGpx(tripId: string, fileBuffer: Buffer, fileName?: string): Promise<TourGpxPreviewResponse | null> {
+    const rows = this.readGpxTracks(fileBuffer, fileName);
+    if (rows.length === 0) return null;
+    const duplicates = await this.places.gpxDuplicates(tripId, rows);
+    return {
+      tracks: rows.map((row, index) => {
+        const geometry = parseRouteGeometry(row.routeGeometry);
+        const metrics = computeTourMetrics(geometry);
+        return {
+          name: row.name,
+          geometry,
+          point_count: geometry.length,
+          distance_km: metrics.distanceKm,
+          elevation_gain_m: metrics.elevationGainM,
+          elevation_loss_m: metrics.elevationLossM,
+          duplicate: duplicates[index] ?? false,
+        };
+      }),
+    };
+  }
+
+  /** The tracks and routes of a GPX file, never its loose waypoints: the reading every Tours import shares. */
+  private readGpxTracks(fileBuffer: Buffer, fileName?: string) {
+    return this.placeImport.readGpx(fileBuffer, {
+      importWaypoints: false,
+      importRoutes: true,
+      importTracks: true,
+      defaultName: fileName,
+    });
   }
 }
 

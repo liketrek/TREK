@@ -8,7 +8,6 @@ import { CLUSTER_OPTIONS, createClusterIcon, revealInCluster, type ClusterGroupL
 import RoadtripViaMarkers from './RoadtripViaMarkers'
 import PlannerWaypointMarker from './PlannerWaypointMarker'
 import HazardLayers from './HazardLayers'
-import { FerrataMapLayerLeaflet } from '../Ferratas/FerrataLayerLeaflet'
 import { formatViaDwell } from './routeViaDwell'
 import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors'
 import { serviceMarkerHtml, serviceMarkerOuter } from '../Roadtrip/serviceMarker'
@@ -68,6 +67,7 @@ import { crsForBasemap } from './gcj02Crs'
 import { isGcj02Basemap, resolveBasemap } from '../../utils/tileUrl'
 import VectorBasemap from './VectorBasemap'
 import { useSettingsStore } from '../../store/settingsStore'
+import { TourMapLayersLeaflet } from './RasterOverlayLeaflet'
 import { MapLayerSwitcher, TourMapLayerSwitcher, MAP_LAYER_SWITCHER_INSET, type TourBaseLayer } from './MapLayerSwitcher'
 import { MapLockPill } from './MapLockPill'
 import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport'
@@ -831,7 +831,7 @@ export const MapView = memo(function MapView({
   onPlannerWaypointClick,
   onPlannerWaypointMove,
   routeProfileFocus = null,
-  viewBaseLayer, onViewBaseLayerChange, onToggleTerrain3d, ferrataLayer, placeTool,
+  viewBaseLayer, onViewBaseLayerChange, onToggleTerrain3d, ferrataLayer, placeTool, tourLayers,
 }: MapViewProps) {
   const globalBaseLayer = useSettingsStore(s => s.settings.map_base_layer) || 'default'
   const updateSetting = useSettingsStore(s => s.updateSetting)
@@ -1291,7 +1291,7 @@ export const MapView = memo(function MapView({
       />
 
       {hazards?.length > 0 && <HazardLayers hazards={hazards} />}
-      <FerrataMapLayerLeaflet layer={ferrataLayer} />
+      <TourMapLayersLeaflet ferrataLayer={ferrataLayer} overlays={tourLayers?.overlays} />
 
       {/* The route as it was actually recorded (#2279). Drawn in the casing
           pane's sibling order so it sits under the planned route rather than
@@ -1339,7 +1339,7 @@ export const MapView = memo(function MapView({
       {onToggleFollow && <MapLockPill locked={!followSelection} onToggle={onToggleFollow} />}
       {hasViewBaseLayer
         ? <TourMapLayerSwitcher active={baseLayer} onChange={onViewBaseLayerChange}
-            onToggleTerrain={onToggleTerrain3d} ferrataLayer={ferrataLayer} placeTool={placeTool} />
+            onToggleTerrain={onToggleTerrain3d} ferrataLayer={ferrataLayer} placeTool={placeTool} layers={tourLayers} />
         : <MapLayerSwitcher active={globalBaseLayer} onToggle={toggleBaseLayer} />}
     </div>
     </div>

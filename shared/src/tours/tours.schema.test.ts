@@ -1,5 +1,7 @@
 import {
+  MAX_PADDLE_SPEED_KMH,
   MAX_PLANNED_TOUR_DURATION_MINUTES,
+  recommendedPaddleSpeedKmh,
   plannedTourDurationMinutesSchema,
   tourCreateRequestSchema,
   tourListItemSchema,
@@ -164,7 +166,10 @@ describe('Tours fixed legs', () => {
         { lat: 48.01, lng: 11.02, role: 'end' as const, sequence: 1 },
       ],
     };
-    expect(tourCreateRequestSchema.parse(request).waypoints[0]?.fixed_leg?.ref).toBe('way/1');
+    expect(tourCreateRequestSchema.parse(request).waypoints[0]?.fixed_leg).toMatchObject({
+      kind: 'ferrata',
+      ref: 'way/1',
+    });
   });
 
   it('refuses a fixed leg that does not join its waypoints, or hangs off the last one', () => {
@@ -184,5 +189,116 @@ describe('Tours fixed legs', () => {
       ],
     };
     expect(() => tourCreateRequestSchema.parse(dangling)).toThrow(/fixed leg/);
+  });
+});
+
+describe('Tours free legs', () => {
+  const free = (from: [number, number], to: [number, number]) => ({ kind: 'free' as const, geometry: [from, to] });
+
+  it('takes a hand-drawn leg that runs from its waypoint to the next one, with no reference', () => {
+    const request = {
+      ...baseRequest,
+      waypoints: [
+        { lat: 48, lng: 11, role: 'start' as const, sequence: 0, fixed_leg: free([48, 11], [48.01, 11.02]) },
+        { lat: 48.01, lng: 11.02, role: 'end' as const, sequence: 1 },
+      ],
+    };
+    expect(tourCreateRequestSchema.parse(request).waypoints[0]?.fixed_leg).toEqual(free([48, 11], [48.01, 11.02]));
+  });
+
+  it('holds a free leg to the same ends as a via ferrata', () => {
+    const request = {
+      ...baseRequest,
+      waypoints: [
+        { lat: 48, lng: 11, role: 'start' as const, sequence: 0, fixed_leg: free([48.2, 11], [48.01, 11.02]) },
+        { lat: 48.01, lng: 11.02, role: 'end' as const, sequence: 1 },
+      ],
+    };
+    expect(() => tourCreateRequestSchema.parse(request)).toThrow(/fixed leg/);
+  });
+
+  it('refuses a leg of a kind it does not know', () => {
+    const request = {
+      ...baseRequest,
+      waypoints: [
+        {
+          lat: 48,
+          lng: 11,
+          role: 'start' as const,
+          sequence: 0,
+          fixed_leg: {
+            kind: 'ferry',
+            geometry: [
+              [48, 11],
+              [48.01, 11.02],
+            ],
+          },
+        },
+        { lat: 48.01, lng: 11.02, role: 'end' as const, sequence: 1 },
+      ],
+    };
+    expect(() => tourCreateRequestSchema.parse(request)).toThrow();
+  });
+});
+
+describe('Tours paddle type', () => {
+  const paddle = {
+    ...baseRequest,
+    tour_type: 'kayak' as const,
+    boat_type: 'canoe' as const,
+    water_context: 'river' as const,
+  };
+
+  it('saves a paddle tour with one boat, its water and no hiking limit', () => {
+    const parsed = tourCreateRequestSchema.parse(paddle);
+    expect(parsed).toMatchObject({
+      tour_type: 'kayak',
+      boat_type: 'canoe',
+      water_context: 'river',
+      max_hiking_difficulty: null,
+    });
+  });
+
+  it('keeps the speed a paddler chose', () => {
+    expect(tourCreateRequestSchema.parse({ ...paddle, paddle_speed_kmh: 5.5 }).paddle_speed_kmh).toBe(5.5);
+    expect(() => tourCreateRequestSchema.parse({ ...paddle, paddle_speed_kmh: 0 })).toThrow();
+    expect(() => tourCreateRequestSchema.parse({ ...paddle, paddle_speed_kmh: MAX_PADDLE_SPEED_KMH + 1 })).toThrow();
+  });
+
+  it('refuses a paddle tour without a boat or water, or with a hiking limit', () => {
+    expect(() => tourCreateRequestSchema.parse({ ...paddle, boat_type: undefined })).toThrow(/boat type/);
+    expect(() => tourCreateRequestSchema.parse({ ...paddle, water_context: null })).toThrow(/water context/);
+    expect(() => tourCreateRequestSchema.parse({ ...paddle, max_hiking_difficulty: 2 })).toThrow(/hiking difficulty/);
+  });
+
+  it('refuses boat fields on a hike, and a type nobody can plan yet', () => {
+    expect(() => tourCreateRequestSchema.parse({ ...baseRequest, boat_type: 'sup' })).toThrow(/paddle tour/);
+    expect(() => tourCreateRequestSchema.parse({ ...baseRequest, paddle_speed_kmh: 4 })).toThrow(/paddle tour/);
+    expect(() => tourCreateRequestSchema.parse({ ...baseRequest, tour_type: 'bike' })).toThrow();
+  });
+
+  it('suggests 4 km/h for kayak, canoe and SUP, and nothing for any other boat', () => {
+    expect(['kayak', 'canoe', 'sup'].map((boat) => recommendedPaddleSpeedKmh(boat as 'kayak'))).toEqual([4, 4, 4]);
+    expect(recommendedPaddleSpeedKmh('other')).toBeNull();
+    expect(recommendedPaddleSpeedKmh(null)).toBeNull();
+  });
+
+  it('reads a list item cached before the paddle fields existed', () => {
+    const cached = {
+      place_id: 1,
+      tour_type: 'hike',
+      distance: 1,
+      elevation_gain: null,
+      elevation_loss: null,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      max_hiking_difficulty: 2,
+      name: 'Old',
+      planned: false,
+      caution: false,
+    };
+    expect(tourListItemSchema.parse(cached).boat_type).toBeUndefined();
   });
 });

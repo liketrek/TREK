@@ -20,4 +20,7 @@ export interface ToursTable {
   recorded_route_geometry: InsertOptional<string | null>;
   origin: InsertOptional<string>;
   origin_file_name: InsertOptional<string | null>;
+  boat_type: InsertOptional<string | null>;
+  water_context: InsertOptional<string | null>;
+  paddle_speed_kmh: InsertOptional<number | null>;
 }

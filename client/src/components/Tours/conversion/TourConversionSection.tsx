@@ -77,7 +77,7 @@ export default function TourConversionSection({ conversion }: { conversion: GpxC
     return card(
       <div className="flex flex-col items-start gap-2.5">
         <p className="m-0 leading-snug text-content-secondary" style={fs(12, 'body')}>
-          {t('tours.conversion.intro')}
+          {t(conversion.paddle ? 'tours.conversion.introPaddle' : 'tours.conversion.intro')}
         </p>
         <CardAction onClick={() => void conversion.analyze()} icon={<Route size={12} strokeWidth={2.2} />}>
           {t('tours.conversion.analyze')}
@@ -138,7 +138,13 @@ export default function TourConversionSection({ conversion }: { conversion: GpxC
           )
         }
       >
-        {t(faithful ? 'tours.conversion.close' : 'tours.conversion.different')}
+        {t(
+          faithful
+            ? conversion.paddle
+              ? 'tours.conversion.closePaddle'
+              : 'tours.conversion.close'
+            : 'tours.conversion.different'
+        )}
       </StatusLine>
       <div className="flex flex-col gap-2 border-t border-edge-faint pt-3">
         <Tooltip label={t('tours.conversion.replaceHint')}>

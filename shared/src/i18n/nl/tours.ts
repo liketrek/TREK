@@ -193,7 +193,7 @@ const tours: TranslationStrings = {
   'tourTypes.bike': 'Fietstocht',
   'tourTypes.run': 'Hardlooptocht',
   'tourTypes.ski': 'Skitocht',
-  'tourTypes.kayak': 'Kajaktocht',
+  'tourTypes.kayak': 'Peddeltocht',
   'tourTypes.walk': 'Stadswandeling / bezienswaardigheden',
   'tourTypes.food': 'Culinaire tocht / wijntocht',
   'tours.terrain.play': 'Overvlucht afspelen',
@@ -278,5 +278,59 @@ const tours: TranslationStrings = {
   'tours.copy.name': '{name} (kopie)',
   'tours.copy.saved': 'Opgeslagen als nieuwe tocht',
   'tours.copy.failed': 'De tocht kon niet worden gekopieerd.',
+  'tours.planner.tourType': 'Soort tocht',
+  'tours.paddle.boat': 'Boot',
+  'tours.paddle.boat.kayak': 'Kajak',
+  'tours.paddle.boat.canoe': 'Canadese kano',
+  'tours.paddle.boat.sup': 'SUP', // same-as-en
+  'tours.paddle.boat.other': 'Overig',
+  'tours.paddle.water': 'Water', // same-as-en
+  'tours.paddle.water.river': 'Rivier',
+  'tours.paddle.water.lake': 'Meer',
+  'tours.paddle.speed': 'Peddeltempo',
+  'tours.paddle.speedOwn': 'Eigen tempo',
+  'tours.paddle.speedUseSuggestion': 'Voorstel van {speed} km/h gebruiken',
+  'tours.paddle.speedNeeded': 'Vul een tempo in om de tijd op het water te schatten.',
+  'tours.paddle.speedInvalid': 'Vul een tempo van 0,5 tot 20 km/h in.',
+  'tours.paddle.chooseBoat': 'Kies boot en water om deze peddeltocht op te slaan.',
+  'tours.paddle.chooseBoatImport': 'Kies boot en water om als peddeltocht te importeren.',
+  'tours.paddle.noWaterData':
+    'TREK toont nog geen stuwen, sluizen of overdraagplaatsen. Controleer het water en de regels zelf voor je vertrekt.',
+  'tours.paddle.drawnByHand':
+    'Een peddeltocht teken je met de hand: TREK verbindt je punten met rechte lijnen. Er wordt niets gerouteerd en niets zegt dat het water bevaarbaar is.',
+  'tours.paddle.timeEstimated': 'Peddeltijd (geschat)',
+  'tours.paddle.timeEstimatedShort': 'Peddelen',
+  'tours.paddle.timeEstimatedInfoLabel': 'Zo wordt de peddeltijd geschat',
+  'tours.paddle.timeEstimatedInfo':
+    'Afstand gedeeld door het plantempo, op kalm water. Stroming, wind, overdragen en sluizen zitten er niet in.',
+  'tours.planner.reverse': 'Richting omkeren',
+  'tours.planner.returnToStart': 'Terug naar start',
+  'tours.planner.alreadyLoop': 'De tocht keert al terug naar de start',
+  'tours.planner.loopEnd': 'Terug naar start',
+  'tours.planner.freeLeg': 'Volgende stuk met de hand tekenen',
+  'tours.planner.routeLeg': 'Volgende stuk weer routeren',
+  'tours.planner.freeLegBadge': 'Met de hand getekend, niet gerouteerd',
+  'tours.planner.freeLegInfo':
+    'TREK verbindt deze twee punten met een rechte lijn. Geen router heeft dit stuk gepland of gecontroleerd.',
+  'tours.map.seamarks': 'Zeemarkeringen',
+  'tours.map.seamarksDown': 'Zeemarkeringen laden niet. De kaart en je route werken nog.',
+  'tours.import.previewTitle': 'GPX-voorbeeld',
+  'tours.import.previewHint': 'Er is nog niets opgeslagen. Controleer het verloop en importeer dan.',
+  'tours.import.previewFiles': '{count} bestanden',
+  'tours.import.previewFiles.one': '{count} bestand',
+  'tours.import.previewTracks': '{count} tracks', // same-as-en
+  'tours.import.previewTracks.one': '{count} track', // same-as-en
+  'tours.import.previewPoints': '{count} punten',
+  'tours.import.previewPoints.one': '{count} punt',
+  'tours.import.previewNoHeights': 'Geen hoogtes in het bestand',
+  'tours.import.previewDuplicate': 'Al in de reis',
+  'tours.import.previewAllDuplicates': 'Alle tracks staan al in de reis, er is niets te importeren.',
+  'tours.import.previewAs': 'Importeren als',
+  'tours.import.previewConfirm': '{count} tochten importeren',
+  'tours.import.previewConfirm.one': '{count} tocht importeren',
+  'tours.conversion.introPaddle':
+    'Een import is een opgenomen track. Plan een bewerkbare peddeltocht: TREK haalt er controlepunten uit, verbindt ze met rechte lijnen zoals een peddeltocht wordt getekend en laat zien hoe dicht dat in de buurt komt. Er verandert niets tot je kiest.',
+  'tours.conversion.closePaddle':
+    'Het voorstel volgt de track nauw. De punten zijn met rechte lijnen verbonden, dus het is niet dezelfde lijn.',
 };
 export default tours;

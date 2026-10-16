@@ -1,5 +1,5 @@
 import type { TourListItem } from '@trek/shared';
-import { ArrowUp, Clock, Footprints, Pause, Ruler, type LucideIcon } from 'lucide-react';
+import { ArrowUp, Clock, Pause, Ruler, type LucideIcon } from 'lucide-react';
 import { createElement, useId, useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -8,6 +8,7 @@ import { WhiteBadge } from '../Planner/planParts';
 import { fs } from '../shared/DialogShell';
 import { Tooltip } from '../shared/Tooltip';
 import { tourDayRowIcon } from './tourDayRowIcon';
+import { movingTimeLabel } from './tourFacts';
 import { formatPlannedTourDuration, tourPlannedTimes } from './tourPresentation';
 
 export function TourDayRowIcon({ type, size = 27 }: { type: string; size?: number }) {
@@ -151,7 +152,7 @@ export function TourDayRowPills({ tour }: { tour: TourListItem }) {
   const shownMinutes = times.plannedTotalMinutes ?? times.walkingMinutes;
   const timeParts = [
     times.walkingMinutes != null
-      ? `${t('tours.planner.inspector.duration')}: ${formatPlannedTourDuration(times.walkingMinutes)}`
+      ? `${movingTimeLabel(tour, t('tours.planner.inspector.duration'), t)}: ${formatPlannedTourDuration(times.walkingMinutes)}`
       : null,
     times.breakMinutes
       ? `${t('tours.planner.breaksAdditional')}: ${formatPlannedTourDuration(times.breakMinutes)}`
@@ -203,9 +204,9 @@ export default function TourDayRowFacts({ tour, mobile = false }: { tour: TourLi
     add(ArrowUp, formatElevation(tour.elevation_gain, unit), t('tours.detail.ascent'), 'plan-tour-ascent');
   if (times.walkingMinutes != null)
     add(
-      Footprints,
+      tourDayRowIcon(tour.tour_type === 'kayak' ? 'kayak' : 'walk'),
       formatPlannedTourDuration(times.walkingMinutes),
-      t('tours.planner.inspector.duration'),
+      movingTimeLabel(tour, t('tours.planner.inspector.duration'), t),
       'trip-plan-tour-walking-time'
     );
   if (times.breakMinutes != null && times.breakMinutes > 0)

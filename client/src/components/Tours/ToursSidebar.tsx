@@ -11,6 +11,7 @@ import EmptyState from '../shared/EmptyState'
 import { TourDayMenu } from './tourParts'
 import TourListFilterMenu from './TourListFilterMenu'
 import { useTourListFilters } from './useTourListFilters'
+import TourGpxPreviewDialog from './TourGpxPreviewDialog'
 import { useTourGpxImport } from './useTourGpxImport'
 import { type AssignTourToDay, useTourDayAssignment } from './useTourDayAssignment'
 import { useTourMapVisibility } from './useTourMapVisibility'
@@ -130,6 +131,7 @@ export default function ToursSidebar({ tripId, days, tours, loading = false, sel
           </ul>
         )}
       </div>
+      <TourGpxPreviewDialog gpxImport={gpxImport} />
     </div>
   )
 }

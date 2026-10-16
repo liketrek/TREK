@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { useOutsidePressGuard } from '../../components/Ferratas/useOutsidePressGuard';
+import { isClosedLoop } from '../../components/Tours/planner/tourRouteActions';
 import type { TourPlannerController } from '../../components/Tours/planner/useTourPlanner';
 import { useWaypointPlaceNames } from '../../components/Tours/planner/useWaypointPlaceNames';
 import { useTranslation } from '../../i18n';
@@ -69,7 +70,9 @@ export function useTourMapPoints({ tourPlanner, canPlaceEdit, mode, ferrataOpen,
   const { waypoints } = tourPlanner;
   const points = useMemo(() => {
     if (editing) {
-      return waypoints.map((point, index) => ({
+      // The way back of a loop lies on the start; one pin stands for both, and moving it moves both.
+      const shown = isClosedLoop(waypoints) ? waypoints.slice(0, -1) : waypoints;
+      return shown.map((point, index) => ({
         ...point,
         name: placeNames[point.id] ?? t('tours.planner.waypointLabel', { n: index + 1 }),
         detail: t(ROLE_KEY[point.role]),

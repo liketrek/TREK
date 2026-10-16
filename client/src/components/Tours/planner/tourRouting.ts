@@ -1,10 +1,18 @@
 import type { TourFixedLeg } from '@trek/shared'
 import type { Waypoint } from '../../../types'
 import { valhallaBase, valhallaRun, valhallaTurn } from '../../Map/valhallaRoute'
-import { lineLengthM } from './tourFixedLegs'
+import { densifyLine, lineLengthM } from './tourFixedLegs'
+
+export interface TourRoutePart {
+  coordinates: [number, number][]
+  /** Drawn by hand: no router planned or checked it. */
+  free: boolean
+}
 
 export interface TourRouteResult {
   coordinates: [number, number][]
+  /** The same line cut where it changes between routed and hand-drawn, for the map to tell them apart. */
+  parts: TourRoutePart[]
   distanceMeters: number
   durationSeconds: number
 }
@@ -15,8 +23,8 @@ export interface TourRouteResult {
  */
 const TOURS_MAX_HIKING_DIFFICULTY = 2
 
-/** How fast a fixed leg is reckoned until the heights are in (a via ferrata climbs slowly). */
-const FIXED_LEG_KM_PER_HOUR = 1.5
+/** How fast a fixed leg is reckoned until the heights are in: a via ferrata climbs slowly, a free leg is walked. */
+const FIXED_LEG_KM_PER_HOUR = { ferrata: 1.5, free: 4 } as const
 
 /**
  * Tours deliberately bypasses the OSRM-first RouteCalculator. A waypoint whose
@@ -28,7 +36,7 @@ export async function routeWalkingTour(
   signal?: AbortSignal,
   maxHikingDifficulty = TOURS_MAX_HIKING_DIFFICULTY,
 ): Promise<TourRouteResult | null> {
-  const lines: [number, number][][] = []
+  const lines: TourRoutePart[] = []
   let distanceMeters = 0
   let durationSeconds = 0
   const routeRun = async (run: Array<Pick<Waypoint, 'lat' | 'lng'>>) => {
@@ -37,7 +45,7 @@ export async function routeWalkingTour(
       max_hiking_difficulty: maxHikingDifficulty,
     })
     if (!routed) return false
-    lines.push(routed.total.coordinates)
+    lines.push({ coordinates: routed.total.coordinates, free: false })
     distanceMeters += routed.total.distance
     durationSeconds += routed.total.duration
     return true
@@ -51,19 +59,32 @@ export async function routeWalkingTour(
       continue
     }
     if (!(await routeRun(run))) return null
-    const line = leg.geometry.map(([lat, lng]): [number, number] => [lat, lng])
+    const drawn = leg.geometry.map(([lat, lng]): [number, number] => [lat, lng])
+    // A hand-drawn leg is sampled along its length, so its heights follow the ground between its ends.
+    const line = leg.kind === 'free' ? densifyLine(drawn) : drawn
     const length = lineLengthM(line)
-    lines.push(line)
+    lines.push({ coordinates: line, free: leg.kind === 'free' })
     distanceMeters += length
-    durationSeconds += (length / 1000 / FIXED_LEG_KM_PER_HOUR) * 3600
+    durationSeconds += (length / 1000 / FIXED_LEG_KM_PER_HOUR[leg.kind]) * 3600
     run = [waypoints[i + 1]]
   }
   if (!(await routeRun(run))) return null
   if (lines.length === 0) return null
 
   // One line: each part after the first starts where the one before it ended, so its first point goes.
-  const coordinates = lines.flatMap((line, index) => (index === 0 ? line : line.slice(1)))
-  return { coordinates, distanceMeters, durationSeconds }
+  const coordinates = lines.flatMap((line, index) => (index === 0 ? line.coordinates : line.coordinates.slice(1)))
+  return { coordinates, parts: mergeParts(lines), distanceMeters, durationSeconds }
+}
+
+/** Neighbouring parts of the same kind as one, so a run of hand-drawn legs is one dotted line. */
+function mergeParts(parts: TourRoutePart[]): TourRoutePart[] {
+  const merged: TourRoutePart[] = []
+  for (const part of parts) {
+    const previous = merged[merged.length - 1]
+    if (previous && previous.free === part.free) previous.coordinates = [...previous.coordinates, ...part.coordinates.slice(1)]
+    else merged.push({ coordinates: [...part.coordinates], free: part.free })
+  }
+  return merged
 }
 
 const HEIGHT_CHUNK_SIZE = 500

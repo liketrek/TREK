@@ -1,6 +1,6 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { TourListItem } from '@trek/shared'
-import { AlertTriangle, CalendarDays, ChevronDown, Info, Mountain, Plus } from 'lucide-react'
+import { AlertTriangle, CalendarDays, ChevronDown, Info, Mountain, Plus, Waves } from 'lucide-react'
 import type { Day, DistanceUnit } from '../../types'
 import type { RouteGeometryAnalysis } from '../../utils/routeGeometry'
 import { useTranslation } from '../../i18n'
@@ -19,16 +19,20 @@ import type { TourDayAssignment } from './useTourDayAssignment'
  * full by its tooltip (a GPX import carries no grade and keeps the mountain),
  * and where it came from, when that was not TREK, as a small badge over its foot.
  */
-export function TourGradeTile({ tour }: { tour: Pick<TourListItem, 'max_hiking_difficulty' | 'wanderer_ref' | 'has_waypoints'> }) {
+export function TourGradeTile({ tour }: { tour: Pick<TourListItem, 'max_hiking_difficulty' | 'wanderer_ref' | 'has_waypoints'> & Partial<Pick<TourListItem, 'tour_type'>> }) {
   const { t } = useTranslation()
   const level = tour.max_hiking_difficulty
   const source = tourSource(tour)
-  const label = level == null ? null : t(`tours.planner.difficulty.t${level}`)
+  // A paddle tour has no grade; its tile names the type instead.
+  const paddle = tour.tour_type === 'kayak'
+  const label = level != null ? t(`tours.planner.difficulty.t${level}`) : paddle ? t('tourTypes.kayak') : null
   return (
     <span className="relative flex-none">
       <Tooltip label={label ?? ''} disabled={label == null}>
         <span aria-label={label ?? undefined} className="grid h-[34px] w-[34px] place-items-center rounded-full bg-edge font-geist font-semibold tabular-nums text-content" style={fs(12, 'body')}>
-          {level == null ? <Mountain size={15} strokeWidth={1.9} className="text-content-secondary" /> : `T${level}`}
+          {level != null ? `T${level}` : paddle
+            ? <Waves size={15} strokeWidth={1.9} className="text-content-secondary" />
+            : <Mountain size={15} strokeWidth={1.9} className="text-content-secondary" />}
         </span>
       </Tooltip>
       {source !== 'trek' && (

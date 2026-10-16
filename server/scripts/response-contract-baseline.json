@@ -90,7 +90,6 @@
     "src/nest/storage/storage-admin.controller.ts": 8,
     "src/nest/system-notices/system-notices.controller.ts": 2,
     "src/nest/tags/tags.controller.ts": 4,
-    "src/nest/tours/tours-import.controller.ts": 1,
     "src/nest/tours/tours.controller.ts": 4,
     "src/nest/transit/transit.controller.ts": 2,
     "src/nest/trip-invite/trip-invite.controller.ts": 5,

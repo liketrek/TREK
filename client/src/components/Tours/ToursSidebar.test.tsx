@@ -6,12 +6,13 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import { useTourMapVisibilityStore } from '../../store/tourMapVisibilityStore'
 import { useTripStore } from '../../store/tripStore'
-import { toursApi } from '../../api/client'
+import { tourGpxApi } from '../../api/tourGpx'
 import ToursSidebar from './ToursSidebar'
 import { pickFiles } from '../../../tests/helpers/filePicker'
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() }))
 
+vi.mock('../Map/MapViewAuto', () => ({ MapViewAuto: () => <div data-testid="gpx-preview-map-stub" /> }))
 vi.mock('../shared/Toast', () => ({ useToast: () => toast }))
 
 vi.mock('../../../../server/src/config', () => { throw new Error('Config initialization is forbidden in client tests') })
@@ -40,6 +41,19 @@ beforeEach(() => {
   resetAllStores()
   seedStore(useSettingsStore, { settings: { distance_unit: 'metric' } })
 })
+
+function previewTrack(overrides: Record<string, unknown> = {}) {
+  return {
+    name: 'Ridge',
+    geometry: [[47, 11, 600], [47.01, 11.01, 650], [47.02, 11.02, 640]] as [number, number, number][],
+    point_count: 3,
+    distance_km: 2.4,
+    elevation_gain_m: 50,
+    elevation_loss_m: 10,
+    duplicate: false,
+    ...overrides,
+  }
+}
 
 describe('ToursSidebar', () => {
   it('uses the compact counted dropdown for All, Unplanned and Planned', () => {
@@ -205,7 +219,8 @@ describe('ToursSidebar', () => {
   })
 
   it('quarantines returned Tour ids before loading the imported Places', async () => {
-    const importCall = vi.spyOn(toursApi, 'importGpx').mockResolvedValue({
+    vi.spyOn(tourGpxApi, 'preview').mockResolvedValue({ tracks: [previewTrack()] })
+    const importCall = vi.spyOn(tourGpxApi, 'import').mockResolvedValue({
       tours: [tour], caution: false, skipped: 0,
     })
     const onToursChanged = vi.fn()
@@ -224,6 +239,7 @@ describe('ToursSidebar', () => {
 
     const file = new File(['<gpx/>'], 'ridge.gpx', { type: 'application/gpx+xml' })
     expect(pickFiles(screen.getByRole('button', { name: 'Import GPX' }), [file])).toHaveAttribute('accept', '.gpx')
+    fireEvent.click(await screen.findByRole('button', { name: 'Import 1 tour' }))
 
     // Only the places are read again, not the whole trip: that would rebuild the workspace.
     await waitFor(() => expect(refreshPlaces).toHaveBeenCalledWith(1))
@@ -231,11 +247,13 @@ describe('ToursSidebar', () => {
     expect(onToursChanged).toHaveBeenCalledWith([42])
     expect(onToursChanged.mock.invocationCallOrder[0]).toBeLessThan(refreshPlaces.mock.invocationCallOrder[0])
     expect(importCall).toHaveBeenCalledOnce()
+    expect(importCall).toHaveBeenCalledWith(1, file, { tour_type: 'hike' })
     vi.restoreAllMocks()
   })
 
   it('reports duplicate-only GPX success without refetching or invalidating unchanged data', async () => {
-    vi.spyOn(toursApi, 'importGpx').mockResolvedValue({ tours: [], caution: false, skipped: 3 })
+    vi.spyOn(tourGpxApi, 'preview').mockResolvedValue({ tracks: [previewTrack()] })
+    vi.spyOn(tourGpxApi, 'import').mockResolvedValue({ tours: [], caution: false, skipped: 3 })
     const onToursChanged = vi.fn()
     const loadTrip = vi.spyOn(useTripStore.getState(), 'loadTrip').mockResolvedValue(undefined)
     render(<ToursSidebar
@@ -250,6 +268,7 @@ describe('ToursSidebar', () => {
 
     pickFiles(screen.getByRole('button', { name: 'Import GPX' }), [new File(['<gpx/>'], 'already-imported.gpx', { type: 'application/gpx+xml' }),
     ])
+    fireEvent.click(await screen.findByRole('button', { name: 'Import 1 tour' }))
 
     await waitFor(() => expect(toast.warning).toHaveBeenCalledWith('Everything in that file is already in this trip.'))
     expect(onToursChanged).not.toHaveBeenCalled()
@@ -257,9 +276,10 @@ describe('ToursSidebar', () => {
     vi.restoreAllMocks()
   })
   it('RC-04: names each file that fails and still imports the rest', async () => {
-    vi.spyOn(toursApi, 'importGpx')
+    vi.spyOn(tourGpxApi, 'preview')
       .mockRejectedValueOnce({ response: { data: { error: 'No track or route found in GPX file' } } })
-      .mockResolvedValueOnce({ tours: [tour], caution: true, skipped: 0 })
+      .mockResolvedValueOnce({ tracks: [previewTrack()] })
+    const importCall = vi.spyOn(tourGpxApi, 'import').mockResolvedValueOnce({ tours: [tour], caution: true, skipped: 0 })
     seedStore(useTripStore, { refreshPlaces: vi.fn().mockResolvedValue(undefined) })
     render(
       <ToursSidebar tripId={1} days={[]} tours={[]} canEdit={true} onAssignToDay={vi.fn()} onSelectTour={vi.fn()} />
@@ -269,15 +289,78 @@ describe('ToursSidebar', () => {
       new File(['<gpx/>'], 'empty.gpx', { type: 'application/gpx+xml' }),
       new File(['<gpx/>'], 'ridge.gpx', { type: 'application/gpx+xml' }),
     ])
+    // The file without a track is named at once and left out of the preview.
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('No track or route found in empty.gpx'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Import 1 tour' }))
 
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('1 tour imported from GPX'))
-    expect(toast.error).toHaveBeenCalledWith('No track or route found in empty.gpx')
+    expect(importCall).toHaveBeenCalledOnce()
     expect(toast.info).toHaveBeenCalledWith('Imported with caution — elevation/metrics incomplete')
     vi.restoreAllMocks()
   })
 
+  it('PAD-02: shows the file before storing anything, and closing the preview stores nothing', async () => {
+    vi.spyOn(tourGpxApi, 'preview').mockResolvedValue({ tracks: [previewTrack(), previewTrack({ name: 'Back', duplicate: true })] })
+    const importCall = vi.spyOn(tourGpxApi, 'import')
+    render(
+      <ToursSidebar tripId={1} days={[]} tours={[]} canEdit={true} onAssignToDay={vi.fn()} onSelectTour={vi.fn()} />
+    )
+    pickFiles(screen.getByRole('button', { name: 'Import GPX' }), [new File(['<gpx/>'], 'ridge.gpx', { type: 'application/gpx+xml' })])
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveTextContent('GPX preview')
+    expect(dialog).toHaveTextContent('ridge.gpx')
+    expect(screen.getAllByTestId('gpx-preview-track')).toHaveLength(2)
+    expect(screen.getAllByTestId('gpx-preview-track')[1]).toHaveTextContent('Already in the trip')
+    expect(screen.getAllByTestId('gpx-preview-track')[0]).toHaveTextContent('3 points')
+    // Only the track the trip does not hold yet is imported.
+    expect(screen.getByRole('button', { name: 'Import 1 tour' })).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(importCall).not.toHaveBeenCalled()
+    vi.restoreAllMocks()
+  })
+
+  it('PAD-02: a file the trip holds completely cannot be imported again, and says why', async () => {
+    vi.spyOn(tourGpxApi, 'preview').mockResolvedValue({ tracks: [previewTrack({ duplicate: true })] })
+    render(
+      <ToursSidebar tripId={1} days={[]} tours={[]} canEdit={true} onAssignToDay={vi.fn()} onSelectTour={vi.fn()} />
+    )
+    pickFiles(screen.getByRole('button', { name: 'Import GPX' }), [new File(['<gpx/>'], 'ridge.gpx', { type: 'application/gpx+xml' })])
+    expect(await screen.findByText('Every track is already in the trip, so there is nothing to import.')).toBeInTheDocument()
+    expect(screen.getByTestId('gpx-preview-import')).toBeDisabled()
+    vi.restoreAllMocks()
+  })
+
+  it('PAD-02: a paddle import waits for its boat and water, then sends them along', async () => {
+    vi.spyOn(tourGpxApi, 'preview').mockResolvedValue({ tracks: [previewTrack({ elevation_gain_m: null, elevation_loss_m: null })] })
+    const importCall = vi.spyOn(tourGpxApi, 'import').mockResolvedValue({ tours: [tour], caution: false, skipped: 0 })
+    seedStore(useTripStore, { refreshPlaces: vi.fn().mockResolvedValue(undefined) })
+    render(
+      <ToursSidebar tripId={1} days={[]} tours={[]} canEdit={true} onAssignToDay={vi.fn()} onSelectTour={vi.fn()} />
+    )
+    const file = new File(['<gpx/>'], 'lake.gpx', { type: 'application/gpx+xml' })
+    pickFiles(screen.getByRole('button', { name: 'Import GPX' }), [file])
+    await screen.findByRole('dialog')
+    // A file without heights says so instead of showing zero.
+    expect(screen.getByTestId('gpx-preview-track')).toHaveTextContent('No heights in the file')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Paddle tour' }))
+    const confirm = screen.getByTestId('gpx-preview-import')
+    expect(confirm).toBeDisabled()
+    expect(screen.getByText('Choose the boat and the water to import as a paddle tour.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'SUP' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Lake' }))
+    expect(confirm).toBeEnabled()
+    fireEvent.click(confirm)
+
+    await waitFor(() => expect(importCall).toHaveBeenCalledWith(1, file, { tour_type: 'kayak', boat_type: 'sup', water_context: 'lake' }))
+    vi.restoreAllMocks()
+  })
+
   it('RC-04: refuses files that are not GPX before uploading anything', async () => {
-    const importCall = vi.spyOn(toursApi, 'importGpx')
+    const importCall = vi.spyOn(tourGpxApi, 'import')
     render(
       <ToursSidebar tripId={1} days={[]} tours={[]} canEdit={true} onAssignToDay={vi.fn()} onSelectTour={vi.fn()} />
     )

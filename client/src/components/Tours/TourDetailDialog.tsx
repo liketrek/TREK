@@ -15,7 +15,6 @@ import {
   FileText,
   Loader2,
   Minus,
-  Mountain,
   Navigation,
   Pencil,
   Plus,
@@ -23,7 +22,7 @@ import {
   Ruler,
   Upload,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createElement, useEffect, useMemo, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
@@ -49,7 +48,9 @@ import TrackColorPicker from '../shared/TrackColorPicker';
 import { markdownLinkComponents } from '../shared/markdownLink';
 import { TourDayRowAvatar } from './TourDayRowFacts';
 import { TourProvenanceBlock } from './provenance/TourProvenanceSection';
+import { tourDayRowIcon } from './tourDayRowIcon';
 import { tourDaysOf } from './tourDays';
+import { heightsUnknown, movingTimeLabel, withoutHeights } from './tourFacts';
 import { TourDayPills, TourFactFields, TourMetricFields, type TourMetricField } from './tourParts';
 import {
   formatPlannedTourDuration,
@@ -116,10 +117,17 @@ function assignmentForSelectedDay(
 type Translate = (key: string, params?: Record<string, unknown>) => string;
 
 /** The parts of the time a tour takes, as fields: walking, breaks, the planned total. */
-function tourTimeFields(times: ReturnType<typeof tourPlannedTimes>, t: Translate): TourMetricField[] {
+function tourTimeFields(
+  times: ReturnType<typeof tourPlannedTimes>,
+  t: Translate,
+  tour: Pick<TourListItem, 'tour_type'>
+): TourMetricField[] {
   return [
     times.walkingMinutes != null
-      ? { label: t('tours.planner.walkingShort'), value: formatPlannedTourDuration(times.walkingMinutes) }
+      ? {
+          label: movingTimeLabel(tour, t('tours.planner.walkingShort'), t),
+          value: formatPlannedTourDuration(times.walkingMinutes),
+        }
       : null,
     times.breakMinutes
       ? { label: t('tours.planner.breaksShort'), value: formatPlannedTourDuration(times.breakMinutes) }
@@ -166,9 +174,25 @@ function TourHeadPills({
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
       <span className={HEAD_PILL} style={fs(10.5)}>
-        <Mountain size={11} strokeWidth={2} className="flex-none" style={{ color: trackColor }} />
+        {createElement(tourDayRowIcon(tour.tour_type), {
+          size: 11,
+          strokeWidth: 2,
+          className: 'flex-none',
+          style: { color: trackColor },
+        })}
         {t(`tourTypes.${tour.tour_type}`)}
       </span>
+      {/* A paddle tour names its boat and its water, each a badge of its own. */}
+      {tour.boat_type && (
+        <span className={HEAD_PILL} style={fs(10.5)} data-testid="tour-detail-boat">
+          {t(`tours.paddle.boat.${tour.boat_type}`)}
+        </span>
+      )}
+      {tour.water_context && (
+        <span className={HEAD_PILL} style={fs(10.5)} data-testid="tour-detail-water">
+          {t(`tours.paddle.water.${tour.water_context}`)}
+        </span>
+      )}
       {source !== 'trek' && (
         <span className={HEAD_PILL} style={fs(10.5)}>
           <FileDown size={11} strokeWidth={2} className="flex-none text-content-faint" />
@@ -337,7 +361,11 @@ export default function TourDetailDialog({
   );
   useDesktopEscape(desktopNonModal, onClose, desktopFocusReturnTarget);
 
-  const analysis = useMemo(() => analyzeRouteGeometry(place.route_geometry), [place.route_geometry]);
+  const heightsHidden = heightsUnknown(tour);
+  const analysis = useMemo(() => {
+    const measured = analyzeRouteGeometry(place.route_geometry);
+    return measured && heightsHidden ? withoutHeights(measured) : measured;
+  }, [heightsHidden, place.route_geometry]);
   const trackColor = resolveTrackColor(place);
   const inheritedColor = inheritedTrackColor(place);
   const assignment = assignmentForSelectedDay(assignments, selectedDayId, selectedAssignmentId, place.id);
@@ -350,7 +378,7 @@ export default function TourDetailDialog({
   const website = tourWebsitePresentation(tour.website !== undefined ? tour.website : place.website);
   const times = tourPlannedTimes(tour);
 
-  const timeFields = tourTimeFields(times, t);
+  const timeFields = tourTimeFields(times, t, tour);
 
   const header = (
     <>
@@ -563,8 +591,20 @@ export default function TourDetailDialog({
 
       {analysis && (
         <div className="flex flex-none flex-col gap-2">
-          <TourMetricFields analysis={analysis} unit={distanceUnit} columns={5} />
-          {timeFields.length > 0 && <TourFactFields fields={timeFields} columns={3} />}
+          {analysis.minEle == null && analysis.gain == null ? (
+            // Without heights the distance is the only measure: it joins the times in one row.
+            <TourMetricFields
+              analysis={analysis}
+              unit={distanceUnit}
+              extra={timeFields}
+              columns={timeFields.length === 1 ? 2 : timeFields.length === 2 ? 3 : undefined}
+            />
+          ) : (
+            <>
+              <TourMetricFields analysis={analysis} unit={distanceUnit} columns={5} />
+              {timeFields.length > 0 && <TourFactFields fields={timeFields} columns={3} />}
+            </>
+          )}
           {analysis.distanceIndexedProfileSamples.length >= 2 && (
             <div className={`${BOX} p-2`}>
               <ElevationProfile

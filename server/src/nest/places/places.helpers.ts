@@ -122,6 +122,31 @@ export function isPlaceDuplicate(candidate: PlaceMatchCandidate, dedup: DedupSet
   return false;
 }
 
+/**
+ * The lookup of the places already in a trip: names lowercased and trimmed,
+ * coordinates only for unnamed rows, provider ids for every row. Provider ids
+ * are collected named or not: they are what lets a renamed place still be
+ * recognised on a re-import (#1550).
+ */
+export function dedupSetOf(
+  rows: ReadonlyArray<
+    { name: string | null; lat: number | null; lng: number | null } & Parameters<typeof externalIdsOf>[0]
+  >,
+): DedupSet {
+  const names = new Set<string>();
+  const coords: Array<{ lat: number; lng: number }> = [];
+  const externalIds = new Set<string>();
+  for (const row of rows) {
+    for (const id of externalIdsOf(row)) externalIds.add(id);
+    if (row.name) {
+      names.add(row.name.trim().toLowerCase());
+    } else if (row.lat != null && row.lng != null) {
+      coords.push({ lat: row.lat, lng: row.lng });
+    }
+  }
+  return { names, coords, externalIds };
+}
+
 /** Record a newly inserted place so subsequent candidates in the same batch are checked against it. */
 export function trackInsertedInDedupSet(place: PlaceMatchCandidate, dedup: DedupSet): void {
   for (const id of externalIdsOf(place)) dedup.externalIds.add(id);

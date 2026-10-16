@@ -197,7 +197,7 @@ const tours: TranslationStrings = {
   'tourTypes.bike': 'Sortie à vélo',
   'tourTypes.run': 'Course à pied',
   'tourTypes.ski': 'Ski de randonnée',
-  'tourTypes.kayak': 'Sortie en kayak',
+  'tourTypes.kayak': 'Sortie en pagaie',
   'tourTypes.walk': 'Balade urbaine / touristique',
   'tourTypes.food': 'Circuit gastronomique / œnologique',
   'tours.terrain.play': 'Lancer le survol',
@@ -282,5 +282,60 @@ const tours: TranslationStrings = {
   'tours.copy.name': '{name} (copie)',
   'tours.copy.saved': 'Enregistrée comme nouvelle sortie',
   'tours.copy.failed': 'La sortie n’a pas pu être copiée.',
+  'tours.planner.tourType': 'Type de sortie',
+  'tours.paddle.boat': 'Embarcation',
+  'tours.paddle.boat.kayak': 'Kayak', // same-as-en
+  'tours.paddle.boat.canoe': 'Canoë',
+  'tours.paddle.boat.sup': 'SUP', // same-as-en
+  'tours.paddle.boat.other': 'Autre',
+  'tours.paddle.water': 'Plan d’eau',
+  'tours.paddle.water.river': 'Rivière',
+  'tours.paddle.water.lake': 'Lac',
+  'tours.paddle.speed': 'Vitesse de pagaie',
+  'tours.paddle.speedOwn': 'Vitesse choisie',
+  'tours.paddle.speedUseSuggestion': 'Prendre la suggestion de {speed} km/h',
+  'tours.paddle.speedNeeded': 'Saisissez une vitesse pour estimer le temps sur l’eau.',
+  'tours.paddle.speedInvalid': 'Saisissez une vitesse de 0,5 à 20 km/h.',
+  'tours.paddle.chooseBoat': 'Choisissez l’embarcation et le plan d’eau pour enregistrer cette sortie.',
+  'tours.paddle.chooseBoatImport': 'Choisissez l’embarcation et le plan d’eau pour importer en sortie en pagaie.',
+  'tours.paddle.noWaterData':
+    'TREK n’affiche pas encore les barrages, écluses ni portages. Vérifiez vous-même le plan d’eau et ses règles avant de partir.',
+  'tours.paddle.drawnByHand':
+    'Une sortie en pagaie se trace à la main : TREK relie vos points en lignes droites. Rien n’est calculé, et rien ne dit que l’eau est navigable.',
+  'tours.paddle.timeEstimated': 'Temps de pagaie (estimé)',
+  'tours.paddle.timeEstimatedShort': 'Pagaie',
+  'tours.paddle.timeEstimatedInfoLabel': 'Comment le temps de pagaie est estimé',
+  'tours.paddle.timeEstimatedInfo':
+    'Distance divisée par la vitesse prévue, sur eau calme. Courant, vent, portages et écluses ne sont pas compris.',
+  'tours.planner.reverse': 'Inverser le sens',
+  'tours.planner.returnToStart': 'Retour au départ',
+  'tours.planner.alreadyLoop': 'La sortie revient déjà au départ',
+  'tours.planner.loopEnd': 'Retour au départ',
+  'tours.planner.freeLeg': 'Tracer le tronçon suivant à la main',
+  'tours.planner.routeLeg': 'Calculer à nouveau le tronçon suivant',
+  'tours.planner.freeLegBadge': 'Tracé à la main, non calculé',
+  'tours.planner.freeLegInfo':
+    'TREK relie ces deux points par une ligne droite. Aucun calcul d’itinéraire n’a planifié ni vérifié ce tronçon.',
+  'tours.map.seamarks': 'Balisage maritime',
+  'tours.map.seamarksDown':
+    'Le balisage maritime ne se charge pas. La carte et votre itinéraire fonctionnent toujours.',
+  'tours.import.previewTitle': 'Aperçu GPX',
+  'tours.import.previewHint': 'Rien n’est encore enregistré. Vérifiez le tracé, puis importez.',
+  'tours.import.previewFiles': '{count} fichiers',
+  'tours.import.previewFiles.one': '{count} fichier',
+  'tours.import.previewTracks': '{count} traces',
+  'tours.import.previewTracks.one': '{count} trace',
+  'tours.import.previewPoints': '{count} points', // same-as-en
+  'tours.import.previewPoints.one': '{count} point', // same-as-en
+  'tours.import.previewNoHeights': 'Aucune altitude dans le fichier',
+  'tours.import.previewDuplicate': 'Déjà dans le voyage',
+  'tours.import.previewAllDuplicates': 'Toutes les traces sont déjà dans le voyage : il n’y a rien à importer.',
+  'tours.import.previewAs': 'Importer comme',
+  'tours.import.previewConfirm': 'Importer {count} sorties',
+  'tours.import.previewConfirm.one': 'Importer {count} sortie',
+  'tours.conversion.introPaddle':
+    'Un import est une trace enregistrée. Planifiez une sortie en pagaie modifiable : TREK en tire des points de contrôle, les relie en lignes droites comme se trace une sortie en pagaie et montre à quel point c’est proche. Rien ne change tant que vous ne choisissez pas.',
+  'tours.conversion.closePaddle':
+    'La proposition suit la trace de près. Ses points sont reliés par des lignes droites, ce n’est donc pas la même ligne.',
 };
 export default tours;

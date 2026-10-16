@@ -193,7 +193,7 @@ const tours: TranslationStrings = {
   'tourTypes.bike': 'Escursione in bici',
   'tourTypes.run': 'Corsa',
   'tourTypes.ski': 'Escursione con gli sci',
-  'tourTypes.kayak': 'Escursione in kayak',
+  'tourTypes.kayak': 'Uscita in pagaia',
   'tourTypes.walk': 'Passeggiata urbana / turistica',
   'tourTypes.food': 'Tour enogastronomico',
   'tours.terrain.play': 'Avvia il sorvolo',
@@ -277,5 +277,59 @@ const tours: TranslationStrings = {
   'tours.copy.name': '{name} (copia)',
   'tours.copy.saved': 'Salvato come nuovo tour',
   'tours.copy.failed': 'Non è stato possibile copiare il tour.',
+  'tours.planner.tourType': 'Tipo di tour',
+  'tours.paddle.boat': 'Imbarcazione',
+  'tours.paddle.boat.kayak': 'Kayak', // same-as-en
+  'tours.paddle.boat.canoe': 'Canoa',
+  'tours.paddle.boat.sup': 'SUP', // same-as-en
+  'tours.paddle.boat.other': 'Altro',
+  'tours.paddle.water': 'Acqua',
+  'tours.paddle.water.river': 'Fiume',
+  'tours.paddle.water.lake': 'Lago',
+  'tours.paddle.speed': 'Velocità di pagaiata',
+  'tours.paddle.speedOwn': 'Velocità propria',
+  'tours.paddle.speedUseSuggestion': 'Usa il suggerimento di {speed} km/h',
+  'tours.paddle.speedNeeded': 'Inserisci una velocità per stimare il tempo in acqua.',
+  'tours.paddle.speedInvalid': 'Inserisci una velocità da 0,5 a 20 km/h.',
+  'tours.paddle.chooseBoat': 'Scegli imbarcazione e acqua per salvare questa uscita.',
+  'tours.paddle.chooseBoatImport': 'Scegli imbarcazione e acqua per importare come uscita in pagaia.',
+  'tours.paddle.noWaterData':
+    'TREK non mostra ancora sbarramenti, chiuse e trasbordi. Controlla tu stesso l’acqua e le sue regole prima di partire.',
+  'tours.paddle.drawnByHand':
+    'Un’uscita in pagaia si disegna a mano: TREK collega i tuoi punti con linee rette. Niente viene calcolato e niente dice che l’acqua sia navigabile.',
+  'tours.paddle.timeEstimated': 'Tempo di pagaiata (stimato)',
+  'tours.paddle.timeEstimatedShort': 'Pagaiata',
+  'tours.paddle.timeEstimatedInfoLabel': 'Come si stima il tempo di pagaiata',
+  'tours.paddle.timeEstimatedInfo':
+    'Distanza divisa per la velocità prevista, su acqua calma. Corrente, vento, trasbordi e chiuse non sono inclusi.',
+  'tours.planner.reverse': 'Inverti direzione',
+  'tours.planner.returnToStart': 'Ritorno al punto di partenza',
+  'tours.planner.alreadyLoop': 'Il tour torna già alla partenza',
+  'tours.planner.loopEnd': 'Ritorno alla partenza',
+  'tours.planner.freeLeg': 'Disegna a mano il tratto successivo',
+  'tours.planner.routeLeg': 'Calcola di nuovo il tratto successivo',
+  'tours.planner.freeLegBadge': 'Disegnato a mano, non calcolato',
+  'tours.planner.freeLegInfo':
+    'TREK collega questi due punti con una linea retta. Nessun router ha pianificato o verificato questo tratto.',
+  'tours.map.seamarks': 'Segnali nautici',
+  'tours.map.seamarksDown': 'I segnali nautici non si caricano. La mappa e il percorso funzionano ancora.',
+  'tours.import.previewTitle': 'Anteprima GPX',
+  'tours.import.previewHint': 'Non è ancora stato salvato nulla. Controlla il percorso, poi importa.',
+  'tours.import.previewFiles': '{count} file',
+  'tours.import.previewFiles.one': '{count} file', // same-as-en
+  'tours.import.previewTracks': '{count} tracce',
+  'tours.import.previewTracks.one': '{count} traccia',
+  'tours.import.previewPoints': '{count} punti',
+  'tours.import.previewPoints.one': '{count} punto',
+  'tours.import.previewNoHeights': 'Nessuna quota nel file',
+  'tours.import.previewDuplicate': 'Già nel viaggio',
+  'tours.import.previewAllDuplicates': 'Tutte le tracce sono già nel viaggio, non c’è nulla da importare.',
+  'tours.import.previewAs': 'Importa come',
+  'tours.import.previewConfirm': 'Importa {count} tour',
+  'tours.import.previewConfirm.one': 'Importa {count} tour',
+  'tours.conversion.introPaddle':
+    'Un import è una traccia registrata. Pianifica un’uscita in pagaia modificabile: TREK ne ricava punti di controllo, li collega con linee rette come si disegna un’uscita in pagaia e mostra quanto si avvicina. Nulla cambia finché non scegli.',
+  'tours.conversion.closePaddle':
+    'La proposta segue da vicino la traccia. I suoi punti sono collegati da linee rette, quindi non è la stessa linea.',
 };
 export default tours;

@@ -52,6 +52,10 @@ describe('global CSP: the other shipped raster presets (#2180)', () => {
     expect(sources).toContain('https://*.tile.opentopomap.org');
   });
 
+  it('allows the OpenSeaMap seamark host a paddle tour can lay over its map', async () => {
+    expect(await connectSrcSources()).toContain('https://tiles.openseamap.org');
+  });
+
   it('keeps the routing host, which is a different host and covers nothing here', async () => {
     // routing.openstreetmap.de was on the list all along and looks close enough
     // to hide the gap: a CSP source matches a host, not a suffix of one.

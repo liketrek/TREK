@@ -194,7 +194,7 @@ const tours: TranslationStrings = {
   'tourTypes.bike': 'Ruta en bicicleta',
   'tourTypes.run': 'Córrer',
   'tourTypes.ski': 'Esquí de muntanya',
-  'tourTypes.kayak': 'Ruta en caiac',
+  'tourTypes.kayak': 'Ruta en piragua',
   'tourTypes.walk': 'Passeig urbà / turístic',
   'tourTypes.food': 'Ruta gastronòmica / enològica',
   'tours.terrain.play': 'Reprodueix el sobrevol',
@@ -277,5 +277,59 @@ const tours: TranslationStrings = {
   'tours.copy.name': '{name} (còpia)',
   'tours.copy.saved': 'Desada com a excursió nova',
   'tours.copy.failed': 'No s’ha pogut copiar l’excursió.',
+  'tours.planner.tourType': 'Tipus de ruta',
+  'tours.paddle.boat': 'Embarcació',
+  'tours.paddle.boat.kayak': 'Caiac',
+  'tours.paddle.boat.canoe': 'Canoa',
+  'tours.paddle.boat.sup': 'SUP', // same-as-en
+  'tours.paddle.boat.other': 'Altra',
+  'tours.paddle.water': 'Aigua',
+  'tours.paddle.water.river': 'Riu',
+  'tours.paddle.water.lake': 'Llac',
+  'tours.paddle.speed': 'Velocitat de rem',
+  'tours.paddle.speedOwn': 'Velocitat pròpia',
+  'tours.paddle.speedUseSuggestion': 'Fes servir el suggeriment de {speed} km/h',
+  'tours.paddle.speedNeeded': 'Introdueix una velocitat per estimar el temps a l’aigua.',
+  'tours.paddle.speedInvalid': 'Introdueix una velocitat de 0,5 a 20 km/h.',
+  'tours.paddle.chooseBoat': 'Tria l’embarcació i l’aigua per desar aquesta ruta.',
+  'tours.paddle.chooseBoatImport': 'Tria l’embarcació i l’aigua per importar com a ruta en piragua.',
+  'tours.paddle.noWaterData':
+    'TREK encara no mostra rescloses, preses ni transports per terra. Comprova tu mateix l’aigua i les normes abans de sortir.',
+  'tours.paddle.drawnByHand':
+    'Una ruta en piragua es dibuixa a mà: TREK uneix els punts amb línies rectes. No es calcula res i res no diu que l’aigua sigui navegable.',
+  'tours.paddle.timeEstimated': 'Temps de rem (estimat)',
+  'tours.paddle.timeEstimatedShort': 'Rem',
+  'tours.paddle.timeEstimatedInfoLabel': 'Com s’estima el temps de rem',
+  'tours.paddle.timeEstimatedInfo':
+    'Distància dividida per la velocitat prevista, en aigua tranquil·la. No inclou corrent, vent, transports per terra ni rescloses.',
+  'tours.planner.reverse': 'Inverteix el sentit',
+  'tours.planner.returnToStart': 'Torna a l’inici',
+  'tours.planner.alreadyLoop': 'La ruta ja torna a l’inici',
+  'tours.planner.loopEnd': 'Tornada a l’inici',
+  'tours.planner.freeLeg': 'Dibuixa a mà el tram següent',
+  'tours.planner.routeLeg': 'Torna a calcular el tram següent',
+  'tours.planner.freeLegBadge': 'Dibuixat a mà, sense calcular',
+  'tours.planner.freeLegInfo':
+    'TREK uneix aquests dos punts amb una línia recta. Cap enrutador no ha planificat ni comprovat aquest tram.',
+  'tours.map.seamarks': 'Senyals nàutics',
+  'tours.map.seamarksDown': 'Els senyals nàutics no es carreguen. El mapa i la ruta continuen funcionant.',
+  'tours.import.previewTitle': 'Previsualització del GPX',
+  'tours.import.previewHint': 'Encara no s’ha desat res. Revisa el recorregut i després importa.',
+  'tours.import.previewFiles': '{count} fitxers',
+  'tours.import.previewFiles.one': '{count} fitxer',
+  'tours.import.previewTracks': '{count} tracks', // same-as-en
+  'tours.import.previewTracks.one': '{count} track', // same-as-en
+  'tours.import.previewPoints': '{count} punts',
+  'tours.import.previewPoints.one': '{count} punt',
+  'tours.import.previewNoHeights': 'Sense altituds al fitxer',
+  'tours.import.previewDuplicate': 'Ja és al viatge',
+  'tours.import.previewAllDuplicates': 'Tots els tracks ja són al viatge, no hi ha res a importar.',
+  'tours.import.previewAs': 'Importa com a',
+  'tours.import.previewConfirm': 'Importa {count} rutes',
+  'tours.import.previewConfirm.one': 'Importa {count} ruta',
+  'tours.conversion.introPaddle':
+    'Una importació és un recorregut enregistrat. Planifica una ruta en piragua editable: TREK n’agafa punts de control, els uneix amb línies rectes com es dibuixa una ruta en piragua i mostra com s’hi acosta. No canvia res fins que triïs.',
+  'tours.conversion.closePaddle':
+    'La proposta segueix el recorregut de prop. Els punts s’uneixen amb línies rectes, per tant no és la mateixa línia.',
 };
 export default tours;

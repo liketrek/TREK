@@ -46,7 +46,7 @@ export class ToursMcp {
   @Tool({
     name: 'list_tours',
     description:
-      'List the saved tours of a trip (hikes and other tours planned or imported in the Tours addon): name, type, where it came from (origin: trek, gpx or wanderer), distance in km, ascent and descent in metres, the stored routing limit (max_hiking_difficulty, SAC T1 to T6), and the days of the trip each tour is on.',
+      'List the saved tours of a trip (hikes and paddle tours planned or imported in the Tours addon): name, type (hike, or kayak for a paddle tour), where it came from (origin: trek, gpx or wanderer), distance in km, ascent and descent in metres, the stored routing limit of a hike (max_hiking_difficulty, SAC T1 to T6), the boat, water and chosen speed of a paddle tour (boat_type, water_context, paddle_speed_kmh in km/h, null while the suggested speed of the boat applies), and the days of the trip each tour is on.',
     inputSchema: { tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),
@@ -61,7 +61,7 @@ export class ToursMcp {
   @Tool({
     name: 'get_tour_plan',
     description:
-      'Read one saved tour of a trip: its facts, its ordered control points (start, via and end; an import without its own shows the two ends of its track), where it came from (provenance) and the days it is on. The full track geometry is not included.',
+      'Read one saved tour of a trip: its facts, its ordered control points (start, via and end; an import without its own shows the two ends of its track), where it came from (provenance) and the days it is on. A control point whose fixed_leg is set leads to the next one along a line the router did not plan: kind ferrata follows a via ferrata, kind free is drawn by hand and was checked by nothing. The full track geometry is not included.',
     inputSchema: { tripId: idSchema, placeId: idSchema.describe('The place id of the tour, as list_tours gives it') },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: addonGate(ADDON_IDS.TOURS),

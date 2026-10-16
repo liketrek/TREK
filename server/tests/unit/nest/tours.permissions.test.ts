@@ -147,7 +147,7 @@ describe('Tours permission contract (mock-only, no DB)', () => {
     const test = importFixture(canEdit, canAssign);
     if (canEdit) {
       expect(await test.controller.importGpx(user, '7', file, 'socket')).toMatchObject({ tours: [{ place_id: 42 }] });
-      expect(test.importGpxAsTour).toHaveBeenCalledWith('7', file.buffer, 'ridge.gpx', 'socket');
+      expect(test.importGpxAsTour).toHaveBeenCalledWith('7', file.buffer, 'ridge.gpx', 'socket', { tour_type: 'hike' });
     } else {
       await expectStatus(() => test.controller.importGpx(user, '7', file), 403);
       expect(test.importGpxAsTour).not.toHaveBeenCalled();

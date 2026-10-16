@@ -16,6 +16,7 @@ import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
 import { Days } from '../../src/db/entities/Days.entity';
 import { Places } from '../../src/db/entities/Places.entity';
 import { TourSources } from '../../src/db/entities/TourSources.entity';
+import { TourTypes } from '../../src/db/entities/TourTypes.entity';
 import { TourWaypoints } from '../../src/db/entities/TourWaypoints.entity';
 import { Tours } from '../../src/db/entities/Tours.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
@@ -155,12 +156,21 @@ describe('Tours e2e (real guards + temp SQLite)', () => {
     return res.body.tour.place_id as number;
   };
 
-  const importGpx = (userId: number, xml: string | null, tripId = 5) => {
-    const req = request(server).post(`/api/trips/${tripId}/tours/import/gpx`).set('Cookie', sessionCookie(userId));
+  const importGpx = (
+    userId: number,
+    xml: string | null,
+    tripId = 5,
+    fields: Record<string, string> = {},
+    path = 'import/gpx',
+  ) => {
+    let req = request(server).post(`/api/trips/${tripId}/tours/${path}`).set('Cookie', sessionCookie(userId));
+    for (const [key, value] of Object.entries(fields)) req = req.field(key, value);
     return xml === null
       ? req.field('note', 'none')
       : req.attach('file', Buffer.from(xml), { filename: 'track.gpx', contentType: 'application/gpx+xml' });
   };
+  const previewGpx = (userId: number, xml: string | null, tripId = 5) =>
+    importGpx(userId, xml, tripId, {}, 'import/gpx/preview');
 
   beforeAll(async () => {
     orm = await createTestOrm(db);
@@ -227,6 +237,7 @@ describe('Tours e2e (real guards + temp SQLite)', () => {
           .set('Cookie', cookie)
           .send(tourBody({ name: 'Renamed' })),
         await importGpx(OWNER, BIG_GPX),
+        await previewGpx(OWNER, BIG_GPX),
       ];
       for (const res of responses) {
         expect(res.status).toBe(404);
@@ -245,6 +256,7 @@ describe('Tours e2e (real guards + temp SQLite)', () => {
         await request(server).post('/api/trips/5/tours').set('Cookie', cookie).send(tourBody()),
         await request(server).put(`/api/trips/5/tours/${placeId}`).set('Cookie', cookie).send(tourBody()),
         await importGpx(OUTSIDER, BIG_GPX),
+        await previewGpx(OUTSIDER, BIG_GPX),
         await request(server).get('/api/trips/999/tours').set('Cookie', sessionCookie(OWNER)),
       ];
       for (const res of responses) {
@@ -270,6 +282,7 @@ describe('Tours e2e (real guards + temp SQLite)', () => {
           .set('Cookie', cookie)
           .send(tourBody({ name: 'Hijacked' })),
         await importGpx(VIEWER, BIG_GPX),
+        await previewGpx(VIEWER, BIG_GPX),
       ];
       for (const res of writes) {
         expect(res.status).toBe(403);
@@ -498,6 +511,204 @@ describe('Tours e2e (real guards + temp SQLite)', () => {
         const res = await importGpx(OWNER, xml);
         expect(res.status).toBe(400);
         expect(res.body).toEqual({ error: 'No track or route found in GPX file' });
+      }
+      expect(await countRows(orm, Places)).toBe(0);
+    });
+  });
+
+  describe('paddle tours (PAD-01) and free legs (P2A-04)', () => {
+    const paddleBody = (overrides: Record<string, unknown> = {}) =>
+      tourBody({
+        tour_type: 'kayak',
+        max_hiking_difficulty: null,
+        boat_type: 'canoe',
+        water_context: 'lake',
+        waypoints: [
+          {
+            lat: 47,
+            lng: 11,
+            role: 'start',
+            sequence: 0,
+            fixed_leg: {
+              kind: 'free',
+              geometry: [
+                [47, 11],
+                [47.02, 11.02],
+              ],
+            },
+          },
+          { lat: 47.02, lng: 11.02, role: 'end', sequence: 1 },
+        ],
+        ...overrides,
+      });
+
+    it('saves a paddle tour with its boat, water, own speed and hand-drawn leg, and reads them back', async () => {
+      const res = await request(server)
+        .post('/api/trips/5/tours')
+        .set('Cookie', sessionCookie(OWNER))
+        .send(paddleBody({ paddle_speed_kmh: 5 }));
+      expect(res.status).toBe(201);
+      expect(res.body.tour).toMatchObject({
+        tour_type: 'kayak',
+        boat_type: 'canoe',
+        water_context: 'lake',
+        paddle_speed_kmh: 5,
+        max_hiking_difficulty: null,
+        // Read off the banks at the points set, not off the water: unknown, never a made-up climb.
+        elevation_gain: null,
+        elevation_loss: null,
+      });
+      expect(res.body.waypoints[0].fixed_leg).toEqual({
+        kind: 'free',
+        geometry: [
+          [47, 11],
+          [47.02, 11.02],
+        ],
+      });
+      const detail = await request(server)
+        .get(`/api/trips/5/tours/${res.body.tour.place_id}`)
+        .set('Cookie', sessionCookie(OWNER));
+      expect(detail.body).toEqual(res.body);
+    });
+
+    it('a change of boat keeps the chosen speed, and a paddle tour can become a hike again', async () => {
+      const placeId = await createViaApi(5, paddleBody({ paddle_speed_kmh: 3.5 }));
+      const reboated = await request(server)
+        .put(`/api/trips/5/tours/${placeId}`)
+        .set('Cookie', sessionCookie(OWNER))
+        .send(paddleBody({ boat_type: 'sup', paddle_speed_kmh: 3.5 }));
+      expect(reboated.status).toBe(200);
+      expect(reboated.body.tour).toMatchObject({ boat_type: 'sup', paddle_speed_kmh: 3.5 });
+
+      const hike = await request(server)
+        .put(`/api/trips/5/tours/${placeId}`)
+        .set('Cookie', sessionCookie(OWNER))
+        .send(tourBody());
+      expect(hike.status).toBe(200);
+      expect(hike.body.tour).toMatchObject({
+        tour_type: 'hike',
+        boat_type: null,
+        water_context: null,
+        paddle_speed_kmh: null,
+        max_hiking_difficulty: 3,
+      });
+    });
+
+    it('400 for a paddle tour without a boat, a hike with one, and a free leg off its waypoints', async () => {
+      const offTrack = paddleBody({
+        waypoints: [
+          {
+            lat: 47,
+            lng: 11,
+            role: 'start',
+            sequence: 0,
+            fixed_leg: {
+              kind: 'free',
+              geometry: [
+                [46, 10],
+                [47.02, 11.02],
+              ],
+            },
+          },
+          { lat: 47.02, lng: 11.02, role: 'end', sequence: 1 },
+        ],
+      });
+      const refused = await Promise.all(
+        [paddleBody({ boat_type: null }), tourBody({ boat_type: 'kayak' }), offTrack].map((body) =>
+          request(server).post('/api/trips/5/tours').set('Cookie', sessionCookie(OWNER)).send(body),
+        ),
+      );
+      expect(refused.map((res) => res.status)).toEqual([400, 400, 400]);
+      expect(await countRows(orm, Tours)).toBe(0);
+    });
+
+    it('400 for a paddle tour while its type is switched off', async () => {
+      await updateRows(orm, TourTypes, { key: 'kayak' }, { enabled: 0 });
+      try {
+        const res = await request(server)
+          .post('/api/trips/5/tours')
+          .set('Cookie', sessionCookie(OWNER))
+          .send(paddleBody());
+        expect(res.status).toBe(400);
+        expect(res.body).toEqual({ error: 'Tour type is not available' });
+        expect(await countRows(orm, Tours)).toBe(0);
+      } finally {
+        await updateRows(orm, TourTypes, { key: 'kayak' }, { enabled: 1 });
+      }
+    });
+  });
+
+  describe('GPX preview and typed import (PAD-02)', () => {
+    it('shows every track with its whole line and measures, and stores nothing', async () => {
+      const res = await previewGpx(OWNER, TRACK_GPX);
+      expect(res.status).toBe(200);
+      expect(res.body.tracks).toHaveLength(1);
+      expect(res.body.tracks[0]).toMatchObject({
+        name: 'Alpine loop',
+        point_count: 3,
+        elevation_gain_m: 50,
+        elevation_loss_m: 30,
+        duplicate: false,
+      });
+      expect(res.body.tracks[0].geometry).toEqual([
+        [49, 12, 100],
+        [49.01, 12.01, 150],
+        [49.02, 12.02, 120],
+      ]);
+      expect(res.body.tracks[0].distance_km).toBeGreaterThan(0);
+      expect(await countRows(orm, Places)).toBe(0);
+      expect(broadcast).not.toHaveBeenCalled();
+    });
+
+    it('leaves heights it does not have unknown, and names a track the trip already holds', async () => {
+      const flat = await previewGpx(OWNER, FLAT_GPX);
+      expect(flat.body.tracks[0]).toMatchObject({ elevation_gain_m: null, elevation_loss_m: null });
+      expect((await importGpx(OWNER, TRACK_GPX)).status).toBe(201);
+      const again = await previewGpx(OWNER, TRACK_GPX);
+      expect(again.body.tracks[0].duplicate).toBe(true);
+    });
+
+    it('400 without a file, and for a file with no track, as the import says', async () => {
+      const missing = await previewGpx(OWNER, null);
+      expect(missing.status).toBe(400);
+      expect(missing.body).toEqual({ error: 'No file uploaded' });
+      const empty = await previewGpx(OWNER, '<gpx/>');
+      expect(empty.status).toBe(400);
+      expect(empty.body).toEqual({ error: 'No track or route found in GPX file' });
+    });
+
+    it('imports as a paddle tour with the chosen boat and water', async () => {
+      const res = await importGpx(OWNER, TRACK_GPX, 5, {
+        tour_type: 'kayak',
+        boat_type: 'sup',
+        water_context: 'river',
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.tours[0]).toMatchObject({
+        tour_type: 'kayak',
+        boat_type: 'sup',
+        water_context: 'river',
+        paddle_speed_kmh: null,
+        max_hiking_difficulty: null,
+        origin: 'gpx',
+      });
+      expect(await findRow(orm, Tours, { place: res.body.tours[0].place_id })).toMatchObject({
+        tour_type: 'kayak',
+        boat_type: 'sup',
+      });
+    });
+
+    it('400 for a paddle import without its boat, or a hike import that names one; nothing written', async () => {
+      const refused = await Promise.all(
+        [
+          { tour_type: 'kayak', water_context: 'lake' },
+          { tour_type: 'hike', boat_type: 'sup' },
+          { tour_type: 'ski' },
+        ].map((fields) => importGpx(OWNER, TRACK_GPX, 5, fields)),
+      );
+      for (const res of refused) {
+        expect(res.status).toBe(400);
+        expect(res.body.error).toEqual(expect.any(String));
       }
       expect(await countRows(orm, Places)).toBe(0);
     });

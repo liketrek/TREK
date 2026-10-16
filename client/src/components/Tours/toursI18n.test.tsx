@@ -11,6 +11,7 @@ import { analyzeRouteGeometry } from '../../utils/routeGeometry'
 import TourListRow from './TourListRow'
 import { TourPlannerRail, TourPlannerToursRail } from './planner/TourPlannerPanels'
 import type { TourPlannerController } from './planner/useTourPlanner'
+import { hikePlannerDefaults } from '../../../tests/helpers/tourPlannerStub'
 
 vi.mock('../../../../server/src/config', () => { throw new Error('Config initialization is forbidden in client tests') })
 vi.mock('../../../../server/src/db/database', () => { throw new Error('Legacy database imports are forbidden in client tests') })
@@ -31,6 +32,7 @@ function toursText(strings: typeof en, key: string): string {
 
 function planner(overrides: Partial<TourPlannerController>): TourPlannerController {
   return {
+    ...hikePlannerDefaults(),
     canEdit: true, canAssign: true,
     mode: { type: 'neutral' }, status: 'empty', error: null, name: '',
     maxHikingDifficulty: 2, waypoints: [], hasUnsavedChanges: false,

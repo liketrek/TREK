@@ -7,6 +7,7 @@ import type { Category, Place } from '../../types';
 import { formatTime } from '../../utils/formatters';
 import { fs } from '../shared/DialogShell';
 import { TourDayRowPills } from '../Tours/TourDayRowFacts';
+import { movingTimeLabel } from '../Tours/tourFacts';
 import { formatPlannedTourDuration, type TourPlannedTimes } from '../Tours/tourPresentation';
 import { TimePill } from './planParts';
 
@@ -35,9 +36,10 @@ function PlannedTourPills({ tourTimes }: { tourTimes: DayRowTourTimes }) {
         <TimePill>
           <span
             data-testid="trip-plan-tour-walking-time"
-            aria-label={`${t('tours.planner.inspector.duration')}: ${formatPlannedTourDuration(tourTimes.walkingMinutes)}`}
+            aria-label={`${movingTimeLabel(tourTimes.tour, t('tours.planner.inspector.duration'), t)}: ${formatPlannedTourDuration(tourTimes.walkingMinutes)}`}
           >
-            {t('tours.planner.walkingShort')}: {formatPlannedTourDuration(tourTimes.walkingMinutes)}
+            {movingTimeLabel(tourTimes.tour, t('tours.planner.walkingShort'), t)}:{' '}
+            {formatPlannedTourDuration(tourTimes.walkingMinutes)}
           </span>
         </TimePill>
       )}

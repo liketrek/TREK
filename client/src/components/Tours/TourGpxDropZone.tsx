@@ -2,6 +2,7 @@ import { Ban, FileDown, Loader2 } from 'lucide-react';
 import { useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { useTranslation } from '../../i18n';
 import { fs } from '../shared/DialogShell';
+import TourGpxPreviewDialog from './TourGpxPreviewDialog';
 import type { TourGpxImport } from './useTourGpxImport';
 
 /** Only a drag of files from the desktop; a waypoint or a tour row being dragged is not one. */
@@ -64,6 +65,7 @@ export default function TourGpxDropZone({
       }}
     >
       {children}
+      <TourGpxPreviewDialog gpxImport={gpxImport} />
       {(over || gpxImport.importing) && (
         <div
           data-testid="tour-gpx-drop"

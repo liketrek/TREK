@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { useTripFerratas } from '../../components/Ferratas/useTripFerratas';
 import type { MapViewProps } from '../../components/Map/mapViewContract';
+import { useTourMapView } from '../../components/Tours/planner/useTourMapView';
 import { useSettingsStore } from '../../store/settingsStore';
 import { initialTourPlaceToolState, useTourPlaceToolStore } from '../../store/tourPlaceToolStore';
 import { TourPlannerMapStage, type TourPlannerMapStageProps } from './TourPlannerMapStage';
@@ -104,11 +105,12 @@ const FERRATA: Ferrata = {
 type Planner = TourPlannerMapStageProps['tourPlanner'];
 
 function planner(
-  mode: 'new-draft' | 'edit-saved' | 'view-saved' | 'view-gpx',
+  mode: 'neutral' | 'new-draft' | 'edit-saved' | 'view-saved' | 'view-gpx',
   overrides: Record<string, unknown> = {}
 ) {
   return {
-    mode: { type: mode },
+    mode: mode === 'view-gpx' ? { type: mode, placeId: 9, tour: { place_id: 9, tour_type: 'hike' } } : { type: mode },
+    tourType: 'hike',
     isSaving: false,
     waypoints: [{ id: 'w1', lat: 46, lng: 7 }],
     selectedWaypointId: 'w1',
@@ -121,6 +123,8 @@ function planner(
     readOnlyGpxAnalysis: null,
     mapBaseLayer: 'default',
     setMapBaseLayer: vi.fn(),
+    mapOverlays: new Set(),
+    toggleMapOverlay: vi.fn(),
     routeProfileFocus: null,
     setRouteProfileFocus: vi.fn(),
     ...overrides,
@@ -422,5 +426,73 @@ describe('TourPlannerMapStage', () => {
     renderStage(planner('new-draft'), false);
     expect(stage.flatMap.props?.placeTool).toBeUndefined();
     expect(screen.getByTestId('tour-map-surface')).not.toHaveAttribute('data-placing');
+  });
+
+  describe('map layers per tour type (P2B-06/07, PAD-04, PAD-10)', () => {
+    const flat = () => stage.flatMap.props as MapViewProps;
+
+    it('a hike keeps the standard map, topo and satellite and the via ferrata layer, and no seamarks', () => {
+      renderStage(planner('new-draft'));
+      expect(flat().tourLayers?.bases).toEqual(['default', 'topo', 'satellite']);
+      expect(flat().ferrataLayer).toBeDefined();
+      expect(flat().tourLayers?.overlays).toEqual([]);
+    });
+
+    it('with no tour open there is no via ferrata layer, as there are no seamarks', () => {
+      renderStage(planner('neutral'));
+      expect(flat().ferrataLayer).toBeUndefined();
+      expect(flat().tourLayers?.overlays).toEqual([]);
+    });
+
+    it('a paddle tour offers the standard map and satellite, seamarks off, and neither topo nor ferratas', () => {
+      renderStage(planner('new-draft', { tourType: 'kayak', mapBaseLayer: 'topo' }));
+      expect(flat().tourLayers?.bases).toEqual(['default', 'satellite']);
+      // Topo chosen for a hike falls back to the paddle tour's own default, without touching the choice.
+      expect(flat().viewBaseLayer).toBe('default');
+      expect(flat().ferrataLayer).toBeUndefined();
+      expect(flat().tourLayers?.overlays?.map((overlay) => [overlay.id, overlay.status])).toEqual([
+        ['seamarks', 'off'],
+      ]);
+    });
+
+    it('an imported paddle tour is shown with the paddle maps, a type nobody plans with the standard set', () => {
+      const { unmount } = renderStage(
+        planner('view-gpx', { mode: { type: 'view-gpx', placeId: 9, tour: { place_id: 9, tour_type: 'kayak' } } })
+      );
+      expect(flat().tourLayers?.bases).toEqual(['default', 'satellite']);
+      unmount();
+      renderStage(
+        planner('view-gpx', { mode: { type: 'view-gpx', placeId: 9, tour: { place_id: 9, tour_type: 'bike' } } })
+      );
+      expect(flat().tourLayers?.bases).toEqual(['default', 'satellite']);
+      expect(flat().tourLayers?.overlays).toEqual([]);
+      expect(flat().ferrataLayer).toBeUndefined();
+    });
+
+    it('seamarks switch on, report a source that stopped answering, and recover on the next tile', () => {
+      // The switch lives with the planner's map view, so it outlasts the map.
+      function PaddleStage() {
+        const view = useTourMapView();
+        return <TourPlannerMapStage {...stageProps(planner('new-draft', { tourType: 'kayak', ...view }))} />;
+      }
+      render(<PaddleStage />);
+      const overlay = () => flat().tourLayers?.overlays?.[0];
+      act(() => overlay()?.onToggle());
+      expect(overlay()).toMatchObject({
+        status: 'on',
+        active: true,
+        url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+      });
+      act(() => {
+        for (let i = 0; i < 3; i += 1) overlay()?.onTileError();
+      });
+      expect(overlay()?.status).toBe('on');
+      act(() => overlay()?.onTileError());
+      expect(overlay()?.status).toBe('down');
+      act(() => overlay()?.onTileLoad());
+      expect(overlay()?.status).toBe('on');
+      act(() => overlay()?.onToggle());
+      expect(overlay()).toMatchObject({ status: 'off', active: false });
+    });
   });
 });

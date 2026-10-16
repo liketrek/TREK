@@ -17,6 +17,34 @@ import { z } from 'zod';
 export const tourTypeKeySchema = z.enum(['hike', 'bike', 'run', 'ski', 'kayak', 'walk', 'food']);
 export type TourTypeKey = z.infer<typeof tourTypeKeySchema>;
 
+/**
+ * The types a tour can be planned, saved and imported as. `kayak` is the key
+ * the paddle tour has had in `tour_types` from the start; the app calls it a
+ * paddle tour, and the boat is a field of its own.
+ */
+export const plannableTourTypeSchema = z.enum(['hike', 'kayak']);
+export type PlannableTourType = z.infer<typeof plannableTourTypeSchema>;
+
+/** PAD-01: the one boat a paddle tour is planned for. */
+export const paddleBoatTypeSchema = z.enum(['kayak', 'canoe', 'sup', 'other']);
+export type PaddleBoatType = z.infer<typeof paddleBoatTypeSchema>;
+
+/** PAD-01: the water a paddle tour is on. River and lake are the first supported. */
+export const paddleWaterContextSchema = z.enum(['river', 'lake']);
+export type PaddleWaterContext = z.infer<typeof paddleWaterContextSchema>;
+
+/** The highest planning speed a paddler can enter, in km/h. */
+export const MAX_PADDLE_SPEED_KMH = 20;
+export const paddleSpeedKmhSchema = z.number().finite().min(0.5).max(MAX_PADDLE_SPEED_KMH);
+
+/**
+ * The planning speed TREK suggests for a boat, in km/h: a starting value to
+ * adjust, not a measurement. "Other" has none; its paddler enters a speed.
+ */
+export function recommendedPaddleSpeedKmh(boat: PaddleBoatType | null | undefined): number | null {
+  return boat === 'kayak' || boat === 'canoe' || boat === 'sup' ? 4 : null;
+}
+
 export const tourMaxHikingDifficultySchema = z.number().int().min(1).max(6);
 export type TourMaxHikingDifficulty = z.infer<typeof tourMaxHikingDifficultySchema>;
 
@@ -81,6 +109,11 @@ export const tourSchema = z.object({
   max_hiking_difficulty: tourMaxHikingDifficultySchema.nullable(),
   /** The import (a GPX file, a wanderer snapshot) this tour was planned from, while it is still in the trip. */
   derived_from_place_id: z.number().int().positive().nullable().optional(),
+  /** A paddle tour's boat and water; null for every other type. Absent in a list cached before they existed. */
+  boat_type: paddleBoatTypeSchema.nullable().optional(),
+  water_context: paddleWaterContextSchema.nullable().optional(),
+  /** The speed the paddler chose; null while the boat's suggested speed applies. */
+  paddle_speed_kmh: z.number().nullable().optional(),
 });
 export type Tour = z.infer<typeof tourSchema>;
 
@@ -126,23 +159,34 @@ export const TOUR_FIXED_LEG_MAX_POINTS = 5000;
 /** How far a fixed leg's ends may lie from the waypoints it joins, in metres. */
 export const TOUR_FIXED_LEG_END_TOLERANCE_M = 60;
 
+const fixedLegGeometrySchema = z
+  .array(z.tuple([z.number().finite().min(-90).max(90), z.number().finite().min(-180).max(180)]))
+  .min(2)
+  .max(TOUR_FIXED_LEG_MAX_POINTS);
+
 /**
  * A leg the router does not plan: the line from this waypoint to the next is
- * taken as it stands. Today that is a via ferrata put onto the tour from the
- * map, whose own line from OpenStreetMap the tour follows, since a router
- * walks around a ferrata wherever it can.
+ * taken as it stands. A via ferrata put onto the tour from the map follows its
+ * own line from OpenStreetMap, since a router walks around a ferrata wherever
+ * it can. A free leg (P2A-04) is drawn by hand, straight from one waypoint to
+ * the next: off the path network, across a lake, wherever no router goes.
+ * Nothing about a free leg was checked by a router.
  */
-export const tourFixedLegSchema = z.object({
-  kind: z.literal('ferrata'),
-  /** The OSM way or group the line came from, `way/<id>` style. */
-  ref: z.string().trim().min(1).max(64),
-  name: z.string().trim().max(255).nullable(),
-  geometry: z
-    .array(z.tuple([z.number().finite().min(-90).max(90), z.number().finite().min(-180).max(180)]))
-    .min(2)
-    .max(TOUR_FIXED_LEG_MAX_POINTS),
-});
+export const tourFixedLegSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('ferrata'),
+    /** The OSM way or group the line came from, `way/<id>` style. */
+    ref: z.string().trim().min(1).max(64),
+    name: z.string().trim().max(255).nullable(),
+    geometry: fixedLegGeometrySchema,
+  }),
+  z.object({
+    kind: z.literal('free'),
+    geometry: fixedLegGeometrySchema,
+  }),
+]);
 export type TourFixedLeg = z.infer<typeof tourFixedLegSchema>;
+export type TourFixedLegKind = TourFixedLeg['kind'];
 
 export const tourWaypointSchema = z.object({
   lat: z.number().finite().min(-90).max(90),
@@ -176,10 +220,14 @@ const enrichedRoutePointSchema = z.tuple([
 export const tourCreateRequestSchema = z
   .object({
     name: z.string().trim().min(1).max(255),
-    tour_type: z.literal('hike').default('hike'),
+    tour_type: plannableTourTypeSchema.default('hike'),
     route_geometry: z.array(enrichedRoutePointSchema).min(2),
     waypoints: z.array(tourWaypointSchema).min(2),
-    max_hiking_difficulty: tourMaxHikingDifficultySchema.default(2),
+    /** A hike's routing limit (2 when left out); a paddle tour has none. */
+    max_hiking_difficulty: tourMaxHikingDifficultySchema.nullable().optional(),
+    boat_type: paddleBoatTypeSchema.nullable().optional(),
+    water_context: paddleWaterContextSchema.nullable().optional(),
+    paddle_speed_kmh: paddleSpeedKmhSchema.nullable().optional(),
     duration_seconds: z.number().finite().nonnegative().nullable().optional(),
     planned_duration_minutes: plannedTourDurationMinutesSchema.optional(),
     break_additional_minutes: plannedTourDurationMinutesSchema.optional(),
@@ -204,6 +252,7 @@ export const tourCreateRequestSchema = z
         message: 'walking time plus breaks must be 1440 minutes or less unless a total is overridden',
       });
     }
+    tourTypeIssues(value).forEach((issue) => ctx.addIssue({ code: z.ZodIssueCode.custom, ...issue }));
     value.waypoints.forEach((point, index) => {
       const leg = point.fixed_leg;
       const next = value.waypoints[index + 1];
@@ -234,8 +283,43 @@ export const tourCreateRequestSchema = z
         });
       }
     });
-  });
+  })
+  // A hike left without a limit is routed at T2, as before the field could be null.
+  .transform((value) => ({
+    ...value,
+    max_hiking_difficulty: value.tour_type === 'hike' ? (value.max_hiking_difficulty ?? 2) : null,
+  }));
 export type TourCreateRequest = z.infer<typeof tourCreateRequestSchema>;
+/** What a client sends: the fields the server fills in may be left out. */
+export type TourCreateInput = z.input<typeof tourCreateRequestSchema>;
+
+/**
+ * What belongs to which type: a hike carries a routing limit and no boat; a
+ * paddle tour carries exactly one boat and its water, and no hiking limit.
+ */
+function tourTypeIssues(value: {
+  tour_type: PlannableTourType;
+  max_hiking_difficulty?: number | null;
+  boat_type?: PaddleBoatType | null;
+  water_context?: PaddleWaterContext | null;
+  paddle_speed_kmh?: number | null;
+}): Array<{ path: string[]; message: string }> {
+  const issues: Array<{ path: string[]; message: string }> = [];
+  if (value.tour_type === 'kayak') {
+    if (value.boat_type == null) issues.push({ path: ['boat_type'], message: 'a paddle tour needs a boat type' });
+    if (value.water_context == null)
+      issues.push({ path: ['water_context'], message: 'a paddle tour needs a water context' });
+    if (value.max_hiking_difficulty != null)
+      issues.push({ path: ['max_hiking_difficulty'], message: 'a paddle tour has no hiking difficulty' });
+    return issues;
+  }
+  if (value.max_hiking_difficulty === null)
+    issues.push({ path: ['max_hiking_difficulty'], message: 'a hike needs a hiking difficulty' });
+  for (const field of ['boat_type', 'water_context', 'paddle_speed_kmh'] as const) {
+    if (value[field] != null) issues.push({ path: [field], message: `${field} belongs to a paddle tour` });
+  }
+  return issues;
+}
 
 export const tourCreateResponseSchema = z.object({
   tour: tourListItemSchema,

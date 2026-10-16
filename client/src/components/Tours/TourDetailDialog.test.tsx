@@ -141,6 +141,16 @@ describe('TourDetailDialog', () => {
     expect(screen.getByText('Planned (Manual override)')).toBeInTheDocument()
   })
 
+  it('PAD-01: a paddle tour without heights shows distance, paddling and total side by side in one row', () => {
+    render(<TourDetailDialog {...defaultProps} tour={{ ...tour, tour_type: 'kayak', has_waypoints: true, duration: 50 }} />)
+
+    const row = screen.getByText('Distance').closest('dl')
+    expect(row).toHaveClass('grid-cols-3')
+    expect(row).toContainElement(screen.getByText('Paddling'))
+    expect(row).toContainElement(screen.getByText('Planned'))
+    expect(screen.queryByText('Ascent')).not.toBeInTheDocument()
+  })
+
   it('RS-01: rejects an unsafe legacy Tour website for rendering', () => {
     render(
       <TourDetailDialog

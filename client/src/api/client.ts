@@ -2,7 +2,7 @@ import { isEffectivelyOffline } from '../sync/networkMode'
 import axios, { AxiosInstance } from 'axios'
 import type { z } from 'zod'
 import type { Day, Place, Trip } from '../types'
-import type { MapsNearbyRequest, JourneyReorderEntryPhotosRequest, TransitProvider, GoogleQuotaUpdateRequest, NotificationDefaultsUpdateRequest, TourListItem, TourImportGpxResponse, TourCreateRequest, TourCreateResponse, TourDetailResponse } from '@trek/shared'
+import type { MapsNearbyRequest, JourneyReorderEntryPhotosRequest, TransitProvider, GoogleQuotaUpdateRequest, NotificationDefaultsUpdateRequest, TourListItem, TourCreateRequest, TourCreateResponse, TourDetailResponse } from '@trek/shared'
 import { randomId } from '../utils/randomId'
 import { postProviderPhotosInBatches } from './providerPhotoBatches'
 import {
@@ -525,11 +525,6 @@ export const toursApi = {
     apiClient.post(`/trips/${tripId}/tours`, body).then(r => r.data),
   update: (tripId: number | string, placeId: number | string, body: TourCreateRequest): Promise<TourDetailResponse> =>
     apiClient.put(`/trips/${tripId}/tours/${placeId}`, body).then(r => r.data),
-  importGpx: (tripId: number | string, file: File): Promise<TourImportGpxResponse> => {
-    const fd = new FormData()
-    fd.append('file', file)
-    return postMultipart(`/trips/${tripId}/tours/import/gpx`, fd)
-  },
 }
 
 export const assignmentsApi = {

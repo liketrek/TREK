@@ -321,6 +321,10 @@ export function applyGlobalMiddleware(
             // refused here while nothing in the app could see it: the switch flipped, the
             // layer went on, and no tile ever arrived (#2307).
             'https://server.arcgisonline.com',
+            // OpenSeaMap's transparent seamark layer, offered only to a paddle tour in the
+            // Tours planner (PAD-10). Leaflet loads it as an <img>; the GL map reads it
+            // through fetch and needs it here.
+            'https://tiles.openseamap.org',
             // Amap's raster tiles, for an install whose users are in China, for the
             // same reason as the hosts above (#2180). Road (webrd01..04) and
             // satellite (webst01..04) are numbered shards of one domain, so the

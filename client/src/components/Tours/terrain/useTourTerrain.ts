@@ -2,7 +2,8 @@ import type { FerrataBbox } from '@trek/shared';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { DistanceIndexedProfileSample, RouteProfileFocus } from '../../../utils/routeGeometry';
 import type { FerrataMapLayer } from '../../Ferratas/useFerrataMapLayer';
-import type { TourBaseLayer } from '../../Map/MapLayerSwitcher';
+import type { TourBaseLayer, TourLayerOffer } from '../../Map/MapLayerSwitcher';
+import { useRasterOverlaysGL, type RasterOverlayGlMap } from '../../Map/mapRasterOverlay';
 import { trackData, type PanelWidths, type TrackColorMode } from './terrainLayers';
 import { useTerrainFerratas } from './useTerrainFerratas';
 import { frameCamera, useTerrainMap, type TerrainScene } from './useTerrainMap';
@@ -25,6 +26,7 @@ interface Options {
   framePoints: [number, number][];
   /** The via ferrata layer of the planner map, drawn here too while it is on. */
   ferrataLayer?: FerrataMapLayer;
+  tourLayers?: TourLayerOffer;
   /** The visible area, for the via ferrata layer to ask for. */
   onViewportChange?: (bbox: FerrataBbox) => void;
 }
@@ -61,6 +63,8 @@ export function useTourTerrain(options: Options) {
   const preloaded = useTerrainPrefetch(gl?.map ?? null, styleGeneration, samples);
   useTerrainPins(gl, ready, waypoints, handlers);
   useTerrainFerratas(gl, options.ferrataLayer, options.onViewportChange);
+  // MapLibre answers every call the shared overlay hook makes, as it does the ferrata hook's.
+  useRasterOverlaysGL(gl ? (gl.map as unknown as RasterOverlayGlMap) : null, options.tourLayers?.overlays);
   const replay = useTerrainReplay({ gl, ready, samples, focus, onFocusChange, scene, preloaded });
   const { stop } = replay;
 

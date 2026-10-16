@@ -21,6 +21,7 @@ describe('known migrations', () => {
     expect(known.has('Migration20200101043600_a_tour_remembers_the_import_it_was_derived_from')).toBe(true);
     expect(known.has('Migration20200101043700_an_import_planned_over_keeps_its_recorded_track')).toBe(true);
     expect(known.has('Migration20200101043800_a_tour_records_where_it_came_from')).toBe(true);
+    expect(known.has('Migration20200101043900_a_tour_can_be_paddled')).toBe(true);
     expect(known.size).toBe(fs.readdirSync(path.join(__dirname, '../../../src/db/migrations')).length);
   });
 

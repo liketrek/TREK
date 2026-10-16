@@ -177,6 +177,9 @@ describe('ToursService planner contracts (mock-only; SQLite rollback semantics a
       break_additional_minutes: null,
       match_confidence: 1,
       max_hiking_difficulty: 2,
+      boat_type: null,
+      water_context: null,
+      paddle_speed_kmh: null,
     });
     expect((setup.toursRepo.insertTour.mock.calls[0][0] as { distance: number }).distance).toBeGreaterThan(0);
     expect(setup.waypointsRepo.insertForPlace).toHaveBeenCalledExactlyOnceWith(42, request.waypoints);
@@ -287,6 +290,9 @@ describe('ToursService planner contracts (mock-only; SQLite rollback semantics a
       duration: 45,
       match_confidence: 1,
       max_hiking_difficulty: 2,
+      boat_type: null,
+      water_context: null,
+      paddle_speed_kmh: null,
     });
     expect(setup.waypointsRepo.deleteForPlace).toHaveBeenCalledExactlyOnceWith(42);
     expect(setup.waypointsRepo.insertForPlace).toHaveBeenCalledExactlyOnceWith(42, update.waypoints);

@@ -1,4 +1,16 @@
-import { ArrowDown, ArrowUp, GripVertical, MapPin, MapPinPlus, Trash2 } from 'lucide-react';
+import type { TourFixedLeg } from '@trek/shared';
+import {
+  ArrowDown,
+  ArrowDownUp,
+  ArrowUp,
+  GripVertical,
+  Info,
+  MapPin,
+  MapPinPlus,
+  Repeat,
+  Spline,
+  Trash2,
+} from 'lucide-react';
 import { Fragment, useState, type ReactNode } from 'react';
 import { useTranslation } from '../../../i18n';
 import { useSettingsStore } from '../../../store/settingsStore';
@@ -13,7 +25,8 @@ import { FerrataGlyph } from '../../Ferratas/FerrataGlyph';
 import { SoftPill } from '../../Planner/planParts';
 import { fs } from '../../shared/DialogShell';
 import { Tooltip } from '../../shared/Tooltip';
-import { RailCard } from '../tourParts';
+import { RailCard, TourNotice } from '../tourParts';
+import { lineLengthM } from './tourFixedLegs';
 import type { TourPlannerController } from './useTourPlanner';
 import { useWaypointPlaceNames } from './useWaypointPlaceNames';
 
@@ -30,12 +43,15 @@ function WaypointAction({
   label,
   disabled,
   danger = false,
+  active,
   onAct,
   children,
 }: {
   label: string;
   disabled: boolean;
   danger?: boolean;
+  /** A switch rather than a one-off action: pressed while on. */
+  active?: boolean;
   onAct: () => void;
   children: ReactNode;
 }) {
@@ -46,15 +62,77 @@ function WaypointAction({
         disabled={disabled}
         aria-label={label}
         aria-disabled={disabled}
+        aria-pressed={active}
         onClick={(event) => {
           event.stopPropagation();
           if (!disabled) onAct();
         }}
-        className={`grid h-6 w-6 place-items-center rounded-full transition-colors ${disabled ? 'pointer-events-none opacity-25' : danger ? 'text-danger hover:bg-surface-card' : 'text-content-muted hover:bg-surface-card hover:text-content'}`}
+        className={`grid h-6 w-6 place-items-center rounded-full transition-colors ${disabled ? 'pointer-events-none opacity-25' : danger ? 'text-danger hover:bg-surface-card' : active ? 'bg-surface-card text-content shadow-sm' : 'text-content-muted hover:bg-surface-card hover:text-content'}`}
       >
         {children}
       </button>
     </Tooltip>
+  );
+}
+
+/** A route tool in the card's head: an icon with its words in the tooltip, dimmed while it has nothing to do. */
+function RouteToolButton({
+  label,
+  disabled,
+  onAct,
+  testId,
+  children,
+}: {
+  label: string;
+  disabled: boolean;
+  onAct: () => void;
+  testId: string;
+  children: ReactNode;
+}) {
+  return (
+    <Tooltip label={label}>
+      <button
+        type="button"
+        data-testid={testId}
+        aria-label={label}
+        disabled={disabled}
+        onClick={onAct}
+        className="grid h-6 w-6 flex-none place-items-center rounded-full text-content-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent enabled:hover:bg-surface-card enabled:hover:text-content disabled:cursor-default disabled:opacity-35"
+      >
+        {children}
+      </button>
+    </Tooltip>
+  );
+}
+
+/**
+ * A leg drawn by hand, as a badge on that leg in the dashed look the map draws
+ * it in: no router planned it, and the badge says so. Its length is the line
+ * the user drew, the only measure it has.
+ */
+function FreeLegRow({ leg }: { leg: TourFixedLeg }) {
+  const { t } = useTranslation();
+  const unit = useSettingsStore((state) => state.settings.distance_unit);
+  // Read as plain numbers: this workspace compiles without strict mode, where the schema's tuples are "maybe two".
+  const line = leg.geometry.map(([lat, lng]): [number, number] => [Number(lat), Number(lng)]);
+  const distance = formatDistance(lineLengthM(line) / 1000, unit ?? 'metric');
+  return (
+    <li data-testid="tour-planner-free-leg" className="flex min-w-0 py-0.5 ps-[34px]">
+      <Tooltip label={t('tours.planner.freeLegInfo')}>
+        <span className="flex h-[26px] w-full min-w-0 items-center gap-1.5 rounded-full border border-dashed border-edge bg-surface-card pe-1 ps-2">
+          <Spline size={13} strokeWidth={2} className="flex-none text-content-muted" aria-hidden="true" />
+          <span className="min-w-0 flex-1 truncate font-semibold text-content" style={fs(11.5, 'body')}>
+            {t('tours.planner.freeLegBadge')}
+          </span>
+          <span
+            className="flex-none rounded-full bg-surface-secondary px-1.5 font-geist tabular-nums leading-[18px] text-content-secondary"
+            style={fs(10.5)}
+          >
+            {distance}
+          </span>
+        </span>
+      </Tooltip>
+    </li>
   );
 }
 
@@ -121,12 +199,26 @@ function WaypointNumber({
   index,
   selected,
   ferrata,
+  loopEnd = false,
 }: {
   index: number;
   selected: boolean;
   ferrata: TourWaypointFerrata | null;
+  /** The way back to the start of a loop: shown as the return, not as one more stop. */
+  loopEnd?: boolean;
 }) {
   const { t } = useTranslation();
+  if (loopEnd) {
+    return (
+      <span
+        aria-label={t('tours.planner.loopEnd')}
+        data-waypoint-loop-end="true"
+        className={`grid h-7 w-7 flex-none place-items-center rounded-full ${selected ? 'bg-accent text-accent-text' : 'bg-edge text-content'}`}
+      >
+        <Repeat size={13} strokeWidth={2.2} aria-hidden="true" />
+      </span>
+    );
+  }
   const label = t('tours.planner.waypointLabel', { n: index + 1 });
   const number = (
     <span
@@ -143,6 +235,111 @@ function WaypointNumber({
   if (!ferrata) return number;
   const grade = ferrata.grade ? ` (${ferrata.grade})` : '';
   return <Tooltip label={`${t('tours.ferrata.waypointAtEnd', { name: ferrata.name })}${grade}`}>{number}</Tooltip>;
+}
+
+/**
+ * What a waypoint row says: its place name with the coordinates under it, or
+ * the coordinates alone while the name loads, offline or when the lookup has
+ * none; start and end as a badge. The way back of a loop is named as such.
+ */
+function WaypointRowLabel({
+  point,
+  placeName,
+  loopEnd,
+}: {
+  point: TourPlannerController['waypoints'][number];
+  placeName: string | undefined;
+  loopEnd: boolean;
+}) {
+  const { t } = useTranslation();
+  const coordinates = `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
+  const name = loopEnd ? t('tours.planner.loopEnd') : placeName;
+  return (
+    <>
+      <span className="flex w-full min-w-0 items-center gap-1.5">
+        <span
+          data-testid="tour-planner-waypoint-name"
+          className={`block min-w-0 truncate leading-tight ${name ? 'font-semibold text-content' : 'font-geist tabular-nums text-content-muted'}`}
+          style={fs(12.5, 'body')}
+        >
+          {name ?? coordinates}
+        </span>
+        {point.role !== 'via' && !loopEnd && <SoftPill>{t(ROLE_KEY[point.role])}</SoftPill>}
+      </span>
+      {name && !loopEnd && (
+        <span
+          data-testid="tour-planner-waypoint-coordinates"
+          className="block min-w-0 truncate font-geist tabular-nums leading-tight text-content-faint"
+          style={fs(10.5)}
+        >
+          {coordinates}
+        </span>
+      )}
+    </>
+  );
+}
+
+/**
+ * The controls of a waypoint row, out on hover as a plan row's are: move it up
+ * or down, draw the leg after it by hand (not on a paddle tour, where every leg
+ * is, nor on a via ferrata), and remove it.
+ */
+function WaypointRowActions({
+  planner,
+  point,
+  index,
+  lastIndex,
+  selected,
+  isSaving,
+}: {
+  planner: TourPlannerController;
+  point: TourPlannerController['waypoints'][number];
+  index: number;
+  lastIndex: number;
+  selected: boolean;
+  isSaving: boolean;
+}) {
+  const { t } = useTranslation();
+  const free = point.fixedLeg?.kind === 'free';
+  const canDrawLeg = !planner.isPaddle && index < lastIndex && point.fixedLeg?.kind !== 'ferrata';
+  return (
+    <span
+      className={`flex-none items-center gap-0.5 group-focus-within:flex group-hover:flex ${selected ? 'flex' : 'hidden'}`}
+    >
+      <WaypointAction
+        label={t('tours.planner.moveUp')}
+        disabled={isSaving || index === 0}
+        onAct={() => planner.moveWaypoint(point.id, -1)}
+      >
+        <ArrowUp size={13} strokeWidth={2.2} />
+      </WaypointAction>
+      <WaypointAction
+        label={t('tours.planner.moveDown')}
+        disabled={isSaving || index === lastIndex}
+        onAct={() => planner.moveWaypoint(point.id, 1)}
+      >
+        <ArrowDown size={13} strokeWidth={2.2} />
+      </WaypointAction>
+      {canDrawLeg && (
+        <WaypointAction
+          label={t(free ? 'tours.planner.routeLeg' : 'tours.planner.freeLeg')}
+          disabled={isSaving}
+          active={free}
+          onAct={() => planner.toggleWaypointFreeLeg(point.id)}
+        >
+          <Spline size={13} strokeWidth={2.2} />
+        </WaypointAction>
+      )}
+      <WaypointAction
+        label={t('tours.planner.remove')}
+        disabled={isSaving}
+        danger
+        onAct={() => planner.removeWaypoint(point.id)}
+      >
+        <Trash2 size={13} strokeWidth={2} />
+      </WaypointAction>
+    </span>
+  );
 }
 
 /**
@@ -202,14 +399,39 @@ export default function TourWaypointList({
   };
 
   // One card like a day in the plan: the head counts the points, the rows sit below.
+  const tools = canEdit && planner.waypoints.length > 0 && (
+    <span className="flex flex-none items-center gap-0.5">
+      <RouteToolButton
+        testId="tour-planner-reverse"
+        label={t('tours.planner.reverse')}
+        disabled={isSaving || planner.waypoints.length < 2}
+        onAct={planner.reverse}
+      >
+        <ArrowDownUp size={13} strokeWidth={2.2} />
+      </RouteToolButton>
+      <RouteToolButton
+        testId="tour-planner-return-to-start"
+        label={t(planner.isLoop ? 'tours.planner.alreadyLoop' : 'tours.planner.returnToStart')}
+        disabled={isSaving || planner.waypoints.length < 2 || planner.isLoop}
+        onAct={planner.returnToStart}
+      >
+        <Repeat size={13} strokeWidth={2.2} />
+      </RouteToolButton>
+    </span>
+  );
+  // The way back of a loop is no stop of its own, so the count leaves it out.
+  const stops = planner.waypoints.length - (planner.isLoop ? 1 : 0);
   const card = (children: ReactNode) => (
     <RailCard
       icon={<MapPin size={14} strokeWidth={2} />}
       title={t('tours.planner.waypoints')}
       aside={
         planner.waypoints.length > 0 && (
-          <span className="flex-none tabular-nums text-content-faint" style={fs(11.5, 'body')}>
-            {planner.waypoints.length}
+          <span className="flex flex-none items-center gap-1.5">
+            {tools}
+            <span className="flex-none tabular-nums text-content-faint" style={fs(11.5, 'body')}>
+              {stops}
+            </span>
           </span>
         )
       }
@@ -233,8 +455,7 @@ export default function TourWaypointList({
         {planner.waypoints.map((point, index) => {
           const selected = planner.selectedWaypointId === point.id;
           const isDropTarget = dropTarget?.id === point.id && draggedWaypointId !== point.id;
-          const placeName = placeNames[point.id];
-          const coordinates = `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
+          const loopEnd = planner.isLoop && index === lastIndex;
           return (
             <Fragment key={point.id}>
               <li
@@ -290,71 +511,47 @@ export default function TourWaypointList({
                   >
                     <GripVertical size={14} strokeWidth={1.8} />
                   </span>
-                  <WaypointNumber index={index} selected={selected} ferrata={ferrataEnds[point.id] ?? null} />
+                  <WaypointNumber
+                    index={index}
+                    selected={selected}
+                    ferrata={ferrataEnds[point.id] ?? null}
+                    loopEnd={loopEnd}
+                  />
                   <button
                     type="button"
                     onClick={() => planner.setSelectedWaypointId(point.id)}
                     className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-start outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[color:var(--text-primary)]"
                     aria-current={selected ? 'true' : undefined}
                   >
-                    <span className="flex w-full min-w-0 items-center gap-1.5">
-                      <span
-                        data-testid="tour-planner-waypoint-name"
-                        className={`block min-w-0 truncate leading-tight ${placeName ? 'font-semibold text-content' : 'font-geist tabular-nums text-content-muted'}`}
-                        style={fs(12.5, 'body')}
-                      >
-                        {placeName ?? coordinates}
-                      </span>
-                      {point.role !== 'via' && <SoftPill>{t(ROLE_KEY[point.role])}</SoftPill>}
-                    </span>
-                    {placeName && (
-                      <span
-                        data-testid="tour-planner-waypoint-coordinates"
-                        className="block min-w-0 truncate font-geist tabular-nums leading-tight text-content-faint"
-                        style={fs(10.5)}
-                      >
-                        {coordinates}
-                      </span>
-                    )}
+                    <WaypointRowLabel point={point} placeName={placeNames[point.id]} loopEnd={loopEnd} />
                   </button>
                   {canEdit && (
-                    <span
-                      className={`flex-none items-center gap-0.5 group-focus-within:flex group-hover:flex ${selected ? 'flex' : 'hidden'}`}
-                    >
-                      <WaypointAction
-                        label={t('tours.planner.moveUp')}
-                        disabled={isSaving || index === 0}
-                        onAct={() => planner.moveWaypoint(point.id, -1)}
-                      >
-                        <ArrowUp size={13} strokeWidth={2.2} />
-                      </WaypointAction>
-                      <WaypointAction
-                        label={t('tours.planner.moveDown')}
-                        disabled={isSaving || index === lastIndex}
-                        onAct={() => planner.moveWaypoint(point.id, 1)}
-                      >
-                        <ArrowDown size={13} strokeWidth={2.2} />
-                      </WaypointAction>
-                      <WaypointAction
-                        label={t('tours.planner.remove')}
-                        disabled={isSaving}
-                        danger
-                        onAct={() => planner.removeWaypoint(point.id)}
-                      >
-                        <Trash2 size={13} strokeWidth={2} />
-                      </WaypointAction>
-                    </span>
+                    <WaypointRowActions
+                      planner={planner}
+                      point={point}
+                      index={index}
+                      lastIndex={lastIndex}
+                      selected={selected}
+                      isSaving={isSaving}
+                    />
                   )}
                 </div>
               </li>
               {(legCrossings.get(point.id) ?? []).map((crossing) => (
                 <FerrataLegRow key={`${crossing.id}-${crossing.fromM}`} crossing={crossing} />
               ))}
+              {/* A paddle tour is drawn by hand throughout; the notice says it once instead of on every leg. */}
+              {point.fixedLeg?.kind === 'free' && !planner.isPaddle && <FreeLegRow leg={point.fixedLeg} />}
             </Fragment>
           );
         })}
       </ol>
       {canEdit && <AddPointRow disabled={isSaving} />}
+      {planner.isPaddle && (
+        <div className="mt-2">
+          <TourNotice icon={<Info size={13} strokeWidth={2} />}>{t('tours.paddle.drawnByHand')}</TourNotice>
+        </div>
+      )}
     </>
   );
 }

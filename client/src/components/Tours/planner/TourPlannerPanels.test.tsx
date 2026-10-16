@@ -10,6 +10,7 @@ import type { TourPlannerController } from './useTourPlanner'
 import type { Day } from '../../../types'
 import { publishTourFerrataCrossings } from '../../../store/tourFerrataCrossingStore'
 import { TourPlannerRail, TourPlannerToursRail } from './TourPlannerPanels'
+import { hikePlannerDefaults } from '../../../../tests/helpers/tourPlannerStub'
 
 vi.mock('../../../../../server/src/config', () => { throw new Error('Config initialization is forbidden in client tests') })
 vi.mock('../../../../../server/src/db/database', () => { throw new Error('Legacy database imports are forbidden in client tests') })
@@ -43,6 +44,7 @@ const routeAnalysis = analyzeRouteGeometry(JSON.stringify([[48, 11, 500], [48.03
 
 function planner(overrides: Partial<TourPlannerController> = {}): TourPlannerController {
   const state = {
+    ...hikePlannerDefaults(),
     canEdit: true,
     canAssign: true,
     isSaving: false,

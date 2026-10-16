@@ -15,6 +15,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { publishTourFerrataCrossings } from '../../store/tourFerrataCrossingStore';
 import { useFerrataAdopt } from './useFerrataAdopt';
 import { useTourMapPoints } from './useTourMapPoints';
+import { useTourStageLayers } from './useTourStageLayers';
 import type { useTripPlanner } from './useTripPlanner';
 import type { useTripPlannerPage } from './useTripPlannerPage';
 
@@ -91,6 +92,11 @@ export function TourPlannerMapStage({
   );
   const analysis = tourPlanner.mode.type === 'view-gpx' ? tourPlanner.readOnlyGpxAnalysis : tourPlanner.routeAnalysis;
   const ferrata = useFerrataMapLayer(tripId, ferrataArea, analysis?.routeCoordinates ?? null);
+  // The maps this tour's type offers: its base layers, its overlays, and the ferratas only where they belong.
+  const { baseLayer, tourLayers, ferrataLayer, ferrataCrossings, ferrataSelected } = useTourStageLayers(
+    tourPlanner,
+    ferrata
+  );
   const ferrataViewportChange = ferrata.onViewportChange;
   const viewportChanged = useCallback(
     (bounds: FerrataBbox) => {
@@ -107,30 +113,30 @@ export function TourPlannerMapStage({
       const label = ferrataLabel(group, translate);
       return { name: label.name, grade: label.grade };
     };
-    const legs = crossingLegs(tourWaypoints, analysis?.distanceIndexedProfileSamples ?? [], ferrata.crossings);
+    const legs = crossingLegs(tourWaypoints, analysis?.distanceIndexedProfileSamples ?? [], ferrataCrossings);
     publishTourFerrataCrossings(
-      ferrata.crossings.map(({ group, fromM, toM }, i) => ({
+      ferrataCrossings.map(({ group, fromM, toM }, i) => ({
         id: group.id,
         ...describe(group),
         fromM,
         toM,
         afterWaypoint: legs[i] ?? null,
       })),
-      waypointsAtFerrataEnds(tourWaypoints, ferrata.crossings, describe)
+      waypointsAtFerrataEnds(tourWaypoints, ferrataCrossings, describe)
     );
-  }, [analysis, ferrata.crossings, tourWaypoints, translate]);
+  }, [analysis, ferrataCrossings, tourWaypoints, translate]);
   useEffect(() => () => publishTourFerrataCrossings([]), []);
   // The click that closes a ferrata's card must not also add a waypoint under it.
   const closingPress = useOutsidePressGuard();
   const adoptFerrata = useFerrataAdopt(tourPlanner, canPlaceEdit, ferrata.close);
-  const ferrataOnTour = useMemo(() => new Set(ferrata.crossings.map(({ group }) => group.id)), [ferrata.crossings]);
+  const ferrataOnTour = useMemo(() => new Set(ferrataCrossings.map(({ group }) => group.id)), [ferrataCrossings]);
   const distanceUnit = useSettingsStore((s) => s.settings.distance_unit);
   // The "set points" tool, per mode; only a real click places, never the end of a drag.
   const { waypoints, placeTool, placeOn, attachSurface, placedHint } = useTourMapPoints({
     tourPlanner,
     canPlaceEdit,
     mode: terrain3d ? '3d' : '2d',
-    ferrataOpen: !!ferrata.selected,
+    ferrataOpen: !!ferrataSelected,
     guard: closingPress.guard,
     previewPoints: tourMap.previewPoints,
   });
@@ -155,8 +161,9 @@ export function TourPlannerMapStage({
               routes={tourMap.route}
               trackColor={TOUR_TRACK_COLOR}
               unit={distanceUnit}
-              baseLayer={tourPlanner.mapBaseLayer}
+              baseLayer={baseLayer}
               onBaseLayerChange={tourPlanner.setMapBaseLayer}
+              tourLayers={tourLayers}
               onExit={() => setTerrain3d(false)}
               focus={tourPlanner.routeProfileFocus}
               onFocusChange={tourPlanner.setRouteProfileFocus}
@@ -164,7 +171,7 @@ export function TourPlannerMapStage({
               rightWidth={rightInset}
               waypoints={waypoints}
               framePoints={tourMap.focusPoints}
-              ferrataLayer={ferrata.layer}
+              ferrataLayer={ferrataLayer}
               onViewportChange={viewportChanged}
               onControlsHeightChange={setTerrainControlsPx}
               onLegendLayout={setTerrainLegend}
@@ -193,10 +200,11 @@ export function TourPlannerMapStage({
             onPlannerWaypointClick={tourPlanner.setSelectedWaypointId}
             onPlannerWaypointMove={waypoints.onMove}
             routeProfileFocus={tourPlanner.routeProfileFocus}
-            viewBaseLayer={tourPlanner.mapBaseLayer}
+            viewBaseLayer={baseLayer}
             onViewBaseLayerChange={tourPlanner.setMapBaseLayer}
+            tourLayers={tourLayers}
             onToggleTerrain3d={() => setTerrain3d(true)}
-            ferrataLayer={ferrata.layer}
+            ferrataLayer={ferrataLayer}
             onViewportChange={viewportChanged}
             placeTool={placeTool}
           />
@@ -205,7 +213,7 @@ export function TourPlannerMapStage({
       {/* The card sits at the inline end; the panels keep their physical sides, so in a
           right-to-left language that end is the left panel's. */}
       <FerrataDetailOverlay
-        selection={ferrata.selected}
+        selection={ferrataSelected}
         onClose={ferrata.close}
         onOutsidePress={closingPress.arm}
         insetEnd={(isRtlLanguage(language) ? leftInset : rightInset) + MAP_LAYER_SWITCHER_INSET}

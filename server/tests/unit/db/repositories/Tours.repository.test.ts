@@ -92,6 +92,9 @@ describe('ToursRepository reads', () => {
         has_waypoints: 1,
         derived_from_place_id: null,
         origin: 'trek',
+        boat_type: null,
+        water_context: null,
+        paddle_speed_kmh: null,
         has_recorded_track: 0,
       },
       {
@@ -114,6 +117,9 @@ describe('ToursRepository reads', () => {
         has_waypoints: 0,
         derived_from_place_id: null,
         origin: 'trek',
+        boat_type: null,
+        water_context: null,
+        paddle_speed_kmh: null,
         has_recorded_track: 0,
       },
     ]);
@@ -192,25 +198,31 @@ describe('ToursRepository writes', () => {
       has_waypoints: 0,
       derived_from_place_id: null,
       origin: 'trek',
+      boat_type: null,
+      water_context: null,
+      paddle_speed_kmh: null,
       has_recorded_track: 0,
     });
   });
+
+  // A route edit always writes the type's own fields; a hike's are empty.
+  const HIKE_UPDATE = { ...METRICS, boat_type: null, water_context: null, paddle_speed_kmh: null };
 
   it('TOURREPO-007: updateInTrip replaces the metrics of a tour of that trip and refuses one of another trip', async () => {
     const { trip, other } = fixture();
     const place = createPlace(testDb, trip.id);
     createTour(testDb, place.id);
 
-    expect(await repo.updateInTrip(other.id, place.id, METRICS)).toBe(false);
+    expect(await repo.updateInTrip(other.id, place.id, HIKE_UPDATE)).toBe(false);
     expect(await repo.findInTrip(trip.id, place.id)).toMatchObject({ distance: null, max_hiking_difficulty: 2 });
 
-    expect(await repo.updateInTrip(trip.id, place.id, METRICS)).toBe(true);
+    expect(await repo.updateInTrip(trip.id, place.id, HIKE_UPDATE)).toBe(true);
     expect(await repo.findInTrip(trip.id, place.id)).toMatchObject(METRICS);
     const {
       planned_duration_minutes: _omitted,
       break_additional_minutes: _omittedBreaks,
       ...routeOnlyUpdate
-    } = METRICS;
+    } = HIKE_UPDATE;
     expect(await repo.updateInTrip(trip.id, place.id, routeOnlyUpdate)).toBe(true);
     expect(await repo.findInTrip(trip.id, place.id)).toMatchObject({
       duration: 150,
@@ -255,6 +267,9 @@ describe('ToursRepository writes', () => {
         recorded_route_geometry: null,
         origin: 'trek',
         origin_file_name: null,
+        boat_type: null,
+        water_context: null,
+        paddle_speed_kmh: null,
       },
     ]);
     expect(await repo.listRowsForTrip(other.id)).toEqual([]);

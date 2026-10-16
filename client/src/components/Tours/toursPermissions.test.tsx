@@ -10,6 +10,7 @@ const state = vi.hoisted(() => ({
   trip: { id: 7, user_id: 1 } as { id: number; user_id: number } | null,
   user: { id: 2, role: 'user' } as { id: number; role: string } | null,
   importGpx: vi.fn(),
+  previewGpx: vi.fn(),
   loadTrip: vi.fn(),
   refreshPlaces: vi.fn(),
   create: vi.fn(),
@@ -22,7 +23,8 @@ const state = vi.hoisted(() => ({
 vi.mock('../../store/tripStore', () => ({ useTripStore: (selector: (store: unknown) => unknown) => selector({ trip: state.trip, loadTrip: state.loadTrip, refreshPlaces: state.refreshPlaces, places: [] }) }))
 vi.mock('../../store/authStore', () => ({ useAuthStore: (selector: (store: unknown) => unknown) => selector({ user: state.user }) }))
 vi.mock('../../store/settingsStore', () => ({ useSettingsStore: (selector: (store: unknown) => unknown) => selector({ settings: { distance_unit: 'metric' } }) }))
-vi.mock('../../repo/tourRepo', () => ({ tourRepo: { importGpx: state.importGpx, create: state.create, update: state.update, detail: state.detail } }))
+vi.mock('../Map/MapViewAuto', () => ({ MapViewAuto: () => null }))
+vi.mock('../../repo/tourRepo', () => ({ tourRepo: { importGpx: state.importGpx, previewGpx: state.previewGpx, create: state.create, update: state.update, detail: state.detail } }))
 vi.mock('./planner/tourRouting', () => ({ routeWalkingTour: state.route, enrichTourElevations: state.elevation }))
 vi.mock('../../i18n', () => ({ useTranslation: () => ({ t: (key: string) => key, locale: 'en' }), translateApiError: () => 'error' }))
 vi.mock('../shared/Toast', () => ({ useToast: () => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() }) }))
@@ -48,6 +50,7 @@ import TourDetailDialog from './TourDetailDialog'
 import MToursSelectionList from '../../mobile/screens/trip/places/MToursSelectionList'
 import type { ComponentProps } from 'react'
 import { useTourListFilters } from './useTourListFilters'
+import { hikePlannerDefaults } from '../../../tests/helpers/tourPlannerStub'
 
 /** The list as the places browser mounts it: its filters from the shared hook (PR1-13). */
 function List(props: Omit<ComponentProps<typeof MToursSelectionList>, 'filters'>) {
@@ -63,6 +66,7 @@ beforeEach(() => {
   state.trip = { id: 7, user_id: 1 }
   state.user = { id: 2, role: 'user' }
   state.importGpx.mockResolvedValue({ tours: [tour] })
+  state.previewGpx.mockResolvedValue({ tracks: [{ name: 'Ridge', geometry: [[46, 7], [46.01, 7.01]], point_count: 2, distance_km: 1.4, elevation_gain_m: null, elevation_loss_m: null, duplicate: false }] })
   usePermissionsStore.setState({ permissions: { place_edit: 'admin', day_edit: 'admin' } })
 })
 afterEach(() => { cleanup(); vi.useRealTimers(); localStorage.clear() })
@@ -151,6 +155,7 @@ describe('Tours permissions without database setup', () => {
   })
   it.each([[false, false], [true, false], [false, true], [true, true]])('rails edit=%s assign=%s separate save and existing-tour attach', (canEdit, canAssign) => {
     const planner = {
+      ...hikePlannerDefaults(),
       mode: { type: 'new-draft' }, name: 'Ridge', status: 'ready', maxHikingDifficulty: 2,
       waypoints: [], canSave: true, save: vi.fn(), route: null, saveOutcome: tour,
       startNewTour: vi.fn(), openTour: vi.fn().mockResolvedValue(true),
@@ -211,6 +216,10 @@ describe('Tours permissions without database setup', () => {
     expect(assign).toHaveBeenCalledTimes(canAssign ? 1 : 0)
     await act(async () => {
       pickFiles(importButton, [new File(['gpx'], 'ridge.gpx')]) })
+    // Choosing a file only reads it; the write is the preview's confirmation.
+    expect(state.previewGpx).toHaveBeenCalledTimes(canEdit ? 1 : 0)
+    expect(state.importGpx).not.toHaveBeenCalled()
+    if (canEdit) await act(async () => { fireEvent.click(screen.getByTestId('gpx-preview-import')) })
     expect(state.importGpx).toHaveBeenCalledTimes(canEdit ? 1 : 0)
   })
 

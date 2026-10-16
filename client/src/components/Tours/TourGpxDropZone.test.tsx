@@ -6,7 +6,15 @@ import TourGpxDropZone from './TourGpxDropZone';
 import type { TourGpxImport } from './useTourGpxImport';
 
 function gpxImport(overrides: Partial<TourGpxImport> = {}): TourGpxImport {
-  return { importing: false, importFiles: vi.fn().mockResolvedValue(undefined), pick: vi.fn(), ...overrides };
+  return {
+    importing: false,
+    importFiles: vi.fn().mockResolvedValue(undefined),
+    pick: vi.fn(),
+    preview: null,
+    confirm: vi.fn().mockResolvedValue(undefined),
+    cancel: vi.fn(),
+    ...overrides,
+  };
 }
 
 const file = new File(['<gpx/>'], 'ridge.gpx', { type: 'application/gpx+xml' });

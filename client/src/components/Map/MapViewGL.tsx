@@ -8,8 +8,9 @@ import { renderIconMarkup } from '../../utils/iconMarkup'
 import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n/TranslationContext'
+import { applySatellite } from './glRasterLayers'
+import { useTourMapLayersGL } from './mapRasterOverlay'
 import { MapLayerSwitcher, TourMapLayerSwitcher, MAP_LAYER_SWITCHER_INSET, type BaseLayer, type TourBaseLayer } from './MapLayerSwitcher'
-import { OPENTOPOMAP_TILE_URL, OPENTOPOMAP_TILE_ATTRIBUTION, OPENTOPOMAP_TILE_MAXZOOM } from '../../constants/mapDefaults'
 import { MapLockPill } from './MapLockPill'
 import { useMarkerThumbs } from './useMarkerThumbs'
 import { placeMarkerLook, type PlaceMarkerFlags } from './markerLook'
@@ -32,7 +33,7 @@ import { nightPauseMarker, NIGHT_PAUSE_MIN_ZOOM } from './nightPauseMarker'
 import { clusterPois, poiClusterMarkup, poiClusterList, POI_CLUSTER_DETAIL_ZOOM } from './poiClusters'
 import { groupCoincidentPlaces } from './coincidentPlaces'
 import { useHazardLayerGL } from './useHazardLayerGL'
-import { type FerrataGlMap, isFerrataHit, useFerrataMapLayerGL } from '../Ferratas/useFerrataLayerGL'
+import { type FerrataGlMap, isFerrataHit } from '../Ferratas/useFerrataLayerGL'
 import { formatViaDwell } from './routeViaDwell'
 import { useDawarichTrailGL } from './useDawarichTrailGL'
 import { bindDayBoundaryDrag } from './dayBoundaryDrag'
@@ -44,7 +45,7 @@ import { poiPinParts } from './poiMarker'
 import { addGpxTrackLayers, GPX_HIT_LAYER_ID, hasGpxTrackLayers, selectGpxTrack, setGpxTracks } from './gpxTrackLayers'
 import { buildPoiPopupHtml } from './placePopup'
 import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM } from '../../constants/mapDefaults'
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 import { selectedPlaceTarget } from './selectedPlaceTarget'
 
@@ -65,25 +66,6 @@ const PLACE_CLUSTER_SOURCE_ID = 'trip-place-clusters'
 const PLACE_CLUSTER_CIRCLE_LAYER_ID = 'trip-place-clusters-circle'
 const PLACE_CLUSTER_COUNT_LAYER_ID = 'trip-place-clusters-count'
 const PLACE_UNCLUSTERED_LAYER_ID = 'trip-place-unclustered-hit'
-/**
- * The satellite base layer, the GL twin of the Leaflet one.
- *
- * Leaflet swaps its whole tile layer for the imagery; a GL map cannot, because the
- * basemap is a style with dozens of layers in it. So the imagery goes on as a raster
- * layer of its own, drawn over the style and under everything TREK adds — the route,
- * the pins and the tracks stay on top and stay legible, which is the same order the
- * Leaflet map ends up with.
- *
- * Same tokenless ESRI source as Leaflet, so the two look alike and neither needs a key.
- */
-const SATELLITE_SOURCE_ID = 'trip-satellite'
-const SATELLITE_LAYER_ID = 'trip-satellite-raster'
-/** Everything TREK draws is prefixed; the imagery is inserted before the first of them. */
-// Everything TREK draws on a GL map, so the satellite raster can be slipped underneath all
-// of it. `route-alt-` earns its place here: the roads offered for a leg are added before the
-// route source so they sit under the current route, which also puts them before the first
-// `trip-` layer, and anchoring the imagery there painted right over them.
-const OWN_LAYER_PREFIXES = ['trip-', 'trek-', 'route-alt-']
 
 type PlaceWithCoords = Place & { lat: number; lng: number }
 
@@ -201,59 +183,6 @@ function addPlaceClusterLayers(map: any): void {
       })
 }
 
-/**
- * Puts the imagery on the map, or takes it off again.
- *
- * Built on demand rather than once at load: a style change drops every source the map
- * had, and a hot reload does the same. Visibility comes first: a layer that is already
- * there only needs flipping, so the usual pass is one call and a tap answers at once.
- *
- * Deliberately not gated on `isStyleLoaded()`. That reports false for as long as any
- * source has tiles or a setData in flight (see useDawarichTrailGL), which on a phone is
- * the usual state, and the only retry here is `styledata`, which fires on style edits
- * and not when those finish. Behind that gate a stored choice met a busy map on load,
- * and a tap on the road trip stage met the sources the same render had just set again,
- * so the imagery was never drawn. The gate was also the wrong question: this only runs
- * after `load`, and addSource and addLayer refuse only a style document that is not in
- * yet. The catch covers that case, and `styledata` brings the pass back once it is in.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applySatellite(map: any, on: boolean, topo = false): void {
-  const layerId = topo ? 'trip-topo-raster' : SATELLITE_LAYER_ID
-  const sourceId = topo ? 'trip-topo' : SATELLITE_SOURCE_ID
-  try {
-    if (map.getLayer(layerId)) {
-      map.setLayoutProperty(layerId, 'visibility', on ? 'visible' : 'none')
-      return
-    }
-    if (!on) return // Nothing to build while it is switched off.
-    // The layer is what is missing, not necessarily the source: a pass that got the
-    // source in and then failed on the layer would otherwise leave a source that stops
-    // every later pass from ever building the layer.
-    if (!map.getSource(sourceId)) {
-      map.addSource(sourceId, {
-        type: 'raster',
-        tiles: topo
-          ? ['a', 'b', 'c'].map(subdomain => OPENTOPOMAP_TILE_URL.replace('{s}', subdomain))
-          : [SATELLITE_TILE_URL],
-        tileSize: 256,
-        maxzoom: topo ? OPENTOPOMAP_TILE_MAXZOOM : SATELLITE_TILE_MAXZOOM,
-        attribution: topo ? OPENTOPOMAP_TILE_ATTRIBUTION : SATELLITE_TILE_ATTRIBUTION,
-      })
-    }
-    // Under the first thing TREK draws, over everything the basemap style draws.
-    // Without the anchor the imagery lands on top and buries the route.
-    const layers = map.getStyle?.()?.layers ?? []
-    const firstOwn = layers.find((l: { id: string }) =>
-      OWN_LAYER_PREFIXES.some(prefix => l.id.startsWith(prefix)))
-    map.addLayer({
-      id: layerId,
-      type: 'raster',
-      source: sourceId,
-      paint: { 'raster-opacity': 1 },
-    }, firstOwn?.id)
-  } catch { /* a style that refuses the layer keeps the plain basemap */ }
-}
 
 function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?: string; category_icon?: string }, photoUrl: string | null, orderNumbers: number[] | null, selected: boolean): HTMLDivElement {
   // A stop that interrupts the drive gets its own small disc, decided before the photo
@@ -624,7 +553,7 @@ export function MapViewGL({
   onPlannerWaypointClick,
   onPlannerWaypointMove,
   routeProfileFocus = null,
-  viewBaseLayer, onViewBaseLayerChange, onToggleTerrain3d, ferrataLayer, placeTool,
+  viewBaseLayer, onViewBaseLayerChange, onToggleTerrain3d, ferrataLayer, placeTool, tourLayers,
   roadtripVias,
   onMoveVia,
   onRemoveVia,
@@ -683,7 +612,7 @@ export function MapViewGL({
   const mapRef = useRef<any | null>(null)
   const hazardPopupFactory = useCallback(() => new gl.Popup({ className: 'map-tooltip trek-hazard-popup', maxWidth: '320px' }), [gl])
   useHazardLayerGL(mapRef.current, mapReady, hazards, hazardPopupFactory)
-  useFerrataMapLayerGL(mapReady ? readyMap : null, ferrataLayer)
+  useTourMapLayersGL(mapReady ? readyMap : null, ferrataLayer, tourLayers?.overlays)
   // Beneath the planned route's casing, the GL twin of the Leaflet pane order.
   useDawarichTrailGL(mapRef.current, mapReady, dawarichTrack, dawarichSelectedDate, 'trip-route-casing', dawarichHiddenDates)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2311,7 +2240,7 @@ export function MapViewGL({
         {onToggleFollow && <MapLockPill locked={!followSelection} onToggle={onToggleFollow} />}
         {hasViewBaseLayer
           ? <TourMapLayerSwitcher active={baseLayer as TourBaseLayer} onChange={onViewBaseLayerChange}
-              onToggleTerrain={onToggleTerrain3d} ferrataLayer={ferrataLayer} placeTool={placeTool} />
+              onToggleTerrain={onToggleTerrain3d} ferrataLayer={ferrataLayer} placeTool={placeTool} layers={tourLayers} />
           : <MapLayerSwitcher active={globalBaseLayer as BaseLayer} onToggle={toggleBaseLayer} />}
       </div>
       {/* Hover tooltip — cursor-following name/category/address card, identical to

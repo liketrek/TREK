@@ -348,7 +348,10 @@ export function TourDetailsSection({
           <>
             <TourDescriptionField planner={planner} locked={locked} />
             <TourWebsiteField planner={planner} locked={locked} />
-            <TourDifficultyField planner={planner} locked={locked} onDifficultyChange={onDifficultyChange} />
+            {/* A paddle tour is not graded on the hiking scale. */}
+            {!planner.isPaddle && (
+              <TourDifficultyField planner={planner} locked={locked} onDifficultyChange={onDifficultyChange} />
+            )}
             <TourTimeFields planner={planner} locked={locked} />
           </>
         )}

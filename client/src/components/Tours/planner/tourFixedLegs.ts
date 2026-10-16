@@ -50,3 +50,25 @@ export function lineLengthM(line: readonly (readonly [number, number])[]): numbe
   }
   return total;
 }
+
+/** The longest stretch, in metres, a hand-drawn leg runs without a point of its own. */
+const FREE_LEG_SAMPLE_M = 25;
+
+/**
+ * A straight line with a point every `stepM` metres, so the heights read for
+ * it follow the ground under the whole stretch and not only its two ends. The
+ * line itself does not change; a short one comes back as it was.
+ */
+export function densifyLine(line: readonly [number, number][], stepM = FREE_LEG_SAMPLE_M): [number, number][] {
+  const dense: [number, number][] = [];
+  line.forEach((point, index) => {
+    const next = line[index + 1];
+    dense.push(point);
+    if (!next) return;
+    const parts = Math.floor(lineLengthM([point, next]) / stepM);
+    for (let i = 1; i < parts; i += 1) {
+      dense.push([point[0] + ((next[0] - point[0]) * i) / parts, point[1] + ((next[1] - point[1]) * i) / parts]);
+    }
+  });
+  return dense;
+}

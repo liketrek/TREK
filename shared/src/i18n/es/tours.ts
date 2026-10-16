@@ -194,7 +194,7 @@ const tours: TranslationStrings = {
   'tourTypes.bike': 'Ruta en bicicleta',
   'tourTypes.run': 'Carrera a pie',
   'tourTypes.ski': 'Esquí de travesía',
-  'tourTypes.kayak': 'Ruta en kayak',
+  'tourTypes.kayak': 'Ruta en piragua',
   'tourTypes.walk': 'Paseo urbano / turístico',
   'tourTypes.food': 'Ruta gastronómica / enológica',
   'tours.terrain.play': 'Reproducir sobrevuelo',
@@ -276,5 +276,59 @@ const tours: TranslationStrings = {
   'tours.copy.name': '{name} (copia)',
   'tours.copy.saved': 'Guardada como nueva excursión',
   'tours.copy.failed': 'No se pudo copiar la excursión.',
+  'tours.planner.tourType': 'Tipo de ruta',
+  'tours.paddle.boat': 'Embarcación',
+  'tours.paddle.boat.kayak': 'Kayak', // same-as-en
+  'tours.paddle.boat.canoe': 'Canoa',
+  'tours.paddle.boat.sup': 'SUP', // same-as-en
+  'tours.paddle.boat.other': 'Otra',
+  'tours.paddle.water': 'Agua',
+  'tours.paddle.water.river': 'Río',
+  'tours.paddle.water.lake': 'Lago',
+  'tours.paddle.speed': 'Velocidad de remo',
+  'tours.paddle.speedOwn': 'Velocidad propia',
+  'tours.paddle.speedUseSuggestion': 'Usar la sugerencia de {speed} km/h',
+  'tours.paddle.speedNeeded': 'Introduce una velocidad para estimar el tiempo en el agua.',
+  'tours.paddle.speedInvalid': 'Introduce una velocidad de 0,5 a 20 km/h.',
+  'tours.paddle.chooseBoat': 'Elige la embarcación y el agua para guardar esta ruta.',
+  'tours.paddle.chooseBoatImport': 'Elige la embarcación y el agua para importar como ruta en piragua.',
+  'tours.paddle.noWaterData':
+    'TREK aún no muestra presas, esclusas ni porteos. Comprueba tú mismo el agua y sus normas antes de salir.',
+  'tours.paddle.drawnByHand':
+    'Una ruta en piragua se dibuja a mano: TREK une tus puntos con líneas rectas. Nada se calcula y nada indica que el agua sea navegable.',
+  'tours.paddle.timeEstimated': 'Tiempo de remo (estimado)',
+  'tours.paddle.timeEstimatedShort': 'Remo',
+  'tours.paddle.timeEstimatedInfoLabel': 'Cómo se estima el tiempo de remo',
+  'tours.paddle.timeEstimatedInfo':
+    'Distancia dividida entre la velocidad prevista, en agua tranquila. No incluye corriente, viento, porteos ni esclusas.',
+  'tours.planner.reverse': 'Invertir el sentido',
+  'tours.planner.returnToStart': 'Volver al inicio',
+  'tours.planner.alreadyLoop': 'La ruta ya vuelve al inicio',
+  'tours.planner.loopEnd': 'Vuelta al inicio',
+  'tours.planner.freeLeg': 'Dibujar a mano el siguiente tramo',
+  'tours.planner.routeLeg': 'Volver a calcular el siguiente tramo',
+  'tours.planner.freeLegBadge': 'Dibujado a mano, sin calcular',
+  'tours.planner.freeLegInfo':
+    'TREK une estos dos puntos con una línea recta. Ningún enrutador ha planificado ni comprobado este tramo.',
+  'tours.map.seamarks': 'Señales náuticas',
+  'tours.map.seamarksDown': 'Las señales náuticas no cargan. El mapa y tu ruta siguen funcionando.',
+  'tours.import.previewTitle': 'Vista previa del GPX',
+  'tours.import.previewHint': 'Aún no se ha guardado nada. Revisa el recorrido y luego importa.',
+  'tours.import.previewFiles': '{count} archivos',
+  'tours.import.previewFiles.one': '{count} archivo',
+  'tours.import.previewTracks': '{count} tracks', // same-as-en
+  'tours.import.previewTracks.one': '{count} track', // same-as-en
+  'tours.import.previewPoints': '{count} puntos',
+  'tours.import.previewPoints.one': '{count} punto',
+  'tours.import.previewNoHeights': 'Sin altitudes en el archivo',
+  'tours.import.previewDuplicate': 'Ya está en el viaje',
+  'tours.import.previewAllDuplicates': 'Todos los tracks ya están en el viaje, no hay nada que importar.',
+  'tours.import.previewAs': 'Importar como',
+  'tours.import.previewConfirm': 'Importar {count} rutas',
+  'tours.import.previewConfirm.one': 'Importar {count} ruta',
+  'tours.conversion.introPaddle':
+    'Una importación es un recorrido grabado. Planifica una ruta en piragua editable: TREK toma puntos de control, los une con líneas rectas como se dibuja una ruta en piragua y muestra cuánto se acerca. Nada cambia hasta que elijas.',
+  'tours.conversion.closePaddle':
+    'La propuesta sigue el recorrido de cerca. Sus puntos se unen con líneas rectas, así que no es la misma línea.',
 };
 export default tours;

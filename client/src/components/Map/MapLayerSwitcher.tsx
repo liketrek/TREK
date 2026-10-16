@@ -1,4 +1,4 @@
-import { Loader2, Map as MapIcon, MapPinPlus, Mountain, Rotate3d, Satellite } from 'lucide-react'
+import { Anchor, Loader2, Map as MapIcon, MapPinPlus, Mountain, Rotate3d, Satellite } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from '../../i18n'
 import { FerrataLineIcon } from '../Ferratas/FerrataGlyph'
@@ -7,9 +7,16 @@ import type { FerrataStatus } from '../Ferratas/useTripFerratas'
 import { fs } from '../shared/DialogShell'
 import { Tooltip } from '../shared/Tooltip'
 import { MAP_CONTROL_SHADOW } from './mapControlShadow'
+import type { ToggleableRasterOverlay } from './mapRasterOverlay'
 
 export type BaseLayer = 'default' | 'satellite'
 export type TourBaseLayer = BaseLayer | 'topo'
+
+/** What a tour's type offers on the planner map (P2B-06): its base layers, and the overlays beside the ferratas. */
+export interface TourLayerOffer {
+  bases?: readonly TourBaseLayer[]
+  overlays?: readonly ToggleableRasterOverlay[]
+}
 
 const FROSTED_SHELL = {
   display: 'inline-flex', alignItems: 'center', padding: 4, borderRadius: 999, pointerEvents: 'auto' as const,
@@ -178,6 +185,51 @@ function PlaceToolToggle({ tool }: { tool: MapPlaceTool }) {
   )
 }
 
+/** How each overlay the planner can offer is named and drawn on its switch. */
+const OVERLAY_LOOK: Record<string, { Icon: typeof Anchor; labelKey: string; downKey: string }> = {
+  seamarks: { Icon: Anchor, labelKey: 'tours.map.seamarks', downKey: 'tours.map.seamarksDown' },
+}
+
+/**
+ * The switch for a transparent overlay (the seamarks), the way the via
+ * ferrata switch looks: on in the accent, and in the warning tone with a badge
+ * once its source stopped answering, which the tooltip names. The map and the
+ * planning go on without it.
+ */
+function OverlayToggle({ overlay, compact }: { overlay: ToggleableRasterOverlay; compact: boolean }) {
+  const { t } = useTranslation()
+  const look = OVERLAY_LOOK[overlay.id]
+  if (!look) return null
+  const label = t(look.labelKey)
+  const down = overlay.status === 'down'
+  const on = overlay.status !== 'off'
+  return (
+    <>
+      <Tooltip label={down ? t(look.downKey) : label} placement="top">
+        <button
+          type="button"
+          onClick={overlay.onToggle}
+          aria-label={label}
+          aria-pressed={on}
+          data-testid={`map-overlay-${overlay.id}`}
+          data-status={overlay.status}
+          className={on ? 'bg-accent text-accent-text' : 'text-content-muted'}
+          style={segmentStyle(on)}
+        >
+          <look.Icon size={15} strokeWidth={2} />
+          {!compact && <span>{label}</span>}
+          {down && (
+            <span aria-hidden className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-warning-soft px-1 font-semibold leading-none text-warning" style={fs(10)}>
+              !
+            </span>
+          )}
+        </button>
+      </Tooltip>
+      <span role="status" aria-live="polite" className="sr-only">{down ? t(look.downKey) : ''}</span>
+    </>
+  )
+}
+
 /**
  * Per-view Tours control. It never reads or writes the global map setting.
  * `compact` shows the base layers and the via ferrata switch by their icons
@@ -191,10 +243,13 @@ export function TourMapLayerSwitcher({
   terrainActive = false,
   ferrataLayer,
   placeTool,
+  layers,
   compact = false,
 }: {
   active: TourBaseLayer
   onChange: (layer: TourBaseLayer) => void
+  /** The base layers and overlays this tour's type offers; all three bases and no overlay when left out. */
+  layers?: TourLayerOffer
   /** Offers the 3D terrain switch beside the base layers. */
   onToggleTerrain?: () => void
   terrainActive?: boolean
@@ -205,10 +260,12 @@ export function TourMapLayerSwitcher({
   compact?: boolean
 }) {
   const { t } = useTranslation()
+  const bases = layers?.bases
+  const overlays = layers?.overlays
 
   return (
     <div style={{ ...FROSTED_SHELL, gap: 2 }} role="group" aria-label={t('settings.mapStyle')}>
-      {TOUR_LAYERS.map(({ id, labelKey, Icon }) => {
+      {TOUR_LAYERS.filter(({ id }) => !bases || bases.includes(id)).map(({ id, labelKey, Icon }) => {
         const selected = active === id
         const label = labelKey ? t(labelKey) : 'Topo'
         return (
@@ -227,9 +284,10 @@ export function TourMapLayerSwitcher({
           </Tooltip>
         )
       })}
-      {(ferrataLayer || onToggleTerrain || placeTool) && <span aria-hidden className="mx-0.5 h-5 w-px bg-edge" />}
+      {(ferrataLayer || onToggleTerrain || placeTool || !!overlays?.length) && <span aria-hidden className="mx-0.5 h-5 w-px bg-edge" />}
       {placeTool && <PlaceToolToggle tool={placeTool} />}
       {ferrataLayer && <FerrataToggle layer={ferrataLayer} compact={compact} />}
+      {overlays?.map(overlay => <OverlayToggle key={overlay.id} overlay={overlay} compact={compact} />)}
       {onToggleTerrain && (
         <button
           type="button"

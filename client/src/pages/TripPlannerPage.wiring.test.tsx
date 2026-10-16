@@ -114,8 +114,12 @@ vi.mock('../components/Planner/AirTrailImportModal', () => ({ default: stub('air
 vi.mock('../components/Planner/ReservationsPanel', () => ({ default: stub('reservationsPanel', 'reservations-panel') }))
 vi.mock('../components/Planner/TripWarningsBanner', () => ({ default: stub('warnings', 'trip-warnings') }))
 vi.mock('../components/Tours/TourDetailDialog', () => ({ default: stub('tourDetail', 'tour-detail-dialog') }))
-vi.mock('../components/Tours/planner/useTourPlanner', () => ({
+vi.mock('../components/Tours/planner/useTourPlanner', async () => {
+  const { hikePlannerDefaults } = await import('../../tests/helpers/tourPlannerStub')
+  const defaults = hikePlannerDefaults()
+  return {
   useTourPlanner: () => ({
+    ...defaults,
     route: null,
     waypoints: plannerActions.waypoints,
     routeProfileFocus: plannerActions.routeProfileFocus,
@@ -146,7 +150,8 @@ vi.mock('../components/Tours/planner/useTourPlanner', () => ({
     discard: vi.fn(),
     forgetDeletedTour: plannerActions.forgetDeletedTour,
   }),
-}))
+  }
+})
 
 vi.mock('../components/Trips/TripFormModal', () => ({ default: stub('tripForm') }))
 vi.mock('../components/Trips/TripMembersModal', () => ({ default: stub('membersModal') }))

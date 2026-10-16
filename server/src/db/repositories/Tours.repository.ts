@@ -2,6 +2,7 @@ import { type Tours, type TToursOrigin, ToursOrigin } from '../entities/Tours.en
 import type { DB } from '../kysely/db';
 import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
+import type { PaddleBoatType, PaddleWaterContext } from '@trek/shared';
 
 /**
  * A tour as the Tours list and detail read it: the `tours` facet joined with
@@ -27,6 +28,9 @@ export interface TourListRow {
   max_hiking_difficulty: number | null;
   derived_from_place_id: number | null;
   origin: string;
+  boat_type: string | null;
+  water_context: string | null;
+  paddle_speed_kmh: number | null;
   has_recorded_track: number;
   planned: number;
   has_waypoints: number;
@@ -51,6 +55,9 @@ export interface TourRow {
   recorded_route_geometry: string | null;
   origin: string;
   origin_file_name: string | null;
+  boat_type: string | null;
+  water_context: string | null;
+  paddle_speed_kmh: number | null;
 }
 const _tourRowKeys: AssertRowKeys<TourRow, Tours> = true;
 
@@ -66,12 +73,27 @@ export interface TourInsert {
   break_additional_minutes?: number | null;
   match_confidence: number | null;
   max_hiking_difficulty: number | null;
+  /** A paddle tour's boat, water and chosen speed; left out, a hike's NULLs. */
+  boat_type?: PaddleBoatType | null;
+  water_context?: PaddleWaterContext | null;
+  paddle_speed_kmh?: number | null;
 }
 
-/** What a route edit replaces on an existing tour. */
-export type TourUpdate = Omit<TourInsert, 'place_id' | 'planned_duration_minutes' | 'break_additional_minutes'> & {
+/** What a route edit replaces on an existing tour: the type and everything that belongs to it. */
+export type TourUpdate = Omit<
+  TourInsert,
+  | 'place_id'
+  | 'planned_duration_minutes'
+  | 'break_additional_minutes'
+  | 'boat_type'
+  | 'water_context'
+  | 'paddle_speed_kmh'
+> & {
   planned_duration_minutes?: number | null;
   break_additional_minutes?: number | null;
+  boat_type: PaddleBoatType | null;
+  water_context: PaddleWaterContext | null;
+  paddle_speed_kmh: number | null;
 };
 
 type ToursKyselyDB = Pick<DB, 'tours' | 'places' | 'day_assignments' | 'tour_waypoints' | 'tour_sources' | 'days'>;
@@ -148,6 +170,9 @@ export class ToursRepository extends TrekRepository<Tours> {
         't.max_hiking_difficulty as max_hiking_difficulty',
         't.derived_from_place_id as derived_from_place_id',
         't.origin as origin',
+        't.boat_type as boat_type',
+        't.water_context as water_context',
+        't.paddle_speed_kmh as paddle_speed_kmh',
         eb('t.recorded_route_geometry', 'is not', null).as('has_recorded_track'),
         eb
           .exists(eb.selectFrom('day_assignments as da').select('da.id').whereRef('da.place_id', '=', 'p.id'))
@@ -352,6 +377,9 @@ export class ToursRepository extends TrekRepository<Tours> {
       break_additional_minutes: input.break_additional_minutes ?? null,
       match_confidence: input.match_confidence,
       max_hiking_difficulty: input.max_hiking_difficulty,
+      boat_type: input.boat_type ?? null,
+      water_context: input.water_context ?? null,
+      paddle_speed_kmh: input.paddle_speed_kmh ?? null,
     });
   }
 
@@ -399,6 +427,9 @@ export class ToursRepository extends TrekRepository<Tours> {
           : {}),
         match_confidence: input.match_confidence,
         max_hiking_difficulty: input.max_hiking_difficulty,
+        boat_type: input.boat_type,
+        water_context: input.water_context,
+        paddle_speed_kmh: input.paddle_speed_kmh,
       })
       .where('place_id', '=', place_id)
       .where('place_id', 'in', (eb) => eb.selectFrom('places').select('id').where('trip_id', '=', trip_id))

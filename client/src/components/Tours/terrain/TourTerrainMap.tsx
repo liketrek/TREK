@@ -11,6 +11,7 @@ import {
   TourMapLayerSwitcher,
   type MapPlaceTool,
   type TourBaseLayer,
+  type TourLayerOffer,
 } from '../../Map/MapLayerSwitcher';
 import { MAP_CONTROL_SHADOW } from '../../Map/mapControlShadow';
 import { SoftPill } from '../../Planner/planParts';
@@ -38,6 +39,8 @@ export interface TourTerrainMapProps {
   framePoints: [number, number][];
   /** The planner map's via ferrata layer: its switch joins the layer pill, its lines the terrain. */
   ferrataLayer?: FerrataMapLayer;
+  /** What the tour's type offers: its base layers, and the overlays drawn on the terrain too. */
+  tourLayers?: TourLayerOffer;
   /** The visible area, for the via ferrata layer to ask for. */
   onViewportChange?: (bbox: FerrataBbox) => void;
   /** How high the controls along the bottom edge reach, every row of them, for what floats above them. */
@@ -110,6 +113,7 @@ export default function TourTerrainMap(props: TourTerrainMapProps) {
               onToggleTerrain={onExit}
               ferrataLayer={props.ferrataLayer}
               placeTool={props.placeTool}
+              layers={props.tourLayers}
               compact={fit !== 'full'}
             />
           </div>

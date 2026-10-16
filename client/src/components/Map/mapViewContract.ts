@@ -6,7 +6,7 @@ import type { FerrataMapLayer } from '../Ferratas/useFerrataMapLayer';
 import type { AlternativeOverlay } from '../Roadtrip/alternativeOverlays';
 import type { DayBoundaryControls } from './dayBoundaryDrag';
 import type { CompassMap } from './MapCompassPill';
-import type { MapPlaceTool, TourBaseLayer } from './MapLayerSwitcher';
+import type { MapPlaceTool, TourBaseLayer, TourLayerOffer } from './MapLayerSwitcher';
 import type { Poi } from './poiCategories';
 
 /*
@@ -129,6 +129,11 @@ export interface MapViewProps {
    * Ferratas modules.
    */
   ferrataLayer?: FerrataMapLayer;
+  /**
+   * What the tour's type offers in the tour layer pill (P2B-06): its base layers,
+   * and transparent overlays drawn over the basemap and under the route.
+   */
+  tourLayers?: TourLayerOffer;
   /**
    * An explicit stretch of map to frame, independent of the day being shown.
    *

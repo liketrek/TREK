@@ -172,7 +172,12 @@ describe('ToursImportController (POST /api/trips/:tripId/tours/import/gpx)', () 
     expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('import/gpx');
     expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toBeUndefined();
     expect(Reflect.getMetadata(TRIP_PERMISSION_KEY, handler)).toBeUndefined();
-    expect(Reflect.getMetadata(INTERCEPTORS_METADATA, handler)).toHaveLength(1);
+    // The multipart reader, and the response contract check the test environment adds.
+    expect(Reflect.getMetadata(INTERCEPTORS_METADATA, handler)).toHaveLength(2);
+    const preview = ToursImportController.prototype.previewGpx;
+    expect(Reflect.getMetadata(METHOD_METADATA, preview)).toBe(RequestMethod.POST);
+    expect(Reflect.getMetadata(PATH_METADATA, preview)).toBe('import/gpx/preview');
+    expect(Reflect.getMetadata(GUARDS_METADATA, preview)).toBeUndefined();
   });
 
   it('TOURS-IMP-002: delegates the route trip, file and socket id and returns the service result', async () => {
@@ -181,7 +186,7 @@ describe('ToursImportController (POST /api/trips/:tripId/tours/import/gpx)', () 
     expect(await controller.importGpx(user, '7', file, 'socket')).toBe(result);
     expect(places.verifyTripAccess).toHaveBeenCalledWith('7', user.id);
     expect(places.canEdit).toHaveBeenCalledWith(trip, user);
-    expect(tours.importGpxAsTour).toHaveBeenCalledWith('7', file.buffer, 'ridge.gpx', 'socket');
+    expect(tours.importGpxAsTour).toHaveBeenCalledWith('7', file.buffer, 'ridge.gpx', 'socket', { tour_type: 'hike' });
   });
 
   it('TOURS-IMP-003: a duplicate-only import is a successful skipped result', async () => {

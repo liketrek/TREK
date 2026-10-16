@@ -1,5 +1,6 @@
-import { computeTourMetrics, type GeometryPoint, type TourCreateRequest, type TourCreateResponse, type TourDetailResponse, type TourImportGpxResponse, type TourListItem, type TourWaypoint } from '@trek/shared'
+import { computeTourMetrics, type GeometryPoint, type TourCreateRequest, type TourCreateResponse, type TourDetailResponse, type TourGpxImportFields, type TourGpxPreviewResponse, type TourImportGpxResponse, type TourListItem, type TourWaypoint } from '@trek/shared'
 import { toursApi } from '../api/client'
+import { tourGpxApi } from '../api/tourGpx'
 import { recordedTrackApi } from '../api/recordedTrack'
 import { tourCopiesApi } from '../api/tourCopies'
 import { offlineDb, replaceTripTours, type CachedTour } from '../db/offlineDb'
@@ -39,12 +40,17 @@ function endpointsOf(routeGeometry: unknown): TourWaypoint[] {
  */
 function routeFields(body: TourCreateRequest) {
   const metrics = computeTourMetrics(body.route_geometry as GeometryPoint[])
+  // As the server keeps it: a drawn paddle tour's heights stay unknown.
+  const heightsKnown = body.tour_type !== 'kayak'
   const fields = {
     name: body.name,
     tour_type: body.tour_type,
     distance: metrics.distanceKm,
-    elevation_gain: metrics.elevationGainM,
-    elevation_loss: metrics.elevationLossM,
+    elevation_gain: heightsKnown ? metrics.elevationGainM : null,
+    elevation_loss: heightsKnown ? metrics.elevationLossM : null,
+    boat_type: body.boat_type ?? null,
+    water_context: body.water_context ?? null,
+    paddle_speed_kmh: body.paddle_speed_kmh ?? null,
     duration: body.duration_seconds == null ? null : Math.round(body.duration_seconds / 60),
     match_confidence: 1,
     caution: false,
@@ -200,9 +206,14 @@ export const tourRepo = {
     return result
   },
 
-  async importGpx(tripId: number | string, file: File): Promise<TourImportGpxResponse> {
-    const result = await toursApi.importGpx(tripId, file)
+  async importGpx(tripId: number | string, file: File, fields?: TourGpxImportFields): Promise<TourImportGpxResponse> {
+    const result = await tourGpxApi.import(tripId, file, fields)
     await offlineDb.tours.bulkPut(result.tours.map(tour => ({ ...tour, trip_id: Number(tripId) })))
     return result
+  },
+
+  /** Reads a GPX file for its preview; online only, like the import, and nothing is cached. */
+  async previewGpx(tripId: number | string, file: File): Promise<TourGpxPreviewResponse> {
+    return tourGpxApi.preview(tripId, file)
   },
 }

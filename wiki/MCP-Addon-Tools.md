@@ -237,8 +237,8 @@ Read only: the saved tours of a trip, as the Tours list and the tour detail show
 
 | Tool | Description | Scope |
 |---|---|---|
-| `list_tours` | The saved tours of a trip: name, type, origin (`trek` for planned in TREK, `gpx` for a GPX import, `wanderer` for a wanderer snapshot), distance, ascent and descent, the stored routing limit on the SAC scale, and the days of the trip each tour is on | `trips:read` |
-| `get_tour_plan` | One tour: its facts, its ordered control points, its provenance (where it came from, when, and whether it was changed in TREK since) and its days. The full track geometry is not included | `trips:read` |
+| `list_tours` | The saved tours of a trip: name, type (`hike`, or `kayak` for a paddle tour), origin (`trek` for planned in TREK, `gpx` for a GPX import, `wanderer` for a wanderer snapshot), distance, ascent and descent (unknown for a paddle tour drawn in the planner), the stored routing limit of a hike on the SAC scale, the boat, water and chosen speed of a paddle tour, and the days of the trip each tour is on | `trips:read` |
+| `get_tour_plan` | One tour: its facts, its ordered control points, its provenance (where it came from, when, and whether it was changed in TREK since) and its days. A control point can carry a fixed leg to the next one: a via ferrata (`ferrata`) or a stretch drawn by hand (`free`), which no router planned or checked. The full track geometry is not included | `trips:read` |
 | `find_tours_for_day` | The tours put on one day of a trip, with the same facts as `list_tours` | `trips:read` |
 
 ### Road trip _(Road trip addon required)_

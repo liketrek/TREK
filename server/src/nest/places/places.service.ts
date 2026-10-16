@@ -57,7 +57,7 @@ import {
   ADDRESS_BACKFILL_MAX_PLACES,
   buildCategoryNameLookup,
   escapeLikePattern,
-  externalIdsOf,
+  dedupSetOf,
   isPlaceDuplicate,
   mapWithConcurrency,
   pickEnrichmentMatch,
@@ -750,25 +750,19 @@ export class PlacesService {
 
   /** Build a lookup of names/coords for places already in a trip. */
   private async buildDedupSet(tripId: string): Promise<DedupSet> {
-    // PL24 — `PlacesRepository.listDedupInputs` replaces the raw statement
-    // (Task 5 review L6 ruling). The JS dedup semantics below (name
-    // lowercase+trim, coordinates only for unnamed rows, provider ids for
-    // every row) are unchanged — only the read moved.
-    const rows = await this.placesRepo.listDedupInputs(tripId);
-    const names = new Set<string>();
-    const coords: Array<{ lat: number; lng: number }> = [];
-    // Provider ids are collected for every place, named or not: they are what lets a
-    // renamed place still be recognised on a re-import (#1550).
-    const externalIds = new Set<string>();
-    for (const row of rows) {
-      for (const id of externalIdsOf(row)) externalIds.add(id);
-      if (row.name) {
-        names.add(row.name.trim().toLowerCase());
-      } else if (row.lat != null && row.lng != null) {
-        coords.push({ lat: row.lat, lng: row.lng });
-      }
-    }
-    return { names, coords, externalIds };
+    // PL24 — `PlacesRepository.listDedupInputs` replaces the raw statement (Task 5 review L6 ruling).
+    return dedupSetOf(await this.placesRepo.listDedupInputs(tripId));
+  }
+
+  /** Which prepared GPX rows the import would skip as already in the trip: its own rule, read only. */
+  async gpxDuplicates(tripId: string, rows: PreparedGpxPlace[]): Promise<boolean[]> {
+    const dedup = await this.buildDedupSet(tripId);
+    return rows.map((wp) => {
+      const candidate = { name: wp.name, lat: wp.lat, lng: wp.lng };
+      if (isPlaceDuplicate(candidate, dedup)) return true;
+      trackInsertedInDedupSet(candidate, dedup);
+      return false;
+    });
   }
 
   /**

@@ -98,39 +98,44 @@ vi.mock('../components/Planner/ReservationsPanel', () => ({
 }));
 vi.mock('../components/Planner/TripWarningsBanner', () => ({ default: stub('warnings', 'trip-warnings') }));
 vi.mock('../components/Tours/TourDetailDialog', () => ({ default: stub('tourDetail', 'tour-detail-dialog') }));
-vi.mock('../components/Tours/planner/useTourPlanner', () => ({
-  useTourPlanner: () => ({
-    route: null,
-    waypoints: plannerActions.waypoints,
-    routeProfileFocus: plannerActions.routeProfileFocus,
-    name: '',
-    startNewTour: plannerActions.startNewTour,
-    newTourConfirmationOpen: false,
-    cancelNewTour: vi.fn(),
-    elevationProfileExpanded: true,
-    toggleElevationProfile: vi.fn(),
-    newDraftGeneration: plannerActions.newDraftGeneration,
-    mapFocusKey: plannerActions.mapFocusKey,
-    mode: plannerActions.mode,
-    isSaving: plannerActions.isSaving,
-    selectedWaypointId: null,
-    editingPlaceId: null,
-    saveOutcome: plannerActions.saveOutcome,
-    hasUnsavedChanges: false,
-    setSelectedWaypointId: vi.fn(),
-    mapBaseLayer: 'map',
-    setMapBaseLayer: vi.fn(),
-    openTour: plannerActions.openTour,
-    viewGpxTour: plannerActions.viewGpxTour,
-    addWaypoint: plannerActions.addWaypoint,
-    setWaypointPosition: plannerActions.setWaypointPosition,
-    closeGpxTour: vi.fn(),
-    readOnlyGpxTour: plannerActions.readOnlyGpxTour,
-    readOnlyGpxAnalysis: plannerActions.readOnlyGpxAnalysis,
-    discard: vi.fn(),
-    forgetDeletedTour: plannerActions.forgetDeletedTour,
-  }),
-}));
+vi.mock('../components/Tours/planner/useTourPlanner', async () => {
+  const { hikePlannerDefaults } = await import('../../tests/helpers/tourPlannerStub');
+  const defaults = hikePlannerDefaults();
+  return {
+    useTourPlanner: () => ({
+      ...defaults,
+      route: null,
+      waypoints: plannerActions.waypoints,
+      routeProfileFocus: plannerActions.routeProfileFocus,
+      name: '',
+      startNewTour: plannerActions.startNewTour,
+      newTourConfirmationOpen: false,
+      cancelNewTour: vi.fn(),
+      elevationProfileExpanded: true,
+      toggleElevationProfile: vi.fn(),
+      newDraftGeneration: plannerActions.newDraftGeneration,
+      mapFocusKey: plannerActions.mapFocusKey,
+      mode: plannerActions.mode,
+      isSaving: plannerActions.isSaving,
+      selectedWaypointId: null,
+      editingPlaceId: null,
+      saveOutcome: plannerActions.saveOutcome,
+      hasUnsavedChanges: false,
+      setSelectedWaypointId: vi.fn(),
+      mapBaseLayer: 'map',
+      setMapBaseLayer: vi.fn(),
+      openTour: plannerActions.openTour,
+      viewGpxTour: plannerActions.viewGpxTour,
+      addWaypoint: plannerActions.addWaypoint,
+      setWaypointPosition: plannerActions.setWaypointPosition,
+      closeGpxTour: vi.fn(),
+      readOnlyGpxTour: plannerActions.readOnlyGpxTour,
+      readOnlyGpxAnalysis: plannerActions.readOnlyGpxAnalysis,
+      discard: vi.fn(),
+      forgetDeletedTour: plannerActions.forgetDeletedTour,
+    }),
+  };
+});
 
 vi.mock('../components/Trips/TripFormModal', () => ({ default: stub('tripForm') }));
 vi.mock('../components/Trips/TripMembersModal', () => ({ default: stub('membersModal') }));

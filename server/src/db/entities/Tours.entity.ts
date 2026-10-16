@@ -27,6 +27,9 @@ export class Tours {
   recorded_route_geometry?: string | null;
   origin: TToursOrigin & Opt = ToursOrigin.TREK;
   origin_file_name?: string | null;
+  boat_type?: TToursBoatType | null;
+  water_context?: TToursWaterContext | null;
+  paddle_speed_kmh?: number | null;
   tourTypeRef!: Ref<TourTypes>;
   tour_sources: Ref<TourSources> | null = null;
   tour_waypoints_collection = new Collection<TourWaypoints>(this);
@@ -39,6 +42,22 @@ export const ToursOrigin = {
 } as const;
 
 export type TToursOrigin = (typeof ToursOrigin)[keyof typeof ToursOrigin];
+
+export const ToursBoatType = {
+  KAYAK: 'kayak',
+  CANOE: 'canoe',
+  SUP: 'sup',
+  OTHER: 'other',
+} as const;
+
+export type TToursBoatType = (typeof ToursBoatType)[keyof typeof ToursBoatType];
+
+export const ToursWaterContext = {
+  RIVER: 'river',
+  LAKE: 'lake',
+} as const;
+
+export type TToursWaterContext = (typeof ToursWaterContext)[keyof typeof ToursWaterContext];
 
 export const ToursSchema = defineEntity({
   class: Tours,
@@ -70,6 +89,9 @@ export const ToursSchema = defineEntity({
     recorded_route_geometry: p.text().nullable(),
     origin: p.enum(() => ToursOrigin).default('trek'),
     origin_file_name: p.text().nullable(),
+    boat_type: p.enum(() => ToursBoatType).nullable(),
+    water_context: p.enum(() => ToursWaterContext).nullable(),
+    paddle_speed_kmh: p.double().nullable(),
     tourTypeRef: () => p.manyToOne(TourTypes).ref().joinColumn('tour_type').hidden().index('idx_tours_tour_type'),
     tour_sources: () => p.oneToOne(TourSources).ref().mappedBy('place').hidden(),
     tour_waypoints_collection: () => p.oneToMany(TourWaypoints).mappedBy('place').hidden(),

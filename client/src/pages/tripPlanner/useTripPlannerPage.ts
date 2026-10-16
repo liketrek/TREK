@@ -72,15 +72,22 @@ export function useTripPlannerPage() {
       return tourConversion.line ? [coordinates, tourConversion.line] : [coordinates]
     }
     if (tourPlanner.mode.type === 'new-draft' || tourPlanner.mode.type === 'edit-saved') {
+      // Routed and hand-drawn stretches as their own lines, so the map can tell them apart.
+      if (tourPlanner.routeParts?.length) return tourPlanner.routeParts.map(part => part.coordinates)
       return tourPlanner.route ? [tourPlanner.route] : null
     }
     return null
   }, [
     wandererBrowser.open,
     wandererBrowser.line,
-    tourPlanner.mode.type, tourPlanner.readOnlyGpxAnalysis?.routeCoordinates, tourPlanner.route,
+    tourPlanner.mode.type, tourPlanner.readOnlyGpxAnalysis?.routeCoordinates, tourPlanner.route, tourPlanner.routeParts,
     tourConversion.line,
   ])
+  const editingRoute = tourPlanner.mode.type === 'new-draft' || tourPlanner.mode.type === 'edit-saved'
+  // A hand-drawn stretch is drawn dotted, the way the map draws what no router planned.
+  const routeWalking = !wandererBrowser.open && editingRoute && tourPlanner.routeParts?.some(part => part.free)
+    ? tourPlanner.routeParts.map(part => part.free)
+    : route && route.length === 2 && tourConversion.line ? [true, false] : null
 
   const { closeGpxTour } = tourPlanner
   useEffect(() => {
@@ -121,7 +128,7 @@ export function useTripPlannerPage() {
     recordedTrack,
     tourDetailActions,
     tourMap: { route,
-      routeWalking: route && route.length === 2 && tourConversion.line ? [true, false] : null,
+      routeWalking,
       previewPoints: tourConversion.status === 'idle' ? null : tourConversion.points,
       focusPoints: mapFocusPoints,
       // A picked wanderer trail frames itself; the rest follows the planner.
