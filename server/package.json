@@ -41,7 +41,7 @@
     "archiver": "^6.0.1",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^13.0.3",
-    "compression": "^1.8.0",
+    "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "cron": "^4.4.0",
