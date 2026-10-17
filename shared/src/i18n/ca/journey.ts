@@ -70,6 +70,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'El viatge acaba de terminar',
   'journey.frontpage.suggestionText': 'Converteix <strong>{title}</strong> en una travesia',
   'journey.frontpage.dismiss': 'Descarta',
+  'journey.frontpage.dismissError': "No s'ha pogut descartar aquest suggeriment",
   'journey.frontpage.journeyName': 'Nom de la travesia',
   'journey.frontpage.namePlaceholder': 'p. ex. Sud-est Asiàtic 2026',
   'journey.frontpage.selectTrips': 'Selecciona viatges',

@@ -70,6 +70,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Reis net afgelopen',
   'journey.frontpage.suggestionText': 'Maak van <strong>{title}</strong> een reisverslag',
   'journey.frontpage.dismiss': 'Sluiten',
+  'journey.frontpage.dismissError': 'Deze suggestie kon niet worden verborgen',
   'journey.frontpage.journeyName': 'Naam reisverslag',
   'journey.frontpage.namePlaceholder': 'bijv. Zuidoost-Azië 2026',
   'journey.frontpage.selectTrips': 'Selecteer reizen',

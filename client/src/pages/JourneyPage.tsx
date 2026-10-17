@@ -45,7 +45,7 @@ function JourneyPageDesktop() {
     showCreate, setShowCreate, newTitle, setNewTitle, newSubtitle, setNewSubtitle,
     availableTrips, selectedTripIds, setSelectedTripIds,
     searchOpen, setSearchOpen, searchQuery, setSearchQuery, searchInputRef,
-    activeSuggestion, setDismissedSuggestions,
+    activeSuggestion, dismissSuggestion,
     activeJourney, activeJourneyIsLive, filteredJourneys,
     openCreateModal, handleCreate, totalPlaces,
   } = useJourney()
@@ -112,7 +112,7 @@ function JourneyPageDesktop() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button type="button"
-                      onClick={() => setDismissedSuggestions(prev => new Set([...prev, activeSuggestion.id]))}
+                      onClick={() => dismissSuggestion(activeSuggestion.id)}
                       className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-[12px] font-medium text-white hover:bg-white/20"
                     >
                       {t('journey.frontpage.dismiss')}

@@ -69,6 +69,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': '여행이 방금 종료됨',
   'journey.frontpage.suggestionText': '<strong>{title}</strong>을(를) Journey로 만들어보세요',
   'journey.frontpage.dismiss': '닫기',
+  'journey.frontpage.dismissError': '이 제안을 숨길 수 없습니다',
   'journey.frontpage.journeyName': 'Journey 이름',
   'journey.frontpage.namePlaceholder': '예: 동남아시아 2026',
   'journey.frontpage.selectTrips': '여행 선택',

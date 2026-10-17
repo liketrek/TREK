@@ -72,6 +72,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Поїздка щойно завершилась',
   'journey.frontpage.suggestionText': 'Перетворіть <strong>{title}</strong> на подорож',
   'journey.frontpage.dismiss': 'Приховати',
+  'journey.frontpage.dismissError': 'Не вдалося приховати цю пропозицію',
   'journey.frontpage.journeyName': 'Назва подорожі',
   'journey.frontpage.namePlaceholder': 'наприклад, Південно-Східна Азія 2026',
   'journey.frontpage.selectTrips': 'Оберіть поїздки',

@@ -71,6 +71,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Cesta práve skončila',
   'journey.frontpage.suggestionText': 'Premeňte <strong>{title}</strong> na cestovný denník',
   'journey.frontpage.dismiss': 'Zavrieť',
+  'journey.frontpage.dismissError': 'Tento návrh sa nepodarilo skryť',
   'journey.frontpage.journeyName': 'Názov cestovného denníka',
   'journey.frontpage.namePlaceholder': 'napr. Juhovýchodná Ázia 2026',
   'journey.frontpage.selectTrips': 'Vybrať cesty',

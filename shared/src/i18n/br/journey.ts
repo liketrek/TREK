@@ -70,6 +70,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'A viagem acabou de terminar',
   'journey.frontpage.suggestionText': 'Transforme <strong>{title}</strong> em uma jornada',
   'journey.frontpage.dismiss': 'Dispensar',
+  'journey.frontpage.dismissError': 'Não foi possível dispensar esta sugestão',
   'journey.frontpage.journeyName': 'Nome da jornada',
   'journey.frontpage.namePlaceholder': 'ex. Sudeste Asiático 2026',
   'journey.frontpage.selectTrips': 'Selecionar viagens',

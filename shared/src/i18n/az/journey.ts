@@ -78,6 +78,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.suggestionLabel': 'Səyahət indicə başa çatdı',
   'journey.frontpage.suggestionText': '<strong>{title}</strong> səyahətini gündəliyə çevirin',
   'journey.frontpage.dismiss': 'Bağla',
+  'journey.frontpage.dismissError': 'Bu təklifi gizlətmək mümkün olmadı',
   'journey.frontpage.journeyName': 'Səyahət gündəliyinin adı',
   'journey.frontpage.namePlaceholder': 'məs. Cənub-Şərqi Asiya 2026',
   'journey.frontpage.selectTrips': 'Səyahətləri seç',
