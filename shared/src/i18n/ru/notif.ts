@@ -34,6 +34,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Ошибка записи в реплику '{backend}': {op} для {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Ошибка записи в реплику '{backend}': {op} для {key} — {error}. С момента последнего уведомления подавлено ещё {suppressed} ошибок.",
+  'notif.paddle_region_requested.title': 'Запрошен регион для сплава',
+  'notif.paddle_region_requested.text': '{actor} планирует сплав в регионе {region}',
   'notif.action.view_trip': 'Открыть поездку',
   'notif.action.view_collab': 'Открыть сообщения',
   'notif.action.view_packing': 'Открыть упаковку',

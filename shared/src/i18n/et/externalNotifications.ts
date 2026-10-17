@@ -68,6 +68,10 @@ const et: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Aerutamispiirkonda taotleti',
+      body: `${p.actor} kavandab aerutamismatka piirkonnas ${p.region}. Laadi või lükka selle veeandmed tagasi halduses jaotises Lisad.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synology seanss tühjendatud',
       body: 'Sinu Synology konto või URL muutus. Sind on Synology Photosist välja logitud.',

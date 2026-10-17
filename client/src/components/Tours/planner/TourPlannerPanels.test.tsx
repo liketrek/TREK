@@ -926,6 +926,24 @@ describe('the paddle checklist in the rails (PAD-06)', () => {
     expect(safetyRow()).toBeInTheDocument()
   })
 
+  it('PCR-006: legs the water router could not plan are counted in the head, without the retry the rows already offer', () => {
+    const failed = paddleEditor({
+      status: 'routing-failed',
+      error: 'paddle-route',
+      paddleRoute: { coordinates: [], parts: [], distanceMeters: 0, legs: [], legLengths: [], failures: [
+        { index: 0, code: 'not_on_water', at: null },
+        { index: 1, code: 'busy', at: null },
+      ] },
+    })
+    const { rerender } = render(<TourPlannerRail planner={failed} />)
+    expect(within(screen.getByTestId('tour-planner-status')).getByLabelText('2 legs not planned')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
+
+    rerender(<TourPlannerRail planner={planner({ mode: { type: 'new-draft' }, status: 'routing-failed', error: 'routing' })} />)
+    expect(within(screen.getByTestId('tour-planner-status')).getByLabelText('Route calculation failed. The last good route is still shown.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+  })
+
   it('PCR-005: a recorded kayak track scrolls its checklist before the wind and keeps the safety row in a footer; a recorded hike neither', () => {
     const { rerender } = render(<TourPlannerRail planner={recorded(kayak)} paddleChecklist={checklist} />)
 

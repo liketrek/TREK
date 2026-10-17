@@ -147,12 +147,12 @@ describe('camera and markers', () => {
   });
 
   it('numbers a control point and shows whether it can be dragged', () => {
-    const pin = waypointPinElement(2, true, true);
+    const pin = waypointPinElement({}, 2, true, true);
     expect(pin.textContent).toBe('3');
     expect(pin.getAttribute('aria-label')).toBe('Waypoint 3');
     expect(pin.style.width).toBe('30px');
     expect(pin.style.cursor).toBe('grab');
-    const fixed = waypointPinElement(0, false, false);
+    const fixed = waypointPinElement({}, 0, false, false);
     expect(fixed.style.width).toBe('26px');
     expect(fixed.style.cursor).toBe('pointer');
   });

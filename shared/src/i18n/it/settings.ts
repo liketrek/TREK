@@ -299,6 +299,7 @@ const settings: TranslationStrings = {
     "Mostra i nomi di stazioni / aeroporti sulla mappa. Se disattivato, viene mostrata solo l'icona.",
   'settings.notifyVersionAvailable': 'Nuova versione disponibile',
   'settings.notifyReplicaFailure': "Errore di replica dell'archiviazione",
+  'settings.notifyPaddleRegionRequested': 'Regione canoa richiesta',
   'settings.notificationPreferences.noChannels':
     'Nessun canale di notifica configurato. Chiedi a un amministratore di configurare notifiche via e-mail o webhook.',
   'settings.webhookUrl.label': 'URL webhook',

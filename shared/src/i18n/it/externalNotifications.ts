@@ -64,6 +64,10 @@ const it: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Regione canoa richiesta',
+      body: `${p.actor} sta pianificando un giro in canoa in ${p.region}. Carica o rifiuta i suoi dati sull'acqua nell'area amministrazione, sotto Componenti.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Sessione Synology rimossa',
       body: 'Il tuo account o URL Synology è cambiato. Sei stato disconnesso da Synology Photos.',

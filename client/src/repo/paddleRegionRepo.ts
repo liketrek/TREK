@@ -31,4 +31,7 @@ export const paddleRegionRepo = {
   add: online(paddleRegionsApi.add),
   refresh: online(paddleRegionsApi.refresh),
   remove: online(paddleRegionsApi.remove),
+  decline: online(paddleRegionsApi.decline),
+  settings: online(paddleRegionsApi.settings),
+  saveSettings: online(paddleRegionsApi.saveSettings),
 };

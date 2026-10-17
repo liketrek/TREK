@@ -102,6 +102,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Webhook 通知',
   'settings.notifyVersionAvailable': '有新版本可用',
   'settings.notifyReplicaFailure': '儲存複本故障',
+  'settings.notifyPaddleRegionRequested': '划槳區域申請',
   'settings.notificationPreferences.email': '電子郵件',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': '應用程式內',

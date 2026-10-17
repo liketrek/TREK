@@ -1,16 +1,24 @@
-import { paddleLayoutOfPoints, type PaddleLayout, type PaddleRole, type TourFixedLeg } from '@trek/shared';
+import {
+  paddleLayoutOfPoints,
+  type PaddleLayout,
+  type PaddleRegionLoadState,
+  type PaddleRole,
+  type TourFixedLeg,
+} from '@trek/shared';
 import {
   ArrowDown,
   ArrowDownUp,
   ArrowUp,
   GripVertical,
-  Info,
   MapPin,
   MapPinPlus,
   MoreHorizontal,
+  Navigation,
+  RefreshCw,
   Repeat,
   Spline,
   Trash2,
+  Waves,
 } from 'lucide-react';
 import { Fragment, useState, type MouseEvent, type ReactNode } from 'react';
 import { useTranslation } from '../../../i18n';
@@ -28,10 +36,15 @@ import { ContextMenu, useContextMenu } from '../../shared/ContextMenu';
 import { fs } from '../../shared/DialogShell';
 import { Tooltip } from '../../shared/Tooltip';
 import { LockIcon, PortageIcon } from '../paddle/PaddleGlyph';
-import { LockRow, PaddleRolePill, PortageLegRow } from '../paddle/PaddleWaypointParts';
+import { AutoPointPill, PaddleLegFailureRow, PaddleLegNotes } from '../paddle/PaddleLegParts';
+import { isRegionLoadPending, PaddleRegionLoadRow, regionLoadFailure } from '../paddle/PaddleRegionLoadRow';
+import { LockRow, PaddleRolePill, PendingPortageRow, PortageLegRow } from '../paddle/PaddleWaypointParts';
+import { usePaddleRegionLoad } from '../paddle/usePaddleRegionLoad';
 import { usePaddleWaypointActions } from '../paddle/usePaddleWaypointActions';
-import { RailCard, TourNotice } from '../tourParts';
+import { usePortageRouting, usePortageWay } from '../paddle/usePortageRouting';
+import { RailCard } from '../tourParts';
 import { paddlePlanPoints, paddleRolesById } from './paddlePlanOf';
+import type { PaddleLegFailure } from './paddleRouting';
 import { lineLengthM } from './tourFixedLegs';
 import type { TourPlannerController } from './useTourPlanner';
 import { useWaypointPlaceNames } from './useWaypointPlaceNames';
@@ -207,18 +220,35 @@ function FerrataLegRow({ crossing }: { crossing: TourFerrataCrossing }) {
  * by the tooltip.
  */
 function WaypointNumber({
-  index,
+  stop,
   selected,
   ferrata,
   loopEnd = false,
+  shaping = false,
 }: {
-  index: number;
+  /** The stop's number; shaping points do not count, as on the map. */
+  stop: number;
   selected: boolean;
   ferrata: TourWaypointFerrata | null;
   /** The way back to the start of a loop: shown as the return, not as one more stop. */
   loopEnd?: boolean;
+  /** P2A-03: a shaping point, a small dot as on the map. */
+  shaping?: boolean;
 }) {
   const { t } = useTranslation();
+  if (shaping) {
+    return (
+      <span
+        aria-label={t('tours.planner.shapingPoint')}
+        data-waypoint-shaping="true"
+        className="grid h-7 w-7 flex-none place-items-center"
+      >
+        <span
+          className={`h-3 w-3 rounded-full ring-2 ring-surface-card ${selected ? 'bg-accent' : 'bg-content-faint'}`}
+        />
+      </span>
+    );
+  }
   if (loopEnd) {
     return (
       <span
@@ -230,16 +260,16 @@ function WaypointNumber({
       </span>
     );
   }
-  const label = t('tours.planner.waypointLabel', { n: index + 1 });
+  const label = t('tours.planner.waypointLabel', { n: stop });
   const number = (
     <span
       aria-label={ferrata ? `${label}, ${t('tours.ferrata.waypointAtEnd', { name: ferrata.name })}` : label}
-      data-waypoint-number={index + 1}
+      data-waypoint-number={stop}
       data-ferrata-end={ferrata ? 'true' : undefined}
       className={`relative grid h-7 w-7 flex-none place-items-center rounded-full font-geist font-semibold tabular-nums ${selected ? 'bg-accent text-accent-text' : 'bg-edge text-content'} ${ferrata ? 'ring-2 ring-inset ring-[color:var(--map-ferrata)]' : ''}`}
       style={fs(11.5)}
     >
-      {index + 1}
+      {stop}
       {ferrata && <FerrataGlyph size={22} className="absolute -bottom-2.5 -start-2.5" />}
     </span>
   );
@@ -278,9 +308,18 @@ function WaypointRowLabel({
         >
           {name ?? coordinates}
         </span>
-        {paddleRole !== undefined
-          ? paddleRole && !loopEnd && <PaddleRolePill role={paddleRole} />
-          : point.role !== 'via' && !loopEnd && <SoftPill>{t(ROLE_KEY[point.role])}</SoftPill>}
+        {point.shaping ? (
+          <Tooltip label={t('tours.planner.shapingHint')}>
+            <span className="inline-flex">
+              <SoftPill>{t('tours.planner.shapingPoint')}</SoftPill>
+            </span>
+          </Tooltip>
+        ) : paddleRole !== undefined ? (
+          paddleRole && !loopEnd && <PaddleRolePill role={paddleRole} />
+        ) : (
+          point.role !== 'via' && !loopEnd && <SoftPill>{t(ROLE_KEY[point.role])}</SoftPill>
+        )}
+        {point.auto && <AutoPointPill />}
       </span>
       {name && !loopEnd && (
         <span
@@ -302,6 +341,82 @@ function WaypointRowLabel({
  * and remove beside it. Two controls keep the place name readable in a narrow
  * rail however many tools a tour type adds.
  */
+type MenuItems = Parameters<ReturnType<typeof useContextMenu>['open']>[1];
+type Translate = ReturnType<typeof useTranslation>['t'];
+type WaypointPoint = TourPlannerController['waypoints'][number];
+
+/**
+ * The tools for the leg after a point: drawn by hand or routed (on a paddle
+ * tour: on the water), planned again (P2A-05), and the point a stop or a
+ * shaping point (P2A-03; never the first or the last).
+ */
+function routeMenuItems(
+  planner: TourPlannerController,
+  point: WaypointPoint,
+  index: number,
+  lastIndex: number,
+  t: Translate
+): MenuItems {
+  const hasLeg = index < lastIndex;
+  const free = point.fixedLeg?.kind === 'free';
+  const routed = hasLeg && !point.fixedLeg;
+  const items: MenuItems = [];
+  if (free || routed) {
+    const routeAgain = planner.isPaddle ? t('tours.paddle.routeOnWater') : t('tours.planner.routeLeg');
+    items.push(
+      { divider: true },
+      {
+        label: free ? routeAgain : t('tours.planner.freeLeg'),
+        icon: free && planner.isPaddle ? Waves : Spline,
+        onClick: () => planner.toggleWaypointFreeLeg(point.id),
+      }
+    );
+  }
+  if (routed)
+    items.push({
+      label: t('tours.planner.recomputeLeg'),
+      icon: RefreshCw,
+      onClick: () => planner.recomputeLeg(point.id),
+    });
+  if (index > 0 && index < lastIndex) {
+    items.push({
+      label: t(point.shaping ? 'tours.planner.makeStop' : 'tours.planner.makeShaping'),
+      icon: Navigation,
+      onClick: () => planner.setWaypointShaping(point.id, !point.shaping),
+    });
+  }
+  return items;
+}
+
+/** A paddle tour's tools at a point: carry the boat from here, and a lock here. */
+function paddleMenuItems(
+  paddle: ReturnType<typeof usePaddleWaypointActions>,
+  point: WaypointPoint,
+  hasLeg: boolean,
+  t: Translate
+): MenuItems {
+  const portage = point.fixedLeg?.kind === 'portage';
+  const items: MenuItems = [{ divider: true }];
+  // At the last point too: the portage starts here and reaches the point set next.
+  items.push({
+    label: t(
+      !hasLeg && point.carryNext
+        ? 'tours.paddle.portagePendingOff'
+        : portage
+          ? 'tours.paddle.portageOff'
+          : 'tours.paddle.portageOn'
+    ),
+    icon: PortageIcon,
+    onClick: () => paddle.togglePortage(point.id),
+  });
+  items.push({
+    label: t(point.lock ? 'tours.paddle.lockRemove' : 'tours.paddle.lockAdd'),
+    icon: LockIcon,
+    onClick: () => paddle.setLock(point.id, point.lock ? null : { wait_minutes: null, transit_minutes: null }),
+  });
+  return items;
+}
+
 function WaypointRowActions({
   planner,
   point,
@@ -311,7 +426,7 @@ function WaypointRowActions({
   isSaving,
 }: {
   planner: TourPlannerController;
-  point: TourPlannerController['waypoints'][number];
+  point: WaypointPoint;
   index: number;
   lastIndex: number;
   selected: boolean;
@@ -320,10 +435,7 @@ function WaypointRowActions({
   const { t } = useTranslation();
   const menu = useContextMenu();
   const paddle = usePaddleWaypointActions(planner);
-  const free = point.fixedLeg?.kind === 'free';
-  const portage = point.fixedLeg?.kind === 'portage';
-  const hasLeg = index < lastIndex;
-  const items = [
+  const items: MenuItems = [
     {
       label: t('tours.planner.moveUp'),
       icon: ArrowUp,
@@ -336,35 +448,8 @@ function WaypointRowActions({
       disabled: index === lastIndex,
       onClick: () => planner.moveWaypoint(point.id, 1),
     },
-    ...(!planner.isPaddle && hasLeg && point.fixedLeg?.kind !== 'ferrata'
-      ? [
-          { divider: true },
-          {
-            label: t(free ? 'tours.planner.routeLeg' : 'tours.planner.freeLeg'),
-            icon: Spline,
-            onClick: () => planner.toggleWaypointFreeLeg(point.id),
-          },
-        ]
-      : []),
-    ...(planner.isPaddle
-      ? [
-          { divider: true },
-          ...(hasLeg
-            ? [
-                {
-                  label: t(portage ? 'tours.paddle.portageOff' : 'tours.paddle.portageOn'),
-                  icon: PortageIcon,
-                  onClick: () => paddle.togglePortage(point.id),
-                },
-              ]
-            : []),
-          {
-            label: t(point.lock ? 'tours.paddle.lockRemove' : 'tours.paddle.lockAdd'),
-            icon: LockIcon,
-            onClick: () => paddle.setLock(point.id, point.lock ? null : { wait_minutes: null, transit_minutes: null }),
-          },
-        ]
-      : []),
+    ...routeMenuItems(planner, point, index, lastIndex, t),
+    ...(planner.isPaddle ? paddleMenuItems(paddle, point, index < lastIndex, t) : []),
   ];
   return (
     <span
@@ -402,24 +487,29 @@ function PaddleRowExtras({
   index,
   layout,
   editable,
+  routing,
 }: {
   planner: TourPlannerController;
   point: TourPlannerController['waypoints'][number];
   index: number;
   layout: PaddleLayout;
   editable: boolean;
+  routing: ReturnType<typeof usePortageRouting>;
 }) {
   const paddle = usePaddleWaypointActions(planner);
+  const way = usePortageWay(planner.waypoints, routing, index);
   const portage = layout.stretches.find((stretch) => stretch.kind === 'portage' && stretch.startIndex === index);
   const lock = point.lock ? layout.locks.find((stop) => stop.index === index) : undefined;
   return (
     <>
+      {point.carryNext && <PendingPortageRow disabled={!editable} onRemove={() => paddle.togglePortage(point.id)} />}
       {portage && (
         <PortageLegRow
           lengthM={portage.toM - portage.fromM}
           extraMinutes={portage.extraMinutes}
           disabled={!editable}
           onExtraChange={(minutes) => paddle.setPortageExtra(point.id, minutes)}
+          way={point.auto ? undefined : way}
         />
       )}
       {point.lock && (
@@ -463,6 +553,154 @@ function AddPointRow({ disabled }: { disabled: boolean }) {
  * reorderable by drag or by the arrow controls on each row. The coordinates
  * stand in for the name while it loads, offline, or when the lookup has none.
  */
+/** P2A-03: how a shaping point is set, said once under the list while there is a route to click. */
+function ShapeOnLineHint({ planner, canEdit }: { planner: TourPlannerController; canEdit: boolean }) {
+  const { t } = useTranslation();
+  if (!canEdit || planner.waypoints.length < 2) return null;
+  return (
+    <p className="m-0 mt-1.5 px-1.5 text-content-faint" style={fs(11, 'body')}>
+      {t('tours.planner.shapeOnLine')}
+    </p>
+  );
+}
+
+/** Stops are numbered on their own, as on the map: a shaping point (P2A-03) takes no number. */
+function stopNumbersOf(points: ReadonlyArray<WaypointPoint>): Map<string, number> {
+  const numbers = new Map<string, number>();
+  for (const point of points) if (!point.shaping) numbers.set(point.id, numbers.size + 1);
+  return numbers;
+}
+
+/** The route tools in the card head: reverse, plan the drawn legs on the water (PAD-11), back to the start. */
+function WaypointListTools({ planner, isSaving }: { planner: TourPlannerController; isSaving: boolean }) {
+  const { t } = useTranslation();
+  const hasDrawnLegs = planner.isPaddle && planner.waypoints.some((point) => point.fixedLeg?.kind === 'free');
+  return (
+    <span className="flex flex-none items-center gap-0.5">
+      <RouteToolButton
+        testId="tour-planner-reverse"
+        label={t('tours.planner.reverse')}
+        disabled={isSaving || planner.waypoints.length < 2}
+        onAct={planner.reverse}
+      >
+        <ArrowDownUp size={13} strokeWidth={2.2} />
+      </RouteToolButton>
+      {hasDrawnLegs && (
+        <RouteToolButton
+          testId="tour-planner-route-on-water"
+          label={t('tours.paddle.routeAllOnWater')}
+          disabled={isSaving}
+          onAct={planner.routeDrawnLegsOnWater}
+        >
+          <Waves size={13} strokeWidth={2.2} />
+        </RouteToolButton>
+      )}
+      <RouteToolButton
+        testId="tour-planner-return-to-start"
+        label={t(planner.isLoop ? 'tours.planner.alreadyLoop' : 'tours.planner.returnToStart')}
+        disabled={isSaving || planner.waypoints.length < 2 || planner.isLoop}
+        onAct={planner.returnToStart}
+      >
+        <Repeat size={13} strokeWidth={2.2} />
+      </RouteToolButton>
+    </span>
+  );
+}
+
+/**
+ * A leg the router could not plan. Where it lacked the water data of the
+ * region (PAD-11C), the row follows the data instead: loading or asked for,
+ * the leg waits calmly; declined, failed or not to be had, it says why.
+ */
+function LegFailure({
+  code,
+  load,
+  disabled,
+  onDrawStraight,
+  onRetry,
+  onLoadRetry,
+}: {
+  code: PaddleLegFailure;
+  load: PaddleRegionLoadState | undefined;
+  disabled: boolean;
+  onDrawStraight: () => void;
+  onRetry: () => void;
+  onLoadRetry: () => void;
+}) {
+  const { t } = useTranslation();
+  if (isRegionLoadPending(load)) {
+    return <PaddleRegionLoadRow state={load} disabled={disabled} onDrawStraight={onDrawStraight} />;
+  }
+  return (
+    <PaddleLegFailureRow
+      code={code}
+      disabled={disabled}
+      onDrawStraight={onDrawStraight}
+      onRetry={onRetry}
+      message={regionLoadFailure(load, t)}
+      onLoadRetry={load?.state === 'failed' ? onLoadRetry : undefined}
+    />
+  );
+}
+
+/**
+ * The rows under a waypoint for the leg that starts there: the via ferrata it
+ * crosses, a line drawn by hand, and on a paddle tour what the router found on
+ * the way (PAD-11) or why it could not plan it, plus the portage and lock rows.
+ */
+function WaypointLegRows({
+  planner,
+  point,
+  index,
+  crossings = [],
+  routedLegs,
+  paddleLayout,
+  editable,
+  portageRouting,
+  regionLoad,
+}: {
+  planner: TourPlannerController;
+  point: WaypointPoint;
+  index: number;
+  crossings?: TourFerrataCrossing[];
+  routedLegs: TourPlannerController['paddleRoute'] | null;
+  paddleLayout: ReturnType<typeof paddleLayoutOfPoints> | null;
+  editable: boolean;
+  portageRouting: ReturnType<typeof usePortageRouting>;
+  regionLoad: ReturnType<typeof usePaddleRegionLoad>;
+}) {
+  const failure = routedLegs?.failures.find((candidate) => candidate.index === index);
+  return (
+    <>
+      {crossings.map((crossing) => (
+        <FerrataLegRow key={`${crossing.id}-${crossing.fromM}`} crossing={crossing} />
+      ))}
+      {point.fixedLeg?.kind === 'free' && <FreeLegRow leg={point.fixedLeg} />}
+      {routedLegs && <PaddleLegNotes leg={routedLegs.legs[index]} />}
+      {failure && (
+        <LegFailure
+          code={failure.code}
+          load={regionLoad.byLeg.get(index)}
+          disabled={!editable}
+          onDrawStraight={() => planner.toggleWaypointFreeLeg(point.id)}
+          onRetry={() => planner.recomputeLeg(point.id)}
+          onLoadRetry={regionLoad.retry}
+        />
+      )}
+      {paddleLayout && (
+        <PaddleRowExtras
+          planner={planner}
+          point={point}
+          index={index}
+          layout={paddleLayout}
+          editable={editable}
+          routing={portageRouting}
+        />
+      )}
+    </>
+  );
+}
+
 export default function TourWaypointList({
   planner,
   canEdit,
@@ -489,34 +727,22 @@ export default function TourWaypointList({
   // A hike keeps its start and end badges (undefined); a paddle tour names each point for the paddler.
   const paddleRoleOf = (id: string) => (paddleRoles ? (paddleRoles.get(id) ?? null) : undefined);
   const paddleLayout = planner.isPaddle ? paddleLayoutOfPoints(paddlePlanPoints(planner.waypoints)) : null;
+  // PAD-03: portages the paddler sets follow the ways on land.
+  const portageRouting = usePortageRouting(planner, canEdit && !isSaving);
+  // The router's answer per leg, while it still belongs to these points (PAD-11).
+  const routedLegs = planner.isPaddle && planner.routeCurrent ? planner.paddleRoute : null;
+  // PAD-11C: where a leg lacks the water data of its region, TREK fetches it and plans the leg again.
+  const regionLoad = usePaddleRegionLoad(routedLegs?.failures, planner.retry);
+  const stopNumbers = stopNumbersOf(planner.waypoints);
   const endDrag = () => {
     setDraggedWaypointId(null);
     setDropTarget(null);
   };
 
   // One card like a day in the plan: the head counts the points, the rows sit below.
-  const tools = canEdit && planner.waypoints.length > 0 && (
-    <span className="flex flex-none items-center gap-0.5">
-      <RouteToolButton
-        testId="tour-planner-reverse"
-        label={t('tours.planner.reverse')}
-        disabled={isSaving || planner.waypoints.length < 2}
-        onAct={planner.reverse}
-      >
-        <ArrowDownUp size={13} strokeWidth={2.2} />
-      </RouteToolButton>
-      <RouteToolButton
-        testId="tour-planner-return-to-start"
-        label={t(planner.isLoop ? 'tours.planner.alreadyLoop' : 'tours.planner.returnToStart')}
-        disabled={isSaving || planner.waypoints.length < 2 || planner.isLoop}
-        onAct={planner.returnToStart}
-      >
-        <Repeat size={13} strokeWidth={2.2} />
-      </RouteToolButton>
-    </span>
-  );
-  // The way back of a loop is no stop of its own, so the count leaves it out.
-  const stops = planner.waypoints.length - (planner.isLoop ? 1 : 0);
+  const tools = canEdit && planner.waypoints.length > 0 && <WaypointListTools planner={planner} isSaving={isSaving} />;
+  // The way back of a loop is no stop of its own, and a shaping point no stop at all, so the count leaves them out.
+  const stops = stopNumbers.size - (planner.isLoop ? 1 : 0);
   const card = (children: ReactNode) => (
     <RailCard
       icon={<MapPin size={14} strokeWidth={2} />}
@@ -608,10 +834,11 @@ export default function TourWaypointList({
                     <GripVertical size={14} strokeWidth={1.8} />
                   </span>
                   <WaypointNumber
-                    index={index}
+                    stop={stopNumbers.get(point.id) ?? index + 1}
                     selected={selected}
                     ferrata={ferrataEnds[point.id] ?? null}
                     loopEnd={loopEnd}
+                    shaping={!!point.shaping}
                   />
                   <button
                     type="button"
@@ -638,30 +865,23 @@ export default function TourWaypointList({
                   )}
                 </div>
               </li>
-              {(legCrossings.get(point.id) ?? []).map((crossing) => (
-                <FerrataLegRow key={`${crossing.id}-${crossing.fromM}`} crossing={crossing} />
-              ))}
-              {/* A paddle tour is drawn by hand throughout; the notice says it once instead of on every leg. */}
-              {point.fixedLeg?.kind === 'free' && !planner.isPaddle && <FreeLegRow leg={point.fixedLeg} />}
-              {paddleLayout && (
-                <PaddleRowExtras
-                  planner={planner}
-                  point={point}
-                  index={index}
-                  layout={paddleLayout}
-                  editable={canEdit && !isSaving}
-                />
-              )}
+              <WaypointLegRows
+                planner={planner}
+                point={point}
+                index={index}
+                crossings={legCrossings.get(point.id)}
+                routedLegs={routedLegs}
+                paddleLayout={paddleLayout}
+                editable={canEdit && !isSaving}
+                portageRouting={portageRouting}
+                regionLoad={regionLoad}
+              />
             </Fragment>
           );
         })}
       </ol>
       {canEdit && <AddPointRow disabled={isSaving} />}
-      {planner.isPaddle && (
-        <div className="mt-2">
-          <TourNotice icon={<Info size={13} strokeWidth={2} />}>{t('tours.paddle.drawnByHand')}</TourNotice>
-        </div>
-      )}
+      <ShapeOnLineHint planner={planner} canEdit={canEdit} />
     </>
   );
 }

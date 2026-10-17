@@ -37,7 +37,8 @@ import {
   selectPaddleObstacle,
   usePaddleObstacleStore,
 } from '../../../store/paddleObstacleStore';
-import type { TourPlannerController, TourPlannerWaypoint } from '../planner/useTourPlanner';
+import type { TourPlannerWaypoint } from '../planner/tourPlannerWaypoints';
+import type { TourPlannerController } from '../planner/useTourPlanner';
 import { usePaddleChecklist } from './usePaddleChecklist';
 
 type CheckRead = Awaited<ReturnType<typeof tourRepo.obstacleCheck>>;

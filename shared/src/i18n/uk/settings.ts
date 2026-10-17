@@ -294,6 +294,7 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint': 'Показує назви станцій / аеропортів на карті. Якщо вимкнено, показується лише значок.',
   'settings.notifyVersionAvailable': 'Доступна нова версія',
   'settings.notifyReplicaFailure': 'Збій репліки сховища',
+  'settings.notifyPaddleRegionRequested': 'Запитано регіон для сплаву',
   'settings.notificationPreferences.noChannels':
     'Канали сповіщень не налаштовані. Попросіть адміністратора налаштувати сповіщення електронною поштою або через webhook.',
   'settings.webhookUrl.label': 'URL вебхука',

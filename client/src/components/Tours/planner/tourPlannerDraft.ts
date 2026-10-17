@@ -5,8 +5,8 @@ import {
   type PlannableTourType,
   type TourMaxHikingDifficulty,
 } from '@trek/shared';
+import type { TourPlannerWaypoint } from './tourPlannerWaypoints';
 import type { PaddleFieldValues } from './usePaddleFields';
-import type { TourPlannerWaypoint } from './useTourPlanner';
 
 /**
  * The tour planner's draft as it is kept in local storage between visits, and
@@ -15,7 +15,7 @@ import type { TourPlannerWaypoint } from './useTourPlanner';
  * half read.
  */
 export interface DraftPayload {
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   name: string;
   description?: string;
   website?: string;
@@ -30,7 +30,7 @@ export interface DraftPayload {
   paddle?: PaddleFieldValues;
 }
 
-const DRAFT_VERSIONS: ReadonlyArray<DraftPayload['version']> = [1, 2, 3, 4, 5, 6, 7, 8];
+const DRAFT_VERSIONS: ReadonlyArray<DraftPayload['version']> = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 function optionalString(value: unknown): boolean {
   return value === undefined || typeof value === 'string';

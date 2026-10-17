@@ -185,3 +185,40 @@ describe('paddle plan (PAD-03, PAD-07)', () => {
     expect(paddle.success).toBe(true);
   });
 });
+
+describe('a routed paddle tour (PAD-11, P2A-03)', () => {
+  it('times each leg by the length the router found where it is known, straight where not', () => {
+    const [a, b, c] = [east(0), east(2), east(4)];
+    const straight = paddleLayoutOfPoints([a, b, c]);
+    expect(straight.stretches[0]?.toM).toBeCloseTo(4000, -1);
+    const routed = paddleLayoutOfPoints([a, b, c], [3500, null]);
+    expect(routed.stretches[0]?.toM).toBeCloseTo(5500, -1);
+  });
+
+  it('keeps the lake style and shaping points to paddle tours and to plans', () => {
+    const base = {
+      name: 'Across the lake',
+      route_geometry: [
+        [53, 13, 0],
+        [53, 13.01, 0],
+      ] as [number, number, number][],
+      waypoints: [
+        { lat: 53, lng: 13, role: 'start', sequence: 0 },
+        { lat: 53, lng: 13.005, role: 'via', sequence: 1, shaping: true },
+        { lat: 53, lng: 13.01, role: 'end', sequence: 2 },
+      ],
+    };
+    const hike = tourCreateRequestSchema.safeParse({ ...base, tour_type: 'hike', paddle_lake_style: 'shore' });
+    expect(hike.success).toBe(false);
+    expect(hike.error?.issues.map((issue) => issue.path.join('.'))).toContain('paddle_lake_style');
+    const paddle = tourCreateRequestSchema.safeParse({
+      ...base,
+      tour_type: 'kayak',
+      boat_type: 'kayak',
+      water_context: 'lake',
+      paddle_lake_style: 'shore',
+    });
+    expect(paddle.success).toBe(true);
+    expect(tourCreateRequestSchema.safeParse({ ...base, tour_type: 'hike' }).success).toBe(true);
+  });
+});

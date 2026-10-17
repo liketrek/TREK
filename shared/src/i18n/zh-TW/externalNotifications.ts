@@ -61,6 +61,10 @@ const zhTW: NotificationLocale = {
           ? pluralForm(p.suppressed, 'zh-TW', { other: `自上次通知以來，另有 ${p.suppressed} 次失敗未個別通知。` })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: '划槳區域申請',
+      body: `${p.actor} 正在 ${p.region} 規劃划槳行程。請在管理後台的附加元件中載入或拒絕其水域資料。`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synology 工作階段已清除',
       body: '您的 Synology 帳戶或 URL 已變更，您已登出 Synology Photos。',

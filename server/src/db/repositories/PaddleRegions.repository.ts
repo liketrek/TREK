@@ -1,4 +1,10 @@
-import { type PaddleRegions, PaddleRegionsStatus, type TPaddleRegionsStatus } from '../entities/PaddleRegions.entity';
+import {
+  type PaddleRegions,
+  PaddleRegionsOrigin,
+  PaddleRegionsStatus,
+  type TPaddleRegionsOrigin,
+  type TPaddleRegionsStatus,
+} from '../entities/PaddleRegions.entity';
 import type { DB } from '../kysely/db';
 import type { Box } from './PaddleFeatures.repository';
 import { TrekRepository } from './_shared/trek-repository';
@@ -17,11 +23,15 @@ export interface PaddleRegionRow {
   imported_at: string | null;
   feature_count: number;
   error: string | null;
+  origin: TPaddleRegionsOrigin;
 }
 
-/** `status` narrowed to the four values the column's CHECK constraint allows. */
+/** `status` and `origin` narrowed to the values the columns' CHECK constraints allow. */
 type RegionsDB = {
-  paddle_regions: Omit<DB['paddle_regions'], 'status'> & { status: TPaddleRegionsStatus };
+  paddle_regions: Omit<DB['paddle_regions'], 'status' | 'origin'> & {
+    status: TPaddleRegionsStatus;
+    origin: TPaddleRegionsOrigin;
+  };
 };
 
 const COLUMNS = [
@@ -37,6 +47,7 @@ const COLUMNS = [
   'imported_at',
   'feature_count',
   'error',
+  'origin',
 ] as const;
 
 /** `paddle_regions`: the regional extracts an admin chose for paddle data (PAD-05A). */
@@ -76,6 +87,40 @@ export class PaddleRegionsRepository extends TrekRepository<PaddleRegions> {
       .execute();
   }
 
+  /** Every region whose box holds the point, whatever its state; the caller checks the boundary. */
+  async aroundPoint(lat: number, lng: number): Promise<PaddleRegionRow[]> {
+    return await this.db()
+      .selectFrom('paddle_regions')
+      .select(COLUMNS)
+      .where('min_lat', '<=', lat)
+      .where('max_lat', '>=', lat)
+      .where('min_lng', '<=', lng)
+      .where('max_lng', '>=', lng)
+      .orderBy('id', 'asc')
+      .execute();
+  }
+
+  /** The regions waiting for their read, oldest first: the order they are read in. */
+  async queued(): Promise<Array<Pick<PaddleRegionRow, 'id'>>> {
+    return await this.db()
+      .selectFrom('paddle_regions')
+      .select('id')
+      .where('status', '=', PaddleRegionsStatus.QUEUED)
+      .orderBy('created_at', 'asc')
+      .execute();
+  }
+
+  /** How many regions TREK added by itself since `since` (a canonical UTC timestamp). */
+  async countAddedAutomaticallySince(since: string): Promise<number> {
+    const row = await this.db()
+      .selectFrom('paddle_regions')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where('origin', '=', PaddleRegionsOrigin.AUTO)
+      .where('created_at', '>=', since)
+      .executeTakeFirst();
+    return Number(row?.count ?? 0);
+  }
+
   /** The first region waiting for its read, oldest first. */
   async nextQueued(): Promise<PaddleRegionRow | undefined> {
     return await this.db()
@@ -88,10 +133,11 @@ export class PaddleRegionsRepository extends TrekRepository<PaddleRegions> {
 
   async insertRegion(
     row: Pick<PaddleRegionRow, 'id' | 'name' | 'boundary' | 'min_lat' | 'min_lng' | 'max_lat' | 'max_lng'>,
+    origin: TPaddleRegionsOrigin = PaddleRegionsOrigin.ADMIN,
   ): Promise<void> {
     await this.db()
       .insertInto('paddle_regions')
-      .values({ ...row, status: PaddleRegionsStatus.QUEUED, feature_count: 0 })
+      .values({ ...row, status: PaddleRegionsStatus.QUEUED, feature_count: 0, origin })
       .onConflict((oc) => oc.column('id').doNothing())
       .execute();
   }

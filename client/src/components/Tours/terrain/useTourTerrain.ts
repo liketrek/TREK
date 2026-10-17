@@ -30,13 +30,17 @@ interface Options {
   tourLayers?: TourLayerOffer;
   /** The visible area, for the via ferrata layer to ask for. */
   onViewportChange?: (bbox: FerrataBbox) => void;
+  /** A paddle tour: the route is never coloured by grade. */
+  water?: boolean;
 }
 
 /** The planner map's 3D mode: map, pins, corridor preload and the flyover sharing the rail's focus. */
 export function useTourTerrain(options: Options) {
   const { samples, routes, trackColor, baseLayer, focus, onFocusChange, panels, waypoints, framePoints } = options;
   const [exaggeration, setExaggeration] = useState(1.5);
-  const [colorMode, setColorMode] = useState<TrackColorMode>('grade');
+  const [chosenColorMode, setColorMode] = useState<TrackColorMode>('grade');
+  // Water is flat: a paddle tour keeps its tour colour, whatever was picked for a hike.
+  const colorMode: TrackColorMode = options.water ? 'tour' : chosenColorMode;
   const data = useMemo(
     () => trackData(samples, routes, colorMode, trackColor),
     [samples, routes, colorMode, trackColor]

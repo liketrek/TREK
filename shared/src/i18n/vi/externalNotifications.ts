@@ -60,6 +60,10 @@ const en: NotificationLocale = {
           ? ` Kể từ lần thông báo trước, có thêm ${p.suppressed} lỗi nhưng không được thông báo riêng.`
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Có yêu cầu vùng chèo thuyền',
+      body: `${p.actor} đang lên kế hoạch chèo thuyền ở ${p.region}. Tải hoặc từ chối dữ liệu nước trong khu quản trị, mục Tiện ích bổ sung.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Đã xóa phiên Synology',
       body: 'Tài khoản Synology của bạn hoặc URL đã thay đổi. Bạn đã đăng xuất khỏi Synology Photos.',

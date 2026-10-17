@@ -891,5 +891,43 @@ const admin: TranslationStrings = {
     'Daten © OpenStreetMap-Mitwirkende (ODbL), regionale Auszüge von Geofabrik. Neu gelesen am 3. jedes Monats.',
   'admin.paddleRegions.toast.added': 'Region hinzugefügt. TREK liest sie im Hintergrund.',
   'admin.paddleRegions.toast.removed': 'Region entfernt',
+  'admin.paddleRegions.phase.build': 'Wassernetz wird gebaut',
+  'admin.paddleRegions.network.km': '{km} km Gewässer',
+  'admin.paddleRegions.network.lakes': '{count} Seen',
+  'admin.paddleRegions.network.lakes.one': '{count} See',
+  'admin.paddleRegions.network.portages': '{count} kartierte Umtragestellen',
+  'admin.paddleRegions.network.portages.one': '{count} kartierte Umtragestelle',
+  'admin.paddleRegions.network.inferred': '{count} angenommene Umtragungen',
+  'admin.paddleRegions.network.inferred.one': '{count} angenommene Umtragung',
+  'admin.paddleRegions.network.locks': '{count} Schleusen',
+  'admin.paddleRegions.network.locks.one': '{count} Schleuse',
+  'admin.paddleRegions.network.gaps': '{count} überbrückte Lücken',
+  'admin.paddleRegions.network.gaps.one': '{count} überbrückte Lücke',
+  'admin.paddleRegions.network.missing': 'Kein Wassernetz',
+  'admin.paddleRegions.network.missingHint': 'Lies die Region erneut ein, um das Netz für das Paddel-Routing zu bauen.',
+  'admin.paddleRegions.auto.title': 'Regionen automatisch laden',
+  'admin.paddleRegions.auto.mode.auto': 'Automatisch',
+  'admin.paddleRegions.auto.mode.ask': 'Auf Anfrage',
+  'admin.paddleRegions.auto.mode.off': 'Aus',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'Plant jemand eine Paddeltour in einer Gegend ohne Gewässerdaten, lädt TREK die kleinste passende Region sofort, bis zur Größengrenze und nur wenige am Tag. Größere warten hier als Anfrage. Nur der Name der Region geht an Geofabrik, nie der Ort.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Jede neue Region wartet hier, bis ein Admin sie freigibt. Plant ein Admin selbst, lädt sie sofort.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREK lädt nichts von selbst und fragt nicht nach. Regionen fügst du hier von Hand hinzu.',
+  'admin.paddleRegions.auto.maxSize': 'Größte Region, die automatisch lädt',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Größere Regionen warten hier als Anfrage. Das Einlesen einer Region dauert einige Minuten und braucht dabei Arbeitsspeicher.',
+  'admin.paddleRegions.requests.title': 'Angefragt',
+  'admin.paddleRegions.requests.reason.ask': 'Auf Anfrage',
+  'admin.paddleRegions.requests.reason.too_large': 'Zu groß',
+  'admin.paddleRegions.requests.reason.limit': 'Tageslimit',
+  'admin.paddleRegions.requests.declined': 'Abgelehnt',
+  'admin.paddleRegions.requests.by': 'von {user}',
+  'admin.paddleRegions.requests.approve': 'Laden',
+  'admin.paddleRegions.requests.decline': 'Ablehnen',
+  'admin.paddleRegions.origin.auto': 'Automatisch',
+  'admin.paddleRegions.origin.autoHint':
+    'TREK hat diese Region selbst geladen, für eine Paddeltour, die dort geplant wird.',
 };
 export default admin;

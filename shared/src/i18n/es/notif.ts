@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Error al escribir en la réplica '{backend}': {op} de {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Error al escribir en la réplica '{backend}': {op} de {key} — {error}. Se suprimieron {suppressed} errores más desde la última notificación.",
+  'notif.paddle_region_requested.title': 'Región de kayak pedida',
+  'notif.paddle_region_requested.text': '{actor} está planificando una ruta en kayak en {region}',
   'notif.action.view_trip': 'Ver viaje',
   'notif.action.view_collab': 'Ver mensajes',
   'notif.action.view_packing': 'Ver equipaje',

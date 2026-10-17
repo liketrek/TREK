@@ -183,6 +183,7 @@ describe('ToursService planner contracts (mock-only; SQLite rollback semantics a
       water_context: null,
       paddle_speed_kmh: null,
       portage_speed_kmh: null,
+      paddle_lake_style: null,
     });
     expect((setup.toursRepo.insertTour.mock.calls[0][0] as { distance: number }).distance).toBeGreaterThan(0);
     expect(setup.waypointsRepo.insertForPlace).toHaveBeenCalledExactlyOnceWith(42, request.waypoints);
@@ -297,6 +298,7 @@ describe('ToursService planner contracts (mock-only; SQLite rollback semantics a
       water_context: null,
       paddle_speed_kmh: null,
       portage_speed_kmh: null,
+      paddle_lake_style: null,
     });
     expect(setup.waypointsRepo.deleteForPlace).toHaveBeenCalledExactlyOnceWith(42);
     expect(setup.waypointsRepo.insertForPlace).toHaveBeenCalledExactlyOnceWith(42, update.waypoints);

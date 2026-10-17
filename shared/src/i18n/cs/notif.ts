@@ -33,6 +33,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Zápis do repliky '{backend}' selhal: {op} u {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Zápis do repliky '{backend}' selhal: {op} u {key} — {error}. Od poslední notifikace bylo potlačeno {suppressed} dalších selhání.",
+  'notif.paddle_region_requested.title': 'Vyžádán vodácký region',
+  'notif.paddle_region_requested.text': '{actor} plánuje vodáckou trasu v regionu {region}',
   'notif.action.view_trip': 'Zobrazit výlet',
   'notif.action.view_collab': 'Zobrazit zprávy',
   'notif.action.view_packing': 'Zobrazit balení',

@@ -106,6 +106,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Webhook通知',
   'settings.notifyVersionAvailable': '新しいバージョン',
   'settings.notifyReplicaFailure': 'ストレージレプリカの障害',
+  'settings.notifyPaddleRegionRequested': 'パドル地域のリクエスト',
   'settings.notificationPreferences.email': 'メール',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': 'アプリ内',

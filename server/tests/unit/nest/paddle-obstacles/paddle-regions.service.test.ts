@@ -2,13 +2,15 @@
  * PaddleRegionsService over a snapshot db with Geofabrik faked: a region
  * added, read in the background from an extract the test writes, its objects
  * stored; the queue in order; a failed read that keeps the previous data; a
- * region removed while it is read; the monthly and the boot requeue.
+ * region removed while it is read; the monthly and the boot requeue; the
+ * water network the same read builds for routing (PAD-11).
  */
 import { PaddleFeatures } from '../../../../src/db/entities/PaddleFeatures.entity';
 import { PaddleRegions } from '../../../../src/db/entities/PaddleRegions.entity';
 import type { PaddleRegionsRepository } from '../../../../src/db/repositories/PaddleRegions.repository';
 import { AppConfigModule } from '../../../../src/nest/app-config/app-config.module';
 import { DataPathsService } from '../../../../src/nest/app-config/data-paths.service';
+import { DemoModule } from '../../../../src/nest/common/demo.module';
 import { DomainError } from '../../../../src/nest/common/domain-error';
 import { GeofabrikClient, type GeofabrikRegion } from '../../../../src/nest/paddle-obstacles/geofabrik.client';
 import { PaddleObstaclesModule } from '../../../../src/nest/paddle-obstacles/paddle-obstacles.module';
@@ -23,6 +25,7 @@ import { countRows, deleteRows, findRow, findRows, updateRows } from '../../../h
 import { pbfFile } from '../../../helpers/osm-pbf-fixture';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestModule, type TestModule } from '../../../helpers/test-module';
+import { WaterWorld } from '../../../helpers/water-world';
 import { MikroORM } from '@mikro-orm/core';
 import { getRepositoryToken } from '@mikro-orm/nestjs';
 import { paddleRegionSchema } from '@trek/shared';
@@ -112,10 +115,10 @@ beforeEach(async () => {
   await t?.close();
   t = await createTestModule({
     db,
-    imports: [AppConfigModule, PaddleObstaclesModule],
+    imports: [AppConfigModule, DemoModule, PaddleObstaclesModule],
     overrides: [
       { provide: GeofabrikClient, useValue: { regions, download } },
-      { provide: DataPathsService, useValue: { tmpDir: dir } },
+      { provide: DataPathsService, useValue: { tmpDir: dir, dataDir: dir } },
     ],
   });
   service = t.get(PaddleRegionsService);
@@ -404,6 +407,57 @@ describe('PaddleRegionsService: restart and shutdown', () => {
       min_lng: 12.1301,
       max_lng: 12.14,
     });
+  });
+});
+
+describe('PaddleRegionsService and the water network (PAD-11)', () => {
+  /** The Regen past Regenstauf, 3 km of river. */
+  const regen = new WaterWorld({ lat: 49.12, lng: 12.13 });
+  regen.line(
+    [
+      [0, 3000],
+      [0, 0],
+    ],
+    { waterway: 'river', name: 'Regen' },
+  );
+  const graphs = () => readdir(join(dir, 'paddle', 'graphs')).catch(() => [] as string[]);
+
+  it('PREG-018: a read builds the network beside the objects, lists its counts, and a read again replaces its file', async () => {
+    download.mockImplementation((_url, target) => writeFile(target, regen.pbf()));
+    await service.add('oberpfalz');
+    await service.idle();
+    const [listed] = await service.list();
+    expect(paddleRegionSchema.parse(listed).network).toMatchObject({ water_km: expect.closeTo(3, 1), lakes: 0 });
+    const first = await graphs();
+    expect(first).toHaveLength(1);
+
+    regen.line(
+      [
+        [500, 3000],
+        [500, 0],
+      ],
+      { waterway: 'canal', name: 'Kanal' },
+    );
+    await service.refresh('oberpfalz');
+    await service.idle();
+    const second = await graphs();
+    expect(second).toHaveLength(1);
+    expect(second).not.toEqual(first);
+  });
+
+  it('PREG-019: a region removed while its network is written keeps no file; a region without water lists no network', async () => {
+    download.mockImplementationOnce(async (_url, target) => {
+      await writeFile(target, regen.pbf());
+      await deleteRows(orm(), PaddleRegions, { id: 'oberpfalz' });
+    });
+    await service.add('oberpfalz');
+    await service.idle();
+    expect(await graphs()).toEqual([]);
+
+    await service.add('oberpfalz');
+    await service.idle();
+    const [listed] = await service.list();
+    expect(listed?.network).toBeNull();
   });
 });
 

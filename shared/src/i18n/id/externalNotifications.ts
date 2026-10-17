@@ -58,6 +58,10 @@ const id: NotificationLocale = {
         `Penulisan replika gagal pada '${p.backend}': ${p.op} dari ${p.key} — ${p.error}.` +
         (p.suppressed !== '0' ? ` ${p.suppressed} kegagalan lainnya tidak dilaporkan sejak notifikasi terakhir.` : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Wilayah dayung diminta',
+      body: `${p.actor} merencanakan tur dayung di ${p.region}. Muat atau tolak data airnya di area admin pada Add-on.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Sesi Synology dihapus',
       body: 'Akun atau URL Synology Anda berubah. Anda telah keluar dari Synology Photos.',

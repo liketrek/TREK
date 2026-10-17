@@ -96,6 +96,7 @@ describe('ToursRepository reads', () => {
         water_context: null,
         paddle_speed_kmh: null,
         portage_speed_kmh: null,
+        paddle_lake_style: null,
         track_marks: null,
         has_recorded_track: 0,
       },
@@ -123,6 +124,7 @@ describe('ToursRepository reads', () => {
         water_context: null,
         paddle_speed_kmh: null,
         portage_speed_kmh: null,
+        paddle_lake_style: null,
         track_marks: null,
         has_recorded_track: 0,
       },
@@ -206,6 +208,7 @@ describe('ToursRepository writes', () => {
       water_context: null,
       paddle_speed_kmh: null,
       portage_speed_kmh: null,
+      paddle_lake_style: null,
       track_marks: null,
       has_recorded_track: 0,
     });
@@ -218,6 +221,7 @@ describe('ToursRepository writes', () => {
     water_context: null,
     paddle_speed_kmh: null,
     portage_speed_kmh: null,
+    paddle_lake_style: null,
   };
 
   it('TOURREPO-007: updateInTrip replaces the metrics of a tour of that trip and refuses one of another trip', async () => {
@@ -283,6 +287,7 @@ describe('ToursRepository writes', () => {
         water_context: null,
         paddle_speed_kmh: null,
         portage_speed_kmh: null,
+        paddle_lake_style: null,
         track_marks: null,
       },
     ]);

@@ -67,6 +67,10 @@ const fr: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Région de pagaie demandée',
+      body: `${p.actor} planifie une sortie en canoë dans ${p.region}. Charge ou refuse ses données d'eau dans l'administration, sous Modules.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Session Synology effacée',
       body: 'Votre compte ou URL Synology a changé. Vous avez été déconnecté de Synology Photos.',

@@ -118,6 +118,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Webhook notifications',
   'settings.notifyVersionAvailable': 'New version available',
   'settings.notifyReplicaFailure': 'Storage replica failure',
+  'settings.notifyPaddleRegionRequested': 'Paddle region requested',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': 'In-App',

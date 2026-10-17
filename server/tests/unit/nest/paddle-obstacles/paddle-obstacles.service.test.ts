@@ -7,6 +7,7 @@
 import { PaddleFeatures } from '../../../../src/db/entities/PaddleFeatures.entity';
 import { PaddleRegions } from '../../../../src/db/entities/PaddleRegions.entity';
 import { AppConfigModule } from '../../../../src/nest/app-config/app-config.module';
+import { DemoModule } from '../../../../src/nest/common/demo.module';
 import { DomainError } from '../../../../src/nest/common/domain-error';
 import { PaddleObstaclesModule } from '../../../../src/nest/paddle-obstacles/paddle-obstacles.module';
 import {
@@ -85,7 +86,7 @@ const weir = (regionId: string, ref: string, lat: number, lng: number) => ({
 beforeEach(async () => {
   resetTestDb(db);
   await t?.close();
-  t = await createTestModule({ db, imports: [AppConfigModule, PaddleObstaclesModule] });
+  t = await createTestModule({ db, imports: [AppConfigModule, DemoModule, PaddleObstaclesModule] });
   service = t.get(PaddleObstaclesService);
 });
 

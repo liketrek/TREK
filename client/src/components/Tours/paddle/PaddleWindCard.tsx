@@ -1,4 +1,4 @@
-import { compassPointOf, type WindForecastResponse, type WindHour } from '@trek/shared';
+import { compassPointOf, type PaddleLakeStyle, type WindForecastResponse, type WindHour } from '@trek/shared';
 import { ChevronDown, RefreshCw, WifiOff, Wind } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../../../i18n';
@@ -8,6 +8,7 @@ import { fs } from '../../shared/DialogShell';
 import { Tooltip } from '../../shared/Tooltip';
 import { RailCard, TourNotice } from '../tourParts';
 import { FigureBadge } from './FigureBadge';
+import { windForShore } from './lakeStyleAdvice';
 import { useTourWind, type TourWind } from './useTourWind';
 
 type Translate = (key: string, params?: Record<string, unknown>) => string;
@@ -209,15 +210,58 @@ function WindHints({ t }: { t: Translate }) {
   );
 }
 
+/** The lake style of the tour being edited, for the wind card to suggest the shore on a windy day. */
+export interface LakeStyleChoice {
+  value: PaddleLakeStyle;
+  onChoose: (style: PaddleLakeStyle) => void;
+}
+
+/**
+ * PAD-11: on a windy day, the offer to keep near the shores on the lakes,
+ * with the wind that prompts it; once taken, it says the lakes are planned so.
+ */
+function ShoreAdvice({
+  wind,
+  lakes,
+  t,
+}: {
+  wind: { meanKmh: number; gustsKmh: number };
+  lakes: LakeStyleChoice;
+  t: Translate;
+}) {
+  if (lakes.value === 'shore') {
+    return (
+      <TourNotice role="status" icon={<Wind size={13} strokeWidth={2} />}>
+        {t('tours.paddle.wind.shoreTaken')}
+      </TourNotice>
+    );
+  }
+  return (
+    <TourNotice tone="warning" icon={<Wind size={13} strokeWidth={2} />}>
+      <span data-testid="paddle-wind-shore-advice" className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {t('tours.paddle.wind.shoreAdvice', { mean: wind.meanKmh, gusts: wind.gustsKmh })}
+        <button
+          type="button"
+          onClick={() => lakes.onChoose('shore')}
+          className="font-semibold underline-offset-2 hover:underline"
+        >
+          {t('tours.paddle.wind.shoreAdopt')}
+        </button>
+      </span>
+    </TourNotice>
+  );
+}
+
 /**
  * PAD-08: the wind on the day a paddle tour is planned for, at its start. The
  * mean, the gusts and the direction are figures of their own, with the source
  * and when it was asked; no value is turned into a verdict, and missing data
  * is never shown as calm.
  */
-export function PaddleWindCard({ wind }: { wind: TourWind }) {
+export function PaddleWindCard({ wind, lakes }: { wind: TourWind; lakes?: LakeStyleChoice }) {
   const { t, locale } = useTranslation();
   const ready = wind.state.kind === 'ready' && wind.state.forecast.status === 'forecast' ? wind.state.forecast : null;
+  const shoreWind = ready && lakes ? windForShore(ready) : null;
   return (
     <RailCard
       icon={<Wind size={14} strokeWidth={2} />}
@@ -249,6 +293,7 @@ export function PaddleWindCard({ wind }: { wind: TourWind }) {
         ) : (
           <Unavailable wind={wind} t={t} locale={locale} />
         )}
+        {shoreWind && lakes && <ShoreAdvice wind={shoreWind} lakes={lakes} t={t} />}
         <WindHints t={t} />
       </div>
     </RailCard>
@@ -259,10 +304,13 @@ export function PaddleWindCard({ wind }: { wind: TourWind }) {
 export function PaddleWindSection({
   placeId,
   start,
+  lakes,
 }: {
   placeId: number | null;
   start: { lat: number; lng: number } | null;
+  /** Given while the tour is edited and its route crosses a lake: the card may suggest the shore. */
+  lakes?: LakeStyleChoice;
 }) {
   const wind = useTourWind(placeId, start);
-  return <PaddleWindCard wind={wind} />;
+  return <PaddleWindCard wind={wind} lakes={lakes} />;
 }

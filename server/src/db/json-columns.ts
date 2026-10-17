@@ -6,6 +6,7 @@ import {
   paddleGeometrySchema,
   paddleLockSchema,
   paddleRegionBoundarySchema,
+  paddleRegionGraphStatsSchema,
   tourFixedLegSchema,
   trackMarksSchema,
   type Ferrata,
@@ -13,6 +14,7 @@ import {
   type PaddleGeometry,
   type PaddleLock,
   type PaddleRegionBoundary,
+  type PaddleRegionGraphStats,
   type TourFixedLeg,
   type TrackMarks,
 } from '@trek/shared';
@@ -191,6 +193,13 @@ export const PADDLE_FEATURE_TAGS: JsonColumn<Record<string, string>> = {
 export const PADDLE_REGION_BOUNDARY: JsonColumn<PaddleRegionBoundary | null> = {
   column: 'paddle_regions.boundary',
   schema: paddleRegionBoundarySchema.nullable(),
+  fallback: () => null,
+};
+
+/** What a paddle region's water network holds (PAD-11). A broken row has none, and the region shows no network figures. */
+export const PADDLE_REGION_GRAPH_STATS: JsonColumn<PaddleRegionGraphStats | null> = {
+  column: 'paddle_water_graphs.stats',
+  schema: paddleRegionGraphStatsSchema.nullable(),
   fallback: () => null,
 };
 

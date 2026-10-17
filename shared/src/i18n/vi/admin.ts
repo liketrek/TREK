@@ -876,5 +876,37 @@ const admin: TranslationStrings = {
     'Dữ liệu © những người đóng góp OpenStreetMap (ODbL), bản trích xuất theo vùng của Geofabrik. Được đọc lại vào ngày 3 hằng tháng.',
   'admin.paddleRegions.toast.added': 'Đã thêm vùng. TREK đang đọc vùng này trong nền.',
   'admin.paddleRegions.toast.removed': 'Đã xóa vùng',
+  'admin.paddleRegions.phase.build': 'Đang xây dựng mạng lưới mặt nước',
+  'admin.paddleRegions.network.km': '{km} km mặt nước',
+  'admin.paddleRegions.network.lakes': '{count} hồ',
+  'admin.paddleRegions.network.portages': '{count} chỗ khiêng thuyền đã lập bản đồ',
+  'admin.paddleRegions.network.inferred': '{count} lần khiêng thuyền giả định',
+  'admin.paddleRegions.network.locks': '{count} âu thuyền',
+  'admin.paddleRegions.network.gaps': '{count} khoảng trống được nối',
+  'admin.paddleRegions.network.missing': 'Không có mạng lưới mặt nước',
+  'admin.paddleRegions.network.missingHint': 'Đọc lại vùng để xây dựng mạng lưới mà tuyến chèo thuyền đi theo.',
+  'admin.paddleRegions.auto.title': 'Tự động tải vùng',
+  'admin.paddleRegions.auto.mode.auto': 'Tự động',
+  'admin.paddleRegions.auto.mode.ask': 'Theo yêu cầu',
+  'admin.paddleRegions.auto.mode.off': 'Tắt',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'Khi ai đó lên kế hoạch chèo thuyền ở nơi chưa có dữ liệu nước, TREK tải ngay vùng nhỏ nhất phù hợp, trong giới hạn kích thước và chỉ vài vùng mỗi ngày. Vùng lớn hơn sẽ chờ ở đây dưới dạng yêu cầu. Chỉ tên vùng được gửi tới Geofabrik, không bao giờ là vị trí.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Mỗi vùng mới chờ ở đây cho đến khi quản trị viên cho phép. Khi quản trị viên tự lên kế hoạch, vùng được tải ngay.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREK không tự tải gì và không yêu cầu gì. Hãy thêm vùng ở đây theo cách thủ công.',
+  'admin.paddleRegions.auto.maxSize': 'Vùng lớn nhất được tải tự động',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Vùng lớn hơn chờ ở đây dưới dạng yêu cầu. Đọc một vùng mất vài phút và dùng bộ nhớ trong lúc đó.',
+  'admin.paddleRegions.requests.title': 'Được yêu cầu',
+  'admin.paddleRegions.requests.reason.ask': 'Theo yêu cầu',
+  'admin.paddleRegions.requests.reason.too_large': 'Quá lớn',
+  'admin.paddleRegions.requests.reason.limit': 'Giới hạn ngày',
+  'admin.paddleRegions.requests.declined': 'Đã từ chối',
+  'admin.paddleRegions.requests.by': 'bởi {user}',
+  'admin.paddleRegions.requests.approve': 'Tải',
+  'admin.paddleRegions.requests.decline': 'Từ chối',
+  'admin.paddleRegions.origin.auto': 'Tự động',
+  'admin.paddleRegions.origin.autoHint': 'TREK đã tự tải vùng này cho một chuyến chèo thuyền được lên kế hoạch ở đó.',
 };
 export default admin;

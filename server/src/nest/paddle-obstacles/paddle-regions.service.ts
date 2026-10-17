@@ -1,7 +1,9 @@
 import { PaddleFeatures } from '../../db/entities/PaddleFeatures.entity';
-import { PaddleRegions } from '../../db/entities/PaddleRegions.entity';
+import { PaddleRegionRequests } from '../../db/entities/PaddleRegionRequests.entity';
+import { PaddleRegions, type TPaddleRegionsOrigin } from '../../db/entities/PaddleRegions.entity';
 import { PADDLE_FEATURE_GEOMETRY, PADDLE_FEATURE_TAGS, PADDLE_REGION_BOUNDARY } from '../../db/json-columns';
 import type { PaddleFeatureRow, PaddleFeaturesRepository } from '../../db/repositories/PaddleFeatures.repository';
+import type { PaddleRegionRequestsRepository } from '../../db/repositories/PaddleRegionRequests.repository';
 import type { PaddleRegionRow, PaddleRegionsRepository } from '../../db/repositories/PaddleRegions.repository';
 import { dbNow, utcSuffix } from '../../db/types';
 import { encodeJson } from '../../utils/json-column';
@@ -10,12 +12,14 @@ import { logError, logInfo } from '../audit/audit-log.logger';
 import { DomainError } from '../common/domain-error';
 import { withRequestContext } from '../database/request-context';
 import { UnitOfWork } from '../database/unit-of-work';
+import { PaddleRoutingService } from '../paddle-routing/paddle-routing.service';
 import { GeofabrikClient, type GeofabrikRegion } from './geofabrik.client';
-import { extractPaddleFeatures, type ExtractedFeature } from './paddle-extract';
+import { PADDLE_IMPORT_RUNNER, type ImportRunner } from './import-runner';
+import type { ExtractedFeature } from './paddle-extract';
 import { boxOfBoundary } from './paddle-geo';
 import { MikroORM } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
+import { Inject, Injectable, type OnApplicationShutdown } from '@nestjs/common';
 import type { PaddleRegion, PaddleRegionCatalogEntry } from '@trek/shared';
 
 import { mkdir, rm, unlink } from 'node:fs/promises';
@@ -32,16 +36,22 @@ const STOPPED_AT_SHUTDOWN = 'stopped by the shutdown; read again on the next sta
 /** What the region being read is doing, for the admin list; held in memory, as one process reads. */
 type ReadProgress = NonNullable<PaddleRegion['progress']>;
 
-function toRegion(row: PaddleRegionRow, progress: ReadProgress | null = null): PaddleRegion {
+function toRegion(
+  row: PaddleRegionRow,
+  progress: ReadProgress | null = null,
+  network: PaddleRegion['network'] = null,
+): PaddleRegion {
   return {
     id: row.id,
     name: row.name,
     status: row.status,
+    origin: row.origin,
     source_timestamp: row.source_timestamp,
     imported_at: utcSuffix(row.imported_at),
     feature_count: row.feature_count,
     error: row.error,
     progress: row.status === 'importing' ? progress : null,
+    network,
   };
 }
 
@@ -105,10 +115,16 @@ export class PaddleRegionsService implements OnApplicationShutdown {
     private readonly orm: MikroORM,
     @InjectRepository(PaddleRegions) private readonly regions: PaddleRegionsRepository,
     @InjectRepository(PaddleFeatures) private readonly features: PaddleFeaturesRepository,
+    @InjectRepository(PaddleRegionRequests) private readonly requests: PaddleRegionRequestsRepository,
+    private readonly routing: PaddleRoutingService,
+    @Inject(PADDLE_IMPORT_RUNNER) private readonly importer: ImportRunner,
   ) {}
 
   async list(): Promise<PaddleRegion[]> {
-    return (await this.regions.list()).map((row) => toRegion(row, this.progressOf(row.id)));
+    const networks = await this.routing.networks();
+    return (await this.regions.list()).map((row) =>
+      toRegion(row, this.progressOf(row.id), networks.get(row.id) ?? null),
+    );
   }
 
   /** Regions of Geofabrik's list whose name or id matches, with the regions they lie in. */
@@ -129,8 +145,11 @@ export class PaddleRegionsService implements OnApplicationShutdown {
       .map((region) => ({ id: region.id, name: region.name, path: path(region.parent) }));
   }
 
-  /** Adds a region and queues its first read; a region already there is read again, as `refresh` does. */
-  async add(id: string): Promise<PaddleRegion> {
+  /**
+   * Adds a region and queues its first read; a region already there is read
+   * again, as `refresh` does. A paddler's request for it is settled by adding it.
+   */
+  async add(id: string, origin: TPaddleRegionsOrigin = 'admin'): Promise<PaddleRegion> {
     if (await this.regions.findById(id)) return await this.refresh(id);
     const region = (await this.catalogue()).get(id);
     if (!region)
@@ -140,15 +159,19 @@ export class PaddleRegionsService implements OnApplicationShutdown {
       });
     const box = region.boundary ? boxOfBoundary(region.boundary) : null;
     await this.uow.transactional(async () => {
-      await this.regions.insertRegion({
-        id,
-        name: region.name,
-        boundary: region.boundary ? encodeJson(PADDLE_REGION_BOUNDARY, region.boundary) : null,
-        min_lat: box?.south ?? null,
-        min_lng: box?.west ?? null,
-        max_lat: box?.north ?? null,
-        max_lng: box?.east ?? null,
-      });
+      await this.requests.remove(id);
+      await this.regions.insertRegion(
+        {
+          id,
+          name: region.name,
+          boundary: region.boundary ? encodeJson(PADDLE_REGION_BOUNDARY, region.boundary) : null,
+          min_lat: box?.south ?? null,
+          min_lng: box?.west ?? null,
+          max_lat: box?.north ?? null,
+          max_lng: box?.east ?? null,
+        },
+        origin,
+      );
       await this.regions.updateRegion(id, { status: 'queued', error: null });
     });
     this.kick();
@@ -224,6 +247,13 @@ export class PaddleRegionsService implements OnApplicationShutdown {
     return join(this.paths.tmpDir, 'paddle');
   }
 
+  /** How far a queued or importing region is: its read's progress, and how many regions are read before it. */
+  async readState(id: string): Promise<{ progress: ReadProgress | null; ahead: number }> {
+    if (this.current?.id === id) return { progress: this.progressOf(id), ahead: 0 };
+    const waiting = (await this.regions.queued()).findIndex((row) => row.id === id);
+    return { progress: null, ahead: Math.max(0, waiting) + (this.current ? 1 : 0) };
+  }
+
   private progressOf(id: string): ReadProgress | null {
     return this.current?.id === id ? { ...this.current.progress } : null;
   }
@@ -267,6 +297,8 @@ export class PaddleRegionsService implements OnApplicationShutdown {
     const dir = this.downloadDir();
     // Some of Geofabrik's ids are nested (`us/texas`); the file stays in the one folder.
     const file = join(dir, `${region.id.replaceAll('/', '_')}-${Date.now()}.osm.pbf`);
+    // A network written but never recorded (the read failed or was called off after it) goes again.
+    let graphFile: string | null = null;
     try {
       const known = (await this.geofabrik.regions()).get(region.id);
       if (!known) throw new Error(REGION_UNKNOWN_MESSAGE);
@@ -277,10 +309,15 @@ export class PaddleRegionsService implements OnApplicationShutdown {
         onProgress: (fraction) => (current.progress = { phase: 'download', fraction }),
       });
       current.progress = { phase: 'read', fraction: 0 };
-      const { timestamp, features } = await extractPaddleFeatures(file, (fraction) => {
-        current.progress = { phase: 'read', fraction };
-      });
+      const { timestamp, features, graph } = await this.importer.run(
+        file,
+        region.id,
+        (phase, fraction) => (current.progress = { phase, fraction }),
+        abort.signal,
+      );
       abort.signal.throwIfAborted();
+      graphFile = graph ? await this.routing.writeGraphFile(region.id, graph) : null;
+      let previousGraph: string | null = null;
       const kept = await this.uow.transactional(async () => {
         if (!(await this.regions.findById(region.id))) return false;
         await this.features.replaceRegion(region.id, features.map(toRow));
@@ -293,9 +330,12 @@ export class PaddleRegionsService implements OnApplicationShutdown {
           // Without a boundary the region covers what its objects span, so the map can still tell it is covered.
           ...(known.boundary ? {} : extentOf(features)),
         });
+        if (graph && graphFile) previousGraph = await this.routing.recordGraph(region.id, graphFile, graph);
         return true;
       });
       if (!kept) throw new Error(REMOVED_WHILE_READ);
+      if (graphFile) await this.routing.replaced(previousGraph, graphFile);
+      graphFile = null;
       logInfo(
         `[Paddle] ${region.id}: ${features.length} objects read in ${Math.round((Date.now() - started) / 1000)} s`,
       );
@@ -311,6 +351,7 @@ export class PaddleRegionsService implements OnApplicationShutdown {
     } finally {
       if (this.current === current) this.current = null;
       await unlink(file).catch(() => undefined);
+      if (graphFile) await this.routing.discard(graphFile);
     }
   }
 }

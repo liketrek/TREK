@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import { bindPinHoverLabel, mapHoverLabel } from './mapHoverLabel';
 import type { MapViewProps } from './mapViewContract';
+import { plannerPinShape } from './plannerPinShape';
 import { wirePlannerWaypointDrag } from './plannerWaypointDrag';
 
 /** The slice of the GL map the waypoint pins need: its box and screen-to-ground lookup. */
@@ -71,10 +72,10 @@ export function usePlannerWaypointMarkersGL<Pin extends PlannerWaypointPin>({
 
     for (const [index, point] of plannerWaypoints.entries()) {
       const selected = point.id === selectedPlannerWaypointId;
-      const size = selected ? 30 : 26;
+      const { size, text } = plannerPinShape(point, index, selected);
       const el = document.createElement('button');
       el.type = 'button';
-      el.textContent = String(index + 1);
+      el.textContent = text;
       const name = point.name ?? `Waypoint ${index + 1}`;
       el.setAttribute('aria-label', name);
       el.style.cssText = `${pinCss(size, selected)};cursor:pointer;padding:0`;

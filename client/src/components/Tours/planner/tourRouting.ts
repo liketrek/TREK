@@ -9,6 +9,12 @@ export interface TourRoutePart {
   free: boolean
   /** PAD-03: carried over land, a portage of a paddle tour; absent on water and on a hike. */
   land?: boolean
+  /**
+   * PAD-11: on a routed paddle tour, a stretch the paddler should look at:
+   * whitewater or a boat pass, a gap in the data the router bridged, or a leg
+   * it could not plan (drawn straight, and nothing checked it).
+   */
+  mark?: 'rapids' | 'gap' | 'unrouted'
 }
 
 export interface TourRouteResult {

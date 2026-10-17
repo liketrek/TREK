@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Schrijven naar replica '{backend}' is mislukt: {op} van {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Schrijven naar replica '{backend}' is mislukt: {op} van {key} — {error}. {suppressed} extra fout(en) zijn onderdrukt sinds de laatste melding.",
+  'notif.paddle_region_requested.title': 'Peddelregio aangevraagd',
+  'notif.paddle_region_requested.text': '{actor} plant een peddeltocht in {region}',
   'notif.action.view_trip': 'Reis bekijken',
   'notif.action.view_collab': 'Berichten bekijken',
   'notif.action.view_packing': 'Paklijst bekijken',

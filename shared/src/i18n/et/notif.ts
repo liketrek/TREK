@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Koopia kirjutamine taustsüsteemi '{backend}' ebaõnnestus: {op}, {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Koopia kirjutamine taustsüsteemi '{backend}' ebaõnnestus: {op}, {key} — {error}. Pärast viimast teavitust jäeti veel {suppressed} tõrget teavitamata.",
+  'notif.paddle_region_requested.title': 'Aerutamispiirkonda taotleti',
+  'notif.paddle_region_requested.text': '{actor} kavandab aerutamismatka piirkonnas {region}',
   'notif.action.view_trip': 'Vaata reisi',
   'notif.action.view_collab': 'Vaata sõnumeid',
   'notif.action.view_packing': 'Vaata pakkimisnimekirja',

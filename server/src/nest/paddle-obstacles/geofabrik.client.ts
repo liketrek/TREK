@@ -1,4 +1,5 @@
 import { readCappedJson } from '../../utils/cappedFetch';
+import { logWarn } from '../audit/audit-log.logger';
 import type { RegionBoundary } from './paddle-geo';
 import { Injectable } from '@nestjs/common';
 import { paddleRegionBoundarySchema } from '@trek/shared';
@@ -23,6 +24,7 @@ const INDEX_TIMEOUT_MS = 20_000;
 /** The list is a few megabytes; far more means it is not the list. */
 const MAX_INDEX_BYTES = 32 * 1024 * 1024;
 const INDEX_FRESH_MS = 24 * 60 * 60 * 1000;
+const SIZE_TIMEOUT_MS = 10_000;
 /** A whole country is a few gigabytes; a regional extract far less. More than this is refused. */
 export const MAX_EXTRACT_BYTES = 4 * 1024 * 1024 * 1024;
 const DOWNLOAD_TIMEOUT_MS = 60 * 60 * 1000;
@@ -65,15 +67,20 @@ export function isExtractUrl(url: string): boolean {
  * A redirect anywhere else is refused, so the list's addresses are the only
  * ones TREK ever reads an extract from.
  */
-async function fetchFromGeofabrik(url: string, signal: AbortSignal, hops = 0): Promise<Response> {
-  const response = await fetch(url, { signal, redirect: 'manual' });
+async function fetchFromGeofabrik(
+  url: string,
+  signal: AbortSignal,
+  hops = 0,
+  method: 'GET' | 'HEAD' = 'GET',
+): Promise<Response> {
+  const response = await fetch(url, { signal, redirect: 'manual', method });
   if (response.status < 300 || response.status >= 400) return response;
   await response.body?.cancel().catch(() => undefined);
   const location = response.headers.get('location');
   const next = location ? new URL(location, url) : null;
   if (!next || !isGeofabrikUrl(next)) throw new Error('Geofabrik redirected away from its own servers');
   if (hops >= MAX_REDIRECTS) throw new Error('Geofabrik redirected too often');
-  return await fetchFromGeofabrik(next.href, signal, hops + 1);
+  return await fetchFromGeofabrik(next.href, signal, hops + 1, method);
 }
 
 @Injectable()
@@ -105,6 +112,24 @@ export class GeofabrikClient {
     }
     this.index = { regions, fetchedAt: now };
     return regions;
+  }
+
+  /**
+   * The size of an extract the list names, in bytes, as Geofabrik announces
+   * it; null when it does not say or cannot be asked right now. Nothing is
+   * downloaded: it is asked with HEAD.
+   */
+  async sizeOf(url: string): Promise<number | null> {
+    if (!isExtractUrl(url)) throw new Error('Not a Geofabrik extract');
+    try {
+      const response = await fetchFromGeofabrik(url, AbortSignal.timeout(SIZE_TIMEOUT_MS), 0, 'HEAD');
+      const size = Number(response.headers.get('content-length'));
+      return response.ok && Number.isSafeInteger(size) && size > 0 ? size : null;
+    } catch (err) {
+      // Not knowing the size is no failure: the caller treats it as unknown and the download still caps it.
+      logWarn(`[Paddle] size of ${url}: ${err instanceof Error ? err.message : String(err)}`);
+      return null;
+    }
   }
 
   /**

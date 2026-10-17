@@ -1,3 +1,4 @@
+import { NodeStore } from './node-store';
 import { readPbfFile, type OsmWay } from './osm-pbf.reader';
 import { keptTags, paddleKindOf, paddleNameOf } from './paddle-tags';
 import { compareCodeUnits, type PaddleGeometry, type PaddleObstacleKind } from '@trek/shared';
@@ -6,10 +7,11 @@ import { createHash } from 'node:crypto';
 import { stat } from 'node:fs/promises';
 
 /**
- * PAD-05A: the paddle objects of one regional extract, read in two passes.
- * The first keeps every tagged node that is one, and the ways that are, with
- * the ids of their nodes; the second looks those nodes' positions up. Only
- * the nodes a kept way needs are held, so a region is read in bounded memory.
+ * PAD-05A: the paddle objects of one regional extract. The first pass keeps
+ * every tagged node that is one, and the ways that are, with the ids of their
+ * nodes; the last looks those nodes' positions up. Only the nodes a kept way
+ * needs are held, as sorted typed arrays, so a region is read in bounded
+ * memory.
  */
 
 /** A way longer than this keeps every n-th node so its line stays readable; its ends are always kept. */
@@ -91,13 +93,10 @@ function build(
   };
 }
 
-function wayFeature(
-  pending: PendingWay,
-  coords: ReadonlyMap<number, readonly [number, number]>,
-): ExtractedFeature | null {
-  const points = pending.way.refs.flatMap((ref) => {
-    const at = coords.get(ref);
-    return at ? [at] : [];
+function wayFeature(pending: PendingWay, coordOf: ExtractResult['coordOf']): ExtractedFeature | null {
+  const points = pending.way.refs.flatMap((ref): Array<readonly [number, number]> => {
+    const at = coordOf(ref);
+    return at ? [[at[1], at[0]]] : [];
   });
   if (points.length < 2) return null;
   const first = points[0] as readonly [number, number];
@@ -153,57 +152,88 @@ export function groupLockParts(features: ExtractedFeature[]): void {
 }
 
 /**
- * Every paddle object of the extract at `path`, and the date its data is
- * current to. `onProgress` hears the share of the work done: the first pass
- * is the first half, the lookup of the ways' nodes the second.
+ * What else a read collects from the same passes: the water network's lines,
+ * areas and barriers (PAD-11). It names the node ids it needs through `want`
+ * and the member ways of its multipolygons through `neededWays`; the read
+ * fetches both and hands back a lookup of the positions.
+ */
+export interface ExtractSink {
+  node(id: number, tags: Readonly<Record<string, string>>): void;
+  way(id: number, refs: readonly number[], tags: Readonly<Record<string, string>>): void;
+  relation(
+    id: number,
+    members: ReadonlyArray<{ type: string; ref: number; role: string }>,
+    tags: Readonly<Record<string, string>>,
+  ): void;
+  memberWay(id: number, refs: readonly number[]): void;
+  readonly neededWays: ReadonlySet<number>;
+}
+
+export interface ExtractResult {
+  timestamp: number | null;
+  features: ExtractedFeature[];
+  /** [lat, lon] of every node a kept way or the sink asked for. */
+  coordOf: (nodeId: number) => [number, number] | null;
+}
+
+/**
+ * Every paddle object of the extract at `path`, the date its data is current
+ * to, and whatever `sinkFor` collects alongside. The first pass reads every
+ * tagged element; a second, only when the sink kept multipolygons, reads the
+ * ways that make them up; the last fetches the positions of every node
+ * asked for. `onProgress` hears the share of the passes done.
  */
 export async function extractPaddleFeatures(
   path: string,
   onProgress?: (fraction: number) => void,
-): Promise<{ timestamp: number | null; features: ExtractedFeature[] }> {
+  sinkFor?: (want: (nodeId: number) => void) => ExtractSink,
+): Promise<ExtractResult> {
   const { size } = await stat(path);
-  const progressOf = (pass: number) => (bytesRead: number) =>
-    onProgress?.(size > 0 ? (pass + Math.min(1, bytesRead / size)) / 2 : 1);
+  const store = new NodeStore();
+  const sink = sinkFor?.((id) => store.want(id));
+  // With a sink there may be a pass over the member ways between the two.
+  const passes = sink ? 3 : 2;
+  let pass = 0;
+  const progressOf = () => (bytesRead: number) =>
+    onProgress?.(size > 0 ? (pass + Math.min(1, bytesRead / size)) / passes : 1);
   const features: ExtractedFeature[] = [];
   const pending: PendingWay[] = [];
-  const needed = new Set<number>();
   const { timestamp } = await readPbfFile(
     path,
     {
       node: (node) => {
         if (Object.keys(node.tags).length === 0) return;
+        sink?.node(node.id, node.tags);
         const kind = paddleKindOf(node.tags);
         if (!kind) return;
         const point: [number, number] = [node.lon, node.lat];
         features.push(build(`node/${node.id}`, kind, node.tags, { type: 'Point', coordinates: point }, [point]));
       },
       way: (way) => {
+        sink?.way(way.id, way.refs, way.tags);
         const kind = paddleKindOf(way.tags);
         if (!kind) return;
         const refs = thinned(way.refs);
         pending.push({ way: { ...way, refs }, kind });
-        for (const ref of refs) needed.add(ref);
+        store.wantAll(refs);
       },
+      relation: sink ? (relation) => sink.relation(relation.id, relation.members, relation.tags) : undefined,
     },
-    progressOf(0),
+    progressOf(),
   );
-  if (pending.length > 0) {
-    const coords = new Map<number, readonly [number, number]>();
-    await readPbfFile(
-      path,
-      {
-        node: (node) => {
-          if (needed.has(node.id)) coords.set(node.id, [node.lon, node.lat]);
-        },
-      },
-      progressOf(1),
-    );
-    for (const way of pending) {
-      const feature = wayFeature(way, coords);
-      if (feature) features.push(feature);
-    }
+  if (sink && sink.neededWays.size > 0) {
+    pass = 1;
+    await readPbfFile(path, { way: (way) => sink.memberWay(way.id, way.refs) }, progressOf());
+  }
+  pass = passes - 1;
+  store.seal();
+  if (store.size > 0) await readPbfFile(path, { coord: (id, lat, lon) => store.offer(id, lat, lon) }, progressOf());
+  const coordOf = (id: number): [number, number] | null => store.get(id);
+  for (const way of pending) {
+    const feature = wayFeature(way, coordOf);
+    if (feature) features.push(feature);
   }
   onProgress?.(1);
   groupLockParts(features);
-  return { timestamp, features };
+  return { timestamp, features, coordOf };
 }

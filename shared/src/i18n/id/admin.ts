@@ -877,5 +877,37 @@ const admin: TranslationStrings = {
     'Data © kontributor OpenStreetMap (ODbL), ekstrak regional dari Geofabrik. Dibaca ulang setiap tanggal 3 tiap bulan.',
   'admin.paddleRegions.toast.added': 'Wilayah ditambahkan. TREK membacanya di latar belakang.',
   'admin.paddleRegions.toast.removed': 'Wilayah dihapus',
+  'admin.paddleRegions.phase.build': 'Membangun jaringan perairan',
+  'admin.paddleRegions.network.km': '{km} km perairan',
+  'admin.paddleRegions.network.lakes': '{count} danau',
+  'admin.paddleRegions.network.portages': '{count} tempat angkut terpetakan',
+  'admin.paddleRegions.network.inferred': '{count} angkutan perkiraan',
+  'admin.paddleRegions.network.locks': '{count} pintu air',
+  'admin.paddleRegions.network.gaps': '{count} celah dijembatani',
+  'admin.paddleRegions.network.missing': 'Tanpa jaringan perairan',
+  'admin.paddleRegions.network.missingHint': 'Baca ulang wilayah untuk membangun jaringan yang diikuti rute dayung.',
+  'admin.paddleRegions.auto.title': 'Muat wilayah otomatis',
+  'admin.paddleRegions.auto.mode.auto': 'Otomatis',
+  'admin.paddleRegions.auto.mode.ask': 'Atas permintaan',
+  'admin.paddleRegions.auto.mode.off': 'Mati',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'Saat seseorang merencanakan tur dayung di tempat yang belum punya data air, TREK langsung memuat wilayah terkecil yang cocok, sampai batas ukuran dan hanya beberapa per hari. Yang lebih besar menunggu di sini sebagai permintaan. Hanya nama wilayah yang dikirim ke Geofabrik, tidak pernah lokasinya.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Setiap wilayah baru menunggu di sini sampai admin mengizinkannya. Saat admin sendiri merencanakan, wilayah langsung dimuat.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREK tidak memuat apa pun sendiri dan tidak meminta apa pun. Tambahkan wilayah di sini secara manual.',
+  'admin.paddleRegions.auto.maxSize': 'Wilayah terbesar yang dimuat otomatis',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Wilayah yang lebih besar menunggu di sini sebagai permintaan. Membaca wilayah butuh beberapa menit dan memakai memori selama berjalan.',
+  'admin.paddleRegions.requests.title': 'Diminta',
+  'admin.paddleRegions.requests.reason.ask': 'Atas permintaan',
+  'admin.paddleRegions.requests.reason.too_large': 'Terlalu besar',
+  'admin.paddleRegions.requests.reason.limit': 'Batas harian',
+  'admin.paddleRegions.requests.declined': 'Ditolak',
+  'admin.paddleRegions.requests.by': 'oleh {user}',
+  'admin.paddleRegions.requests.approve': 'Muat',
+  'admin.paddleRegions.requests.decline': 'Tolak',
+  'admin.paddleRegions.origin.auto': 'Otomatis',
+  'admin.paddleRegions.origin.autoHint': 'TREK memuat wilayah ini sendiri untuk tur dayung yang direncanakan di sana.',
 };
 export default admin;

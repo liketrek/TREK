@@ -1,4 +1,4 @@
-// FE-PAGE-TOURSTAGE-001 to FE-PAGE-TOURSTAGE-016
+// FE-PAGE-TOURSTAGE-001 to FE-PAGE-TOURSTAGE-018
 import type { Ferrata, PaddleFeature } from '@trek/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
@@ -484,6 +484,54 @@ describe('TourPlannerMapStage', () => {
     renderStage(planner('new-draft'), false);
     expect(stage.flatMap.props?.placeTool).toBeUndefined();
     expect(screen.getByTestId('tour-map-surface')).not.toHaveAttribute('data-placing');
+  });
+
+  it('FE-PAGE-TOURSTAGE-017: a click on the route being edited sets a shaping point in the leg there and selects it (P2A-03)', () => {
+    const tourPlanner = planner('new-draft', {
+      waypoints: [
+        { id: 'w1', lat: 46, lng: 7 },
+        { id: 'w2', lat: 46.1, lng: 7.1, shaping: true },
+        { id: 'w3', lat: 46.2, lng: 7.2 },
+      ],
+      route: [
+        [46, 7],
+        [46.1, 7.1],
+        [46.2, 7.2],
+      ],
+      insertShapingPoint: vi.fn(() => 'shape-1'),
+    });
+    renderStage(tourPlanner);
+    const props = stage.flatMap.props;
+    expect(props?.plannerWaypoints?.map((point) => [point.label ?? null, !!point.shaping])).toEqual([
+      ['1', false],
+      [null, true],
+      ['2', false],
+    ]);
+    props?.onRouteClick?.(46.15, 7.15);
+    expect(tourPlanner.insertShapingPoint).toHaveBeenCalledWith('w2', 46.15, 7.15);
+    expect(tourPlanner.setSelectedWaypointId).toHaveBeenCalledWith('shape-1');
+  });
+
+  it('FE-PAGE-TOURSTAGE-018: the route takes no shaping clicks outside editing or without edit rights', () => {
+    renderStage(
+      planner('view-saved', {
+        route: [
+          [46, 7],
+          [46.1, 7.1],
+        ],
+      })
+    );
+    expect(stage.flatMap.props?.onRouteClick).toBeUndefined();
+    renderStage(
+      planner('new-draft', {
+        route: [
+          [46, 7],
+          [46.1, 7.1],
+        ],
+      }),
+      false
+    );
+    expect(stage.flatMap.props?.onRouteClick).toBeUndefined();
   });
 
   describe('map layers per tour type (P2B-06/07, PAD-04, PAD-10)', () => {

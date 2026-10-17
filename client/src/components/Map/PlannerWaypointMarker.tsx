@@ -2,18 +2,25 @@ import L from 'leaflet';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Marker, Tooltip, useMap } from 'react-leaflet';
 import { MAP_LABEL_BADGE_CLASS } from './mapHoverLabel';
+import { plannerPinShape, type PlannerPinPoint } from './plannerPinShape';
 import { wirePlannerWaypointDrag } from './plannerWaypointDrag';
 
 /** The pin's inline style for a size and selection; the renderer owns the colour. */
 export type PinCss = (size: number, selected: boolean) => string;
 
-function plannerWaypointIcon(pinCss: PinCss, index: number, selected: boolean, draggable: boolean): L.DivIcon {
-  const size = selected ? 30 : 26;
+function plannerWaypointIcon(
+  pinCss: PinCss,
+  point: PlannerPinPoint,
+  index: number,
+  selected: boolean,
+  draggable: boolean
+): L.DivIcon {
+  const { size, text } = plannerPinShape(point, index, selected);
   return L.divIcon({
     className: 'tour-planner-waypoint-marker',
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
-    html: `<span style="${pinCss(size, selected)};cursor:${draggable ? 'grab' : 'pointer'};touch-action:${draggable ? 'none' : 'auto'};user-select:none">${index + 1}</span>`,
+    html: `<span style="${pinCss(size, selected)};cursor:${draggable ? 'grab' : 'pointer'};touch-action:${draggable ? 'none' : 'auto'};user-select:none">${text}</span>`,
   });
 }
 
@@ -25,7 +32,7 @@ export default function PlannerWaypointMarker({
   onMove,
   pinCss,
 }: {
-  point: { id: string; lat: number; lng: number; name?: string; detail?: string };
+  point: { id: string; lat: number; lng: number; name?: string; detail?: string } & PlannerPinPoint;
   index: number;
   selected: boolean;
   onClick?: (id: string) => void;
@@ -39,7 +46,11 @@ export default function PlannerWaypointMarker({
     handlersRef.current = { onClick, onMove };
   }, [onClick, onMove]);
   const position = useMemo(() => [point.lat, point.lng] as [number, number], [point.lat, point.lng]);
-  const icon = useMemo(() => plannerWaypointIcon(pinCss, index, selected, !!onMove), [index, onMove, pinCss, selected]);
+  const { label, shaping } = point;
+  const icon = useMemo(
+    () => plannerWaypointIcon(pinCss, { label, shaping }, index, selected, !!onMove),
+    [index, label, onMove, pinCss, selected, shaping]
+  );
   const eventHandlers = useMemo(
     () => ({
       click: (event: { originalEvent: MouseEvent }) => {

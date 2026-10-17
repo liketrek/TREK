@@ -110,7 +110,15 @@ export interface MapViewProps {
   onHighlightAlternative?: (index: number | null) => void;
   /** Generic numbered control points for list-first route editors. */
   /** `name` and `detail` (its role) show on hover; without a name the pin is named by its number. */
-  plannerWaypoints?: Array<{ id: string; lat: number; lng: number; name?: string; detail?: string }>;
+  plannerWaypoints?: Array<{
+    id: string;
+    lat: number;
+    lng: number;
+    name?: string;
+    detail?: string;
+    label?: string;
+    shaping?: boolean;
+  }>;
   selectedPlannerWaypointId?: string | null;
   onPlannerWaypointClick?: (id: string) => void;
   /** Drops a dragged control point; returns false when the move was refused. */

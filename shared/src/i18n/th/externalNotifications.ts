@@ -60,6 +60,10 @@ const th: NotificationLocale = {
           ? ` ตั้งแต่การแจ้งเตือนครั้งก่อน ยังมีความล้มเหลวอีก ${p.suppressed} ครั้งที่ไม่ได้แจ้งเตือนแยก`
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'มีคำขอภูมิภาคพายเรือ',
+      body: `${p.actor} กำลังวางแผนทริปพายเรือใน ${p.region} โหลดหรือปฏิเสธข้อมูลแหล่งน้ำได้ในส่วนผู้ดูแลที่ส่วนเสริม`,
+    }),
     synology_session_cleared: () => ({
       title: 'ล้างเซสชัน Synology แล้ว',
       body: 'บัญชีหรือ URL ของ Synology เปลี่ยนแปลง คุณจึงออกจากระบบ Synology Photos แล้ว',

@@ -1,4 +1,4 @@
-// FE-PADDLE-WIND-001 to FE-PADDLE-WIND-016: the wind card of a paddle tour (PAD-08) and the section that feeds it.
+// FE-PADDLE-WIND-001 to FE-PADDLE-WIND-018: the wind card of a paddle tour (PAD-08) and the section that feeds it.
 // FE-PADDLE-FIGURE-001 to FE-PADDLE-FIGURE-002: the figure badge the card shows its values in.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -337,6 +337,30 @@ describe('PaddleWindSection', () => {
 
     expect(hook.useTourWind).toHaveBeenCalledWith(7, { lat: 47.05, lng: 8.31 });
     expect(screen.getByRole('region', { name: 'Wind' })).toHaveTextContent(SAYS.offline);
+  });
+});
+
+describe('PaddleWindCard on the lakes (PAD-11)', () => {
+  it('FE-PADDLE-WIND-017: on a windy day offers to keep near the shore, and says so once the shore is chosen', () => {
+    const onChoose = vi.fn();
+    const windy = windOf(ready(forecastOf({ hours: [hourOf(12, 22, 34, 270)] })));
+    const { rerender } = render(<PaddleWindCard wind={windy} lakes={{ value: 'direct', onChoose }} />);
+    const advice = screen.getByTestId('paddle-wind-shore-advice');
+    expect(advice).toHaveTextContent('Up to 22 km/h, gusts 34 km/h on this day.');
+    fireEvent.click(within(advice).getByRole('button', { name: 'Plan near the shore' }));
+    expect(onChoose).toHaveBeenCalledWith('shore');
+
+    rerender(<PaddleWindCard wind={windy} lakes={{ value: 'shore', onChoose }} />);
+    expect(screen.queryByTestId('paddle-wind-shore-advice')).not.toBeInTheDocument();
+    expect(screen.getByText('The lakes are planned near the shore.')).toBeInTheDocument();
+  });
+
+  it('FE-PADDLE-WIND-018: says nothing of the shore on a calm day, nor where no lake is crossed', () => {
+    const calm = windOf(ready(forecastOf({ hours: [hourOf(12, 8, 14, 270)] })));
+    const { rerender } = render(<PaddleWindCard wind={calm} lakes={{ value: 'direct', onChoose: vi.fn() }} />);
+    expect(screen.queryByTestId('paddle-wind-shore-advice')).not.toBeInTheDocument();
+    rerender(<PaddleWindCard wind={windOf(ready(forecastOf({ hours: [hourOf(12, 30, 50, 270)] })))} />);
+    expect(screen.queryByTestId('paddle-wind-shore-advice')).not.toBeInTheDocument();
   });
 });
 

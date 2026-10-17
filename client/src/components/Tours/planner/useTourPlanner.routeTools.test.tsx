@@ -1,16 +1,20 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { routeWalkingTour, enrichTourElevations, createTour, detailTour, updateTour } = vi.hoisted(() => ({
-  routeWalkingTour: vi.fn(),
-  enrichTourElevations: vi.fn(),
-  createTour: vi.fn(),
-  detailTour: vi.fn(),
-  updateTour: vi.fn(),
-}));
+const { routeWalkingTour, enrichTourElevations, createTour, detailTour, updateTour, paddlePlan, paddleForget } =
+  vi.hoisted(() => ({
+    routeWalkingTour: vi.fn(),
+    enrichTourElevations: vi.fn(),
+    createTour: vi.fn(),
+    detailTour: vi.fn(),
+    updateTour: vi.fn(),
+    paddlePlan: vi.fn(),
+    paddleForget: vi.fn(),
+  }));
 
 vi.mock('./tourRouting', () => ({ routeWalkingTour, enrichTourElevations }));
 vi.mock('../../../repo/tourRepo', () => ({ tourRepo: { create: createTour, detail: detailTour, update: updateTour } }));
+vi.mock('../../../repo/paddleRouteRepo', () => ({ paddleRouteRepo: { plan: paddlePlan, forget: paddleForget } }));
 vi.mock('../useTourPermissions', () => ({
   useTourPermissions: ({ canEdit = true, canAssign = true }: { canEdit?: boolean; canAssign?: boolean }) => ({
     canEdit,
@@ -64,6 +68,20 @@ function plannerWith(points: Array<[number, number]>) {
   return hook;
 }
 
+type LegAsked = { from: { lat: number; lng: number }; to: { lat: number; lng: number } };
+/** The water router's answer for every leg asked: a straight stretch on the water, 1.2 km long. */
+const onWater = (legs: LegAsked[]) =>
+  legs.map(({ from, to }) => ({
+    status: 'ok' as const,
+    geometry: [
+      [from.lat, from.lng],
+      [to.lat, to.lng],
+    ],
+    segments: [{ kind: 'water' as const, from: 0, to: 1 }],
+    distance_m: 1200,
+    snapped_m: { from: 0, to: 0 },
+  }));
+
 const coordinatesOf = (points: Array<{ lat: number; lng: number }>) => points.map((point) => [point.lat, point.lng]);
 
 describe('useTourPlanner route tools', () => {
@@ -71,6 +89,8 @@ describe('useTourPlanner route tools', () => {
     vi.useFakeTimers();
     localStorage.clear();
     routeWalkingTour.mockReset().mockResolvedValue(routed);
+    paddlePlan.mockReset().mockImplementation(async (_trip: number, legs: LegAsked[]) => onWater(legs));
+    paddleForget.mockReset();
     enrichTourElevations.mockReset().mockResolvedValue(enriched);
     createTour.mockReset();
     detailTour.mockReset();
@@ -221,7 +241,7 @@ describe('useTourPlanner route tools', () => {
   });
 
   describe('paddle tours (PAD-01)', () => {
-    it('draws every leg by hand once paddle is chosen, and one undo takes the type and the legs back', () => {
+    it('plans every leg on the water once paddle is chosen, and one undo takes the type back', async () => {
       const { result } = plannerWith([
         [48, 11],
         [48.01, 11.02],
@@ -229,9 +249,22 @@ describe('useTourPlanner route tools', () => {
       ]);
       act(() => result.current.setTourType('kayak'));
       expect(result.current.isPaddle).toBe(true);
-      expect(result.current.waypoints.map((point) => point.fixedLeg?.kind)).toEqual(['free', 'free', undefined]);
+      expect(result.current.waypoints.map((point) => point.fixedLeg)).toEqual([undefined, undefined, undefined]);
+      routeWalkingTour.mockClear();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(450);
+      });
+      expect(routeWalkingTour).not.toHaveBeenCalled();
+      expect(paddlePlan).toHaveBeenLastCalledWith(
+        31,
+        expect.any(Array),
+        { boat: 'kayak', lakeStyle: 'direct' },
+        expect.any(AbortSignal)
+      );
+      expect(result.current.status).toBe('ready');
+      expect(result.current.paddleRoute?.legLengths).toEqual([1200, 1200]);
       act(() => result.current.addWaypoint(48.03, 11.01));
-      expect(result.current.waypoints[2].fixedLeg?.kind).toBe('free');
+      expect(result.current.waypoints[2].fixedLeg).toBeUndefined();
       act(() => result.current.undo());
       act(() => result.current.undo());
       expect(result.current.tourType).toBe('hike');
@@ -240,7 +273,6 @@ describe('useTourPlanner route tools', () => {
 
     it('holds Save back until a boat and the water are chosen, then saves them without a hiking limit', async () => {
       createTour.mockResolvedValue({ tour: { ...savedTour, tour_type: 'kayak' }, waypoints: [] });
-      routeWalkingTour.mockResolvedValue({ ...routed, parts: [{ ...routed.parts[0], free: true }] });
       const { result } = plannerWith([
         [48, 11],
         [48.01, 11.02],
@@ -264,11 +296,14 @@ describe('useTourPlanner route tools', () => {
         boat_type: 'canoe',
         water_context: 'lake',
         paddle_speed_kmh: null,
+        paddle_lake_style: 'direct',
         max_hiking_difficulty: null,
       });
+      // A paddle tour carries no heights to look up.
+      expect(enrichTourElevations).not.toHaveBeenCalled();
     });
 
-    it('times the water at the boat speed, keeps a chosen speed when the boat changes, and takes the suggestion only on purpose', async () => {
+    it('times the water by the routed length at the boat speed, keeps a chosen speed when the boat changes, and takes the suggestion only on purpose', async () => {
       const { result } = plannerWith([
         [48, 11],
         [48.01, 11.02],
@@ -278,13 +313,13 @@ describe('useTourPlanner route tools', () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(450);
       });
-      const distanceKm = result.current.routeAnalysis?.distanceKm ?? 0;
-      expect(result.current.walkingDurationMinutes).toBe(Math.round((distanceKm / 4) * 60));
+      // 1.2 km on the water the router found, at 4 km/h.
+      expect(result.current.walkingDurationMinutes).toBe(18);
 
       act(() => result.current.paddle.setSpeedKmh(6));
       act(() => result.current.paddle.setBoatType('other'));
       expect(result.current.paddle.speedKmh).toBe(6);
-      expect(result.current.walkingDurationMinutes).toBe(Math.round((distanceKm / 6) * 60));
+      expect(result.current.walkingDurationMinutes).toBe(12);
 
       act(() => result.current.paddle.adoptRecommendedSpeed());
       expect(result.current.paddle.recommendedSpeedKmh).toBeNull();
@@ -341,6 +376,137 @@ describe('useTourPlanner route tools', () => {
       const old = renderHook(() => useTourPlanner({ tripId: 32 }));
       expect(old.result.current.tourType).toBe('hike');
       expect(old.result.current.name).toBe('Old');
+    });
+  });
+
+  describe('shaping and water routing (P2A-03, P2A-05, PAD-11)', () => {
+    const settle = () =>
+      act(async () => {
+        await vi.advanceTimersByTimeAsync(450);
+      });
+
+    it('sets a shaping point into a leg, makes it a stop and back, and never past the end', async () => {
+      const { result } = plannerWith([
+        [48, 11],
+        [48.02, 11.02],
+      ]);
+      const [start, end] = result.current.waypoints;
+      let id: string | null = null;
+      act(() => {
+        id = result.current.insertShapingPoint(start!.id, 48.01, 11.005);
+      });
+      expect(result.current.waypoints.map((point) => !!point.shaping)).toEqual([false, true, false]);
+      expect(result.current.waypoints[1]?.id).toBe(id);
+      act(() => {
+        expect(result.current.insertShapingPoint(end!.id, 48.03, 11.03)).toBeNull();
+        expect(result.current.insertShapingPoint(start!.id, Number.NaN, 11)).toBeNull();
+      });
+      act(() => result.current.setWaypointShaping(id!, false));
+      expect(result.current.waypoints[1]).not.toHaveProperty('shaping');
+      act(() => result.current.setWaypointShaping(start!.id, true));
+      expect(result.current.waypoints[0]).not.toHaveProperty('shaping');
+      // One undo takes back one change.
+      act(() => result.current.undo());
+      expect(result.current.waypoints[1]?.shaping).toBe(true);
+      await settle();
+      expect(routeWalkingTour).toHaveBeenLastCalledWith(
+        expect.arrayContaining([expect.objectContaining({ shaping: true })]),
+        expect.any(AbortSignal),
+        2
+      );
+    });
+
+    it('plans a leg afresh: a paddle leg is forgotten and asked again, a fixed leg is left alone', async () => {
+      const { result } = plannerWith([
+        [48, 11],
+        [48.01, 11.02],
+      ]);
+      act(() => result.current.setTourType('kayak'));
+      await settle();
+      expect(paddlePlan).toHaveBeenCalledTimes(1);
+      const [start, end] = result.current.waypoints;
+      act(() => result.current.recomputeLeg(start!.id));
+      expect(paddleForget).toHaveBeenCalledWith(31, start, end, { boat: 'kayak', lakeStyle: 'direct' });
+      await settle();
+      expect(paddlePlan).toHaveBeenCalledTimes(2);
+      act(() => result.current.recomputeLeg(end!.id));
+      expect(paddleForget).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends every leg drawn by hand back to the water router in one step', async () => {
+      const { result } = plannerWith([
+        [48, 11],
+        [48.01, 11.02],
+        [48.02, 11],
+      ]);
+      act(() => result.current.setTourType('kayak'));
+      for (const point of result.current.waypoints.slice(0, 2))
+        act(() => result.current.toggleWaypointFreeLeg(point.id));
+      expect(result.current.waypoints.map((point) => point.fixedLeg?.kind)).toEqual(['free', 'free', undefined]);
+      act(() => result.current.routeDrawnLegsOnWater());
+      expect(result.current.waypoints.map((point) => point.fixedLeg)).toEqual([undefined, undefined, undefined]);
+      act(() => result.current.undo());
+      expect(result.current.waypoints[0]?.fixedLeg?.kind).toBe('free');
+    });
+
+    it('keeps a tour with an unplanned leg from being saved, and says it per leg', async () => {
+      paddlePlan.mockImplementation(async (_trip: number, legs: LegAsked[]) =>
+        legs.map(() => ({ status: 'failed', code: 'not_on_water', at: { lat: 48.01, lng: 11.02 } }))
+      );
+      const { result } = plannerWith([
+        [48, 11],
+        [48.01, 11.02],
+      ]);
+      act(() => result.current.setName('Off the water'));
+      act(() => result.current.setTourType('kayak'));
+      act(() => result.current.paddle.setBoatType('kayak'));
+      act(() => result.current.paddle.setWaterContext('river'));
+      await settle();
+      expect(result.current.status).toBe('routing-failed');
+      expect(result.current.error).toBe('paddle-route');
+      expect(result.current.paddleRoute?.failures).toEqual([
+        { index: 0, code: 'not_on_water', at: { lat: 48.01, lng: 11.02 } },
+      ]);
+      expect(result.current.routeCurrent).toBe(true);
+      expect(result.current.canSave).toBe(false);
+    });
+
+    it('sets the portage and the lock the router found as points of their own, and they go when their leg changes', async () => {
+      paddlePlan.mockImplementation(async (_trip: number, legs: LegAsked[]) =>
+        legs.map(({ from, to }) => {
+          const mid = (a: number, b: number, t: number) => a + (b - a) * t;
+          const at = (t: number): [number, number] => [mid(from.lat, to.lat, t), mid(from.lng, to.lng, t)];
+          const geometry = [at(0), at(0.3), at(0.4), at(1)];
+          const segments = [
+            { kind: 'water', from: 0, to: 1 },
+            { kind: 'portage', from: 1, to: 2, source: 'tagged' },
+            { kind: 'water', from: 2, to: 3 },
+          ].map((segment) => ({ name: null, source: null, osm_ref: null, grade: null, ...segment }));
+          return { status: 'ok', geometry, segments, distance_m: 3000, snapped_m: { from: 0, to: 0 } };
+        })
+      );
+      const { result } = plannerWith([
+        [48, 11],
+        [48.1, 11],
+      ]);
+      act(() => result.current.setTourType('kayak'));
+      await settle();
+      await settle();
+      expect(result.current.waypoints).toHaveLength(4);
+      expect(result.current.waypoints[1]).toMatchObject({ fixedLeg: { kind: 'portage' } });
+      expect(result.current.waypoints.filter((point) => point.auto)).toHaveLength(2);
+      // Found by the router, not done by the paddler: no step of the history of its own.
+      act(() => result.current.undo());
+      expect(result.current.tourType).toBe('hike');
+      act(() => result.current.redo());
+      await settle();
+      await settle();
+      const end = result.current.waypoints[result.current.waypoints.length - 1];
+      act(() => result.current.setWaypointPosition(end.id, 48.2, 11));
+      await settle();
+      expect(result.current.waypoints.filter((point) => point.auto).every((point) => point.auto?.to.lat === 48.2)).toBe(
+        true
+      );
     });
   });
 });

@@ -292,8 +292,6 @@ const tours: TranslationStrings = {
   'tours.paddle.speedInvalid': 'Introduce una velocidad de 0,5 a 20 km/h.',
   'tours.paddle.chooseBoat': 'Elige la embarcación y el agua para guardar esta ruta.',
   'tours.paddle.chooseBoatImport': 'Elige la embarcación y el agua para importar como ruta en piragua.',
-  'tours.paddle.drawnByHand':
-    'Una ruta en piragua se dibuja a mano: TREK une tus puntos con líneas rectas. Nada se calcula y nada indica que el agua sea navegable.',
   'tours.paddle.timeEstimated': 'Tiempo de remo (estimado)',
   'tours.paddle.timeEstimatedShort': 'Remo',
   'tours.paddle.timeEstimatedInfoLabel': 'Cómo se estima el tiempo de remo',
@@ -336,6 +334,17 @@ const tours: TranslationStrings = {
   'tours.paddle.portage': 'Porteo',
   'tours.paddle.portageOn': 'Portear la embarcación desde aquí',
   'tours.paddle.portageOff': 'Volver a remar este tramo',
+  'tours.paddle.portagePending': 'Porteo desde aquí',
+  'tours.paddle.portagePendingHint':
+    'Ahora marca el punto donde vuelves a entrar al agua. El bote se carga hasta allí.',
+  'tours.paddle.portagePendingOff': 'Al final no portear',
+  'tours.paddle.portageWay': 'Recorrido',
+  'tours.paddle.portageWay.follow': 'Seguir el camino',
+  'tours.paddle.portageWay.straight': 'Línea recta',
+  'tours.paddle.portageWay.noWay': 'No hay camino sin un gran rodeo, la línea queda recta.',
+  'tours.paddle.portageWay.searching': 'Buscando un camino',
+  'tours.paddle.placeHere.putIn': 'Entrar al agua aquí',
+  'tours.paddle.placeHere.egress': 'Salir del agua aquí',
   'tours.paddle.portageInfo':
     'Aquí se lleva la embarcación a pie. El tramo cuenta como tierra, con tiempo para desembarcar, descargar y volver a embarcar.',
   'tours.paddle.portageExtra': 'Desembarcar y embarcar',
@@ -530,5 +539,64 @@ const tours: TranslationStrings = {
   'tours.paddle.safety.short': 'Remar conlleva riesgos. Comprueba por tu cuenta el agua, las normas y la meteorología.',
   'tours.paddle.safety.text':
     'Remar conlleva riesgos. Los mapas, las propuestas de ruta y las indicaciones pueden estar incompletos o desactualizados. Antes de la ruta, comprueba las condiciones locales actuales, las normas de navegación de esas aguas y la meteorología. Toma medidas de seguridad adecuadas. TREK apoya tu planificación y no sustituye tu propia comprobación ni tu decisión responsable.',
+  'tours.planner.shapingPoint': 'Punto de forma',
+  'tours.planner.shapingHint': 'Guía la ruta sin ser una parada. Arrástralo a donde deba pasar la ruta.',
+  'tours.planner.makeStop': 'Convertir en parada',
+  'tours.planner.makeShaping': 'Convertir en punto de forma',
+  'tours.planner.recomputeLeg': 'Volver a calcular el siguiente tramo',
+  'tours.planner.shapeOnLine': 'Haz clic en la ruta del mapa para añadir ahí un punto de forma.',
+  'tours.paddle.routeOnWater': 'Planificar el siguiente tramo por el agua',
+  'tours.paddle.routeAllOnWater': 'Planificar por el agua los tramos dibujados a mano',
+  'tours.paddle.auto': 'Detectado',
+  'tours.paddle.autoHint':
+    'TREK colocó este punto en un porteo o una esclusa que encontró en el camino. Si lo mueves o cambias, pasa a ser tuyo.',
+  'tours.paddle.note.rapids': 'Aguas bravas {grade}',
+  'tours.paddle.note.pass': 'Paso para canoas',
+  'tours.paddle.note.gap': 'Hueco en los datos del mapa',
+  'tours.paddle.note.rapidsHint': 'La ruta pasa aquí por aguas movidas. Explóralo antes y portea si tienes dudas.',
+  'tours.paddle.note.gapHint':
+    'Los datos del agua tienen un hueco aquí, salvado con una línea recta. Compruébalo en el lugar.',
+  'tours.paddle.failed.not_on_water':
+    'Un extremo de este tramo no está en ningún agua que TREK conozca. Muévelo al río o al lago.',
+  'tours.paddle.failed.no_region': 'Aún no hay datos de agua para esta zona. Un administrador puede añadir la región.',
+  'tours.paddle.failed.building':
+    'Los datos de agua de esta región aún se están preparando. Inténtalo de nuevo en unos minutos.',
+  'tours.paddle.failed.no_water_path': 'TREK no encontró ningún camino por el agua entre estos puntos.',
+  'tours.paddle.failed.cross_region': 'Estos puntos están en dos regiones que no comparten datos de agua.',
+  'tours.paddle.failed.busy': 'El planificador de rutas está ocupado. Inténtalo de nuevo en un momento.',
+  'tours.paddle.failed.timeout':
+    'Planificar este tramo tardó demasiado. Añade un punto intermedio e inténtalo de nuevo.',
+  'tours.paddle.failed.offline': 'Sin conexión. Este tramo se planificará cuando vuelvas a estar conectado.',
+  'tours.paddle.drawStraight': 'Dibujar recto',
+  'tours.paddle.retry': 'Reintentar',
+  'tours.paddle.load.loading': 'Cargando los datos de agua de {region}',
+  'tours.paddle.load.ready': 'Los datos de agua de {region} ya están, se planifica el tramo.',
+  'tours.paddle.load.requested':
+    'Se han pedido los datos de agua de {region}. El tramo se planifica en cuanto un administrador los deje pasar.',
+  'tours.paddle.load.waiting': 'Esperando a otras regiones',
+  'tours.paddle.load.phase.download': 'Descargando',
+  'tours.paddle.load.phase.read': 'Leyendo',
+  'tours.paddle.load.phase.build': 'Construyendo la red de agua',
+  'tours.paddle.load.hint':
+    'Suele tardar de uno a tres minutos. Sigue planificando, el tramo se planifica solo después.',
+  'tours.paddle.load.reason.tooLarge': 'La región es más grande de lo que TREK carga por su cuenta.',
+  'tours.paddle.load.reason.limit': 'TREK ya ha cargado hoy suficientes regiones por su cuenta.',
+  'tours.paddle.load.declined': 'Un administrador rechazó los datos de agua de {region}.',
+  'tours.paddle.load.failed': 'No se pudieron cargar los datos de agua de {region}.',
+  'tours.paddle.load.noWater': 'En los datos de agua de {region} aquí no hay agua. Pon el punto en el río o el lago.',
+  'tours.paddle.load.noExtract': 'No hay ningún extracto de mapa con datos de agua para esta zona.',
+  'tours.paddle.load.catalogUnavailable': 'La lista de regiones no está disponible ahora mismo. Inténtalo más tarde.',
+  'tours.paddle.lakeStyle': 'Por los lagos',
+  'tours.paddle.lakeStyle.direct': 'En línea recta',
+  'tours.paddle.lakeStyle.shore': 'Cerca de la orilla',
+  'tours.paddle.lakeStyle.directHint': 'La línea más corta por aguas abiertas.',
+  'tours.paddle.lakeStyle.shoreHint':
+    'Se mantiene cerca de la orilla, para días de viento: más largo, pero la tierra nunca queda lejos.',
+  'tours.paddle.wind.shoreAdvice':
+    'Hasta {mean} km/h, rachas de {gusts} km/h ese día. En los lagos, ir cerca de la orilla puede ser la mejor línea.',
+  'tours.paddle.wind.shoreAdopt': 'Planificar cerca de la orilla',
+  'tours.paddle.wind.shoreTaken': 'Los lagos están planificados cerca de la orilla.',
+  'tours.paddle.status.unrouted': '{count} tramos sin planificar',
+  'tours.paddle.status.unrouted.one': '{count} tramo sin planificar',
 };
 export default tours;

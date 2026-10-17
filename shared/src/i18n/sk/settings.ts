@@ -119,6 +119,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Webhook oznámenia',
   'settings.notifyVersionAvailable': 'Nová verzia k dispozícii',
   'settings.notifyReplicaFailure': 'Zlyhanie repliky úložiska',
+  'settings.notifyPaddleRegionRequested': 'Vyžiadaný vodácky región',
   'settings.notificationPreferences.email': 'E-mail',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': 'V aplikácii',

@@ -76,13 +76,24 @@ export function useTourMapPoints({ tourPlanner, canPlaceEdit, mode, cardOpen, gu
       const shown = isClosedLoop(waypoints) ? waypoints.slice(0, -1) : waypoints;
       // A paddle tour names a pin for the paddler (put-in, take-out, re-entry) and says where a lock is.
       const roles = isPaddle ? paddleRolesById(waypoints) : null;
-      return shown.map((point, index) => {
+      // Stops are numbered on their own: a shaping point (P2A-03) only steers and takes no number.
+      let stop = 0;
+      return shown.map((point) => {
+        if (point.shaping) {
+          return {
+            ...point,
+            name: placeNames[point.id] ?? t('tours.planner.shapingPoint'),
+            detail: t('tours.planner.shapingPoint'),
+          };
+        }
+        stop += 1;
         const role = roles?.get(point.id);
         const detail = role ? t(`tours.paddle.role.${role}`) : roles ? '' : t(ROLE_KEY[point.role]);
         const lock = point.lock ? t('tours.paddle.lock') : '';
         return {
           ...point,
-          name: placeNames[point.id] ?? t('tours.planner.waypointLabel', { n: index + 1 }),
+          label: String(stop),
+          name: placeNames[point.id] ?? t('tours.planner.waypointLabel', { n: stop }),
           detail: [detail, lock].filter(Boolean).join(', ') || t(ROLE_KEY[point.role]),
         };
       });

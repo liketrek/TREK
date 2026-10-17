@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Schreibvorgang auf Replik '{backend}' fehlgeschlagen: {op} von {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Schreibvorgang auf Replik '{backend}' fehlgeschlagen: {op} von {key} — {error}. Seit der letzten Benachrichtigung wurden {suppressed} weitere Fehler unterdrückt.",
+  'notif.paddle_region_requested.title': 'Paddel-Region angefragt',
+  'notif.paddle_region_requested.text': '{actor} plant eine Paddeltour in {region}',
   'notif.action.view_trip': 'Reise ansehen',
   'notif.action.view_collab': 'Nachrichten ansehen',
   'notif.action.view_packing': 'Packliste ansehen',

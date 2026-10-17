@@ -293,8 +293,6 @@ const tours: TranslationStrings = {
   'tours.paddle.speedInvalid': 'Introdueix una velocitat de 0,5 a 20 km/h.',
   'tours.paddle.chooseBoat': 'Tria l’embarcació i l’aigua per desar aquesta ruta.',
   'tours.paddle.chooseBoatImport': 'Tria l’embarcació i l’aigua per importar com a ruta en piragua.',
-  'tours.paddle.drawnByHand':
-    'Una ruta en piragua es dibuixa a mà: TREK uneix els punts amb línies rectes. No es calcula res i res no diu que l’aigua sigui navegable.',
   'tours.paddle.timeEstimated': 'Temps de rem (estimat)',
   'tours.paddle.timeEstimatedShort': 'Rem',
   'tours.paddle.timeEstimatedInfoLabel': 'Com s’estima el temps de rem',
@@ -337,6 +335,16 @@ const tours: TranslationStrings = {
   'tours.paddle.portage': 'Transport per terra',
   'tours.paddle.portageOn': 'Porta l’embarcació per terra des d’aquí',
   'tours.paddle.portageOff': 'Torna a remar aquest tram',
+  'tours.paddle.portagePending': "Portejar des d'aquí",
+  'tours.paddle.portagePendingHint': "Ara posa el punt on tornes a entrar a l'aigua. La barca es porta fins allà.",
+  'tours.paddle.portagePendingOff': 'Al final no portejar',
+  'tours.paddle.portageWay': 'Traçat',
+  'tours.paddle.portageWay.follow': 'Seguir el camí',
+  'tours.paddle.portageWay.straight': 'Línia recta',
+  'tours.paddle.portageWay.noWay': 'No hi ha cap camí sense una gran volta, la línia es queda recta.',
+  'tours.paddle.portageWay.searching': 'Cercant un camí',
+  'tours.paddle.placeHere.putIn': "Entrar a l'aigua aquí",
+  'tours.paddle.placeHere.egress': "Sortir de l'aigua aquí",
   'tours.paddle.portageInfo':
     'Aquí l’embarcació es porta per terra. El tram compta com a terra, amb temps per sortir, descarregar i tornar a embarcar.',
   'tours.paddle.portageExtra': 'Sortida i entrada',
@@ -533,5 +541,66 @@ const tours: TranslationStrings = {
   'tours.paddle.safety.short': 'Remar comporta riscos. Comprova pel teu compte l’aigua, les normes i la meteorologia.',
   'tours.paddle.safety.text':
     'Remar comporta riscos. Els mapes, les propostes de ruta i les indicacions poden ser incomplets o estar desactualitzats. Abans de l’excursió, comprova les condicions locals actuals, les normes de navegació d’aquestes aigües i la meteorologia. Pren les mesures de seguretat adequades. TREK dona suport a la teva planificació i no substitueix la teva pròpia comprovació ni la teva decisió responsable.',
+  'tours.planner.shapingPoint': 'Punt de forma',
+  'tours.planner.shapingHint': 'Guia la ruta sense ser una parada. Arrossega’l on ha de passar la ruta.',
+  'tours.planner.makeStop': 'Converteix-lo en parada',
+  'tours.planner.makeShaping': 'Converteix-lo en punt de forma',
+  'tours.planner.recomputeLeg': 'Torna a calcular el tram següent',
+  'tours.planner.shapeOnLine': 'Fes clic a la ruta del mapa per afegir-hi un punt de forma.',
+  'tours.paddle.routeOnWater': 'Planifica el tram següent per l’aigua',
+  'tours.paddle.routeAllOnWater': 'Planifica per l’aigua els trams dibuixats a mà',
+  'tours.paddle.auto': 'Detectat',
+  'tours.paddle.autoHint':
+    'TREK ha posat aquest punt en un transport o una resclosa que ha trobat pel camí. Si el mous o el canvies, passa a ser teu.',
+  'tours.paddle.note.rapids': 'Aigües braves {grade}',
+  'tours.paddle.note.pass': 'Pas per a canoes',
+  'tours.paddle.note.gap': 'Buit a les dades del mapa',
+  'tours.paddle.note.rapidsHint':
+    'Aquí la ruta passa per aigua moguda. Explora-la abans i porta la barca si tens dubtes.',
+  'tours.paddle.note.gapHint':
+    'Les dades de l’aigua tenen un buit aquí, salvat amb una línia recta. Comprova-ho al lloc.',
+  'tours.paddle.failed.not_on_water':
+    'Un extrem d’aquest tram no és en cap aigua que TREK conegui. Mou-lo al riu o al llac.',
+  'tours.paddle.failed.no_region':
+    'Encara no hi ha dades d’aigua per a aquesta zona. Un administrador pot afegir la regió.',
+  'tours.paddle.failed.building':
+    'Les dades d’aigua d’aquesta regió encara s’estan preparant. Torna-ho a provar d’aquí a uns minuts.',
+  'tours.paddle.failed.no_water_path': 'TREK no ha trobat cap camí per l’aigua entre aquests punts.',
+  'tours.paddle.failed.cross_region': 'Aquests punts són en dues regions que no comparteixen dades d’aigua.',
+  'tours.paddle.failed.busy': 'El planificador de rutes està ocupat. Torna-ho a provar d’aquí a un moment.',
+  'tours.paddle.failed.timeout':
+    'Planificar aquest tram ha trigat massa. Afegeix un punt entremig i torna-ho a provar.',
+  'tours.paddle.failed.offline': 'Sense connexió. Aquest tram es planificarà quan tornis a estar connectat.',
+  'tours.paddle.drawStraight': 'Dibuixa recte',
+  'tours.paddle.retry': 'Torna-ho a provar',
+  'tours.paddle.load.loading': "Carregant les dades d'aigua de {region}",
+  'tours.paddle.load.ready': "Les dades d'aigua de {region} ja hi són, es planifica el tram.",
+  'tours.paddle.load.requested':
+    "S'han demanat les dades d'aigua de {region}. El tram es planificarà tan aviat com un administrador les deixi passar.",
+  'tours.paddle.load.waiting': 'Esperant altres regions',
+  'tours.paddle.load.phase.download': 'Baixant',
+  'tours.paddle.load.phase.read': 'Llegint',
+  'tours.paddle.load.phase.build': "Construint la xarxa d'aigua",
+  'tours.paddle.load.hint': "Normalment d'un a tres minuts. Continua planificant, el tram es planificarà sol després.",
+  'tours.paddle.load.reason.tooLarge': 'La regió és més gran del que TREK carrega pel seu compte.',
+  'tours.paddle.load.reason.limit': 'Avui TREK ja ha carregat prou regions pel seu compte.',
+  'tours.paddle.load.declined': "Un administrador ha rebutjat les dades d'aigua de {region}.",
+  'tours.paddle.load.failed': "No s'han pogut carregar les dades d'aigua de {region}.",
+  'tours.paddle.load.noWater': "A les dades d'aigua de {region} aquí no hi ha aigua. Posa el punt al riu o al llac.",
+  'tours.paddle.load.noExtract': "No hi ha cap extracte de mapa amb dades d'aigua per a aquesta zona.",
+  'tours.paddle.load.catalogUnavailable':
+    'Ara mateix no es pot accedir a la llista de regions. Torna-ho a provar més tard.',
+  'tours.paddle.lakeStyle': 'Pels llacs',
+  'tours.paddle.lakeStyle.direct': 'En línia recta',
+  'tours.paddle.lakeStyle.shore': 'A prop de la riba',
+  'tours.paddle.lakeStyle.directHint': 'La línia més curta per aigües obertes.',
+  'tours.paddle.lakeStyle.shoreHint':
+    'Es manté a prop de la riba, per als dies de vent: més llarg, però la terra mai és lluny.',
+  'tours.paddle.wind.shoreAdvice':
+    'Fins a {mean} km/h, ràfegues de {gusts} km/h aquest dia. Als llacs, anar a prop de la riba pot ser la millor línia.',
+  'tours.paddle.wind.shoreAdopt': 'Planifica a prop de la riba',
+  'tours.paddle.wind.shoreTaken': 'Els llacs estan planificats a prop de la riba.',
+  'tours.paddle.status.unrouted': '{count} trams sense planificar',
+  'tours.paddle.status.unrouted.one': '{count} tram sense planificar',
 };
 export default tours;

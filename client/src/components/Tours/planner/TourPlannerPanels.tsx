@@ -19,6 +19,7 @@ import { formatPlannedTourDuration, hikeSourceBadgeLabel, tourSource } from '../
 import { CardAction, FoldButton, RailCard, RailFacts, TourDayMenu, TourListCard, TourNotice, TourSection } from '../tourParts'
 import { movingTimeLabel, tourMetricFacts, withoutHeights } from '../tourFacts'
 import { TourDetailsSection, TourNameField } from './TourEditorFields'
+import { crossesLake } from '../paddle/lakeStyleAdvice'
 import { PaddleCheckCard } from '../paddle/PaddleCheckCard'
 import { PaddleSafetyRow } from '../paddle/PaddleSafety'
 import { PaddleTimeCard } from '../paddle/PaddleTimeCard'
@@ -121,6 +122,18 @@ function StatusDot({ label, tone, children }: { label: string; tone: 'neutral' |
   )
 }
 
+/** Whether the head offers to try again; a paddle leg that failed has its own actions on its row (PAD-11). */
+function retryable(planner: TourPlannerController): boolean {
+  if (planner.error === 'paddle-route') return false
+  return planner.status === 'routing-failed' || planner.status === 'elevation-failed'
+}
+
+/** The status in words; a paddle tour with legs the router could not plan says how many (PAD-11). */
+function statusText(planner: TourPlannerController, key: string, t: Translate): string {
+  if (planner.error === 'paddle-route') return t('tours.paddle.status.unrouted', { count: planner.paddleRoute?.failures.length ?? 1 })
+  return t(key)
+}
+
 /**
  * What the editor is doing right now, as icon badges beside the head's title:
  * a restored draft, routing or saving, and a failure with its retry. Nothing
@@ -132,10 +145,10 @@ function RailStatusBadges({ planner }: { planner: TourPlannerController }) {
   const restored = planner.draftRestored && planner.hasUnsavedChanges
   const onFerrata = useTourFerrataCrossingStore(state => state.crossings.length > 0)
   const failed = planner.error === 'save'
-  const canRetry = planner.status === 'routing-failed' || planner.status === 'elevation-failed'
+  const canRetry = retryable(planner)
   if (!restored && !statusKey && !failed && !onFerrata) return null
   const warning = planner.error != null || canRetry
-  const statusLabel = failed ? t('tours.planner.status.saveFailed') : statusKey ? t(statusKey) : null
+  const statusLabel = failed ? t('tours.planner.status.saveFailed') : statusKey ? statusText(planner, statusKey, t) : null
   const busy = planner.isSaving || planner.status === 'routing' || planner.status === 'enriching-elevation'
   return (
     <span role="status" data-testid="tour-planner-status" className="ms-1.5 flex flex-none items-center gap-1">
@@ -326,7 +339,11 @@ function PaddleEditorCards({ planner, locked, checklist }: {
     <>
       {checklist && <PaddleCheckCard checklist={checklist} />}
       <PaddleTimeCard planner={planner} locked={locked} />
-      <PaddleWindSection placeId={planner.editingPlaceId} start={planner.waypoints[0] ?? null} />
+      <PaddleWindSection
+        placeId={planner.editingPlaceId}
+        start={planner.waypoints[0] ?? null}
+        lakes={!locked && crossesLake(planner.paddleRoute) ? { value: planner.paddle.lakeStyle, onChoose: planner.paddle.setLakeStyle } : undefined}
+      />
     </>
   )
 }

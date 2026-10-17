@@ -34,6 +34,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Zapis do repliki '{backend}' nie powiódł się: {op} dla {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Zapis do repliki '{backend}' nie powiódł się: {op} dla {key} — {error}. Od ostatniego powiadomienia ukryto {suppressed} kolejnych błędów.",
+  'notif.paddle_region_requested.title': 'Prośba o region wodny',
+  'notif.paddle_region_requested.text': '{actor} planuje spływ w regionie {region}',
   'notif.action.view_trip': 'Zobacz podróż',
   'notif.action.view_collab': 'Zobacz wiadomości',
   'notif.action.view_packing': 'Zobacz pakowanie',

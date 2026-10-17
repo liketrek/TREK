@@ -14,6 +14,12 @@ export interface RoutePoint {
   lng: number;
   fixedLeg?: TourFixedLeg | null;
   lock?: PaddleLock | null;
+  /**
+   * PAD-03: the boat is carried on from this point, the last of the tour so
+   * far; the portage is drawn to the next point once it is set. The planner's
+   * own, never saved.
+   */
+  carryNext?: boolean;
 }
 
 /** Closer than this, in degrees, two waypoints stand on the same spot (about a centimetre). */
@@ -114,25 +120,46 @@ function extrasOnFirstLeg<T extends RoutePoint>(points: T[]): T[] {
   return points;
 }
 
+/** A line still joins its points when its ends lie this close to them, in degrees (about two metres). */
+const JOINS_DEG = 2e-5;
+
+function stillJoins(leg: TourFixedLeg, from: { lat: number; lng: number }, to: { lat: number; lng: number }): boolean {
+  const first = leg.geometry[0];
+  const last = leg.geometry[leg.geometry.length - 1];
+  const near = (end: readonly unknown[] | undefined, point: { lat: number; lng: number }) =>
+    !!end && Math.abs(Number(end[0]) - point.lat) < JOINS_DEG && Math.abs(Number(end[1]) - point.lng) < JOINS_DEG;
+  return near(first, from) && near(last, to);
+}
+
 /**
- * Every hand-drawn leg, and every portage, redrawn straight to the waypoint
- * that now follows it, so moving a point drags them along instead of tearing
- * them off. A leg on the last point leads nowhere and goes, and so does a lock
- * nobody paddles to on a tour that is no paddle tour. With `allFree` every
- * leg that is not a portage becomes hand-drawn, the way a paddle tour is planned.
+ * Every hand-drawn leg redrawn straight to the waypoint that now follows it,
+ * so moving a point drags it along instead of tearing it off; a leg on the
+ * last point leads nowhere and goes. On a hike a portage and a lock are a
+ * paddler's and go. On a paddle tour (`paddle`) a via ferrata is a hiker's
+ * and goes back to the router; a portage and a lock stay, a portage is
+ * dragged along like a drawn leg, and a portage or drawn leg whose line has
+ * a shape of its own (a portage way the router followed) keeps it while its
+ * ends still meet their points. A leg without a line stays routed. A portage
+ * asked for at the last point of a paddle tour becomes one once a point follows.
  */
-export function alignFreeLegs<T extends RoutePoint>(points: readonly T[], allFree = false): T[] {
-  const aligned = points.map((point, index) => {
+export function alignFreeLegs<T extends RoutePoint>(points: readonly T[], paddle = false): T[] {
+  const aligned = points.map((current, index) => {
     const next = points[index + 1];
-    const leg = point.fixedLeg;
-    const kept = allFree ? point : dropPaddleOnly(point);
-    const free = allFree || leg?.kind === 'free';
-    if (!free && !(allFree && isPortage(leg))) return kept;
+    const { carryNext, ...own } = current;
+    if (carryNext && paddle) {
+      if (!next) return current;
+      return { ...own, fixedLeg: portageLegBetween(current, next) } as T;
+    }
+    const point = (carryNext ? own : current) as T;
+    const kept = paddle ? dropHikeOnly(point) : dropPaddleOnly(point);
+    const leg = kept.fixedLeg;
+    const follows = leg?.kind === 'free' || (paddle && isPortage(leg));
+    if (!follows || !leg) return kept;
     if (!next) {
-      if (!kept.fixedLeg) return kept;
       const { fixedLeg: _dropped, ...rest } = kept;
       return rest as T;
     }
+    if (paddle && leg.geometry.length > 2 && stillJoins(leg, point, next)) return kept;
     return {
       ...kept,
       fixedLeg: isPortage(leg)
@@ -140,7 +167,14 @@ export function alignFreeLegs<T extends RoutePoint>(points: readonly T[], allFre
         : freeLegBetween(point, next),
     };
   });
-  return allFree ? extrasOnFirstLeg(aligned) : aligned;
+  return paddle ? extrasOnFirstLeg(aligned) : aligned;
+}
+
+/** A boat climbs no via ferrata: its leg goes back to the router, on the water. */
+function dropHikeOnly<T extends RoutePoint>(point: T): T {
+  if (point.fixedLeg?.kind !== 'ferrata') return point;
+  const { fixedLeg: _ferrata, ...routed } = point;
+  return routed as T;
 }
 
 /** A hike carries no boat: a portage turns back into a routed leg and a lock goes. */
@@ -151,13 +185,21 @@ function dropPaddleOnly<T extends RoutePoint>(point: T): T {
   return plain as T;
 }
 
-/** PAD-03: the leg after this point carried as a portage, or paddled again. */
+/**
+ * PAD-03: the leg after this point carried as a portage, or paddled again. At
+ * the last point there is no leg yet: the portage waits for the next point.
+ */
 export function togglePortageLeg<T extends RoutePoint>(points: readonly T[], id: string): T[] {
   const index = points.findIndex((point) => point.id === id);
   const point = points[index];
   const next = points[index + 1];
-  if (!point || !next) return [...points];
+  if (!point) return [...points];
   const copy = [...points];
+  if (!next) {
+    const { carryNext, ...own } = point;
+    copy[index] = (carryNext ? own : { ...point, carryNext: true }) as T;
+    return copy;
+  }
   copy[index] = {
     ...point,
     fixedLeg: isPortage(point.fixedLeg) ? freeLegBetween(point, next) : portageLegBetween(point, next),
@@ -189,14 +231,15 @@ export function setWaypointLock<T extends RoutePoint>(points: readonly T[], id: 
 }
 
 /**
- * The leg after this waypoint drawn by hand, or routed again. A via ferrata
- * keeps its line; the last point has no leg to change.
+ * The leg after this waypoint drawn by hand, or routed again (on a paddle
+ * tour: on the water). A via ferrata and a portage keep their line; the last
+ * point has no leg to change.
  */
 export function toggleFreeLeg<T extends RoutePoint>(points: readonly T[], id: string): T[] {
   const index = points.findIndex((point) => point.id === id);
   const point = points[index];
   const next = points[index + 1];
-  if (!point || !next || point.fixedLeg?.kind === 'ferrata') return [...points];
+  if (!point || !next || point.fixedLeg?.kind === 'ferrata' || isPortage(point.fixedLeg)) return [...points];
   const copy = [...points];
   if (point.fixedLeg?.kind === 'free') {
     const { fixedLeg: _dropped, ...rest } = point;

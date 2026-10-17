@@ -76,6 +76,10 @@ const pl: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Prośba o region wodny',
+      body: `${p.actor} planuje spływ w regionie ${p.region}. Wczytaj lub odrzuć jego dane wodne w panelu administratora w sekcji Dodatki.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Sesja Synology wyczyszczona',
       body: 'Twoje konto lub URL Synology uległo zmianie. Zostałeś wylogowany z Synology Photos.',

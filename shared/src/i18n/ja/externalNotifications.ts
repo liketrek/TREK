@@ -58,6 +58,10 @@ const ja: NotificationLocale = {
         `レプリカ '${p.backend}' への書き込みに失敗しました：${p.op} / ${p.key} — ${p.error}。` +
         (p.suppressed !== '0' ? `前回の通知以降、${p.suppressed}件の追加の失敗が抑制されました。` : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'パドル地域のリクエスト',
+      body: `${p.actor}が${p.region}でパドルツアーを計画しています。管理画面のアドオンで水域データを読み込むか却下してください。`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synologyセッションがクリアされました',
       body: 'SynologyアカウントまたはURLが変更されました。Synology Photosからログアウトされました。',

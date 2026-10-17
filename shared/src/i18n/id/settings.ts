@@ -105,6 +105,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Notifikasi webhook',
   'settings.notifyVersionAvailable': 'Versi baru tersedia',
   'settings.notifyReplicaFailure': 'Kegagalan replika penyimpanan',
+  'settings.notifyPaddleRegionRequested': 'Wilayah dayung diminta',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': 'In-App',

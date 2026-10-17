@@ -13,12 +13,16 @@ export class TourWaypoints {
   sequence!: number;
   fixed_leg?: string | null;
   lock?: string | null;
+  shaping: number & Opt = 0;
 }
 
 export const TourWaypointsSchema = defineEntity({
   class: TourWaypoints,
   repository: () => TourWaypointsRepository,
   uniques: [{ properties: ['place', 'sequence'] }],
+  checks: [
+    { name: 'tour_waypoints_shaping_check', expression: 'shaping IN (0, 1)' },
+  ],
   properties: {
     id: p.integer().primary(),
     place: () => p.manyToOne(Tours).ref().name('place_id').deleteRule('cascade').hidden(),
@@ -29,5 +33,6 @@ export const TourWaypointsSchema = defineEntity({
     sequence: p.integer(),
     fixed_leg: p.text().nullable(),
     lock: p.text().nullable(),
+    shaping: p.integer().default(0),
   },
 });

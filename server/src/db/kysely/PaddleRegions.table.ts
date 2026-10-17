@@ -16,4 +16,5 @@ export interface PaddleRegionsTable {
   feature_count: InsertOptional<number>;
   error: InsertOptional<string | null>;
   created_at: InsertOptional<string | null>;
+  origin: InsertOptional<string>;
 }

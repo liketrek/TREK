@@ -11,4 +11,5 @@ export interface TourWaypointsTable {
   sequence: number;
   fixed_leg: InsertOptional<string | null>;
   lock: InsertOptional<string | null>;
+  shaping: InsertOptional<number>;
 }

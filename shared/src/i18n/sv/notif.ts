@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Skrivning till replik '{backend}' misslyckades: {op} för {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Skrivning till replik '{backend}' misslyckades: {op} för {key} — {error}. {suppressed} ytterligare fel har undertryckts sedan senaste aviseringen.",
+  'notif.paddle_region_requested.title': 'Paddelregion efterfrågad',
+  'notif.paddle_region_requested.text': '{actor} planerar en paddeltur i {region}',
   'notif.action.view_trip': 'Visa resan',
   'notif.action.view_collab': 'Visa meddelanden',
   'notif.action.view_packing': 'Visa förpackning',

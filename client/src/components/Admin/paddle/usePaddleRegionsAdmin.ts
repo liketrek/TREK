@@ -1,4 +1,4 @@
-import type { PaddleRegion, PaddleRegionCatalogEntry } from '@trek/shared';
+import type { PaddleRegion, PaddleRegionCatalogEntry, PaddleRegionPending } from '@trek/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNetworkMode } from '../../../hooks/useNetworkMode';
 import { useTranslation } from '../../../i18n';
@@ -7,6 +7,7 @@ import { useAddonStore } from '../../../store/addonStore';
 import { getApiErrorMessage } from '../../../types';
 import { useToast } from '../../shared/Toast';
 import { isReading } from './paddleRegionsModel';
+import { usePaddleAutoLoad } from './usePaddleAutoLoad';
 
 /** How often the list is asked again while a region waits or is read. */
 export const PADDLE_REGIONS_POLL_MS = import.meta.env.MODE === 'test' ? 50 : 3000;
@@ -23,12 +24,14 @@ function errorText(t: Translate, err: unknown): string {
 }
 
 /**
- * The regions as the server holds them, asked again every few seconds while
- * any of them is read, and on `reload` after a change. Every answer is set
+ * The regions as the server holds them, with those paddlers asked for, asked
+ * again every few seconds while any of them is read, and on `reload` after a
+ * change. Every answer is set
  * from the request's own callback, so a slow one never overwrites a newer.
  */
 function useRegionList(active: boolean, offline: boolean, t: Translate) {
   const [regions, setRegions] = useState<PaddleRegion[]>([]);
+  const [requests, setRequests] = useState<PaddleRegionPending[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [asked, setAsked] = useState(0);
@@ -38,7 +41,8 @@ function useRegionList(active: boolean, offline: boolean, t: Translate) {
     paddleRegionRepo.list().then(
       (list) => {
         if (cancelled) return;
-        setRegions(list);
+        setRegions(list.regions);
+        setRequests(list.requests);
         setError(null);
         setLoaded(true);
       },
@@ -59,7 +63,7 @@ function useRegionList(active: boolean, offline: boolean, t: Translate) {
     return () => window.clearInterval(timer);
   }, [active, offline, reading]);
   const reload = useCallback(() => setAsked((n) => n + 1), []);
-  return { regions, loading: !loaded && !offline, error, reload };
+  return { regions, requests, loading: !loaded && !offline, error, reload };
 }
 
 /** Geofabrik's list searched as the admin types, the last search winning. */
@@ -99,7 +103,8 @@ function useCatalogSearch(offline: boolean, t: Translate) {
  * PAD-05A in the admin area: the regions TREK reads paddle data for, a search
  * in Geofabrik's list to add one, reading a region again and removing it
  * after a confirmation. Shown only while the Tours addon is on; the status of
- * a read follows without reloading the page.
+ * a read follows without reloading the page. PAD-11C: how TREK loads regions
+ * for paddlers by itself, and the regions they asked for, to load or decline.
  */
 export function usePaddleRegionsAdmin() {
   const { t } = useTranslation();
@@ -107,6 +112,7 @@ export function usePaddleRegionsAdmin() {
   const { offline } = useNetworkMode();
   const toursOn = useAddonStore((state) => state.isEnabled('tours'));
   const list = useRegionList(toursOn, offline, t);
+  const autoLoad = usePaddleAutoLoad(toursOn, offline);
   const search = useCatalogSearch(offline, t);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [removing, setRemoving] = useState<PaddleRegion | null>(null);
@@ -146,6 +152,12 @@ export function usePaddleRegionsAdmin() {
     [run, setQuery, t]
   );
   const refresh = useCallback((id: string) => run(id, () => paddleRegionRepo.refresh(id)), [run]);
+  /** A paddler's request let through: the region is added like any other. */
+  const approve = useCallback(
+    (id: string) => run(id, () => paddleRegionRepo.add(id), t('admin.paddleRegions.toast.added')),
+    [run, t]
+  );
+  const decline = useCallback((id: string) => run(id, () => paddleRegionRepo.decline(id)), [run]);
   const confirmRemove = useCallback(() => {
     const region = removing;
     setRemoving(null);
@@ -157,6 +169,8 @@ export function usePaddleRegionsAdmin() {
     toursOn,
     offline,
     regions: list.regions,
+    requests: list.requests,
+    autoLoad,
     loading: list.loading,
     error: list.error,
     retry: reload,
@@ -165,6 +179,8 @@ export function usePaddleRegionsAdmin() {
     busyId,
     add,
     refresh,
+    approve,
+    decline,
     removing,
     askRemove: setRemoving,
     cancelRemove: () => setRemoving(null),

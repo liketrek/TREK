@@ -62,7 +62,9 @@ import { PackingTemplateCategoriesSchema } from './PackingTemplateCategories.ent
 import { PackingTemplateItemsSchema } from './PackingTemplateItems.entity';
 import { PackingTemplatesSchema } from './PackingTemplates.entity';
 import { PaddleFeaturesSchema } from './PaddleFeatures.entity';
+import { PaddleRegionRequestsSchema } from './PaddleRegionRequests.entity';
 import { PaddleRegionsSchema } from './PaddleRegions.entity';
+import { PaddleWaterGraphsSchema } from './PaddleWaterGraphs.entity';
 import { PasswordResetTokensSchema } from './PasswordResetTokens.entity';
 import { PhotoProviderFieldsSchema } from './PhotoProviderFields.entity';
 import { PhotoProvidersSchema } from './PhotoProviders.entity';
@@ -202,7 +204,9 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   PackingTemplateItemsSchema,
   PackingTemplatesSchema,
   PaddleFeaturesSchema,
+  PaddleRegionRequestsSchema,
   PaddleRegionsSchema,
+  PaddleWaterGraphsSchema,
   PasswordResetTokensSchema,
   PhotoProviderFieldsSchema,
   PhotoProvidersSchema,

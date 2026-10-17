@@ -299,8 +299,6 @@ const tours: TranslationStrings = {
   'tours.paddle.speedInvalid': 'Δώστε ταχύτητα από 0,5 έως 20 km/h.',
   'tours.paddle.chooseBoat': 'Επιλέξτε σκάφος και νερό για να αποθηκεύσετε τη διαδρομή.',
   'tours.paddle.chooseBoatImport': 'Επιλέξτε σκάφος και νερό για εισαγωγή ως διαδρομή με κουπί.',
-  'tours.paddle.drawnByHand':
-    'Μια διαδρομή με κουπί σχεδιάζεται με το χέρι: το TREK ενώνει τα σημεία σας με ευθείες. Τίποτα δεν δρομολογείται και τίποτα δεν λέει ότι το νερό είναι πλωτό.',
   'tours.paddle.timeEstimated': 'Χρόνος κωπηλασίας (εκτίμηση)',
   'tours.paddle.timeEstimatedShort': 'Κωπηλασία',
   'tours.paddle.timeEstimatedInfoLabel': 'Πώς εκτιμάται ο χρόνος κωπηλασίας',
@@ -343,6 +341,16 @@ const tours: TranslationStrings = {
   'tours.paddle.portage': 'Μεταφορά σκάφους',
   'tours.paddle.portageOn': 'Μεταφορά σκάφους από εδώ',
   'tours.paddle.portageOff': 'Κωπηλασία ξανά σε αυτό το τμήμα',
+  'tours.paddle.portagePending': 'Μεταφορά από εδώ',
+  'tours.paddle.portagePendingHint': 'Όρισε τώρα το σημείο όπου μπαίνεις ξανά στο νερό. Το σκάφος μεταφέρεται ως εκεί.',
+  'tours.paddle.portagePendingOff': 'Τελικά χωρίς μεταφορά',
+  'tours.paddle.portageWay': 'Διαδρομή',
+  'tours.paddle.portageWay.follow': 'Ακολούθησε το μονοπάτι',
+  'tours.paddle.portageWay.straight': 'Ευθεία γραμμή',
+  'tours.paddle.portageWay.noWay': 'Δεν βρέθηκε δρόμος χωρίς μεγάλη παράκαμψη, η γραμμή μένει ευθεία.',
+  'tours.paddle.portageWay.searching': 'Αναζήτηση δρόμου',
+  'tours.paddle.placeHere.putIn': 'Μπες στο νερό εδώ',
+  'tours.paddle.placeHere.egress': 'Βγες από το νερό εδώ',
   'tours.paddle.portageInfo':
     'Εδώ το σκάφος μεταφέρεται με τα χέρια. Το τμήμα μετράει ως στεριά, με χρόνο για έξοδο, ξεφόρτωμα και επανείσοδο στο νερό.',
   'tours.paddle.portageExtra': 'Έξοδος και είσοδος',
@@ -541,5 +549,67 @@ const tours: TranslationStrings = {
   'tours.paddle.safety.short': 'Η κωπηλασία ενέχει κινδύνους. Ελέγξτε μόνοι σας το νερό, τους κανόνες και τον καιρό.',
   'tours.paddle.safety.text':
     'Η κωπηλασία ενέχει κινδύνους. Οι χάρτες, οι προτάσεις διαδρομών και οι σημειώσεις μπορεί να είναι ελλιπείς ή παρωχημένες. Πριν από την εκδρομή, ελέγξτε τις τρέχουσες τοπικές συνθήκες, τους κανόνες χρήσης του νερού και τον καιρό. Λάβετε κατάλληλα μέτρα ασφάλειας. Το TREK υποστηρίζει τον σχεδιασμό σας και δεν αντικαθιστά τον δικό σας έλεγχο και την υπεύθυνη απόφασή σας.',
+  'tours.planner.shapingPoint': 'Σημείο διαμόρφωσης',
+  'tours.planner.shapingHint':
+    'Κατευθύνει τη διαδρομή χωρίς να είναι στάση. Σύρε το εκεί όπου πρέπει να περνά η διαδρομή.',
+  'tours.planner.makeStop': 'Κάνε το στάση',
+  'tours.planner.makeShaping': 'Κάνε το σημείο διαμόρφωσης',
+  'tours.planner.recomputeLeg': 'Επανυπολογισμός επόμενου τμήματος',
+  'tours.planner.shapeOnLine': 'Κάνε κλικ στη διαδρομή στον χάρτη για να προσθέσεις εκεί σημείο διαμόρφωσης.',
+  'tours.paddle.routeOnWater': 'Σχεδίασε το επόμενο τμήμα στο νερό',
+  'tours.paddle.routeAllOnWater': 'Σχεδίασε στο νερό τα τμήματα που ζωγραφίστηκαν με το χέρι',
+  'tours.paddle.auto': 'Εντοπίστηκε',
+  'tours.paddle.autoHint':
+    'Το TREK έβαλε αυτό το σημείο σε σημείο μεταφοράς ή υδατοφράκτη που βρήκε στον δρόμο. Αν το μετακινήσεις ή το αλλάξεις, γίνεται δικό σου.',
+  'tours.paddle.note.rapids': 'Ορμητικά νερά {grade}',
+  'tours.paddle.note.pass': 'Δίοδος για κανό',
+  'tours.paddle.note.gap': 'Κενό στα δεδομένα του χάρτη',
+  'tours.paddle.note.rapidsHint':
+    'Η διαδρομή περνά εδώ από ορμητικό νερό. Εξέτασέ το πρώτα και, αν έχεις αμφιβολίες, μετέφερε το σκάφος.',
+  'tours.paddle.note.gapHint':
+    'Τα δεδομένα νερού έχουν εδώ κενό, που γεφυρώνεται με ευθεία γραμμή. Έλεγξέ το επί τόπου.',
+  'tours.paddle.failed.not_on_water':
+    'Το ένα άκρο αυτού του τμήματος δεν βρίσκεται σε νερό που γνωρίζει το TREK. Μετακίνησέ το στο ποτάμι ή στη λίμνη.',
+  'tours.paddle.failed.no_region':
+    'Δεν υπάρχουν ακόμη δεδομένα νερού για αυτή την περιοχή. Ένας διαχειριστής μπορεί να προσθέσει την περιοχή.',
+  'tours.paddle.failed.building':
+    'Τα δεδομένα νερού αυτής της περιοχής προετοιμάζονται ακόμη. Δοκίμασε ξανά σε λίγα λεπτά.',
+  'tours.paddle.failed.no_water_path': 'Το TREK δεν βρήκε διαδρομή στο νερό ανάμεσα σε αυτά τα σημεία.',
+  'tours.paddle.failed.cross_region': 'Αυτά τα σημεία βρίσκονται σε δύο περιοχές χωρίς κοινά δεδομένα νερού.',
+  'tours.paddle.failed.busy': 'Ο σχεδιαστής διαδρομών είναι απασχολημένος. Δοκίμασε ξανά σε λίγο.',
+  'tours.paddle.failed.timeout':
+    'Ο σχεδιασμός αυτού του τμήματος άργησε πολύ. Πρόσθεσε ένα ενδιάμεσο σημείο και δοκίμασε ξανά.',
+  'tours.paddle.failed.offline': 'Εκτός σύνδεσης. Το τμήμα θα σχεδιαστεί μόλις συνδεθείς ξανά.',
+  'tours.paddle.drawStraight': 'Ευθεία γραμμή',
+  'tours.paddle.retry': 'Δοκίμασε ξανά',
+  'tours.paddle.load.loading': 'Φόρτωση δεδομένων νερού για {region}',
+  'tours.paddle.load.ready': 'Τα δεδομένα νερού για {region} είναι εδώ, το τμήμα σχεδιάζεται.',
+  'tours.paddle.load.requested':
+    'Ζητήθηκαν τα δεδομένα νερού για {region}. Το τμήμα θα σχεδιαστεί μόλις τα εγκρίνει διαχειριστής.',
+  'tours.paddle.load.waiting': 'Αναμονή για άλλες περιοχές',
+  'tours.paddle.load.phase.download': 'Λήψη',
+  'tours.paddle.load.phase.read': 'Ανάγνωση',
+  'tours.paddle.load.phase.build': 'Κατασκευή δικτύου νερού',
+  'tours.paddle.load.hint': 'Συνήθως ένα έως τρία λεπτά. Συνέχισε τον σχεδιασμό, το τμήμα θα σχεδιαστεί μόνο του μετά.',
+  'tours.paddle.load.reason.tooLarge': 'Η περιοχή είναι μεγαλύτερη από όσο φορτώνει μόνο του το TREK.',
+  'tours.paddle.load.reason.limit': 'Το TREK έχει ήδη φορτώσει αρκετές περιοχές μόνο του σήμερα.',
+  'tours.paddle.load.declined': 'Ένας διαχειριστής απέρριψε τα δεδομένα νερού για {region}.',
+  'tours.paddle.load.failed': 'Δεν ήταν δυνατή η φόρτωση των δεδομένων νερού για {region}.',
+  'tours.paddle.load.noWater':
+    'Στα δεδομένα νερού για {region} δεν υπάρχει νερό εδώ. Βάλε το σημείο στο ποτάμι ή στη λίμνη.',
+  'tours.paddle.load.noExtract': 'Δεν υπάρχει απόσπασμα χάρτη με δεδομένα νερού για αυτή την περιοχή.',
+  'tours.paddle.load.catalogUnavailable': 'Η λίστα περιοχών δεν είναι προσβάσιμη τώρα. Δοκίμασε ξανά αργότερα.',
+  'tours.paddle.lakeStyle': 'Στις λίμνες',
+  'tours.paddle.lakeStyle.direct': 'Ευθεία',
+  'tours.paddle.lakeStyle.shore': 'Κοντά στην όχθη',
+  'tours.paddle.lakeStyle.directHint': 'Η συντομότερη γραμμή σε ανοιχτό νερό.',
+  'tours.paddle.lakeStyle.shoreHint':
+    'Μένει κοντά στην όχθη, για μέρες με αέρα: μεγαλύτερη, αλλά η στεριά δεν είναι ποτέ μακριά.',
+  'tours.paddle.wind.shoreAdvice':
+    'Έως {mean} km/h, ριπές {gusts} km/h αυτή τη μέρα. Στις λίμνες ίσως είναι καλύτερη η γραμμή κοντά στην όχθη.',
+  'tours.paddle.wind.shoreAdopt': 'Σχεδίαση κοντά στην όχθη',
+  'tours.paddle.wind.shoreTaken': 'Οι λίμνες σχεδιάζονται κοντά στην όχθη.',
+  'tours.paddle.status.unrouted': '{count} τμήματα χωρίς σχεδιασμό',
+  'tours.paddle.status.unrouted.one': '{count} τμήμα χωρίς σχεδιασμό',
 };
 export default tours;

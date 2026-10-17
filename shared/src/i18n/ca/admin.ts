@@ -896,5 +896,44 @@ const admin: TranslationStrings = {
     'Dades © col·laboradors d’OpenStreetMap (ODbL), extractes regionals de Geofabrik. Es tornen a llegir el dia 3 de cada mes.',
   'admin.paddleRegions.toast.added': 'Regió afegida. TREK la llegeix en segon pla.',
   'admin.paddleRegions.toast.removed': 'Regió eliminada',
+  'admin.paddleRegions.phase.build': 'Construint la xarxa d’aigua',
+  'admin.paddleRegions.network.km': '{km} km d’aigua',
+  'admin.paddleRegions.network.lakes': '{count} llacs',
+  'admin.paddleRegions.network.lakes.one': '{count} llac',
+  'admin.paddleRegions.network.portages': '{count} transports cartografiats',
+  'admin.paddleRegions.network.portages.one': '{count} transport cartografiat',
+  'admin.paddleRegions.network.inferred': '{count} transports suposats',
+  'admin.paddleRegions.network.inferred.one': '{count} transport suposat',
+  'admin.paddleRegions.network.locks': '{count} rescloses',
+  'admin.paddleRegions.network.locks.one': '{count} resclosa',
+  'admin.paddleRegions.network.gaps': '{count} buits salvats',
+  'admin.paddleRegions.network.gaps.one': '{count} buit salvat',
+  'admin.paddleRegions.network.missing': 'Sense xarxa d’aigua',
+  'admin.paddleRegions.network.missingHint':
+    'Torna a llegir la regió per construir la xarxa que segueix la ruta en caiac.',
+  'admin.paddleRegions.auto.title': 'Carregar regions automàticament',
+  'admin.paddleRegions.auto.mode.auto': 'Automàtic',
+  'admin.paddleRegions.auto.mode.ask': 'A petició',
+  'admin.paddleRegions.auto.mode.off': 'Desactivat',
+  'admin.paddleRegions.auto.modeHint.auto':
+    "Quan algú planifica una ruta en caiac on encara no hi ha dades d'aigua, TREK carrega de seguida la regió més petita que hi encaixa, fins al límit de mida i només unes poques al dia. Les més grans esperen aquí com a petició. Només el nom de la regió va a Geofabrik, mai el lloc.",
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Cada regió nova espera aquí fins que un administrador la deixa passar. Quan planifica un administrador, es carrega de seguida.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREK no carrega res pel seu compte ni demana res. Afegeix les regions aquí a mà.',
+  'admin.paddleRegions.auto.maxSize': 'Regió més gran que es carrega automàticament',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Les regions més grans esperen aquí com a petició. Llegir una regió triga uns minuts i ocupa memòria mentre dura.',
+  'admin.paddleRegions.requests.title': 'Demanades',
+  'admin.paddleRegions.requests.reason.ask': 'A petició',
+  'admin.paddleRegions.requests.reason.too_large': 'Massa gran',
+  'admin.paddleRegions.requests.reason.limit': 'Límit diari',
+  'admin.paddleRegions.requests.declined': 'Rebutjada',
+  'admin.paddleRegions.requests.by': 'de {user}',
+  'admin.paddleRegions.requests.approve': 'Carregar',
+  'admin.paddleRegions.requests.decline': 'Rebutjar',
+  'admin.paddleRegions.origin.auto': 'Automàtic',
+  'admin.paddleRegions.origin.autoHint':
+    'TREK ha carregat aquesta regió pel seu compte per a una ruta en caiac planificada allà.',
 };
 export default admin;

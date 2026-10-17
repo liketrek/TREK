@@ -123,6 +123,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Veebihaagi teavitused',
   'settings.notifyVersionAvailable': 'Uus versioon saadaval',
   'settings.notifyReplicaFailure': 'Salvestuskoopia tõrge',
+  'settings.notifyPaddleRegionRequested': 'Aerutamispiirkonda taotleti',
   'settings.notificationPreferences.email': 'E-post',
   'settings.notificationPreferences.webhook': 'Veebihaak',
   'settings.notificationPreferences.inapp': 'Rakenduses',

@@ -299,6 +299,7 @@ const settings: TranslationStrings = {
   'settings.bookingLabelsHint': 'Toon station- / luchthavennamen op de kaart. Indien uit, alleen het icoon.',
   'settings.notifyVersionAvailable': 'Nieuwe versie beschikbaar',
   'settings.notifyReplicaFailure': 'Opslagreplica mislukt',
+  'settings.notifyPaddleRegionRequested': 'Peddelregio aangevraagd',
   'settings.notificationPreferences.noChannels':
     'Er zijn geen meldingskanalen geconfigureerd. Vraag een beheerder om e-mail- of webhookmeldingen in te stellen.',
   'settings.webhookUrl.label': 'Webhook-URL',

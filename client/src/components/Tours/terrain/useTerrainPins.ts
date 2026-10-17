@@ -6,7 +6,15 @@ import type { TerrainGl } from './useTerrainMap';
 
 export interface TerrainWaypoints {
   /** `name` and `detail` (its role) show on hover. */
-  points: Array<{ id: string; lat: number; lng: number; name?: string; detail?: string }>;
+  points: Array<{
+    id: string;
+    lat: number;
+    lng: number;
+    name?: string;
+    detail?: string;
+    label?: string;
+    shaping?: boolean;
+  }>;
   selectedId: string | null;
   onSelect: (id: string) => void;
   /** Absent while the tour cannot be edited; the pins then stay put. */
@@ -38,7 +46,7 @@ export function useTerrainPins(
     gl.map.on('movestart', hideOnMove);
     const unbind: (() => void)[] = [() => gl.map.off('movestart', hideOnMove)];
     pinsRef.current = points.map((point, index) => {
-      const el = waypointPinElement(index, point.id === selectedId, editable);
+      const el = waypointPinElement(point, index, point.id === selectedId, editable);
       const name = point.name ?? String(index + 1);
       el.setAttribute('aria-label', name);
       unbind.push(bindPinHoverLabel(el, hoverLabel, gl.map.getContainer(), { name, detail: point.detail ?? null }));

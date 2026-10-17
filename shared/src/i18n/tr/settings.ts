@@ -108,6 +108,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Webhook bildirimleri',
   'settings.notifyVersionAvailable': 'Yeni sürüm mevcut',
   'settings.notifyReplicaFailure': 'Depolama kopyası hatası',
+  'settings.notifyPaddleRegionRequested': 'Kürek bölgesi istendi',
   'settings.notificationPreferences.email': 'E-posta',
   'settings.notificationPreferences.webhook': 'Web kancası',
   'settings.notificationPreferences.inapp': 'Uygulama içi',

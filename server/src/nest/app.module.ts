@@ -62,6 +62,7 @@ import { OauthModule } from './oauth/oauth.module';
 import { OidcModule } from './oidc/oidc.module';
 import { PackingModule } from './packing/packing.module';
 import { PaddleObstaclesModule } from './paddle-obstacles/paddle-obstacles.module';
+import { PaddleRoutingModule } from './paddle-routing/paddle-routing.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { PhotosModule } from './photos/photos.module';
 import { PlaceEnrichmentModule } from './place-enrichment/place-enrichment.module';
@@ -157,6 +158,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     WandererModule,
     FerratasModule,
     PaddleObstaclesModule,
+    PaddleRoutingModule,
     TripsModule,
     CollabModule,
     FilesModule,

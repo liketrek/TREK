@@ -82,6 +82,10 @@ const ar: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'طلب منطقة تجديف',
+      body: `${p.actor} يخطط لرحلة تجديف في ${p.region}. حمّل بياناتها المائية أو ارفضها في لوحة الإدارة ضمن الإضافات.`,
+    }),
     synology_session_cleared: () => ({
       title: 'تمت إعادة تعيين جلسة Synology',
       body: 'تغيّر حسابك أو رابط Synology. تم تسجيل خروجك من Synology Photos.',

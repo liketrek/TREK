@@ -25,4 +25,5 @@ export interface ToursTable {
   paddle_speed_kmh: InsertOptional<number | null>;
   portage_speed_kmh: InsertOptional<number | null>;
   track_marks: InsertOptional<string | null>;
+  paddle_lake_style: InsertOptional<string | null>;
 }

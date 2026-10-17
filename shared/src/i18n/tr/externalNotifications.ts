@@ -70,6 +70,10 @@ const tr: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Kürek bölgesi istendi',
+      body: `${p.actor}, ${p.region} bölgesinde kürek turu planlıyor. Su verisini yönetim alanında Eklentiler altında yükle ya da reddet.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synology oturumu temizlendi',
       body: 'Synology hesabınız veya URL değişti. Synology Photos oturumunuz kapatıldı.',

@@ -67,6 +67,10 @@ const en: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Paddelregion efterfrågad',
+      body: `${p.actor} planerar en paddeltur i ${p.region}. Läs in eller avböj dess vattendata i administrationen under Tillägg.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synology session rensad',
       body: 'Ditt Synology-konto eller din webbadress har ändrats. Du har loggats ut från Synology Photos.',

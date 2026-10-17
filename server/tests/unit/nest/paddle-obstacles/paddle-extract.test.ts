@@ -2,19 +2,22 @@
  * The two-pass extraction of PAD-05A over extracts written in the test: the
  * objects kept with their own geometry (a weir across a river stays a line),
  * their tag hash, and the parts of one lock grouped while separate locks
- * stay apart.
+ * stay apart; and the water sink the same passes feed (PAD-11).
  */
 import {
   extractPaddleFeatures,
   groupLockParts,
   type ExtractedFeature,
+  type ExtractSink,
 } from '../../../../src/nest/paddle-obstacles/paddle-extract';
+import { importExtract } from '../../../../src/nest/paddle-obstacles/paddle-import';
+import { decodeWaterGraph } from '../../../../src/nest/paddle-routing/water-graph';
 import { pbfFile, type FixtureNode } from '../../../helpers/osm-pbf-fixture';
 
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 let dir: string;
 let n = 0;
@@ -184,5 +187,71 @@ describe('groupLockParts', () => {
     const c = part('node/3', 'lock_gate', 0, 0.004);
     groupLockParts([c, a, b]);
     expect(new Set([a.group_key, b.group_key, c.group_key])).toEqual(new Set(['lock:node/1']));
+  });
+});
+
+describe('the water sink (PAD-11)', () => {
+  /** A sink that records what it hears and asks for the member ways of one relation. */
+  function recorder(neededWays: number[]) {
+    const heard: string[] = [];
+    let want: (id: number) => void = () => undefined;
+    const sink: ExtractSink = {
+      neededWays: new Set(neededWays),
+      node: (id) => heard.push(`node/${id}`),
+      way: (id, refs) => {
+        heard.push(`way/${id}`);
+        for (const ref of refs) want(ref);
+      },
+      relation: (id) => heard.push(`relation/${id}`),
+      memberWay: (id) => heard.push(`member/${id}`),
+    };
+    return {
+      heard,
+      sinkFor: (asked: (id: number) => void) => {
+        want = asked;
+        return sink;
+      },
+    };
+  }
+
+  it('PEXT-008: hears every tagged node, way and relation, reads the member ways in a pass of their own, and knows their positions', async () => {
+    const path = join(dir, `region-${n++}.osm.pbf`);
+    await writeFile(
+      path,
+      pbfFile([
+        { dense: [...weirNodes, { id: 4, lat: 49.2, lon: 12.2, tags: { natural: 'water' } }] },
+        {
+          ways: [
+            { id: 10, refs: [1, 2, 3], tags: { waterway: 'river' } },
+            { id: 11, refs: [1, 3] },
+          ],
+        },
+        { relations: [{ id: 5, members: [{ type: 'way', ref: 11, role: 'outer' }], tags: { type: 'multipolygon' } }] },
+      ]),
+    );
+    const { heard, sinkFor } = recorder([11]);
+    const progress: number[] = [];
+    const { coordOf } = await extractPaddleFeatures(path, (fraction) => progress.push(fraction), sinkFor);
+    expect(heard).toEqual(['node/4', 'way/10', 'way/11', 'relation/5', 'member/10', 'member/11']);
+    expect(coordOf(2)).toEqual([49.1236, 12.1309]);
+    // Three passes: the elements, the member ways, the positions.
+    expect(progress.some((fraction) => Math.abs(fraction - 2 / 3) < 1e-9)).toBe(true);
+    expect(progress.at(-1)).toBe(1);
+  });
+
+  it('PEXT-009: without member ways to read the pass is left out; an extract without a date builds a network without one', async () => {
+    const path = join(dir, `region-${n++}.osm.pbf`);
+    await writeFile(
+      path,
+      pbfFile([{ dense: weirNodes }, { ways: [{ id: 10, refs: [1, 2, 3], tags: { waterway: 'river' } }] }]),
+    );
+    const { heard, sinkFor } = recorder([]);
+    const read = vi.fn();
+    await extractPaddleFeatures(path, read, sinkFor);
+    expect(heard).toEqual(['way/10']);
+
+    const { graph, timestamp } = await importExtract(path, 'undated', () => undefined);
+    expect(timestamp).toBeNull();
+    expect(decodeWaterGraph(Buffer.from(graph?.bytes ?? [])).sourceTimestamp).toBeNull();
   });
 });

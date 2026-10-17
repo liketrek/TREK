@@ -836,5 +836,38 @@ const admin: TranslationStrings = {
     'データ © OpenStreetMap 貢献者（ODbL）、地域別の抽出データは Geofabrik によるものです。毎月 3 日に読み直します。',
   'admin.paddleRegions.toast.added': '地域を追加しました。TREK がバックグラウンドで読み込みます。',
   'admin.paddleRegions.toast.removed': '地域を削除しました',
+  'admin.paddleRegions.phase.build': '水路ネットワークを構築中',
+  'admin.paddleRegions.network.km': '水域 {km} km',
+  'admin.paddleRegions.network.lakes': '湖 {count} 件',
+  'admin.paddleRegions.network.portages': '地図上のポーテージ {count} 件',
+  'admin.paddleRegions.network.inferred': '推定の担ぎ {count} 件',
+  'admin.paddleRegions.network.locks': '閘門 {count} 件',
+  'admin.paddleRegions.network.gaps': 'つないだ欠落 {count} 件',
+  'admin.paddleRegions.network.missing': '水路ネットワークなし',
+  'admin.paddleRegions.network.missingHint':
+    '地域を読み込み直すと、パドリングのルートが使うネットワークが構築されます。',
+  'admin.paddleRegions.auto.title': '地域を自動で読み込む',
+  'admin.paddleRegions.auto.mode.auto': '自動',
+  'admin.paddleRegions.auto.mode.ask': 'リクエスト制',
+  'admin.paddleRegions.auto.mode.off': 'オフ',
+  'admin.paddleRegions.auto.modeHint.auto':
+    '水域データのない場所でパドルツアーが計画されると、TREKは該当する最小の地域をすぐに読み込みます。サイズ上限まで、1日に数件だけです。それより大きいものはここでリクエストとして待ちます。Geofabrikに送られるのは地域名だけで、場所は送られません。',
+  'admin.paddleRegions.auto.modeHint.ask':
+    '新しい地域は管理者が許可するまでここで待ちます。管理者自身が計画した場合はすぐに読み込みます。',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREKは自分では何も読み込まず、リクエストも出しません。地域はここで手動で追加してください。',
+  'admin.paddleRegions.auto.maxSize': '自動で読み込む最大の地域',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'より大きい地域はここでリクエストとして待ちます。地域の読み込みには数分かかり、その間メモリを使います。',
+  'admin.paddleRegions.requests.title': 'リクエスト',
+  'admin.paddleRegions.requests.reason.ask': 'リクエスト制',
+  'admin.paddleRegions.requests.reason.too_large': '大きすぎ',
+  'admin.paddleRegions.requests.reason.limit': '1日の上限',
+  'admin.paddleRegions.requests.declined': '却下',
+  'admin.paddleRegions.requests.by': '{user}より',
+  'admin.paddleRegions.requests.approve': '読み込む',
+  'admin.paddleRegions.requests.decline': '却下する',
+  'admin.paddleRegions.origin.auto': '自動',
+  'admin.paddleRegions.origin.autoHint': 'この地域は、そこで計画されたパドルツアーのためにTREKが自動で読み込みました。',
 };
 export default admin;

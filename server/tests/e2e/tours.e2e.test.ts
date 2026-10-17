@@ -714,6 +714,42 @@ describe('Tours e2e (real guards + temp SQLite)', () => {
       expect(readAgain(detail.body)).toEqual(readAgain(res.body));
     });
 
+    it('saves how a paddle tour crosses lakes and its shaping points, and reads them back (PAD-11, P2A-03)', async () => {
+      const body = carried({ paddle_lake_style: 'shore' });
+      (body.waypoints as Array<Record<string, unknown>>)[1] = {
+        lat: 47.01,
+        lng: 11.01,
+        role: 'via',
+        sequence: 1,
+        shaping: true,
+      };
+      const res = await request(server).post('/api/trips/5/tours').set('Cookie', sessionCookie(OWNER)).send(body);
+      expect(res.status).toBe(201);
+      expect(res.body.tour).toMatchObject({ paddle_lake_style: 'shore' });
+      expect(res.body.waypoints[1]).toMatchObject({ shaping: true });
+      expect(res.body.waypoints[0].shaping).toBeUndefined();
+      const detail = await request(server)
+        .get(`/api/trips/5/tours/${res.body.tour.place_id}`)
+        .set('Cookie', sessionCookie(OWNER));
+      expect(detail.body.tour.paddle_lake_style).toBe('shore');
+      expect(detail.body.waypoints[1].shaping).toBe(true);
+
+      const onHike = carried({
+        tour_type: 'hike',
+        max_hiking_difficulty: 2,
+        boat_type: null,
+        water_context: null,
+        portage_speed_kmh: null,
+        paddle_lake_style: 'direct',
+        waypoints: [
+          { lat: 47, lng: 11, role: 'start', sequence: 0 },
+          { lat: 47.02, lng: 11.02, role: 'end', sequence: 1 },
+        ],
+      });
+      const refused = await request(server).post('/api/trips/5/tours').set('Cookie', sessionCookie(OWNER)).send(onHike);
+      expect(refused.status).toBe(400);
+    });
+
     it('400 for a portage, a lock or a carrying speed on a hike; nothing written', async () => {
       const onHike = carried({ tour_type: 'hike', max_hiking_difficulty: 2, boat_type: null, water_context: null });
       const res = await request(server).post('/api/trips/5/tours').set('Cookie', sessionCookie(OWNER)).send(onHike);

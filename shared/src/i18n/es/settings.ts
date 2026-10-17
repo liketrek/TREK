@@ -300,6 +300,7 @@ const settings: TranslationStrings = {
   'settings.passwordRule.special': 'Un carácter especial',
   'settings.notifyVersionAvailable': 'Nueva versión disponible',
   'settings.notifyReplicaFailure': 'Fallo de réplica de almacenamiento',
+  'settings.notifyPaddleRegionRequested': 'Región de kayak pedida',
   'settings.notificationPreferences.noChannels':
     'No hay canales de notificación configurados. Pide a un administrador que configure notificaciones por correo o webhook.',
   'settings.webhookUrl.label': 'URL del webhook',

@@ -221,6 +221,13 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     navigateTextKey: 'notif.action.view',
     navigateTarget: () => '/admin?tab=storage',
   },
+  paddle_region_requested: {
+    inAppType: 'navigate',
+    titleKey: 'notif.paddle_region_requested.title',
+    textKey: 'notif.paddle_region_requested.text',
+    navigateTextKey: 'notif.action.view_admin',
+    navigateTarget: () => '/admin?tab=addons',
+  },
   synology_session_cleared: {
     inAppType: 'simple',
     titleKey: 'notifications.synologySessionCleared.title',

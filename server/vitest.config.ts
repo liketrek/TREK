@@ -137,6 +137,8 @@ export default defineConfig({
         'src/nest/oidc/**/*.ts': { statements: 88, branches: 83, functions: 91, lines: 92 },
         'src/nest/packing/**/*.ts': { statements: 92, branches: 83, functions: 99, lines: 97 },
         'src/nest/paddle-obstacles/**/*.ts': { statements: 96, branches: 92, functions: 94, lines: 97 },
+        // PAD-11, new in this change: measured by its unit and e2e suites, one point of slack.
+        'src/nest/paddle-routing/**/*.ts': { statements: 94, branches: 83, functions: 96, lines: 97 },
         'src/nest/permissions/**/*.ts': { statements: 97, branches: 92, functions: 99, lines: 97 },
         'src/nest/photos/**/*.ts': { statements: 96, branches: 92, functions: 92, lines: 96 },
         // Landed on dev without an entry, so it sat on the 80 catch-all while

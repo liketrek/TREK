@@ -1,28 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MAX_PLANNED_TOUR_DURATION_MINUTES, paddleSpeedKmhSchema, tourWebsiteSchema, type PlannableTourType, type TourCreateResponse, type TourFixedLeg, type TourListItem, type TourWaypointRole, type TourMaxHikingDifficulty, type PaddleLock } from '@trek/shared'
+import { MAX_PLANNED_TOUR_DURATION_MINUTES, paddleSpeedKmhSchema, tourWebsiteSchema, type PlannableTourType, type TourCreateResponse, type TourFixedLeg, type TourListItem, type TourMaxHikingDifficulty } from '@trek/shared'
+import { paddleRouteRepo } from '../../../repo/paddleRouteRepo'
 import { tourRepo } from '../../../repo/tourRepo'
 import { randomId } from '../../../utils/randomId'
 import { analyzeRouteGeometry, type RouteProfileFocus } from '../../../utils/routeGeometry'
 import { enrichTourElevations, routeWalkingTour, type TourElevationPoint, type TourRoutePart } from './tourRouting'
-import { keepJoinedFixedLegs } from './tourFixedLegs'
-import { alignFreeLegs, closeLoop, isClosedLoop, reverseRoute, toggleFreeLeg } from './tourRouteActions'
+import { closeLoop, isClosedLoop, reverseRoute, toggleFreeLeg } from './tourRouteActions'
+import { normalizePlannerWaypoints, plannerWaypointsOf, sameWaypointSnapshot, savedWaypointsOf, tourWaypointKey, type TourPlannerWaypoint } from './tourPlannerWaypoints'
+import { useRouteShaping } from './useRouteShaping'
 import { useTourMapView } from './useTourMapView'
 import { validDraft, type DraftPayload } from './tourPlannerDraft'
 import { paddleEstimateOf } from './paddlePlanOf'
+import { adoptChangedPoints, planPaddleStep, type PaddleTourRoute } from './paddleRouting'
 import { NO_PADDLE_FIELDS, paddleFieldsOf, usePaddleFields, type PaddleFieldValues } from './usePaddleFields'
 import { hikingTimeMinutes } from '../hikingTime'
 import { useTourPermissions, type TourPermissionProps } from '../useTourPermissions'
-
-export interface TourPlannerWaypoint {
-  id: string
-  lat: number
-  lng: number
-  role: TourWaypointRole
-  /** The leg to the next waypoint as a fixed line (a via ferrata on the tour), not routed. */
-  fixedLeg?: TourFixedLeg | null
-  /** PAD-07: a lock at this point of a paddle tour, with the times expected there. */
-  lock?: PaddleLock | null
-}
 
 /** What a tour planned from an import starts with. */
 export interface DerivedTourDraft {
@@ -67,29 +59,6 @@ const HISTORY_LIMIT = 30
 
 function hasCompleteElevation(points: TourElevationPoint[] | null): points is [number, number, number][] {
   return !!points && points.every(point => point.length === 3 && Number.isFinite(point[2]))
-}
-
-/** Roles from the order; free legs follow their points, and a paddle tour draws every leg by hand. */
-export function normalizePlannerWaypoints(points: TourPlannerWaypoint[], allFree = false): TourPlannerWaypoint[] {
-  return keepJoinedFixedLegs(alignFreeLegs(points, allFree)).map((point, index) => ({
-    ...point,
-    role: index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'via',
-  }))
-}
-
-export function tourWaypointKey(points: TourPlannerWaypoint[]): string {
-  return points.map(point => `${point.id}:${point.lat.toFixed(7)}:${point.lng.toFixed(7)}${fixedLegKey(point.fixedLeg)}`).join('|')
-}
-
-function fixedLegKey(leg: TourFixedLeg | null | undefined): string {
-  if (!leg) return ''
-  return leg.kind === 'ferrata' ? `:${leg.ref}` : `:${leg.kind}`
-}
-
-/** The line, and what a paddler planned along it that draws no line: a portage's time, a lock. */
-function sameWaypointSnapshot(a: TourPlannerWaypoint[], b: TourPlannerWaypoint[]): boolean {
-  const extras = (points: TourPlannerWaypoint[]) => JSON.stringify(points.map(point => [point.fixedLeg?.kind === 'portage' ? point.fixedLeg.extra_minutes ?? null : null, point.lock ?? null]))
-  return tourWaypointKey(a) === tourWaypointKey(b) && extras(a) === extras(b)
 }
 
 /** Where a new tour was planned from; an edit leaves it as it was saved. */
@@ -157,6 +126,7 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
   const [status, setStatus] = useState<TourPlannerStatus>(restored?.waypoints.length ? 'dirty' : 'empty')
   const [route, setRoute] = useState<[number, number][] | null>(null)
   const [routeParts, setRouteParts] = useState<TourRoutePart[] | null>(null)
+  const [paddleRoute, setPaddleRoute] = useState<PaddleTourRoute | null>(null)
   const [enrichedGeometry, setEnrichedGeometry] = useState<TourElevationPoint[] | null>(null)
   const [routeForKey, setRouteForKey] = useState<string | null>(null)
   const [distanceMeters, setDistanceMeters] = useState<number | null>(null)
@@ -241,7 +211,10 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
   const commitWaypoints = useCallback((nextValue: TourPlannerWaypoint[] | ((current: TourPlannerWaypoint[]) => TourPlannerWaypoint[])) => {
     if (!editPermissionRef.current) return
     const current = waypointsRef.current
-    const next = normalizePlannerWaypoints(typeof nextValue === 'function' ? nextValue(current) : nextValue, tourTypeRef.current === 'kayak')
+    const changed = typeof nextValue === 'function' ? nextValue(current) : nextValue
+    const paddle = tourTypeRef.current === 'kayak'
+    // A point the router set that the paddler moves or edits is theirs from then on.
+    const next = normalizePlannerWaypoints(paddle ? adoptChangedPoints(current, changed) : changed, paddle)
     if (sameWaypointSnapshot(current, next)) return
     invalidateDetailRequest()
     interruptRouting()
@@ -255,6 +228,19 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
     setStatus('dirty')
     setError(null)
   }, [invalidateDetailRequest, interruptRouting, snapshot])
+
+  // Detail laid in after the step that asked for it (a portage's way on land), with no step of its own.
+  const amendWaypoints = useCallback((change: (current: TourPlannerWaypoint[]) => TourPlannerWaypoint[]) => {
+    if (!editPermissionRef.current || saveInFlightRef.current) return
+    const changed = change(waypointsRef.current)
+    if (changed === waypointsRef.current) return
+    interruptRouting()
+    draftRevisionRef.current += 1
+    waypointsRef.current = normalizePlannerWaypoints(changed, tourTypeRef.current === 'kayak')
+    setWaypoints(waypointsRef.current)
+    setHasUnsavedChanges(true)
+    setStatus('dirty')
+  }, [interruptRouting])
 
   const setMaxHikingDifficulty = useCallback((value: TourMaxHikingDifficulty) => {
     if (!editPermissionRef.current) return
@@ -333,9 +319,9 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
     commitWaypoints(change)
   }, [commitWaypoints])
 
-  /** P2A-04: the leg after this waypoint drawn by hand, or routed again. */
+  /** P2A-04: the leg after this waypoint drawn by hand, or routed again (a paddle tour's on the water). */
   const toggleWaypointFreeLeg = useCallback((id: string) => {
-    if (!editPermissionRef.current || saveInFlightRef.current || tourTypeRef.current === 'kayak') return
+    if (!editPermissionRef.current || saveInFlightRef.current) return
     commitWaypoints(current => toggleFreeLeg(current, id))
   }, [commitWaypoints])
 
@@ -449,6 +435,8 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
 
   const paddle = usePaddleFields(restored?.paddle ?? NO_PADDLE_FIELDS, markEdited)
   const loadPaddle = paddle.load
+  const paddleBoat = paddle.boatType
+  const paddleLakeStyle = paddle.lakeStyle
 
   /**
    * PAD-01: hike or paddle tour, as one step of the history with the route,
@@ -487,8 +475,10 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
   const paddleIncomplete = isPaddle && (paddle.boatType === null || paddle.waterContext === null)
   // A paddle tour is timed on the water at its speed; a hike by the signposts' rule once the heights are in.
   const { effectiveSpeedKmh, portageSpeedKmh } = paddle
-  const paddleEstimate = useMemo(() => isPaddle ? paddleEstimateOf(waypoints, { effectiveSpeedKmh, portageSpeedKmh }, paddleSpeedInvalid) : null,
-    [effectiveSpeedKmh, isPaddle, paddleSpeedInvalid, portageSpeedKmh, waypoints])
+  // The routed length of each leg while the route is the current points' (PAD-11); straight lines before that.
+  const routedLegLengths = paddleRoute && routeForKey === tourWaypointKey(waypoints) ? paddleRoute.legLengths : undefined
+  const paddleEstimate = useMemo(() => isPaddle ? paddleEstimateOf(waypoints, { effectiveSpeedKmh, portageSpeedKmh }, paddleSpeedInvalid, routedLegLengths) : null,
+    [effectiveSpeedKmh, isPaddle, paddleSpeedInvalid, portageSpeedKmh, routedLegLengths, waypoints])
   const walkingDurationMinutes = paddleEstimate
     ? paddleEstimate.waterMinutes === null ? null : paddleEstimate.estimateMinutes
     : routeAnalysis?.gain != null && routeAnalysis.loss != null
@@ -501,11 +491,11 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
     && (!Number.isInteger(breakAdditionalMinutes) || breakAdditionalMinutes < 0 || breakAdditionalMinutes > MAX_PLANNED_TOUR_DURATION_MINUTES)
   const plannedTotalMinutes = plannedDurationMinutes ?? automaticPlannedTotalMinutes
   // What the type adds to a save: a hike its routing limit, a paddle tour its boat, water and speed.
-  const { boatType, waterContext, speedKmh } = paddle
+  const { boatType, waterContext, speedKmh, lakeStyle } = paddle
   const typeFields = useMemo(() => tourType === 'kayak'
-    ? { tour_type: tourType, max_hiking_difficulty: null, boat_type: boatType, water_context: waterContext, paddle_speed_kmh: speedKmh, portage_speed_kmh: portageSpeedKmh }
-    : { tour_type: tourType, max_hiking_difficulty: maxHikingDifficulty, boat_type: null, water_context: null, paddle_speed_kmh: null, portage_speed_kmh: null },
-  [boatType, maxHikingDifficulty, portageSpeedKmh, speedKmh, tourType, waterContext])
+    ? { tour_type: tourType, max_hiking_difficulty: null, boat_type: boatType, water_context: waterContext, paddle_speed_kmh: speedKmh, portage_speed_kmh: portageSpeedKmh, paddle_lake_style: lakeStyle }
+    : { tour_type: tourType, max_hiking_difficulty: maxHikingDifficulty, boat_type: null, water_context: null, paddle_speed_kmh: null, portage_speed_kmh: null, paddle_lake_style: null },
+  [boatType, lakeStyle, maxHikingDifficulty, portageSpeedKmh, speedKmh, tourType, waterContext])
   // The router's own time stands in for a hike without heights; a paddle tour has only its speed.
   const savedDurationSeconds = walkingDurationMinutes === null ? (isPaddle ? null : durationSeconds) : walkingDurationMinutes * 60
   const plannedTotalInvalid = plannedDurationMinutes === null
@@ -537,6 +527,7 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
     setStatus('empty')
     setRoute(null)
     setRouteParts(null)
+    setPaddleRoute(null)
     setEnrichedGeometry(null)
     setRouteForKey(null)
     setDistanceMeters(null)
@@ -676,14 +667,7 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
 
       interruptRouting()
       const openedType: PlannableTourType = result.tour.tour_type === 'kayak' ? 'kayak' : 'hike'
-      const nextWaypoints = normalizePlannerWaypoints(result.waypoints.map(point => ({
-        id: randomId(),
-        lat: point.lat,
-        lng: point.lng,
-        role: point.role,
-        ...(point.fixed_leg ? { fixedLeg: point.fixed_leg } : {}),
-        ...(point.lock ? { lock: point.lock } : {}),
-      })), openedType === 'kayak')
+      const nextWaypoints = normalizePlannerWaypoints(plannerWaypointsOf(result.waypoints, randomId), openedType === 'kayak')
       localStorage.removeItem(storageKey)
       contextGenerationRef.current += 1
       draftRevisionRef.current += 1
@@ -704,6 +688,7 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
       setStatus('dirty')
       setRoute(null)
       setRouteParts(null)
+      setPaddleRoute(null)
       setEnrichedGeometry(null)
       setRouteForKey(null)
       setDistanceMeters(null)
@@ -736,6 +721,15 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
     setRetryToken(value => value + 1)
   }, [interruptRouting])
 
+  // P2A-03/P2A-05/PAD-11: shaping points, a leg planned afresh, drawn legs handed back to the router.
+  const shaping = useRouteShaping({
+    commit: commitWaypoints, waypointsRef, retry,
+    mayEdit: useCallback(() => editPermissionRef.current && !saveInFlightRef.current, []),
+    isPaddle: useCallback(() => tourTypeRef.current === 'kayak', []),
+    forgetLeg: useCallback((from: TourPlannerWaypoint, to: TourPlannerWaypoint) =>
+      paddleRouteRepo.forget(tripId, from, to, { boat: paddleBoat ?? 'kayak', lakeStyle: paddleLakeStyle }), [paddleBoat, paddleLakeStyle, tripId]),
+  })
+
   const waypointKey = useMemo(() => tourWaypointKey(waypoints), [waypoints])
   const readOnlyGpxAnalysis = useMemo(
     () => analyzeRouteGeometry(readOnlyGpxTour?.routeGeometry),
@@ -764,10 +758,40 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
     const controller = new AbortController()
     abortRef.current?.abort()
     abortRef.current = controller
-    const timer = window.setTimeout(async () => {
+    const stale = () => controller.signal.aborted || generation !== generationRef.current
+    // Points the router set, changed by its own planning and not by the paddler: no step of the history.
+    const patch = (next: TourPlannerWaypoint[]) => {
+      waypointsRef.current = next
+      setWaypoints(next)
+    }
+
+    // PAD-11: a paddle tour is planned on the water by the server's router; its heights are no concern.
+    const routePaddle = async () => {
+      setStatus('routing')
+      const step = await planPaddleStep(waypoints, tripId, { boat: paddleBoat ?? 'kayak', lakeStyle: paddleLakeStyle }, controller.signal, randomId)
+      if (stale()) return
+      if ('points' in step) return patch(normalizePlannerWaypoints(step.points, true))
+      const planned = step.route
+      setRoute(planned.coordinates)
+      setRouteParts(planned.parts)
+      setPaddleRoute(planned)
+      setDistanceMeters(planned.distanceMeters)
+      setDurationSeconds(null)
+      setRouteForKey(waypointKey)
+      setEnrichedGeometry(planned.coordinates.map(([lat, lng]): [number, number, number] => [lat, lng, 0]))
+      if (planned.failures.length > 0) {
+        setStatus('routing-failed')
+        setError('paddle-route')
+        return
+      }
+      setStatus('ready')
+      setError(null)
+    }
+
+    const routeHike = async () => {
       setStatus('routing')
       const routed = await routeWalkingTour(waypoints, controller.signal, maxHikingDifficulty)
-      if (controller.signal.aborted || generation !== generationRef.current) return
+      if (stale()) return
       if (!routed) {
         setStatus('routing-failed')
         setError('routing')
@@ -776,6 +800,7 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
 
       setRoute(routed.coordinates)
       setRouteParts(routed.parts)
+      setPaddleRoute(null)
       setDistanceMeters(routed.distanceMeters)
       setDurationSeconds(routed.durationSeconds)
       setRouteForKey(waypointKey)
@@ -783,7 +808,7 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
       setStatus('enriching-elevation')
 
       const enriched = await enrichTourElevations(routed.coordinates, controller.signal)
-      if (controller.signal.aborted || generation !== generationRef.current) return
+      if (stale()) return
       if (!enriched) {
         setStatus('elevation-failed')
         setError('elevation')
@@ -797,24 +822,33 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
       }
       setStatus('ready')
       setError(null)
+    }
+
+    const timer = window.setTimeout(() => {
+      const run = isPaddle ? routePaddle() : routeHike()
+      run.catch(() => {
+        if (stale()) return
+        setStatus('routing-failed')
+        setError('routing')
+      })
     }, ROUTE_DEBOUNCE_MS)
 
     return () => {
       window.clearTimeout(timer)
       controller.abort()
     }
-  }, [interruptRouting, maxHikingDifficulty, retryToken, waypointKey, waypoints])
+  }, [interruptRouting, isPaddle, maxHikingDifficulty, paddleBoat, paddleLakeStyle, retryToken, tripId, waypointKey, waypoints])
 
   useEffect(() => {
     if (!hasUnsavedChanges) return
-    const draft: DraftPayload = { version: 8, name, description, website, plannedDurationMinutes, breakAdditionalMinutes, waypoints, maxHikingDifficulty, editingPlaceId,
+    const draft: DraftPayload = { version: 9, name, description, website, plannedDurationMinutes, breakAdditionalMinutes, waypoints, maxHikingDifficulty, editingPlaceId,
       derivedFromPlaceId, tourType,
-      paddle: { boatType: paddle.boatType, waterContext: paddle.waterContext, speedKmh: paddle.speedKmh, portageSpeedKmh: paddle.portageSpeedKmh },
+      paddle: { boatType: paddle.boatType, waterContext: paddle.waterContext, speedKmh: paddle.speedKmh, portageSpeedKmh: paddle.portageSpeedKmh, lakeStyle: paddle.lakeStyle },
     }
     localStorage.setItem(storageKey, JSON.stringify(draft))
   }, [breakAdditionalMinutes,
     derivedFromPlaceId, description, editingPlaceId, hasUnsavedChanges, maxHikingDifficulty, name, plannedDurationMinutes, storageKey, waypoints, website,
-    tourType, paddle.boatType, paddle.waterContext, paddle.speedKmh, paddle.portageSpeedKmh])
+    tourType, paddle.boatType, paddle.waterContext, paddle.speedKmh, paddle.portageSpeedKmh, paddle.lakeStyle])
 
   useEffect(() => {
     if (!hasUnsavedChanges) return
@@ -844,14 +878,7 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
       website: parsedWebsiteOrNull(website),
       ...typeFields,
       route_geometry: enrichedGeometry.map(point => [point[0], point[1], point[2]]),
-      waypoints: waypoints.map((point, sequence) => ({
-        lat: point.lat,
-        lng: point.lng,
-        role: point.role,
-        sequence,
-        ...(point.fixedLeg ? { fixed_leg: point.fixedLeg } : {}),
-        ...(point.lock ? { lock: point.lock } : {}),
-      })),
+      waypoints: savedWaypointsOf(waypoints),
       duration_seconds: savedDurationSeconds,
       planned_duration_minutes: plannedDurationMinutes,
       break_additional_minutes: breakAdditionalMinutes,
@@ -909,7 +936,8 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
     walkingDurationMinutes, plannedTotalMinutes, plannedTotalInvalid,
     waypoints, selectedWaypointId, setSelectedWaypointId,
     addWaypoint, appendFixedLeg, setWaypointPosition, removeWaypoint, moveWaypoint, reorderWaypoint,
-    reverse, returnToStart, isLoop: isClosedLoop(waypoints), toggleWaypointFreeLeg, editPaddlePoints, paddleEstimate,
+    reverse, returnToStart, isLoop: isClosedLoop(waypoints), toggleWaypointFreeLeg, editPaddlePoints, amendWaypoints, paddleEstimate,
+    ...shaping, paddleRoute, routeCurrent: routeForKey === waypointKey,
     undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0,
     status, error, retry, isSaving,
     route, routeParts, enrichedGeometry, routeAnalysis, distanceMeters, durationSeconds,

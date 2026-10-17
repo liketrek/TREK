@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Η εγγραφή στο αντίγραφο '{backend}' απέτυχε: {op} του {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Η εγγραφή στο αντίγραφο '{backend}' απέτυχε: {op} του {key} — {error}. {suppressed} επιπλέον αποτυχίες αποκρύφθηκαν από την τελευταία ειδοποίηση.",
+  'notif.paddle_region_requested.title': 'Αίτημα περιοχής κανό',
+  'notif.paddle_region_requested.text': '{actor} σχεδιάζει διαδρομή κανό στην περιοχή {region}',
   'notif.action.view_trip': 'Προβολή Ταξιδιού',
   'notif.action.view_collab': 'Προβολή Μηνυμάτων',
   'notif.action.view_packing': 'Προβολή Αποσκευών',

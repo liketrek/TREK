@@ -67,7 +67,9 @@ import type { PackingTemplateCategoriesTable } from './PackingTemplateCategories
 import type { PackingTemplateItemsTable } from './PackingTemplateItems.table';
 import type { PackingTemplatesTable } from './PackingTemplates.table';
 import type { PaddleFeaturesTable } from './PaddleFeatures.table';
+import type { PaddleRegionRequestsTable } from './PaddleRegionRequests.table';
 import type { PaddleRegionsTable } from './PaddleRegions.table';
+import type { PaddleWaterGraphsTable } from './PaddleWaterGraphs.table';
 import type { PasswordResetTokensTable } from './PasswordResetTokens.table';
 import type { PhotoProviderFieldsTable } from './PhotoProviderFields.table';
 import type { PhotoProvidersTable } from './PhotoProviders.table';
@@ -213,7 +215,9 @@ export interface DB {
   packing_template_items: PackingTemplateItemsTable;
   packing_templates: PackingTemplatesTable;
   paddle_features: PaddleFeaturesTable;
+  paddle_region_requests: PaddleRegionRequestsTable;
   paddle_regions: PaddleRegionsTable;
+  paddle_water_graphs: PaddleWaterGraphsTable;
   password_reset_tokens: PasswordResetTokensTable;
   photo_provider_fields: PhotoProviderFieldsTable;
   photo_providers: PhotoProvidersTable;

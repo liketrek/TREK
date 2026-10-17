@@ -124,15 +124,36 @@ describe('paddle region contracts (PAD-05A)', () => {
       id: 'oberpfalz',
       name: 'Oberpfalz',
       status: 'importing',
+      origin: 'admin',
       source_timestamp: null,
       imported_at: null,
       feature_count: 0,
       error: null,
       progress: { phase: 'download', fraction: 0.4 },
+      network: null,
     };
     expect(paddleRegionSchema.safeParse(region).success).toBe(true);
+    // PAD-11: the water network built from the read, counted, and the phase that builds it.
+    const network = {
+      water_km: 412.5,
+      lakes: 12,
+      portages: 3,
+      inferred_portages: 7,
+      gaps: 2,
+      locks: 1,
+      built_at: '2026-10-17T15:30:20Z',
+      bytes: 1024,
+    };
+    expect(
+      paddleRegionSchema.safeParse({ ...region, network, progress: { phase: 'build', fraction: 0.5 } }).success,
+    ).toBe(true);
+    expect(paddleRegionSchema.safeParse({ ...region, network: { ...network, lakes: -1 } }).success).toBe(false);
+    expect(paddleRegionSchema.safeParse({ ...region, network: undefined }).success).toBe(false);
     expect(paddleRegionSchema.safeParse({ ...region, progress: { phase: 'read', fraction: null } }).success).toBe(true);
     expect(paddleRegionSchema.safeParse({ ...region, progress: { phase: 'read', fraction: 2 } }).success).toBe(false);
+    // PAD-11C: who added it, an admin or TREK for a paddler.
+    expect(paddleRegionSchema.safeParse({ ...region, origin: 'auto' }).success).toBe(true);
+    expect(paddleRegionSchema.safeParse({ ...region, origin: 'paddler' }).success).toBe(false);
     expect(paddleRegionSchema.safeParse({ ...region, status: 'done' }).success).toBe(false);
   });
 

@@ -909,5 +909,44 @@ const admin: TranslationStrings = {
     'Δεδομένα © συντελεστές του OpenStreetMap (ODbL), τοπικά αποσπάσματα από το Geofabrik. Νέα ανάγνωση στις 3 κάθε μήνα.',
   'admin.paddleRegions.toast.added': 'Η περιοχή προστέθηκε. Το TREK τη διαβάζει στο παρασκήνιο.',
   'admin.paddleRegions.toast.removed': 'Η περιοχή αφαιρέθηκε',
+  'admin.paddleRegions.phase.build': 'Κατασκευή δικτύου νερού',
+  'admin.paddleRegions.network.km': '{km} km νερού',
+  'admin.paddleRegions.network.lakes': '{count} λίμνες',
+  'admin.paddleRegions.network.lakes.one': '{count} λίμνη',
+  'admin.paddleRegions.network.portages': '{count} χαρτογραφημένα σημεία μεταφοράς',
+  'admin.paddleRegions.network.portages.one': '{count} χαρτογραφημένο σημείο μεταφοράς',
+  'admin.paddleRegions.network.inferred': '{count} εικαζόμενες μεταφορές',
+  'admin.paddleRegions.network.inferred.one': '{count} εικαζόμενη μεταφορά',
+  'admin.paddleRegions.network.locks': '{count} υδατοφράκτες',
+  'admin.paddleRegions.network.locks.one': '{count} υδατοφράκτης',
+  'admin.paddleRegions.network.gaps': '{count} γεφυρωμένα κενά',
+  'admin.paddleRegions.network.gaps.one': '{count} γεφυρωμένο κενό',
+  'admin.paddleRegions.network.missing': 'Χωρίς δίκτυο νερού',
+  'admin.paddleRegions.network.missingHint':
+    'Διάβασε ξανά την περιοχή για να δημιουργηθεί το δίκτυο που ακολουθεί η διαδρομή κουπιού.',
+  'admin.paddleRegions.auto.title': 'Αυτόματη φόρτωση περιοχών',
+  'admin.paddleRegions.auto.mode.auto': 'Αυτόματα',
+  'admin.paddleRegions.auto.mode.ask': 'Κατόπιν αιτήματος',
+  'admin.paddleRegions.auto.mode.off': 'Ανενεργό',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'Όταν κάποιος σχεδιάζει διαδρομή κανό εκεί όπου δεν υπάρχουν ακόμη δεδομένα νερού, το TREK φορτώνει αμέσως τη μικρότερη κατάλληλη περιοχή, μέχρι το όριο μεγέθους και μόνο λίγες την ημέρα. Οι μεγαλύτερες περιμένουν εδώ ως αίτημα. Στη Geofabrik πηγαίνει μόνο το όνομα της περιοχής, ποτέ το σημείο.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Κάθε νέα περιοχή περιμένει εδώ μέχρι να την εγκρίνει ένας διαχειριστής. Όταν σχεδιάζει διαχειριστής, φορτώνεται αμέσως.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'Το TREK δεν φορτώνει τίποτα μόνο του και δεν ζητά τίποτα. Πρόσθεσε περιοχές εδώ χειροκίνητα.',
+  'admin.paddleRegions.auto.maxSize': 'Μεγαλύτερη περιοχή που φορτώνεται αυτόματα',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Οι μεγαλύτερες περιοχές περιμένουν εδώ ως αίτημα. Η ανάγνωση μιας περιοχής διαρκεί λίγα λεπτά και χρειάζεται μνήμη στο μεταξύ.',
+  'admin.paddleRegions.requests.title': 'Αιτήματα',
+  'admin.paddleRegions.requests.reason.ask': 'Κατόπιν αιτήματος',
+  'admin.paddleRegions.requests.reason.too_large': 'Πολύ μεγάλη',
+  'admin.paddleRegions.requests.reason.limit': 'Ημερήσιο όριο',
+  'admin.paddleRegions.requests.declined': 'Απορρίφθηκε',
+  'admin.paddleRegions.requests.by': 'από {user}',
+  'admin.paddleRegions.requests.approve': 'Φόρτωση',
+  'admin.paddleRegions.requests.decline': 'Απόρριψη',
+  'admin.paddleRegions.origin.auto': 'Αυτόματα',
+  'admin.paddleRegions.origin.autoHint':
+    'Το TREK φόρτωσε μόνο του αυτή την περιοχή για μια διαδρομή κανό που σχεδιάζεται εκεί.',
 };
 export default admin;

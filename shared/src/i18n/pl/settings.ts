@@ -105,6 +105,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Powiadomienia Webhook',
   'settings.notifyVersionAvailable': 'Nowa wersja dostępna',
   'settings.notifyReplicaFailure': 'Awaria repliki magazynu',
+  'settings.notifyPaddleRegionRequested': 'Prośba o region wodny',
   'settings.on': 'Włączone',
   'settings.off': 'Wyłączone',
   'settings.mcp.title': 'Konfiguracja MCP',

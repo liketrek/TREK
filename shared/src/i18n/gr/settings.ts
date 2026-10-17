@@ -114,6 +114,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Ειδοποιήσεις Webhook',
   'settings.notifyVersionAvailable': 'Διαθέσιμη νέα έκδοση',
   'settings.notifyReplicaFailure': 'Αποτυχία αντιγράφου αποθήκευσης',
+  'settings.notifyPaddleRegionRequested': 'Αίτημα περιοχής κανό',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': 'Εντός εφαρμογής',

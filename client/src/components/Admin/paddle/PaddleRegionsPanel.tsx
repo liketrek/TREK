@@ -15,6 +15,7 @@ import { EditorField, INPUT } from '../../shared/dialogParts';
 import { fs } from '../../shared/DialogShell';
 import ErrorBoundary from '../../shared/ErrorBoundary';
 import { Tooltip } from '../../shared/Tooltip';
+import { AutoLoadSettings, AutoOriginPill, RequestList } from './PaddleAutoLoadParts';
 import { progressPercent, regionStatusTone } from './paddleRegionsModel';
 import { usePaddleRegionsAdmin } from './usePaddleRegionsAdmin';
 
@@ -22,8 +23,10 @@ type Admin = ReturnType<typeof usePaddleRegionsAdmin>;
 
 /**
  * PAD-05A in the admin area: the regions TREK reads paddle obstacles for,
- * picked from Geofabrik's list. Both the desktop and the phone admin show
- * this one card under the addons, while the Tours addon is on.
+ * picked from Geofabrik's list, and (PAD-11C) how TREK loads the region of a
+ * place a paddler plans in by itself, with the regions that wait for an admin.
+ * Both the desktop and the phone admin show this one card under the addons,
+ * while the Tours addon is on.
  */
 export default function PaddleRegionsPanel() {
   return (
@@ -67,6 +70,8 @@ function Panel() {
         </div>
       )}
       <fieldset disabled={admin.offline} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
+        <AutoLoadSettings admin={admin} />
+        <RequestList admin={admin} />
         <CatalogSearch admin={admin} />
         <RegionList admin={admin} />
       </fieldset>
@@ -216,6 +221,41 @@ function RegionStatus({ region }: { region: PaddleRegion }) {
   );
 }
 
+/**
+ * PAD-11: the water network the router follows in a region, as one figure
+ * with the rest in its tooltip. A region read before routing existed says it
+ * needs reading again; a network is never claimed where none was built.
+ */
+function RegionNetwork({ region }: { region: PaddleRegion }) {
+  const { t, language } = useTranslation();
+  const { network } = region;
+  if (!network) {
+    if (!region.imported_at || region.status === 'importing') return null;
+    return (
+      <Tooltip label={t('admin.paddleRegions.network.missingHint')}>
+        <span className="inline-flex">
+          <StatusPill tone="warning">{t('admin.paddleRegions.network.missing')}</StatusPill>
+        </span>
+      </Tooltip>
+    );
+  }
+  const km = new Intl.NumberFormat(language, { maximumFractionDigits: 0 }).format(network.water_km);
+  const details = [
+    t('admin.paddleRegions.network.lakes', { count: network.lakes }),
+    t('admin.paddleRegions.network.portages', { count: network.portages }),
+    t('admin.paddleRegions.network.inferred', { count: network.inferred_portages }),
+    t('admin.paddleRegions.network.locks', { count: network.locks }),
+    t('admin.paddleRegions.network.gaps', { count: network.gaps }),
+  ].join(', ');
+  return (
+    <Tooltip label={details}>
+      <span className="inline-flex" data-testid="paddle-region-network">
+        <StatusPill>{t('admin.paddleRegions.network.km', { km })}</StatusPill>
+      </span>
+    </Tooltip>
+  );
+}
+
 function RegionRow({ region, admin }: { region: PaddleRegion; admin: Admin }) {
   const { t, language } = useTranslation();
   const busy = admin.busyId === region.id;
@@ -239,10 +279,12 @@ function RegionRow({ region, admin }: { region: PaddleRegion; admin: Admin }) {
         </span>
         <span className="flex flex-wrap items-center gap-1.5">
           <RegionStatus region={region} />
+          {region.origin === 'auto' && <AutoOriginPill />}
           {region.imported_at && (
             <StatusPill>{t('admin.paddleRegions.objects', { count: region.feature_count })}</StatusPill>
           )}
           {region.imported_at && date && <StatusPill>{t('admin.paddleRegions.asOf', { date })}</StatusPill>}
+          <RegionNetwork region={region} />
         </span>
         {region.status === 'failed' && region.error && (
           <p className="m-0 line-clamp-2 break-words text-danger" style={fs(11.5)} title={region.error}>

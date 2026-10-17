@@ -901,5 +901,43 @@ const admin: TranslationStrings = {
     'Datos © colaboradores de OpenStreetMap (ODbL), extractos regionales de Geofabrik. Se vuelven a leer el día 3 de cada mes.',
   'admin.paddleRegions.toast.added': 'Región añadida. TREK la lee en segundo plano.',
   'admin.paddleRegions.toast.removed': 'Región eliminada',
+  'admin.paddleRegions.phase.build': 'Construyendo la red de agua',
+  'admin.paddleRegions.network.km': '{km} km de agua',
+  'admin.paddleRegions.network.lakes': '{count} lagos',
+  'admin.paddleRegions.network.lakes.one': '{count} lago',
+  'admin.paddleRegions.network.portages': '{count} porteos cartografiados',
+  'admin.paddleRegions.network.portages.one': '{count} porteo cartografiado',
+  'admin.paddleRegions.network.inferred': '{count} porteos supuestos',
+  'admin.paddleRegions.network.inferred.one': '{count} porteo supuesto',
+  'admin.paddleRegions.network.locks': '{count} esclusas',
+  'admin.paddleRegions.network.locks.one': '{count} esclusa',
+  'admin.paddleRegions.network.gaps': '{count} huecos salvados',
+  'admin.paddleRegions.network.gaps.one': '{count} hueco salvado',
+  'admin.paddleRegions.network.missing': 'Sin red de agua',
+  'admin.paddleRegions.network.missingHint':
+    'Vuelve a leer la región para construir la red que sigue la ruta en piragua.',
+  'admin.paddleRegions.auto.title': 'Cargar regiones automáticamente',
+  'admin.paddleRegions.auto.mode.auto': 'Automático',
+  'admin.paddleRegions.auto.mode.ask': 'Bajo petición',
+  'admin.paddleRegions.auto.mode.off': 'Desactivado',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'Cuando alguien planifica una ruta en kayak donde aún no hay datos de agua, TREK carga al momento la región más pequeña que encaja, hasta el límite de tamaño y solo unas pocas al día. Las más grandes esperan aquí como petición. A Geofabrik solo le llega el nombre de la región, nunca el lugar.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Cada región nueva espera aquí hasta que un administrador la deje pasar. Si planifica un administrador, se carga al momento.',
+  'admin.paddleRegions.auto.modeHint.off': 'TREK no carga nada por su cuenta ni pide nada. Añade regiones aquí a mano.',
+  'admin.paddleRegions.auto.maxSize': 'Región más grande que se carga automáticamente',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Las regiones más grandes esperan aquí como petición. Leer una región lleva unos minutos y ocupa memoria mientras tanto.',
+  'admin.paddleRegions.requests.title': 'Pedidas',
+  'admin.paddleRegions.requests.reason.ask': 'Bajo petición',
+  'admin.paddleRegions.requests.reason.too_large': 'Demasiado grande',
+  'admin.paddleRegions.requests.reason.limit': 'Límite diario',
+  'admin.paddleRegions.requests.declined': 'Rechazada',
+  'admin.paddleRegions.requests.by': 'de {user}',
+  'admin.paddleRegions.requests.approve': 'Cargar',
+  'admin.paddleRegions.requests.decline': 'Rechazar',
+  'admin.paddleRegions.origin.auto': 'Automático',
+  'admin.paddleRegions.origin.autoHint':
+    'TREK cargó esta región por su cuenta para una ruta en kayak planificada allí.',
 };
 export default admin;

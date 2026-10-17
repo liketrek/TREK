@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "'{backend}' replikasına yazmaq mümkün olmadı: {key} üçün {op} — {error}",
   'notif.replica_failure.textSuppressed':
     "'{backend}' replikasına yazmaq mümkün olmadı: {key} üçün {op} — {error}. Son bildirişdən bəri daha {suppressed} xəta üçün bildiriş göstərilmədi.",
+  'notif.paddle_region_requested.title': 'Avarçəkmə regionu sorğulanıb',
+  'notif.paddle_region_requested.text': '{actor} {region} ərazisində avarçəkmə turu planlaşdırır',
   'notif.action.view_trip': 'Səyahətə bax',
   'notif.action.view_collab': 'Mesajlara bax',
   'notif.action.view_packing': 'Çamadan siyahısına bax',

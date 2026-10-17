@@ -109,7 +109,7 @@ async function build() {
     .overrideProvider(GeofabrikClient)
     .useValue(geofabrik)
     .overrideProvider(DataPathsService)
-    .useValue({ tmpDir: dir })
+    .useValue({ tmpDir: dir, dataDir: dir })
     .compile();
   const nest = moduleRef.createNestApplication();
   nest.use(cookieParser());

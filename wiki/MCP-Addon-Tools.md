@@ -233,13 +233,14 @@ Each tool asks for the scope of what it writes, so the scopes differ per tool. T
 
 ### Tours _(Tours addon required)_
 
-Read only: the saved tours of a trip, as the Tours list and the tour detail show them. Tours someone is still drawing in the planner are not saved yet and do not show here.
+Read only: the saved tours of a trip, as the Tours list and the tour detail show them, and paddle legs planned on the water. Tours someone is still drawing in the planner are not saved yet and do not show here.
 
 | Tool | Description | Scope |
 |---|---|---|
 | `list_tours` | The saved tours of a trip: name, type (`hike`, or `kayak` for a paddle tour), origin (`trek` for planned in TREK, `gpx` for a GPX import, `wanderer` for a wanderer snapshot), distance, ascent and descent (unknown for a paddle tour drawn in the planner), the stored routing limit of a hike on the SAC scale, the boat, water and chosen speed of a paddle tour, the check bench of a paddle tour (`paddle_check`: how far the OpenStreetMap obstacle data covers its route and how many obstacles are open, to check again or decided; a planning status, never a safety or legal clearance), and the days of the trip each tour is on | `trips:read` |
-| `get_tour_plan` | One tour: its facts, its ordered control points, its provenance (where it came from, when, and whether it was changed in TREK since) and its days. A control point can carry a fixed leg to the next one: a via ferrata (`ferrata`) or a stretch drawn by hand (`free`), which no router planned or checked. A paddle tour also carries its obstacle checklist (`obstacle_check`): the obstacles of the OpenStreetMap data along its route, what the travellers decided about each, and their own portages and locks. The full track geometry is not included | `trips:read` |
+| `get_tour_plan` | One tour: its facts, its ordered control points, its provenance (where it came from, when, and whether it was changed in TREK since) and its days. A control point can carry a fixed leg to the next one: a via ferrata (`ferrata`) or a stretch drawn by hand (`free`), which no router planned or checked. A shaping point (`shaping: true`) only steers the route and is no stop. A paddle tour also carries its obstacle checklist (`obstacle_check`): the obstacles of the OpenStreetMap data along its route, what the travellers decided about each, and their own portages and locks. The full track geometry is not included | `trips:read` |
 | `find_tours_for_day` | The tours put on one day of a trip, with the same facts as `list_tours` | `trips:read` |
+| `plan_paddle_route` | Plans the legs of a paddle tour on the water network TREK builds from the paddle regions an admin added: each leg (`from`, `to`) along rivers and canals and across lakes, carried round weirs, dams and waterfalls, through or round locks (`lock_policy`), with `boat` and `lake_style` (`direct` or `shore`). Answers per leg its length, how far its ends were moved onto the water and its stretches (water, lake, whitewater, boat pass, portage with its source, lock, gap); a leg that cannot be planned says why (`not_on_water`, `no_region`, `cross_region`, `no_water_path`, `busy`, `timeout`). Nothing is saved; a planning aid, never a safety or legal clearance | `trips:read` |
 
 ### Road trip _(Road trip addon required)_
 

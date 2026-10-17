@@ -67,12 +67,12 @@ export function useTripPlannerPage() {
     tourConversion.line, trackParts,
   ])
   const editingRoute = tourPlanner.mode.type === 'new-draft' || tourPlanner.mode.type === 'edit-saved'
-  // A hand-drawn stretch of a hike is dotted, a paddle tour's portages dotted and brown.
+  // What no router planned is dotted; a paddle tour's portages brown, whitewater amber, gaps red.
   const paddlePaint = usePaddlePaint()
   const partStyle = tourRouteStyle(
     !wandererBrowser.open && editingRoute ? tourPlanner.routeParts : !tourConversion.line ? trackParts : null,
     tourPlanner.isPaddle || !!trackParts,
-    { line: paddlePaint.portage, casing: paddlePaint.disc },
+    { portage: paddlePaint.portage, rapids: paddlePaint.rapids, gap: paddlePaint.gap, casing: paddlePaint.disc },
   )
   const routeWalking = partStyle.walking ?? (route && route.length === 2 && tourConversion.line ? [true, false] : null)
 
