@@ -1,7 +1,8 @@
 import { X, Plus } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
-import { bagFillPct, bagTotalWeight, countsTowardsMyLoad, unassignedTotalWeight } from './packingListPanel.helpers'
+import { bagFillPct, bagLoadSummary, packedWeight, perPersonLoads } from './packingListPanel.helpers'
 import { BagCard } from './PackingListPanelBagCard'
+import { PackingWeightSummary } from './PackingWeightSummary'
 
 export function BagModal(S: PackingState) {
   const {
@@ -9,14 +10,11 @@ export function BagModal(S: PackingState) {
     showAddBag, setShowAddBag, newBagName, setNewBagName, handleCreateBag, unassignedWeightGrams, serverWeightsFresh,
   } = S
   // The ITEM LISTS still describe what you are carrying — an item someone shared
-  // with you stays in your list, but they are the one bringing it (#1767).
-  const myItems = items.filter(i => countsTowardsMyLoad(i, currentUserId))
-  // The WEIGHTS no longer do. A bag's load is the bag's, whoever packed it and
+  // with you stays in your list, but they are the one bringing it (#1767). The
+  // WEIGHTS no longer do. A bag's load is the bag's, whoever packed it and
   // whether or not you may see the items, so it comes from the server (#2191).
-  const bagWeightOf = (bag: typeof bags[number]) =>
-    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id), serverWeightsFresh)
-  // Reference for bags without a limit of their own — computed once instead of per bag.
-  const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1)
+  const { myItems, bagItemsOf, bagWeightOf, heaviestBagWeight, unassigned, unassignedWeight, totalWeight } =
+    bagLoadSummary(bags, items, currentUserId, unassignedWeightGrams, serverWeightsFresh)
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 140, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflowY: 'auto' }}
       role="button" tabIndex={0} aria-label={t('common.close')}
@@ -33,18 +31,16 @@ export function BagModal(S: PackingState) {
         </div>
 
         {bags.map(bag => {
-          const bagItems = myItems.filter(i => i.bag_id === bag.id)
-          const totalWeight = bagWeightOf(bag)
-          const pct = bagFillPct(totalWeight, bag.weight_limit_grams, heaviestBagWeight)
+          const bagItems = bagItemsOf(bag)
+          const bagWeight = bagWeightOf(bag)
+          const pct = bagFillPct(bagWeight, bag.weight_limit_grams, heaviestBagWeight)
           return (
-            <BagCard key={bag.id} bag={bag} bagItems={bagItems} totalWeight={totalWeight} pct={pct} tripId={tripId} tripMembers={tripMembers} canEdit={canEdit} onDelete={() => handleDeleteBag(bag.id)} onUpdate={handleUpdateBag} onSetMembers={handleSetBagMembers} t={t} />
+            <BagCard key={bag.id} bag={bag} bagItems={bagItems} totalWeight={bagWeight} pct={pct} tripId={tripId} tripMembers={tripMembers} canEdit={canEdit} onDelete={() => handleDeleteBag(bag.id)} onUpdate={handleUpdateBag} onSetMembers={handleSetBagMembers} t={t} />
           )
         })}
 
         {/* Unassigned */}
         {(() => {
-          const unassigned = myItems.filter(i => !i.bag_id)
-          const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned, serverWeightsFresh)
           // Shown whenever there is weight to account for, even with no visible
           // items: the grand total counts it, and a total nothing adds up to is
           // the confusion this issue was about (#2191).
@@ -58,30 +54,26 @@ export function BagModal(S: PackingState) {
                   {unassignedWeight >= 1000 ? `${(unassignedWeight / 1000).toFixed(1)} kg` : `${unassignedWeight} g`}
                 </span>
               </div>
-              <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{unassigned.length} {t('admin.packingTemplates.items')}</div>
+              <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)' }}>{unassigned.length} {t('admin.packingTemplates.items', { count: unassigned.length })}</div>
             </div>
           )
         })()}
 
-        {/* Total */}
-        <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 12, marginTop: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)' }}>
-            <span>{t('packing.totalWeight')}</span>
-            <span>{(() => {
-              // Same rule as the rows above it: a grand total mixing true bag
-              // weights with a per-viewer remainder would be worse than either.
-              const w = bags.reduce((s, b) => s + bagWeightOf(b), 0)
-                + unassignedTotalWeight(unassignedWeightGrams, myItems.filter(i => !i.bag_id), serverWeightsFresh)
-              return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g`
-            })()}</span>
-          </div>
+        {/* Total, packed share and who carries what (#1131) */}
+        <div style={{ marginTop: 8, border: '1px solid var(--border-secondary)', borderRadius: 16, overflow: 'hidden' }}>
+          <PackingWeightSummary t={t} topRule={false}
+            // Same rule as the rows above it: a grand total mixing true bag
+            // weights with a per-viewer remainder would be worse than either.
+            total={totalWeight}
+            packed={packedWeight(myItems)}
+            people={perPersonLoads(bags, bagWeightOf)} />
         </div>
 
         {/* Add bag */}
         {canEdit && (showAddBag ? (
           <div style={{ display: 'flex', gap: 6, marginTop: 14 }}>
             <input autoFocus value={newBagName} onChange={e => setNewBagName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleCreateBag(); if (e.key === 'Escape') { setShowAddBag(false); setNewBagName('') } }}
+              onKeyDown={e => { if (e.key === 'Enter') void handleCreateBag(); if (e.key === 'Escape') { setShowAddBag(false); setNewBagName('') } }}
               placeholder={t('packing.bagName')}
               style={{ flex: 1, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-primary)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit', outline: 'none' }} />
             <button type="button" onClick={handleCreateBag} disabled={!newBagName.trim()}

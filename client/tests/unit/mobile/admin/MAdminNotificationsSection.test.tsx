@@ -1,4 +1,4 @@
-// FE-MOB-ANOTIF-001 to FE-MOB-ANOTIF-031
+// FE-MOB-ANOTIF-001 to FE-MOB-ANOTIF-035
 import { useState } from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -557,5 +557,39 @@ describe('MAdminNotificationsSection', () => {
     // password, which then failed to authenticate with nothing in the log.
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0].smtp_pass).toBe('hunter2');
+  });
+
+  it('FE-MOB-ANOTIF-033: Web Push has its own card between Ntfy and In-App', () => {
+    render(<Harness initial={{ notification_channels: 'email' }} />);
+
+    const switches = screen.getAllByRole('switch').map((el) => el.getAttribute('aria-label'));
+    expect(switches.indexOf('Web Push')).toBe(switches.indexOf('Ntfy') + 1);
+    expect(switches.indexOf('In-App')).toBe(switches.indexOf('Web Push') + 1);
+    expect(screen.getByText(/receive notifications on their phones/)).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Web Push' })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('FE-MOB-ANOTIF-034: switching Web Push on saves the list and keeps unknown ids', async () => {
+    const bodies = captureAppSettings();
+    const user = userEvent.setup();
+    render(<Harness initial={{ notification_channels: 'webhook,pushover' }} />);
+
+    await user.click(screen.getByRole('switch', { name: 'Web Push' }));
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]).toEqual({ notification_channels: 'webhook,push,pushover' });
+    expect(screen.getByRole('switch', { name: 'Web Push' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('FE-MOB-ANOTIF-035: a failed Web Push save rolls the switch back', async () => {
+    failAppSettings();
+    const toast = buildToast();
+    const user = userEvent.setup();
+    render(<Harness initial={{ notification_channels: 'push' }} toast={toast} />);
+
+    await user.click(screen.getByRole('switch', { name: 'Web Push' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error'));
+    expect(screen.getByRole('switch', { name: 'Web Push' })).toHaveAttribute('aria-checked', 'true');
   });
 });

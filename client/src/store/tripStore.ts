@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import type { StoreApi } from 'zustand'
-import { tripsApi, tagsApi, categoriesApi } from '../api/client'
+import { tagsApi, categoriesApi } from '../api/client'
 import { offlineDb } from '../db/offlineDb'
-import { tripRepo } from '../repo/tripRepo'
+import { tripRepo, TripNeedsConnectionError } from '../repo/tripRepo'
 import { dayRepo } from '../repo/dayRepo'
 import { placeRepo } from '../repo/placeRepo'
 import { packingRepo } from '../repo/packingRepo'
@@ -36,6 +36,16 @@ import type { TodoSlice } from './slices/todoSlice'
 import type { BudgetSlice } from './slices/budgetSlice'
 import type { ReservationsSlice } from './slices/reservationsSlice'
 import type { FilesSlice } from './slices/filesSlice'
+import type { PlacesRatingFloor } from '../utils/placesFilter'
+
+/** The part of the world the trip's plan map shows, as its last move left it. */
+export interface PlanMapViewport {
+  tripId: number
+  south: number
+  west: number
+  north: number
+  east: number
+}
 
 export interface TripStoreState
   extends PlacesSlice,
@@ -65,12 +75,22 @@ export interface TripStoreState
   // unmounts and remounts (#1541).
   placesFilter: string
   placesCategoryFilter: Set<string>
+  // Minimum average stars. Shared for the same reason: the map markers and the
+  // phone's list follow the floor the desktop list sets, and back (#1435).
+  placesRatingFilter: PlacesRatingFloor
+  // Where the plan map is looking, so the place search can look there too
+  // (#2620). Null while no plan map is on screen.
+  planMapViewport: PlanMapViewport | null
   isLoading: boolean
   error: string | null
 
   setSelectedDay: (dayId: number | null) => void
   setPlacesFilter: (filter: string) => void
   setPlacesCategoryFilter: (categoryIds: Set<string>) => void
+  setPlacesRatingFilter: (floor: PlacesRatingFloor) => void
+  setPlanMapViewport: (viewport: PlanMapViewport | null) => void
+  /** Lifts the pool, category and rating filters at once. */
+  resetPlacesFilters: () => void
   handleRemoteEvent: (event: WebSocketEvent) => void
   resetTrip: () => void
   loadTrip: (tripId: number | string) => Promise<void>
@@ -97,12 +117,17 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   selectedDayId: null,
   placesFilter: 'all',
   placesCategoryFilter: new Set<string>(),
+  placesRatingFilter: 'all',
+  planMapViewport: null,
   isLoading: false,
   error: null,
 
   setSelectedDay: (dayId: number | null) => set({ selectedDayId: dayId }),
   setPlacesFilter: (filter: string) => set({ placesFilter: filter }),
   setPlacesCategoryFilter: (categoryIds: Set<string>) => set({ placesCategoryFilter: categoryIds }),
+  setPlacesRatingFilter: (floor: PlacesRatingFloor) => set({ placesRatingFilter: floor }),
+  setPlanMapViewport: (viewport: PlanMapViewport | null) => set({ planMapViewport: viewport }),
+  resetPlacesFilters: () => set({ placesFilter: 'all', placesCategoryFilter: new Set<string>(), placesRatingFilter: 'all' }),
 
   handleRemoteEvent: (event: WebSocketEvent) => handleRemoteEvent(set, get, event),
 
@@ -123,6 +148,8 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     selectedDayId: null,
     placesFilter: 'all',
     placesCategoryFilter: new Set<string>(),
+    placesRatingFilter: 'all',
+    planMapViewport: null,
     error: null,
   }),
 
@@ -216,7 +243,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   updateTrip: async (tripId: number | string, data: Partial<Trip> & { date_shift_mode?: 'keep_bookings' | 'shift_all' }) => {
     try {
       const before = get().trip
-      const result = await tripsApi.update(tripId, data)
+      const result = await tripRepo.update(tripId, data)
       set({ trip: result.trip })
       // New dates rebuild the day rows, and a stay on a day that went is gone
       // with it. Stays live in the planner, not here, so every caller of this
@@ -239,6 +266,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
       await get().loadReservations(tripId)
       return result.trip
     } catch (err: unknown) {
+      if (err instanceof TripNeedsConnectionError) throw err
       throw new Error(getApiErrorMessage(err, 'Error updating trip'))
     }
   },

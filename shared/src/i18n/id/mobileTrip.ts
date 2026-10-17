@@ -7,6 +7,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addToDayQuestion': 'Tambahkan ke hari?',
   'mobileTrip.addTransportShort': 'Transportasi',
   'mobileTrip.allDays': 'Semua Hari',
+  'mobileTrip.today': 'Hari ini',
+  'mobileTrip.jumpToToday': 'Lompat ke hari ini',
   'mobileTrip.assignedDays': 'Hari yang ditetapkan',
   'mobileTrip.assignmentNotes': 'Catatan khusus hari',
   'mobileTrip.bookingsEmpty': 'Belum ada reservasi',
@@ -35,6 +37,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.onMap': 'Di peta',
   'mobileTrip.profileDriving': 'Berkendara',
   'mobileTrip.profileWalking': 'Jalan kaki',
+  'mobileTrip.profileCycling': 'Bersepeda',
   'mobileTrip.renameDay': 'Ubah nama hari',
   'mobileTrip.resBadge': 'Reservasi',
   'mobileTrip.showOnMap': 'Tampilkan di peta',
@@ -67,10 +70,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtFromStart': 'Dari awal etape',
   'mobileTrip.rtNoneAhead': 'Tidak ada apa-apa di jalan di depan. Coba seluruh etape.',
   'mobileTrip.rtNoneOnStage': 'Tidak ada yang seperti itu di sepanjang etape ini.',
-  'mobileTrip.rtTruncated.one':
-    '1 ruas punya lebih banyak daripada yang muat dalam satu jawaban. Pilih lebih sedikit jenis untuk melihat sisanya.',
   'mobileTrip.rtTruncated.other':
-    '{count} ruas punya lebih banyak daripada yang muat dalam satu jawaban. Pilih lebih sedikit jenis untuk melihat sisanya.',
+    '{count} ruas punya lebih banyak hasil daripada yang muat dalam satu jawaban. Pilih lebih sedikit jenis untuk melihat sisanya.',
   'mobileTrip.rtNoDay': 'Belum ada hari yang dipilih',
   'mobileTrip.rtNoDayHint': 'Peta menampilkan seluruh perjalanan. Ketuk hari di atas untuk melihat rutenya.',
 };

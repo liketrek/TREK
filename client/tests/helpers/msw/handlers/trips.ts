@@ -1,52 +1,86 @@
+import {
+  daySchema,
+  tripCopyRequestSchema,
+  tripCreateRequestSchema,
+  tripMemberSchema,
+  tripSchema,
+  tripUpdateRequestSchema,
+} from '@trek/shared';
 import { http, HttpResponse } from 'msw';
-import { buildTrip, buildDay, buildUser, buildPlace, buildPackingItem, buildTodoItem, buildBudgetItem, buildReservation, buildTripFile } from '../../factories';
+import { z } from 'zod';
+import {
+  buildBudgetItem,
+  buildDay,
+  buildPackingItem,
+  buildPlace,
+  buildReservation,
+  buildTodoItem,
+  buildTrip,
+  buildTripFile,
+  buildUser,
+} from '../../factories';
+import { contractHandler } from '../contract';
+
+const tripResponse = z.object({ trip: tripSchema });
 
 export const tripsHandlers = [
   // List all trips (active or archived)
-  http.get('/api/trips', ({ request }) => {
+  contractHandler('get', '/api/trips', { response: z.object({ trips: z.array(tripSchema) }) }, ({ request }) => {
     const url = new URL(request.url);
     const archived = url.searchParams.get('archived');
     if (archived) {
-      return HttpResponse.json({ trips: [] });
+      return { trips: [] };
     }
     const trip1 = buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' });
     const trip2 = buildTrip({ title: 'Tokyo Trip', start_date: '2026-09-01', end_date: '2026-09-15' });
-    return HttpResponse.json({ trips: [trip1, trip2] });
+    return { trips: [trip1, trip2] };
   }),
 
-  http.get('/api/trips/:id', ({ params }) => {
-    const trip = buildTrip({ id: Number(params.id) });
-    return HttpResponse.json({ trip });
-  }),
+  contractHandler('get', '/api/trips/:id', { response: tripResponse }, ({ params }) => ({
+    trip: buildTrip({ id: Number(params.id) }),
+  })),
 
-  http.get('/api/trips/:id/days', ({ params }) => {
+  contractHandler('get', '/api/trips/:id/days', { response: z.object({ days: z.array(daySchema) }) }, ({ params }) => {
     const tripId = Number(params.id);
     const day1 = buildDay({ trip_id: tripId, assignments: [], notes_items: [] });
     const day2 = buildDay({ trip_id: tripId, assignments: [], notes_items: [] });
-    return HttpResponse.json({ days: [day1, day2] });
+    return { days: [day1, day2] };
   }),
 
-  http.put('/api/trips/:id', async ({ params, request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    const trip = buildTrip({ id: Number(params.id), ...body });
-    return HttpResponse.json({ trip });
-  }),
+  // The server stores is_archived as 0/1 and answers the stored row, whichever
+  // form the request sent; date_shift_mode steers the update and is not a column.
+  contractHandler(
+    'put',
+    '/api/trips/:id',
+    { request: tripUpdateRequestSchema, response: tripResponse },
+    ({ params, body }) => {
+      const { is_archived, date_shift_mode: _mode, ...fields } = body;
+      return {
+        trip: buildTrip({
+          id: Number(params.id),
+          ...fields,
+          ...(is_archived === undefined ? {} : { is_archived: Number(is_archived) }),
+        }),
+      };
+    }
+  ),
 
-  http.post('/api/trips', async ({ request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    const trip = buildTrip({ ...body });
-    return HttpResponse.json({ trip });
-  }),
+  contractHandler('post', '/api/trips', { request: tripCreateRequestSchema, response: tripResponse }, ({ body }) => ({
+    trip: buildTrip({ ...body }),
+  })),
 
-  http.get('/api/trips/:id/members', ({ params }) => {
-    const owner = buildUser();
-    return HttpResponse.json({ owner, members: [] });
-  }),
+  contractHandler(
+    'get',
+    '/api/trips/:id/members',
+    { response: z.object({ owner: tripMemberSchema, members: z.array(tripMemberSchema) }) },
+    () => ({ owner: buildUser(), members: [] })
+  ),
 
   http.get('/api/trips/:id/accommodations', () => {
     return HttpResponse.json({ accommodations: [] });
   }),
 
+  // The offline bundle has no response schema in @trek/shared yet.
   http.get('/api/trips/:id/bundle', ({ params }) => {
     const tripId = Number(params.id);
     const trip = buildTrip({ id: tripId });
@@ -63,13 +97,14 @@ export const tripsHandlers = [
     });
   }),
 
-  http.delete('/api/trips/:id', () => {
-    return HttpResponse.json({ success: true });
-  }),
+  contractHandler('delete', '/api/trips/:id', {}, () => HttpResponse.json({ success: true })),
 
-  http.post('/api/trips/:id/copy', async ({ params, request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    const trip = buildTrip({ id: Number(params.id) + 1000, ...body });
-    return HttpResponse.json({ trip });
-  }),
+  contractHandler(
+    'post',
+    '/api/trips/:id/copy',
+    { request: tripCopyRequestSchema, response: tripResponse },
+    ({ params, body }) => ({
+      trip: buildTrip({ id: Number(params.id) + 1000, ...body }),
+    })
+  ),
 ];

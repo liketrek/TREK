@@ -1,6 +1,12 @@
-import { createHash } from 'crypto';
+import type {
+  DawarichSlimPoint,
+  DawarichTrackFeature,
+  DawarichVisitRaw,
+  DawarichVisitedCountry,
+} from './dawarich.client';
 import type { DawarichTrackDay, DawarichTrackSegment } from '@trek/shared';
-import type { DawarichSlimPoint, DawarichTrackFeature, DawarichVisitRaw, DawarichVisitedCountry } from './dawarich.client';
+
+import { createHash } from 'crypto';
 
 /**
  * Pure helpers for the Dawarich integration — no database, no HTTP, no
@@ -80,9 +86,7 @@ export function syncWindow(
   const from = new Date(start - lookbackDays * 86_400_000);
 
   const end = endDate ? Date.parse(`${endDate}T23:59:59Z`) : NaN;
-  const to = Number.isFinite(end)
-    ? new Date(Math.min(end + lookaheadDays * 86_400_000, now.getTime()))
-    : now;
+  const to = Number.isFinite(end) ? new Date(Math.min(end + lookaheadDays * 86_400_000, now.getTime())) : now;
 
   return to.getTime() > from.getTime() ? { from, to } : null;
 }
@@ -193,8 +197,7 @@ export function normalizeVisit(visit: DawarichVisitRaw): {
     status: visit.status === 'confirmed' ? 'confirmed' : 'suggested',
     confidence: toNumber(visit.confidence),
     confidenceBand: typeof visit.confidence_band === 'string' ? visit.confidence_band : null,
-    countryCodeFromSource:
-      typeof rawCode === 'string' && rawCode.length === 2 ? rawCode.toUpperCase() : null,
+    countryCodeFromSource: typeof rawCode === 'string' && rawCode.length === 2 ? rawCode.toUpperCase() : null,
   };
 }
 
@@ -248,11 +251,7 @@ export function simplify(points: Array<[number, number]>, epsilon: number): Arra
 }
 
 /** Perpendicular distance in degrees, longitude scaled so the metric is not latitude-skewed. */
-function perpendicularDistance(
-  point: [number, number],
-  start: [number, number],
-  end: [number, number],
-): number {
+function perpendicularDistance(point: [number, number], start: [number, number], end: [number, number]): number {
   const scale = Math.cos((point[0] * Math.PI) / 180) || 1;
   const px = point[1] * scale;
   const py = point[0];
@@ -353,7 +352,10 @@ export function bucketPointsByDay(
     const stitched = previous?.length ? [previous[previous.length - 1]!, ...own] : own;
 
     const line = capPoints(
-      simplify(stitched.map((p): [number, number] => [p.lat, p.lng]), epsilon),
+      simplify(
+        stitched.map((p): [number, number] => [p.lat, p.lng]),
+        epsilon,
+      ),
       maxPointsPerDay,
     );
     if (line.length < 2) continue;
@@ -440,11 +442,7 @@ interface TrackPiece {
   whole: boolean;
 }
 
-function splitAtLocalMidnight(
-  points: Array<[number, number]>,
-  startedAt: string,
-  endedAt: string,
-): TrackPiece[] {
+function splitAtLocalMidnight(points: Array<[number, number]>, startedAt: string, endedAt: string): TrackPiece[] {
   const startLocal = localMs(startedAt);
   const endLocal = localMs(endedAt);
   const startDate = dateOfLocalMs(startLocal);
@@ -510,10 +508,7 @@ function splitAtLocalMidnight(
 
 /** Total points across every day, for the "how much did we draw" report. */
 export function countPoints(days: DawarichTrackDay[]): number {
-  return days.reduce(
-    (total, day) => total + day.segments.reduce((sum, segment) => sum + segment.points.length, 0),
-    0,
-  );
+  return days.reduce((total, day) => total + day.segments.reduce((sum, segment) => sum + segment.points.length, 0), 0);
 }
 
 // ── Visited cities ───────────────────────────────────────────────────────────

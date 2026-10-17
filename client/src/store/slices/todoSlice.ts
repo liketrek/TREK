@@ -1,4 +1,4 @@
-import { todoApi } from '../../api/client'
+import { todoRepo } from '../../repo/todoRepo'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { TodoItem } from '../../types'
@@ -20,7 +20,7 @@ export interface TodoSlice {
 export const createTodoSlice = (set: SetState, get: GetState): TodoSlice => ({
   addTodoItem: async (tripId, data) => {
     try {
-      const result = await todoApi.create(tripId, data)
+      const result = await todoRepo.create(tripId, data)
       set(state => ({ todoItems: [...state.todoItems, result.item] }))
       return result.item
     } catch (err: unknown) {
@@ -30,7 +30,7 @@ export const createTodoSlice = (set: SetState, get: GetState): TodoSlice => ({
 
   updateTodoItem: async (tripId, id, data) => {
     try {
-      const result = await todoApi.update(tripId, id, data)
+      const result = await todoRepo.update(tripId, id, data)
       set(state => ({
         todoItems: state.todoItems.map(item => item.id === id ? result.item : item)
       }))
@@ -44,7 +44,7 @@ export const createTodoSlice = (set: SetState, get: GetState): TodoSlice => ({
     const prev = get().todoItems
     set(state => ({ todoItems: state.todoItems.filter(item => item.id !== id) }))
     try {
-      await todoApi.delete(tripId, id)
+      await todoRepo.delete(tripId, id)
     } catch (err: unknown) {
       set({ todoItems: prev })
       throw new Error(getApiErrorMessage(err, 'Error deleting todo'))
@@ -58,7 +58,7 @@ export const createTodoSlice = (set: SetState, get: GetState): TodoSlice => ({
       )
     }))
     try {
-      await todoApi.update(tripId, id, { checked })
+      await todoRepo.update(tripId, id, { checked })
     } catch (err: unknown) {
       // The caller fires this optimistically and doesn't await, so rolling back
       // silently would just flip the checkbox with no explanation. Surface it.
@@ -85,7 +85,7 @@ export const createTodoSlice = (set: SetState, get: GetState): TodoSlice => ({
       return { todoItems: [...reordered, ...remaining] }
     })
     try {
-      await todoApi.reorder(tripId, orderedIds)
+      await todoRepo.reorder(tripId, orderedIds)
     } catch (err: unknown) {
       set({ todoItems: prev })
       notify(getApiErrorMessage(err, 'Error reordering todos'), 'error')

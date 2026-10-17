@@ -88,7 +88,7 @@ export function FormSheetFooter({
       <button
         type="button"
         onClick={onCancel}
-        className="ml-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold text-m-ink"
+        className="ms-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold text-m-ink"
       >
         {cancelLabel}
       </button>

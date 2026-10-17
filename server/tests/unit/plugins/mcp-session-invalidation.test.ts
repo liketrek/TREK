@@ -8,9 +8,10 @@
  * Unconditional by design: the surface is per-session, because it depends on the
  * caller's scopes and the plugin's grants, so there is no ctx-free set to diff.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PluginsController } from '../../../src/nest/plugins/plugins.controller';
 import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { PluginsController } from '../../../src/nest/plugins/plugins.controller';
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const invalidate = vi.fn();
 vi.mock('../../../src/mcp/sessionManager', () => ({ invalidateMcpSessions: () => invalidate() }));
@@ -61,26 +62,28 @@ describe('plugin lifecycle invalidates MCP sessions', () => {
 
   it('MCPINV-005: retrust', async () => {
     // Retrust installs a version, so it is an update by another name.
-    await ctrl(runtime()).retrust(
-      'weather',
-      { version: '1.1.0', publicKey: 'k' } as never,
-      { id: 1 },
-      { headers: {}, socket: {} } as never,
-    );
+    await ctrl(runtime()).retrust('weather', { version: '1.1.0', publicKey: 'k' } as never, { id: 1 }, {
+      headers: {},
+      socket: {},
+    } as never);
     expect(invalidate).toHaveBeenCalledTimes(1);
   });
 
   it('MCPINV-006: a failed activate does not invalidate', async () => {
     // Nothing changed, so nobody's session should be dropped.
     const r = runtime();
-    r.activate = vi.fn(async () => { throw new Error('boom'); });
+    r.activate = vi.fn(async () => {
+      throw new Error('boom');
+    });
     await expect(ctrl(r).activate('weather', {} as never)).rejects.toThrow();
     expect(invalidate).not.toHaveBeenCalled();
   });
 
   it('MCPINV-007: a failed update does not invalidate', async () => {
     const r = runtime();
-    r.update = vi.fn(async () => { throw new Error('boom'); });
+    r.update = vi.fn(async () => {
+      throw new Error('boom');
+    });
     await expect(ctrl(r).update('weather', {} as never)).rejects.toThrow();
     expect(invalidate).not.toHaveBeenCalled();
   });

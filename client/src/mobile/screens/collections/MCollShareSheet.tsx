@@ -1,14 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, ChevronDown, Clock, Crown, Loader2, LogOut, UserPlus, X } from 'lucide-react'
-import type { CollectionMember, CollectionRole } from '@trek/shared'
+import type { CollectionMember } from '@trek/shared'
 import { COLLECTION_ROLES } from '@trek/shared'
 import type { TranslationFn } from '../../../types'
-import { collectionsApi } from '../../../api/collections'
-import { useCollectionStore } from '../../../store/collectionStore'
-import { useAuthStore } from '../../../store/authStore'
-import { useToast } from '../../../components/shared/Toast'
-import { getApiErrorMessage } from '../../../utils/apiError'
 import { avatarSrc } from '../../../utils/avatarSrc'
+import { useCollectionSharing } from '../../../components/Collections/useCollectionSharing'
 import MSheet from '../../components/MSheet'
 import { CancelPill, Eyebrow, PrimaryPill, SheetHeader } from './MCollSheetKit'
 
@@ -44,90 +40,15 @@ function MemberAvatar({ member }: { member: CollectionMember }) {
 export default function MCollShareSheet({
   open, collectionId, collectionName, isOwner, members, onClose, onAfterLeave, t,
 }: MCollShareSheetProps) {
-  const toast = useToast()
-  const currentUserId = useAuthStore(s => s.user?.id)
-  const invite = useCollectionStore(s => s.invite)
-  const cancelInvite = useCollectionStore(s => s.cancelInvite)
-  const removeMember = useCollectionStore(s => s.removeMember)
-  const setMemberRole = useCollectionStore(s => s.setMemberRole)
-  const leave = useCollectionStore(s => s.leave)
-
-  const [availableUsers, setAvailableUsers] = useState<{ id: number; username: string }[]>([])
+  const {
+    currentUserId, availableUsers, sortedMembers, selectedUserId, setSelectedUserId, inviteRole, setInviteRole,
+    inviting, confirmLeave, setConfirmLeave, leaving, busyUserId, cycleRole, cancel, remove, handleInvite, handleLeave,
+  } = useCollectionSharing({ open, collectionId, isOwner, members, onAfterLeave, t, singleBusySlot: true })
   const [userPickerOpen, setUserPickerOpen] = useState(false)
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
-  const [inviteRole, setInviteRole] = useState<CollectionRole>('editor')
-  const [busyUserId, setBusyUserId] = useState<number | null>(null)
-  const [inviting, setInviting] = useState(false)
-  const [confirmLeave, setConfirmLeave] = useState(false)
-  const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
-    if (!open || !isOwner || collectionId == null) return
-    let cancelled = false
-    collectionsApi.availableUsers(collectionId)
-      .then(data => { if (!cancelled) setAvailableUsers(data.users) })
-      .catch(() => { if (!cancelled) setAvailableUsers([]) })
-    return () => { cancelled = true }
-  }, [open, isOwner, collectionId, members.length])
-
-  useEffect(() => {
-    if (open) return
-    setSelectedUserId(null)
-    setUserPickerOpen(false)
-    setConfirmLeave(false)
+    if (!open) setUserPickerOpen(false)
   }, [open])
-
-  const sortedMembers = useMemo(() => {
-    const rank = (m: CollectionMember) => (m.is_owner ? 0 : m.status === 'accepted' ? 1 : 2)
-    return [...members].sort((a, b) => rank(a) - rank(b) || a.username.localeCompare(b.username))
-  }, [members])
-
-  const run = async (userId: number, action: () => Promise<void>) => {
-    if (busyUserId != null) return
-    setBusyUserId(userId)
-    try {
-      await action()
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
-    } finally {
-      setBusyUserId(null)
-    }
-  }
-
-  const cycleRole = (member: CollectionMember) => {
-    if (collectionId == null) return
-    const current = member.role ?? 'editor'
-    const next = COLLECTION_ROLES[(COLLECTION_ROLES.indexOf(current) + 1) % COLLECTION_ROLES.length]
-    run(member.user_id, () => setMemberRole(collectionId, member.user_id, next))
-  }
-
-  const handleInvite = async () => {
-    if (collectionId == null || selectedUserId == null || inviting) return
-    setInviting(true)
-    try {
-      await invite(collectionId, selectedUserId, inviteRole)
-      toast.success(t('collections.invite.sent'))
-      setSelectedUserId(null)
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, t('collections.invite.error')))
-    } finally {
-      setInviting(false)
-    }
-  }
-
-  const handleLeave = async () => {
-    if (collectionId == null || leaving) return
-    setLeaving(true)
-    try {
-      await leave(collectionId)
-      toast.success(t('collections.share.left'))
-      onAfterLeave()
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
-    } finally {
-      setLeaving(false)
-    }
-  }
 
   const selectedUser = availableUsers.find(u => u.id === selectedUserId) ?? null
   const badge = 'inline-flex flex-none items-center gap-[3px] font-geist text-[0.625rem] font-extrabold'
@@ -145,7 +66,7 @@ export default function MCollShareSheet({
         {sortedMembers.map(member => {
           const isSelf = member.user_id === currentUserId
           const pending = member.status === 'pending'
-          const busy = busyUserId === member.user_id
+          const busy = busyUserId('role') === member.user_id
           return (
             <div
               key={member.user_id}
@@ -184,9 +105,7 @@ export default function MCollShareSheet({
               {isOwner && !member.is_owner && collectionId != null && (
                 <button
                   type="button"
-                  onClick={() => run(member.user_id, () =>
-                    pending ? cancelInvite(collectionId, member.user_id) : removeMember(collectionId, member.user_id),
-                  )}
+                  onClick={() => (pending ? cancel(member.user_id) : remove(member.user_id))}
                   disabled={busy}
                   aria-label={pending ? t('collections.share.cancel') : t('collections.share.remove')}
                   className="flex h-7 w-7 flex-none items-center justify-center rounded-full text-m-faint active:bg-[color:var(--m-ic)] disabled:opacity-50"
@@ -209,7 +128,7 @@ export default function MCollShareSheet({
                   <button
                     type="button"
                     onClick={() => setUserPickerOpen(v => !v)}
-                    className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[11px] text-left text-[0.78125rem]"
+                    className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[11px] text-start text-[0.78125rem]"
                   >
                     <span className={`truncate ${selectedUser ? 'font-semibold text-m-ink' : 'text-m-faint'}`}>
                       {selectedUser?.username ?? t('collections.share.inviteUser')}
@@ -226,13 +145,13 @@ export default function MCollShareSheet({
                     {inviting ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} strokeWidth={2.2} />}
                   </button>
                   {userPickerOpen && (
-                    <div className="absolute left-0 right-[52px] top-[calc(100%+6px)] z-[5] max-h-[180px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-m-sheetop shadow-[0_20px_44px_-18px_rgba(0,0,0,.45)]">
+                    <div className="absolute start-0 end-[52px] top-[calc(100%+6px)] z-[5] max-h-[180px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-m-sheetop shadow-[0_20px_44px_-18px_rgba(0,0,0,.45)]">
                       {availableUsers.map(u => (
                         <button
                           key={u.id}
                           type="button"
                           onClick={() => { setSelectedUserId(u.id); setUserPickerOpen(false) }}
-                          className="flex w-full items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-left text-[0.8125rem] font-semibold text-m-ink first:border-t-0"
+                          className="flex w-full items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-start text-[0.8125rem] font-semibold text-m-ink first:border-t-0"
                         >
                           <span className="min-w-0 flex-1 truncate">{u.username}</span>
                           {selectedUserId === u.id && <Check size={14} strokeWidth={2.6} />}
@@ -266,7 +185,7 @@ export default function MCollShareSheet({
               <>
                 <div className="mb-2 text-[0.8125rem] text-m-ink">{t('collections.share.leaveConfirm')}</div>
                 <div className="flex items-center gap-2">
-                  <CancelPill className="ml-auto" onClick={() => setConfirmLeave(false)}>{t('common.cancel')}</CancelPill>
+                  <CancelPill className="ms-auto" onClick={() => setConfirmLeave(false)}>{t('common.cancel')}</CancelPill>
                   <PrimaryPill onClick={handleLeave} disabled={leaving} className="!bg-[color:var(--m-st-danger)] !text-white">
                     {leaving ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} strokeWidth={2.2} />} {t('collections.share.leave')}
                   </PrimaryPill>

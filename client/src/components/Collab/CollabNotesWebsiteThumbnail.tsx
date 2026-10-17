@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ExternalLink } from 'lucide-react'
+import { Tooltip } from '../shared/Tooltip'
 import { collabApi } from '../../api/client'
 import { safeExternalHref } from '../../utils/safeUrl'
 
@@ -69,14 +70,16 @@ export function WebsiteThumbnail({ url, tripId, color }: WebsiteThumbnailProps) 
     </>
   )
 
-  if (!href) return <span title={data?.title || url} style={tileStyle}>{tile}</span>
+  if (!href) return <Tooltip label={data?.title || url}><span style={tileStyle}>{tile}</span></Tooltip>
 
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" title={data?.title || url}
+    <Tooltip label={data?.title || url}>
+    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={data?.title || url}
       style={tileStyle}
       onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}>
       {tile}
     </a>
+    </Tooltip>
   )
 }

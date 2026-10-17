@@ -1,4 +1,4 @@
-// FE-JRN-INVITE-001 to FE-JRN-INVITE-011
+// FE-JRN-INVITE-001 to FE-JRN-INVITE-014
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
@@ -110,12 +110,12 @@ describe('ContributorInviteDialog', () => {
 
     const viewerBtn = screen.getByRole('button', { name: 'Viewer' })
     const editorBtn = screen.getByRole('button', { name: 'Editor' })
-    expect(viewerBtn.className).toContain('bg-zinc-900')
-    expect(editorBtn.className).not.toContain('bg-zinc-900')
+    expect(viewerBtn).toHaveAttribute('aria-pressed', 'true')
+    expect(editorBtn).toHaveAttribute('aria-pressed', 'false')
 
     await user.click(editorBtn)
-    expect(editorBtn.className).toContain('bg-zinc-900')
-    expect(viewerBtn.className).not.toContain('bg-zinc-900')
+    expect(editorBtn).toHaveAttribute('aria-pressed', 'true')
+    expect(viewerBtn).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('FE-JRN-INVITE-008: posts the selected user and role, then reports success', async () => {
@@ -159,10 +159,7 @@ describe('ContributorInviteDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(onClose).toHaveBeenCalledTimes(1)
 
-    // The header close button carries only an icon, so it is addressed by position.
-    const headerClose = screen.getByRole('heading', { name: 'Invite Contributor' })
-      .parentElement!.querySelector('button')!
-    act(() => { headerClose.click() })
+    act(() => { screen.getByRole('button', { name: 'Close' }).click() })
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
@@ -171,5 +168,83 @@ describe('ContributorInviteDialog', () => {
     mountDialog()
 
     expect(await screen.findByText('No users found')).toBeInTheDocument()
+  })
+
+  it('FE-JRN-INVITE-012: Escape closes the dialog and goes no further, so the settings under it stay open', async () => {
+    const underneath = vi.fn()
+    document.addEventListener('keydown', underneath)
+    try {
+      const user = userEvent.setup()
+      const { onClose } = mountDialog()
+      await screen.findByText('maurice')
+
+      await user.keyboard('{Escape}')
+
+      expect(onClose).toHaveBeenCalledTimes(1)
+      expect(underneath).not.toHaveBeenCalled()
+    } finally {
+      document.removeEventListener('keydown', underneath)
+    }
+  })
+})
+
+describe('ContributorInviteDialog on a phone', () => {
+  let width: number
+  beforeEach(() => {
+    width = window.innerWidth
+    Object.defineProperty(window, 'innerWidth', { value: 375, configurable: true, writable: true })
+  })
+  afterEach(() => {
+    Object.defineProperty(window, 'innerWidth', { value: width, configurable: true, writable: true })
+  })
+
+  it('FE-JRN-INVITE-013: keeps the panel it had, with the filled role button and the header close', async () => {
+    const user = userEvent.setup()
+    const { onClose, onInvited } = mountDialog()
+    await screen.findByText('maurice')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    const viewerBtn = screen.getByRole('button', { name: 'Viewer' })
+    const editorBtn = screen.getByRole('button', { name: 'Editor' })
+    expect(viewerBtn.className).toContain('bg-zinc-900')
+    expect(editorBtn.className).not.toContain('bg-zinc-900')
+
+    await user.click(editorBtn)
+    expect(editorBtn.className).toContain('bg-zinc-900')
+    expect(viewerBtn.className).not.toContain('bg-zinc-900')
+
+    // The header close button carries only an icon, so it is addressed by position.
+    const headerClose = screen.getByRole('heading', { name: 'Invite Contributor' })
+      .parentElement!.querySelector('button')!
+    act(() => { headerClose.click() })
+    expect(onClose).toHaveBeenCalledTimes(1)
+
+    // Escape is the desktop's: the phone panel never had it.
+    await user.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onInvited).not.toHaveBeenCalled()
+  })
+
+  it('FE-JRN-INVITE-014: filters, selects and invites through the same state as the desktop', async () => {
+    const bodies: Record<string, unknown>[] = []
+    server.use(http.post('/api/journeys/4/contributors', async ({ request }) => {
+      bodies.push(await request.json() as Record<string, unknown>)
+      return HttpResponse.json({ ok: true })
+    }))
+    const user = userEvent.setup()
+    const { onInvited } = mountDialog({ existingUserIds: [1] })
+    await screen.findByText('julien')
+
+    await user.type(screen.getByPlaceholderText('Username or email...'), 'zzz')
+    expect(screen.getByText('No users found')).toBeInTheDocument()
+    await user.clear(screen.getByPlaceholderText('Username or email...'))
+
+    const inviteBtn = screen.getByRole('button', { name: 'Invite' })
+    expect(inviteBtn).toBeDisabled()
+    await user.click(screen.getByText('anna'))
+    await user.click(inviteBtn)
+
+    await waitFor(() => expect(onInvited).toHaveBeenCalledTimes(1))
+    expect(bodies[0]).toEqual({ user_id: 3, role: 'viewer' })
   })
 })

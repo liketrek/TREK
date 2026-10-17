@@ -1,9 +1,9 @@
-// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-029
+// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-031
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { useLocation } from 'react-router';
 import { delay, http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
-import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
+import { act, render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import { addListener, removeListener } from '../../api/websocket';
 import { useJourneyStore } from '../../store/journeyStore';
 import type { JourneyDetail, JourneyEntry } from '../../store/journeyStore';
@@ -188,6 +188,34 @@ describe('useJourneyDetail', () => {
     await waitFor(() => expect(latest.current?.title).toBe('Japan renamed'));
   });
 
+  it('FE-JRN-DETHOOK-030: capture times landing after an import reload the journey so the gallery re-sorts (#1587)', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const handler = vi.mocked(addListener).mock.calls[0][0] as (e: Record<string, unknown>) => void;
+
+    serveJourney(buildDetail({ gallery: [{ id: 3, photo_id: 30, taken_at: '2026-05-01T09:00:00Z' }] as never }));
+    handler({ type: 'journey:photos:updated', journeyId: 7 });
+    await waitFor(() => expect(latest.current?.gallery).toHaveLength(1));
+  });
+
+  it('FE-JRN-DETHOOK-031: provider photos added from the picker or the editor reload this journey once some landed (#1587)', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const toGallery = vi.fn(async () => ({ photos: [], added: 2 }));
+    const toEntry = vi.fn(async () => ({ photos: [], added: 1 }));
+    useJourneyStore.setState({ addProviderPhotosToGallery: toGallery, addProviderPhotos: toEntry } as never);
+
+    serveJourney(buildDetail({ title: 'After the import' }));
+    await act(() => latest.addPickedProviderPhotos(7, 'immich', [{ assetIds: ['a1', 'a2'] }], null));
+    expect(toGallery).toHaveBeenCalledWith(7, 'immich', { assetIds: ['a1', 'a2'] });
+    expect(addToast).toHaveBeenCalledWith('2 photos added', 'success', undefined);
+    await waitFor(() => expect(latest.current?.title).toBe('After the import'));
+
+    const group = { provider: 'immich', assetIds: ['b1'] };
+    await act(() => latest.addEntryProviderPhotos(1, group));
+    expect(toEntry).toHaveBeenCalledWith(1, 'immich', group);
+  });
+
   it('FE-JRN-DETHOOK-009: events of another type or another journey are ignored', async () => {
     setup();
     await waitFor(() => expect(latest.current).not.toBeNull());
@@ -306,6 +334,23 @@ describe('useJourneyDetail', () => {
     await waitFor(() => expect(latest.sidebarMapItems).toHaveLength(2));
     expect(latest.sidebarMapItems.map(m => m.dayLabel)).toEqual([1, 2]);
     expect(latest.sidebarMapItems[0].dayColor).toBe(latest.sidebarMapItems[1].dayColor);
+  });
+
+  it('FE-JRN-DETHOOK-2453: geotagged gallery photos become the map layer, and a tap opens them', async () => {
+    serveJourney(buildDetail({
+      gallery: [
+        { id: 3, photo_id: 30, lat: 48.1, lng: 11.5, caption: 'Marienplatz' },
+        { id: 4, photo_id: 40, lat: null, lng: null },
+      ] as never,
+    }));
+    setup();
+    await waitFor(() => expect(latest.mapPhotos).toHaveLength(1));
+    expect(latest.mapPhotos[0]).toEqual({ id: '3', lat: 48.1, lng: 11.5, thumbUrl: '/api/photos/30/thumbnail' });
+    act(() => latest.openMapPhotos(['3']));
+    expect(latest.lightbox?.photos).toEqual([expect.objectContaining({ id: 3, src: '/api/photos/30/original', caption: 'Marienplatz' })]);
+    act(() => latest.setLightbox(null));
+    act(() => latest.openMapPhotos(['999']));
+    expect(latest.lightbox).toBeNull();
   });
 
   it('FE-JRN-DETHOOK-019: tripDates expands linked trips and skips half-dated ones', async () => {

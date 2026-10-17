@@ -8,27 +8,45 @@ Open the user menu in the top navigation bar (your avatar), then select **Admin*
 
 ![Admin Panel](assets/AdminPanel.png)
 
+## Layout
+
+On desktop the page opens with a header (**Administration**, *User management and system settings*) whose right side shows four counters: **Users**, **Trips**, **Places** and **Files**. When a newer TREK release exists, an update banner sits below it. Under that, a side navigation on the left lists the tabs in four groups, and the selected tab fills the right side. Every tab is built from cards with toggle rows, and anything that needs confirming (deleting a user, restoring a backup, revoking a token) asks in TREK's own dialog rather than the browser's.
+
 ## Tabs
 
-The Admin Panel is divided into tabs. Most tabs are always visible; a few appear only under specific conditions.
+Most tabs are always visible; a few appear only under specific conditions.
 
-| Tab | Purpose | Conditional? |
-|-----|---------|--------------|
-| **Users** | Manage users, invite links, and permissions | No |
-| **Personalization** | Packing templates, place categories and the manually maintained school holiday catalog (see [Vacay](Vacay#manually-maintained-school-holidays)) | No |
-| **User Defaults** | Default settings applied to new users | No |
-| **Addons** | Enable or disable optional features instance-wide | No |
-| **Plugins** | Install, update, and manage plugins; rescan the plugins folder; view each plugin's error log. See [Admin-Plugins](Admin-Plugins) | No |
-| **Storage** | Storage backends, category assignment, replication, health | No |
-| **Settings** | Authentication methods, MFA, allowed file types, API keys, OIDC/SSO configuration, and JWT secret rotation | No |
-| **Notifications** | SMTP, webhook, ntfy, and push notification channel configuration; trip reminder toggle; admin notification preferences | No |
-| **Backup** | Manual and scheduled full-instance backups: database, uploads, plugin data and plugin code. See [Backups](Backups) | No |
-| **Audit** | Chronological activity log | No |
-| **MCP Access** | OAuth sessions and static API tokens | Only when the MCP addon is enabled |
-| **GitHub** | Release timeline and support links | No |
-| **Dev: Notifications** | Test notification dispatch | Only in development mode (`NODE_ENV=development`) |
+| Group | Tab | Purpose | Conditional? |
+|-------|-----|---------|--------------|
+| Users | **Users** | Manage users and invite links; the permission settings sit at the bottom. See [Admin-Users-and-Invites](Admin-Users-and-Invites) and [Admin-Permissions](Admin-Permissions) | No |
+| Users | **User Defaults** | Default settings applied to users who have not picked their own: colour mode, units, time format, currency, week start, blurred booking codes, map engine and the routing services. See [Admin-User-Defaults](Admin-User-Defaults) | No |
+| Configuration | **Personalization** | Packing templates, place categories and the manually maintained school holiday catalog (see [Vacay](Vacay#manually-maintained-school-holidays)) | No |
+| Configuration | **Settings** | Authentication methods (password and SSO login and registration), passkeys, required MFA, OIDC/SSO configuration, allowed file types, API keys and place providers (Google, Unsplash, Amap, public transit backend, place search provider, the **Daily limit for Google calls**), and **Rotate JWT Secret**. See [Admin-Settings](Admin-Settings) | No |
+| Configuration | **Addons** | Enable or disable optional features instance-wide. See [Admin-Addons](Admin-Addons) | No |
+| Configuration | **Plugins** | Install, update, and manage plugins; rescan the plugins folder; view each plugin's error log. See [Admin-Plugins](Admin-Plugins) | No |
+| Configuration | **Storage** | Storage backends, category assignment, replication, health. See [Admin-Storage](Admin-Storage) | No |
+| Integrations | **Notifications** | Email (SMTP), webhook, ntfy and Web Push channels; trip reminders; the admin's own webhook and ntfy; **Defaults for users** (see below). See [Admin-Notifications](Admin-Notifications) | No |
+| Integrations | **MCP Access** | OAuth sessions and static API tokens. See [Admin-MCP-Tokens](Admin-MCP-Tokens) | Only when the MCP addon is enabled |
+| Integrations | **GitHub** | Release timeline and support links. See [Admin-GitHub-Releases](Admin-GitHub-Releases) | No |
+| Maintenance | **Backup** | Manual and scheduled full-instance backups: database, uploads, plugin data and plugin code. See [Backups](Backups) | No |
+| Maintenance | **Audit** | Chronological activity log. See [Audit-Log](Audit-Log) | No |
+| Maintenance | **Dev: Notifications** | Test notification dispatch | Only in development mode (`NODE_ENV=development`) |
+
+### API keys set through the environment
+
+A Google Maps, Unsplash or Amap key that comes from an environment variable shows in **Settings > API Keys** as a disabled field that reads **Set via** and the variable's name: the variable wins, so a key typed into the panel would have no effect. **Test** still checks the key from the environment. For the Google key the variable is `PLACES_API_KEY`. See [Environment-Variables](Environment-Variables).
+
+### Daily limit for Google calls
+
+In **Settings > API Keys**, the **Google Maps API Key** block has a collapsible section, **What the key may be used for**, whose last row is **Daily limit for Google calls**. Once the limit is reached, TREK stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave the field empty for no limit. A pill beside the name shows today's usage (**Today: 120** or **Today: 120 of 500**) and turns amber (**Limit reached (120), Google paused until tomorrow**) once the day is used up. **Save** appears only while the number has changed.
+
+### Notification defaults
+
+At the bottom of **Notifications**, **Defaults for users** is a matrix of every notification event against every channel. Each cell cycles through **On**, **Off** and **Blocked** when clicked and is saved right away; an event a channel cannot deliver shows a dash. **On** and **Off** are only where a user's settings start: each user may still change them. **Blocked** turns that event off on that channel for everyone, and it shows as locked in their settings. The defaults apply to every user who has not changed that cell themselves. See [Notifications](Notifications).
 
 ![Admin panel on the User Defaults tab, setting instance-wide defaults for colour mode, temperature unit, distance unit, time format, currency and blurred booking codes](assets/AdminUserDefaults.png)
+
+The **Week starts on** default decides which day opens each row of every date picker for users who have not picked their own (Monday unless set).
 
 ### Routing services
 
@@ -46,7 +64,7 @@ Counting is **on by default** and has no switch in the admin panel. To turn it o
 
 ### Linking to a tab directly
 
-Every panel is reachable by URL, so a bookmark, an onboarding mail or a support reply can point at the one tab it is about instead of at the top of a page with thirteen of them:
+Every panel is reachable by URL, so a bookmark, an onboarding mail or a support reply can point at the one tab it is about instead of at the top of the page:
 
 ```
 /admin?tab=audit
@@ -84,10 +102,15 @@ See [Audit-Log](Audit-Log) for details on the hash chain and how the two logs di
 ## Related pages
 
 - [Admin-Users-and-Invites](Admin-Users-and-Invites)
+- [Admin-User-Defaults](Admin-User-Defaults)
+- [Admin-Settings](Admin-Settings)
 - [Admin-Addons](Admin-Addons)
 - [Admin-Categories](Admin-Categories)
 - [Admin-Packing-Templates](Admin-Packing-Templates)
 - [Admin-Permissions](Admin-Permissions)
-- [[Admin: Storage|Admin-Storage]]
+- [Admin-Storage](Admin-Storage)
+- [Admin-Notifications](Admin-Notifications)
 - [Admin-MCP-Tokens](Admin-MCP-Tokens)
 - [Admin-GitHub-Releases](Admin-GitHub-Releases)
+- [Backups](Backups)
+- [Audit-Log](Audit-Log)

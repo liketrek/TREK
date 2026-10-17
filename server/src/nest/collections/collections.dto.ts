@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   collectionCreateRequestSchema,
   collectionUpdateRequestSchema,
@@ -24,6 +23,8 @@ import {
   collectionImportRequestSchema,
   collectionGpxReadRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared collections

@@ -1,5 +1,5 @@
 import { render, waitFor, act } from '../../../tests/helpers/render';
-import SlidingTabs from './SlidingTabs';
+import SlidingTabs, { TabLabel } from './SlidingTabs';
 
 const TABS = [
   { id: 'a', label: 'Alpha' },
@@ -104,5 +104,19 @@ describe('SlidingTabs', () => {
 
     expect(pill()!.style.left).toBe('40px');
     expect(pill()!.style.width).toBe('90px');
+  });
+});
+
+describe('TabLabel', () => {
+  it('shows the full name in a wide window and the short form only where the bar is tight (#2604)', () => {
+    const { container } = render(<TabLabel label="Bookings" short="Book" />);
+    expect(container.querySelector('[class~="xl:inline"]')).toHaveTextContent('Bookings');
+    expect(container.querySelector('[class~="xl:hidden"]')).toHaveTextContent('Book');
+  });
+
+  it('a label without a short form has nothing to swap', () => {
+    const { container } = render(<TabLabel label="Lists" short="Lists" />);
+    expect(container.textContent).toBe('Lists');
+    expect(container.querySelector('[class~="xl:hidden"]')).toBeNull();
   });
 });

@@ -60,7 +60,7 @@ their current position until the file gets converted.
    (+ `ring-accent`) — never `bg-slate-900` / `bg-black` / `bg-indigo-*`. This
    is what lets a user's accent reach new surfaces automatically.
 3. **Semantic text size** uses the tier utilities `text-title/subtitle/body/caption`
-   — never an inline `fontSize: <px>`, never raw `text-sm`/`text-xs` to *mean* a tier.
+   — never an inline `fontSize: <px>`, never raw `text-sm`/`text-xs` or arbitrary `text-[13px]` to *mean* a tier.
 4. **Translucent/blurred** surfaces consume an alpha/glass token
    (`--bg-elevated`, `--tooltip-bg`, `--glass-*`) or a `backdrop-blur` utility,
    so transparency-off can neutralize them centrally — never inline `rgba()`
@@ -78,3 +78,9 @@ Genuinely dynamic values (data-driven colors like `cat.color`, computed
 geometry/transforms/sizes), and the surfaces CSS variables can't reach: injected
 map popup/marker HTML, Mapbox/MapLibre paint, and the standalone `@react-pdf`
 documents. Mark intentional exceptions with a `theme-lint-disable` line comment.
+
+The markers are counted per file against `client/scripts/theme-disable-baseline.json`,
+like `rtl-lint-disable` in `lint:rtl`, so an exception is a decision a reviewer
+sees rather than a way around the check. `--update` only lowers that file: a new
+marker for a surface the tokens really cannot reach is added by raising (or
+adding) its file's entry by hand in the same change, where review can see it.

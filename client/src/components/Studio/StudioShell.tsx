@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router'
 import {
-  ArrowLeft, BookOpen, Check, ChevronDown, Download, Maximize2, Minus, Plus,
+  ArrowLeft, BookOpen, Check, ChevronDown, ClipboardPaste, Download, Maximize2, Minus, Plus,
   Redo2, Sparkles, Undo2,
 } from 'lucide-react'
 import { useJourneyStudio } from '../../pages/journeyStudio/useJourneyStudio'
 import { PAGE_PRESET_ORDER, PAGE_PRESETS } from './pagePresets'
 import { foliosOf } from './bookSheets'
 import { StudioSidebar } from './StudioSidebar'
+import { ProviderPicker } from '../Journey/JourneyDetailPageProviderPicker'
+import { useAuthStore } from '../../store/authStore'
 import { StudioCanvas } from './StudioCanvas'
 import { StudioInspector } from './StudioInspector'
 import { StudioWordmark } from './StudioWordmark'
@@ -17,9 +19,12 @@ import { downloadSpread } from './spreadFile'
 import { StudioExport } from './StudioExport'
 import { PeerBadges } from './PeerBadges'
 import { TrimField } from './TrimField'
+import { Tooltip } from '../shared/Tooltip'
+import { useStudioStore } from '../../store/studioStore'
 import '../../styles/dashboard.css'
 import '../../styles/studio.css'
 import './bookFontFaces'
+import HelpButton from '../Help/HelpButton'
 
 /**
  * The Studio shell: top bar, page rail, workbench, inspector.
@@ -79,6 +84,19 @@ export default function StudioShell() {
         aria-label={s.t('journey.studio.title')}
       >
         <StudioBar s={s} bookView={bookView} setBookView={setBookView} onExport={() => setExporting(true)} />
+        {/* The journey gallery's picker, inside Studio's own layer (#2271). */}
+        {s.providerPick && s.journey && (
+          <ProviderPicker
+            provider={s.providerPick.provider}
+            userId={useAuthStore.getState().user?.id || 0}
+            entries={s.journey.entries.filter(e => e.type !== 'skeleton' || e.title)}
+            trips={s.journey.trips}
+            existingAssetIds={new Set((s.journey.gallery ?? []).filter(p => p.asset_id).map(p => p.asset_id!))}
+            initialEntryId={s.providerPick.entryId}
+            onClose={s.closeProviderPick}
+            onAdd={s.addFromProvider}
+          />
+        )}
 
         <div className="st-body">
           <StudioSidebar
@@ -93,6 +111,8 @@ export default function StudioShell() {
             canEdit={s.canEdit}
             onUpload={s.uploadPhotos}
             onToggleStop={s.setStopExcluded}
+            providers={s.photoProviders}
+            onBrowseProvider={s.browseProvider}
           />
           <Workbench s={s} bookView={bookView} />
           <StudioInspector
@@ -192,6 +212,7 @@ function StudioBar({
         >
           <Redo2 size={15} />
         </button>
+        <PasteButton s={s} />
 
         <div className="st-sep" />
 
@@ -205,6 +226,8 @@ function StudioBar({
           <Download size={14} />
           <span className="st-tool-label">{s.t('journey.studio.export')}</span>
         </button>
+        {/* Studio has no navbar, so the help center's button rides on its own bar. */}
+        <HelpButton className="st-tool is-icon" />
       </div>
     </div>
   )
@@ -218,6 +241,29 @@ function StudioBar({
  * book is behind the chevron, where it cannot be hit by accident, and both are
  * ordinary undo steps.
  */
+/**
+ * Paste what was copied onto the page on screen (#2316). Beside undo and redo
+ * because it is the same kind of thing, and there so the keyboard shortcut is
+ * not the only way to find it.
+ */
+function PasteButton({ s }: { s: Studio }) {
+  const clipboard = useStudioStore(st => st.clipboard)
+  const paste = useStudioStore(st => st.paste)
+  const label = s.t('journey.studio.paste')
+  return (
+    <Tooltip label={clipboard ? label : s.t('journey.studio.pasteEmpty')}>
+      <button type="button"
+        className="st-tool is-icon"
+        disabled={!clipboard || !s.canEdit}
+        onClick={() => paste(s.activeSpread)}
+        aria-label={label}
+      >
+        <ClipboardPaste size={15} />
+      </button>
+    </Tooltip>
+  )
+}
+
 function AutoLayoutButton({ s }: { s: Studio }) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)

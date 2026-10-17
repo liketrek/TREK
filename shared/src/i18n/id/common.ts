@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Batal',
   'common.clear': 'Hapus',
   'common.delete': 'Hapus',
+  'common.remove': 'Hapus',
   'common.preview': 'Pratinjau',
   'common.edit': 'Sunting',
   'common.add': 'Tambah',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': 'Ganti nama',
   'common.discardChanges': 'Buang perubahan',
   'common.discard': 'Buang',
+  'common.unsavedTitle': 'Buang perubahan?',
+  'common.unsavedMessage': 'Yang kamu masukkan di sini belum disimpan.',
+  'common.keepEditing': 'Lanjut mengedit',
   'common.name': 'Nama',
   'common.email': 'Email',
   'common.password': 'Kata sandi',
@@ -73,5 +77,6 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': 'Versi baru tersedia',
   'common.errorUpdateBody': 'TREK diperbarui saat tab ini terbuka. Muat ulang untuk mendapatkan versi baru.',
   'common.errorPluginTitle': 'Plugin ini tidak dapat ditampilkan',
+  'common.needsConnection': 'Ini memerlukan koneksi. Coba lagi begitu TREK kembali online.',
 };
 export default common;

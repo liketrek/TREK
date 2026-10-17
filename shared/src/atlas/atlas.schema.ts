@@ -21,14 +21,29 @@ export const markRegionRequestSchema = z.object({
 });
 export type MarkRegionRequest = z.infer<typeof markRegionRequestSchema>;
 
-export const createBucketItemRequestSchema = z.object({
-  name: z.string().min(1),
-  lat: z.number().nullable().optional(),
-  lng: z.number().nullable().optional(),
-  country_code: z.string().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  target_date: z.string().nullable().optional(),
-});
+export const createBucketItemRequestSchema = z
+  .object({
+    name: z.string().min(1),
+    lat: z.number().nullable().optional(),
+    lng: z.number().nullable().optional(),
+    country_code: z.string().nullable().optional(),
+    notes: z.string().nullable().optional(),
+    target_date: z.string().nullable().optional(),
+    // A state or province wished for (#1901), ISO 3166-2 like "DE-BY". It belongs to
+    // the item's country, so it comes with one and starts with it.
+    region_code: z
+      .string()
+      .max(12)
+      .regex(/^[A-Za-z]{2}-[A-Za-z0-9]{1,8}$/)
+      .nullable()
+      .optional(),
+  })
+  .refine(
+    (b) =>
+      !b.region_code ||
+      (!!b.country_code && b.region_code.toUpperCase().startsWith(`${b.country_code.toUpperCase()}-`)),
+    { message: 'region_code must belong to country_code', path: ['region_code'] },
+  );
 export type CreateBucketItemRequest = z.infer<typeof createBucketItemRequestSchema>;
 
 export const updateBucketItemRequestSchema = z.object({

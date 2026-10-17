@@ -7,8 +7,8 @@ const members: TranslationStrings = {
   'members.invite': 'Convida',
   'members.allHaveAccess': 'Tots els usuaris ja hi tenen accés.',
   'members.access': 'Accés',
-  'members.person': 'persona',
   'members.persons': 'persones',
+  'members.persons.one': 'persona',
   'members.you': 'tu',
   'members.owner': 'Propietari',
   'members.leaveTrip': 'Abandona el viatge',
@@ -35,6 +35,8 @@ const members: TranslationStrings = {
   'members.guestRenameError': 'Error en canviar el nom del convidat',
   'members.guestRemoved': 'Convidat eliminat',
   'members.confirmRemoveGuest':
-    "Vols eliminar aquest convidat? Les seves assignacions i particions de despeses també s'eliminaran.",
+    "Vols eliminar aquest convidat? Les seves assignacions s'eliminaran i la seva part de cada despesa es repartirà entre la resta de participants.",
+  'members.guestHasPayments':
+    "Aquest convidat ha pagat una despesa o forma part d'un pagament registrat. Canvia primer qui paga o elimina el pagament.",
 };
 export default members;

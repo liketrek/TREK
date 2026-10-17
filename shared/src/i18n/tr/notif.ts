@@ -21,6 +21,7 @@ const notif: TranslationStrings = {
   'notif.collection_invite.text': '{actor} sizi bir koleksiyona davet etti',
   'notif.photos_shared.title': 'Fotoğraflar Paylaşıldı',
   'notif.photos_shared.text': '{actor}, {trip} içinde {count} fotoğraf paylaştı',
+  'notif.photos_shared.text.one': '{actor}, {trip} içinde {count} fotoğraf paylaştı',
   'notif.collab_message.title': 'Yeni Mesaj',
   'notif.collab_message.text': '{actor}, {trip} içinde mesaj gönderdi',
   'notif.packing_tagged.title': 'Paket listesi ataması',
@@ -29,7 +30,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} artık kullanılabilir',
   'notif.replica_failure.title': 'Depolama kopyası hatası',
   'notif.replica_failure.text': "'{backend}' kopyasına yazma başarısız oldu: {op} ({key}) — {error}",
-  'notif.replica_failure.textSuppressed': "'{backend}' kopyasına yazma başarısız oldu: {op} ({key}) — {error}. Son bildirimden bu yana {suppressed} hata daha bastırıldı.",
+  'notif.replica_failure.textSuppressed':
+    "'{backend}' kopyasına yazma başarısız oldu: {op} ({key}) — {error}. Son bildirimden bu yana {suppressed} hata daha bastırıldı.",
   'notif.action.view_trip': 'Seyahati Görüntüle',
   'notif.action.view_collab': 'Mesajları Görüntüle',
   'notif.action.view_packing': 'Paket listesini görüntüle',

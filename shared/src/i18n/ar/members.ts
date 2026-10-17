@@ -7,8 +7,12 @@ const members: TranslationStrings = {
   'members.invite': 'دعوة',
   'members.allHaveAccess': 'جميع المستخدمين لديهم صلاحية الوصول بالفعل.',
   'members.access': 'الصلاحية',
-  'members.person': 'شخص',
-  'members.persons': 'أشخاص',
+  'members.persons': 'شخص',
+  'members.persons.zero': 'أشخاص',
+  'members.persons.one': 'شخص',
+  'members.persons.two': 'شخصان',
+  'members.persons.few': 'أشخاص',
+  'members.persons.many': 'شخصًا',
   'members.you': 'أنت',
   'members.owner': 'المالك',
   'members.leaveTrip': 'مغادرة الرحلة',
@@ -32,6 +36,8 @@ const members: TranslationStrings = {
   'members.guestAddError': 'فشلت إضافة الضيف',
   'members.guestRenameError': 'فشلت إعادة تسمية الضيف',
   'members.guestRemoved': 'تمت إزالة الضيف',
-  'members.confirmRemoveGuest': 'إزالة هذا الضيف؟ سيتم أيضًا إزالة تعييناته وحصص التكاليف الخاصة به.',
+  'members.confirmRemoveGuest':
+    'إزالة هذا الضيف؟ ستتم إزالة تعييناته، وتُوزَّع حصته من كل نفقة على الآخرين المشاركين فيها.',
+  'members.guestHasPayments': 'دفع هذا الضيف نفقة أو هو طرف في دفعة مسجّلة. غيّر الدافع أو احذف الدفعة أولًا.',
 };
 export default members;

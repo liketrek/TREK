@@ -1,4 +1,3 @@
-// FE-ADMIN-ADDON-001 to FE-ADMIN-ADDON-037
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -56,6 +55,12 @@ function isOn(toggle: HTMLElement): boolean {
   return toggle.getAttribute('aria-pressed') === 'true';
 }
 
+/** A shelf of more than one row starts folded; open every one so its rows can be read. */
+async function unfoldShelves(): Promise<void> {
+  const bars = await screen.findAllByRole('button', { name: /\d+ options?/, expanded: false });
+  for (const bar of bars) await userEvent.click(bar);
+}
+
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -72,7 +77,8 @@ beforeEach(() => {
   seedStore(useSettingsStore, { settings: { dark_mode: false } });
   vi.spyOn(useAddonStore.getState(), 'loadAddons').mockResolvedValue(undefined);
   server.use(
-    http.get('/api/admin/addons', () => HttpResponse.json({ addons: [] }))
+    http.get('/api/admin/addons', () => HttpResponse.json({ addons: [] })),
+    http.get('/api/admin/tours-wanderer', () => HttpResponse.json({ enabled: false }))
   );
 });
 
@@ -228,6 +234,7 @@ describe('AddonManager', () => {
       )
     );
     render(<AddonManager />);
+    await unfoldShelves();
 
     // Provider sub-rows are visible under Journey addon
     await screen.findByText('Unsplash');
@@ -293,6 +300,7 @@ describe('AddonManager', () => {
       buildAddon({ id: 'unsplash', name: 'Unsplash', description: 'Stock photos', type: 'photo_provider', enabled: false }),
     ]));
     render(<AddonManager />);
+    await unfoldShelves();
 
     await screen.findByText('Immich');
     // immich and synologyphotos ship a vendor glyph, unsplash does not
@@ -427,6 +435,8 @@ describe('AddonManager', () => {
     ]));
     render(<AddonManager />);
 
+    await unfoldShelves();
+
     await screen.findByText('Paperless-ngx');
     const paperlessRow = screen.getByText('Paperless-ngx').closest('li') as HTMLElement;
     expect(paperlessRow.querySelector('svg')).toBeInTheDocument();
@@ -524,6 +534,8 @@ describe('AddonManager', () => {
       />,
     );
 
+    await unfoldShelves();
+
     await screen.findByText('Chat');
     expect(screen.getByText('Notes')).toBeInTheDocument();
     expect(screen.getByText('Polls')).toBeInTheDocument();
@@ -551,8 +563,9 @@ describe('AddonManager', () => {
       <AddonManager
         collabFeatures={{ chat: true, notes: true, links: true, polls: true, whatsnext: true }}
         onToggleCollabFeature={vi.fn()}
-      />,
+      />
     );
+    await unfoldShelves();
 
     const links = await screen.findByText('Links');
     expect(links).toHaveAttribute('title');
@@ -614,7 +627,9 @@ describe('AddonManager', () => {
     );
     render(<AddonManager />);
 
-    await screen.findByText(/Request failed with status code 500/);
+    // The server's reason is shown, not axios' status line (#2649)
+    await screen.findByText('down');
+    expect(screen.queryByText(/Request failed with status code/)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Refresh' }));
     await screen.findByText('No models installed yet — pull one below.');
@@ -644,6 +659,8 @@ describe('AddonManager', () => {
     await user.click(screen.getByRole('button', { name: 'OpenAI' }));
     await user.click(screen.getByRole('button', { name: 'Anthropic' }));
     expect(screen.queryByPlaceholderText('https://api.openai.com/v1')).not.toBeInTheDocument();
+    // A gateway can stand in for Anthropic too, so the field stays (#2655).
+    expect(screen.getByPlaceholderText('https://api.anthropic.com')).toHaveValue('');
     expect(screen.getByPlaceholderText('claude-opus-4-8')).toBeInTheDocument();
     expect(screen.getByText(/Anthropic reads PDFs/)).toBeInTheDocument();
   });
@@ -703,7 +720,7 @@ describe('AddonManager', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('Saved');
     expect(bodies[0]).toEqual({
-      config: { provider: 'local', model: 'qwen3:8b', baseUrl: '', apiKey: '••••••••', multimodal: true },
+      config: { provider: 'local', model: 'qwen3:8b', baseUrl: '', apiKey: '••••••••', vision: 'auto' },
     });
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -737,7 +754,7 @@ describe('AddonManager', () => {
     await screen.findByText('Saved');
     // The model is trimmed before it is stored, the key is sent verbatim
     expect(bodies[0]).toEqual({
-      config: { provider: 'openai', model: 'mistral:7b', baseUrl: '', apiKey: 'sk-live', multimodal: false },
+      config: { provider: 'openai', model: 'mistral:7b', baseUrl: '', apiKey: 'sk-live', vision: 'auto' },
     });
   });
 
@@ -765,8 +782,38 @@ describe('AddonManager', () => {
     await screen.findByText('Saved');
     // The stale local base URL must not ride along to Anthropic — it would hijack the endpoint.
     expect(bodies[0]).toEqual({
-      config: { provider: 'anthropic', model: 'claude-haiku-4-5-20251001', baseUrl: '', apiKey: 'sk-ant-live', multimodal: false },
+      config: { provider: 'anthropic', model: 'claude-haiku-4-5-20251001', baseUrl: '', apiKey: 'sk-ant-live', vision: 'auto' },
     });
+  });
+
+  it('FE-ADMIN-ADDON-038: whether the model reads images is auto, on or off, kept as stored and saved as chosen', async () => {
+    const user = userEvent.setup();
+    const bodies: unknown[] = [];
+    server.use(
+      addonsRoute([llmAddon({ provider: 'openai', model: 'gpt-4.1-mini', baseUrl: '', apiKey: 'sk', vision: 'off' })]),
+      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><AddonManager /></>);
+
+    // Stored off stays off; a cloud provider is told what Automatic means for it.
+    await user.click(await screen.findByRole('button', { name: 'No' }));
+    expect(screen.getByText('Automatic means no for a cloud model. Choose Yes if this model reads images.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Yes' }));
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved');
+    expect(bodies[0]).toMatchObject({ config: { provider: 'openai', vision: 'on' } });
+    expect(bodies[0]).not.toHaveProperty('config.multimodal');
+  });
+
+  it('FE-ADMIN-ADDON-039: with the local provider the hint says Automatic asks the server', async () => {
+    server.use(addonsRoute([llmAddon({ provider: 'local', model: 'qwen3.5:4b' })]), modelsRoute([]));
+    render(<AddonManager />);
+    expect(await screen.findByText('Automatic asks the Ollama server whether this model reads images.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Automatic' })).toBeInTheDocument();
   });
 
   it('FE-ADMIN-ADDON-027: an error frame in the pull stream aborts the pull and is reported', async () => {
@@ -804,5 +851,90 @@ describe('AddonManager', () => {
 
     await waitFor(() => expect(screen.getByDisplayValue('https://proxy.local/v1')).toBeInTheDocument());
     expect(urls).toHaveLength(0);
+  });
+  it('FE-ADMIN-ADDON-040: a shelf of several options starts folded and says how many there are and how many are on', async () => {
+    server.use(addonsRoute([buildAddon({ id: 'collab', name: 'Collab', enabled: true })]));
+    render(
+      <AddonManager
+        collabFeatures={{ chat: true, notes: false, links: true, polls: false, whatsnext: false }}
+        onToggleCollabFeature={vi.fn()}
+      />
+    );
+
+    const bar = await screen.findByRole('button', { name: /5 options/, expanded: false });
+    expect(bar).toHaveTextContent('2 on');
+    expect(screen.queryByText('Chat')).not.toBeInTheDocument();
+
+    await userEvent.click(bar);
+    expect(bar).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Chat')).toBeInTheDocument();
+
+    await userEvent.click(bar);
+    expect(screen.queryByText('Chat')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-041: a shelf of one option shows it at once, without a fold', async () => {
+    server.use(addonsRoute([buildAddon({ id: 'packing', name: 'Lists', icon: 'ListChecks', enabled: true })]));
+    render(<AddonManager bagTrackingEnabled onToggleBagTracking={vi.fn()} />);
+
+    expect(await screen.findByRole('button', { name: 'Bag Tracking' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /\d+ options?/ })).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-042: wanderer hangs off Tours and saves its switch', async () => {
+    const puts: unknown[] = [];
+    server.use(
+      addonsRoute([buildAddon({ id: 'tours', name: 'Tours', icon: 'Mountain', enabled: true })]),
+      http.put('/api/admin/tours-wanderer', async ({ request }) => {
+        puts.push(await request.json());
+        return HttpResponse.json({ enabled: true });
+      })
+    );
+    render(
+      <>
+        <AddonManager />
+        <ToastContainer />
+      </>
+    );
+
+    const toggle = await screen.findByRole('button', { name: 'wanderer' });
+    expect(isOn(toggle)).toBe(false);
+    await userEvent.click(toggle);
+
+    await waitFor(() => expect(puts).toEqual([{ enabled: true }]));
+    expect(isOn(screen.getByRole('button', { name: 'wanderer' }))).toBe(true);
+  });
+
+  it('FE-ADMIN-ADDON-043: a failed wanderer save puts the switch back', async () => {
+    server.use(
+      addonsRoute([buildAddon({ id: 'tours', name: 'Tours', icon: 'Mountain', enabled: true })]),
+      http.put('/api/admin/tours-wanderer', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
+    );
+    render(
+      <>
+        <AddonManager />
+        <ToastContainer />
+      </>
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'wanderer' }));
+
+    await waitFor(() => expect(isOn(screen.getByRole('button', { name: 'wanderer' }))).toBe(false));
+  });
+
+  it('FE-ADMIN-ADDON-044: Tours and Road trip show their own icons, not the fallback puzzle', async () => {
+    server.use(
+      addonsRoute([
+        buildAddon({ id: 'tours', name: 'Tours', icon: 'Mountain', enabled: false }),
+        buildAddon({ id: 'roadtrip', name: 'Road trip', icon: 'Route', enabled: false }),
+      ])
+    );
+    render(<AddonManager />);
+
+    const tours = (await screen.findByText('Tours')).closest('article') as HTMLElement;
+    const roadtrip = screen.getByText('Road trip').closest('article') as HTMLElement;
+    expect(tours.querySelector('svg.lucide-mountain')).toBeInTheDocument();
+    expect(roadtrip.querySelector('svg.lucide-car-front')).toBeInTheDocument();
+    expect(tours.querySelector('svg.lucide-puzzle')).not.toBeInTheDocument();
   });
 });

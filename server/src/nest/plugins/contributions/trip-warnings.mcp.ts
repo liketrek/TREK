@@ -1,10 +1,17 @@
-import { z } from 'zod';
-import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext, type McpTextResult } from '../../../nest-mcp';
 import { noAccess } from '../../../mcp/tools/_shared';
-import { DatabaseService } from '../../database/database.service';
+import {
+  McpController,
+  Tool,
+  TOOL_ANNOTATIONS_READONLY,
+  ok,
+  type McpContext,
+  type McpTextResult,
+} from '../../../nest-mcp';
+import { TripAccessService } from '../../trip-membership/trip-access.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { idSchema } from '@trek/shared';
 
 /**
  * The MCP half of GET /api/trip-warnings/:tripId (#1429).
@@ -40,14 +47,15 @@ const MESSAGE_MAX = 300;
 export class TripWarningsMcp {
   constructor(
     private readonly hooks: PluginHooks,
-    private readonly dbs: DatabaseService,
+    private readonly trips: TripAccessService,
   ) {}
 
   @Tool({
     name: 'get_trip_warnings',
-    description: 'Problems installed plugins report about a trip: a plugin flagging that something is wrong with the itinerary, such as an accommodation with no check-out, a day that cannot be travelled in the time it allows, or a place closed on the day it is planned for. get_trip_summary returns the trip\'s stored data and never these verdicts, so call this as well before reviewing a trip, reporting on it, or telling the user it looks fine. Returns an empty list when no installed plugin contributes warnings, which is the normal case.',
+    description:
+      "Problems installed plugins report about a trip: a plugin flagging that something is wrong with the itinerary, such as an accommodation with no check-out, a day that cannot be travelled in the time it allows, or a place closed on the day it is planned for. get_trip_summary returns the trip's stored data and never these verdicts, so call this as well before reviewing a trip, reporting on it, or telling the user it looks fine. Returns an empty list when no installed plugin contributes warnings, which is the normal case.",
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'read' },
@@ -55,7 +63,7 @@ export class TripWarningsMcp {
   async getTripWarnings({ tripId }: { tripId: number }, ctx: McpContext): Promise<McpTextResult> {
     // Access first, so the answer to "may I look at this trip" does not depend on
     // whether an admin has the plugin system switched on.
-    if (!this.dbs.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    if (!(await this.trips.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!pluginsEnabled()) return ok({ warnings: [] });
 
     const ids = this.hooks.providersOf('warningProvider');

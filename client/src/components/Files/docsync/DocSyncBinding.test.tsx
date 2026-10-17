@@ -201,7 +201,7 @@ describe('DocSyncBinding: what it says about itself', () => {
     renderCard()
 
     expect(screen.queryByText('In sync')).not.toBeInTheDocument()
-    const dot = screen.getByTitle('In sync')
+    const dot = screen.getByRole('img', { name: 'In sync' })
     expect(dot).toBeInTheDocument()
     expect(dot).toBeEmptyDOMElement()
   })

@@ -4,6 +4,7 @@ import MCostsTab from '../../../../src/mobile/screens/trip/tabs/MCostsTab'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { budgetApi } from '../../../../src/api/client'
 import { localToday } from '../../../../src/components/Planner/today'
+import { clearAll } from '../../../../src/db/offlineDb'
 import { resetFreezeAttempts } from '../../../../src/components/Budget/useFreezeMissingRates'
 import { clearExchangeRateCache } from '../../../../src/hooks/useExchangeRates'
 import { useAuthStore } from '../../../../src/store/authStore'
@@ -15,7 +16,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
-// FE-MOB-COSTT-001 to FE-MOB-COSTT-049
+// FE-MOB-COSTT-001 to FE-MOB-COSTT-051
 
 // The add/edit expense sheet is the shared desktop-sized form; the panel only
 // owns when it opens and what happens on save, so it is stubbed here.
@@ -146,7 +147,11 @@ function rowOf(name: string): HTMLElement {
 }
 
 describe('MCostsTab', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // A settlement read online stays on the device and answers when the network
+    // drops (#2601). Each case starts without one, or the balances an earlier case
+    // left behind would answer the failing reads below.
+    await clearAll()
     resetAllStores()
     clearExchangeRateCache()
     seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'Me' }) })
@@ -200,7 +205,9 @@ describe('MCostsTab', () => {
     expect(within(settle).getByText('$40.00')).toBeInTheDocument()
     expect(within(settle).getByText('$15.00')).toBeInTheDocument()
     expect(within(settle).getByText('$5.00')).toBeInTheDocument()
-    expect(within(settle).getByText('?')).toBeInTheDocument()
+    // Ghost is off the trip, but the server sends their name with the flow (#2604).
+    expect(within(settle).getByText('Ghost')).toBeInTheDocument()
+    expect(within(settle).queryByText('?')).not.toBeInTheDocument()
     expect(within(settle).getAllByText('costs.you')).toHaveLength(3)
     expect(within(settle).getAllByText('Ada')).toHaveLength(2)
   })
@@ -381,10 +388,16 @@ describe('MCostsTab', () => {
     expect(dayTrigger).toHaveAttribute('aria-expanded', 'true')
   })
 
+  it('FE-MOB-COSTT-024b: edit and delete on a row name the expense (#2604)', async () => {
+    await renderTab()
+    expect(within(rowOf('Ramen')).getByRole('button', { name: 'common.edit: Ramen' })).toBeInTheDocument()
+    expect(within(rowOf('Ramen')).getByRole('button', { name: 'common.delete: Ramen' })).toBeInTheDocument()
+  })
+
   it('FE-MOB-COSTT-024: opens the edit sheet from a row and reloads on save', async () => {
     const p = planner()
     await renderTab(p)
-    fireEvent.click(within(rowOf('Ramen')).getByRole('button', { name: 'common.edit' }))
+    fireEvent.click(within(rowOf('Ramen')).getByRole('button', { name: /^common\.edit(:|$)/ }))
     expect(screen.getByText('sheet editing 11')).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('sheet save'))
@@ -396,7 +409,7 @@ describe('MCostsTab', () => {
   it('FE-MOB-COSTT-025: deletes an expense after confirming and refreshes the settlement', async () => {
     const p = planner()
     await renderTab(p)
-    fireEvent.click(within(rowOf('Ramen')).getByRole('button', { name: 'common.delete' }))
+    fireEvent.click(within(rowOf('Ramen')).getByRole('button', { name: /^common\.delete(:|$)/ }))
     const dialog = screen.getByRole('dialog', { name: 'costs.confirm.deleteTitle' })
     expect(within(dialog).getByText('costs.confirm.deleteBody:Ramen')).toBeInTheDocument()
     fireEvent.click(within(dialog).getByText('common.delete'))
@@ -408,7 +421,7 @@ describe('MCostsTab', () => {
     const p = planner()
     vi.mocked(p.tripActions.deleteBudgetItem).mockRejectedValueOnce(new Error('offline'))
     await renderTab(p)
-    fireEvent.click(within(rowOf('Ramen')).getByRole('button', { name: 'common.delete' }))
+    fireEvent.click(within(rowOf('Ramen')).getByRole('button', { name: /^common\.delete(:|$)/ }))
     fireEvent.click(within(screen.getByRole('dialog')).getByText('common.delete'))
     await waitFor(() => expect(p.toast.error).toHaveBeenCalledWith('common.unknownError'))
   })
@@ -465,7 +478,7 @@ describe('MCostsTab', () => {
     fireEvent.change(within(dialog).getByPlaceholderText('0.00'), { target: { value: '12,5' } })
     expect(submit).toBeEnabled()
     fireEvent.click(submit)
-    expect(create).toHaveBeenCalledWith(7, { from_user_id: 1, to_user_id: 2, amount: 12.5, currency: 'USD', settled_at: localToday() })
+    expect(create).toHaveBeenCalledWith(7, { from_user_id: 1, to_user_id: 2, amount: 12.5, currency: 'USD', settled_at: localToday(), note: null })
     await waitFor(() => expect(settlementBases).toHaveLength(2))
   })
 
@@ -500,8 +513,8 @@ describe('MCostsTab', () => {
   it('FE-MOB-COSTT-032: a read-only member gets no add, edit or delete affordances', async () => {
     await renderTab(planner({ can: vi.fn(() => false) as unknown as TripPlanner['can'] }))
     expect(screen.queryByRole('button', { name: 'costs.addPayment' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'common.edit' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'common.delete' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^common\.edit(:|$)/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^common\.delete(:|$)/ })).not.toBeInTheDocument()
     expect(within(cardOf('Ramen')).getByRole('button', { pressed: false })).toBeDisabled()
   })
 
@@ -533,7 +546,7 @@ describe('MCostsTab', () => {
   it('FE-MOB-COSTT-035: cancelling the confirm keeps the expense', async () => {
     const p = planner()
     await renderTab(p)
-    fireEvent.click(within(rowOf('Ramen')).getByRole('button', { name: 'common.delete' }))
+    fireEvent.click(within(rowOf('Ramen')).getByRole('button', { name: /^common\.delete(:|$)/ }))
     fireEvent.click(within(screen.getByRole('dialog')).getByText('common.cancel'))
     expect(p.tripActions.deleteBudgetItem).not.toHaveBeenCalled()
     expect(screen.getByText('Ramen')).toBeInTheDocument()
@@ -658,6 +671,19 @@ describe('MCostsTab', () => {
     expect(within(card).queryByRole('button')).not.toBeInTheDocument()
   })
 
+  it('FE-MOB-COSTT-051: a dropped connection shows the balances read last instead of an error (#2601)', async () => {
+    const first = await renderTab()
+    first.unmount()
+
+    serveSettlement(SETTLEMENT, true)
+    render(<MCostsTab planner={planner()} shell={buildShell()} />)
+    await screen.findByText('+$12.50')
+    // The second read went out and failed; the copy kept on the device answered it.
+    expect(settlementBases).toEqual(['USD', 'USD'])
+    expect(within(up(screen.getByText('costs.settleUp'), 3)).getByText('$40.00')).toBeInTheDocument()
+    expect(screen.queryByText('common.unknownError')).not.toBeInTheDocument()
+  })
+
   it('FE-MOB-COSTT-040: the expense filters apply to payments the same way they do on desktop', async () => {
     const mine = { id: 503, from_user_id: 1, to_user_id: 2, amount: 8, currency: 'USD', created_at: '2026-05-02T09:00:00Z' }
     const others = { id: 504, from_user_id: 2, to_user_id: 3, amount: 9, currency: 'USD', created_at: '2026-05-02T09:00:00Z' }
@@ -682,7 +708,7 @@ describe('MCostsTab', () => {
     const update = vi.spyOn(budgetApi, 'updateSettlement').mockResolvedValue({})
     await renderTab()
 
-    fireEvent.click(within(rowOf('costs.payment')).getByRole('button', { name: 'common.edit' }))
+    fireEvent.click(within(rowOf('costs.payment')).getByRole('button', { name: /^common\.edit(:|$)/ }))
     const dialog = screen.getByRole('dialog', { name: 'costs.editPayment' })
     expect(within(dialog).getByDisplayValue('25.00')).toBeInTheDocument()
 
@@ -690,7 +716,9 @@ describe('MCostsTab', () => {
     fireEvent.change(within(dialog).getByPlaceholderText('0.00'), { target: { value: '30' } })
     fireEvent.click(submit)
 
-    expect(update).toHaveBeenCalledWith(7, 501, { from_user_id: 1, to_user_id: 2, amount: 30, currency: 'USD', settled_at: '2026-04-28' })
+    // The repo first looks whether an older write to this payment still waits in the
+    // queue (#2601), so the request goes out a tick after the tap.
+    await waitFor(() => expect(update).toHaveBeenCalledWith(7, 501, { from_user_id: 1, to_user_id: 2, amount: 30, currency: 'USD', settled_at: '2026-04-28', note: null }))
     await waitFor(() => expect(settlementBases).toHaveLength(2))
   })
 
@@ -700,8 +728,10 @@ describe('MCostsTab', () => {
     const del = vi.spyOn(budgetApi, 'deleteSettlement').mockResolvedValue({ success: true })
     await renderTab()
 
-    fireEvent.click(within(rowOf('costs.payment')).getByRole('button', { name: 'costs.undo' }))
-    expect(del).toHaveBeenCalledWith(7, 502)
+    fireEvent.click(within(rowOf('costs.payment')).getByRole('button', { name: /^costs\.undo(:|$)/ }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    // Sent once the queue holds no older write to this payment (#2601).
+    await waitFor(() => expect(del).toHaveBeenCalledWith(7, 502))
     await waitFor(() => expect(settlementBases).toHaveLength(2))
   })
 
@@ -718,7 +748,7 @@ describe('MCostsTab', () => {
     expect(within(row).getByText('£10.00 → $20.00')).toBeInTheDocument()
     expect(within(row).getByText('$20.00')).toBeInTheDocument()
 
-    fireEvent.click(within(row).getByRole('button', { name: 'common.edit' }))
+    fireEvent.click(within(row).getByRole('button', { name: /^common\.edit(:|$)/ }))
     const dialog = screen.getByRole('dialog', { name: 'costs.editPayment' })
     expect(within(dialog).getByDisplayValue('10.00')).toBeInTheDocument()
     expect(within(dialog).getByRole('button', { name: /GBP/ })).toBeInTheDocument()
@@ -726,10 +756,11 @@ describe('MCostsTab', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'common.save' }))
     // The pound rate the phone holds goes along; the server only uses it when the
     // currency changes and it has no rate of its own, so the frozen one stays.
-    expect(update).toHaveBeenCalledWith(7, 505, {
-      from_user_id: 1, to_user_id: 2, amount: 10, currency: 'GBP', settled_at: '2026-04-28',
+    await waitFor(() => expect(update).toHaveBeenCalledWith(7, 505, {
+      from_user_id: 1, to_user_id: 2, amount: 10, currency: 'GBP', settled_at: '2026-04-28', note: null,
       fallback_fx: { base: 'USD', rates: { GBP: 0.5 } },
-    })
+    }))
+    expect(update).toHaveBeenCalledTimes(1)
   })
 
   it('FE-MOB-COSTT-045: a bill whose rate moved shows what was entered and what it was booked at (#2525)', async () => {
@@ -873,5 +904,16 @@ describe('MCostsTab', () => {
     expect(submit).toBeDisabled()
     fireEvent.click(submit)
     expect(create).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-COSTT-050: reads the settlement again when an expense is saved outside the tab', async () => {
+    // A scanned receipt is reviewed in the trip sheets, which reload the items only.
+    const p = planner()
+    const { rerender, shell } = await renderTab(p)
+    expect(settlementBases).toHaveLength(1)
+
+    const bread = { ...RAMEN, id: 15, name: 'Bread', total_price: 18.1 } as BudgetItem
+    rerender(<MCostsTab planner={{ ...p, budgetItems: [...ITEMS, bread] }} shell={shell} />)
+    await waitFor(() => expect(settlementBases).toHaveLength(2))
   })
 })

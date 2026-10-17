@@ -42,8 +42,7 @@
  * and the clock is frozen for the whole file so `fetchedAt` is a value a test
  * can name rather than merely "some string".
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
 import { DawarichTracksService } from '../../../src/nest/integrations/dawarich-tracks.service';
 import { DawarichError } from '../../../src/nest/integrations/dawarich.client';
 import type {
@@ -53,8 +52,9 @@ import type {
   DawarichTrackFeature,
 } from '../../../src/nest/integrations/dawarich.client';
 import type { DawarichService } from '../../../src/nest/integrations/dawarich.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
 import type { DawarichCapabilities } from '@trek/shared';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -138,24 +138,30 @@ interface Collaborators {
 }
 
 function harness(over: Collaborators = {}) {
-  const canAccessTrip = vi.fn().mockReturnValue('access' in over ? over.access : TRIP_ACCESS);
-  const get = vi
+  const findAccessible = vi.fn().mockResolvedValue('access' in over ? over.access : TRIP_ACCESS);
+  const findDatesById = vi
     .fn()
-    .mockReturnValue(
-      'trip' in over ? over.trip : { start_date: '2026-05-01', end_date: '2026-05-03' },
-    );
+    .mockResolvedValue('trip' in over ? over.trip : { start_date: '2026-05-01', end_date: '2026-05-03' });
   const getCredentials = vi.fn().mockReturnValue('creds' in over ? over.creds : CREDS);
   const getCapabilities = vi.fn().mockReturnValue('capabilities' in over ? over.capabilities : null);
   const listTracks = vi.fn().mockResolvedValue({ features: [], truncated: false });
   const listPoints = vi.fn().mockResolvedValue({ points: [], truncated: false });
 
   const service = new DawarichTracksService(
-    { canAccessTrip, get } as unknown as DatabaseService,
+    { findAccessible, findDatesById } as unknown as TripsRepository,
     { getCredentials, getCapabilities } as unknown as DawarichService,
     { listTracks, listPoints } as unknown as DawarichClient,
   );
 
-  return { service, canAccessTrip, get, getCredentials, getCapabilities, listTracks, listPoints };
+  return {
+    service,
+    canAccessTrip: findAccessible,
+    get: findDatesById,
+    getCredentials,
+    getCapabilities,
+    listTracks,
+    listPoints,
+  };
 }
 
 beforeEach(() => {
@@ -292,9 +298,9 @@ describe('DawarichTracksService.forWindow', () => {
   it('DAWARICH-TRACKS-020: a user with no connection gets an empty track rather than a failed request', async () => {
     const h = harness({ creds: null });
 
-    await expect(
-      h.service.forWindow(USER, '2026-05-01T00:00:00Z', '2026-05-02T00:00:00Z'),
-    ).resolves.toEqual(EMPTY_TRACK);
+    await expect(h.service.forWindow(USER, '2026-05-01T00:00:00Z', '2026-05-02T00:00:00Z')).resolves.toEqual(
+      EMPTY_TRACK,
+    );
     expect(h.listTracks).not.toHaveBeenCalled();
     expect(h.listPoints).not.toHaveBeenCalled();
   });
@@ -320,21 +326,12 @@ describe('DawarichTracksService.forWindow', () => {
       truncated: false,
     });
 
-    const defaulted = await h.service.forWindow(
-      USER,
-      '2026-05-01T00:00:00+02:00',
-      '2026-05-02T00:00:00+02:00',
-    );
+    const defaulted = await h.service.forWindow(USER, '2026-05-01T00:00:00+02:00', '2026-05-02T00:00:00+02:00');
     expect(defaulted.days.map((day) => day.date)).toEqual(['2026-05-01']);
 
     // The same window asked with an explicit zero groups the very same instants
     // onto the UTC day instead, which is what a caller silent about its zone means.
-    const utc = await h.service.forWindow(
-      USER,
-      '2026-05-01T00:00:00+02:00',
-      '2026-05-02T00:00:00+02:00',
-      0,
-    );
+    const utc = await h.service.forWindow(USER, '2026-05-01T00:00:00+02:00', '2026-05-02T00:00:00+02:00', 0);
     expect(utc.days.map((day) => day.date)).toEqual(['2026-04-30']);
   });
 

@@ -5,48 +5,34 @@
  * the user's plugin activity log), rebuilt on the MSet* card system: MToggle for
  * booleans, a picker sheet for selects and an MConfirmSheet for danger actions.
  */
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Save, Loader2, Link2, Unlink, CheckCircle, ChevronDown, History, RefreshCw } from 'lucide-react'
 import { resolvePluginIcon } from '../../../components/shared/PluginIcon'
 import PluginFrame from '../../../components/Plugins/PluginFrame'
-import { pluginsApi, type PluginUserSettingField, type PluginAction } from '../../../api/client'
 import { usePluginStore } from '../../../store/pluginStore'
-import { useToast } from '../../../components/shared/Toast'
 import { useTranslation } from '../../../i18n'
 import { MSetCard, MSetEyebrow, MSetSelectRow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
 import MToggle from '../../components/MToggle'
 import MConfirmSheet from './MConfirmSheet'
 import MSetPickerSheet from './MSetPickerSheet'
-import { seedSettingsValues, findMissingRequired, settingsPatch } from '../../../components/Plugins/settingsForm'
+import {
+  usePluginOAuth,
+  usePluginUserSettings,
+  type PluginOAuthState,
+} from '../../../components/Plugins/usePluginUserSettings'
+import { usePluginActivity } from '../../../components/Settings/usePluginActivity'
 
 /** Host-brokered OAuth: a Connect/Disconnect control. The host runs the whole flow +
  * holds the tokens; this only triggers connect (redirect to the provider) / disconnect. */
 function PluginOAuthSection({ id, state, setState }: {
   id: string
-  state: { configured: boolean; connected: boolean } | null
-  setState: (s: { configured: boolean; connected: boolean }) => void
+  state: PluginOAuthState | null
+  setState: (s: PluginOAuthState) => void
 }) {
   const { t } = useTranslation()
-  const toast = useToast()
-  const [busy, setBusy] = useState(false)
+  const { busy, connect, disconnect } = usePluginOAuth(id, state, setState)
 
   if (!state?.configured) return null
-
-  const connect = async () => {
-    setBusy(true)
-    try {
-      const { authorizeUrl } = await pluginsApi.oauthConnect(id)
-      window.location.href = authorizeUrl // hand off to the provider; returns to /settings
-    } catch {
-      toast.error(t('common.error')); setBusy(false)
-    }
-  }
-  const disconnect = async () => {
-    setBusy(true)
-    try { await pluginsApi.oauthDisconnect(id); setState({ ...state, connected: false }) }
-    catch { toast.error(t('common.error')) }
-    finally { setBusy(false) }
-  }
 
   return (
     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[color:var(--m-rowbr)] pt-3">
@@ -71,76 +57,28 @@ function PluginOAuthSection({ id, state, setState }: {
  */
 function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon: string | null }) {
   const { t } = useTranslation()
-  const toast = useToast()
-  const [fields, setFields] = useState<PluginUserSettingField[] | null>(null)
-  const [values, setValues] = useState<Record<string, string | boolean>>({})
-  const [saving, setSaving] = useState(false)
-  const [oauth, setOauth] = useState<{ configured: boolean; connected: boolean } | null>(null)
-  const [actions, setActions] = useState<PluginAction[]>([])
-  const [running, setRunning] = useState<string | null>(null)
-  const [actionResult, setActionResult] = useState<Record<string, { ok: boolean; message?: string }>>({})
-  // Native sheets stand in for the desktop <select> and window.confirm.
+  const {
+    fields,
+    values,
+    setValue,
+    hasFields,
+    visible,
+    saving,
+    save,
+    actions,
+    running,
+    actionResult,
+    runAction,
+    performAction,
+    pendingAction,
+    setPendingAction,
+    oauth,
+    setOauth,
+  } = usePluginUserSettings(id)
+  // Native sheet stands in for the desktop <select>.
   const [pickerKey, setPickerKey] = useState<string | null>(null)
-  const [confirmAction, setConfirmAction] = useState<PluginAction | null>(null)
 
-  useEffect(() => {
-    let alive = true
-    pluginsApi.userSettings(id)
-      .then(r => {
-        if (!alive) return
-        setFields(r.fields)
-        setActions(r.actions ?? [])
-        setValues(seedSettingsValues(r.fields, r.config))
-      })
-      .catch(() => { if (alive) setFields([]) })
-    pluginsApi.oauthStatus(id).then(s => { if (alive) setOauth(s) }).catch(() => { if (alive) setOauth(null) })
-    return () => { alive = false }
-  }, [id])
-
-  const hasFields = (fields?.length ?? 0) > 0
-  // Show the card if the plugin has user fields, actions, OR an OAuth connection to offer.
-  if (fields === null || (!hasFields && actions.length === 0 && !oauth?.configured)) return null
-
-  // An action runs AS the caller, so it sees the values they just saved — run the save
-  // first if the form is dirty would be nicer, but keeping it explicit is less surprising.
-  const performAction = async (a: PluginAction) => {
-    setRunning(a.key)
-    try {
-      const res = await pluginsApi.runAction(id, a.key)
-      setActionResult(prev => ({ ...prev, [a.key]: res }))
-    } catch {
-      setActionResult(prev => ({ ...prev, [a.key]: { ok: false, message: t('common.error') } }))
-    } finally {
-      setRunning(null)
-    }
-  }
-  const runAction = (a: PluginAction) => {
-    // Danger actions confirm first (native sheet in place of window.confirm).
-    if (a.danger) { setConfirmAction(a); return }
-    performAction(a)
-  }
-
-  const save = async () => {
-    const missing = findMissingRequired(fields, values)
-    if (missing) {
-      toast.error(t('settings.plugins.requiredMissing', { field: missing.label || missing.key }))
-      return
-    }
-    setSaving(true)
-    try {
-      const r = await pluginsApi.saveUserSettings(id, settingsPatch(fields, values))
-      setValues(seedSettingsValues(fields, r.config))
-      toast.success(t('settings.plugins.saved'))
-    } catch (e) {
-      // A 4xx names what the server refused (a required field it knows about and this
-      // stale field list doesn't); a 5xx body is not for the user.
-      const err = e as { response?: { status?: number; data?: { error?: string } } }
-      const refused = err.response?.status && err.response.status < 500 ? err.response.data?.error : undefined
-      toast.error(refused || t('common.error'))
-    } finally {
-      setSaving(false)
-    }
-  }
+  if (!visible || fields === null) return null
 
   const pickerField = fields.find(f => f.key === pickerKey && f.input_type === 'select' && !!f.options)
 
@@ -160,7 +98,7 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
                       </div>
                       <MToggle
                         checked={values[f.key] === true}
-                        onChange={checked => setValues(v => ({ ...v, [f.key]: checked }))}
+                        onChange={checked => setValue(f.key, checked)}
                         ariaLabel={f.label || f.key}
                       />
                     </div>
@@ -191,7 +129,7 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
                     value={String(values[f.key] ?? '')}
                     placeholder={f.placeholder || ''}
                     autoComplete={f.secret ? 'new-password' : 'off'}
-                    onChange={e => setValues(v => ({ ...v, [f.key]: e.target.value }))}
+                    onChange={e => setValue(f.key, e.target.value)}
                   />
                   {f.hint && <MSetHint>{f.hint}</MSetHint>}
                 </div>
@@ -246,19 +184,19 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
         onClose={() => setPickerKey(null)}
         title={pickerField ? (pickerField.label || pickerField.key) : ''}
         value={String(values[pickerField?.key ?? ''] ?? '')}
-        onSelect={(val) => { if (pickerField) setValues(v => ({ ...v, [pickerField.key]: val })) }}
+        onSelect={(val) => { if (pickerField) setValue(pickerField.key, val) }}
         options={pickerField ? [{ value: '', label: '—' }, ...pickerField.options!.map(o => ({ value: o.value, label: o.label }))] : []}
       />
 
       <MConfirmSheet
-        open={confirmAction != null}
-        onClose={() => setConfirmAction(null)}
-        title={confirmAction?.label ?? ''}
+        open={pendingAction != null}
+        onClose={() => setPendingAction(null)}
+        title={pendingAction?.label ?? ''}
         message={t('settings.plugins.actions.confirm')}
-        confirmLabel={confirmAction?.label}
+        confirmLabel={pendingAction?.label}
         cancelLabel={t('common.cancel')}
         danger
-        onConfirm={() => { const a = confirmAction; setConfirmAction(null); if (a) performAction(a) }}
+        onConfirm={() => { const a = pendingAction; setPendingAction(null); if (a) void performAction(a) }}
       />
     </>
   )
@@ -286,15 +224,6 @@ function PluginSettingsUiCard({ id, name, icon }: { id: string; name: string; ic
   )
 }
 
-interface ActivityRow {
-  ts: string
-  plugin_id: string
-  plugin_name: string | null
-  method: string
-  resource: string | null
-  code: string
-}
-
 /**
  * Status-code tone for the result pill. "ok" stays neutral; an access denial reads
  * as danger, anything else non-ok as a softer pending/warning tone.
@@ -311,24 +240,8 @@ function codeTone(code: string): string {
  * capability audit. Fail-safe: a failed load just shows the empty state.
  */
 function PluginActivityPanel() {
-  const { t, locale } = useTranslation()
-  const [rows, setRows] = useState<ActivityRow[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const load = () => {
-    setLoading(true)
-    pluginsApi.myActivity()
-      .then(r => setRows(r.activity))
-      .catch(() => setRows([]))
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => { load() }, [])
-
-  const fmtWhen = (ts: string): string => {
-    const d = new Date(ts)
-    return Number.isNaN(d.getTime()) ? ts : d.toLocaleString(locale)
-  }
+  const { t } = useTranslation()
+  const { rows, loading, load, fmtWhen } = usePluginActivity()
 
   const refresh = (
     <button

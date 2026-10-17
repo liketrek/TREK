@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { MoreHorizontal, Link2 } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useTripStore } from '../../store/tripStore'
@@ -6,7 +6,7 @@ import { googleRouteRepo } from '../../repo/googleRouteRepo'
 import { generateUUID } from '../../sync/mutationQueue'
 import { getApiErrorMessage } from '../../types'
 import type { GoogleRoutePreview } from '@trek/shared'
-import Modal from '../shared/Modal'
+import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import CustomSelect from '../shared/CustomSelect'
 import { ContextMenu, useContextMenu } from '../shared/ContextMenu'
 import { Tooltip } from '../shared/Tooltip'
@@ -24,6 +24,7 @@ export default function GoogleRouteImport({ tripId, dayId }: { tripId: number; d
   const controller = useRef<AbortController | null>(null)
   const requestId = useRef('')
   const menu = useContextMenu()
+  const labelId = useId()
   useEffect(() => () => controller.current?.abort(), [])
   const inspect = async () => {
     controller.current?.abort()
@@ -51,6 +52,8 @@ export default function GoogleRouteImport({ tripId, dayId }: { tripId: number; d
     setTarget(String(dayId ?? days[0]?.id ?? ''))
     requestId.current = generateUUID(); setOpen(true)
   }
+  // Every way out is held while a preview or an import is in flight, as before.
+  const close = () => { if (!busy) setOpen(false) }
   const resolved = preview?.stops.filter(s => s.lat != null && s.lng != null) ?? []
   return <>
     <Tooltip label={t('roadtrip.import.title')}>
@@ -60,29 +63,48 @@ export default function GoogleRouteImport({ tripId, dayId }: { tripId: number; d
       </button>
     </Tooltip>
     <ContextMenu menu={menu.menu} onClose={menu.close} />
-    <Modal isOpen={open} onClose={() => { if (!busy) setOpen(false) }} title={t('roadtrip.import.title')} size="lg">
-      <div className="space-y-4">
-        <p className="text-caption text-content-muted">{t('roadtrip.import.note')}</p>
-        {!preview ? <input type="url" value={url} disabled={busy} onChange={e => setUrl(e.target.value)} aria-label="Google Maps URL" placeholder="https://maps.app.goo.gl/…"
-          className="w-full rounded-xl border border-edge bg-surface-input p-3 text-body text-content" /> : <>
+    <DialogShell
+      open={open}
+      onClose={close}
+      blocked={busy}
+      labelledBy={labelId}
+      width="narrow"
+      header={(
+        <DialogHeader
+          tile={<DialogTile><Link2 size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={close}
+          title={t('roadtrip.import.title')}
+          sub={t('roadtrip.import.note')}
+          subWraps
+        />
+      )}
+      footer={(
+        <DialogFooter>
+          <FooterSpacer />
+          <DialogButton disabled={busy} onClick={close}>{t('common.cancel')}</DialogButton>
+          <DialogButton variant="primary" disabled={busy || saved || (!preview ? !url.trim() : resolved.length < 2 || !target)} onClick={() => void (preview ? save() : inspect())}>
+            {busy ? t('common.loading') : t(preview ? 'common.import' : 'common.preview')}
+          </DialogButton>
+        </DialogFooter>
+      )}
+    >
+      {!preview ? <input type="url" value={url} disabled={busy} onChange={e => setUrl(e.target.value)} aria-label="Google Maps URL" placeholder="https://maps.app.goo.gl/…"
+        className="w-full rounded-[10px] border border-edge bg-surface-input px-3 py-2.5 text-content outline-none placeholder:text-content-faint focus:ring-2 focus:ring-[color:var(--text-primary)] disabled:opacity-50"
+        style={fs(13, 'body')} /> : <>
+        <DialogSection label={t('roadtrip.import.day')}>
           <CustomSelect value={target} onChange={value => { setTarget(String(value)); requestId.current = generateUUID() }}
             options={days.map(day => ({ value: String(day.id), label: day.title || `${t('roadtrip.import.day')} ${day.day_number}` }))} disabled={busy || saved} />
-          <ol className="max-h-64 space-y-2 overflow-auto">
-            {preview.stops.map((stop, index) => <li key={index} className="flex items-baseline gap-3 text-body text-content">
-              <span className="text-caption tabular-nums text-content-muted">{index + 1}</span>
-              <span className="min-w-0">{stop.name}{stop.name !== `${stop.lat}, ${stop.lng}` && <span className="block text-caption text-content-muted">{stop.lat == null || stop.lng == null ? t('roadtrip.import.unresolved') : `${stop.lat.toFixed(5)}, ${stop.lng.toFixed(5)}`}</span>}</span>
-            </li>)}
-          </ol>
-        </>}
-        {failure && <p role="alert" className="text-caption text-danger">{saved ? t('common.saved') + ': ' : ''}{failure}</p>}
-        <div className="flex justify-end gap-2">
-          <button type="button" disabled={busy} className="rounded-lg px-3 py-2 text-body text-content-secondary" onClick={() => setOpen(false)}>{t('common.cancel')}</button>
-          <button type="button" disabled={busy || saved || (!preview ? !url.trim() : resolved.length < 2 || !target)} onClick={() => void (preview ? save() : inspect())}
-            className="rounded-lg bg-accent px-4 py-2 text-body font-medium text-accent-text disabled:opacity-50">
-            {busy ? t('common.loading') : t(preview ? 'common.import' : 'common.preview')}
-          </button>
-        </div>
-      </div>
-    </Modal>
+        </DialogSection>
+        <ol className="m-0 flex max-h-64 list-none flex-col gap-2.5 overflow-auto rounded-[14px] border border-edge-faint bg-surface-secondary p-3.5">
+          {preview.stops.map((stop, index) => <li key={index} className="flex items-baseline gap-3 text-content" style={fs(13, 'body')}>
+            <span className="grid h-5 w-5 flex-none place-items-center rounded-full bg-surface-card font-semibold tabular-nums text-content-muted shadow-sm" style={fs(10.5)}>{index + 1}</span>
+            <span className="min-w-0 break-words">{stop.name}{stop.name !== `${stop.lat}, ${stop.lng}` && <span className="block font-geist text-content-muted" style={fs(11.5)}>{stop.lat == null || stop.lng == null ? t('roadtrip.import.unresolved') : `${stop.lat.toFixed(5)}, ${stop.lng.toFixed(5)}`}</span>}</span>
+          </li>)}
+        </ol>
+      </>}
+      {failure && <p role="alert" className="m-0 text-caption text-danger">{saved ? t('common.saved') + ': ' : ''}{failure}</p>}
+    </DialogShell>
   </>
 }

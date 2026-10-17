@@ -4,7 +4,7 @@ import { getAuthUrl } from '../../api/authUrl'
 export function AuthedImg({ src, style, onClick, onMouseEnter, onMouseLeave, alt }: { src: string; style?: React.CSSProperties; onClick?: () => void; onMouseEnter?: React.MouseEventHandler<HTMLElement>; onMouseLeave?: React.MouseEventHandler<HTMLElement>; alt?: string }) {
   const [authSrc, setAuthSrc] = useState('')
   useEffect(() => {
-    getAuthUrl(src, 'download').then(setAuthSrc)
+    void getAuthUrl(src, 'download').then(setAuthSrc)
   }, [src])
   if (!authSrc) return null
   // A clickable thumbnail gets a real button around the image so it is

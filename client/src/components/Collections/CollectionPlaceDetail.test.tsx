@@ -673,7 +673,7 @@ describe('CollectionPlaceDetail: cover controls', () => {
     expect(controls.querySelectorAll('button')).toHaveLength(3);
     // Chip first, controls last in one flex bar: the chip only gets what the buttons leave.
     expect(Array.from(bar.children)).toEqual([chip, controls]);
-    expect(bar).toHaveClass('absolute', 'flex', 'left-[14px]', 'right-[12px]', 'top-[12px]');
+    expect(bar).toHaveClass('absolute', 'flex', 'start-[14px]', 'end-[12px]', 'top-[12px]');
     expect(controls).toHaveClass('ms-auto', 'flex-none');
     expect(chip).toHaveClass('min-w-0');
     expect(text).toHaveClass('truncate');

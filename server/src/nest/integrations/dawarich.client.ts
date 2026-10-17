@@ -1,8 +1,8 @@
+import { readCappedJson } from '../../utils/cappedFetch';
+import { safeFetch } from '../../utils/ssrfGuard';
+import { mergeVisitedCountries, splitWindow, VISITED_CITIES_WINDOW_DAYS } from './dawarich.helpers';
 import { Injectable } from '@nestjs/common';
 import type { DawarichErrorCode } from '@trek/shared';
-import { safeFetch } from '../../utils/ssrfGuard';
-import { readCappedJson } from '../../utils/cappedFetch';
-import { mergeVisitedCountries, splitWindow, VISITED_CITIES_WINDOW_DAYS } from './dawarich.helpers';
 
 /**
  * Thin HTTP client for the Dawarich REST API (github.com/Freika/dawarich).
@@ -250,11 +250,7 @@ export class DawarichClient {
     }
 
     if (!response.ok) {
-      throw new DawarichError(
-        classify(response.status),
-        `Dawarich answered HTTP ${response.status}`,
-        response.status,
-      );
+      throw new DawarichError(classify(response.status), `Dawarich answered HTTP ${response.status}`, response.status);
     }
 
     // Read through the cap rather than calling .json(): Dawarich answers chunked
@@ -395,11 +391,7 @@ export class DawarichClient {
    * The windows go one after another rather than in parallel, because each one
    * is a full computation on the user's own server.
    */
-  async listVisitedCities(
-    creds: DawarichCreds,
-    from: Date,
-    to: Date,
-  ): Promise<DawarichVisitedCountry[]> {
+  async listVisitedCities(creds: DawarichCreds, from: Date, to: Date): Promise<DawarichVisitedCountry[]> {
     const answers: DawarichVisitedCountry[][] = [];
     for (const window of splitWindow(from, to, VISITED_CITIES_WINDOW_DAYS)) {
       const { data } = await this.get<{ data?: DawarichVisitedCountry[] }>(creds, '/countries/visited_cities', {

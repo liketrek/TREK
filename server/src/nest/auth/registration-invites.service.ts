@@ -1,6 +1,13 @@
+import { InviteTokens } from '../../db/entities/InviteTokens.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { InviteTokensRepository } from '../../db/repositories/InviteTokens.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { DomainError } from '../common/domain-error';
+import { toRowId } from '../common/row-id';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
+
 import crypto from 'crypto';
-import { DatabaseService } from '../database/database.service';
 
 /**
  * Registration invites: the tokens an admin hands out so someone can create an
@@ -16,27 +23,35 @@ import { DatabaseService } from '../database/database.service';
  * because the management routes are under /api/admin. Those routes keep their
  * paths and their guards; AdminController now injects this instead of carrying
  * another domain's SQL.
+ *
+ * Plan 3b Task 3: `invite_tokens` reads/writes go through
+ * `InviteTokensRepository` (RI1, RI4–RI7). RI2/RI3 (`trips`) went through
+ * `DatabaseService` until Plan 4 Task 1: `trips` is `nest/trips`' table, not
+ * this domain's, and the carve-out was pending `TripsRepository`'s
+ * existence — it now exists (Plan 3c) and both reads are additive methods
+ * on it (`listIdTitleOrderedByTitle`/`existsById`).
  */
 @Injectable()
 export class RegistrationInvitesService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    @InjectRepository(InviteTokens) private readonly inviteTokens: InviteTokensRepository,
+    @InjectRepository(Trips) private readonly trips: TripsRepository,
+  ) {}
 
-  listInvites() {
-    return this.db.all(`
-    SELECT i.*, u.username as created_by_name, t.title as trip_title
-    FROM invite_tokens i
-    JOIN users u ON i.created_by = u.id
-    LEFT JOIN trips t ON i.trip_id = t.id
-    ORDER BY i.created_at DESC
-  `);
+  /** RI1 — `InviteTokensRepository.listWithCreatorAndTrip()`'s joined projection. */
+  async listInvites() {
+    return this.inviteTokens.listWithCreatorAndTrip();
   }
 
-  /** Trips an admin can bind an invite to — id + title only, for the picker (#1402). */
-  listTripsForInvite() {
-    return this.db.all('SELECT id, title FROM trips ORDER BY title COLLATE NOCASE ASC');
+  /**
+   * Trips an admin can bind an invite to — id + title only, for the picker
+   * (#1402). RI2 — `TripsRepository.listIdTitleOrderedByTitle()`.
+   */
+  async listTripsForInvite() {
+    return this.trips.listIdTitleOrderedByTitle();
   }
 
-  createInvite(
+  async createInvite(
     createdBy: number,
     data: { max_uses?: string | number; expires_in_days?: string | number; trip_id?: string | number | null },
   ) {
@@ -49,38 +64,56 @@ export class RegistrationInvitesService {
 
     // Optional trip binding: only persist a trip that actually exists, so a stale
     // or forged id can never bind (and never auto-adds anyone on registration).
+    // RI3 — `TripsRepository.existsById()`, the same bare `SELECT id FROM
+    // trips WHERE id = ?` existence probe.
     let tripId: number | null = null;
     if (data.trip_id != null && String(data.trip_id).trim() !== '') {
       const parsed = Number.parseInt(String(data.trip_id));
-      if (!Number.isInteger(parsed) || !this.db.get('SELECT id FROM trips WHERE id = ?', parsed)) {
+      if (!Number.isInteger(parsed) || !(await this.trips.existsById(parsed))) {
         // Used to bind null silently, handing back a plain registration invite
-        // the admin never asked for.
-        return { error: 'Trip not found', status: 404 };
+        // the admin never asked for. Thrown, so the controller writes neither
+        // the invite nor its audit row and the admin sees the 404.
+        throw new DomainError(404, 'Trip not found');
       }
       tripId = parsed;
     }
 
-    const ins = this.db.run(
-      'INSERT INTO invite_tokens (token, max_uses, expires_at, created_by, trip_id) VALUES (?, ?, ?, ?, ?)',
-      token, uses, expiresAt, createdBy, tripId,
-    );
+    // RI4: the write. RI5: the same joined re-select RI1 projects, filtered
+    // to the new row — `insertInvite`'s column set already matches this
+    // INSERT exactly (Task 0).
+    const created = await this.inviteTokens.insertInvite({
+      token,
+      max_uses: uses,
+      expires_at: expiresAt,
+      created_by: createdBy,
+      trip_id: tripId,
+    });
+    const invite = await this.inviteTokens.findWithCreatorAndTrip(created.id);
 
-    const inviteId = Number(ins.lastInsertRowid);
-    const invite = this.db.get(`
-    SELECT i.*, u.username as created_by_name, t.title as trip_title
-    FROM invite_tokens i
-    JOIN users u ON i.created_by = u.id
-    LEFT JOIN trips t ON i.trip_id = t.id
-    WHERE i.id = ?
-  `, inviteId);
-
-    return { invite, inviteId, uses, expiresInDays: data.expires_in_days ?? null, tripId };
+    return { invite, inviteId: created.id, uses, expiresInDays: data.expires_in_days ?? null, tripId };
   }
 
-  deleteInvite(id: string) {
-    const invite = this.db.get('SELECT id FROM invite_tokens WHERE id = ?', id);
-    if (!invite) return { error: 'Invite not found', status: 404 };
-    this.db.run('DELETE FROM invite_tokens WHERE id = ?', id);
+  async deleteInvite(id: string) {
+    // A non-numeric id can never match an `invite_tokens.id` row — resolved
+    // here rather than handed to the repository as `NaN` (SQLite's driver
+    // has no representation for it as a bind parameter; the legacy raw
+    // statement tolerated a non-numeric string bind and simply matched no
+    // row, so the 404 below reproduces that same observable outcome without
+    // routing an invalid value into the query layer).
+    //
+    // `toRowId`, not a bare `Number.isInteger(Number(id))` guard: the plain
+    // guard accepted prefixed numeric literals JS understands and SQLite's
+    // INTEGER affinity does not (`'0x10'` → `16`, `'0b100'` → `4`), which is
+    // a genuine parity break, not just stricter validation (Plan 3b Task 3
+    // review, F2) — `toRowId` requires the digits-only shape the legacy
+    // raw-string bind actually matched.
+    const numericId = toRowId(id);
+    // RI6 — the 404 check.
+    if (numericId === null || (await this.inviteTokens.findIdById(numericId)) === null) {
+      throw new DomainError(404, 'Invite not found');
+    }
+    // RI7.
+    await this.inviteTokens.deleteById(numericId);
     return {};
   }
 }

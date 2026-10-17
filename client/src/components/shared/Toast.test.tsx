@@ -1,6 +1,7 @@
 import { render, screen, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { ToastContainer } from './Toast';
+import { renderHook } from '@testing-library/react';
+import { ToastContainer, useToast } from './Toast';
 
 describe('ToastContainer', () => {
   beforeEach(() => {
@@ -90,5 +91,14 @@ describe('ToastContainer', () => {
     expect(screen.getByText('First toast')).toBeTruthy();
     expect(screen.getByText('Second toast')).toBeTruthy();
     expect(screen.getByText('Third toast')).toBeTruthy();
+  });
+});
+
+describe('useToast', () => {
+  it('hands back the same object on every render, so effects that list it do not re-run', () => {
+    const { result, rerender } = renderHook(() => useToast());
+    const first = result.current;
+    rerender();
+    expect(result.current).toBe(first);
   });
 });

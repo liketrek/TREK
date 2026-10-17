@@ -62,11 +62,17 @@ const login: TranslationStrings = {
   'login.resetPasswordFailed': 'Restablecimiento fallido. El enlace puede haber caducado.',
   'login.oidc.tokenFailed': 'La autenticación falló.',
   'login.oidc.invalidState': 'Sesión no válida. Inténtalo de nuevo.',
+  'login.oidc.emailNotVerified':
+    'Tu proveedor de inicio de sesión no ha confirmado esta dirección de correo, así que no se puede vincular a una cuenta existente.',
+  'login.oidc.emailLinkBlocked':
+    'No se pudo vincular este inicio de sesión a la cuenta existente con este correo. Pide al administrador que confirme la dirección.',
   'login.demoFailed': 'Falló el acceso a la demo',
   'login.oidcSignIn': 'Entrar con {name}',
   'login.demoHint': 'Prueba la demo: no necesitas registrarte',
   'login.oidcOnly': 'La autenticación por contraseña está desactivada. Por favor, inicia sesión con tu proveedor SSO.',
   'login.oidcLoggedOut': 'Has cerrado sesión. Vuelve a iniciar sesión con tu proveedor SSO.',
+  'login.oidcRedirecting': 'Redirigiendo a {name}…',
+  'login.oidcRedirectSlow': '¿Sigues aquí? Continuar a {name}',
   'login.passkey.signIn': 'Iniciar sesión con una passkey',
   'login.passkey.failed': 'Error al iniciar sesión con la passkey. Inténtalo de nuevo.',
   'login.insecureCookie.title': "Login won't stick over HTTP",

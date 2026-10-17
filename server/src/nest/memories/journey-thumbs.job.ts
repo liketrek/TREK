@@ -1,7 +1,7 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { logInfo, logError } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { ThumbnailService } from './thumbnail.service';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * Journey thumbnail cleanup: daily — reclaim journey/thumbs/ objects whose
@@ -19,8 +19,12 @@ export class JourneyThumbsJob implements OnApplicationBootstrap {
 
   onApplicationBootstrap(): void {
     if (!this.registrar.isEnabled()) return;
-    // Run once on startup to reclaim orphans left over from before this sweeper existed.
-    void this.sweep();
+    // Run once on startup to reclaim orphans left over from before this
+    // sweeper existed — through runOnBoot (task-6-review-parity.md C1), not
+    // the bare `void this.sweep()` this used to be: sweepOrphanThumbs reaches
+    // AddonsService.isAddonEnabled, which is repository-backed, and this call
+    // has no HTTP request (or registered-tick wrapper) behind it.
+    void this.registrar.runOnBoot('journey-thumbs-boot', () => this.sweep());
     this.registrar.register('journey-thumbs', '0 4 * * *', () => {
       void this.sweep();
     });

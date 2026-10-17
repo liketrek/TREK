@@ -1,0 +1,13 @@
+{
+  // The strict ratchet (npm run lint:strict, scripts/strict-lint.mjs): the
+  // build config with strictNullChecks and noImplicitAny switched on. Nothing
+  // compiles with it; the script counts its errors per file against
+  // scripts/strict-baseline.json, so a file may only lose them and a new file
+  // starts at none.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true
+  }
+}

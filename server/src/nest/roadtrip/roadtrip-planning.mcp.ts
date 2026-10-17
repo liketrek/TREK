@@ -2,13 +2,15 @@ import { ADDON_IDS } from '../../addons';
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, errorResult, type McpContext } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { RoadtripSearchService } from './roadtrip-search.service';
+import { answeringRefusals } from './roadtrip-mcp.helpers';
 import { RoadtripPlanService } from './roadtrip-plan.service';
+import { RoadtripSearchService } from './roadtrip-search.service';
 import {
   roadtripPlanRequestSchema,
   roadtripCorridorRequestSchema,
   type RoadtripPlanRequest,
   type RoadtripCorridorRequest,
+  idSchema,
 } from '@trek/shared';
 import {
   corridorTiles,
@@ -19,9 +21,6 @@ import {
   riddenRanges,
   simplifyLine,
 } from '@trek/shared/roadtrip';
-import { answeringRefusals } from './roadtrip-mcp.helpers';
-
-import { z } from 'zod';
 
 const when = addonGate(ADDON_IDS.ROADTRIP);
 
@@ -37,19 +36,19 @@ export class RoadtripPlanningMcp {
     name: 'get_roadtrip_context',
     description:
       'Read the saved roadtrip days, visits, pinned times, end times (when the drive leaves a visit), stays, stop types, fill levels, travel modes, via points, followed tracks, manual day endings and the carrier bookings (flight, train, ferry, cruise, bus) that seam the drive at their terminals, plus the hire cars whose pick-up and return desks stand on it. stays lists every booked stay with its check-in and check-out day, its place and the earliest linked reservation (reservation_id). Includes the shared driving preferences for this trip. No routing request and no browser needed. Coordinates missing from a visit prevent it from being routed. Use calculate_roadtrip to get the derived day layout. Edit visits with the existing place and assignment tools; change their saved order with reorder_day_assignments. Settings, visits and manual boundaries all belong to the shared trip.',
-    inputSchema: { tripId: z.number().int().positive() },
+    inputSchema: { tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'read' },
     when,
   })
   async context({ tripId }: { tripId: number }, ctx: McpContext) {
-    return answeringRefusals(() => ok(this.plans.context(tripId, ctx.userId)));
+    return await answeringRefusals(async () => ok(await this.plans.context(tripId, ctx.userId)));
   }
 
   @Tool({
     name: 'calculate_roadtrip',
     description:
-      'Calculate a saved trip without an open browser, using the same daily scheduling and vehicle-range rules as the planner. Returns derived days, arrivals, departures, driving limits, fuel warnings, automatic pauses and routing failures. A flight, train, ferry, cruise or bus booking with located terminals is a seam: its terminals appear as stops carrying `carrier` (role departure or arrival), the road ends at the departure terminal and resumes at the arrival one, and the leg between them is the ride, in the mode of the booking type, with its timetable minutes and no distance. The departure terminal is pinned a check-in ahead of the timetable departure (an hour for a flight); reaching it after that is a late warning with the full minutes, however many, and the ride keeps its own day, so the drive after the arrival terminal goes on from the timetable arrival. On a day a ride leaves and lands on, the stop of a stay checked into that day comes after the arrival terminal when the stay lies nearer to it than to the departure terminal: a check-in is the earliest arrival, not a time that seats the stay ahead of the ride, and it pins the stay only when the ride lands before it. A time set on the stop itself keeps its seat. A hire car booking with a located pick-up desk puts that desk on the road as a stop carrying `carrier` with role pickup, and its return desk with role return when the booking names a return day and place; the road runs through both. A flight, train, ferry, cruise or bus booking that is on none of the days of the trip (saved without a date, or on a day the trip no longer has) is not on the drive at all, although its terminals are located: undatedRides lists each one (id, type, title) so it can be given a date within the trip with the reservation tools, after which the road ends at its terminal. With roadtrip_hotel_bookends switched on (missing means off), a day after a booked night starts at that stay and a day before one ends there. Such stops carry `bookend` {phase, accommodationId, reservationId, checkingOut, checkingIn, checkOut, and checkIn on the evening a stay begins when it has a check-in time}, stopType hotel, the real placeId of the stay and a synthetic negative assignmentId that belongs to no assignment: they cannot be reordered, edited or given via points, and `failures` may name them. The check-out and check-in are labels, never a departure or arrival time. A day between two nights in the same stay with no visit has no drive. Nor does a day with nothing on it but the check-in of the next stay when a flight, train, ferry, cruise or bus is booked on that day, with or without located terminals: the booking is the move between the two stays. A stay is never joined by road to a terminal more than 2000 km away in a straight line. Pass settings {roadtrip_hotel_bookends:true} to preview the drive from and to the stays without saving it. Fixed visit times retain priority. The end time of a visit is when the drive leaves it, in place of its stay; reaching the visit after it is reported as a missedLeave warning. No accommodation or place is created. Optional settings are a read-only preview, not saved. Distances are metres, durations seconds, dwell times minutes. A failed leg or conflicting window means the output is incomplete: never present its totals as a complete route. Up to 150 legs; requests are paced for public routing servers and can take time. Existing place/assignment tools edit stops, stays and ordering, update_roadtrip_settings saves preferences, set_assignment_end_day and set_day_boundary set exceptions. Recalculate after changes. Plugin profiles follow installed route-provider permissions.',
+      'Calculate a saved trip without an open browser, using the same daily scheduling and vehicle-range rules as the planner. Returns derived days, arrivals, departures, driving limits, fuel warnings, automatic pauses and routing failures. A flight, train, ferry, cruise or bus booking with located terminals is a seam: its terminals appear as stops carrying `carrier` (role departure or arrival), the road ends at the departure terminal and resumes at the arrival one, and the leg between them is the ride, in the mode of the booking type, with its timetable minutes and no distance. The departure terminal is pinned a check-in ahead of the timetable departure (an hour for a flight); reaching it after that is a late warning with the full minutes, however many, and the ride keeps its own day, so the drive after the arrival terminal goes on from the timetable arrival. On a day a ride leaves and lands on, the stop of a stay checked into that day comes after the arrival terminal when the stay lies nearer to it than to the departure terminal: a check-in is the earliest arrival, not a time that seats the stay ahead of the ride, and it pins the stay only when the ride lands before it. A time set on the stop itself keeps its seat. A hire car booking with a located pick-up desk puts that desk on the road as a stop carrying `carrier` with role pickup, and its return desk with role return when the booking names a return day and place; the road runs through both. A flight, train, ferry, cruise or bus booking that is on none of the days of the trip (saved without a date, or on a day the trip no longer has) is not on the drive at all, although its terminals are located: undatedRides lists each one (id, type, title) so it can be given a date within the trip with the reservation tools, after which the road ends at its terminal. With roadtrip_hotel_bookends switched on (missing means off), a day after a booked night starts at that stay and a day before one ends there. Such stops carry `bookend` {phase, accommodationId, reservationId, checkingOut, checkingIn, checkOut, and checkIn on the evening a stay begins when it has a check-in time}, stopType hotel, the real placeId of the stay and a synthetic negative assignmentId that belongs to no assignment: they cannot be reordered, edited or given via points, and `failures` may name them. The check-out and check-in are labels, never a departure or arrival time. A day between two nights in the same stay with no visit has no drive. Nor does a day with nothing on it but the check-in of the next stay when a flight, train, ferry, cruise or bus is booked on that day, with or without located terminals: the booking is the move between the two stays. A stay is never joined by road to a terminal more than 2000 km away in a straight line. Pass settings {roadtrip_hotel_bookends:true} to preview the drive from and to the stays without saving it. A hotel visited more than once on the check-in day of its stay is the night (night true, checkInTime set) at one visit only: the visit that ends the day, else the stop the booking put on the day, else the last visit; the other visits are ordinary stops. Fixed visit times retain priority. The end time of a visit is when the drive leaves it, in place of its stay; reaching the visit after it is reported as a missedLeave warning. No accommodation or place is created. Optional settings are a read-only preview, not saved. Distances are metres, durations seconds, dwell times minutes. A failed leg or conflicting window means the output is incomplete: never present its totals as a complete route. Up to 150 legs; requests are paced for public routing servers and can take time. Existing place/assignment tools edit stops, stays and ordering, update_roadtrip_settings saves preferences, set_assignment_end_day and set_day_boundary set exceptions. Recalculate after changes. Plugin profiles follow installed route-provider permissions.',
     inputSchema: roadtripPlanRequestSchema.shape,
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'read' },
@@ -120,7 +119,11 @@ export class RoadtripPlanningMcp {
       const tiles = drivenPieces(line, ridden).flatMap((piece) => corridorTiles(piece, input.widthKm));
       const hits = new Map<
         string,
-        { poi: Awaited<ReturnType<RoadtripSearchService['search']>>['pois'][number]; alongKm: number; distanceKm: number }
+        {
+          poi: Awaited<ReturnType<RoadtripSearchService['search']>>['pois'][number];
+          alongKm: number;
+          distanceKm: number;
+        }
       >();
       const page = tiles.slice(input.offset, input.offset + 6);
       const failedAreas: number[] = [];
@@ -130,8 +133,8 @@ export class RoadtripPlanningMcp {
       for (const bbox of page) {
         try {
           const found = await this.maps.search({ categories: [input.category], bbox }, ctx.userId);
-          found.sources.forEach(source => sources.add(source));
-          found.failedSources.forEach(source => failedSources.add(source));
+          found.sources.forEach((source) => sources.add(source));
+          found.failedSources.forEach((source) => failedSources.add(source));
           if (found.truncated || found.clamped) truncatedAreas++;
           for (const poi of found.pois) {
             const projection = projectOntoRoute(poi, line);
@@ -166,7 +169,8 @@ export class RoadtripPlanningMcp {
         dayNumber: day.dayNumber,
         sources: [...sources],
         failedSources: [...failedSources],
-        complete: !failedSources.size && !failedAreas.length && !truncatedAreas && input.offset + page.length >= tiles.length,
+        complete:
+          !failedSources.size && !failedAreas.length && !truncatedAreas && input.offset + page.length >= tiles.length,
         failedAreas,
         truncatedAreas,
         totalAreas: tiles.length,

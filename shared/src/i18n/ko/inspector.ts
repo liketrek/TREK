@@ -14,6 +14,7 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': '대기 중인 예약',
   'inspector.google': 'Google Maps',
   'inspector.navigation': '내비게이션',
+  'inspector.otherMapApp': '다른 지도 앱',
   'inspector.openWith': '다음으로 열기',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.website': '웹사이트 열기',

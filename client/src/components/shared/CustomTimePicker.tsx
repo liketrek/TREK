@@ -1,9 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Clock, ChevronUp, ChevronDown } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { useSettingsStore } from '../../store/settingsStore'
 import { formatClockTime, parseMeridiemTime } from '../../utils/formatters'
 import { useAnchoredPosition } from '../../hooks/useAnchoredPosition'
+import { TimeSpinnerColumn } from './TimeSpinnerColumn'
+import { spinnerButtonStyle } from './timeSpinnerStyle'
+
+// The hour and minute boxes, wide enough for two digits that do not jump as they change.
+const DIGITS: React.CSSProperties = { width: 44, fontSize: 'calc(22px * var(--fs-scale-title, 1))', fontVariantNumeric: 'tabular-nums' }
 
 interface CustomTimePickerProps {
   value: string
@@ -72,10 +77,9 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
     update(newH, newM)
   }
 
-  const btnStyle: React.CSSProperties = {
-    background: 'none', border: 'none', cursor: 'pointer', padding: 2,
-    color: 'var(--text-faint)', display: 'flex', borderRadius: 4,
-    transition: 'color 0.15s',
+  const toggleMeridiem = () => {
+    if (hour === null) return
+    if (hour < 12) update(hour + 12, minute ?? 0); else update(hour - 12, minute ?? 0)
   }
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,7 +146,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
           disabled={disabled}
           style={{
             flex: 1, border: 'none', outline: 'none', background: 'transparent',
-            padding: '8px 10px 8px 14px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit',
+            paddingBlock: 8, paddingInlineEnd: 10, paddingInlineStart: 14, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontFamily: 'inherit',
             color: value ? 'var(--text-primary)' : 'var(--text-faint)',
             minWidth: 0,
           }}
@@ -163,7 +167,8 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
       </div>
 
       {open && createPortal(
-        <div ref={dropRef} style={{
+        // dir=ltr so hours, minutes and AM/PM read the same way round in an RTL locale.
+        <div ref={dropRef} dir="ltr" style={{
           position: 'fixed',
           ...(anchored
             ? anchored.flipped
@@ -178,78 +183,29 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
           backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
         }}>
           {/* Hours */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <button type="button" onClick={incHour} style={btnStyle}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              <ChevronUp size={16} />
-            </button>
-            <div style={{
-              width: 44, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 'calc(22px * var(--fs-scale-title, 1))', fontWeight: 700, color: 'var(--text-primary)',
-              background: 'var(--bg-hover)', borderRadius: 8,
-              fontVariantNumeric: 'tabular-nums',
-            }}>
-              {hour !== null ? (is12h ? String(hour === 0 ? 12 : hour > 12 ? hour - 12 : hour) : String(hour).padStart(2, '0')) : '--'}
-            </div>
-            <button type="button" onClick={decHour} style={btnStyle}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              <ChevronDown size={16} />
-            </button>
-          </div>
+          <TimeSpinnerColumn onUp={incHour} onDown={decHour} valueStyle={DIGITS}>
+            {hour !== null ? (is12h ? String(hour === 0 ? 12 : hour > 12 ? hour - 12 : hour) : String(hour).padStart(2, '0')) : '--'}
+          </TimeSpinnerColumn>
 
           <span style={{ fontSize: 'calc(22px * var(--fs-scale-title, 1))', fontWeight: 700, color: 'var(--text-faint)', marginTop: -2 }}>:</span>
 
           {/* Minutes */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <button type="button" onClick={incMin} style={btnStyle}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              <ChevronUp size={16} />
-            </button>
-            <div style={{
-              width: 44, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 'calc(22px * var(--fs-scale-title, 1))', fontWeight: 700, color: 'var(--text-primary)',
-              background: 'var(--bg-hover)', borderRadius: 8,
-              fontVariantNumeric: 'tabular-nums',
-            }}>
-              {minute !== null ? String(minute).padStart(2, '0') : '--'}
-            </div>
-            <button type="button" onClick={decMin} style={btnStyle}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-              <ChevronDown size={16} />
-            </button>
-          </div>
+          <TimeSpinnerColumn onUp={incMin} onDown={decMin} valueStyle={DIGITS}>
+            {minute !== null ? String(minute).padStart(2, '0') : '--'}
+          </TimeSpinnerColumn>
 
           {/* AM/PM Toggle */}
           {is12h && hour !== null && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, marginLeft: 4 }}>
-              <button type="button" onClick={() => { if (hour < 12) update(hour + 12, minute ?? 0); else update(hour - 12, minute ?? 0) }} style={btnStyle}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-                <ChevronUp size={16} />
-              </button>
-              <div style={{
-                width: 36, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700, color: 'var(--text-primary)',
-                background: 'var(--bg-hover)', borderRadius: 8,
-              }}>
-                {hour >= 12 ? 'PM' : 'AM'}
-              </div>
-              <button type="button" onClick={() => { if (hour < 12) update(hour + 12, minute ?? 0); else update(hour - 12, minute ?? 0) }} style={btnStyle}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
-                <ChevronDown size={16} />
-              </button>
-            </div>
+            <TimeSpinnerColumn onUp={toggleMeridiem} onDown={toggleMeridiem} style={{ marginInlineStart: 4 }}
+              valueStyle={{ width: 36, fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}>
+              {hour >= 12 ? 'PM' : 'AM'}
+            </TimeSpinnerColumn>
           )}
 
           {/* Clear */}
           {value && (
             <button type="button" onClick={() => { onChange(''); setOpen(false) }}
-              style={{ ...btnStyle, marginLeft: 4, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', padding: '4px 6px' }}
+              style={{ ...spinnerButtonStyle, marginInlineStart: 4, fontSize: 'calc(11px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', padding: '4px 6px' }}
               onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
               ✕

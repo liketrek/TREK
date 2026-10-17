@@ -1,0 +1,202 @@
+import type { JsonColumn } from '../utils/json-column';
+import {
+  FERRATAS_RESULT_CAP,
+  ferrataSchema,
+  obstacleSnapshotSchema,
+  paddleGeometrySchema,
+  paddleLockSchema,
+  paddleRegionBoundarySchema,
+  tourFixedLegSchema,
+  trackMarksSchema,
+  type Ferrata,
+  type ObstacleSnapshot,
+  type PaddleGeometry,
+  type PaddleLock,
+  type PaddleRegionBoundary,
+  type TourFixedLeg,
+  type TrackMarks,
+} from '@trek/shared';
+
+import { z } from 'zod';
+
+/**
+ * The JSON-in-TEXT columns the services decode, one declaration each: the shape
+ * the column holds and what a reader gets when a row is empty or broken. Read
+ * them with `decodeJson`/`decodeJsonResult` and write server-built values with
+ * `encodeJson` (`utils/json-column.ts`), never with a bare `JSON.parse` at the
+ * call site.
+ *
+ * These are storage shapes, not API contracts: `reservations.metadata` goes out
+ * as the stored string, and the scope lists are plain string arrays whose
+ * values the OAuth layer checks against its own scope table.
+ */
+
+/** The free-form booking details (times, carrier, legs, the mirrored price). Old rows can hold a JSON string of the JSON. */
+export const RESERVATION_METADATA: JsonColumn<Record<string, unknown>> = {
+  column: 'reservations.metadata',
+  schema: z.record(z.string(), z.unknown()),
+  fallback: () => ({}),
+  unwrapDoubleEncoded: true,
+};
+
+const stringList = z.array(z.string());
+
+/** The scopes an OAuth token was issued with. A broken row grants nothing. */
+export const OAUTH_TOKEN_SCOPES: JsonColumn<string[]> = {
+  column: 'oauth_tokens.scopes',
+  schema: stringList,
+  fallback: () => [],
+};
+
+/** The scopes an OAuth client may ask for. A broken row allows nothing. */
+export const OAUTH_CLIENT_ALLOWED_SCOPES: JsonColumn<string[]> = {
+  column: 'oauth_clients.allowed_scopes',
+  schema: stringList,
+  fallback: () => [],
+};
+
+/** The redirect URIs an OAuth client registered. A broken row matches none. */
+export const OAUTH_CLIENT_REDIRECT_URIS: JsonColumn<string[]> = {
+  column: 'oauth_clients.redirect_uris',
+  schema: stringList,
+  fallback: () => [],
+};
+
+/** The scopes a user consented to for a client. A broken row counts as consent to nothing, so the user is asked again. */
+export const OAUTH_CONSENT_SCOPES: JsonColumn<string[]> = {
+  column: 'oauth_consents.scopes',
+  schema: stringList,
+  fallback: () => [],
+};
+
+/** A limited API token's scopes; the reader keeps the strings it knows. */
+export const MCP_TOKEN_API_SCOPES: JsonColumn<unknown[]> = {
+  column: 'mcp_tokens.api_scopes',
+  schema: z.array(z.unknown()),
+  fallback: () => [],
+};
+
+/** The hashed MFA backup codes; the reader keeps the strings. A broken row holds no codes. */
+export const USER_MFA_BACKUP_CODES: JsonColumn<unknown[]> = {
+  column: 'users.mfa_backup_codes',
+  schema: z.array(z.unknown()),
+  fallback: () => [],
+};
+
+/** A journey entry's tags. */
+export const JOURNEY_ENTRY_TAGS: JsonColumn<string[]> = {
+  column: 'journey_entries.tags',
+  schema: z.array(z.string()),
+  fallback: () => [],
+};
+
+/**
+ * A journey entry's pros and cons (`{ pros, cons }`). Checked as an object
+ * only: the lists inside go out as they were stored.
+ */
+export const JOURNEY_ENTRY_PROS_CONS: JsonColumn<Record<string, unknown> | null> = {
+  column: 'journey_entries.pros_cons',
+  schema: z.record(z.string(), z.unknown()).nullable(),
+  fallback: () => null,
+};
+
+/** A poll's options: plain labels, or `{ label }` objects from older rows. Checked as a list only. */
+export const COLLAB_POLL_OPTIONS: JsonColumn<unknown[]> = {
+  column: 'collab_polls.options',
+  schema: z.array(z.unknown()),
+  fallback: () => [],
+};
+
+/**
+ * An expense's itemized receipt (#1658): each line's price as typed and the user
+ * ids in on it. The client writes it; the server only reads it to take a departed
+ * guest off the lines, so every key it does not know is kept as it is.
+ */
+export const BUDGET_ITEM_TICKET: JsonColumn<{ items: { price?: string | number; parts?: number[] }[] } | null> = {
+  column: 'budget_items.ticket_json',
+  schema: z
+    .object({
+      items: z.array(
+        z.looseObject({ price: z.union([z.string(), z.number()]).optional(), parts: z.array(z.number()).optional() }),
+      ),
+    })
+    .loose(),
+  fallback: () => null,
+};
+
+/** What one cell of the via ferrata grid holds: its ferratas, and whether the Overpass answer they came from was cut. */
+export interface FerrataTilePayload {
+  ferratas: Ferrata[];
+  truncated: boolean;
+}
+
+/**
+ * One via ferrata grid cell, as Overpass answered it. Checked against the wire
+ * contract, so a stored row can go out as it is. A broken row reads as a cell
+ * never fetched (null), and the next request asks Overpass for it again.
+ */
+export const FERRATA_TILE_PAYLOAD: JsonColumn<FerrataTilePayload | null> = {
+  column: 'ferrata_tiles.payload',
+  schema: z.object({ ferratas: z.array(ferrataSchema).max(FERRATAS_RESULT_CAP), truncated: z.boolean() }).nullable(),
+  fallback: () => null,
+};
+
+/**
+ * A tour leg taken as a fixed line (a via ferrata's own line from OSM) rather
+ * than routed. A row that does not decode reads as a routed leg, which the
+ * editor then plans again.
+ */
+export const TOUR_WAYPOINT_FIXED_LEG: JsonColumn<TourFixedLeg | null> = {
+  column: 'tour_waypoints.fixed_leg',
+  schema: tourFixedLegSchema.nullable(),
+  fallback: () => null,
+};
+
+/**
+ * PAD-07: a lock at a control point of a paddle tour, with the times the
+ * paddler expects there. A row that does not decode reads as no lock, so the
+ * estimate names nothing it cannot read.
+ */
+export const TOUR_WAYPOINT_LOCK: JsonColumn<PaddleLock | null> = {
+  column: 'tour_waypoints.lock',
+  schema: paddleLockSchema.nullable(),
+  fallback: () => null,
+};
+
+/**
+ * PAD-03: portages and locks laid onto a recorded track. A row that does not
+ * decode reads as no marks; the track itself is untouched either way.
+ */
+export const TOUR_TRACK_MARKS: JsonColumn<TrackMarks | null> = {
+  column: 'tours.track_marks',
+  schema: trackMarksSchema.nullable(),
+  fallback: () => null,
+};
+
+/** A paddle object's own geometry (PAD-05A). A broken row has none, and the object is left out rather than drawn anywhere. */
+export const PADDLE_FEATURE_GEOMETRY: JsonColumn<PaddleGeometry | null> = {
+  column: 'paddle_features.geometry',
+  schema: paddleGeometrySchema.nullable(),
+  fallback: () => null,
+};
+
+/** The OSM tags a paddle object was judged by. A broken row shows none. */
+export const PADDLE_FEATURE_TAGS: JsonColumn<Record<string, string>> = {
+  column: 'paddle_features.tags',
+  schema: z.record(z.string(), z.string()),
+  fallback: () => ({}),
+};
+
+/** The boundary of a region TREK reads paddle data for. A broken row has none, and the region counts by its box. */
+export const PADDLE_REGION_BOUNDARY: JsonColumn<PaddleRegionBoundary | null> = {
+  column: 'paddle_regions.boundary',
+  schema: paddleRegionBoundarySchema.nullable(),
+  fallback: () => null,
+};
+
+/** What a paddle tour's obstacle decision keeps of its obstacle (PAD-06). A broken row has none, and the decision is left out. */
+export const TOUR_OBSTACLE_SNAPSHOT: JsonColumn<ObstacleSnapshot | null> = {
+  column: 'tour_obstacle_reviews.obstacle_snapshot',
+  schema: obstacleSnapshotSchema.nullable(),
+  fallback: () => null,
+};

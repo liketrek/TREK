@@ -36,7 +36,10 @@ export function cityFromAddress(
 ): string | null {
   if (!address) return null;
 
-  const parts = address.split(',').map(p => p.trim()).filter(Boolean);
+  const parts = address
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
   // One part is the place's own name, never an address with a city in it.
   if (parts.length < 2) return null;
 

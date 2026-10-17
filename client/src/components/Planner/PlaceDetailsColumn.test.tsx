@@ -277,7 +277,10 @@ describe('PlaceDetailsColumn', () => {
     placeEnrichment.mockRejectedValue(new Error('network'))
     renderColumn()
 
-    expect(await screen.findByText('places.details.error')).toBeInTheDocument()
+    // The load retries once after 1.5 s before showing the error, so the
+    // default 1 s findBy timeout is too short.
+    expect(await screen.findByText('places.details.error', undefined, { timeout: 4000 })).toBeInTheDocument()
+    expect(placeEnrichment).toHaveBeenCalledTimes(2)
   })
 
   it('FE-PDC-014: serves a second look at the same place from cache', async () => {
@@ -629,5 +632,159 @@ describe('PlaceDetailsColumn — picture layout', () => {
       'href',
       'https://creativecommons.org/licenses/by-sa/4.0/',
     )
+  })
+})
+
+/**
+ * FE-PDC-040..049 — the desktop dialog's look (variant="dialog").
+ *
+ * The phone sheet keeps the default look, which every case above pins. The
+ * dialog draws the same content on white cards under eyebrows, with a quiet
+ * hint card for the empty states, no native tooltips, and no dot between two
+ * credits.
+ */
+describe('PlaceDetailsColumn — dialog variant', () => {
+  const renderDialog = (props: Partial<React.ComponentProps<typeof PlaceDetailsColumn>> = {}) =>
+    renderColumn({ variant: 'dialog', ...props })
+
+  it('FE-PDC-040: waits with a hint card under the column eyebrow while nothing is picked', () => {
+    const { container } = renderDialog({ selection: null })
+
+    expect(screen.getByRole('heading', { name: 'places.details.title' })).toBeInTheDocument()
+    expect(screen.getByText('places.details.empty')).toBeInTheDocument()
+    expect(container.querySelector('aside')).toHaveClass('sm:w-80')
+    expect(placeEnrichment).not.toHaveBeenCalled()
+  })
+
+  it('FE-PDC-041: says it is loading, then shows the content on cards', async () => {
+    let settle: (v: MapsPlaceEnrichmentResult) => void = () => {}
+    placeEnrichment.mockReturnValue(new Promise<MapsPlaceEnrichmentResult>((r) => { settle = r }))
+    renderDialog()
+
+    expect(screen.getByText('places.details.loading')).toBeInTheDocument()
+    settle(RESULT)
+    expect(await screen.findByText('Ein Museum in Köln.')).toBeInTheDocument()
+    expect(screen.getByText('places.details.pickImage')).toBeInTheDocument()
+  })
+
+  it('FE-PDC-042: credits a picture and its licence side by side, without a dot or a native tooltip', async () => {
+    const { onPickImage } = renderDialog()
+
+    const tile = await screen.findByRole('button', { name: /places.details.pickImage/ })
+    expect(tile).not.toHaveAttribute('title')
+    const licence = screen.getByText('CC BY-SA 4.0', { selector: 'a[href*="creativecommons"]' })
+    expect(licence.closest('p')).toHaveTextContent('Alice')
+    expect(licence.closest('p')?.textContent).not.toContain('·')
+
+    fireEvent.click(tile)
+    expect(onPickImage).toHaveBeenCalledWith(COMMONS_PHOTO.url)
+  })
+
+  it('FE-PDC-043: a picture without a licence link or source page is still credited', async () => {
+    placeEnrichment.mockResolvedValue({
+      photos: [{ ...COMMONS_PHOTO, sourceUrl: null, licenseUrl: null }],
+      facts: [],
+      description: null,
+    })
+    renderDialog({ selectedImageUrl: COMMONS_PHOTO.url })
+
+    const tile = await screen.findByRole('button', { name: /places.details.pickImage/ })
+    expect(tile).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Alice')).toBeInTheDocument()
+    expect(screen.getByText('CC BY-SA 4.0')).toBeInTheDocument()
+  })
+
+  it('FE-PDC-044: the adopt button is a white button, blocked with the reason under it', async () => {
+    const first = renderDialog()
+    const adopt = await screen.findByRole('button', { name: 'places.details.adopt' })
+    expect(adopt).toHaveClass('bg-surface-card')
+    expect(adopt).not.toHaveAttribute('aria-describedby')
+    fireEvent.click(adopt)
+    expect(first.onAdoptDescription).toHaveBeenCalledWith('Ein Museum in Köln.')
+    first.unmount()
+
+    renderDialog({ hasDescription: true })
+    const blocked = await screen.findByRole('button', { name: 'places.details.adopt' })
+    expect(blocked).toBeDisabled()
+    expect(blocked).not.toHaveAttribute('title')
+    // The line under it is what assistive tech reads as the reason.
+    expect(blocked).toHaveAccessibleDescription('places.details.adoptBlocked')
+  })
+
+  it('FE-PDC-045: names the description source and its licence apart, not joined by a dot', async () => {
+    renderDialog()
+
+    const link = await screen.findByRole('link', { name: /Wikipedia/ })
+    expect(link.parentElement).toHaveTextContent('CC BY-SA 4.0')
+    expect(link.parentElement?.textContent).not.toContain('·')
+  })
+
+  it('FE-PDC-046: facts are white pills without native tooltips; only a safe url becomes a link', async () => {
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      description: null,
+      facts: [
+        { kind: 'cuisine', value: 'regional', url: null },
+        { kind: 'menu', value: null, url: 'https://example.org/menu' },
+        { kind: 'takeaway', value: null, url: 'javascript:alert(1)' },
+      ],
+    })
+    renderDialog()
+
+    const chip = await screen.findByText('regional')
+    expect(chip.parentElement).not.toHaveAttribute('title')
+    const menu = screen.getByRole('link', { name: /places.details.fact.menu/ })
+    expect(menu).toHaveAttribute('href', 'https://example.org/menu')
+    expect(menu).not.toHaveAttribute('title')
+    expect(screen.queryByRole('link', { name: /places.details.fact.takeaway/ })).not.toBeInTheDocument()
+  })
+
+  it('FE-PDC-047: hours and the rating keep working on the cards', async () => {
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      facts: [],
+      description: null,
+      rating: { value: 3.8, count: 873 },
+      hours: { weekdayDescriptions: ['Monday: 09:00-18:00', 'Tuesday: 09:00-18:00', 'Wednesday: 09:00-18:00', 'Thursday: 09:00-18:00', 'Friday: 09:00-18:00', 'Saturday: 10:00-14:00', 'Sunday: ?'], periods: null, specialDays: null },
+    })
+    renderDialog()
+
+    expect(await screen.findByText('3.8')).toBeInTheDocument()
+    expect(screen.getByText('(873)')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { expanded: false }))
+    expect(screen.getAllByRole('listitem')).toHaveLength(7)
+  })
+
+  it('FE-PDC-048: a chain description says so on its card', async () => {
+    placeEnrichment.mockResolvedValue({
+      photos: [],
+      facts: [],
+      description: { text: 'Eine Kette.', source: 'website', sourceUrl: null, license: null, aboutBrand: true },
+    })
+    renderDialog()
+
+    expect(await screen.findByText('places.details.aboutBrand')).toBeInTheDocument()
+    expect(screen.getByText('places.details.aboutBrandNote')).toBeInTheDocument()
+    expect(screen.getByText('Website')).toBeInTheDocument()
+  })
+
+  it('FE-PDC-049: nothing found, switched off and failed each say so in a hint card', async () => {
+    placeEnrichment.mockResolvedValue({ photos: [], description: null, facts: [] })
+    const nothing = renderDialog()
+    expect(await screen.findByText('places.details.nothing')).toBeInTheDocument()
+    nothing.unmount()
+    __clearEnrichmentCacheForTests()
+    sessionStorage.clear()
+
+    placeEnrichment.mockResolvedValue({ photos: [], description: null, facts: [], disabled: true })
+    const off = renderDialog()
+    expect(await screen.findByText('places.details.disabled')).toBeInTheDocument()
+    off.unmount()
+    __clearEnrichmentCacheForTests()
+    sessionStorage.clear()
+
+    placeEnrichment.mockRejectedValue(new Error('network'))
+    renderDialog()
+    expect(await screen.findByText('places.details.error', undefined, { timeout: 4000 })).toBeInTheDocument()
   })
 })

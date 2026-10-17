@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react'
 import { ChevronDown, Clock, Loader2, X } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
+import MUserPickerList from '../../components/MUserPickerList'
 import { useVacayStore } from '../../../store/vacayStore'
 import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
-import { getApiErrorMessage, type VacayUser } from '../../../types'
-import apiClient from '../../../api/client'
+import { type VacayUser } from '../../../types'
+import { useVacayUserPicker } from '../../../components/Vacay/useVacayUserPicker'
 
 interface MVacayInviteSheetProps {
   open: boolean
@@ -20,37 +19,16 @@ interface MVacayInviteSheetProps {
  */
 export default function MVacayInviteSheet({ open, onClose }: MVacayInviteSheetProps) {
   const { t } = useTranslation()
-  const toast = useToast()
   const { invite, pendingInvites, cancelInvite } = useVacayStore()
-  const [available, setAvailable] = useState<VacayUser[]>([])
-  const [selected, setSelected] = useState<number | null>(null)
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [sending, setSending] = useState(false)
+  const { available, selected, selectedUser, sending, send, pickerOpen, togglePicker, pick } = useVacayUserPicker<VacayUser>({
+    endpoint: '/addons/vacay/available-users',
+    submit: invite,
+    successKey: 'vacay.inviteSent',
+    errorKey: 'vacay.inviteError',
+    sheetOpen: open,
+  })
 
-  useEffect(() => {
-    if (!open) return
-    setSelected(null)
-    setPickerOpen(false)
-    apiClient.get('/addons/vacay/available-users')
-      .then(r => setAvailable(r.data.users))
-      .catch(() => setAvailable([]))
-  }, [open])
-
-  const selectedUser = available.find(u => u.id === selected)
-
-  const handleSend = async () => {
-    if (!selected) return
-    setSending(true)
-    try {
-      await invite(selected)
-      toast.success(t('vacay.inviteSent'))
-      onClose()
-    } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('vacay.inviteError')))
-    } finally {
-      setSending(false)
-    }
-  }
+  const handleSend = () => send(onClose)
 
   return (
     <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={t('vacay.inviteUser')}>
@@ -73,30 +51,15 @@ export default function MVacayInviteSheet({ open, onClose }: MVacayInviteSheetPr
           <>
             <button
               type="button"
-              onClick={() => setPickerOpen(o => !o)}
+              onClick={togglePicker}
               className="flex w-full items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-3 text-[0.8125rem] font-semibold"
             >
-              <span className={`min-w-0 flex-1 truncate text-left ${selectedUser ? '' : 'text-m-muted'}`}>
+              <span className={`min-w-0 flex-1 truncate text-start ${selectedUser ? '' : 'text-m-muted'}`}>
                 {selectedUser ? selectedUser.username : t('vacay.selectUser')}
               </span>
               <ChevronDown size={14} strokeWidth={2} className="flex-none text-m-faint" />
             </button>
-            {pickerOpen && (
-              <div className="mt-[6px] max-h-[180px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[6px]">
-                {available.map(u => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => { setSelected(u.id); setPickerOpen(false) }}
-                    className={`flex w-full items-center gap-[9px] rounded-[10px] px-[10px] py-[9px] text-left text-[0.8125rem] font-semibold ${
-                      u.id === selected ? 'bg-[color:var(--m-ic)]' : ''
-                    }`}
-                  >
-                    <span className="min-w-0 flex-1 truncate">{u.username}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            {pickerOpen && <MUserPickerList users={available} selected={selected} onPick={pick} />}
           </>
         )}
 
@@ -124,7 +87,7 @@ export default function MVacayInviteSheet({ open, onClose }: MVacayInviteSheetPr
           <button
             type="button"
             onClick={onClose}
-            className="ml-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
+            className="ms-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
           >
             {t('common.cancel')}
           </button>

@@ -1,5 +1,7 @@
 import {
+  MAX_BOOK_LAYOUTS,
   MAX_SPREAD_ELEMENTS,
+  bookLayoutSchema,
   bookBadgeElementSchema,
   bookIconElementSchema,
   bookSpreadSchema,
@@ -153,6 +155,44 @@ describe('the figures a stats element carries', () => {
   });
 });
 
+describe('the layouts a book keeps (#2316)', () => {
+  const layout = (over: Record<string, unknown> = {}) => ({
+    id: 'l1',
+    name: 'Two up',
+    pageWidth: 210,
+    pageHeight: 210,
+    elements: [text({ id: 'a' })],
+    ...over,
+  });
+
+  it('is optional, so a document from before reads unchanged', () => {
+    expect(normalizeBookDocument(doc([text()])).layouts).toBeUndefined();
+  });
+
+  it('reads a layout back with its defaults', () => {
+    const out = normalizeBookDocument({ ...doc([]), layouts: [layout()] });
+    expect(out.layouts).toEqual([
+      expect.objectContaining({ id: 'l1', name: 'Two up', role: 'inner', background: null }),
+    ]);
+  });
+
+  it('drops a layout it cannot read and keeps the book and the others', () => {
+    const out = normalizeBookDocument({
+      ...doc([text({ id: 'kept' })]),
+      layouts: [layout({ id: 'bad', name: '' }), layout({ id: 'good' })],
+    });
+    expect(out.spreads[0]!.elements.map((el) => el.id)).toEqual(['kept']);
+    expect(out.layouts!.map((l) => l.id)).toEqual(['good']);
+  });
+
+  it('refuses more layouts than the cap in one parse, and keeps the first ones on salvage', () => {
+    const many = Array.from({ length: MAX_BOOK_LAYOUTS + 2 }, (_, i) => layout({ id: `l${i}` }));
+    expect(bookLayoutSchema.array().max(MAX_BOOK_LAYOUTS).safeParse(many).success).toBe(false);
+    const out = normalizeBookDocument({ ...doc([unreadable]), layouts: many });
+    expect(out.layouts).toHaveLength(MAX_BOOK_LAYOUTS);
+  });
+});
+
 describe('normalizeBookDocument', () => {
   it('keeps the nine elements it can read when the tenth is from another version', () => {
     const nine = Array.from({ length: 9 }, (_, i) => text({ id: `t${i + 1}`, text: `line ${i + 1}` }));
@@ -213,7 +253,9 @@ describe('normalizeBookDocument', () => {
   });
 
   it('drops an element parked a kilometre off the spread rather than the book', () => {
-    const out = normalizeBookDocument(doc([text({ id: 'a' }), text({ id: 'far', frame: { x: 1e9, y: 0, w: 60, h: 40 } })]));
+    const out = normalizeBookDocument(
+      doc([text({ id: 'a' }), text({ id: 'far', frame: { x: 1e9, y: 0, w: 60, h: 40 } })]),
+    );
 
     expect(out.spreads[0]!.elements.map((el) => el.id)).toEqual(['a']);
     expect(out.title).toBe('Iceland, end to end');

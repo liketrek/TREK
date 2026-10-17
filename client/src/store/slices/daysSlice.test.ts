@@ -42,6 +42,29 @@ describe('daysSlice', () => {
       expect(optimistic[0].title).toBe('Departure');
     });
 
+    it('FE-TSLICE-DAYS-001b: a day without a date moves to the front and keeps no date', async () => {
+      const days = [
+        buildDay({ id: 1, trip_id: 1, day_number: 1, date: '2025-06-01' }),
+        buildDay({ id: 2, trip_id: 1, day_number: 2, date: '2025-06-02' }),
+        buildDay({ id: 3, trip_id: 1, day_number: 3, date: null }),
+      ];
+      seedStore(useTripStore, { days });
+
+      let optimistic: Day[] = [];
+      server.use(
+        http.put('/api/trips/1/days/reorder', () => {
+          optimistic = useTripStore.getState().days;
+          return HttpResponse.json({ success: true });
+        }),
+        http.get('/api/trips/1/days', () => HttpResponse.json({ days })),
+      );
+
+      await useTripStore.getState().reorderDays(1, [3, 1, 2]);
+
+      expect(optimistic.map(d => d.id)).toEqual([3, 1, 2]);
+      expect(optimistic.map(d => d.date)).toEqual([null, '2025-06-01', '2025-06-02']);
+    });
+
     it('FE-TSLICE-DAYS-002: sends the requested order and refreshes days plus bookings', async () => {
       seedStore(useTripStore, { days: datedDays(), reservations: [] });
 

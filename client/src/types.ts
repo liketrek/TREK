@@ -6,6 +6,7 @@
 // each documented against the producing service). Re-exported here so the rest
 // of the client keeps importing from '../types' unchanged.
 import type {
+  PlannerTripViews,
   TrekWsEventName,
   TrekWsPluginEventName,
   Trip,
@@ -29,6 +30,7 @@ import type {
   Tag,
   Category,
   AppearanceConfig,
+  WeekStart,
 } from '@trek/shared'
 
 export type {
@@ -53,6 +55,7 @@ export type {
   Tag,
   Category,
   AppearanceConfig,
+  WeekStart,
 }
 
 export interface User {
@@ -102,6 +105,8 @@ export interface TripFile {
   reservation_title?: string
   linked_reservation_ids?: (number | null)[]
   linked_place_ids?: (number | null)[]
+  /** Stops in the plan the file is pinned to (MCP's link_trip_file, plugins). */
+  linked_assignment_ids?: (number | null)[]
   /** Served download path — always present on list/create/update responses (formatFile). */
   url: string
 }
@@ -125,11 +130,24 @@ export interface Settings {
   /** Display currency for Costs. Empty/null = follow each trip's own currency. */
   default_currency: string | null
   language: string
+  /** Language for place names and addresses in search (#1799); empty follows `language`. */
+  place_language?: string
   temperature_unit: string
   distance_unit?: DistanceUnit
   time_format: string
+  /** First column of every date picker (#2029); missing means Monday. */
+  week_start?: WeekStart
   show_place_description: boolean
   blur_booking_codes?: boolean
+  /** Day headings lead with the calendar date and name the trip day second (#1953). */
+  day_date_first?: boolean
+  /**
+   * Map app every navigate button opens straight away (#2423), as a
+   * NavigationAppId. Empty or absent keeps the picker with every app.
+   */
+  preferred_nav_app?: string
+  /** Places not planned into any day are drawn as small markers without their photo (#2024). */
+  map_compact_unplanned?: boolean
   map_booking_labels?: boolean
   map_poi_pill_enabled?: boolean
   map_always_show_routes?: boolean
@@ -222,6 +240,8 @@ export interface Settings {
   start_page?: 'dashboard' | 'active_trip'
   /** Which planner tab 'active_trip' opens on — a TripTabId (constants/tripTabs). */
   start_trip_tab?: string
+  /** Road trip mode, the Dawarich trail and the route overview per trip, only those that are on (#2639). */
+  planner_trip_views?: PlannerTripViews
   // AI booking-import fallback (per-user config; used when the admin has not set
   // instance-wide config on the llm_parsing addon). llm_api_key is masked on read.
   llm_provider?: 'local' | 'openai' | 'anthropic'
@@ -352,6 +372,8 @@ export interface AtlasPlace {
   name: string
   lat: number | null
   lng: number | null
+  address?: string | null
+  trip_id?: number
 }
 
 // GeoJSON types (simplified for atlas map)

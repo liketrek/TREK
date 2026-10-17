@@ -39,7 +39,8 @@ const cache = new Map<string, { rates: Record<string, number>; ts: number }>();
 const inflight = new Map<string, Promise<Record<string, number> | null>>();
 
 const isRateEntry = (v: unknown): v is { quote: string; rate: number } =>
-  typeof v === 'object' && v !== null &&
+  typeof v === 'object' &&
+  v !== null &&
   typeof (v as { quote?: unknown }).quote === 'string' &&
   typeof (v as { rate?: unknown }).rate === 'number';
 
@@ -77,9 +78,11 @@ export class ExchangeRatesService {
 
     // Coalesce concurrent fetches for the same base.
     let p = inflight.get(key);
-    if (!p) {
+    // `=== undefined`, not `!p`: a Promise is always truthy, so the truthiness
+    // test reads as a live check but never is one (no-misused-promises).
+    if (p === undefined) {
       p = fetchRates(key)
-        .then(rates => {
+        .then((rates) => {
           if (rates) cache.set(key, { rates, ts: Date.now() });
           return rates;
         })

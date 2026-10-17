@@ -84,8 +84,9 @@ const oauth: TranslationStrings = {
   'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
   'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
   'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
+  'oauth.authorize.approveScopes': 'Schválit ({count} oprávnění)',
+  'oauth.authorize.approveScopes.one': 'Schválit ({count} oprávnění)',
+  'oauth.authorize.approveScopes.few': 'Schválit ({count} oprávnění)',
   'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
   'oauth.authorize.deny': 'Deny', // en-fallback
   'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
@@ -96,17 +97,21 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Soubory',
   'oauth.scope.group.settings': 'Nastavení',
   'oauth.scope.files:read.label': 'Zobrazit soubory cesty',
-  'oauth.scope.files:read.description': 'Vypsat dokumenty cesty: názvy, velikosti, kdo je nahrál a k čemu jsou připojené',
+  'oauth.scope.files:read.description':
+    'Vypsat dokumenty cesty: názvy, velikosti, kdo je nahrál a k čemu jsou připojené',
   'oauth.scope.files:write.label': 'Spravovat soubory cesty',
-  'oauth.scope.files:write.description': 'Přejmenovat a popsat soubory, připojit je k rezervacím a místům, označit hvězdičkou a přesunout do koše',
+  'oauth.scope.files:write.description':
+    'Přejmenovat a popsat soubory, připojit je k rezervacím a místům, označit hvězdičkou a přesunout do koše',
   'oauth.scope.files:content.label': 'Číst obsah souborů',
   'oauth.scope.files:content.description': 'Přečíst obsah nahraného dokumentu, například PDF rezervace nebo jízdenku',
   'oauth.scope.settings:read.label': 'Zobrazit vaše předvolby',
   'oauth.scope.settings:read.description': 'Číst jednotky, formát času, jazyk, výchozí měnu a úvodní stránku',
   'oauth.scope.settings:write.label': 'Změnit vaše předvolby',
-  'oauth.scope.settings:write.description': 'Změnit jednotky, formát času, jazyk, výchozí měnu a úvodní stránku. Nikdy uložené API klíče',
+  'oauth.scope.settings:write.description':
+    'Změnit jednotky, formát času, jazyk, výchozí měnu a úvodní stránku. Nikdy uložené API klíče',
   'oauth.scope.group.plugins': 'Pluginy',
   'oauth.scope.plugins:use.label': 'Spouštět nástroje pluginů',
-  'oauth.scope.plugins:use.description': 'Umožní tomuto klientovi volat nástroje zveřejněné pluginy, které správce nainstaloval a schválil. Každý plugin jedná s oprávněními, která už dostal, nikoli s rozsahy tohoto tokenu',
+  'oauth.scope.plugins:use.description':
+    'Umožní tomuto klientovi volat nástroje zveřejněné pluginy, které správce nainstaloval a schválil. Každý plugin jedná s oprávněními, která už dostal, nikoli s rozsahy tohoto tokenu',
 };
 export default oauth;

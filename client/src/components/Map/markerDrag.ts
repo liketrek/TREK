@@ -18,18 +18,32 @@
  * both end up as a real DOM node, which is all HTML5 drag needs.
  */
 
+/**
+ * Start dragging `placeId` towards the day plan, from any row or marker that holds a
+ * place (a tour is one too). Every source goes through here, so the day plan cannot
+ * tell them apart.
+ */
+export function startPlaceDrag(transfer: DataTransfer | null, placeId: number): void {
+  transfer?.setData('placeId', String(placeId))
+  if (transfer) transfer.effectAllowed = 'copy'
+  window.__dragData = { placeId: String(placeId) }
+}
+
+/** The drag `startPlaceDrag` began has ended, dropped or not. */
+export function endPlaceDrag(): void {
+  window.__dragData = null
+}
+
 /** Wire a marker element up as a drag source for `placeId`. */
 export function makeMarkerDraggable(el: HTMLElement, placeId: number): () => void {
   el.setAttribute('draggable', 'true')
 
   const onDragStart = (e: DragEvent) => {
-    e.dataTransfer?.setData('placeId', String(placeId))
-    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy'
-    window.__dragData = { placeId: String(placeId) }
+    startPlaceDrag(e.dataTransfer, placeId)
     el.classList.add('marker-dragging')
   }
   const onDragEnd = () => {
-    window.__dragData = null
+    endPlaceDrag()
     el.classList.remove('marker-dragging')
   }
   // The map pans on mousedown anywhere on its surface, and a marker sits on that

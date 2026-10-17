@@ -87,6 +87,7 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': 'Kalan tatil günlerini otomatik olarak bir sonraki yıla devredin',
   'vacay.carriedOverPrevPeriod': 'önceki dönemden',
   'vacay.compUsedCount': '{count} serbest zaman',
+  'vacay.compUsedCount.one': '{count} serbest zaman',
   'vacay.yearType': 'Tatil yılı',
   'vacay.yearTypeHint': 'Tatil yılınız ne zaman başlar — hak ediş, kullanım ve devir buna göre hesaplanır',
   'vacay.yearTypeCalendar': 'Takvim',

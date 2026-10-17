@@ -58,8 +58,10 @@ See the [[Development Environment|Development-environment]] page for the full se
 | Backend | NestJS 11 (Express 4 adapter), TypeScript, better-sqlite3, Zod (@trek/shared)             |
 | Real-time | WebSocket (ws)                                                                            |
 | Database | SQLite with WAL mode                                                                      |
-| Auth | JWT (HS256), bcrypt, TOTP MFA, OIDC                                                       |
+| Auth | JWT (HS256), bcrypt, TOTP MFA, passkeys (WebAuthn), OIDC                                 |
 | Maps | Leaflet + react-leaflet (default, OpenFreeMap vector basemap via maplibre-gl-leaflet), MapLibre GL, Mapbox GL, OSRM, Nominatim |
-| i18n | 23 languages, EN canonical (locale directories live in shared/src/i18n/)                  |
+| i18n | 27 languages, EN canonical (locale directories live in shared/src/i18n/)                  |
 
-Every translation key must exist in all 23 locales — the `i18n Key Parity` CI job fails on drift, so run `npm run i18n:parity:strict --workspace=shared` before pushing. Two directory names differ from the language they hold: Brazilian Portuguese is `br`, Greek is `gr`.
+Documentation changes go to `wiki/`. The same pages ship inside the app: the in-app help reads them (served under `/api/help`) and links into them, and the MCP help tools search them, so a wiki edit reaches users with the next release as well as the GitHub wiki.
+
+Every translation key must exist in all 27 locales — the `i18n Key Parity` CI job fails on drift, so run `npm run i18n:parity:strict --workspace=shared` before pushing. Two directory names differ from the language they hold: Brazilian Portuguese is `br`, Greek is `gr`.

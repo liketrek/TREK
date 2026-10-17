@@ -69,7 +69,7 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': 'TREK에서 삭제됨',
   'docsync.state.scope_drift': '폴더 밖으로 이동됨',
 
-  'docsync.conflict.resolve': "{count}건 해결",
+  'docsync.conflict.resolve': '{count}건 해결',
 
   'docsync.conflict.title': '양쪽 사본이 모두 바뀌었습니다',
   'docsync.conflict.keepTrek': 'TREK 버전 유지',

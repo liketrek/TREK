@@ -49,7 +49,11 @@ export function formatDurationShort(seconds: number): string {
  * three schedulers, and two of them spelled it differently from the anchor they had
  * just used.
  */
-export function hasChosenArrival(stop: { time?: string | null; checkInTime?: string | null; automaticNight?: unknown }): boolean {
+export function hasChosenArrival(stop: {
+  time?: string | null;
+  checkInTime?: string | null;
+  automaticNight?: unknown;
+}): boolean {
   if (stop.automaticNight) return false;
   return (stop.time ?? null) !== null || (stop.checkInTime ?? null) !== null;
 }

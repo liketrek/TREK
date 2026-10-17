@@ -23,10 +23,16 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'Nie otrzymano e-maila od dostawcy.',
   'login.oidc.tokenFailed': 'Nie udało się uwierzytelnić.',
   'login.oidc.invalidState': 'Nieprawidłowa sesja. Spróbuj ponownie.',
+  'login.oidc.emailNotVerified':
+    'Twój dostawca logowania nie potwierdził tego adresu e-mail, więc nie można go powiązać z istniejącym kontem.',
+  'login.oidc.emailLinkBlocked':
+    'Nie udało się powiązać tego logowania z istniejącym kontem o tym adresie e-mail. Poproś administratora o potwierdzenie adresu.',
   'login.demoFailed': 'Nie udało się zalogować do wersji demonstracyjnej',
   'login.oidcSignIn': 'Zaloguj się z {name}',
   'login.oidcOnly': 'Uwierzytelnianie hasłem jest wyłączone. Zaloguj się za pomocą swojego dostawcy SSO.',
   'login.oidcLoggedOut': 'Zostałeś wylogowany. Zaloguj się ponownie za pomocą swojego dostawcy SSO.',
+  'login.oidcRedirecting': 'Przekierowanie do {name}…',
+  'login.oidcRedirectSlow': 'Nadal tutaj? Przejdź do {name}',
   'login.demoHint': 'Wypróbuj demo — nie wymaga rejestracji',
   'login.mfaTitle': 'Uwierzytelnianie dwuskładnikowe',
   'login.mfaSubtitle': 'Wprowadź 6-cyfrowy kod z aplikacji uwierzytelniającej.',

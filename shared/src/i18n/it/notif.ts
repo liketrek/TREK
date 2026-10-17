@@ -21,6 +21,7 @@ const notif: TranslationStrings = {
   'notif.collection_invite.text': '{actor} ti ha invitato a una raccolta',
   'notif.photos_shared.title': 'Foto condivise',
   'notif.photos_shared.text': '{actor} ha condiviso {count} foto in {trip}',
+  'notif.photos_shared.text.one': '{actor} ha condiviso {count} foto in {trip}',
   'notif.collab_message.title': 'Nuovo messaggio',
   'notif.collab_message.text': '{actor} ha inviato un messaggio in {trip}',
   'notif.packing_tagged.title': 'Assegnazione bagagli',
@@ -29,7 +30,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} è ora disponibile',
   'notif.replica_failure.title': "Errore di replica dell'archiviazione",
   'notif.replica_failure.text': "Scrittura sulla replica non riuscita su '{backend}': {op} di {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Scrittura sulla replica non riuscita su '{backend}': {op} di {key} — {error}. Altri {suppressed} errori sono stati soppressi dall'ultima notifica.",
+  'notif.replica_failure.textSuppressed':
+    "Scrittura sulla replica non riuscita su '{backend}': {op} di {key} — {error}. Altri {suppressed} errori sono stati soppressi dall'ultima notifica.",
   'notif.action.view_trip': 'Vedi viaggio',
   'notif.action.view_collab': 'Vedi messaggi',
   'notif.action.view_packing': 'Vedi bagagli',

@@ -26,6 +26,21 @@ import { useNetworkMode } from '../../hooks/useNetworkMode'
 import type { SyncMeta, QueuedMutation } from '../../db/offlineDb'
 import type { Trip } from '../../types'
 
+/**
+ * The trips the per-trip switches cover: the server's list plus the trips still
+ * stored here that it leaves out. Those are archived trips (a deleted one goes
+ * with the next sync), which the trip sync keeps but never refreshes, so this
+ * switch is the user's way to take one off the device before the date rule does.
+ */
+async function switchableTrips(): Promise<Trip[]> {
+  if (isEffectivelyOffline()) return offlineDb.trips.toArray()
+  const listed = await tripsApi.list().then(r => (r as { trips: Trip[] }).trips).catch(() => null)
+  if (!listed) return offlineDb.trips.toArray()
+  const ids = new Set(listed.map(t => t.id))
+  const stored = await offlineDb.trips.toArray().catch(() => [] as Trip[])
+  return [...listed, ...stored.filter(t => t.id > 0 && !ids.has(t.id))]
+}
+
 export interface CachedTripRow {
   trip: Trip
   meta: SyncMeta
@@ -128,9 +143,7 @@ export function useOfflineSettings() {
       // The per-trip storage toggles are driven by the FULL trip list, not just
       // the cached ones, so a trip turned off stays visible and re-enableable.
       try {
-        const trips = isEffectivelyOffline()
-          ? await offlineDb.trips.toArray()
-          : await tripsApi.list().then(r => (r as { trips: Trip[] }).trips).catch(() => offlineDb.trips.toArray())
+        const trips = await switchableTrips()
         trips.sort((a, b) => (a.start_date ?? '').localeCompare(b.start_date ?? ''))
         setAllTrips(trips)
       } catch {
@@ -256,6 +269,17 @@ export function useOfflineSettings() {
     await load()
   }, [load, tripStorageState])
 
+  const retryFailed = useCallback(async () => {
+    await mutationQueue.retryFailed()
+    await load()
+  }, [load])
+
+  const discardFailed = useCallback(async () => {
+    await mutationQueue.discardFailed()
+    if (!isEffectivelyOffline()) await tripSyncManager.syncAll().catch(() => null)
+    await load()
+  }, [load])
+
   const resolveConflict = useCallback(async (id: string, keepMine: boolean) => {
     if (keepMine) await mutationQueue.resolveKeepMine(id)
     else await mutationQueue.resolveKeepServer(id)
@@ -277,6 +301,6 @@ export function useOfflineSettings() {
     canClear: storedTripCount > 0 || pendingCount > 0,
     load, runPrepare, handleToggleForce, handleResync, handleClear,
     handleToggleTiles, tripStorageState, handleToggleTrip, resolveConflict,
-    handleConflictStrategy,
+    handleConflictStrategy, retryFailed, discardFailed,
   }
 }

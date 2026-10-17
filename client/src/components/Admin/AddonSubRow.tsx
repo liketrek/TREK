@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import ToggleSwitch from '../Settings/ToggleSwitch'
+import { fs } from '../shared/DialogShell'
 
 /**
  * One child row inside an {@link AddonTile}'s sub-shelf: bag tracking under
@@ -29,9 +30,11 @@ export default function AddonSubRow({
   onToggle: () => void
 }) {
   return (
-    <li className="flex min-h-[36px] items-center gap-3">
-      {icon ? <span className="shrink-0 text-content-faint">{icon}</span> : <span className="w-3.5 shrink-0" aria-hidden />}
-      <span className="min-w-0 flex-1 truncate text-caption font-medium text-content-secondary" title={description}>
+    <li className="flex min-h-[44px] items-center gap-2.5 px-3 py-1.5">
+      {icon
+        ? <span className={`grid h-6 w-6 flex-none place-items-center ${enabled ? 'text-content-muted' : 'text-content-faint'}`}>{icon}</span>
+        : <span className="w-6 flex-none" aria-hidden />}
+      <span className={`min-w-0 flex-1 truncate font-medium ${enabled ? 'text-content' : 'text-content-muted'}`} style={fs(12.5, 'body')} title={description}>
         {title}
       </span>
       <ToggleSwitch on={enabled} onToggle={onToggle} label={title} />

@@ -16,6 +16,7 @@ const memories: TranslationStrings = {
   'memories.reviewTitle': 'Revisar tus fotos',
   'memories.reviewHint': 'Haz clic en las fotos para excluirlas de compartir.',
   'memories.shareCount': 'Compartir {count} fotos',
+  'memories.shareCount.one': 'Compartir {count} foto',
   'memories.providerUrl': 'URL del servidor',
   'memories.providerApiKey': 'Clave API',
   'memories.providerUsername': 'Nombre de usuario',
@@ -54,6 +55,7 @@ const memories: TranslationStrings = {
   'memories.selectHint': 'Toca las fotos para seleccionarlas.',
   'memories.selected': 'seleccionado(s)',
   'memories.addSelected': 'Añadir {count} fotos',
+  'memories.addSelected.one': 'Añadir {count} foto',
   'memories.alreadyAdded': 'Añadido',
   'memories.private': 'Privado',
   'memories.stopSharing': 'Dejar de compartir',
@@ -62,6 +64,8 @@ const memories: TranslationStrings = {
   'memories.confirmShareTitle': '¿Compartir con los miembros del viaje?',
   'memories.confirmShareHint':
     '{count} fotos serán visibles para todos los miembros de este viaje. Puedes hacer fotos individuales privadas más tarde.',
+  'memories.confirmShareHint.one':
+    '{count} foto será visible para todos los miembros de este viaje. Puedes hacerla privada más tarde.',
   'memories.confirmShareButton': 'Compartir fotos',
   'memories.error.loadAlbums': 'Error al cargar los álbumes',
   'memories.error.linkAlbum': 'Error al vincular el álbum',

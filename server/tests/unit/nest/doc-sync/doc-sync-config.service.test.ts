@@ -13,29 +13,50 @@
  * is under test, and a suite that needs a working resolver is a suite that
  * fails on someone's train.
  */
+import { db as testDb } from '../../../../src/db/database';
+import { DocumentConnections } from '../../../../src/db/entities/DocumentConnections.entity';
+import { DocumentProviders } from '../../../../src/db/entities/DocumentProviders.entity';
+import { DocumentSyncItems } from '../../../../src/db/entities/DocumentSyncItems.entity';
+import { TripDocumentLinks } from '../../../../src/db/entities/TripDocumentLinks.entity';
+import { TripMembers } from '../../../../src/db/entities/TripMembers.entity';
+import {
+  DocSyncConfigService,
+  type ConnectionRow,
+  type LinkRow,
+} from '../../../../src/nest/doc-sync/doc-sync-config.service';
+// `if (!result.success)` does not narrow in this workspace: strictNullChecks is
+// off, so the boolean discriminant stops discriminating. The domain's own
+// predicate is what every call site uses instead.
+import { docFailed } from '../../../../src/nest/doc-sync/document-provider';
+import type { DocumentProviderRegistry } from '../../../../src/nest/doc-sync/document-provider.registry';
+import {
+  createTestDocumentConnectionsRepo,
+  createTestDocumentProviderFieldsRepo,
+  createTestDocumentProvidersRepo,
+  createTestDocumentSyncItemsRepo,
+  createTestTripDocumentLinksRepo,
+} from '../../../helpers/doc-sync-repos';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../../helpers/factories/rows';
+import { addTripMember } from '../../../helpers/factories/trips';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestUnitOfWork, createTestTripsRepo, sharedTestOrm } from '../../../helpers/test-uow';
+import { DOCSYNC_SECRET_MASK, type DocsyncConnectionInput, type DocsyncLinkInput } from '@trek/shared';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
+vi.mock('../../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
+  const db = createSnapshotTestDb();
   return {
-    testDb: db,
-    dbMock: {
-      db,
-      closeDb: () => {},
-      reinitialize: () => {},
-      getPlaceWithTags: () => null,
-      canAccessTrip: () => undefined,
-      isOwner: () => false,
-    },
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => undefined,
+    isOwner: () => false,
   };
 });
-
-vi.mock('../../../../src/db/database', () => dbMock);
 
 // The whole guard surface, not only `checkSsrf`: modules on the import graph
 // pull other names off it, and a factory mock that omits one throws on access
@@ -51,24 +72,9 @@ vi.mock('../../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-import { DOCSYNC_SECRET_MASK, type DocsyncConnectionInput, type DocsyncLinkInput } from '@trek/shared';
-import { createTables } from '../../../../src/db/schema';
-import { runMigrations } from '../../../../src/db/migrations';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTrip, createUser } from '../../../helpers/factories';
-import { DatabaseService } from '../../../../src/nest/database/database.service';
-import {
-  DocSyncConfigService,
-  type ConnectionRow,
-  type LinkRow,
-} from '../../../../src/nest/doc-sync/doc-sync-config.service';
-import type { DocumentProviderRegistry } from '../../../../src/nest/doc-sync/document-provider.registry';
-// `if (!result.success)` does not narrow in this workspace: strictNullChecks is
-// off, so the boolean discriminant stops discriminating. The domain's own
-// predicate is what every call site uses instead.
-import { docFailed } from '../../../../src/nest/doc-sync/document-provider';
+const orm = () => sharedTestOrm(testDb);
 
-const svc = new DocSyncConfigService(new DatabaseService(testDb), {} as DocumentProviderRegistry);
+let svc: DocSyncConfigService;
 
 const TOKEN = 'paperless-token-1234';
 
@@ -105,33 +111,43 @@ function linkInput(connectionId: number, over: Partial<DocsyncLinkInput> = {}): 
   };
 }
 
-function link(connectionId: number, over: Partial<DocsyncLinkInput> = {}): LinkRow {
-  const result = svc.createLink(TRIP, OWNER, linkInput(connectionId, over));
+async function link(connectionId: number, over: Partial<DocsyncLinkInput> = {}): Promise<LinkRow> {
+  const result = await svc.createLink(TRIP, OWNER, linkInput(connectionId, over));
   if (docFailed(result)) throw new Error(`fixture link refused: ${JSON.stringify(result.error)}`);
   return result.data;
 }
 
-function storedSecret(connectionId: number): string | undefined {
-  const row = svc.getConnection(connectionId) as ConnectionRow;
+async function storedSecret(connectionId: number): Promise<string | undefined> {
+  const row = (await svc.getConnection(connectionId)) as ConnectionRow;
   return svc.toRef(row).secrets.api_token;
 }
 
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
+beforeAll(async () => {
+  svc = new DocSyncConfigService(
+    await createTestTripsRepo(testDb),
+    await createTestDocumentProvidersRepo(testDb),
+    await createTestDocumentProviderFieldsRepo(testDb),
+    await createTestDocumentConnectionsRepo(testDb),
+    await createTestTripDocumentLinksRepo(testDb),
+    await createTestDocumentSyncItemsRepo(testDb),
+    {} as DocumentProviderRegistry,
+    await createTestUnitOfWork(testDb),
+  );
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   // The document_* tables are not in resetTestDb's list, and they reference
   // trips and users, so they go first, before the rows they hang off vanish.
-  testDb.exec('DELETE FROM document_sync_items; DELETE FROM trip_document_links; DELETE FROM document_connections;');
+  await deleteRows(await orm(), DocumentSyncItems);
+  await deleteRows(await orm(), TripDocumentLinks);
+  await deleteRows(await orm(), DocumentConnections);
   resetTestDb(testDb);
   vi.clearAllMocks();
   checkSsrf.mockResolvedValue({ allowed: true, isPrivate: false, resolvedIp: '203.0.113.10' });
   OWNER = createUser(testDb, { username: 'owner', email: 'owner@test.local' }).user.id;
   MEMBER = createUser(testDb, { username: 'member', email: 'member@test.local' }).user.id;
   TRIP = createTrip(testDb, OWNER, { title: 'Japan' }).id;
-  testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(TRIP, MEMBER);
+  await addTripMember(await orm(), TRIP, MEMBER);
 });
 
 afterAll(() => {
@@ -142,7 +158,7 @@ describe('upsertConnection secrets', () => {
   it('keeps the stored credential when the form comes back with the field blank', async () => {
     const created = await connect();
     await connect({ credentials: { api_token: '' } });
-    expect(storedSecret(created.id)).toBe(TOKEN);
+    expect(await storedSecret(created.id)).toBe(TOKEN);
   });
 
   it('keeps it when the form posts back the mask it was shown', async () => {
@@ -150,29 +166,26 @@ describe('upsertConnection secrets', () => {
     // form from the masked view and never has to hold the real credential.
     const created = await connect();
     await connect({ credentials: { api_token: DOCSYNC_SECRET_MASK } });
-    expect(storedSecret(created.id)).toBe(TOKEN);
+    expect(await storedSecret(created.id)).toBe(TOKEN);
   });
 
   it('keeps it when the field is missing from the payload altogether', async () => {
     const created = await connect();
     await connect({ credentials: {} });
-    expect(storedSecret(created.id)).toBe(TOKEN);
+    expect(await storedSecret(created.id)).toBe(TOKEN);
   });
 
   it('replaces it when a new credential actually arrives', async () => {
     const created = await connect();
     await connect({ credentials: { api_token: 'rotated-token' } });
-    expect(storedSecret(created.id)).toBe('rotated-token');
+    expect(await storedSecret(created.id)).toBe('rotated-token');
   });
 
-  it('updates the trip\'s connection in place rather than adding a second one', async () => {
+  it("updates the trip's connection in place rather than adding a second one", async () => {
     const first = await connect();
     const second = await connect({ baseUrl: 'https://paperless.example.com/', credentials: {} });
     expect(second.id).toBe(first.id);
-    const count = testDb
-      .prepare('SELECT COUNT(*) AS n FROM document_connections WHERE trip_id = ?')
-      .get(TRIP) as { n: number };
-    expect(count.n).toBe(1);
+    expect(await countRows(await orm(), DocumentConnections, { trip: TRIP })).toBe(1);
   });
 
   /**
@@ -187,55 +200,82 @@ describe('upsertConnection secrets', () => {
   describe('under a new address', () => {
     it('refuses to carry the stored secret over, and writes nothing', async () => {
       const created = await connect();
-      const result = await svc.upsertConnection(TRIP, MEMBER, connectionInput({
-        baseUrl: 'https://attacker.example.net',
-        credentials: {},
-      }));
+      const result = await svc.upsertConnection(
+        TRIP,
+        MEMBER,
+        connectionInput({
+          baseUrl: 'https://attacker.example.net',
+          credentials: {},
+        }),
+      );
 
       expect(docFailed(result)).toBe(true);
       expect(docFailed(result) && result.error.code).toBe('unauthorized');
-      const row = svc.getConnection(created.id) as ConnectionRow;
+      const row = (await svc.getConnection(created.id)) as ConnectionRow;
       expect(row.base_url).toBe('https://paperless.example.com');
       expect(row.owner_user_id).toBe(OWNER);
-      expect(storedSecret(created.id)).toBe(TOKEN);
+      expect(await storedSecret(created.id)).toBe(TOKEN);
     });
 
     it('refuses the mask as well, since the mask is not the credential', async () => {
       await connect();
-      const result = await svc.upsertConnection(TRIP, OWNER, connectionInput({
-        baseUrl: 'https://paperless.example.net',
-        credentials: { api_token: DOCSYNC_SECRET_MASK },
-      }));
+      const result = await svc.upsertConnection(
+        TRIP,
+        OWNER,
+        connectionInput({
+          baseUrl: 'https://paperless.example.net',
+          credentials: { api_token: DOCSYNC_SECRET_MASK },
+        }),
+      );
       expect(docFailed(result) && result.error.code).toBe('unauthorized');
     });
 
     it('takes a credential typed in for it', async () => {
       const created = await connect();
-      const moved = await connect({ baseUrl: 'https://paperless.example.net', credentials: { api_token: 'new-token' } });
+      const moved = await connect({
+        baseUrl: 'https://paperless.example.net',
+        credentials: { api_token: 'new-token' },
+      });
       expect(moved.id).toBe(created.id);
       expect(moved.base_url).toBe('https://paperless.example.net');
-      expect(storedSecret(created.id)).toBe('new-token');
+      expect(await storedSecret(created.id)).toBe('new-token');
     });
 
     it('drops a secret the provider earned for the old address, even when the form is complete', async () => {
-      const conn = await connect({ providerId: 'synologydrive', baseUrl: 'https://nas.example.com:5001', credentials: { username: 'anna', password: 'nas-pw' } });
-      svc.saveEarnedSecret(conn.id, 'device_token', 'a1b2c3:DEVICE-7');
+      const conn = await connect({
+        providerId: 'synologydrive',
+        baseUrl: 'https://nas.example.com:5001',
+        credentials: { username: 'anna', password: 'nas-pw' },
+      });
+      await svc.saveEarnedSecret(conn.id, 'device_token', 'a1b2c3:DEVICE-7');
 
-      await connect({ providerId: 'synologydrive', baseUrl: 'https://nas.example.net:5001', credentials: { username: 'anna', password: 'nas-pw' } });
+      await connect({
+        providerId: 'synologydrive',
+        baseUrl: 'https://nas.example.net:5001',
+        credentials: { username: 'anna', password: 'nas-pw' },
+      });
 
-      expect(svc.toRef(svc.getConnection(conn.id) as ConnectionRow).secrets).toEqual({ password: 'nas-pw' });
+      expect(svc.toRef((await svc.getConnection(conn.id)) as ConnectionRow).secrets).toEqual({ password: 'nas-pw' });
     });
 
     it('reads a path or a trailing slash on the same server as the same address', async () => {
       const created = await connect();
       await connect({ baseUrl: 'https://paperless.example.com/paperless/', credentials: {} });
-      expect(storedSecret(created.id)).toBe(TOKEN);
+      expect(await storedSecret(created.id)).toBe(TOKEN);
     });
 
     it('reads another port or scheme as another server', async () => {
       await connect();
-      const port = await svc.upsertConnection(TRIP, OWNER, connectionInput({ baseUrl: 'https://paperless.example.com:8443', credentials: {} }));
-      const scheme = await svc.upsertConnection(TRIP, OWNER, connectionInput({ baseUrl: 'http://paperless.example.com', credentials: {} }));
+      const port = await svc.upsertConnection(
+        TRIP,
+        OWNER,
+        connectionInput({ baseUrl: 'https://paperless.example.com:8443', credentials: {} }),
+      );
+      const scheme = await svc.upsertConnection(
+        TRIP,
+        OWNER,
+        connectionInput({ baseUrl: 'http://paperless.example.com', credentials: {} }),
+      );
       expect(docFailed(port)).toBe(true);
       expect(docFailed(scheme)).toBe(true);
     });
@@ -251,13 +291,13 @@ describe('upsertConnection secrets', () => {
     it('stays with the person whose secret is stored when somebody else saves the form blank', async () => {
       const created = await connect();
       await connect({ credentials: {} }, MEMBER);
-      expect((svc.getConnection(created.id) as ConnectionRow).owner_user_id).toBe(OWNER);
+      expect(((await svc.getConnection(created.id)) as ConnectionRow).owner_user_id).toBe(OWNER);
     });
 
     it('moves to the person who typed a new secret in', async () => {
       const created = await connect();
       await connect({ credentials: { api_token: 'members-own-token' } }, MEMBER);
-      expect((svc.getConnection(created.id) as ConnectionRow).owner_user_id).toBe(MEMBER);
+      expect(((await svc.getConnection(created.id)) as ConnectionRow).owner_user_id).toBe(MEMBER);
     });
 
     it('stays put when only an optional secret is typed, since that runs against the stored password', async () => {
@@ -265,7 +305,7 @@ describe('upsertConnection secrets', () => {
       const created = await connect({ ...nas, credentials: { username: 'anna', password: 'nas-pw' } });
       await connect({ ...nas, credentials: { username: 'anna', otp_code: '123456' } }, MEMBER);
 
-      const row = svc.getConnection(created.id) as ConnectionRow;
+      const row = (await svc.getConnection(created.id)) as ConnectionRow;
       expect(row.owner_user_id).toBe(OWNER);
       expect(svc.toRef(row).secrets).toEqual({ password: 'nas-pw', otp_code: '123456' });
     });
@@ -286,7 +326,7 @@ describe('upsertConnection secrets', () => {
       credentials: { login_name: 'anna' },
       allowInsecureTls: false,
     });
-    const row = svc.listConnections(TRIP).find((c) => c.provider_id === 'nextcloud') as ConnectionRow;
+    const row = (await svc.listConnections(TRIP)).find((c) => c.provider_id === 'nextcloud') as ConnectionRow;
     expect(svc.toRef(row).settings).toMatchObject({ login_name: 'anna', base_path: '/TREK' });
     expect(svc.toRef(row).secrets.app_password).toBe('app-pw');
   });
@@ -295,7 +335,7 @@ describe('upsertConnection secrets', () => {
 describe('publicConnection', () => {
   it('reports that a secret is set without ever carrying its value', async () => {
     const created = await connect();
-    const view = svc.publicConnection(svc.getConnection(created.id) as ConnectionRow);
+    const view = await svc.publicConnection((await svc.getConnection(created.id)) as ConnectionRow);
     expect(view.secrets).toEqual({ api_token: DOCSYNC_SECRET_MASK });
     expect(JSON.stringify(view)).not.toContain(TOKEN);
   });
@@ -310,14 +350,14 @@ describe('publicConnection', () => {
       allowInsecureTls: false,
     });
     expect(created.success).toBe(true);
-    const row = svc.listConnections(TRIP).find((c) => c.provider_id === 'synologydrive') as ConnectionRow;
-    expect(svc.publicConnection(row).secrets).toEqual({ password: DOCSYNC_SECRET_MASK });
+    const row = (await svc.listConnections(TRIP)).find((c) => c.provider_id === 'synologydrive') as ConnectionRow;
+    expect((await svc.publicConnection(row)).secrets).toEqual({ password: DOCSYNC_SECRET_MASK });
   });
 
   it('reads a capabilities blob left behind by another build as unknown, not as a crash', async () => {
     const created = await connect();
-    testDb.prepare('UPDATE document_connections SET capabilities = ? WHERE id = ?').run('{not json', created.id);
-    const view = svc.publicConnection(svc.getConnection(created.id) as ConnectionRow);
+    await updateRows(await orm(), DocumentConnections, { id: created.id }, { capabilities: '{not json' });
+    const view = await svc.publicConnection((await svc.getConnection(created.id)) as ConnectionRow);
     expect(view.capabilities).toBeNull();
   });
 });
@@ -330,22 +370,39 @@ describe('a secret the provider earned itself', () => {
     return connect({ providerId: 'synologydrive', baseUrl: 'https://nas.example.com:5001', credentials });
   }
 
-  function secretsOf(connectionId: number): Readonly<Record<string, string>> {
-    return svc.toRef(svc.getConnection(connectionId) as ConnectionRow).secrets;
+  async function secretsOf(connectionId: number): Promise<Readonly<Record<string, string>>> {
+    return svc.toRef((await svc.getConnection(connectionId)) as ConnectionRow).secrets;
   }
 
-  it('is stored through the ref the adapter was handed, encrypted with the form\'s secrets', async () => {
+  it("is stored through the ref the adapter was handed, encrypted with the form's secrets", async () => {
     const conn = await nas();
-    svc.toRef(conn).saveSecret!('device_token', EARNED);
+    await svc.toRef(conn).saveSecret!('device_token', EARNED);
 
-    expect(secretsOf(conn.id)).toEqual({ password: 'nas-pw', otp_code: '123456', device_token: EARNED });
-    expect((svc.getConnection(conn.id) as ConnectionRow).secrets).not.toContain('DEVICE-7');
+    expect(await secretsOf(conn.id)).toEqual({ password: 'nas-pw', otp_code: '123456', device_token: EARNED });
+    expect(((await svc.getConnection(conn.id)) as ConnectionRow).secrets).not.toContain('DEVICE-7');
+  });
+
+  // 3h L3 carry (task-7-review.md's L3: "document_connections.secrets ... has
+  // no `enc:v1:` check"). The whole-secret-map column is one `maybe_encrypt_
+  // api_key` call (`encryptSecrets`, doc-sync-secrets.ts) over the JSON blob,
+  // so the at-rest pin is the same shape as `AirtrailService`'s and
+  // `DawarichService`'s: read the raw column, assert the ciphertext prefix,
+  // then assert `decryptSecrets` round-trips it.
+  it('DOCSYNC-ENC-001: the raw document_connections.secrets column is enc:v1:-prefixed ciphertext, never plaintext, and round-trips', async () => {
+    const conn = await nas();
+
+    const raw = (await findRow(await orm(), DocumentConnections, { id: conn.id }))?.secrets;
+
+    expect(raw).toMatch(/^enc:v1:/);
+    expect(raw).not.toContain('nas-pw');
+    expect(raw).not.toContain('123456');
+    expect(await secretsOf(conn.id)).toEqual({ password: 'nas-pw', otp_code: '123456' });
   });
 
   it('never reaches a client, not even as a mask', async () => {
     const conn = await nas();
-    svc.saveEarnedSecret(conn.id, 'device_token', EARNED);
-    const view = svc.publicConnection(svc.getConnection(conn.id) as ConnectionRow);
+    await svc.saveEarnedSecret(conn.id, 'device_token', EARNED);
+    const view = await svc.publicConnection((await svc.getConnection(conn.id)) as ConnectionRow);
 
     expect(view.secrets).toEqual({ password: DOCSYNC_SECRET_MASK, otp_code: DOCSYNC_SECRET_MASK });
     expect(JSON.stringify(view)).not.toContain('DEVICE-7');
@@ -354,48 +411,48 @@ describe('a secret the provider earned itself', () => {
 
   it('survives a form edit, whatever the form sends for the secrets it does show', async () => {
     const conn = await nas();
-    svc.saveEarnedSecret(conn.id, 'device_token', EARNED);
+    await svc.saveEarnedSecret(conn.id, 'device_token', EARNED);
     await nas({ username: 'anna', password: 'rotated', otp_code: '' });
     await nas({ username: 'anna', password: DOCSYNC_SECRET_MASK });
 
-    expect(secretsOf(conn.id)).toMatchObject({ password: 'rotated', device_token: EARNED });
+    expect(await secretsOf(conn.id)).toMatchObject({ password: 'rotated', device_token: EARNED });
   });
 
   it('cannot be planted or overwritten through the form', async () => {
     const conn = await nas();
     await nas({ username: 'anna', device_token: 'a1b2c3:PLANTED' });
-    expect(secretsOf(conn.id).device_token).toBeUndefined();
+    expect((await secretsOf(conn.id)).device_token).toBeUndefined();
 
-    svc.saveEarnedSecret(conn.id, 'device_token', EARNED);
+    await svc.saveEarnedSecret(conn.id, 'device_token', EARNED);
     await nas({ username: 'anna', device_token: 'a1b2c3:PLANTED' });
-    expect(secretsOf(conn.id).device_token).toBe(EARNED);
-    expect(svc.toRef(svc.getConnection(conn.id) as ConnectionRow).settings).not.toHaveProperty('device_token');
+    expect((await secretsOf(conn.id)).device_token).toBe(EARNED);
+    expect(svc.toRef((await svc.getConnection(conn.id)) as ConnectionRow).settings).not.toHaveProperty('device_token');
   });
 
   it('is written against the row as it is now, so a run holding an old ref cannot undo a password edit', async () => {
     const conn = await nas();
     const ref = svc.toRef(conn);
     await nas({ username: 'anna', password: 'rotated' });
-    ref.saveSecret!('device_token', EARNED);
+    await ref.saveSecret!('device_token', EARNED);
 
-    expect(secretsOf(conn.id)).toMatchObject({ password: 'rotated', device_token: EARNED });
+    expect(await secretsOf(conn.id)).toMatchObject({ password: 'rotated', device_token: EARNED });
   });
 
-  it('is dropped with null, and the form\'s secrets stay', async () => {
+  it("is dropped with null, and the form's secrets stay", async () => {
     const conn = await nas();
-    svc.saveEarnedSecret(conn.id, 'device_token', EARNED);
-    svc.saveEarnedSecret(conn.id, 'device_token', null);
+    await svc.saveEarnedSecret(conn.id, 'device_token', EARNED);
+    await svc.saveEarnedSecret(conn.id, 'device_token', null);
 
-    expect(secretsOf(conn.id)).toEqual({ password: 'nas-pw', otp_code: '123456' });
+    expect(await secretsOf(conn.id)).toEqual({ password: 'nas-pw', otp_code: '123456' });
   });
 
   it('brings back no connection that was deleted while a run still held its ref', async () => {
     const conn = await nas();
     const ref = svc.toRef(conn);
-    svc.deleteConnection(conn.id);
+    await svc.deleteConnection(conn.id);
 
-    ref.saveSecret!('device_token', EARNED);
-    expect(svc.getConnection(conn.id)).toBeUndefined();
+    await ref.saveSecret!('device_token', EARNED);
+    expect(await svc.getConnection(conn.id)).toBeUndefined();
   });
 });
 
@@ -414,7 +471,7 @@ describe('validateBaseUrl', () => {
     const result = await svc.upsertConnection(TRIP, OWNER, connectionInput({ baseUrl: 'https://nope.invalid' }));
     expect(result.success).toBe(false);
     expect(result.success === false && result.error.code).toBe('ssrf_blocked');
-    expect(svc.listConnections(TRIP)).toHaveLength(0);
+    expect(await svc.listConnections(TRIP)).toHaveLength(0);
   });
 
   it('strips trailing slashes so the adapter can append its own path', async () => {
@@ -434,7 +491,7 @@ describe('upsertConnection required fields', () => {
     const result = await svc.upsertConnection(TRIP, OWNER, connectionInput({ credentials: {} }));
     expect(result.success).toBe(false);
     expect(result.success === false && result.error.detail).toContain('api_token');
-    expect(svc.listConnections(TRIP)).toHaveLength(0);
+    expect(await svc.listConnections(TRIP)).toHaveLength(0);
   });
 
   it('refuses a missing required field that is not a secret either', async () => {
@@ -462,12 +519,12 @@ describe('upsertConnection required fields', () => {
 });
 
 describe('enabledProviderIds', () => {
-  it('names only the providers an admin switched on, in the order the shelf shows them', () => {
+  it('names only the providers an admin switched on, in the order the shelf shows them', async () => {
     // Every document provider ships OFF, so an empty answer on a fresh install
     // is the correct one and a non-empty one would be a policy change.
-    expect(svc.enabledProviderIds()).toEqual([]);
-    testDb.prepare("UPDATE document_providers SET enabled = 1 WHERE id IN ('nextcloud', 'paperless')").run();
-    expect(svc.enabledProviderIds()).toEqual(['paperless', 'nextcloud']);
+    expect(await svc.enabledProviderIds()).toEqual([]);
+    await updateRows(await orm(), DocumentProviders, { id: { $in: ['nextcloud', 'paperless'] } }, { enabled: 1 });
+    expect(await svc.enabledProviderIds()).toEqual(['paperless', 'nextcloud']);
   });
 });
 
@@ -477,10 +534,10 @@ describe('recordProbe', () => {
     // instance can accept uploads; the capabilities describe the provider, not
     // the state of the credential.
     const conn = await connect();
-    svc.recordProbe(conn.id, 'ok', null, { push: 'multipart' });
-    svc.recordProbe(conn.id, 'failed', '401 Unauthorized', null);
+    await svc.recordProbe(conn.id, 'ok', null, { push: 'multipart' });
+    await svc.recordProbe(conn.id, 'failed', '401 Unauthorized', null);
 
-    const view = svc.publicConnection(svc.getConnection(conn.id) as ConnectionRow);
+    const view = await svc.publicConnection((await svc.getConnection(conn.id)) as ConnectionRow);
     expect(view).toMatchObject({
       lastProbeState: 'failed',
       lastProbeError: '401 Unauthorized',
@@ -497,29 +554,28 @@ describe('deleteConnection', () => {
       baseUrl: 'https://cloud.example.com',
       credentials: { login_name: 'anna', app_password: 'app-pw' },
     });
-    const doomedLink = link(doomed.id, { scopeKey: 'tag:1' });
-    const keptLink = link(kept.id, { scopeKey: 'folder:1' });
-    testDb
-      .prepare('INSERT INTO document_sync_items (link_id, trip_id, trek_doc_uid) VALUES (?, ?, ?)')
-      .run(doomedLink.id, TRIP, 'uid-a');
+    const doomedLink = await link(doomed.id, { scopeKey: 'tag:1' });
+    const keptLink = await link(kept.id, { scopeKey: 'folder:1' });
+    await insertRow(await orm(), DocumentSyncItems, { link: doomedLink.id, trip: TRIP, trek_doc_uid: 'uid-a' });
 
-    svc.deleteConnection(doomed.id);
+    await svc.deleteConnection(doomed.id);
 
-    expect(svc.getConnection(doomed.id)).toBeUndefined();
-    expect(svc.listLinks(TRIP).map((l) => l.id)).toEqual([keptLink.id]);
-    expect(testDb.prepare('SELECT COUNT(*) AS n FROM document_sync_items').get()).toEqual({ n: 0 });
+    expect(await svc.getConnection(doomed.id)).toBeUndefined();
+    expect((await svc.listLinks(TRIP)).map((l) => l.id)).toEqual([keptLink.id]);
+    expect(await countRows(await orm(), DocumentSyncItems)).toBe(0);
   });
 });
 
 describe('toRef', () => {
   it('names the row and not only its id, which a backup restored in place hands out again', async () => {
     const first = await connect();
-    testDb.prepare("UPDATE document_connections SET created_at = '2026-09-01 08:00:00' WHERE id = ?").run(first.id);
-    const before = svc.toRef(svc.getConnection(first.id) as ConnectionRow);
+    await updateRows(await orm(), DocumentConnections, { id: first.id }, { created_at: '2026-09-01 08:00:00' });
+    const before = svc.toRef((await svc.getConnection(first.id)) as ConnectionRow);
 
     // What the restore of an older backup does to this table: the row is gone
     // and the id sequence is back where it stood before the row was made.
-    testDb.prepare('DELETE FROM document_connections WHERE id = ?').run(first.id);
+    await deleteRows(await orm(), DocumentConnections, { id: first.id });
+    // test-sql-allow: sqlite_sequence is the engine's own autoincrement table, which no entity maps.
     testDb.prepare("UPDATE sqlite_sequence SET seq = ? WHERE name = 'document_connections'").run(first.id - 1);
     const after = svc.toRef(await connect());
 
@@ -532,8 +588,8 @@ describe('toRef', () => {
 describe('updateLink', () => {
   it('changes only the fields the patch names', async () => {
     const conn = await connect();
-    const created = link(conn.id, { direction: 'both', conflictPolicy: 'manual' });
-    const patched = svc.updateLink(created.id, { direction: 'pull', syncEnabled: false });
+    const created = await link(conn.id, { direction: 'both', conflictPolicy: 'manual' });
+    const patched = await svc.updateLink(created.id, { direction: 'pull', syncEnabled: false });
     expect(patched).toMatchObject({
       direction: 'pull',
       sync_enabled: 0,
@@ -544,8 +600,8 @@ describe('updateLink', () => {
 
   it('hands back the binding untouched when the patch is empty', async () => {
     const conn = await connect();
-    const created = link(conn.id);
-    expect(svc.updateLink(created.id, {})).toEqual(created);
+    const created = await link(conn.id);
+    expect(await svc.updateLink(created.id, {})).toEqual(created);
   });
 });
 
@@ -554,16 +610,16 @@ describe('toScopeRef', () => {
     // The adapters take a ref object rather than positional arguments because
     // an id and a path swapped compile cleanly and then read the wrong folder.
     const conn = await connect();
-    const created = svc.createLink(
+    const created = await svc.createLink(
       TRIP,
       OWNER,
       linkInput(conn.id, { scopeKey: 'fileid:437', remoteRootId: '437', remoteRootPath: '/TREK/japan' }),
     );
     expect(created.success).toBe(true);
     const row = created.success ? created.data : ({} as LinkRow);
-    testDb.prepare('UPDATE trip_document_links SET remote_cursor = ? WHERE id = ?').run('etag-9', row.id);
+    await updateRows(await orm(), TripDocumentLinks, { id: row.id }, { remote_cursor: 'etag-9' });
 
-    expect(svc.toScopeRef(svc.getLink(row.id) as LinkRow)).toEqual({
+    expect(svc.toScopeRef((await svc.getLink(row.id)) as LinkRow)).toEqual({
       linkId: row.id,
       tripId: TRIP,
       scopeKey: 'fileid:437',
@@ -577,37 +633,37 @@ describe('toScopeRef', () => {
 describe('createLink', () => {
   it('returns the binding that already exists rather than making a second one', async () => {
     const conn = await connect();
-    const first = link(conn.id);
-    const again = svc.createLink(TRIP, MEMBER, linkInput(conn.id, { remoteLabel: 'renamed' }));
+    const first = await link(conn.id);
+    const again = await svc.createLink(TRIP, MEMBER, linkInput(conn.id, { remoteLabel: 'renamed' }));
     expect(again.success && again.data.id).toBe(first.id);
-    expect(svc.listLinks(TRIP)).toHaveLength(1);
+    expect(await svc.listLinks(TRIP)).toHaveLength(1);
   });
 
   it('binds a second scope of the same connection separately', async () => {
     const conn = await connect();
-    const first = link(conn.id, { scopeKey: 'tag:1' });
-    const second = link(conn.id, { scopeKey: 'tag:2' });
+    const first = await link(conn.id, { scopeKey: 'tag:1' });
+    const second = await link(conn.id, { scopeKey: 'tag:2' });
     expect(second.id).not.toBe(first.id);
-    expect(svc.listLinks(TRIP)).toHaveLength(2);
+    expect(await svc.listLinks(TRIP)).toHaveLength(2);
   });
 
-  it('refuses a connection that belongs to somebody else\'s trip', async () => {
+  it("refuses a connection that belongs to somebody else's trip", async () => {
     const otherTrip = createTrip(testDb, MEMBER, { title: 'Not yours' }).id;
     const conn = await connect();
-    const result = svc.createLink(otherTrip, MEMBER, linkInput(conn.id));
+    const result = await svc.createLink(otherTrip, MEMBER, linkInput(conn.id));
     expect(result.success).toBe(false);
     expect(result.success === false && result.error.code).toBe('not_found');
-    expect(svc.listLinks(otherTrip)).toHaveLength(0);
+    expect(await svc.listLinks(otherTrip)).toHaveLength(0);
   });
 
   it('refuses a connection id that does not exist at all', async () => {
-    const result = svc.createLink(TRIP, OWNER, linkInput(9999));
+    const result = await svc.createLink(TRIP, OWNER, linkInput(9999));
     expect(result.success).toBe(false);
   });
 
   it('stores the anchor the picker sent back with the scope key', async () => {
     const conn = await connect();
-    const result = svc.createLink(
+    const result = await svc.createLink(
       TRIP,
       OWNER,
       linkInput(conn.id, { remoteRootId: '17', remoteRootPath: '/TREK/japan', remoteLabel: 'Japan 2026' }),
@@ -623,7 +679,7 @@ describe('createLink', () => {
   it('stores NULL for an anchor field the client left out', async () => {
     // Synology binds by path alone, so its options carry no root id at all.
     const conn = await connect();
-    const result = svc.createLink(TRIP, OWNER, linkInput(conn.id));
+    const result = await svc.createLink(TRIP, OWNER, linkInput(conn.id));
     expect(result.success && result.data).toMatchObject({ remote_root_id: null, remote_root_path: null });
   });
 
@@ -631,17 +687,35 @@ describe('createLink', () => {
     // A leaked webhook URL has to identify exactly one binding, so revoking one
     // cannot be used to poke another.
     const conn = await connect();
-    const first = link(conn.id, { scopeKey: 'tag:1' });
-    const second = link(conn.id, { scopeKey: 'tag:2' });
+    const first = await link(conn.id, { scopeKey: 'tag:1' });
+    const second = await link(conn.id, { scopeKey: 'tag:2' });
     expect(first.webhook_token).toBeTruthy();
     expect(second.webhook_token).not.toBe(first.webhook_token);
-    expect(svc.getLinkByToken(first.webhook_token as string)?.id).toBe(first.id);
+    expect((await svc.getLinkByToken(first.webhook_token as string))?.id).toBe(first.id);
 
     const secret = svc.webhookSecret(first);
     expect(secret).toBeTruthy();
-    const view = svc.publicLink(first, 'https://trek.example.com');
+    const view = await svc.publicLink(first, 'https://trek.example.com');
     expect(view.webhookSecret).toBe(DOCSYNC_SECRET_MASK);
     expect(JSON.stringify(view)).not.toContain(secret);
+  });
+
+  // 3h L3 carry (task-7-review.md's L3: "trip_document_links.webhook_secret —
+  // No at-rest pin."). `createLink` mints the secret with the same
+  // `encryptSecrets` call the connection's own secret map uses (`doc-sync-
+  // config.service.ts:417`), so the pin is the same shape: raw column is
+  // `enc:v1:`-prefixed ciphertext, never the plaintext, and `webhookSecret`
+  // round-trips it.
+  it('DOCSYNC-ENC-002: the raw trip_document_links.webhook_secret column is enc:v1:-prefixed ciphertext, never plaintext, and round-trips', async () => {
+    const conn = await connect();
+    const bound = await link(conn.id);
+
+    const raw = (await findRow(await orm(), TripDocumentLinks, { id: bound.id }))?.webhook_secret;
+
+    expect(raw).toMatch(/^enc:v1:/);
+    const secret = svc.webhookSecret(bound);
+    expect(secret).toBeTruthy();
+    expect(raw).not.toContain(secret);
   });
 });
 
@@ -650,43 +724,42 @@ describe('publicLink', () => {
     // The client only learns names for the providers that are on, so this is
     // the one place a binding left behind can still get its name from.
     const conn = await connect();
-    const bound = link(conn.id);
-    testDb.prepare("UPDATE document_providers SET enabled = 0 WHERE id = 'paperless'").run();
+    const bound = await link(conn.id);
+    await updateRows(await orm(), DocumentProviders, { id: 'paperless' }, { enabled: 0 });
 
-    expect(svc.publicLink(bound, null)).toMatchObject({ providerId: 'paperless', providerName: 'Paperless-ngx' });
+    expect(await svc.publicLink(bound, null)).toMatchObject({ providerId: 'paperless', providerName: 'Paperless-ngx' });
   });
 
   it('falls back to the provider id for a provider this build does not know', async () => {
     const conn = await connect();
-    const bound = link(conn.id);
-    expect(svc.publicLink({ ...bound, provider_id: 'dropbox' }, null).providerName).toBe('dropbox');
+    const bound = await link(conn.id);
+    expect((await svc.publicLink({ ...bound, provider_id: 'dropbox' }, null)).providerName).toBe('dropbox');
   });
 });
 
 describe('deleteLink', () => {
-  it('takes the pairing rows with it and leaves the other binding\'s alone', async () => {
+  it("takes the pairing rows with it and leaves the other binding's alone", async () => {
     const conn = await connect();
-    const doomed = link(conn.id, { scopeKey: 'tag:1' });
-    const kept = link(conn.id, { scopeKey: 'tag:2' });
-    const insert = testDb.prepare(
-      'INSERT INTO document_sync_items (link_id, trip_id, trek_doc_uid) VALUES (?, ?, ?)',
-    );
-    insert.run(doomed.id, TRIP, 'uid-a');
-    insert.run(doomed.id, TRIP, 'uid-b');
-    insert.run(kept.id, TRIP, 'uid-c');
+    const doomed = await link(conn.id, { scopeKey: 'tag:1' });
+    const kept = await link(conn.id, { scopeKey: 'tag:2' });
+    const insert = async (linkId: number, trekDocUid: string) =>
+      insertRow(await orm(), DocumentSyncItems, { link: linkId, trip: TRIP, trek_doc_uid: trekDocUid });
+    await insert(doomed.id, 'uid-a');
+    await insert(doomed.id, 'uid-b');
+    await insert(kept.id, 'uid-c');
 
-    svc.deleteLink(doomed.id);
+    await svc.deleteLink(doomed.id);
 
-    expect(svc.getLink(doomed.id)).toBeUndefined();
-    expect(svc.getLink(kept.id)).toBeDefined();
-    const rows = testDb.prepare('SELECT link_id FROM document_sync_items').all() as { link_id: number }[];
+    expect(await svc.getLink(doomed.id)).toBeUndefined();
+    expect(await svc.getLink(kept.id)).toBeDefined();
+    const rows = await findRows(await orm(), DocumentSyncItems);
     expect(rows.map((r) => r.link_id)).toEqual([kept.id]);
   });
 
   it('leaves the connection behind, so unbinding one scope does not log the trip out', async () => {
     const conn = await connect();
-    svc.deleteLink(link(conn.id).id);
-    expect(svc.getConnection(conn.id)).toBeDefined();
+    await svc.deleteLink((await link(conn.id)).id);
+    expect(await svc.getConnection(conn.id)).toBeDefined();
   });
 });
 
@@ -695,15 +768,15 @@ describe('markOrphanedLinks', () => {
     const credentials =
       providerId === 'paperless' ? { api_token: TOKEN } : { login_name: 'anna', app_password: 'app-pw' };
     const conn = await connect({ providerId, credentials, baseUrl: `https://${providerId}.example.com` }, ownerUserId);
-    return link(conn.id, { scopeKey: `scope:${providerId}` });
+    return await link(conn.id, { scopeKey: `scope:${providerId}` });
   }
 
   it('disables the binding whose credential owner left the trip', async () => {
     const orphan = await bind(MEMBER, 'paperless');
-    testDb.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(TRIP, MEMBER);
+    await deleteRows(await orm(), TripMembers, { trip: TRIP, user: MEMBER });
 
-    expect(svc.markOrphanedLinks()).toBe(1);
-    expect(svc.getLink(orphan.id)).toMatchObject({ last_sync_state: 'orphaned', sync_enabled: 0 });
+    expect(await svc.markOrphanedLinks()).toBe(1);
+    expect(await svc.getLink(orphan.id)).toMatchObject({ last_sync_state: 'orphaned', sync_enabled: 0 });
   });
 
   it('counts the trip owner as being on the trip, although no membership row says so', async () => {
@@ -711,34 +784,77 @@ describe('markOrphanedLinks', () => {
     // owner would orphan every binding the trip admin created, which is most
     // of them.
     const mine = await bind(OWNER, 'paperless');
-    expect(svc.markOrphanedLinks()).toBe(0);
-    expect(svc.getLink(mine.id)).toMatchObject({ last_sync_state: 'never', sync_enabled: 1 });
+    expect(await svc.markOrphanedLinks()).toBe(0);
+    expect(await svc.getLink(mine.id)).toMatchObject({ last_sync_state: 'never', sync_enabled: 1 });
   });
 
   it('leaves a still-valid binding alone while orphaning the one beside it', async () => {
     const orphan = await bind(MEMBER, 'paperless');
     const kept = await bind(OWNER, 'nextcloud');
-    testDb.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(TRIP, MEMBER);
+    await deleteRows(await orm(), TripMembers, { trip: TRIP, user: MEMBER });
 
-    expect(svc.markOrphanedLinks()).toBe(1);
-    expect(svc.getLink(orphan.id)?.last_sync_state).toBe('orphaned');
-    expect(svc.getLink(kept.id)).toMatchObject({ last_sync_state: 'never', sync_enabled: 1 });
+    expect(await svc.markOrphanedLinks()).toBe(1);
+    expect((await svc.getLink(orphan.id))?.last_sync_state).toBe('orphaned');
+    expect(await svc.getLink(kept.id)).toMatchObject({ last_sync_state: 'never', sync_enabled: 1 });
+  });
+
+  /**
+   * DSC20/DSC21's shared predicate (`DocumentConnectionsRepository
+   * .listOrphanedIds`) — the single-link check (`isOrphaned`, which
+   * delegates to the private `ownerLeft`) and the bulk sweep
+   * (`markOrphanedLinks`) must agree on every case, since both now draw
+   * from the SAME repository method rather than two independent
+   * re-implementations of the `NOT IN (... UNION ...)` subquery. Three
+   * cases in one test: an owner still on the trip via `trip_members`, an
+   * owner on it only via `trips.user_id` (no membership row), and an owner
+   * genuinely gone.
+   */
+  it('the single-link check and the bulk sweep agree on every case: owner via trip_members, owner via trips.user_id, owner genuinely gone', async () => {
+    // A connection is keyed per (trip_id, provider_id) — `upsertConnection`
+    // treats a second `connect()` call for a provider this trip already
+    // has as an EDIT of that same row, not a new connection. Three
+    // independent connections therefore need three distinct providers.
+    const viaMembership = await bind(MEMBER, 'paperless');
+    const viaTripOwner = await bind(OWNER, 'nextcloud');
+    // A stranger who was never on the trip at all — indistinguishable from
+    // "genuinely gone" to the shared predicate, which only asks "is the
+    // owner currently IN the membership set", never why they are not.
+    const strangerId = createUser(testDb, { username: 'stranger-doc-sync', email: 'stranger-doc-sync@test.local' }).user
+      .id;
+    const goneConn = await connect(
+      {
+        providerId: 'synologydrive',
+        credentials: { username: 'anna', password: 'nas-pw' },
+        baseUrl: 'https://nas.example.com:5001',
+      },
+      strangerId,
+    );
+    const goneLink = await link(goneConn.id, { scopeKey: 'scope:gone' });
+
+    expect(await svc.isOrphaned((await svc.getLink(viaMembership.id)) as LinkRow)).toBe(false);
+    expect(await svc.isOrphaned((await svc.getLink(viaTripOwner.id)) as LinkRow)).toBe(false);
+    expect(await svc.isOrphaned((await svc.getLink(goneLink.id)) as LinkRow)).toBe(true);
+
+    expect(await svc.markOrphanedLinks()).toBe(1);
+    expect((await svc.getLink(viaMembership.id))?.last_sync_state).toBe('never');
+    expect((await svc.getLink(viaTripOwner.id))?.last_sync_state).toBe('never');
+    expect((await svc.getLink(goneLink.id))?.last_sync_state).toBe('orphaned');
   });
 
   it('counts nothing on a second sweep, so the job stays quiet after the first one', async () => {
     await bind(MEMBER, 'paperless');
-    testDb.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(TRIP, MEMBER);
-    expect(svc.markOrphanedLinks()).toBe(1);
-    expect(svc.markOrphanedLinks()).toBe(0);
+    await deleteRows(await orm(), TripMembers, { trip: TRIP, user: MEMBER });
+    expect(await svc.markOrphanedLinks()).toBe(1);
+    expect(await svc.markOrphanedLinks()).toBe(0);
   });
 
   it('does not touch a binding the user had already switched off', async () => {
     const paused = await bind(MEMBER, 'paperless');
-    svc.updateLink(paused.id, { syncEnabled: false });
-    testDb.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(TRIP, MEMBER);
+    await svc.updateLink(paused.id, { syncEnabled: false });
+    await deleteRows(await orm(), TripMembers, { trip: TRIP, user: MEMBER });
 
-    expect(svc.markOrphanedLinks()).toBe(0);
-    expect(svc.getLink(paused.id)?.last_sync_state).toBe('never');
+    expect(await svc.markOrphanedLinks()).toBe(0);
+    expect((await svc.getLink(paused.id))?.last_sync_state).toBe('never');
   });
 });
 
@@ -749,50 +865,50 @@ describe('isOrphaned', () => {
 
   it('answers yes for a paused binding whose owner left, which the sweep never marks', async () => {
     const paused = await bind(MEMBER);
-    svc.updateLink(paused.id, { syncEnabled: false });
-    testDb.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(TRIP, MEMBER);
+    await svc.updateLink(paused.id, { syncEnabled: false });
+    await deleteRows(await orm(), TripMembers, { trip: TRIP, user: MEMBER });
 
-    expect(svc.markOrphanedLinks()).toBe(0);
-    expect(svc.isOrphaned(svc.getLink(paused.id)!)).toBe(true);
+    expect(await svc.markOrphanedLinks()).toBe(0);
+    expect(await svc.isOrphaned((await svc.getLink(paused.id))!)).toBe(true);
   });
 
   it('answers yes for a marked binding, and no while the owner is on the trip', async () => {
     const kept = await bind(OWNER);
-    expect(svc.isOrphaned(kept)).toBe(false);
+    expect(await svc.isOrphaned(kept)).toBe(false);
 
-    testDb.prepare("UPDATE trip_document_links SET last_sync_state = 'orphaned' WHERE id = ?").run(kept.id);
-    expect(svc.isOrphaned(svc.getLink(kept.id)!)).toBe(true);
+    await updateRows(await orm(), TripDocumentLinks, { id: kept.id }, { last_sync_state: 'orphaned' });
+    expect(await svc.isOrphaned((await svc.getLink(kept.id))!)).toBe(true);
   });
 
   it('leaves a connection that is gone to the run, which reports it as not found', async () => {
     const bound = await bind(OWNER);
-    expect(svc.isOrphaned({ ...bound, connection_id: 999999 })).toBe(false);
+    expect(await svc.isOrphaned({ ...bound, connection_id: 999999 })).toBe(false);
   });
 });
 
 describe('switching an orphaned binding back on', () => {
   async function orphan(): Promise<LinkRow> {
-    const bound = link((await connect({}, MEMBER)).id);
-    testDb.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(TRIP, MEMBER);
-    svc.markOrphanedLinks();
+    const bound = await link((await connect({}, MEMBER)).id);
+    await deleteRows(await orm(), TripMembers, { trip: TRIP, user: MEMBER });
+    await svc.markOrphanedLinks();
     return bound;
   }
 
   it('keeps it off while its owner is still gone, and changes the rest of the patch', async () => {
     const bound = await orphan();
 
-    const res = svc.updateLink(bound.id, { syncEnabled: true, direction: 'pull' });
+    const res = await svc.updateLink(bound.id, { syncEnabled: true, direction: 'pull' });
 
     expect(res).toMatchObject({ sync_enabled: 0, last_sync_state: 'orphaned', direction: 'pull' });
   });
 
   it('lets it run again once its owner is back on the trip', async () => {
     const bound = await orphan();
-    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(TRIP, MEMBER);
+    await addTripMember(await orm(), TRIP, MEMBER);
 
-    const res = svc.updateLink(bound.id, { syncEnabled: true });
+    const res = await svc.updateLink(bound.id, { syncEnabled: true });
 
     expect(res).toMatchObject({ sync_enabled: 1, last_sync_state: 'never' });
-    expect(svc.isOrphaned(res!)).toBe(false);
+    expect(await svc.isOrphaned(res!)).toBe(false);
   });
 });

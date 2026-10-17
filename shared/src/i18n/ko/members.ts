@@ -7,7 +7,6 @@ const members: TranslationStrings = {
   'members.invite': '초대',
   'members.allHaveAccess': '모든 사용자가 이미 접근 권한을 가지고 있습니다.',
   'members.access': '접근',
-  'members.person': '명',
   'members.persons': '명',
   'members.you': '나',
   'members.owner': '소유자',
@@ -32,6 +31,9 @@ const members: TranslationStrings = {
   'members.guestAddError': '게스트 추가 실패',
   'members.guestRenameError': '게스트 이름 변경 실패',
   'members.guestRemoved': '게스트가 제거되었습니다',
-  'members.confirmRemoveGuest': '이 게스트를 제거할까요? 배정 및 비용 분담도 함께 제거됩니다.',
+  'members.confirmRemoveGuest':
+    '이 게스트를 제거할까요? 배정은 제거되고, 각 비용의 분담분은 함께 나누는 다른 사람들에게 나뉩니다.',
+  'members.guestHasPayments':
+    '이 게스트는 비용을 결제했거나 기록된 정산에 포함되어 있습니다. 먼저 결제자를 변경하거나 정산 내역을 삭제하세요.',
 };
 export default members;

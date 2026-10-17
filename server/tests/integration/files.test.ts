@@ -7,58 +7,30 @@
  * - File uploads create real files in uploads/files/ — tests clean up after themselves where possible
  * - FILE-009 (ephemeral token download) is covered via the /api/auth/resource-token endpoint
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
-import path from 'path';
-import fs from 'fs';
-
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: (placeId: number) => {
-      const place: any = db.prepare(`SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`).get(placeId);
-      if (!place) return null;
-      const tags = db.prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`).all(placeId);
-      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon } : null, tags };
-    },
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
-});
-
-vi.mock('../../src/db/database', () => dbMock);
-vi.mock('../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  DEFAULT_LANGUAGE: 'en',
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
 import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createReservation, createPlace, addTripMember } from '../helpers/factories';
+import { db as testDb } from '../../src/db/database';
 import { authCookie, generateToken } from '../helpers/auth';
+import { createUser, createTrip, createReservation, createPlace, addTripMember } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { setAppSetting } from '../helpers/factories/settings';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import fs from 'fs';
+import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 let nestApp: INestApplication;
 let app: Application;
+let orm: FactoryOrm;
 const FIXTURE_PDF = path.join(__dirname, '../fixtures/test.pdf');
 const FIXTURE_IMG = path.join(__dirname, '../fixtures/small-image.jpg');
 
@@ -66,20 +38,19 @@ const FIXTURE_IMG = path.join(__dirname, '../fixtures/small-image.jpg');
 const uploadsDir = path.join(__dirname, '../../uploads/files');
 
 beforeAll(async () => {
-  createTables(testDb);
-  runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  orm = nestApp.get(MikroORM);
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
   // Seed allowed_file_types to include common types (wildcard)
-  testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allowed_file_types', '*')").run();
+  await setAppSetting(orm, 'allowed_file_types', '*');
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   resetTestDb(testDb);
-  resetRateLimits(nestApp);
+  await resetRateLimits(nestApp);
   // Re-seed allowed_file_types after reset
-  testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allowed_file_types', '*')").run();
+  await setAppSetting(orm, 'allowed_file_types', '*');
 });
 
 afterAll(async () => {
@@ -159,7 +130,11 @@ describe('Upload file', () => {
     const bigFilesIn = (dir: string) =>
       fs.existsSync(dir)
         ? fs.readdirSync(dir).filter((f) => {
-            try { return fs.statSync(path.join(dir, f)).size === BIG; } catch { return false; }
+            try {
+              return fs.statSync(path.join(dir, f)).size === BIG;
+            } catch {
+              return false;
+            }
           })
         : [];
     const res = await request(app)
@@ -208,9 +183,7 @@ describe('List files', () => {
     await uploadFile(trip.id, user.id, FIXTURE_PDF);
     await uploadFile(trip.id, user.id, FIXTURE_IMG);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/files`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/files`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.files.length).toBeGreaterThanOrEqual(2);
   });
@@ -222,13 +195,9 @@ describe('List files', () => {
     const fileId = upload.body.file.id;
 
     // Soft-delete it
-    await request(app)
-      .delete(`/api/trips/${trip.id}/files/${fileId}`)
-      .set('Cookie', authCookie(user.id));
+    await request(app).delete(`/api/trips/${trip.id}/files/${fileId}`).set('Cookie', authCookie(user.id));
 
-    const trash = await request(app)
-      .get(`/api/trips/${trip.id}/files?trash=true`)
-      .set('Cookie', authCookie(user.id));
+    const trash = await request(app).get(`/api/trips/${trip.id}/files?trash=true`).set('Cookie', authCookie(user.id));
     expect(trash.status).toBe(200);
     const trashIds = (trash.body.files as any[]).map((f: any) => f.id);
     expect(trashIds).toContain(fileId);
@@ -271,16 +240,12 @@ describe('Soft delete, restore, permanent delete', () => {
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
-    const del = await request(app)
-      .delete(`/api/trips/${trip.id}/files/${fileId}`)
-      .set('Cookie', authCookie(user.id));
+    const del = await request(app).delete(`/api/trips/${trip.id}/files/${fileId}`).set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
     // Should not appear in normal list
-    const list = await request(app)
-      .get(`/api/trips/${trip.id}/files`)
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get(`/api/trips/${trip.id}/files`).set('Cookie', authCookie(user.id));
     const ids = (list.body.files as any[]).map((f: any) => f.id);
     expect(ids).not.toContain(fileId);
   });
@@ -291,9 +256,7 @@ describe('Soft delete, restore, permanent delete', () => {
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
-    await request(app)
-      .delete(`/api/trips/${trip.id}/files/${fileId}`)
-      .set('Cookie', authCookie(user.id));
+    await request(app).delete(`/api/trips/${trip.id}/files/${fileId}`).set('Cookie', authCookie(user.id));
 
     const restore = await request(app)
       .post(`/api/trips/${trip.id}/files/${fileId}/restore`)
@@ -308,9 +271,7 @@ describe('Soft delete, restore, permanent delete', () => {
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
-    await request(app)
-      .delete(`/api/trips/${trip.id}/files/${fileId}`)
-      .set('Cookie', authCookie(user.id));
+    await request(app).delete(`/api/trips/${trip.id}/files/${fileId}`).set('Cookie', authCookie(user.id));
 
     const perm = await request(app)
       .delete(`/api/trips/${trip.id}/files/${fileId}/permanent`)
@@ -346,9 +307,7 @@ describe('Soft delete, restore, permanent delete', () => {
       .set('Cookie', authCookie(user.id));
     expect(empty.status).toBe(200);
 
-    const trash = await request(app)
-      .get(`/api/trips/${trip.id}/files?trash=true`)
-      .set('Cookie', authCookie(user.id));
+    const trash = await request(app).get(`/api/trips/${trip.id}/files?trash=true`).set('Cookie', authCookie(user.id));
     expect(trash.body.files).toHaveLength(0);
   });
 });
@@ -425,7 +384,10 @@ describe('Cross-trip link isolation', () => {
     const { user: victim } = createUser(testDb);
     const attackerTrip = createTrip(testDb, attacker.id, { title: 'Attacker Trip' });
     const victimTrip = createTrip(testDb, victim.id, { title: 'Victim Trip' });
-    const victimReservation = createReservation(testDb, victimTrip.id, { title: 'Victim Secret Flight', type: 'flight' });
+    const victimReservation = createReservation(testDb, victimTrip.id, {
+      title: 'Victim Secret Flight',
+      type: 'flight',
+    });
     const upload = await uploadFile(attackerTrip.id, attacker.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -449,7 +411,10 @@ describe('Cross-trip link isolation', () => {
     const { user: victim } = createUser(testDb);
     const attackerTrip = createTrip(testDb, attacker.id);
     const victimTrip = createTrip(testDb, victim.id);
-    const victimReservation = createReservation(testDb, victimTrip.id, { title: 'Victim Secret Flight', type: 'flight' });
+    const victimReservation = createReservation(testDb, victimTrip.id, {
+      title: 'Victim Secret Flight',
+      type: 'flight',
+    });
 
     const res = await request(app)
       .post(`/api/trips/${attackerTrip.id}/files`)
@@ -465,7 +430,10 @@ describe('Cross-trip link isolation', () => {
     const { user: victim } = createUser(testDb);
     const attackerTrip = createTrip(testDb, attacker.id);
     const victimTrip = createTrip(testDb, victim.id);
-    const victimReservation = createReservation(testDb, victimTrip.id, { title: 'Victim Secret Flight', type: 'flight' });
+    const victimReservation = createReservation(testDb, victimTrip.id, {
+      title: 'Victim Secret Flight',
+      type: 'flight',
+    });
     const upload = await uploadFile(attackerTrip.id, attacker.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -532,8 +500,7 @@ describe('File download', () => {
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/files/${fileId}/download`);
+    const res = await request(app).get(`/api/trips/${trip.id}/files/${fileId}/download`);
     expect(res.status).toBe(401);
   });
 

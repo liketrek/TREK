@@ -16,6 +16,9 @@ const memories: TranslationStrings = {
   'memories.reviewTitle': 'Перевірте свої фото',
   'memories.reviewHint': 'Натисніть на фото, щоб виключити його зі спільного доступу.',
   'memories.shareCount': 'Поділитися ({count} фото)',
+  'memories.shareCount.one': 'Поділитися ({count} фото)',
+  'memories.shareCount.few': 'Поділитися ({count} фото)',
+  'memories.shareCount.many': 'Поділитися ({count} фото)',
   'memories.providerUrl': 'URL сервера',
   'memories.providerApiKey': 'API-ключ',
   'memories.providerUsername': 'Ім’я користувача',
@@ -51,6 +54,9 @@ const memories: TranslationStrings = {
   'memories.selectHint': 'Натисніть на фото, щоб вибрати їх.',
   'memories.selected': 'вибрано',
   'memories.addSelected': 'Додати {count} фото',
+  'memories.addSelected.one': 'Додати {count} фото',
+  'memories.addSelected.few': 'Додати {count} фото',
+  'memories.addSelected.many': 'Додати {count} фото',
   'memories.alreadyAdded': 'Додано',
   'memories.private': 'Приватне',
   'memories.stopSharing': 'Припинити доступ',
@@ -58,6 +64,12 @@ const memories: TranslationStrings = {
   'memories.allPhotos': 'Усі фото',
   'memories.confirmShareTitle': 'Поділитися з учасниками поїздки?',
   'memories.confirmShareHint':
+    '{count} фото стануть видимі всім учасникам цієї поїздки. Ви зможете зробити окремі фото приватними пізніше.',
+  'memories.confirmShareHint.one':
+    '{count} фото стане видимим усім учасникам цієї поїздки. Ви зможете зробити його приватним пізніше.',
+  'memories.confirmShareHint.few':
+    '{count} фото стануть видимі всім учасникам цієї поїздки. Ви зможете зробити окремі фото приватними пізніше.',
+  'memories.confirmShareHint.many':
     '{count} фото стануть видимі всім учасникам цієї поїздки. Ви зможете зробити окремі фото приватними пізніше.',
   'memories.confirmShareButton': 'Поділитися фото',
   'memories.error.loadAlbums': 'Не вдалося завантажити альбоми',

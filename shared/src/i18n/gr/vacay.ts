@@ -88,6 +88,7 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': 'Αυτόματη μεταφορά των υπολοίπων ημερών διακοπών στο επόμενο έτος',
   'vacay.carriedOverPrevPeriod': 'από την προηγούμενη περίοδο',
   'vacay.compUsedCount': '{count} ρεπό',
+  'vacay.compUsedCount.one': '{count} ρεπό',
   'vacay.yearType': 'Έτος διακοπών',
   'vacay.yearTypeHint':
     'Πότε ξεκινά το έτος διακοπών σας — βάσει αυτού υπολογίζονται το δικαίωμα, η χρήση και η μεταφορά',

@@ -1,4 +1,4 @@
-// FE-COMP-LIGHTBOX-001 to FE-COMP-LIGHTBOX-017
+// FE-COMP-LIGHTBOX-001 to FE-COMP-LIGHTBOX-021
 
 // Plyr needs a real media pipeline, so the player is stubbed here.
 vi.mock('./VideoPlayer', () => ({
@@ -94,10 +94,7 @@ describe('PhotoLightbox', () => {
   it('FE-COMP-LIGHTBOX-008: calls onClose when close button clicked', () => {
     const onClose = vi.fn();
     render(<PhotoLightbox photos={samplePhotos} onClose={onClose} />);
-    // The close button is in the top bar — find the button and click it
-    const buttons = screen.getAllByRole('button');
-    // The first button in the top bar is the close (X) button
-    buttons[0].click();
+    screen.getByRole('button', { name: 'Close' }).click();
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -110,15 +107,15 @@ describe('PhotoLightbox', () => {
 
   it('FE-COMP-LIGHTBOX-010: only offers the arrows that lead somewhere', () => {
     render(<PhotoLightbox photos={samplePhotos} onClose={vi.fn()} />);
-    // First photo: close + next.
-    expect(screen.getAllByRole('button')).toHaveLength(2);
+    // First photo: the two zoom buttons, close and next.
+    expect(screen.getAllByRole('button')).toHaveLength(4);
 
     fireEvent.keyDown(window, { key: 'ArrowRight' });
-    expect(screen.getAllByRole('button')).toHaveLength(3);
+    expect(screen.getAllByRole('button')).toHaveLength(5);
 
     fireEvent.keyDown(window, { key: 'ArrowRight' });
-    // Last photo: close + prev.
-    expect(screen.getAllByRole('button')).toHaveLength(2);
+    // Last photo: zoom, close and prev.
+    expect(screen.getAllByRole('button')).toHaveLength(4);
 
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(screen.getByText('3 / 3')).toBeInTheDocument();
@@ -126,12 +123,12 @@ describe('PhotoLightbox', () => {
 
   it('FE-COMP-LIGHTBOX-011: navigates with the on-screen arrows', () => {
     render(<PhotoLightbox photos={samplePhotos} startIndex={1} onClose={vi.fn()} />);
-    const [, prev, next] = screen.getAllByRole('button');
+    const [, , , prev, next] = screen.getAllByRole('button');
 
     fireEvent.click(next);
     expect(screen.getByText('3 / 3')).toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole('button')[1]);
+    fireEvent.click(screen.getAllByRole('button')[3]);
     expect(screen.getByText('2 / 3')).toBeInTheDocument();
     expect(prev).toBeInTheDocument();
   });
@@ -196,5 +193,58 @@ describe('PhotoLightbox', () => {
 
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-LIGHTBOX-018: zooms with the buttons and a double click, and starts over on the next photo (#1484)', () => {
+    render(<PhotoLightbox photos={samplePhotos} onClose={vi.fn()} />);
+    const img = screen.getByRole('img');
+    expect(screen.getByRole('button', { name: 'Zoom out' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    expect(img.style.transform).toContain('scale(1.5)');
+    expect(screen.getByRole('button', { name: 'Back to full photo' })).toHaveTextContent('150%');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to full photo' }));
+    expect(img.style.transform).toBe('translate(0px, 0px) scale(1)');
+
+    fireEvent.doubleClick(img);
+    expect(img.style.transform).toContain('scale(2.5)');
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.getByRole('img').style.transform).toBe('translate(0px, 0px) scale(1)');
+  });
+
+  it('FE-COMP-LIGHTBOX-021: two quick taps zoom in, two quick swipes turn two pages', () => {
+    render(<PhotoLightbox photos={samplePhotos} startIndex={0} onClose={vi.fn()} />);
+    const surface = screen.getByRole('img').closest('div[style*="position: fixed"]') as HTMLElement;
+    for (let i = 0; i < 2; i++) {
+      fireEvent.touchStart(surface, { touches: [{ clientX: 200, clientY: 200 }] });
+      fireEvent.touchEnd(surface, { touches: [], changedTouches: [{ clientX: 202, clientY: 201 }] });
+    }
+    expect(screen.getByRole('button', { name: 'Zoom out' })).not.toBeDisabled();
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-LIGHTBOX-019: a swipe on an enlarged photo pans instead of turning the page', () => {
+    const onClose = vi.fn();
+    render(<PhotoLightbox photos={samplePhotos} onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    const overlay = screen.getByRole('img').closest('div[style*="position: fixed"]') as HTMLElement;
+    fireEvent.touchStart(overlay, { touches: [{ clientX: 200, clientY: 200 }] });
+    fireEvent.touchMove(overlay, { touches: [{ clientX: 80, clientY: 320 }] });
+    fireEvent.touchEnd(overlay, { touches: [], changedTouches: [{ clientX: 80, clientY: 320 }] });
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-LIGHTBOX-020: a pinch zooms in without closing', () => {
+    const onClose = vi.fn();
+    render(<PhotoLightbox photos={samplePhotos} onClose={onClose} />);
+    const img = screen.getByRole('img');
+    const overlay = img.closest('div[style*="position: fixed"]') as HTMLElement;
+    fireEvent.touchStart(overlay, { touches: [{ clientX: 100, clientY: 100 }, { clientX: 200, clientY: 100 }] });
+    fireEvent.touchMove(overlay, { touches: [{ clientX: 50, clientY: 100 }, { clientX: 250, clientY: 100 }] });
+    fireEvent.touchEnd(overlay, { touches: [], changedTouches: [{ clientX: 250, clientY: 100 }] });
+    expect(img.style.transform).toContain('scale(2)');
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

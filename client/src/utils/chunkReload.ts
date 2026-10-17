@@ -116,3 +116,19 @@ export function clearChunkReloadMarker(): void {
     // Nothing to clear if storage is unavailable.
   }
 }
+
+/**
+ * A dynamic import whose failure the caller catches. After a deploy the old
+ * page asks for chunk names the new build no longer has; a caller that only
+ * shows its own error would show it on every retry, so a missing chunk reloads
+ * onto the current build once, the way an uncaught one already does. The
+ * error is rethrown for the caller either way.
+ */
+export async function importChunk<T>(load: () => Promise<T>): Promise<T> {
+  try {
+    return await load()
+  } catch (err) {
+    if (isChunkLoadError(err)) reloadOnceForChunk()
+    throw err
+  }
+}

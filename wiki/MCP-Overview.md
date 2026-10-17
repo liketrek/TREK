@@ -15,6 +15,8 @@ Once connected, an AI assistant can work with your TREK data in a single convers
 - Mark countries and regions as visited in Atlas
 - Log vacation days in Vacay
 - Write journey entries across multiple trips
+- Upload documents to a trip, read them and link them to bookings, places or expenses
+- Look up how a TREK feature works in the bundled help
 
 Changes made through MCP are broadcast to all connected clients in real-time — exactly like changes made in the web UI.
 
@@ -58,7 +60,7 @@ https://<your-trek-instance>/mcp
 
 If the MCP addon is not enabled, this endpoint returns `403`. If authentication fails, it returns `401`.
 
-> **Admin:** Enable the MCP addon in [Admin-Addons](Admin-Addons). Set `APP_URL` for OAuth discovery. Revoke tokens and manage OAuth clients from [Admin-MCP-Tokens](Admin-MCP-Tokens). Adjust rate and session limits with `MCP_RATE_LIMIT` and `MCP_MAX_SESSION_PER_USER` — see [Environment-Variables](Environment-Variables).
+> **Admin:** Enable the MCP addon in [Admin-Addons](Admin-Addons). Set `APP_URL` for OAuth discovery. Revoke OAuth sessions and delete API tokens of any user under **Admin → MCP Access** ([Admin-MCP-Tokens](Admin-MCP-Tokens)). Adjust rate and session limits with `MCP_RATE_LIMIT` and `MCP_MAX_SESSION_PER_USER`, see [Environment-Variables](Environment-Variables).
 
 ## Next steps
 

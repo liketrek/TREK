@@ -350,7 +350,7 @@ describe('DashboardPage (desktop)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Subscribe to all trips calendar' }));
     const description = await screen.findByText(/One calendar feed for all your active trips/);
 
-    fireEvent.click((description.parentElement as HTMLElement).querySelector('button') as HTMLElement);
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }));
 
     await waitFor(() =>
       expect(screen.queryByText(/One calendar feed for all your active trips/)).not.toBeInTheDocument());

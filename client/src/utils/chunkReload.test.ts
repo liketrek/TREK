@@ -1,4 +1,4 @@
-import { isChunkLoadError, reloadOnceForChunk, clearChunkReloadMarker, reloadFresh, FRESH_LOAD_PARAM } from './chunkReload';
+import { isChunkLoadError, reloadOnceForChunk, clearChunkReloadMarker, reloadFresh, importChunk, FRESH_LOAD_PARAM } from './chunkReload';
 
 const net = vi.hoisted(() => ({
   probeNow: vi.fn(async () => 'online' as 'online' | 'offline' | 'proxy-wall'),
@@ -82,6 +82,18 @@ describe('reloadFresh', () => {
 
 describe('reloadOnceForChunk', () => {
   const stubReload = () => stubLocation().reload;
+
+  it('FE-UTIL-CHUNK-020: importChunk reloads once for a chunk the deploy removed, and still hands the caller the error', async () => {
+    const reload = stubReload();
+    const gone = new TypeError('Failed to fetch dynamically imported module: /assets/TripPDF-abc123.js');
+    await expect(importChunk(() => Promise.reject(gone))).rejects.toBe(gone);
+    expect(reload).toHaveBeenCalledTimes(1);
+
+    // Anything else is the caller's error alone.
+    await expect(importChunk(() => Promise.reject(new Error('pdf layout failed')))).rejects.toThrow('pdf layout failed');
+    expect(reload).toHaveBeenCalledTimes(1);
+    await expect(importChunk(() => Promise.resolve({ ok: true }))).resolves.toEqual({ ok: true });
+  });
 
   it('FE-UTIL-CHUNK-004: reloads the first time and refuses afterwards', () => {
     const reload = stubReload();

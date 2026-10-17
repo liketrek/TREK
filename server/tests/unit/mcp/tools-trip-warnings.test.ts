@@ -2,61 +2,34 @@
  * Unit tests for the get_trip_warnings MCP tool (src/nest/plugins/contributions/
  * trip-warnings.mcp.ts), the MCP counterpart of GET /api/trip-warnings/:tripId.
  */
+import { db as testDb } from '../../../src/db/database';
+import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+import { addTripMember, createTrip, createUser } from '../../helpers/factories';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA foreign_keys = ON');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: (tripId: number, userId: number) =>
-      db
-        .prepare(
-          'SELECT t.id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)',
-        )
-        .get(userId, tripId, userId),
-    isOwner: (tripId: number, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
-});
-
-const { broadcastMock, pluginsEnabled } = vi.hoisted(() => ({
-  broadcastMock: vi.fn(),
+const { pluginsEnabled } = vi.hoisted(() => ({
   pluginsEnabled: vi.fn(() => true),
 }));
 
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 // The admin kill switch reads live env; drive it from the test instead of the process.
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { runMigrations } from '../../../src/db/migrations';
-import { createTables } from '../../../src/db/schema';
-import { addTripMember, createTrip, createUser } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 // The harness builds the registry itself, so the fan-out is played on the prototype
 // (the tools-transit.test.ts pattern). vitest is not configured to auto-restore, so
 // every case restates what it wants in beforeEach.
 const providersOfMock = vi.spyOn(PluginHooks.prototype, 'providersOf');
 const tripWarningsMock = vi.spyOn(PluginHooks.prototype, 'tripWarnings');
-
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
-});
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -70,13 +43,13 @@ afterAll(() => {
   testDb.close();
 });
 
-async function withHarness(
-  userId: number,
-  fn: (h: McpHarness) => Promise<void>,
-  scopes?: string[] | null,
-) {
-  const h = await createMcpHarness({ userId, withResources: false, scopes: scopes ?? null });
-  try { await fn(h); } finally { await h.cleanup(); }
+async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes?: string[] | null) {
+  const h = await createMcpHarness({ realtime, userId, withResources: false, scopes: scopes ?? null });
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 interface WarningsPayload {
@@ -197,15 +170,23 @@ describe('get_trip_warnings access', () => {
   it('rides trips:read: present with it, absent without it', async () => {
     const { user } = createUser(testDb);
 
-    await withHarness(user.id, async (h) => {
-      const names = (await h.client.listTools()).tools.map(t => t.name);
-      expect(names).toContain('get_trip_warnings');
-    }, ['trips:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const names = (await h.client.listTools()).tools.map((t) => t.name);
+        expect(names).toContain('get_trip_warnings');
+      },
+      ['trips:read'],
+    );
 
-    await withHarness(user.id, async (h) => {
-      const names = (await h.client.listTools()).tools.map(t => t.name);
-      expect(names).not.toContain('get_trip_warnings');
-    }, ['places:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const names = (await h.client.listTools()).tools.map((t) => t.name);
+        expect(names).not.toContain('get_trip_warnings');
+      },
+      ['places:read'],
+    );
   });
 });
 
@@ -306,9 +287,7 @@ describe('get_trip_warnings caps', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     providersOfMock.mockReturnValue(['a', 'b']);
-    tripWarningsMock.mockResolvedValue(
-      Array.from({ length: 50 }, (_v, i) => ({ level: 'info', message: `w${i}` })),
-    );
+    tripWarningsMock.mockResolvedValue(Array.from({ length: 50 }, (_v, i) => ({ level: 'info', message: `w${i}` })));
 
     await withHarness(user.id, async (h) => {
       const payload = parseToolResult(await call(h, trip.id)) as WarningsPayload;

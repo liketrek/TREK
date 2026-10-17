@@ -8,6 +8,12 @@ import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { buildUser } from '../../tests/helpers/factories';
 import OAuthAuthorizePage from './OAuthAuthorizePage';
 
+// The consent page reloads the user on mount, and loadUser registers the
+// background sync triggers: a 30 s heartbeat and window listeners that nothing
+// here unregisters, so they outlive the test and can fire, and log, while the
+// file's worker shuts down. Nothing here is about sync.
+vi.mock('../sync/syncTriggers', () => ({ registerSyncTriggers: vi.fn(), unregisterSyncTriggers: vi.fn() }));
+
 // Default OAuth query params
 const DEFAULT_SEARCH = '?client_id=test-client&redirect_uri=http%3A%2F%2Flocalhost%3A4000%2Fcallback&scope=trips%3Aread&state=abc&code_challenge=challenge&code_challenge_method=S256';
 

@@ -1,7 +1,7 @@
 import { ADDON_IDS } from '../../addons';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { RoadtripPreferencesService } from './roadtrip-preferences.service';
 import { Body, Controller, Get, Headers, Param, Put, UseGuards } from '@nestjs/common';
@@ -9,7 +9,7 @@ import { roadtripPreferencesUpdateSchema } from '@trek/shared';
 
 import { createZodDto } from 'nestjs-zod';
 
-class PreferencesDto extends createZodDto(roadtripPreferencesUpdateSchema) {}
+export class PreferencesDto extends createZodDto(roadtripPreferencesUpdateSchema) {}
 
 @Controller('api/trips/:tripId/roadtrip/preferences')
 @UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
@@ -18,13 +18,17 @@ export class RoadtripPreferencesController {
   constructor(private readonly preferences: RoadtripPreferencesService) {}
 
   @Get()
-  read(@Param('tripId') tripId: string) {
-    return { tripId: Number(tripId), preferences: this.preferences.read(Number(tripId)) };
+  async read(@Param('tripId') tripId: string) {
+    return { tripId: Number(tripId), preferences: await this.preferences.read(Number(tripId)) };
   }
 
   @Put()
   @RequirePermission('day_edit')
-  update(@Param('tripId') tripId: string, @Body() patch: PreferencesDto, @Headers('x-socket-id') socketId?: string) {
-    return { tripId: Number(tripId), preferences: this.preferences.update(Number(tripId), patch, socketId) };
+  async update(
+    @Param('tripId') tripId: string,
+    @Body() patch: PreferencesDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return { tripId: Number(tripId), preferences: await this.preferences.update(Number(tripId), patch, socketId) };
   }
 }

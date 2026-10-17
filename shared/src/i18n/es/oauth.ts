@@ -85,8 +85,8 @@ const oauth: TranslationStrings = {
   'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
   'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
   'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
+  'oauth.authorize.approveScopes': 'Aprobar ({count} ámbitos)',
+  'oauth.authorize.approveScopes.one': 'Aprobar ({count} ámbito)',
   'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
   'oauth.authorize.deny': 'Deny', // en-fallback
   'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
@@ -97,17 +97,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Archivos',
   'oauth.scope.group.settings': 'Configuración',
   'oauth.scope.files:read.label': 'Ver archivos del viaje',
-  'oauth.scope.files:read.description': 'Listar los documentos de un viaje: nombres, tamaños, quién los subió y a qué están vinculados',
+  'oauth.scope.files:read.description':
+    'Listar los documentos de un viaje: nombres, tamaños, quién los subió y a qué están vinculados',
   'oauth.scope.files:write.label': 'Gestionar archivos del viaje',
-  'oauth.scope.files:write.description': 'Renombrar y describir archivos, vincularlos a reservas y lugares, destacarlos y enviarlos a la papelera',
+  'oauth.scope.files:write.description':
+    'Renombrar y describir archivos, vincularlos a reservas y lugares, destacarlos y enviarlos a la papelera',
   'oauth.scope.files:content.label': 'Leer el contenido de archivos',
-  'oauth.scope.files:content.description': 'Leer el contenido de un documento subido, como un PDF de reserva o un billete',
+  'oauth.scope.files:content.description':
+    'Leer el contenido de un documento subido, como un PDF de reserva o un billete',
   'oauth.scope.settings:read.label': 'Ver tus preferencias',
-  'oauth.scope.settings:read.description': 'Leer unidades, formato de hora, idioma, moneda predeterminada y página de inicio',
+  'oauth.scope.settings:read.description':
+    'Leer unidades, formato de hora, idioma, moneda predeterminada y página de inicio',
   'oauth.scope.settings:write.label': 'Cambiar tus preferencias',
-  'oauth.scope.settings:write.description': 'Cambiar unidades, formato de hora, idioma, moneda predeterminada y página de inicio. Nunca las claves API guardadas',
+  'oauth.scope.settings:write.description':
+    'Cambiar unidades, formato de hora, idioma, moneda predeterminada y página de inicio. Nunca las claves API guardadas',
   'oauth.scope.group.plugins': 'Complementos',
   'oauth.scope.plugins:use.label': 'Ejecutar herramientas de complementos',
-  'oauth.scope.plugins:use.description': 'Permite a este cliente llamar a las herramientas publicadas por los complementos que un administrador instaló y aprobó. Cada complemento actúa con los permisos que ya tenía concedidos, no con los ámbitos de este token',
+  'oauth.scope.plugins:use.description':
+    'Permite a este cliente llamar a las herramientas publicadas por los complementos que un administrador instaló y aprobó. Cada complemento actúa con los permisos que ya tenía concedidos, no con los ámbitos de este token',
 };
 export default oauth;

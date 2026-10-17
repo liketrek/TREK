@@ -116,6 +116,16 @@ describe('TripFormModal', () => {
     expect(await screen.findByText('Title is required')).toBeInTheDocument();
   });
 
+  it('FE-COMP-TRIPFORM-009b: typing a title clears the title error (#2604)', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} />);
+    const [submitBtn] = screen.getAllByRole('button', { name: 'Create New Trip' }).slice(-1);
+    await user.click(submitBtn as HTMLElement);
+    expect(await screen.findByText('Title is required')).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'P');
+    expect(screen.queryByText('Title is required')).not.toBeInTheDocument();
+  });
+
   it('FE-COMP-TRIPFORM-010: typing title and submitting calls onSave', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 99 }) });
@@ -416,7 +426,7 @@ describe('TripFormModal', () => {
   // Changing the start of a dated trip must go through the date-shift choice step (#1288).
   const changeStartDate = async (user: ReturnType<typeof userEvent.setup>, iso: string) => {
     await user.click(screen.getAllByRole('button', { name: 'Enter date manually' })[0]);
-    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    const input = screen.getByRole('textbox', { name: 'Enter date manually' });
     fireEvent.change(input, { target: { value: iso } });
     fireEvent.keyDown(input, { key: 'Enter' });
   };
@@ -440,6 +450,20 @@ describe('TripFormModal', () => {
       start_date: '2025-05-31',
       date_shift_mode: 'keep_bookings',
     }));
+  });
+
+  it('FE-COMP-TRIPFORM-038: moving the start across a DST change keeps the trip length in calendar days', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    const trip = buildTrip({ id: 1, title: 'Spring Trip', start_date: '2026-03-20', end_date: '2026-03-29' });
+    render(<TripFormModal {...defaultProps} trip={trip} onSave={onSave} />);
+
+    await changeStartDate(user, '2026-03-25');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+    await user.click(await screen.findByRole('button', { name: /Update/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ start_date: '2026-03-25', end_date: '2026-04-03' }));
   });
 
   it('FE-COMP-TRIPFORM-036: picking "Shift everything" sends shift_all', async () => {
@@ -917,7 +941,7 @@ describe('TripFormModal', () => {
 
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Open Ended');
     await user.click(screen.getAllByRole('button', { name: 'Enter date manually' })[0]);
-    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    const input = screen.getByRole('textbox', { name: 'Enter date manually' });
     fireEvent.change(input, { target: { value: '2026-04-10' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
@@ -937,12 +961,12 @@ describe('TripFormModal', () => {
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Backwards');
 
     await user.click(screen.getAllByRole('button', { name: 'Enter date manually' })[1]);
-    const endInput = screen.getByPlaceholderText('DD.MM.YYYY');
+    const endInput = screen.getByRole('textbox', { name: 'Enter date manually' });
     fireEvent.change(endInput, { target: { value: '2026-03-01' } });
     fireEvent.keyDown(endInput, { key: 'Enter' });
 
     await user.click(screen.getAllByRole('button', { name: 'Enter date manually' })[0]);
-    const startInput = screen.getByPlaceholderText('DD.MM.YYYY');
+    const startInput = screen.getByRole('textbox', { name: 'Enter date manually' });
     fireEvent.change(startInput, { target: { value: '2026-01-01' } });
     fireEvent.keyDown(startInput, { key: 'Enter' });
 
@@ -1269,7 +1293,7 @@ describe('TripFormModal', () => {
     render(<TripFormModal {...defaultProps} trip={trip} onSave={onSave} />);
 
     await user.click(screen.getAllByRole('button', { name: 'Enter date manually' })[1]);
-    const endInput = screen.getByPlaceholderText('DD.MM.YYYY');
+    const endInput = screen.getByRole('textbox', { name: 'Enter date manually' });
     fireEvent.change(endInput, { target: { value: '2036-01-01' } });
     fireEvent.keyDown(endInput, { key: 'Enter' });
 
@@ -1312,7 +1336,7 @@ describe('TripFormModal', () => {
   };
   const changeEndDate = async (user: ReturnType<typeof userEvent.setup>, iso: string) => {
     await user.click(screen.getAllByRole('button', { name: 'Enter date manually' })[1]);
-    const input = screen.getByPlaceholderText('DD.MM.YYYY');
+    const input = screen.getByRole('textbox', { name: 'Enter date manually' });
     fireEvent.change(input, { target: { value: iso } });
     fireEvent.keyDown(input, { key: 'Enter' });
   };
@@ -1495,5 +1519,32 @@ describe('TripFormModal', () => {
     await user.click(screen.getByRole('button', { name: /Update/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
     expect(onSave.mock.calls[1][0]).toMatchObject({ day_count: 6 });
+  });
+
+  // #2601: offline a new name still saves, while what only the server can do says so.
+  describe('offline', () => {
+    const setOnline = (v: boolean) => Object.defineProperty(navigator, 'onLine', { value: v, writable: true, configurable: true });
+    afterEach(() => setOnline(true));
+
+    it('FE-COMP-TRIPFORM-098: a new name is saved offline, new dates and a new trip are refused with the hint', async () => {
+      const user = userEvent.setup();
+      const trip = buildTrip({ id: 1, title: 'Rome', start_date: '2026-11-02', end_date: '2026-11-04', currency: 'EUR' });
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      setOnline(false);
+      const { unmount } = render(<TripFormModal {...defaultProps} trip={trip} onSave={onSave} />);
+      const title = screen.getByDisplayValue('Rome');
+      await user.clear(title);
+      await user.type(title, 'Roma');
+      await user.click(screen.getByRole('button', { name: /Update/i }));
+      await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'Roma', start_date: '2026-11-02' })));
+      unmount();
+
+      const created = vi.fn();
+      render(<TripFormModal {...defaultProps} onSave={created} />);
+      await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Paris 2026');
+      await submitNewTrip(user);
+      expect(await screen.findByText(/This needs a connection/)).toBeInTheDocument();
+      expect(created).not.toHaveBeenCalled();
+    });
   });
 });

@@ -57,15 +57,19 @@ const system_notice: TranslationStrings = {
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Update geïnstalleerd',
   'system_notice.release_notes.headline': 'Vier dingen die TREK nu zelf doet.',
-  'system_notice.release_notes.intro': 'Een eigen plaatsen-API, roadtrips van begin tot eind gepland, je locatiegeschiedenis in eigen hand, en je documenten gesynchroniseerd.',
+  'system_notice.release_notes.intro':
+    'Een eigen plaatsen-API, roadtrips van begin tot eind gepland, je locatiegeschiedenis in eigen hand, en je documenten gesynchroniseerd.',
   'system_notice.release_notes.features_label': 'De hoogtepunten',
   'system_notice.release_notes.features_aside': 'Lang niet alles',
   'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': 'De eerste open source reisplanner met een eigen plaatsen-API. 73,6 miljoen plaatsen, geen sleutel, geen quotum.',
+  'system_notice.release_notes.feature_places_body':
+    'De eerste open source reisplanner met een eigen plaatsen-API. 73,6 miljoen plaatsen, geen sleutel, geen quotum.',
   'system_notice.release_notes.feature_roadtrip_title': 'Roadtrip-addon',
-  'system_notice.release_notes.feature_roadtrip_body': 'Plant de rit zelf: route, afstand, uren en stops. Uit totdat een admin het inschakelt.',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Plant de rit zelf: route, afstand, uren en stops. Uit totdat een admin het inschakelt.',
   'system_notice.release_notes.feature_dawarich_title': 'Dawarich-integratie',
-  'system_notice.release_notes.feature_dawarich_body': 'Het zelfgehoste antwoord op Google Timeline, nu rechtstreeks leesbaar in TREK. TREK leest, en alleen dat.',
+  'system_notice.release_notes.feature_dawarich_body':
+    'Het zelfgehoste antwoord op Google Timeline, nu rechtstreeks leesbaar in TREK. TREK leest, en alleen dat.',
   'system_notice.release_notes.footnote': 'En daarnaast een lange lijst kleinere wijzigingen in de rest van TREK.',
   'system_notice.release_notes.notes_label': 'Release notes',
   'system_notice.release_notes.note_eyebrow': 'Een woord van de maintainer',
@@ -86,6 +90,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Steun op Ko-fi',
   'system_notice.release_notes.feature_docsync_title': 'Documentsynchronisatie',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud en Synology Drive. De documenten van een reis stromen in beide richtingen met de opslag die je al draait.',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx, Papra, Nextcloud, OpenCloud en Synology Drive. De documenten van een reis stromen in beide richtingen met de opslag die je al draait.',
 };
 export default system_notice;

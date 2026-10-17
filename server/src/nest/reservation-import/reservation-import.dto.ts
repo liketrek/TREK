@@ -21,10 +21,6 @@ import { z } from 'zod';
  * object is not strict, because a multipart form may carry fields the browser
  * adds and the handler ignores.
  */
-export class BookingImportConfirmDto extends createZodDto(
-  z.object({ items: z.array(z.looseObject({})).optional() }),
-) {}
+export class BookingImportConfirmDto extends createZodDto(z.object({ items: z.array(z.looseObject({})).optional() })) {}
 
-export class BookingImportPreviewDto extends createZodDto(
-  z.object({ mode: z.string().optional() }),
-) {}
+export class BookingImportPreviewDto extends createZodDto(z.object({ mode: z.string().optional() })) {}

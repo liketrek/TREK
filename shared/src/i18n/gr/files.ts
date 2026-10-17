@@ -6,16 +6,18 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Σύνδεση αρχείου',
   'files.linkEmpty': 'Δεν υπάρχουν ακόμη μέρη ή κρατήσεις για σύνδεση',
   'files.menu': 'Περισσότερες επιλογές',
-  'files.uploadErrorSize': 'Το αρχείο είναι πολύ μεγάλο (μέγ. 50 MB)',
+  'files.uploadErrorSize': 'Το αρχείο είναι πολύ μεγάλο (μέγ. {max} MB)',
   'files.title': 'Αρχεία',
   'files.pageTitle': 'Αρχεία & Έγγραφα',
   'files.subtitle': '{count} αρχεία για {trip}',
+  'files.subtitle.one': '{count} αρχείο για {trip}',
   'files.download': 'Λήψη',
   'files.openError': 'Δεν ήταν δυνατό το άνοιγμα του αρχείου',
   'files.downloadPdf': 'Λήψη PDF',
   'files.count': '{count} αρχεία',
-  'files.countSingular': '1 αρχείο',
+  'files.count.one': '{count} αρχείο',
   'files.uploaded': '{count} μεταφορτώθηκαν',
+  'files.uploaded.one': '{count} μεταφορτώθηκε',
   'files.uploadError': 'Η μεταφόρτωση απέτυχε',
   'files.uploadErrorType': 'Αυτός ο τύπος αρχείου δεν υποστηρίζεται',
   'files.dropzone': 'Αποθέστε αρχεία εδώ',
@@ -62,5 +64,10 @@ const files: TranslationStrings = {
   'files.confirm.emptyTrash': 'Οριστική διαγραφή όλων των αρχείων στον κάδο; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.',
   'files.noteLabel': 'Σημείωση',
   'files.notePlaceholder': 'Προσθήκη σημείωσης...',
+  'files.uploadNeedsConnection': 'Η μεταφόρτωση χρειάζεται σύνδεση. Δοκίμασε ξανά μόλις το TREK συνδεθεί ξανά.',
+  'files.linkNeedsConnection':
+    'Η αφαίρεση αυτής της σύνδεσης χρειάζεται σύνδεση στο διαδίκτυο. Δοκίμασε ξανά μόλις το TREK συνδεθεί ξανά.',
+  'files.placeFilesNeedConnection':
+    'Τα αρχεία χρειάζονται σύνδεση για να μεταφορτωθούν. Αφαίρεσε τα νέα για να αποθηκεύσεις το μέρος εκτός σύνδεσης ή αποθήκευσε μόλις συνδεθείς ξανά.',
 };
 export default files;

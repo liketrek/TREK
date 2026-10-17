@@ -5,6 +5,20 @@
  * fetch is stubbed rather than hit: the point is the contract, and a unit test
  * that depends on a live service tells you about the service.
  */
+import {
+  DEFAULT_TREK_PLACES_URL,
+  POI_CATEGORY_TO_TREK,
+  toPlaceRecord,
+  trekPlacesArea,
+  trekPlacesBaseUrl,
+  trekPlacesById,
+  trekPlacesNearby,
+  trekPlacesSearch,
+  resetTrekPlacesBreaker,
+  serviceLang,
+  type TrekPlace,
+} from '../../../src/nest/maps/trek-places.client';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mutable, so the instance URL and the operator's own index can be set per test.
@@ -25,28 +39,25 @@ vi.mock('../../../src/app-config', () => ({
   getAppUrl: () => {
     const strip = (v: string) => v.replace(/\/+$/, '');
     if (env.app.appUrl) {
-      try { new URL(env.app.appUrl); return strip(env.app.appUrl); } catch { /* fall through */ }
+      try {
+        new URL(env.app.appUrl);
+        return strip(env.app.appUrl);
+      } catch {
+        /* fall through */
+      }
     }
     const first = env.http.allowedOriginsRaw.split(',')[0]?.trim();
     if (first) {
-      try { new URL(first); return strip(first); } catch { /* fall through */ }
+      try {
+        new URL(first);
+        return strip(first);
+      } catch {
+        /* fall through */
+      }
     }
     return `http://localhost:${env.app.port}`;
   },
 }));
-
-import {
-  DEFAULT_TREK_PLACES_URL,
-  POI_CATEGORY_TO_TREK,
-  toPlaceRecord,
-  trekPlacesArea,
-  trekPlacesBaseUrl,
-  trekPlacesById,
-  trekPlacesNearby,
-  trekPlacesSearch,
-  resetTrekPlacesBreaker,
-  type TrekPlace,
-} from '../../../src/nest/maps/trek-places.client';
 
 const PLACE: TrekPlace = {
   gers: 'abc-123',
@@ -69,15 +80,18 @@ let calls: { url: string; init?: RequestInit }[] = [];
 
 function stubFetch(body: unknown, status = 200) {
   calls = [];
-  vi.stubGlobal('fetch', vi.fn(async (url: URL | string, init?: RequestInit) => {
-    calls.push({ url: String(url), init });
-    return {
-      ok: status >= 200 && status < 300,
-      status,
-      body: null,
-      text: async () => JSON.stringify(body),
-    } as unknown as Response;
-  }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: URL | string, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      return {
+        ok: status >= 200 && status < 300,
+        status,
+        body: null,
+        text: async () => JSON.stringify(body),
+      } as unknown as Response;
+    }),
+  );
 }
 
 const encoder = new TextEncoder();
@@ -89,22 +103,29 @@ function stubStreamingFetch(chunks: (string | Uint8Array)[], status = 200) {
   calls = [];
   streamCancelled = false;
   const queue = chunks.map((c) => (typeof c === 'string' ? encoder.encode(c) : c));
-  vi.stubGlobal('fetch', vi.fn(async (url: URL | string, init?: RequestInit) => {
-    calls.push({ url: String(url), init });
-    return {
-      ok: status >= 200 && status < 300,
-      status,
-      body: new ReadableStream<Uint8Array>({
-        pull(controller) {
-          const next = queue.shift();
-          if (next) controller.enqueue(next);
-          else controller.close();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: URL | string, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      return {
+        ok: status >= 200 && status < 300,
+        status,
+        body: new ReadableStream<Uint8Array>({
+          pull(controller) {
+            const next = queue.shift();
+            if (next) controller.enqueue(next);
+            else controller.close();
+          },
+          cancel() {
+            streamCancelled = true;
+          },
+        }),
+        text: async () => {
+          throw new Error('read the stream, not text()');
         },
-        cancel() { streamCancelled = true; },
-      }),
-      text: async () => { throw new Error('read the stream, not text()'); },
-    } as unknown as Response;
-  }));
+      } as unknown as Response;
+    }),
+  );
 }
 
 beforeEach(() => {
@@ -118,7 +139,12 @@ beforeEach(() => {
   env.http.allowedOriginsRaw = '';
   // Nothing in this file may reach the real service: a test that forgets to
   // stub gets a thrown request rather than a request.
-  vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('unstubbed fetch'); }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new Error('unstubbed fetch');
+    }),
+  );
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -235,6 +261,68 @@ describe('trekPlacesSearch', () => {
   it('survives a malformed results field', async () => {
     stubFetch({ query: 'x', results: 'not an array' });
     await expect(trekPlacesSearch('x')).resolves.toEqual([]);
+  });
+});
+
+describe('the reader language (#2592)', () => {
+  it('sends TREK codes as the tags the service reads, and nothing it would refuse', () => {
+    expect(serviceLang('de')).toBe('de');
+    // Brazilian Portuguese and Greek have codes of their own in TREK.
+    expect(serviceLang('br')).toBe('pt-BR');
+    expect(serviceLang('gr')).toBe('el');
+    // Passed as it is: the service maps a region onto the script OSM keys by.
+    expect(serviceLang('zh-TW')).toBe('zh-TW');
+    expect(serviceLang(undefined)).toBeUndefined();
+    expect(serviceLang('  ')).toBeUndefined();
+    expect(serviceLang('not a locale!')).toBeUndefined();
+  });
+
+  it('asks search, nearby and the place lookup in it', async () => {
+    stubFetch({ query: 'x', results: [], place: PLACE });
+    await trekPlacesSearch('x', { lang: 'br' });
+    await trekPlacesNearby(54.1, 12.1, { lang: 'gr' });
+    await trekPlacesById('abc-123', { lang: 'ja' });
+    expect(calls.map((c) => new URL(c.url).searchParams.get('lang'))).toEqual(['pt-BR', 'el', 'ja']);
+  });
+
+  it('leaves the parameter off without a language, so the answer is the one it always was', async () => {
+    stubFetch({ query: 'x', results: [], place: PLACE, count: 0 });
+    await trekPlacesSearch('x');
+    await trekPlacesNearby(54.1, 12.1);
+    await trekPlacesById('abc-123');
+    await trekPlacesSearch('x', { lang: 'not a locale!' });
+    await trekPlacesArea(BOX);
+    expect(calls.every((c) => !new URL(c.url).searchParams.has('lang'))).toBe(true);
+  });
+
+  it('keeps a layer row locality only when it is a name', async () => {
+    const osm = (locality: unknown) => ({
+      id: 'osm:node/1',
+      osm_type: 'node',
+      osm_id: 1,
+      name: 'Kirby Cafe',
+      local_name: 'カービィカフェ',
+      lat: 35.71,
+      lng: 139.81,
+      category: null,
+      source: 'openstreetmap',
+      locality,
+    });
+    stubFetch({ query: 'x', results: [osm(' Sumida '), osm(''), osm(42), osm(null), { ...PLACE }] });
+
+    const found = await trekPlacesSearch('x', { lang: 'en', sources: 'index,osm' });
+
+    expect(found.map((h) => ('locality' in h ? h.locality : 'index row'))).toEqual([
+      'Sumida',
+      null,
+      null,
+      null,
+      'index row',
+    ]);
+    // A row the service sent without the field, which is every row asked
+    // without a language, is left without it.
+    stubFetch({ query: 'x', results: [{ ...osm(null), locality: undefined }] });
+    expect((await trekPlacesSearch('x'))[0]).not.toHaveProperty('locality');
   });
 });
 
@@ -375,13 +463,16 @@ describe('getJson request shape', () => {
     vi.useFakeTimers();
     try {
       calls = [];
-      vi.stubGlobal('fetch', vi.fn((url: URL | string, init?: RequestInit) => {
-        calls.push({ url: String(url), init });
-        // Answers only when the caller gives up.
-        return new Promise((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
-        }) as Promise<Response>;
-      }));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((url: URL | string, init?: RequestInit) => {
+          calls.push({ url: String(url), init });
+          // Answers only when the caller gives up.
+          return new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+          }) as Promise<Response>;
+        }),
+      );
 
       const pending = trekPlacesSearch('never answered');
       const failed = expect(pending).rejects.toThrow('aborted');
@@ -402,12 +493,15 @@ describe('getJson request shape', () => {
     vi.useFakeTimers();
     try {
       calls = [];
-      vi.stubGlobal('fetch', vi.fn((url: URL | string, init?: RequestInit) => {
-        calls.push({ url: String(url), init });
-        return new Promise((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
-        }) as Promise<Response>;
-      }));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((url: URL | string, init?: RequestInit) => {
+          calls.push({ url: String(url), init });
+          return new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+          }) as Promise<Response>;
+        }),
+      );
 
       const pending = trekPlacesArea(BOX, 3000);
       const failed = expect(pending).rejects.toThrow('aborted');
@@ -604,7 +698,8 @@ describe('toPlaceRecord', () => {
 
   // #2483: Overture keeps a website the way the operator typed it.
   it('TREK-PLACES-2483-01: a website without a scheme gains https, one that is no website becomes null', () => {
-    const withSite = (website: string | null) => toPlaceRecord({ ...PLACE, contact: { ...PLACE.contact, website } }).website;
+    const withSite = (website: string | null) =>
+      toPlaceRecord({ ...PLACE, contact: { ...PLACE.contact, website } }).website;
     expect(withSite('fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët')).toBe(
       'https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
     );
@@ -628,8 +723,20 @@ describe('POI_CATEGORY_TO_TREK', () => {
     // for the four a drive needs that is the worst path of all, because the
     // corridor search asks for them sixteen boxes at a time.
     expect(Object.keys(POI_CATEGORY_TO_TREK).sort()).toEqual([
-      'activity', 'bar', 'cafe', 'campsite', 'charging', 'fuel', 'hotel', 'museum',
-      'nature', 'rest_area', 'restaurant', 'shopping', 'sights', 'supermarket',
+      'activity',
+      'bar',
+      'cafe',
+      'campsite',
+      'charging',
+      'fuel',
+      'hotel',
+      'museum',
+      'nature',
+      'rest_area',
+      'restaurant',
+      'shopping',
+      'sights',
+      'supermarket',
     ]);
   });
 

@@ -155,7 +155,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': '리스트에 추가',
   'collections.file.targetExistingHint': '이미 있는 리스트에',
   'collections.file.searchLists': '리스트 검색',
-  'collections.file.intoHint': '리스트에 이미 있는 장소는 그대로 유지되고, 이름과 색도 그대로입니다. 파일의 라벨은 추가됩니다.',
+  'collections.file.intoHint':
+    '리스트에 이미 있는 장소는 그대로 유지되고, 이름과 색도 그대로입니다. 파일의 라벨은 추가됩니다.',
   'collections.file.confirmInto': '리스트에 추가',
   'collections.file.doneInto': '{count}개 장소를 {name}에 추가했습니다',
   'collections.file.doneIntoDuplicates': '{count}개를 {name}에 추가했고, {duplicates}개는 이미 있었습니다',

@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 /**
  * The four surfaces a note colour produces (#1629).
  *
@@ -33,4 +35,13 @@ export function noteSurface(color: string | null | undefined): NoteSurface {
     iconBackground: `color-mix(in srgb, ${color} 22%, transparent)`,
     iconColor: color,
   }
+}
+
+/**
+ * A day's activity area in the plan: its tint as the background, and named as
+ * a variable for the note fades drawn over it (dayPlanRows.css), so a fade
+ * matches a day a plugin has tinted too.
+ */
+export function dayBodyStyle(tint: string | null | undefined): CSSProperties {
+  return { background: tint ?? undefined, '--dp-day-tint': tint ?? 'transparent' } as CSSProperties
 }

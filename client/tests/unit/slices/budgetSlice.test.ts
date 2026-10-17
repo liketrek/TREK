@@ -174,3 +174,31 @@ describe('budgetSlice', () => {
     });
   });
 });
+
+describe('budgetSlice offline (#2601)', () => {
+  const setOnline = (v: boolean) =>
+    Object.defineProperty(navigator, 'onLine', { value: v, writable: true, configurable: true });
+
+  it('FE-BUDGET-009: offline an expense is added, edited, ticked and deleted without an error', async () => {
+    const { clearAll, offlineDb } = await import('../../../src/db/offlineDb');
+    await clearAll();
+    seedStore(useTripStore, { budgetItems: [] });
+    setOnline(false);
+    try {
+      const added = await useTripStore.getState().addBudgetItem(1, { name: 'Offline lunch', total_price: 12, member_ids: [5] });
+      expect(added.id).toBeLessThan(0);
+      expect(useTripStore.getState().budgetItems.map(i => i.name)).toEqual(['Offline lunch']);
+
+      await useTripStore.getState().updateBudgetItem(1, added.id, { name: 'Offline brunch' });
+      await useTripStore.getState().toggleBudgetMemberPaid(1, added.id, 5, true);
+      expect(useTripStore.getState().budgetItems[0]).toMatchObject({ name: 'Offline brunch' });
+      expect(useTripStore.getState().budgetItems[0].members?.[0].paid).toBe(1);
+
+      await useTripStore.getState().deleteBudgetItem(1, added.id);
+      expect(useTripStore.getState().budgetItems).toEqual([]);
+      expect((await offlineDb.mutationQueue.orderBy('createdAt').toArray()).map(m => m.method)).toEqual(['POST', 'PUT', 'PUT', 'DELETE']);
+    } finally {
+      setOnline(true);
+    }
+  });
+});

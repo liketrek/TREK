@@ -148,11 +148,15 @@ describe('plugin action contracts', () => {
     expect(
       pluginActionDescriptorSchema.parse({ key: 'purge', label: 'Purge cache', danger: true, scope: 'instance' }),
     ).toEqual({ key: 'purge', label: 'Purge cache', danger: true, scope: 'instance' });
-    expect(pluginActionDescriptorSchema.parse({ key: 'a', label: 'A', hint: 'h', danger: false, scope: 'user' }).hint).toBe('h');
+    expect(
+      pluginActionDescriptorSchema.parse({ key: 'a', label: 'A', hint: 'h', danger: false, scope: 'user' }).hint,
+    ).toBe('h');
   });
 
   it('SHARED-PLUG-ACT-002: refuses a scope outside user|instance and a missing scope', () => {
-    expect(pluginActionDescriptorSchema.safeParse({ key: 'a', label: 'A', danger: false, scope: 'global' }).success).toBe(false);
+    expect(
+      pluginActionDescriptorSchema.safeParse({ key: 'a', label: 'A', danger: false, scope: 'global' }).success,
+    ).toBe(false);
     expect(pluginActionDescriptorSchema.safeParse({ key: 'a', label: 'A', danger: false }).success).toBe(false);
   });
 

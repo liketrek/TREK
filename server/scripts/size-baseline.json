@@ -1,0 +1,21 @@
+{
+  "scripts/db-call-graph.mjs": 1036,
+  "scripts/generate-entities.ts": 2259,
+  "src/db/repositories/Places.repository.ts": 1439,
+  "src/db/repositories/Reservations.repository.ts": 1651,
+  "src/db/repositories/Trips.repository.ts": 1121,
+  "src/db/repositories/Users.repository.ts": 1445,
+  "src/nest/atlas/atlas.service.ts": 1182,
+  "src/nest/auth/auth.service.ts": 1143,
+  "src/nest/budget/budget.service.ts": 1622,
+  "src/nest/collections/collections.service.ts": 1478,
+  "src/nest/doc-sync/doc-sync.service.ts": 1060,
+  "src/nest/doc-sync/providers/synology-drive.client.ts": 1160,
+  "src/nest/journey/journey-domain.service.ts": 1799,
+  "src/nest/places/places.service.ts": 1592,
+  "src/nest/plugins/plugin-runtime.service.ts": 1463,
+  "src/nest/plugins/runtime/plugin-sdk.ts": 1093,
+  "src/nest/reservations/reservations.service.ts": 1237,
+  "src/nest/trips/trips.service.ts": 1006,
+  "src/nest/vacay/vacay.service.ts": 1420
+}

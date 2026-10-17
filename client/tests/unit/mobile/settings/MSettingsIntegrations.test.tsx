@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '../../../helpers/render';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { useAddonStore } from '../../../../src/store/addonStore';
+import { useAuthStore } from '../../../../src/store/authStore';
 import MSettingsIntegrations from '../../../../src/mobile/screens/settings/MSettingsIntegrations';
 
 // The four sections are covered by their own suites — stub them so this file
@@ -93,5 +94,15 @@ describe('MSettingsIntegrations', () => {
     rerender(<MSettingsIntegrations />);
 
     expect(loadAddons).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-SETINT-008: a managed install hides the photo providers and AirTrail, as the desktop does', () => {
+    seedAddons(['airtrail', 'mcp']);
+    seedStore(useAuthStore, { managed: true });
+    render(<MSettingsIntegrations />);
+
+    expect(screen.queryByTestId('photo-providers')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('airtrail')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mcp')).toBeInTheDocument();
   });
 });

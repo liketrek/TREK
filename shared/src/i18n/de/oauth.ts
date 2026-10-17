@@ -88,8 +88,8 @@ const oauth: TranslationStrings = {
   'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
   'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
   'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
+  'oauth.authorize.approveScopes': 'Genehmigen ({count} Berechtigungen)',
+  'oauth.authorize.approveScopes.one': 'Genehmigen ({count} Berechtigung)',
   'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
   'oauth.authorize.deny': 'Deny', // en-fallback
   'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
@@ -100,17 +100,22 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Dateien',
   'oauth.scope.group.settings': 'Einstellungen',
   'oauth.scope.files:read.label': 'Reisedateien ansehen',
-  'oauth.scope.files:read.description': 'Dokumente einer Reise auflisten: Namen, Größen, wer sie hochgeladen hat und woran sie hängen',
+  'oauth.scope.files:read.description':
+    'Dokumente einer Reise auflisten: Namen, Größen, wer sie hochgeladen hat und woran sie hängen',
   'oauth.scope.files:write.label': 'Reisedateien verwalten',
-  'oauth.scope.files:write.description': 'Dateien umbenennen und beschreiben, mit Buchungen und Orten verknüpfen, markieren und in den Papierkorb legen',
+  'oauth.scope.files:write.description':
+    'Dateien umbenennen und beschreiben, mit Buchungen und Orten verknüpfen, markieren und in den Papierkorb legen',
   'oauth.scope.files:content.label': 'Dateiinhalte lesen',
-  'oauth.scope.files:content.description': 'Den Inhalt eines hochgeladenen Dokuments lesen, etwa ein Buchungs-PDF oder ein Ticket',
+  'oauth.scope.files:content.description':
+    'Den Inhalt eines hochgeladenen Dokuments lesen, etwa ein Buchungs-PDF oder ein Ticket',
   'oauth.scope.settings:read.label': 'Einstellungen ansehen',
   'oauth.scope.settings:read.description': 'Einheiten, Zeitformat, Sprache, Standardwährung und Startseite lesen',
   'oauth.scope.settings:write.label': 'Einstellungen ändern',
-  'oauth.scope.settings:write.description': 'Einheiten, Zeitformat, Sprache, Standardwährung und Startseite ändern. Niemals gespeicherte API-Schlüssel',
+  'oauth.scope.settings:write.description':
+    'Einheiten, Zeitformat, Sprache, Standardwährung und Startseite ändern. Niemals gespeicherte API-Schlüssel',
   'oauth.scope.group.plugins': 'Plugins',
   'oauth.scope.plugins:use.label': 'Plugin-Tools ausführen',
-  'oauth.scope.plugins:use.description': 'Erlaubt diesem Client, Tools aufzurufen, die von den durch einen Administrator installierten und freigegebenen Plugins bereitgestellt werden. Jedes Plugin handelt mit den ihm bereits erteilten Rechten, nicht mit den Berechtigungen dieses Tokens',
+  'oauth.scope.plugins:use.description':
+    'Erlaubt diesem Client, Tools aufzurufen, die von den durch einen Administrator installierten und freigegebenen Plugins bereitgestellt werden. Jedes Plugin handelt mit den ihm bereits erteilten Rechten, nicht mit den Berechtigungen dieses Tokens',
 };
 export default oauth;

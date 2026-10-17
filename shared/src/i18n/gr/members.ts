@@ -7,8 +7,8 @@ const members: TranslationStrings = {
   'members.invite': 'Πρόσκληση',
   'members.allHaveAccess': 'Όλοι οι χρήστες έχουν ήδη πρόσβαση.',
   'members.access': 'Πρόσβαση',
-  'members.person': 'άτομο',
   'members.persons': 'άτομα',
+  'members.persons.one': 'άτομο',
   'members.you': 'εσείς',
   'members.owner': 'Ιδιοκτήτης',
   'members.leaveTrip': 'Αποχώρηση από ταξίδι',
@@ -34,6 +34,8 @@ const members: TranslationStrings = {
   'members.guestRenameError': 'Αποτυχία μετονομασίας επισκέπτη',
   'members.guestRemoved': 'Ο επισκέπτης αφαιρέθηκε',
   'members.confirmRemoveGuest':
-    'Αφαίρεση αυτού του επισκέπτη; Θα αφαιρεθούν επίσης οι αναθέσεις και τα μερίδια εξόδων του.',
+    'Αφαίρεση αυτού του επισκέπτη; Οι αναθέσεις του θα αφαιρεθούν και το μερίδιό του σε κάθε έξοδο θα μοιραστεί στους υπόλοιπους συμμετέχοντες.',
+  'members.guestHasPayments':
+    'Αυτός ο επισκέπτης πλήρωσε κάποιο έξοδο ή συμμετέχει σε καταγεγραμμένη πληρωμή. Αλλάξτε πρώτα τον πληρωτή ή διαγράψτε την πληρωμή.',
 };
 export default members;

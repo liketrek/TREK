@@ -45,3 +45,48 @@ export const todoCategoryAssigneesRequestSchema = z.object({
   user_ids: z.array(z.number()),
 });
 export type TodoCategoryAssigneesRequest = z.infer<typeof todoCategoryAssigneesRequestSchema>;
+
+// ── Responses ───────────────────────────────────────────────────────────────
+
+/** A todo_items row as the routes return it (`SELECT *`); flags and times stay as SQLite stores them. */
+export const todoItemSchema = z.object({
+  id: z.number(),
+  trip_id: z.number(),
+  name: z.string(),
+  checked: z.number().nullable(),
+  category: z.string().nullable(),
+  sort_order: z.number().nullable(),
+  due_date: z.string().nullable(),
+  description: z.string().nullable(),
+  assigned_user_id: z.number().nullable(),
+  priority: z.number().nullable(),
+  created_at: z.string().nullable(),
+  reminded_at: z.string().nullable(),
+});
+export type TodoItem = z.infer<typeof todoItemSchema>;
+
+/** GET /todo */
+export const todoListResponseSchema = z.object({ items: z.array(todoItemSchema) });
+export type TodoListResponse = z.infer<typeof todoListResponseSchema>;
+
+/** POST /todo, PUT /todo/:id */
+export const todoItemResponseSchema = z.object({ item: todoItemSchema });
+export type TodoItemResponse = z.infer<typeof todoItemResponseSchema>;
+
+/** A person assigned to a todo category. */
+export const todoCategoryAssigneeSchema = z.object({
+  user_id: z.number(),
+  username: z.string(),
+  avatar: z.string().nullable(),
+});
+export type TodoCategoryAssignee = z.infer<typeof todoCategoryAssigneeSchema>;
+
+/** GET /todo/category-assignees: the assignees keyed by category name. */
+export const todoCategoryAssigneesResponseSchema = z.object({
+  assignees: z.record(z.string(), z.array(todoCategoryAssigneeSchema)),
+});
+export type TodoCategoryAssigneesResponse = z.infer<typeof todoCategoryAssigneesResponseSchema>;
+
+/** PUT /todo/category-assignees/:categoryName: the category's assignees after the write. */
+export const todoCategoryAssigneesUpdateResponseSchema = z.object({ assignees: z.array(todoCategoryAssigneeSchema) });
+export type TodoCategoryAssigneesUpdateResponse = z.infer<typeof todoCategoryAssigneesUpdateResponseSchema>;

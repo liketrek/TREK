@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Geri al: {action}',
   'undo.assignPlace': 'Yer güne atandı',
   'undo.removeAssignment': 'Yer günden kaldırıldı',
+  'undo.clearDay': 'Gün temizlendi',
   'undo.reorder': 'Yerler yeniden sıralandı',
   'undo.optimize': 'Rota optimize edildi',
   'undo.deletePlace': 'Yer silindi',

@@ -373,6 +373,27 @@ describe('editing a roadtrip stop', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(onSaveNight).toHaveBeenCalledWith({ endDayId: 5, checkIn: '16:00', checkOut: '10:00' }))
   })
+
+  it('FE-ROADTRIP-STOPPOPUP-034: a new draft handed to the open popup shows the answers of that stop, not the previous one', async () => {
+    const onSave = vi.fn()
+    const onSaveNight = vi.fn()
+    const nights = { days: [{ id: 4, number: 1, date: null }, { id: 5, number: 2, date: null }], defaultEndDayId: 5 }
+    const hotelEdit = draft({ poi: poi({ category: 'hotel', name: 'Hotel Adlon' }), overnight: nights, editing: { placeId: 7, stopType: 'hotel', dwellMinutes: 30, accommodationId: 8, checkIn: '16:00', checkOut: '10:00' } })
+    const fuelEdit = draft({ editing: { placeId: 9, stopType: 'charging', dwellMinutes: 20 } })
+    const ui = (d: RoadtripStopDraft) => <TranslationProvider><RoadtripStopPopup draft={d} {...noop} onSave={onSave} onSaveNight={onSaveNight} /></TranslationProvider>
+
+    const { rerender } = render(ui(hotelEdit))
+    expect(screen.getByRole('textbox', { name: 'Check-in' })).toHaveValue('16:00')
+
+    rerender(ui(fuelEdit))
+    expect(screen.getByRole('button', { name: /Charging/ })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith({ stopType: 'charging', dwellMinutes: 20 }))
+
+    rerender(ui(draft({ poi: poi({ category: 'hotel', name: 'Hotel Bristol' }), arrivalTime: '15:45', overnight: nights })))
+    expect(screen.getByRole('button', { name: 'Overnight' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('textbox', { name: 'Check-in' })).toHaveValue('15:45')
+  })
 })
 
 

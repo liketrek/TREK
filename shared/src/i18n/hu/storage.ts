@@ -115,7 +115,8 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'A szinkronizálás sikertelen: {error}',
   'storage.sync.prompt': 'A meglévő objektumok még nincsenek replikálva — szinkronizálsz most?',
   'storage.sync.dismiss': 'Elvetés',
-  'storage.usage.line': '{objects} objektum · {size}',
+  'storage.usage.line': '{count} objektum · {size}',
+  'storage.usage.line.one': '{count} objektum · {size}',
   'storage.usage.computed': 'A használat kiszámítva {age}',
   'storage.usage.never': 'A használat még nincs kiszámítva',
   'storage.usage.refresh': 'Frissítés',
@@ -124,7 +125,8 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Áthelyezed a meglévő objektumokat az új backendre?',
-  'storage.migrate.promptLine': '{category}: {objects} objektum ({size}) innen: {from} ide: {to}',
+  'storage.migrate.promptLine': '{category}: {count} objektum ({size}) innen: {from} ide: {to}',
+  'storage.migrate.promptLine.one': '{category}: {count} objektum ({size}) innen: {from} ide: {to}',
   'storage.migrate.promptLineUnknown':
     '{category}: ismeretlen méret (a használat még nincs kiszámítva) innen: {from} ide: {to}',
   'storage.migrate.move': 'Meglévő objektumok áthelyezése',
@@ -134,10 +136,12 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} sikertelen — ezek az objektumok nem lettek átmásolva az új backendre',
   'storage.migrate.failed': 'Az áthelyezés sikertelen: {error} — a kategória nem lett átváltva',
   'storage.migrate.cancelled': 'Áthelyezés megszakítva — semmi sem lett átváltva',
-  'storage.migrate.reclaimable': '{objects} objektum ({size}) marad a(z) {from} helyen — kézzel szabadítsd fel',
+  'storage.migrate.reclaimable': '{count} objektum ({size}) marad a(z) {from} helyen, kézzel szabadítsd fel',
+  'storage.migrate.reclaimable.one': '{count} objektum ({size}) marad a(z) {from} helyen, kézzel szabadítsd fel',
   'storage.migrate.cancel': 'Áthelyezés megszakítása',
   'storage.migrate.promptCancel': 'Mégse',
   'storage.migrate.queued': 'Várólistán: {categories}',
-  'storage.migrate.queueDropped': 'A következő áthelyezés nem indítható el — a hátralévő várólista törlésre került: {categories}',
+  'storage.migrate.queueDropped':
+    'A következő áthelyezés nem indítható el — a hátralévő várólista törlésre került: {categories}',
 };
 export default storage;

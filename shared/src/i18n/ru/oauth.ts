@@ -86,8 +86,10 @@ const oauth: TranslationStrings = {
   'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
   'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
   'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
+  'oauth.authorize.approveScopes': 'Разрешить ({count} области доступа)',
+  'oauth.authorize.approveScopes.one': 'Разрешить ({count} область доступа)',
+  'oauth.authorize.approveScopes.few': 'Разрешить ({count} области доступа)',
+  'oauth.authorize.approveScopes.many': 'Разрешить ({count} областей доступа)',
   'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
   'oauth.authorize.deny': 'Deny', // en-fallback
   'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
@@ -98,17 +100,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Файлы',
   'oauth.scope.group.settings': 'Настройки',
   'oauth.scope.files:read.label': 'Просмотр файлов поездки',
-  'oauth.scope.files:read.description': 'Список документов поездки: названия, размеры, кто их загрузил и с чем они связаны',
+  'oauth.scope.files:read.description':
+    'Список документов поездки: названия, размеры, кто их загрузил и с чем они связаны',
   'oauth.scope.files:write.label': 'Управление файлами поездки',
-  'oauth.scope.files:write.description': 'Переименование и описание файлов, привязка к бронированиям и местам, отметка и удаление в корзину',
+  'oauth.scope.files:write.description':
+    'Переименование и описание файлов, привязка к бронированиям и местам, отметка и удаление в корзину',
   'oauth.scope.files:content.label': 'Чтение содержимого файлов',
-  'oauth.scope.files:content.description': 'Чтение содержимого загруженного документа, например PDF бронирования или билета',
+  'oauth.scope.files:content.description':
+    'Чтение содержимого загруженного документа, например PDF бронирования или билета',
   'oauth.scope.settings:read.label': 'Просмотр ваших настроек',
-  'oauth.scope.settings:read.description': 'Чтение единиц измерения, формата времени, языка, валюты по умолчанию и стартовой страницы',
+  'oauth.scope.settings:read.description':
+    'Чтение единиц измерения, формата времени, языка, валюты по умолчанию и стартовой страницы',
   'oauth.scope.settings:write.label': 'Изменение ваших настроек',
-  'oauth.scope.settings:write.description': 'Изменение единиц измерения, формата времени, языка, валюты по умолчанию и стартовой страницы. Никогда сохранённых ключей API',
+  'oauth.scope.settings:write.description':
+    'Изменение единиц измерения, формата времени, языка, валюты по умолчанию и стартовой страницы. Никогда сохранённых ключей API',
   'oauth.scope.group.plugins': 'Плагины',
   'oauth.scope.plugins:use.label': 'Запуск инструментов плагинов',
-  'oauth.scope.plugins:use.description': 'Позволяет этому клиенту вызывать инструменты, которые предоставляют плагины, установленные и одобренные администратором. Каждый плагин действует с уже выданными ему правами, а не с областями доступа этого токена',
+  'oauth.scope.plugins:use.description':
+    'Позволяет этому клиенту вызывать инструменты, которые предоставляют плагины, установленные и одобренные администратором. Каждый плагин действует с уже выданными ему правами, а не с областями доступа этого токена',
 };
 export default oauth;

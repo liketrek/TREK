@@ -4,7 +4,7 @@ import {
   Clock, Fuel, CalendarClock, SlidersHorizontal, ChevronRight, Coins, Signpost, Ship, Check,
   Car, Zap, BatteryCharging, BatteryFull, BatteryWarning, Gauge, Route, Sparkles, Link2, Palette,
 } from 'lucide-react'
-import Modal from '../shared/Modal'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useSettingsStore } from '../../store/settingsStore'
 import { convertDistance, formatDistance } from '../../utils/units'
@@ -110,11 +110,11 @@ function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived
           "min" does — and that column was the reason every section had a right edge of
           its own. In the flow it simply wraps under a long label and costs nothing. */}
       <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="text-body text-content-secondary">{label}</span>
+        <span className="text-content-secondary" style={fs(12.5, 'body')}>{label}</span>
         {/* The unit as a chip rather than as more grey words after the label. "kWh/100 km"
             set as prose reads as part of the question; on a chip it reads as what the
             number beside it will be measured in, which is what it is. */}
-        <span className="inline-flex items-center rounded-md bg-surface-tertiary px-1.5 py-0.5 text-caption leading-none text-content-muted">
+        <span className="inline-flex items-center rounded-full bg-surface-card px-2 py-[2px] font-geist leading-none text-content-muted shadow-sm ring-1 ring-inset ring-edge-faint" style={fs(10.5)}>
           {suffix}
         </span>
       </span>
@@ -129,7 +129,7 @@ function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived
           // screen-reader text.
           <span className="flex items-center gap-1.5" title={derived} data-testid="limit-derived">
             <Sparkles size={12} className="shrink-0 text-accent-on" aria-hidden />
-            <span className="text-body font-semibold tabular-nums text-content">{value ?? 0}</span>
+            <span className="font-semibold tabular-nums text-content" style={fs(13, 'body')}>{value ?? 0}</span>
             <span className="sr-only">{derived}</span>
           </span>
         ) : (
@@ -151,7 +151,8 @@ function LimitRow({ icon: Icon, label, suffix, value, placeholder, step, derived
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); (e.target as HTMLInputElement).blur() } }}
             // The spinners are the other half of the width problem: they eat a third of a
             // narrow field and nobody sets a driving limit by clicking an arrow.
-            className="w-full rounded-lg border border-edge bg-surface px-2.5 py-1.5 text-end text-body tabular-nums text-content [appearance:textfield] focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="w-full rounded-[10px] border border-edge bg-surface-input px-3 py-1.5 text-end tabular-nums text-content outline-none [appearance:textfield] placeholder:text-content-faint focus:ring-2 focus:ring-[color:var(--text-primary)] disabled:opacity-50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            style={fs(13, 'body')}
           />
         )}
       </span>
@@ -183,7 +184,7 @@ function AvoidRow({ icon: Icon, label, hint, on, disabled, onToggle }: {
     <div className={`flex items-center gap-3 ${disabled ? 'opacity-50' : ''}`}>
       <Icon size={16} className="shrink-0 text-content-faint" aria-hidden />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-body text-content-secondary">{label}</span>
+        <span className="text-content-secondary" style={fs(12.5, 'body')}>{label}</span>
         {hint ? <span id={hintId} className="text-caption leading-snug text-content-faint">{hint}</span> : null}
       </span>
       {disabled
@@ -213,7 +214,7 @@ function Panel({ icon: Icon, title, note, children }: {
   children: React.ReactNode
 }): React.ReactElement {
   return (
-    <section className="flex min-w-0 flex-col gap-3 rounded-xl border border-edge-faint bg-surface-secondary px-4 py-3.5">
+    <section className="flex min-w-0 flex-col gap-3 rounded-[14px] border border-edge-faint bg-surface-secondary p-3.5">
       <SectionTitle icon={Icon}>{title}</SectionTitle>
       {children}
       {note ? <SettingsHint>{note}</SettingsHint> : null}
@@ -227,8 +228,8 @@ function SectionTitle({ icon: Icon, children }: {
   children: React.ReactNode
 }): React.ReactElement {
   return (
-    <p className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wide text-content-faint">
-      <Icon size={13} aria-hidden />
+    <p className="m-0 flex items-center gap-1.5 font-geist font-bold uppercase tracking-[.08em] text-content-faint" style={fs(9.5)}>
+      <Icon size={12} aria-hidden />
       {children}
     </p>
   )
@@ -286,6 +287,8 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
   const settings = useRoadtripSettings(s => s)
   const unit = useSettingsStore(s => s.settings.distance_unit)
   const [open, setOpen] = useState(false)
+  const labelId = useId()
+  const close = () => { setOpen(false); setPreview(null) }
   const distanceUnit: DistanceUnit = unit === 'imperial' ? 'imperial' : 'metric'
   const imperial = distanceUnit === 'imperial'
   // No way to save is the caller saying the reader may look but not change. Every
@@ -428,7 +431,7 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
               {badges.map(({ key, Icon, text, label }) => (
                 <FigureBadge
                   key={key}
-                  lead={label ? <Icon size={9} aria-label={label} /> : <Icon size={9} aria-hidden />}
+                  lead={label ? <Icon size={10} strokeWidth={2.2} aria-label={label} /> : <Icon size={10} strokeWidth={2.2} aria-hidden />}
                   value={text}
                   tooltip={label}
                 />
@@ -444,12 +447,27 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
       </button>
 
       {open ? (
-        <Modal isOpen onClose={() => { setOpen(false); setPreview(null) }} size="4xl" title={
-          <span className="flex items-center gap-2">
-            <SlidersHorizontal size={15} className="text-content-faint" aria-hidden />
-            {t('roadtrip.limit.title')}
-          </span>
-        }>
+        <DialogShell
+          onClose={close}
+          labelledBy={labelId}
+          width="wide"
+          align="top"
+          header={(
+            <DialogHeader
+              tile={<DialogTile><SlidersHorizontal size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+              tint={NEUTRAL_TINT}
+              labelId={labelId}
+              onClose={close}
+              title={t('roadtrip.limit.title')}
+            />
+          )}
+          footer={(
+            <DialogFooter>
+              <FooterSpacer />
+              <DialogButton variant="primary" onClick={close}>{t('common.close')}</DialogButton>
+            </DialogFooter>
+          )}
+        >
           <div className="flex min-w-0 flex-col gap-4">
             {/* Two columns, kept. One column reads more tidily but turns the dialog into
                 something that has to be scrolled, and a setting you cannot see while you
@@ -530,7 +548,7 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                       from the browser instead of from a rebuilt listbox. */}
                   <fieldset className="min-w-0">
                     <legend className="sr-only">{t('roadtrip.limit.vehicleLabel')}</legend>
-                    <div className="grid grid-cols-3 gap-1 rounded-xl border border-edge bg-surface-tertiary p-1">
+                    <div className="grid grid-cols-3 gap-0.5 rounded-[10px] bg-surface-tertiary p-[3px]">
                       {VEHICLES.map(({ key, labelKey, Icon }) => (
                         <label key={key ?? 'unset'} className="min-w-0">
                           <input
@@ -549,7 +567,7 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
                               onSave?.('roadtrip_vehicle', key ?? '')
                             }}
                           />
-                          <span className="flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-center text-body text-content-secondary transition-colors hover:bg-surface-hover peer-checked:bg-accent peer-checked:text-accent-text peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-disabled:pointer-events-none">
+                          <span className="flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] px-3 py-1.5 text-center font-medium text-content-muted transition-colors hover:text-content peer-checked:bg-surface-card peer-checked:text-content peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-disabled:pointer-events-none" style={fs(12.5, 'body')}>
                             <Icon size={14} className="shrink-0" aria-hidden />
                             {t(labelKey)}
                           </span>
@@ -695,7 +713,7 @@ export default function RoadtripLimitsCard({ onSave, onResetDayBoundaries, loadi
               </div>
             </div>
           </div>
-        </Modal>
+        </DialogShell>
       ) : null}
     </>
   )

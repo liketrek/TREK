@@ -84,8 +84,12 @@ const oauth: TranslationStrings = {
   'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
   'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
   'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
-  'oauth.authorize.approveOneScope': 'Approve ({count} scope)', // en-fallback
-  'oauth.authorize.approveManyScopes': 'Approve ({count} scopes)', // en-fallback
+  'oauth.authorize.approveScopes': 'موافقة ({count} نطاق)',
+  'oauth.authorize.approveScopes.zero': 'موافقة (بلا نطاقات)',
+  'oauth.authorize.approveScopes.one': 'موافقة (نطاق واحد)',
+  'oauth.authorize.approveScopes.two': 'موافقة (نطاقان)',
+  'oauth.authorize.approveScopes.few': 'موافقة ({count} نطاقات)',
+  'oauth.authorize.approveScopes.many': 'موافقة ({count} نطاقًا)',
   'oauth.authorize.approveAccess': 'Approve Access', // en-fallback
   'oauth.authorize.deny': 'Deny', // en-fallback
   'oauth.authorize.choosePermissions': 'Choose which permissions to grant', // en-fallback
@@ -98,15 +102,18 @@ const oauth: TranslationStrings = {
   'oauth.scope.files:read.label': 'عرض ملفات الرحلة',
   'oauth.scope.files:read.description': 'سرد مستندات الرحلة: الأسماء والأحجام ومن رفعها وبماذا ترتبط',
   'oauth.scope.files:write.label': 'إدارة ملفات الرحلة',
-  'oauth.scope.files:write.description': 'إعادة تسمية الملفات ووصفها وربطها بالحجوزات والأماكن وتمييزها ونقلها إلى سلة المهملات',
+  'oauth.scope.files:write.description':
+    'إعادة تسمية الملفات ووصفها وربطها بالحجوزات والأماكن وتمييزها ونقلها إلى سلة المهملات',
   'oauth.scope.files:content.label': 'قراءة محتوى الملفات',
   'oauth.scope.files:content.description': 'قراءة محتوى مستند مرفوع، مثل ملف PDF لحجز أو تذكرة',
   'oauth.scope.settings:read.label': 'عرض تفضيلاتك',
   'oauth.scope.settings:read.description': 'قراءة الوحدات وتنسيق الوقت واللغة والعملة الافتراضية وصفحة البداية',
   'oauth.scope.settings:write.label': 'تغيير تفضيلاتك',
-  'oauth.scope.settings:write.description': 'تغيير الوحدات وتنسيق الوقت واللغة والعملة الافتراضية وصفحة البداية. لا مفاتيح API المخزنة أبدًا',
+  'oauth.scope.settings:write.description':
+    'تغيير الوحدات وتنسيق الوقت واللغة والعملة الافتراضية وصفحة البداية. لا مفاتيح API المخزنة أبدًا',
   'oauth.scope.group.plugins': 'الإضافات',
   'oauth.scope.plugins:use.label': 'تشغيل أدوات الإضافات',
-  'oauth.scope.plugins:use.description': 'السماح لهذا التطبيق باستدعاء الأدوات التي توفرها الإضافات التي ثبّتها المسؤول ووافق عليها. تعمل كل إضافة بالصلاحيات الممنوحة لها مسبقًا، وليس بنطاقات هذا الرمز',
+  'oauth.scope.plugins:use.description':
+    'السماح لهذا التطبيق باستدعاء الأدوات التي توفرها الإضافات التي ثبّتها المسؤول ووافق عليها. تعمل كل إضافة بالصلاحيات الممنوحة لها مسبقًا، وليس بنطاقات هذا الرمز',
 };
 export default oauth;

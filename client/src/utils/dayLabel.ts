@@ -28,3 +28,13 @@ export function dayDate(iso: string, locale: string): string | null {
   if (Number.isNaN(date.getTime())) return null
   return date.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
 }
+
+/**
+ * A day heading's two parts in reading order. The day's name ("Day 3" or its own
+ * title) leads, unless the traveller plans by the calendar and asked for the date
+ * first (#1953). A day without a date always leads with its name.
+ */
+export function dayHeadingParts(name: string, date: string | null | undefined, dateFirst: boolean): { primary: string; secondary: string | null } {
+  if (dateFirst && date) return { primary: date, secondary: name }
+  return { primary: name, secondary: date || null }
+}

@@ -79,4 +79,13 @@ describe('ContextMenu', () => {
     });
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it('does not activate a disabled menu item', () => {
+    const onClick = vi.fn()
+    render(<ContextMenu menu={makeMenu(100, 200, [{ label: 'Already assigned', onClick, disabled: true }])} onClose={onClose} />)
+    const item = screen.getByRole('button', { name: 'Already assigned' })
+    expect(item).toBeDisabled()
+    fireEvent.click(item)
+    expect(onClick).not.toHaveBeenCalled()
+  })
 });

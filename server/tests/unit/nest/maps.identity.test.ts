@@ -5,13 +5,15 @@
  * wiki tags, OpenStreetMap does. The two gates below are the whole safety
  * argument — a confident description of the wrong building is worse than none.
  */
+import { toWikiLang, haversineMetres, namesOverlap } from '../../../src/nest/maps/maps.helpers';
+import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
+import { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ get: () => undefined, run: () => undefined, all: () => [] }) },
 }));
-
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
 
 vi.mock('../../../src/utils/ssrfGuard', () => ({
   safeFetchFollow: vi.fn(),
@@ -19,12 +21,8 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-import { db } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import { toWikiLang, haversineMetres, namesOverlap } from '../../../src/nest/maps/maps.helpers';
-
-const svcOf = () => new MapsService(new DatabaseService(db as never), {} as never);
+const wikiOf = () => new WikimediaClient();
+const osmOf = () => new OsmClient();
 
 // The Brandenburg Gate and the underground station named after it, 250m apart.
 const GATE = { lat: 52.5163, lng: 13.3777 };
@@ -121,7 +119,7 @@ describe('resolveOsmIdentity', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
     vi.stubGlobal('fetch', fetchMock);
 
-    await svcOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng, { lang: 'de' });
+    await osmOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng, { lang: 'de' });
 
     const url = decodeURIComponent(String(fetchMock.mock.calls[0][0]));
     // Without bounded+viewbox, Nominatim answers with the most famous place on
@@ -134,7 +132,7 @@ describe('resolveOsmIdentity', () => {
   it('MAPS-166: hands back the tags of the best local match', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [hit()] }));
 
-    const out = await svcOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng);
+    const out = await osmOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng);
 
     expect(out?.tags.wikidata).toBe('Q82425');
     expect(out?.osmUrl).toBe('https://www.openstreetmap.org/way/518071791');
@@ -153,7 +151,7 @@ describe('resolveOsmIdentity', () => {
     });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [station, hit()] }));
 
-    const out = await svcOf().resolveOsmIdentity('Brandenburger Tor', 52.5166, 13.3809);
+    const out = await osmOf().resolveOsmIdentity('Brandenburger Tor', 52.5166, 13.3809);
 
     expect(out?.tags.wikidata).toBe('Q82425');
   });
@@ -162,7 +160,7 @@ describe('resolveOsmIdentity', () => {
     const faraway = hit({ lat: '48.8584', lon: '2.2945' }); // Paris
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [faraway] }));
 
-    expect(await svcOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng)).toBeNull();
   });
 
   it('MAPS-169: refuses a match that shares no word with the name', async () => {
@@ -171,24 +169,24 @@ describe('resolveOsmIdentity', () => {
     const neighbour = hit({ name: 'Hotel Adlon', display_name: 'Hotel Adlon, Berlin' });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [neighbour] }));
 
-    expect(await svcOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng)).toBeNull();
   });
 
   it('MAPS-170: survives an empty name, a bad response, a throw and a non-array body', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    expect(await svcOf().resolveOsmIdentity('', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('', GATE.lat, GATE.lng)).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => [] }));
-    expect(await svcOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
 
     // Nominatim answers rate limiting in plain text, not JSON.
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => 'Bandwidth limit exceeded' }));
-    expect(await svcOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    expect(await svcOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
   });
 });
 
@@ -200,7 +198,7 @@ describe('fetchWikidataSitelinks', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const out = await svcOf().fetchWikidataSitelinks('Q1097', ['dewikivoyage', 'dewiki', 'enwiki']);
+    const out = await wikiOf().fetchWikidataSitelinks('Q1097', ['dewikivoyage', 'dewiki', 'enwiki']);
 
     expect(decodeURIComponent(String(fetchMock.mock.calls[0][0]))).toContain('sitefilter=dewikivoyage|dewiki|enwiki');
     expect(out).toEqual({ dewiki: 'Berlin Hauptbahnhof' });
@@ -210,16 +208,16 @@ describe('fetchWikidataSitelinks', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    expect(await svcOf().fetchWikidataSitelinks('nope', ['enwiki'])).toEqual({});
-    expect(await svcOf().fetchWikidataSitelinks('Q1', [])).toEqual({});
+    expect(await wikiOf().fetchWikidataSitelinks('nope', ['enwiki'])).toEqual({});
+    expect(await wikiOf().fetchWikidataSitelinks('Q1', [])).toEqual({});
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('MAPS-173: yields an empty map on a bad response or a throw', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
-    expect(await svcOf().fetchWikidataSitelinks('Q1', ['enwiki'])).toEqual({});
+    expect(await wikiOf().fetchWikidataSitelinks('Q1', ['enwiki'])).toEqual({});
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    expect(await svcOf().fetchWikidataSitelinks('Q1', ['enwiki'])).toEqual({});
+    expect(await wikiOf().fetchWikidataSitelinks('Q1', ['enwiki'])).toEqual({});
   });
 });

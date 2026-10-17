@@ -21,6 +21,7 @@ import MCollEditSheet from './MCollEditSheet'
 import MCollLabelsSheet from './MCollLabelsSheet'
 import MCollTripPickerSheet from './MCollTripPickerSheet'
 import MCollListPickerSheet from './MCollListPickerSheet'
+import MCollInvites from './MCollInvites'
 import { STATUS_SPEC } from './collectionsMobileModel'
 import { CancelPill, PrimaryPill } from './MCollSheetKit'
 
@@ -154,7 +155,7 @@ export default function MCollections() {
           className="flex h-[38px] min-w-0 flex-1 items-center gap-[7px] rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] px-[14px] text-[0.8125rem] font-bold text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
         >
           <Bookmark size={14} strokeWidth={2.2} className="flex-none" />
-          <span className="min-w-0 flex-1 truncate text-left">{title}</span>
+          <span className="min-w-0 flex-1 truncate text-start">{title}</span>
           <ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />
         </button>
         {canEditList && (
@@ -189,7 +190,7 @@ export default function MCollections() {
                 key={l.id}
                 type="button"
                 onClick={() => selectList(l.id)}
-                className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-left ${active ? 'bg-[color:var(--m-ic)]' : ''}`}
+                className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-start ${active ? 'bg-[color:var(--m-ic)]' : ''}`}
                 style={active ? { boxShadow: `inset 0 0 0 1.5px ${l.color || '#6366F1'}` } : undefined}
               >
                 <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: l.color || '#6366F1' }} />
@@ -208,6 +209,8 @@ export default function MCollections() {
           </button>
         </div>
       )}
+
+      <MCollInvites invites={c.orderedInvites} onAccept={c.handleAcceptInvite} onDecline={c.handleDeclineInvite} t={t} />
 
       {c.loading && c.collections.length === 0 ? (
         <div className="flex items-center justify-center py-20 text-m-faint">
@@ -304,14 +307,14 @@ export default function MCollections() {
                   />
                 )}
                 {statusDrop && (
-                  <div className={`absolute left-0 right-0 top-[calc(100%+6px)] z-20 p-[6px] ${DROP_PANEL}`}>
+                  <div className={`absolute inset-x-0 top-[calc(100%+6px)] z-20 p-[6px] ${DROP_PANEL}`}>
                     <button
                       type="button"
                       onClick={() => pickStatusFilter('all')}
                       className={`flex w-full items-center gap-[9px] rounded-[11px] p-[10px] text-[0.8125rem] font-semibold text-m-ink ${c.statusFilter === 'all' ? 'bg-[color:var(--m-ic)]' : ''}`}
                     >
                       <Layers size={15} strokeWidth={2} />
-                      <span className="flex-1 text-left">{t('collections.status.filterAll')}</span>
+                      <span className="flex-1 text-start">{t('collections.status.filterAll')}</span>
                       <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{c.counts.all}</span>
                     </button>
                     {STATUS_ORDER.map(s => {
@@ -325,7 +328,7 @@ export default function MCollections() {
                           className={`flex w-full items-center gap-[9px] rounded-[11px] p-[10px] text-[0.8125rem] font-semibold text-m-ink ${c.statusFilter === s ? 'bg-[color:var(--m-ic)]' : ''}`}
                         >
                           <Icon size={15} strokeWidth={2} style={{ color: meta.color }} />
-                          <span className="flex-1 text-left">{t(meta.labelKey)}</span>
+                          <span className="flex-1 text-start">{t(meta.labelKey)}</span>
                           <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{c.counts[s]}</span>
                         </button>
                       )
@@ -333,14 +336,14 @@ export default function MCollections() {
                   </div>
                 )}
                 {labelDrop && (
-                  <div className={`absolute left-0 right-0 top-[calc(100%+6px)] z-20 max-h-[240px] overflow-y-auto p-[6px] ${DROP_PANEL}`}>
+                  <div className={`absolute inset-x-0 top-[calc(100%+6px)] z-20 max-h-[240px] overflow-y-auto p-[6px] ${DROP_PANEL}`}>
                     <button
                       type="button"
                       onClick={() => { c.setLabelFilter([]); setLabelDrop(false) }}
                       className={`flex w-full items-center gap-[9px] rounded-[11px] p-[10px] text-[0.8125rem] font-semibold text-m-ink ${c.labelFilter.length === 0 ? 'bg-[color:var(--m-ic)]' : ''}`}
                     >
                       <Tag size={15} strokeWidth={2} />
-                      <span className="flex-1 text-left">{t('collections.status.filterAll')}</span>
+                      <span className="flex-1 text-start">{t('collections.status.filterAll')}</span>
                     </button>
                     {c.labelOptions.map(l => {
                       const on = c.labelFilter.includes(l.id)
@@ -349,7 +352,7 @@ export default function MCollections() {
                           key={l.id}
                           type="button"
                           onClick={() => toggleLabelFilter(l.id)}
-                          className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-left ${on ? 'bg-[color:var(--m-ic)]' : ''}`}
+                          className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-start ${on ? 'bg-[color:var(--m-ic)]' : ''}`}
                         >
                           <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: l.color || '#6366F1' }} />
                           <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">{l.name}</span>
@@ -383,7 +386,7 @@ export default function MCollections() {
                 <button type="button" onClick={c.openCopyForSelection} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
                   <Copy size={13} strokeWidth={2.2} /> {t('collections.copyToTrip')}
                 </button>
-                {c.canEdit && (
+                {c.canDelete && (
                   <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
                     <FolderInput size={13} strokeWidth={2.2} /> {t('collections.moveToList')}
                   </button>
@@ -545,7 +548,7 @@ export default function MCollections() {
           <div className="text-[1.0625rem] font-bold text-m-ink">{t('collections.deleteList')}</div>
           <div className="mt-2 font-geist text-[0.78125rem] leading-[1.5] text-m-muted">{t('collections.deleteListConfirm')}</div>
           <div className="mt-4 flex items-center gap-2">
-            <CancelPill className="ml-auto" onClick={() => c.setConfirmDeleteList(null)}>{t('common.cancel')}</CancelPill>
+            <CancelPill className="ms-auto" onClick={() => c.setConfirmDeleteList(null)}>{t('common.cancel')}</CancelPill>
             <PrimaryPill onClick={c.handleDeleteList} className="!bg-[color:var(--m-st-danger)] !text-white">
               <Trash2 size={14} strokeWidth={2.2} /> {t('common.delete')}
             </PrimaryPill>

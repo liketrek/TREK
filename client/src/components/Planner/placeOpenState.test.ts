@@ -1,4 +1,4 @@
-import { resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState';
+import { getWeekdayIndex, resolveOpenNow, resolvePlaceTimeZone, placeWeekdayIndex } from './placeOpenState';
 import type { OpeningPeriod } from './placeOpenState';
 
 // Seoul is UTC+9, Paris UTC+2 in summer — far enough apart that a viewer's clock and
@@ -53,6 +53,18 @@ describe('placeWeekdayIndex', () => {
     const at = new Date('2026-07-29T12:00:00Z');
     const jsDay = at.getDay();
     expect(placeWeekdayIndex(at, 'Not/AZone')).toBe(jsDay === 0 ? 6 : jsDay - 1);
+  });
+});
+
+describe('getWeekdayIndex', () => {
+  it('FE-PLANNER-OPENSTATE-023: reads a plan day by its own date, Monday first', () => {
+    expect(getWeekdayIndex('2026-07-27', 'Asia/Seoul')).toBe(0);
+    expect(getWeekdayIndex('2026-08-02', null)).toBe(6);
+  });
+
+  it('FE-PLANNER-OPENSTATE-024: a day without a date reads today in the place timezone', () => {
+    expect(getWeekdayIndex(null, 'UTC')).toBe(placeWeekdayIndex(new Date(), 'UTC'));
+    expect(getWeekdayIndex(undefined, null)).toBe(placeWeekdayIndex(new Date(), null));
   });
 });
 

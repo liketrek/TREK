@@ -1,4 +1,31 @@
-import { createHash } from 'node:crypto';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { PlaceDetailsCache } from '../../db/entities/PlaceDetailsCache.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { PlaceDetailsCacheRepository } from '../../db/repositories/PlaceDetailsCache.repository';
+import { safeFetchFollow } from '../../utils/ssrfGuard';
+import { readAppSetting } from '../common/app-settings.registry';
+import {
+  buildOsmDetails,
+  isGooglePlaceId,
+  parseWikipediaTag,
+  rankCommonsCandidates,
+  toWikiLang,
+} from '../maps/maps.helpers';
+import {
+  MapsService,
+  isGoogleMapsHost,
+  readBrandIdentity,
+  readWikiIdentity,
+  withPhotoFetchSlot,
+  type CommonsCandidate,
+  type WikiIdentity,
+} from '../maps/maps.service';
+import { GooglePlacesClient } from '../maps/providers/google-places.provider';
+import { OsmClient } from '../maps/providers/osm.client';
+import { WikimediaClient } from '../maps/providers/wikimedia.client';
+import { trekPlacesById } from '../maps/trek-places.client';
+import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import { placeWebsiteSchema } from '@trek/shared';
 import type {
@@ -10,20 +37,8 @@ import type {
   PlacePhotoCandidate,
   PlaceRating,
 } from '@trek/shared';
-import { safeFetchFollow } from '../../utils/ssrfGuard';
-import { DatabaseService } from '../database/database.service';
-import {
-  MapsService,
-  isGoogleMapsHost,
-  readBrandIdentity,
-  readWikiIdentity,
-  withPhotoFetchSlot,
-  type CommonsCandidate,
-  type WikiIdentity,
-} from '../maps/maps.service';
-import { buildOsmDetails, isGooglePlaceId, parseWikipediaTag, rankCommonsCandidates, toWikiLang } from '../maps/maps.helpers';
-import { trekPlacesById } from '../maps/trek-places.client';
-import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
+
+import { createHash } from 'node:crypto';
 
 /**
  * How many pictures each source may contribute.
@@ -35,6 +50,12 @@ import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.servic
  */
 const COMMONS_CAP = 5;
 const GOOGLE_CAP = 3;
+
+// A photo from Wikimedia or another third-party URL the place data names: the
+// same ceiling the maps photo proxy holds Wikimedia to, and a deadline so a
+// slow image host cannot hold the enrichment request open.
+const REMOTE_PHOTO_TIMEOUT_MS = 15_000;
+const REMOTE_PHOTO_MAX_BYTES = 8 * 1024 * 1024;
 
 /**
  * Enrichment results live in the same table as the plain details cache, under a
@@ -155,10 +176,32 @@ interface CachePayload extends CachedEnrichment {
  * TREK index, the amenity/shop tag from OpenStreetMap, a Google type.
  */
 const NEARBY_MISLEADS = [
-  'restaurant', 'cafe', 'coffee', 'bar', 'pub', 'bakery', 'fast_food', 'food',
-  'eatery', 'biergarten', 'ice_cream', 'shop', 'store', 'supermarket', 'retail',
-  'pharmacy', 'hairdresser', 'kiosk', 'convenience', 'butcher', 'greengrocer',
-  'clothing', 'florist', 'bank', 'atm', 'nightclub',
+  'restaurant',
+  'cafe',
+  'coffee',
+  'bar',
+  'pub',
+  'bakery',
+  'fast_food',
+  'food',
+  'eatery',
+  'biergarten',
+  'ice_cream',
+  'shop',
+  'store',
+  'supermarket',
+  'retail',
+  'pharmacy',
+  'hairdresser',
+  'kiosk',
+  'convenience',
+  'butcher',
+  'greengrocer',
+  'clothing',
+  'florist',
+  'bank',
+  'atm',
+  'nightclub',
 ];
 
 /**
@@ -175,7 +218,7 @@ export function nearbyWouldMislead(details: Record<string, unknown> | null): boo
     .join(' ')
     .toLowerCase();
   if (!haystack) return false;
-  return NEARBY_MISLEADS.some(word => haystack.includes(word));
+  return NEARBY_MISLEADS.some((word) => haystack.includes(word));
 }
 
 /** OSM yes/no tags; anything else (limited, only, designated) is shown verbatim. */
@@ -229,7 +272,15 @@ export function collectFacts(details: Record<string, unknown> | null): PlaceFact
 
   const cuisine = typeof details.cuisine === 'string' ? details.cuisine : null;
   // OSM writes several cuisines semicolon-separated and underscored.
-  if (cuisine) push('cuisine', cuisine.split(';').map((c) => c.replaceAll('_', ' ').trim()).filter(Boolean).join(', '));
+  if (cuisine)
+    push(
+      'cuisine',
+      cuisine
+        .split(';')
+        .map((c) => c.replaceAll('_', ' ').trim())
+        .filter(Boolean)
+        .join(', '),
+    );
 
   // `menu_url` is a community-editable OSM tag that becomes an href on the
   // client, so it goes through the same allow-list as a place's website —
@@ -308,9 +359,13 @@ export function collectRating(details: Record<string, unknown> | null): PlaceRat
 @Injectable()
 export class PlaceEnrichmentService {
   constructor(
-    private readonly database: DatabaseService,
+    @InjectRepository(PlaceDetailsCache) private readonly cache: PlaceDetailsCacheRepository,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
     private readonly maps: MapsService,
     private readonly photoCache: PlacePhotoCacheService,
+    private readonly googlePlaces: GooglePlacesClient,
+    private readonly osm: OsmClient,
+    private readonly wiki: WikimediaClient,
   ) {}
 
   /**
@@ -319,13 +374,13 @@ export class PlaceEnrichmentService {
    * would mean backfilling a row for every existing install just to keep them
    * working, and there is nothing here that warrants a migration.
    */
-  enrichDisabled(): boolean {
-    const row = this.database.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', 'places_enrich_enabled');
-    return row?.value === 'false';
+  async enrichDisabled(): Promise<boolean> {
+    const value = await readAppSetting(this.appSettings, 'places_enrich_enabled');
+    return value === 'false';
   }
 
   async enrich(userId: number, req: MapsPlaceEnrichmentRequest): Promise<MapsPlaceEnrichmentResult> {
-    if (this.enrichDisabled()) return { photos: [], description: null, facts: [], disabled: true };
+    if (await this.enrichDisabled()) return { photos: [], description: null, facts: [], disabled: true };
 
     const placeId = req.placeId?.trim() || `coords:${req.lat}:${req.lng}`;
     const lang = req.lang;
@@ -377,9 +432,9 @@ export class PlaceEnrichmentService {
     // the map's: fine to answer them with, not to serve to everyone else. The
     // row simply is not written, and the next request computes its own answer.
     // A summary or a link the lookup here fetched itself is the map's and keeps.
-    const fromCaller = req.details != null
-      && (description?.source === 'osm' || ownFacts.some((fact) => fact.url != null));
-    if (!fromCaller) this.writeCache(placeId, lang, result);
+    const fromCaller =
+      req.details != null && (description?.source === 'osm' || ownFacts.some((fact) => fact.url != null));
+    if (!fromCaller) await this.writeCache(placeId, lang, result);
     return result;
   }
 
@@ -428,7 +483,7 @@ export class PlaceEnrichmentService {
     };
     if (carried.wikipedia || carried.wikidata || carried.wikimedia_commons) return carried;
 
-    const resolved = await this.maps.resolveOsmIdentity(req.name, req.lat, req.lng, { lang: req.lang });
+    const resolved = await this.osm.resolveOsmIdentity(req.name, req.lat, req.lng, { lang: req.lang });
     if (!resolved) return carried;
     const brand = readBrandIdentity(resolved.tags);
     return {
@@ -449,15 +504,15 @@ export class PlaceEnrichmentService {
     /** The record the caller already holds; only its category is read. */
     details: Record<string, unknown> | null,
   ): Promise<PlacePhotoCandidate[]> {
-    const apiKey = this.maps.getMapsKey(userId);
-    const wantsGoogle = !!apiKey && !this.maps.photosDisabled() && isGooglePlaceId(placeId);
+    const apiKey = await this.maps.getMapsKey(userId);
+    const wantsGoogle = !!apiKey && !(await this.maps.photosDisabled()) && isGooglePlaceId(placeId);
 
     const { wikidata, wikipedia } = identity;
 
     // Google's listing is one call for the whole strip and knows nothing about
     // the free sources, so it runs alongside them rather than in the ladder.
     const googlePending = wantsGoogle
-      ? this.maps.fetchGooglePhotoRefs(placeId, apiKey!, GOOGLE_CAP)
+      ? this.googlePlaces.fetchGooglePhotoRefs(placeId, apiKey!, GOOGLE_CAP)
       : Promise.resolve([] as { name: string; attribution: string | null }[]);
 
     // The free ladder, in order of how much anyone vouched that the picture
@@ -474,21 +529,21 @@ export class PlaceEnrichmentService {
     let categoryName = identity.wikimedia_commons;
 
     if (wikidata) {
-      const fromWikidata = await this.maps.fetchWikidataCandidates(wikidata, COMMONS_CAP);
+      const fromWikidata = await this.wiki.fetchWikidataCandidates(wikidata, COMMONS_CAP);
       push(commonsPool, fromWikidata.candidates, 'wikidata');
       categoryName ??= fromWikidata.commonsCategory;
     }
 
     if (commonsPool.length < COMMONS_CAP && wikipedia) {
-      const leadName = await this.maps.fetchWikiLeadImageName(wikipedia);
+      const leadName = await this.wiki.fetchWikiLeadImageName(wikipedia);
       if (leadName) {
-        const byName = await this.maps.fetchCommonsFilesByName([leadName]);
+        const byName = await this.wiki.fetchCommonsFilesByName([leadName]);
         push(commonsPool, [...byName.values()], 'wikipedia');
       }
     }
 
     if (commonsPool.length < COMMONS_CAP && categoryName) {
-      push(commonsPool, await this.maps.fetchCommonsCategoryCandidates(categoryName, COMMONS_CAP), 'category');
+      push(commonsPool, await this.wiki.fetchCommonsCategoryCandidates(categoryName, COMMONS_CAP), 'category');
     }
 
     // Two is the bar: one curated picture plus the nearby noise reads worse
@@ -505,7 +560,7 @@ export class PlaceEnrichmentService {
     const skipNearby = nearbyWouldMislead(details) || nearbyWouldMislead(identity.osmTags);
     const nearbyPending =
       curated < 2 && !skipNearby
-        ? this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP)
+        ? this.wiki.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP)
         : Promise.resolve([]);
 
     const googleRefs = await googlePending;
@@ -531,7 +586,7 @@ export class PlaceEnrichmentService {
           sourceUrl: null,
           source: 'google' as const,
         },
-        fetchBytes: () => this.maps.fetchGooglePhotoBytes(ref.name, apiKey!),
+        fetchBytes: () => this.googlePlaces.fetchGooglePhotoBytes(ref.name, apiKey!),
       })),
       ...ranked.map((pick) => ({
         identity: `commons:${pick.pageId ?? pick.photoUrl}`,
@@ -595,7 +650,11 @@ export class PlaceEnrichmentService {
   /** Downloads a non-Google image, re-checking every redirect hop against the SSRF guard. */
   private async fetchRemoteBytes(url: string): Promise<Buffer | null> {
     try {
-      const res = await safeFetchFollow(url, undefined, { bypassInternalIpAllowed: true });
+      const res = await safeFetchFollow(
+        url,
+        { signal: AbortSignal.timeout(REMOTE_PHOTO_TIMEOUT_MS) },
+        { bypassInternalIpAllowed: true, maxBytes: REMOTE_PHOTO_MAX_BYTES },
+      );
       if (!res.ok) return null;
       const bytes = Buffer.from(await res.arrayBuffer());
       return bytes.length ? bytes : null;
@@ -628,8 +687,9 @@ export class PlaceEnrichmentService {
     // Off means nothing leaves for the index, a saved place included.
     if (!this.maps.trekPlacesEnabled()) return null;
     try {
-      const got = (await trekPlacesById(placeId.slice(5)) as { description?: { text?: string; sourceUrl?: string } } | null)
-        ?.description;
+      const got = (
+        (await trekPlacesById(placeId.slice(5))) as { description?: { text?: string; sourceUrl?: string } } | null
+      )?.description;
       const text = typeof got?.text === 'string' ? got.text.trim() : '';
       if (!text) return null;
       // Through the same allow-list a place's website goes through: this
@@ -694,9 +754,9 @@ export class PlaceEnrichmentService {
     const fromSite = await this.websiteDescription(placeId);
     if (fromSite) return fromSite;
 
-    const apiKey = this.maps.getMapsKey(userId);
-    if (apiKey && !this.maps.detailsDisabled() && isGooglePlaceId(placeId)) {
-      const summary = await this.maps.fetchEditorialSummary(placeId, apiKey, req.lang);
+    const apiKey = await this.maps.getMapsKey(userId);
+    if (apiKey && !(await this.maps.detailsDisabled()) && isGooglePlaceId(placeId)) {
+      const summary = await this.googlePlaces.fetchEditorialSummary(placeId, apiKey, req.lang);
       if (summary) {
         return {
           text: summary,
@@ -767,21 +827,21 @@ export class PlaceEnrichmentService {
         { site: 'enwikivoyage', host: 'wikivoyage', lang: 'en' },
         { site: 'enwiki', host: 'wikipedia', lang: 'en' },
       ];
-      const sitelinks = await this.maps.fetchWikidataSitelinks(
+      const sitelinks = await this.wiki.fetchWikidataSitelinks(
         identity.wikidata,
         wanted.map((w) => w.site),
       );
       for (const { site, host, lang: hostLang } of wanted) {
         const title = sitelinks[site];
         if (!title) continue;
-        const hit = await this.maps.fetchWikiExtractFor(host, hostLang, title);
+        const hit = await this.wiki.fetchWikiExtractFor(host, hostLang, title);
         if (hit) return hit;
       }
     }
 
     // No Wikidata id, or its sitelinks led nowhere: fall back to the tag, which
     // names an article directly.
-    return identity.wikipedia ? this.maps.fetchWikiExtract(identity.wikipedia) : null;
+    return identity.wikipedia ? this.wiki.fetchWikiExtract(identity.wikipedia) : null;
   }
 
   /**
@@ -808,12 +868,7 @@ export class PlaceEnrichmentService {
 
   private async readCache(placeId: string, lang: string | undefined): Promise<CachedEnrichment | null> {
     try {
-      const row = this.database.get<{ payload_json: string; fetched_at: number }>(
-        'SELECT payload_json, fetched_at FROM place_details_cache WHERE place_id = ? AND lang = ? AND expanded = ?',
-        placeId,
-        lang ?? '',
-        CACHE_KIND,
-      );
+      const row = await this.cache.findEntry(placeId, lang ?? '', CACHE_KIND);
       if (!row) return null;
       const parsed = JSON.parse(row.payload_json) as CachePayload;
       if (parsed.v !== CACHE_VERSION) return null;
@@ -843,16 +898,15 @@ export class PlaceEnrichmentService {
     }
   }
 
-  private writeCache(placeId: string, lang: string | undefined, value: CachedEnrichment): void {
+  private async writeCache(placeId: string, lang: string | undefined, value: CachedEnrichment): Promise<void> {
     try {
-      this.database.run(
-        'INSERT OR REPLACE INTO place_details_cache (place_id, lang, expanded, payload_json, fetched_at) VALUES (?, ?, ?, ?, ?)',
-        placeId,
-        lang ?? '',
-        CACHE_KIND,
-        JSON.stringify({ ...value, v: CACHE_VERSION } satisfies CachePayload),
-        Date.now(),
-      );
+      await this.cache.upsertEntry({
+        place_id: placeId,
+        lang: lang ?? '',
+        expanded: CACHE_KIND,
+        payload_json: JSON.stringify({ ...value, v: CACHE_VERSION } satisfies CachePayload),
+        fetched_at: Date.now(),
+      });
     } catch (err) {
       console.error('Failed to cache place enrichment:', err);
     }

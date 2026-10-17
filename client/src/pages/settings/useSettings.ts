@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router'
 import { authApi } from '../../api/client'
-import { useAddonStore } from '../../store/addonStore'
-import { useAuthStore } from '../../store/authStore'
+import { useIntegrationGates } from '../../components/Settings/useIntegrationGates'
+import { usePluginStore } from '../../store/pluginStore'
 
 /**
  * Settings page logic — loads addons + the app version, tracks the active tab
@@ -13,15 +13,8 @@ import { useAuthStore } from '../../store/authStore'
  */
 export function useSettings() {
   const [searchParams] = useSearchParams()
-  const { isEnabled: addonEnabled, loadAddons } = useAddonStore()
-  const managed = useAuthStore(s => s.managed)
-
-  const memoriesEnabled = addonEnabled('memories')
-  const mcpEnabled = addonEnabled('mcp')
-  const airtrailEnabled = addonEnabled('airtrail')
-  const llmEnabled = addonEnabled('llm_parsing')
-  const dawarichEnabled = addonEnabled('dawarich')
-  const hasIntegrations = memoriesEnabled || mcpEnabled || airtrailEnabled || llmEnabled || dawarichEnabled
+  const { hasIntegrations, managed, loadAddons } = useIntegrationGates({ reloadAddons: false })
+  const hasPlugins = usePluginStore(s => s.plugins.length > 0)
 
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('display')
@@ -46,5 +39,5 @@ export function useSettings() {
     if (tab) setActiveTab(tab)
   }, [searchParams])
 
-  return { hasIntegrations, appVersion, activeTab, setActiveTab, managed }
+  return { hasIntegrations, hasPlugins, appVersion, activeTab, setActiveTab, managed }
 }

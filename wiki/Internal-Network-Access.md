@@ -8,6 +8,8 @@ TREK has two SSRF guards, both in `ssrfGuard.ts`. Which one applies depends on t
 
 **The strict guard** (`safeFetch` / `safeFetchFollow`, built on `checkSsrf`) covers most outbound traffic: Immich, Synology Photos, AirTrail, Dawarich, the document stores behind [Document-Sync](Document-Sync) (Paperless-ngx, Papra, Nextcloud, OpenCloud and Synology), notification webhooks, ntfy, Unsplash, and place lookups. It resolves the hostname to an IP address before allowing the connection and blocks loopback, link-local and private ranges. Only the private ranges open up, and only with `ALLOW_INTERNAL_NETWORK=true`. The two tables below describe this guard.
 
+[Web Push](Notifications#web-push) deliveries go through the strict guard as well, with two narrower rules: they only ever go to the known push services (Google, Mozilla, Apple and Microsoft), and private ranges stay closed for them even with `ALLOW_INTERNAL_NETWORK=true`, because a push service is never on your LAN.
+
 **The relaxed guard** (`safeFetchAdminConfigured`, also exported as `safeFetchLlm`) covers endpoints that are expected to live on your own network: OIDC (discovery, token, userinfo, JWKS), the LLM providers behind the AI Parsing addon (a local Ollama or any OpenAI-compatible endpoint), and plugin OAuth token exchanges. The self-hosted routing engines an admin sets for the [Road-Trip](Road-Trip) addon (**Own routing engine**, **Own Valhalla instance**) go through it too when the server asks them itself, which it does for the MCP road trip tools. The planner asks them from the browser, so they must also be reachable from your users' devices. It deliberately permits loopback and LAN targets, so a model server on `localhost` or an identity provider on your LAN works **without** `ALLOW_INTERNAL_NETWORK`. It still resolves every hostname, re-checks every redirect hop, and always blocks link-local and cloud-metadata addresses (`169.254.0.0/16`, the full `fe80::/10`, and the AWS and Alibaba metadata addresses). The only way past is a single address listed in `ALLOW_LINK_LOCAL_IPS`, see [below](#a-link-local-address-you-need).
 
 **No guard** applies to the addresses an admin sets in the environment for place search: `TREK_PLACES_URL`, `NOMINATIM_URL` and `OVERPASS_URL`. They are configuration rather than user input, so a self-run copy of the [TREK Places API](TREK-Places-API), a Nominatim or an Overpass instance on your LAN or in the same Docker network is reached without `ALLOW_INTERNAL_NETWORK`.
@@ -69,6 +71,10 @@ ALLOW_LINK_LOCAL_IPS=169.254.1.2
 - Every other link-local address stays blocked. `169.254.169.x` and `169.254.170.x`, where AWS, GCP, Azure and the container services built on them hand out instance metadata and credentials, cannot be listed at all. TREK refuses to start with one of them in the list, and with any entry that is not a single IPv4 address such as `169.254.1.2`, so IPv6 link-local (`fe80::/10`) cannot be listed either.
 
 Several addresses are separated by commas. The list is read at startup, so restart TREK after changing it.
+
+## Behind an outbound proxy
+
+With `HTTP_PROXY` or `HTTPS_PROXY` set, requests through the strict and the relaxed guard go through that proxy too, unless `NO_PROXY` names the target host. The guard still checks the target first, so a blocked address is refused before anything reaches the proxy. From there on the proxy makes the connection itself, which means the DNS pinning below does not apply to proxied requests: the proxy you chose is the network boundary. Put your LAN services (Immich, a document store, your identity provider) into `NO_PROXY` when the proxy cannot reach them. See [Environment-Variables](Environment-Variables#outbound-https-proxy).
 
 ## DNS rebinding protection
 

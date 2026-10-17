@@ -96,12 +96,15 @@
 ## Admin Panel
 - [[Admin Panel Overview|Admin-Panel-Overview]]
 - [[Admin: Users and Invites|Admin-Users-and-Invites]]
+- [[Admin: User Defaults|Admin-User-Defaults]]
+- [[Admin: Settings|Admin-Settings]]
 - [[Admin: Addons|Admin-Addons]]
 - [[Admin: Categories|Admin-Categories]]
 - [[Admin: Packing Templates|Admin-Packing-Templates]]
 - [[Admin: Permissions|Admin-Permissions]]
 - [[Admin: Plugins|Admin-Plugins]]
 - [[Admin: Storage|Admin-Storage]]
+- [[Admin: Notifications|Admin-Notifications]]
 - [[Admin: MCP Tokens|Admin-MCP-Tokens]]
 - [[Admin: GitHub Releases|Admin-GitHub-Releases]]
 
@@ -114,6 +117,7 @@
 - [[Security Hardening|Security-Hardening]]
 
 ## Help
+- [[Help Center|Help-Center]]
 - [[In-App Help|In-App-Help]]
 - [[FAQ]]
 - [[Troubleshooting]]

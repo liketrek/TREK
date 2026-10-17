@@ -57,7 +57,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': '此实例已关闭 Dawarich 插件。',
   'dawarich.error.offline': '这需要联网 — TREK 当前处于离线状态。',
   'dawarich.error.invalid_url': 'TREK 无法使用该地址。',
-  'dawarich.warning.private_ip': '该地址解析到内网 IP（{ip}）。请确认这是你想要的——服务器可能需要 ALLOW_INTERNAL_NETWORK=true 才能访问。',
+  'dawarich.warning.private_ip':
+    '该地址解析到内网 IP（{ip}）。请确认这是你想要的——服务器可能需要 ALLOW_INTERNAL_NETWORK=true 才能访问。',
   'dawarich.error.unknown': '与 Dawarich 通信时出了问题。',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -97,8 +98,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.bucket_list': '心愿已勾掉',
   'dawarich.suggestions.sourceChanged':
     '自你使用之后，这条停留记录在 Dawarich 中已发生变化。你在 TREK 中写下的内容不受影响。',
-  'dawarich.suggestions.sourceMissing':
-    '这条停留记录在 Dawarich 中已不存在。你在 TREK 中写下的内容不受影响。',
+  'dawarich.suggestions.sourceMissing': '这条停留记录在 Dawarich 中已不存在。你在 TREK 中写下的内容不受影响。',
   'dawarich.sourceStatus.suggested': '已识别，未确认',
   'dawarich.confidence.high': '识别结果可信',
   'dawarich.confidence.medium': '识别结果较为可信',
@@ -112,7 +112,7 @@ const dawarich: TranslationStrings = {
   'dawarich.accept.confirm.journal': '添加条目',
   'dawarich.accept.confirm.bucket_list': '勾掉它',
   'dawarich.accept.recorded': '记录时间：{from} 至 {to}',
-  'dawarich.accept.duration': '{minutes} 分钟',
+  'dawarich.accept.duration': '{count} 分钟',
   'dawarich.accept.name': '名称',
   'dawarich.accept.date': '日期',
   'dawarich.accept.from': '到达',
@@ -134,8 +134,7 @@ const dawarich: TranslationStrings = {
 
   // ── Wishlist ───────────────────────────────────────────────────────────────
   'dawarich.bucket.title': '用 Dawarich 核对你的愿望清单',
-  'dawarich.bucket.description':
-    '在你的记录中查找那些你一直想去的地方。算作到访既要够近，也要待够时间——路过不算。',
+  'dawarich.bucket.description': '在你的记录中查找那些你一直想去的地方。算作到访既要够近，也要待够时间——路过不算。',
   'dawarich.bucket.scan': '核对愿望清单',
   'dawarich.bucket.scanning': '核对中…',
   'dawarich.bucket.noMatches': '你的记录中没有出现愿望清单上的任何地方。',
@@ -155,7 +154,6 @@ const dawarich: TranslationStrings = {
   'dawarich.atlas.loading': '正在读取你的记录…',
   'dawarich.atlas.empty': '你的记录中没有出现 TREK 尚未收录的国家。',
   'dawarich.atlas.cities': '{count} 座城市',
-  'dawarich.atlas.citiesOne': '1 座城市',
   'dawarich.atlas.accept': '添加 {count} 个国家',
   'dawarich.atlas.accepted': '已添加 {count} 个国家',
   'dawarich.atlas.unresolved': 'TREK 无法把这些匹配到某个国家：{names}。',
@@ -171,10 +169,8 @@ const dawarich: TranslationStrings = {
   'dawarich.again': '再查一次',
   'dawarich.bucket.metersAway': '{meters} 米外',
   'dawarich.bucket.kilometersAway': '{km} 公里外',
-  'dawarich.bucket.rule': '在 {meters} 米以内停留 {minutes} 分钟以上，才算实现心愿。',
-
-  'dawarich.journey.dayStays.one': '来自 Dawarich 的 1 个停留',
-  'dawarich.journey.dayStays.other': '来自 Dawarich 的 {count} 个停留',
+  'dawarich.bucket.rule': '在 {meters} 米以内停留 {count} 分钟以上，才算实现心愿。',
+  'dawarich.journey.dayStays.other': '来自 Dawarich 的 {count} 条停留记录',
 };
 
 export default dawarich;

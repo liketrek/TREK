@@ -51,7 +51,7 @@ export function MSetSelectRow({ label, trailing, onClick, className = '' }: MSet
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center justify-between gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[11px] text-left text-[0.8125rem] font-semibold text-m-ink ${className}`}
+      className={`flex w-full items-center justify-between gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px] py-[11px] text-start text-[0.8125rem] font-semibold text-m-ink ${className}`}
     >
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {trailing}

@@ -83,8 +83,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.requestDescription': '此应用正在请求访问你的 TREK 账户。',
   'oauth.authorize.trustNote': '只向你信任的应用授权，你的数据仍保留在自己的服务器上。',
   'oauth.authorize.selectScope': '请至少选择一项权限范围',
-  'oauth.authorize.approveOneScope': '批准（{count} 项权限）',
-  'oauth.authorize.approveManyScopes': '批准（{count} 项权限）',
+  'oauth.authorize.approveScopes': '批准（{count} 项权限）',
   'oauth.authorize.approveAccess': '批准访问',
   'oauth.authorize.deny': '拒绝',
   'oauth.authorize.choosePermissions': '选择要授予的权限',
@@ -106,6 +105,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:write.description': '更改单位、时间格式、语言、默认货币和起始页。绝不涉及已保存的 API 密钥',
   'oauth.scope.group.plugins': '插件',
   'oauth.scope.plugins:use.label': '运行插件工具',
-  'oauth.scope.plugins:use.description': '允许此客户端调用由管理员安装并批准的插件所发布的工具。每个插件都以其已获授予的权限运行，而不是以此令牌的权限范围运行',
+  'oauth.scope.plugins:use.description':
+    '允许此客户端调用由管理员安装并批准的插件所发布的工具。每个插件都以其已获授予的权限运行，而不是以此令牌的权限范围运行',
 };
 export default oauth;

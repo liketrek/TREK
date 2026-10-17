@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { contentDisposition } from '../../../src/nest/common/content-disposition';
+
+import { describe, it, expect } from 'vitest';
 
 // Node refuses header values with codepoints above 0xFF (ERR_INVALID_CHAR), so
 // the builder must hand back printable ASCII no matter what the name holds —
@@ -49,7 +50,7 @@ describe('contentDisposition (#2165)', () => {
 
   it("escapes the RFC 5987 stragglers encodeURIComponent leaves bare: ' ( ) *", () => {
     expect(contentDisposition("日(1)'*.gpx", 'attachment')).toBe(
-      'attachment; filename="_(1)\'*.gpx"; filename*=UTF-8\'\'%E6%97%A5%281%29%27%2A.gpx',
+      "attachment; filename=\"_(1)'*.gpx\"; filename*=UTF-8''%E6%97%A5%281%29%27%2A.gpx",
     );
   });
 

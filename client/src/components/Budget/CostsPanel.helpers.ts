@@ -11,16 +11,39 @@
  * Amounts are the raw input strings, parsed on use (same as customAmounts).
  */
 
-import type { BudgetParticipantFinal } from '@trek/shared'
-import { currencyDecimals } from '../../utils/formatters'
+import { splitEqualShares as splitEqualMinorShares, splitTicketLines, toMinor } from '@trek/shared'
+import type { BudgetParticipantFinal, ReceiptRead } from '@trek/shared'
+import { amountToInputString, currencyDecimals } from '../../utils/formatters'
+import { localIsoDate } from '../../utils/localDate'
+import type { ExpensePrefill } from './CostsPanel'
+import type { BudgetItem } from '../../types'
 
 // The split and receipt fields guard their own precision on every keystroke, so the
 // guard has to follow the currency: a three-decimal one (KWD, BHD, …) seeds three
 // places, and the old fixed two rejected every keystroke after that, leaving the field
-// unusable until a digit was deleted (#2175). Never stricter than two places, so no
-// value a field accepts today can become uneditable.
+// unusable until a digit was deleted (#2175). A currency without minor units (KRW,
+// JPY) takes no decimals at all, or a won amount could carry cents the list then
+// rounds away (#2604). The point itself may stand, so a digit typed after it is
+// dropped instead of joining the whole won. Callers cut the input with
+// clampAmountDecimals first, so a longer value a field was seeded with stays editable.
 export const amountPattern = (currency: string, signed: boolean) =>
-  new RegExp(`^${signed ? '-?' : ''}\\d*\\.?\\d{0,${Math.max(2, currencyDecimals(currency))}}$`)
+  new RegExp(`^${signed ? '-?' : ''}\\d*\\.?\\d{0,${currencyDecimals(currency)}}$`)
+
+/**
+ * A dot-normalized amount as typed, cut to the decimals the currency has (#2604):
+ * "1000.555" in won is "1000.", in euros "1000.55". Cut, not rounded, so the digits
+ * left are the ones the user typed, and a won amount keeps its point so a digit
+ * typed after it is dropped rather than read as one more whole won.
+ */
+export function clampAmountDecimals(value: string, currency: string): string {
+  const dot = value.indexOf('.')
+  return dot < 0 ? value : value.slice(0, dot + 1 + currencyDecimals(currency))
+}
+
+/** An amount already typed, in the currency it was switched to: cut, and without a point left bare. */
+export function amountInCurrency(value: string, currency: string): string {
+  return clampAmountDecimals(value, currency).replace(/\.$/, '')
+}
 
 /**
  * Spread `amount` across `n` payers in whole cents so the parts sum back exactly.
@@ -38,12 +61,17 @@ export function splitCents(amount: number, n: number): number[] {
 /**
  * The calendar day a settle-up payment counts on for grouping/filtering: its own
  * `settled_at` if the user set one, else the day it was recorded (`created_at`).
- * Mirrors `expense_date` falling back nowhere on a budget item — a settlement's
- * `created_at` doubled as its date before `settled_at` existed, so this keeps
- * every pre-existing row grouped exactly where it already was.
+ * A settlement's `created_at` doubled as its date before `settled_at` existed.
+ * It is SQLite's UTC clock ("2026-10-11 23:30:00"), so it is read as UTC and
+ * placed on the viewer's own calendar: in Seoul that payment was made on the
+ * 12th, not the 11th (#2604).
  */
 export function settlementDate(s: { settled_at?: string | null; created_at?: string | null }): string {
-  return (s.settled_at || s.created_at || '').slice(0, 10)
+  if (s.settled_at) return s.settled_at.slice(0, 10)
+  if (!s.created_at) return ''
+  const iso = s.created_at.replace(' ', 'T')
+  const at = new Date(/(Z|[+-]\d{2}:?\d{2})$/i.test(iso) ? iso : `${iso}Z`)
+  return Number.isNaN(at.getTime()) ? s.created_at.slice(0, 10) : localIsoDate(at)
 }
 
 /**
@@ -70,6 +98,38 @@ export function finalBudgetFor(finals: BudgetParticipantFinal[], member: { id: n
     expenses: 0, reimbursed: 0, pending: 0, final: 0,
     sources: { fronted: [], moved: [], outstanding: [] },
   }
+}
+
+/**
+ * Every name the server sent along with the expenses and the settlement, by user
+ * id. Someone removed from the trip keeps their payer and split rows (#2604) but
+ * is no longer among the trip members, so the views fall back to these instead
+ * of printing "?" for them.
+ */
+export function knownPersonNames(
+  items: { payers?: { user_id: number; username?: string }[] | null; members?: { user_id: number; username: string }[] | null }[],
+  settlement: { balances?: { user_id: number; username: string }[]; finalBudgets?: { user_id: number; username: string }[]; flows?: { from: { user_id: number; username: string }; to: { user_id: number; username: string } }[] } | null | undefined,
+): Map<number, string> {
+  const names = new Map<number, string>()
+  const add = (p: { user_id: number; username?: string | null }) => { if (p.username && !names.has(p.user_id)) names.set(p.user_id, p.username) }
+  for (const item of items) {
+    for (const p of item.payers || []) add(p)
+    for (const m of item.members || []) add(m)
+  }
+  for (const b of settlement?.balances || []) add(b)
+  for (const f of settlement?.finalBudgets || []) add(f)
+  for (const f of settlement?.flows || []) { add(f.from); add(f.to) }
+  return names
+}
+
+/**
+ * The server's rows for people no longer on the trip that still carry money, to
+ * list after the members' own. The balances net to zero across everyone the
+ * expenses name, so leaving a former member out made the list stop adding up.
+ */
+export function formerParticipantRows<T extends { user_id: number }>(memberIds: number[], rows: T[], carriesMoney: (row: T) => boolean): T[] {
+  const onTrip = new Set(memberIds)
+  return rows.filter(r => !onTrip.has(r.user_id) && carriesMoney(r))
 }
 
 /**
@@ -129,38 +189,15 @@ export function rebalancePayers(
 }
 
 /**
- * Split `total` equally across `members`, in whole cents.
- *
- * The remainder cent rotates with the item id rather than always landing on the
- * first member, so across several expenses the rounding evens out instead of
- * always favouring the same person.
- *
- * Must stay share-for-share identical to the server's
- * BudgetService.splitEqualShares (budget.service.ts) — the settlement is netted
- * there, this copy only previews it. The remainder is `totalCents - baseCents*n`
- * rather than `%` so a negative total (a refund, #2176) still yields a remainder
- * in [0, n) and the shares sum back to the total exactly, like the server's do.
- * The parity fixture in CostsPanel.helpers.test.ts pins both sides.
+ * Split `total` equally across `members`, in whole cents, as euros for the
+ * preview. The cents come from the shared `splitEqualShares` the server nets
+ * the settlement with, so the preview and the settlement cannot disagree: the
+ * remainder cent rotates with the item id and a negative total (a refund,
+ * #2176) still sums back exactly.
  */
 export function splitEqualShares(total: number, members: { user_id: number }[], itemId: number): Record<number, number> {
-  const n = members.length
-  if (n === 0) return {}
-
-  const totalCents = Math.round(total * 100)
-  const baseCents = Math.floor(totalCents / n)
-  const remainder = totalCents - baseCents * n
-
-  const shares: Record<number, number> = {}
-  const sortedMembers = [...members].sort((a, b) => a.user_id - b.user_id)
-  const startIndex = itemId % n
-
-  for (let i = 0; i < n; i++) {
-    const member = sortedMembers[i]
-    const hasExtraCent = ((i - startIndex + n) % n) < remainder
-    shares[member.user_id] = (baseCents + (hasExtraCent ? 1 : 0)) / 100
-  }
-
-  return shares
+  const cents = splitEqualMinorShares(toMinor(total), members, itemId)
+  return Object.fromEntries(Object.entries(cents).map(([id, c]) => [id, c / 100]))
 }
 
 /** One line of a receipt: what it cost and who is in on it. */
@@ -230,37 +267,64 @@ export function readUserNote(item: { note?: string | null } | null | undefined):
  * anyway, since every line needs someone on it.
  */
 export function calculateTicketShares(items: TicketItem[]): { shares: Record<number, number>; total: number } {
-  const shares: Record<number, number> = {}
-  let totalCents = 0
-
-  const everyone = [...new Set(items.flatMap(i => [...i.participants]))].sort((a, b) => a - b)
-
-  for (const item of items) {
-    const priceNum = Number.parseFloat(item.price) || 0
-    const priceCents = Math.round(priceNum * 100)
-    totalCents += priceCents
-
-    const sortedPartIds = item.participants.size > 0
-      ? [...item.participants].sort((a, b) => a - b)
-      : everyone
-    const n = sortedPartIds.length
-    if (n === 0) continue
-
-    const baseCents = Math.floor(priceCents / n)
-    const remainder = priceCents - baseCents * n
-
-    for (let i = 0; i < n; i++) {
-      const id = sortedPartIds[i]
-      const hasExtraCent = i < remainder
-      const shareCents = baseCents + (hasExtraCent ? 1 : 0)
-      shares[id] = (shares[id] || 0) + shareCents
-    }
-  }
-
+  const { shares, totalMinor } = splitTicketLines(items.map(i => ({ price: i.price, parts: [...i.participants] })))
   const finalShares: Record<number, number> = {}
-  for (const id of Object.keys(shares)) {
-    finalShares[Number(id)] = shares[Number(id)] / 100
-  }
+  for (const [id, cents] of Object.entries(shares)) finalShares[Number(id)] = cents / 100
+  return { shares: finalShares, total: totalMinor / 100 }
+}
 
-  return { shares: finalShares, total: totalCents / 100 }
+/**
+ * Where a new expense's editor starts from a prefill: a booking's price, or a
+ * scanned receipt, which also brings its currency, day, lines and photo. Both
+ * editors (the desktop modal and the phone sheet) seed from this one place.
+ *
+ * A prefill without a currency is in `base`, which is also what the currency
+ * field starts on. Receipt lines seed the Ticket split, shared by everyone like
+ * a line added by hand, while the split itself stays Equally until the person
+ * switches.
+ */
+export function newExpenseSeed(prefill: ExpensePrefill | undefined, base: string, peopleIds: number[], today: string) {
+  const currency = (prefill?.currency || base).toUpperCase()
+  return {
+    currency,
+    day: prefill?.date || today,
+    total: prefill?.amount != null ? amountToInputString(prefill.amount, currency) : '',
+    ticketItems: (prefill?.lines ?? []).map((line, i): TicketItem => ({
+      id: `receipt-${i}`,
+      name: line.name,
+      price: amountToInputString(line.price, currency),
+      participants: new Set(peopleIds),
+    })),
+    receiptFiles: prefill?.receiptFiles ?? [],
+  }
+}
+
+/** A scanned receipt as the prefill of a new expense, with its photo to attach on save. */
+export function receiptToPrefill(receipt: ReceiptRead, photos: File[]): ExpensePrefill {
+  return {
+    name: receipt.merchant ?? undefined,
+    amount: receipt.total ?? undefined,
+    currency: receipt.currency ?? undefined,
+    date: receipt.date ?? undefined,
+    lines: receipt.items,
+    receiptFiles: photos,
+  }
+}
+
+/**
+ * The expense editor a trip page shows, if any. Two things open it: a booking's
+ * Costs block (edit that expense, or start one from the booking's price) and a
+ * receipt scanned from Costs. The booking wins, since it is what the person just
+ * clicked; `key` remounts the editor when one hands over to the other, so each
+ * starts from its own seed.
+ */
+export function expenseEditorFor(
+  booking: { editing: BudgetItem | null; prefill?: ExpensePrefill } | null,
+  closeBooking: () => void,
+  receipt: ExpensePrefill | null,
+  closeReceipt: () => void,
+): { key: string; editing: BudgetItem | null; prefill?: ExpensePrefill; close: () => void } | null {
+  if (booking) return { key: 'booking', editing: booking.editing, prefill: booking.prefill, close: closeBooking }
+  if (receipt) return { key: 'receipt', editing: null, prefill: receipt, close: closeReceipt }
+  return null
 }

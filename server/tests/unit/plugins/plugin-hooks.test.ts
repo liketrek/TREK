@@ -1,20 +1,21 @@
 /**
  * The host-to-plugin hook contracts.
  *
- * The 15 hooks used to be invoked straight from the controllers, with the fn name and
+ * The hooks used to be invoked straight from the controllers, with the fn name and
  * the timeout spelled out at each call site. Nothing checked that a `hook:*` grant on
  * the consent screen had a consumer behind it, that the fn name matched what the SDK
  * documents, or that two call sites for the same hook agreed on the budget.
  *
  * These tests pin all three, plus the argument shape each hook is handed.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
 import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-import { PluginsRuntimeModule } from '../../../src/nest/plugins/plugins-runtime.module';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { HOOK_PERMISSION } from '../../../src/nest/plugins/protocol/envelope';
 import type { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { PluginsRuntimeModule } from '../../../src/nest/plugins/plugins-runtime.module';
+import { HOOK_PERMISSION } from '../../../src/nest/plugins/protocol/envelope';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
+
+import { describe, it, expect, vi } from 'vitest';
 
 type Invocation = [string, string, string, unknown[], number | undefined, number];
 
@@ -33,6 +34,8 @@ const CONTRACTS: Array<[hook: string, fn: string, timeoutMs: number]> = [
   ['calendarSource', 'getEvents', 5000],
   ['placeDetailProvider', 'getDetails', 5000],
   ['searchProvider', 'search', 2000],
+  ['searchProvider', 'suggest', 800],
+  ['poiCategoryProvider', 'getPois', 8000],
   ['warningProvider', 'getWarnings', 5000],
   ['tableContributor', 'getContributions', 5000],
   ['mapMarkerProvider', 'getMarkers', 5000],
@@ -81,7 +84,7 @@ describe('PluginHooks contracts', () => {
   it('PLUGHOOK-005 providersOf is passed straight through to the runtime', () => {
     const { hooks: h, providersOf } = hooks();
     expect(h.providersOf('photoProvider')).toEqual(['p1', 'p2']);
-    expect(providersOf).toHaveBeenCalledWith('photoProvider');
+    expect(providersOf).toHaveBeenCalledWith('photoProvider', undefined);
   });
 
   it('PLUGHOOK-006 the read hooks forward their arguments and the acting user', async () => {
@@ -134,7 +137,14 @@ describe('PluginHooks contracts', () => {
     const { hooks: h, invokeHook } = hooks();
     const message = { event: 'trip_reminder', title: 't', body: 'b' };
     await h.sendNotification('p', message, { token: 'x' });
-    expect(invokeHook).toHaveBeenCalledWith('p', 'notificationChannel', 'send', [message, { token: 'x' }], undefined, 8000);
+    expect(invokeHook).toHaveBeenCalledWith(
+      'p',
+      'notificationChannel',
+      'send',
+      [message, { token: 'x' }],
+      undefined,
+      8000,
+    );
     await h.testNotification('p', { token: 'x' });
     expect(invokeHook).toHaveBeenCalledWith('p', 'notificationChannel', 'test', [{ token: 'x' }], undefined, 8000);
   });
@@ -147,6 +157,33 @@ describe('PluginHooks contracts', () => {
     const call = { name: 'echo', args: { value: 'x' } };
     await h.callMcpTool('p', call, 7);
     expect(invokeHook).toHaveBeenCalledWith('p', 'mcpToolProvider', 'callTool', [call], 7, 15_000);
+  });
+
+  it('PLUGHOOK-011: a POI category search binds the requesting user and takes the explore budget', async () => {
+    // Runs as the user who picked the chip, so a provider can read that user's own
+    // settings (a wheelchair profile), and gets 8s: long enough for an external index,
+    // short enough that the chip shows its error instead of spinning.
+    const { hooks: h, invokeHook } = hooks();
+    const request = {
+      category: 'trailheads',
+      bounds: { south: 47, west: 11, north: 47.5, east: 11.5 },
+      lang: 'de',
+      limit: 60,
+    };
+    await h.categoryPois('p', request, 7);
+    expect(invokeHook).toHaveBeenCalledWith('p', 'poiCategoryProvider', 'getPois', [request], 7, 8000);
+  });
+
+  it('PLUGHOOK-012: a typed-ahead suggestion binds the requesting user and takes the shortest budget (#2221)', async () => {
+    // Asked per keystroke, beside core suggestions that arrive in a few hundred
+    // milliseconds; the next keystroke replaces the question, so a later answer is dead.
+    const { hooks: h, invokeHook, providersOf } = hooks();
+    const request = { query: 'ichi', limit: 3, lang: 'ja', near: { lat: 35.66, lng: 139.7 } };
+    await h.suggestPlaces('p', request, 7);
+    expect(invokeHook).toHaveBeenCalledWith('p', 'searchProvider', 'suggest', [request], 7, 800);
+    // Only the providers whose hook carries the optional function are asked.
+    h.providersOf('searchProvider', 'suggest');
+    expect(providersOf).toHaveBeenLastCalledWith('searchProvider', 'suggest');
   });
 
   it('PLUGHOOK-009 the class is listed in its module providers', () => {

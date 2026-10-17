@@ -1,18 +1,19 @@
-import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
-} from '../../nest-mcp';
-import { z } from 'zod';
-import { airtrailImportSchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
+import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
+import {
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { AuthService } from '../auth/auth.service';
-import { DatabaseService } from '../database/database.service';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { AirtrailImportService } from '../integrations/airtrail-import.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { TripAccessService } from '../trip-membership/trip-access.service';
+import { idSchema, airtrailImportSchema } from '@trek/shared';
 
 /** The handler's own @RequireAddon(ADDON_IDS.AIRTRAIL), as an availability gate. */
 const airtrailAddonOn = addonGate(ADDON_IDS.AIRTRAIL);
@@ -42,21 +43,26 @@ const MAX_MCP_AIRTRAIL_FLIGHTS = 50;
 export class ReservationImportMcp {
   constructor(
     private readonly airtrailImport: AirtrailImportService,
-    private readonly db: DatabaseService,
-    private readonly auth: AuthService,
+    // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is gone:
+    // this injects TripAccessService (trip-membership) (same constructor slot) and
+    // calls findAccessible.
+    private readonly trips: TripAccessService,
     private readonly guards: McpToolGuardsService,
     readonly addons: AddonsService,
   ) {}
 
   @Tool({
     name: 'import_airtrail_flights',
-    description: 'Import flights from the caller\'s connected AirTrail account into a trip as flight bookings, keeping them linked to AirTrail for two-way sync. Get the ids from list_airtrail_flights first; this tool only accepts ids that account already holds, so it cannot invent a flight. Prefer it over create_transport whenever the flight is already recorded in AirTrail: the route, times, airline and aircraft come across without retyping. Flights already on the trip are reported as skipped rather than duplicated.',
+    description:
+      "Import flights from the caller's connected AirTrail account into a trip as flight bookings, keeping them linked to AirTrail for two-way sync. Get the ids from list_airtrail_flights first; this tool only accepts ids that account already holds, so it cannot invent a flight. Prefer it over create_transport whenever the flight is already recorded in AirTrail: the route, times, airline and aircraft come across without retyping. Flights already on the trip are reported as skipped rather than duplicated.",
     inputSchema: {
-      tripId: z.number().int().positive(),
-      flightIds: airtrailImportSchema.shape.flightIds
-        .describe(`AirTrail flight ids from list_airtrail_flights, at most ${MAX_MCP_AIRTRAIL_FLIGHTS} per call`),
-      connections: airtrailImportSchema.shape.connections
-        .describe('Chains of the ids above to import as ONE multi-leg booking each, with the connection airports as layover stops, e.g. [["12","13"]] for a flight with one change. Every id in a chain must also be in flightIds. A chain whose legs do not actually connect is imported as separate flights instead.'),
+      tripId: idSchema,
+      flightIds: airtrailImportSchema.shape.flightIds.describe(
+        `AirTrail flight ids from list_airtrail_flights, at most ${MAX_MCP_AIRTRAIL_FLIGHTS} per call`,
+      ),
+      connections: airtrailImportSchema.shape.connections.describe(
+        'Chains of the ids above to import as ONE multi-leg booking each, with the connection airports as layover stops, e.g. [["12","13"]] for a flight with one change. Every id in a chain must also be in flightIds. A chain whose legs do not actually connect is imported as separate flights instead.',
+      ),
     },
     // Creating the same flights twice does not duplicate them (the dedupe
     // reports them skipped), but a call still creates rows, and it reaches out
@@ -69,9 +75,8 @@ export class ReservationImportMcp {
     { tripId, flightIds, connections }: { tripId: number; flightIds: string[]; connections?: string[][] },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.trips.findAccessible(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
 
     if (flightIds.length > MAX_MCP_AIRTRAIL_FLIGHTS) {
       return errorResult(
@@ -85,7 +90,7 @@ export class ReservationImportMcp {
     // the silent version looks like a successful multi-leg import.
     const selected = new Set(flightIds);
     for (const chain of connections ?? []) {
-      const stray = chain.find(id => !selected.has(id));
+      const stray = chain.find((id) => !selected.has(id));
       if (stray !== undefined) {
         return errorResult(`Connection references flight ${stray}, which is not in flightIds.`);
       }
@@ -96,7 +101,11 @@ export class ReservationImportMcp {
       // from the echo, so every member including the caller's own session gets
       // the reservation:created events the service broadcasts.
       const result = await this.airtrailImport.importAirtrailFlights(
-        tripId, ctx.userId, flightIds, undefined, connections ?? [],
+        tripId,
+        ctx.userId,
+        flightIds,
+        undefined,
+        connections ?? [],
       );
       return ok(result);
     } catch (err) {

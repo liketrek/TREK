@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, act } from '../../../tests/helpers/render';
-import { getCached, isLoading, fetchPhoto, onThumbReady } from '../../services/photoService';
+import { getCached, isLoading, fetchPhoto, onThumbReady, onPhotoLoaded } from '../../services/photoService';
 
 // Mock photoService — all functions are no-ops / return null
 vi.mock('../../services/photoService', () => ({
@@ -7,6 +7,7 @@ vi.mock('../../services/photoService', () => ({
   isLoading: vi.fn(() => false),
   fetchPhoto: vi.fn(),
   onThumbReady: vi.fn(() => () => {}),
+  onPhotoLoaded: vi.fn(() => () => {}),
 }));
 
 // Mock IntersectionObserver as a class constructor
@@ -34,6 +35,7 @@ beforeEach(() => {
   vi.mocked(isLoading).mockReturnValue(false);
   vi.mocked(fetchPhoto).mockReset();
   vi.mocked(onThumbReady).mockReturnValue(() => {});
+  vi.mocked(onPhotoLoaded).mockReset().mockReturnValue(() => {});
 });
 
 afterEach(() => {
@@ -181,5 +183,80 @@ describe('PlaceAvatar', () => {
   it('FE-COMP-AVATAR-016: does not set up IntersectionObserver when image_url present', () => {
     render(<PlaceAvatar place={basePlaceWithImage} />);
     expect(mockObserve).not.toHaveBeenCalled();
+  });
+
+  /** The callback the self-heal handed to fetchPhoto. */
+  function photoCallback() {
+    const callback = vi.mocked(fetchPhoto).mock.calls[0]?.[5];
+    if (!callback) throw new Error('fetchPhoto was called without a callback');
+    return callback;
+  }
+
+  // A proxy image_url whose cached file is gone answers 204; the refetch then
+  // hands back the very same URL once the server has the photo again.
+  const proxyPlace = {
+    ...basePlaceNoImage,
+    google_place_id: 'G1',
+    image_url: '/api/maps/place-photo/G1/bytes',
+  };
+
+  it('FE-COMP-AVATAR-017: loads the image again when the self-heal returns the same proxy URL', () => {
+    const { container } = render(<PlaceAvatar place={proxyPlace} />);
+    const before = container.querySelector('img') as HTMLImageElement;
+    fireEvent.error(before);
+
+    expect(vi.mocked(fetchPhoto)).toHaveBeenCalledWith('refetch:G1', 'G1', proxyPlace.lat, proxyPlace.lng, proxyPlace.name, expect.any(Function));
+    const callback = photoCallback();
+    act(() => callback({ photoUrl: proxyPlace.image_url, thumbDataUrl: null }));
+
+    const after = container.querySelector('img') as HTMLImageElement;
+    expect(after).not.toBe(before);
+    expect(after.getAttribute('src')).toBe(proxyPlace.image_url);
+  });
+
+  it('FE-COMP-AVATAR-018: ends on the category icon when the reloaded image fails too', () => {
+    const { container } = render(<PlaceAvatar place={proxyPlace} />);
+    fireEvent.error(container.querySelector('img') as HTMLImageElement);
+    const callback = photoCallback();
+    act(() => callback({ photoUrl: proxyPlace.image_url, thumbDataUrl: null }));
+    fireEvent.error(container.querySelector('img') as HTMLImageElement);
+
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('svg')).toBeTruthy();
+    expect(vi.mocked(fetchPhoto)).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-COMP-AVATAR-019: ends on the category icon when the self-heal finds no photo', () => {
+    const { container } = render(<PlaceAvatar place={proxyPlace} />);
+    fireEvent.error(container.querySelector('img') as HTMLImageElement);
+    const callback = photoCallback();
+    act(() => callback({ photoUrl: null, thumbDataUrl: null }));
+
+    expect(container.querySelector('img')).toBeNull();
+  });
+
+  it('FE-COMP-AVATAR-020: a reused avatar gets the self-heal again for the next place', () => {
+    const { container, rerender } = render(<PlaceAvatar place={proxyPlace} />);
+    fireEvent.error(container.querySelector('img') as HTMLImageElement);
+
+    const next = { ...proxyPlace, id: 2, google_place_id: 'G2', image_url: '/api/maps/place-photo/G2/bytes' };
+    rerender(<PlaceAvatar place={next} />);
+    fireEvent.error(container.querySelector('img') as HTMLImageElement);
+
+    expect(vi.mocked(fetchPhoto)).toHaveBeenLastCalledWith('refetch:G2', 'G2', next.lat, next.lng, next.name, expect.any(Function));
+  });
+
+  it('FE-COMP-AVATAR-021: takes the photo of a fetch another view started, even without a thumb', () => {
+    vi.mocked(isLoading).mockReturnValue(true);
+    const { container } = render(<PlaceAvatar place={{ ...basePlaceNoImage, google_place_id: 'G3' }} />);
+    act(() => {
+      observerInstance?.callback([{ isIntersecting: true }]);
+    });
+
+    expect(vi.mocked(onPhotoLoaded)).toHaveBeenCalledWith('G3', expect.any(Function));
+    const listener = vi.mocked(onPhotoLoaded).mock.calls[0][1];
+    act(() => listener({ photoUrl: '/photo/G3.jpg', thumbDataUrl: null }));
+
+    expect((container.querySelector('img') as HTMLImageElement).getAttribute('src')).toBe('/photo/G3.jpg');
   });
 });

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useTripStore } from '../store/tripStore'
+import { useTripStore, type TripStoreState } from '../store/tripStore'
 import { useToast } from '../components/shared/Toast'
 import { useTranslation } from '../i18n'
 import type { MergedItem, DayNotesMap, DayNote } from '../types'
@@ -20,6 +20,31 @@ interface NoteUiMap {
   [dayId: string]: NoteUiState
 }
 
+/** A note's editable fields as the editor holds them; a new note starts blank, with the default icon and no colour. */
+export function dayNoteDraft(note?: Pick<DayNote, 'text' | 'time' | 'icon' | 'color'> | null) {
+  return { text: note?.text || '', time: note?.time || '', icon: note?.icon || 'FileText', color: note?.color ?? null }
+}
+
+/** Where a saved note goes: a new one at a place in the day's order, or an existing one. */
+export type DayNoteTarget = { add: true; sortOrder?: number } | { add: false; noteId: number }
+
+/**
+ * Saves a day note from either editor, the desktop dialog or the phone sheet. The
+ * title is trimmed and an empty detail line is stored as null. On an existing note
+ * an undefined `color` leaves its colour as it is. Throws when the write is refused.
+ */
+export async function writeDayNote(
+  actions: Pick<TripStoreState, 'addDayNote' | 'updateDayNote'>,
+  tripId: number | string,
+  dayId: number,
+  target: DayNoteTarget,
+  draft: { text: string; time: string; icon: string; color?: string | null },
+) {
+  const fields = { text: draft.text.trim(), time: draft.time || null, icon: draft.icon || 'FileText' }
+  if ('noteId' in target) await actions.updateDayNote(tripId, dayId, target.noteId, { ...fields, color: draft.color })
+  else await actions.addDayNote(tripId, dayId, { ...fields, color: draft.color ?? null, sort_order: target.sortOrder })
+}
+
 export function useDayNotes(tripId: number | string) {
   const [noteUi, setNoteUi] = useState<NoteUiMap>({})
   const noteInputRef = useRef<HTMLInputElement | null>(null)
@@ -31,13 +56,13 @@ export function useDayNotes(tripId: number | string) {
   const openAddNote = (dayId: number, getMergedItems: (dayId: number) => MergedItem[], expandDay?: (dayId: number) => void) => {
     const merged = getMergedItems(dayId)
     const maxKey = merged.length > 0 ? Math.max(...merged.map((i) => i.sortKey)) : -1
-    setNoteUi((prev) => ({ ...prev, [dayId]: { mode: 'add', text: '', time: '', icon: 'FileText', color: null, sortOrder: maxKey + 1 } }))
+    setNoteUi((prev) => ({ ...prev, [dayId]: { mode: 'add', ...dayNoteDraft(), sortOrder: maxKey + 1 } }))
     expandDay?.(dayId)
     setTimeout(() => noteInputRef.current?.focus(), 50)
   }
 
   const openEditNote = (dayId: number, note: DayNote) => {
-    setNoteUi((prev) => ({ ...prev, [dayId]: { mode: 'edit', noteId: note.id, text: note.text, time: note.time || '', icon: note.icon || 'FileText', color: note.color ?? null } }))
+    setNoteUi((prev) => ({ ...prev, [dayId]: { mode: 'edit', noteId: note.id, ...dayNoteDraft(note) } }))
     setTimeout(() => noteInputRef.current?.focus(), 50)
   }
 
@@ -49,11 +74,7 @@ export function useDayNotes(tripId: number | string) {
     const ui = noteUi[dayId]
     if (!ui?.text?.trim()) return
     try {
-      if (ui.mode === 'add') {
-        await tripStore.addDayNote(tripId, dayId, { text: ui.text.trim(), time: ui.time || null, icon: ui.icon || 'FileText', color: ui.color ?? null, sort_order: ui.sortOrder })
-      } else {
-        await tripStore.updateDayNote(tripId, dayId, ui.noteId!, { text: ui.text.trim(), time: ui.time || null, icon: ui.icon || 'FileText', color: ui.color })
-      }
+      await writeDayNote(tripStore, tripId, dayId, ui.mode === 'add' ? { add: true, sortOrder: ui.sortOrder } : { add: false, noteId: ui.noteId! }, ui)
       cancelNote(dayId)
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.unknownError')) }
   }

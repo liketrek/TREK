@@ -22,6 +22,12 @@ export const SATELLITE_TILE_ATTRIBUTION =
   'Imagery &copy; <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics'
 export const SATELLITE_TILE_MAXZOOM = 19
 
+// Key-free hiking basemap used only by the Tours planner's per-view switcher.
+export const OPENTOPOMAP_TILE_URL = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+export const OPENTOPOMAP_TILE_ATTRIBUTION =
+  'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
+export const OPENTOPOMAP_TILE_MAXZOOM = 17
+
 /**
  * The basemap for a browser that will not give MapLibre a WebGL context (#2288).
  *

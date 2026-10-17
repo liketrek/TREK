@@ -1,12 +1,27 @@
 name: Security Scan
 
+# Neither job is a required check. What they report depends on the advisory
+# databases as much as on the change: a CVE published overnight would turn
+# every open PR red at once, including the ones that cannot fix it. The
+# security floors that hold the fixes live in the root package.json's
+# overrides, which a regenerated lockfile keeps.
+#
+#   - npm-audit reads the lockfile only, so it runs in seconds on every PR
+#     and push into dev and main. It audits what the image installs (the
+#     server and shared workspaces without dev dependencies) and the
+#     standalone plugin-sdk.
+#   - scout scans the built image, base image packages included. It needs
+#     the Docker Hub login, so it runs on PRs and pushes into main only and
+#     skips fork PRs. Whether the image builds at all is test.yml's
+#     docker-image job, which a red scan cannot hide.
 on:
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   push:
-    branches: [main]
+    branches: [main, dev]
 
 permissions:
+  contents: read
   pull-requests: write
 
 concurrency:
@@ -14,29 +29,57 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  npm-audit:
+    name: npm audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      # The client's dependencies end up in a browser bundle, not in the
+      # image, and are audited by hand until maplibre-gl's fix (a major) lands.
+      - name: Audit the image's runtime dependencies
+        run: npm audit --package-lock-only --omit=dev --audit-level=high --workspace=server --workspace=shared
+
+      - name: Audit trek-plugin-sdk
+        working-directory: plugin-sdk
+        run: npm audit --package-lock-only --omit=dev --audit-level=high
+
   scout:
     # Docker Hub secrets are not exposed to pull requests from forks, so the
     # Scout login can never succeed there.
-    if: github.repository == 'liketrek/TREK' && github.event.pull_request.head.repo.fork != true
-    runs-on: ubuntu-latest
+    if: >-
+      github.repository == 'liketrek/TREK'
+      && github.event.pull_request.head.repo.fork != true
+      && (github.base_ref == 'main' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           push: false
           load: true
           tags: trek:scan
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: docker/scout-action@v1
+      - uses: docker/scout-action@221e7f4860634eeb1579e3bd7ca232e577bd1864 # v1.26.0
         with:
           command: cves
           image: trek:scan

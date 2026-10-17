@@ -1,7 +1,8 @@
+import { stripHtmlTags } from '../common/stripHtmlTags';
 import { parseEmail } from './mime-email';
+
 import { extname } from 'node:path';
 import { PDFParse } from 'pdf-parse';
-import { stripHtmlTags } from '../common/stripHtmlTags';
 
 /** File extensions whose bytes are inherently text and can be decoded directly. */
 const TEXT_LIKE = new Set(['.txt', '.html', '.htm', '.eml']);
@@ -131,7 +132,7 @@ function extractEmailText(buffer: Buffer): string {
   const html = mail.html !== null ? stripMarkup(mail.html) : '';
   const body = html || (mail.text !== null ? collapseWhitespace(mail.text) : '');
   if (!body) return '';
-  return [mail.headerLines.join('\n'), body].filter(section => section.length > 0).join('\n\n');
+  return [mail.headerLines.join('\n'), body].filter((section) => section.length > 0).join('\n\n');
 }
 
 /** Extract the embedded text layer from a PDF (empty for scanned/image-only PDFs). */
@@ -263,14 +264,16 @@ function stripPageMarkers(text: string): string {
  *    a common PDF kerning artifact that otherwise hides booking fields
  */
 function cleanPdfText(text: string): string {
-  return stripPageMarkers(text)
-    .replace(/[ \t]+/g, ' ')
-    // Same run of three-or-more spaced capitals, written so the repeated group no
-    // longer overlaps the [A-Z] behind it and has to hand characters back to it.
-    .replace(/\b[A-Z](?: [A-Z]){2,}\b/g, m => m.replaceAll(' ', ''))
-    .replace(/ *\n */g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  return (
+    stripPageMarkers(text)
+      .replace(/[ \t]+/g, ' ')
+      // Same run of three-or-more spaced capitals, written so the repeated group no
+      // longer overlaps the [A-Z] behind it and has to hand characters back to it.
+      .replace(/\b[A-Z](?: [A-Z]){2,}\b/g, (m) => m.replaceAll(' ', ''))
+      .replace(/ *\n */g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  );
 }
 
 /**

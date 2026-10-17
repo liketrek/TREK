@@ -1,24 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { AlertTriangle, BedDouble, Hourglass, ParkingSquare } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MChip from '../../../components/MChip'
 import { Eyebrow, FormSheetHeader } from '../sheets/PlSheetChrome'
-import { STOP_KINDS, STOP_KIND_BY_KEY, isOvernightCategory } from '../../../../components/Roadtrip/stopKinds'
+import { DWELL_CHOICES, STOP_KINDS, isOvernightCategory } from '../../../../components/Roadtrip/stopKinds'
+import { useStopDraftForm } from '../../../../components/Roadtrip/useStopDraftForm'
 import { formatDurationShort } from '../../../../components/Roadtrip/roadtripModel'
 import type { RoadtripStopDraft } from '../../../../components/Roadtrip/RoadtripStopPopup'
 import type { TripPlanner } from '../MTripShell'
-import type { RoadtripStopType } from '@trek/shared'
 
 export interface MRtDraftSheetProps {
   planner: TripPlanner
 }
-
-/**
- * How long to stand still, offered as the few answers anybody actually gives.
- * The same six the desktop popup offers, so a stop added on the phone and one
- * added at the desk are the same stop.
- */
-const DWELL_CHOICES = [5, 10, 20, 30, 45, 60]
 
 /**
  * Taking a hit found along the drive onto the trip, on the phone.
@@ -39,9 +32,7 @@ const DWELL_CHOICES = [5, 10, 20, 30, 45, 60]
 export default function MRtDraftSheet({ planner }: MRtDraftSheetProps) {
   const { t, stopDraft, setStopDraft, saveStopDraft, stopDraftDuplicate } = planner
 
-  const [stopType, setStopType] = useState<RoadtripStopType | null>(null)
-  const [dwell, setDwell] = useState<number>(30)
-  const [saving, setSaving] = useState(false)
+  const { stopType, dwell, setDwell, saving, setSaving, kind, pickKind, seed } = useStopDraftForm(null)
 
   // Hold the last draft so the panel keeps its content through the 280ms exit
   // animation: saving clears the draft immediately, and rendering off the live
@@ -55,15 +46,11 @@ export default function MRtDraftSheet({ planner }: MRtDraftSheetProps) {
   // stop already says instead.
   useEffect(() => {
     if (!stopDraft) return
-    const suggested = STOP_KINDS.find(k => k.key === stopDraft.poi.category)
-    setStopType(stopDraft.editing ? stopDraft.editing.stopType : suggested?.key ?? null)
-    setDwell(stopDraft.editing?.dwellMinutes ?? suggested?.defaultMinutes ?? 30)
+    seed(stopDraft)
     setSaving(false)
-  }, [stopDraft])
+  }, [stopDraft, seed, setSaving])
 
   if (!draft) return null
-
-  const kind = STOP_KINDS.find(k => k.key === stopType)
 
   /**
    * A place somebody could sleep at is not offered here at all.
@@ -76,15 +63,6 @@ export default function MRtDraftSheet({ planner }: MRtDraftSheetProps) {
   const overnightOnly = draft.overnight != null || isOvernightCategory(draft.poi.category)
 
   const discard = () => setStopDraft(null)
-
-  const pickKind = (key: RoadtripStopType) => {
-    if (stopType === key) return
-    setStopType(key)
-    // Picking a kind picks its usual length too, until the user says otherwise.
-    // Tapping the kind already chosen changes nothing, so a time set by hand
-    // survives it.
-    setDwell(STOP_KIND_BY_KEY[key]?.defaultMinutes ?? dwell)
-  }
 
   const submit = async (): Promise<void> => {
     if (saving) return
@@ -170,7 +148,7 @@ export default function MRtDraftSheet({ planner }: MRtDraftSheetProps) {
             type="button"
             onClick={() => { void submit() }}
             disabled={saving}
-            className="ml-auto flex h-11 items-center rounded-full bg-m-act px-[22px] text-[0.8125rem] font-semibold text-m-actfg disabled:opacity-40"
+            className="ms-auto flex h-11 items-center rounded-full bg-m-act px-[22px] text-[0.8125rem] font-semibold text-m-actfg disabled:opacity-40"
           >
             {t(draft.editing ? 'common.save' : 'roadtrip.poi.add')}
           </button>

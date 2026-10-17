@@ -1,11 +1,14 @@
-import { Module } from '@nestjs/common';
+import { AppConfigModule } from '../app-config/app-config.module';
 import { KitineraryExtractorService } from './kitinerary-extractor.service';
+import { Module } from '@nestjs/common';
 
-/** The kitinerary binary probe on its own. It has no dependencies, and the
- *  feature-flag endpoint in health/ needs nothing else from booking-import —
- *  importing the whole domain there would drag llm-parse, reservations, budget,
- *  maps and places along for one `isAvailable()`. */
+/** The kitinerary binary probe on its own. Its only dependency is the
+ *  kitineraryConfig token (AppConfigModule), and the feature-flag endpoint in
+ *  health/ needs nothing else from booking-import — importing the whole domain
+ *  there would drag llm-parse, reservations, budget, maps and places along for
+ *  one `isAvailable()`. */
 @Module({
+  imports: [AppConfigModule],
   providers: [KitineraryExtractorService],
   exports: [KitineraryExtractorService],
 })

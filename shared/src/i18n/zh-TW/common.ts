@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': '取消',
   'common.clear': '清除',
   'common.delete': '刪除',
+  'common.remove': '刪除',
   'common.preview': '預覽',
   'common.edit': '編輯',
   'common.add': '新增',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': '重新命名',
   'common.discardChanges': '捨棄變更',
   'common.discard': '捨棄',
+  'common.unsavedTitle': '放棄變更？',
+  'common.unsavedMessage': '你在這裡輸入的內容尚未儲存。',
+  'common.keepEditing': '繼續編輯',
   'common.name': '名稱',
   'common.email': '郵箱',
   'common.password': '密碼',
@@ -73,5 +77,6 @@ const common: TranslationStrings = {
   'common.errorUpdateTitle': '有新版本可用',
   'common.errorUpdateBody': '此分頁開啟期間 TREK 已更新。請重新載入以取得新版本。',
   'common.errorPluginTitle': '無法顯示此外掛程式',
+  'common.needsConnection': '此操作需要網路連線。請在 TREK 恢復連線後再試一次。',
 };
 export default common;

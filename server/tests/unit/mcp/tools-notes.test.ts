@@ -5,54 +5,35 @@
  * create_collab_note, update_collab_note, delete_collab_note (CollabMcp,
  * DI-discovered via the same registry).
  */
+import { db as testDb } from '../../../src/db/database';
+import { CollabNotes } from '../../../src/db/entities/CollabNotes.entity';
+import { DayNotes } from '../../../src/db/entities/DayNotes.entity';
+import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
+import { createUser, createTrip, createDay, createDayNote, createCollabNote } from '../../helpers/factories';
+import { makeTripFile } from '../../helpers/factories/files';
+import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
 
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
-
-const { broadcastMock, unlinkSyncMock } = vi.hoisted(() => ({
-  broadcastMock: vi.fn(),
+const { unlinkSyncMock } = vi.hoisted(() => ({
   unlinkSyncMock: vi.fn(),
 }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();
   return { ...actual, unlinkSync: unlinkSyncMock };
 });
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createDayNote, createCollabNote } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
-});
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -61,13 +42,38 @@ beforeEach(() => {
   delete process.env.DEMO_MODE;
 });
 
-afterAll(() => {
+let orm: TestOrm;
+
+beforeAll(async () => {
+  orm = await createTestOrm(testDb);
+});
+
+afterAll(async () => {
+  await orm.close();
   testDb.close();
 });
 
+/** The stored day note; fails the case when it is gone. */
+async function dayNote(id: number) {
+  const row = await findRow(orm, DayNotes, { id });
+  if (!row) throw new Error(`no day note ${id}`);
+  return row;
+}
+
+/** The stored collab note; fails the case when it is gone. */
+async function collabNote(id: number) {
+  const row = await findRow(orm, CollabNotes, { id });
+  if (!row) throw new Error(`no collab note ${id}`);
+  return row;
+}
+
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -125,7 +131,7 @@ describe('Tool: create_day_note', () => {
         arguments: { tripId: trip.id, dayId: day.id, text: 'Ferry leaves early', color: '#dc2626', sort_order: 2 },
       });
       const data = parseToolResult(result) as any;
-      const row = testDb.prepare('SELECT color, sort_order FROM day_notes WHERE id = ?').get(data.note.id) as any;
+      const row = await dayNote(data.note.id);
       expect(row.color).toBe('#dc2626');
       expect(row.sort_order).toBe(2);
     });
@@ -141,7 +147,7 @@ describe('Tool: create_day_note', () => {
         arguments: { tripId: trip.id, dayId: day.id, text: 'A note' },
       });
       const data = parseToolResult(result) as any;
-      const row = testDb.prepare('SELECT color, sort_order FROM day_notes WHERE id = ?').get(data.note.id) as any;
+      const row = await dayNote(data.note.id);
       expect(row.color).toBeNull();
       expect(row.sort_order).toBe(9999);
     });
@@ -157,7 +163,7 @@ describe('Tool: create_day_note', () => {
         arguments: { tripId: trip.id, dayId: day.id, text: 'A note', color: '#ff0000' },
       });
       expect(result.isError).toBe(true);
-      expect(testDb.prepare('SELECT COUNT(*) AS n FROM day_notes WHERE day_id = ?').get(day.id)).toEqual({ n: 0 });
+      expect(await countRows(orm, DayNotes, { day: day.id })).toBe(0);
     });
   });
 
@@ -167,7 +173,10 @@ describe('Tool: create_day_note', () => {
     const trip2 = createTrip(testDb, user.id);
     const dayFromTrip2 = createDay(testDb, trip2.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_day_note', arguments: { tripId: trip1.id, dayId: dayFromTrip2.id, text: 'Note' } });
+      const result = await h.client.callTool({
+        name: 'create_day_note',
+        arguments: { tripId: trip1.id, dayId: dayFromTrip2.id, text: 'Note' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -178,7 +187,10 @@ describe('Tool: create_day_note', () => {
     const trip = createTrip(testDb, other.id);
     const day = createDay(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_day_note', arguments: { tripId: trip.id, dayId: day.id, text: 'X' } });
+      const result = await h.client.callTool({
+        name: 'create_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, text: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -231,7 +243,7 @@ describe('Tool: update_day_note', () => {
         name: 'update_day_note',
         arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, color: '#16a34a', sort_order: 1.5 },
       });
-      const row = testDb.prepare('SELECT color, sort_order FROM day_notes WHERE id = ?').get(note.id) as any;
+      const row = await dayNote(note.id);
       expect(row.color).toBe('#16a34a');
       expect(row.sort_order).toBe(1.5);
     });
@@ -242,13 +254,13 @@ describe('Tool: update_day_note', () => {
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const note = createDayNote(testDb, day.id, trip.id);
-    testDb.prepare('UPDATE day_notes SET color = ? WHERE id = ?').run('#2563eb', note.id);
+    await updateRows(orm, DayNotes, { id: note.id }, { color: '#2563eb' });
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_day_note',
         arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, color: null },
       });
-      expect((testDb.prepare('SELECT color FROM day_notes WHERE id = ?').get(note.id) as any).color).toBeNull();
+      expect((await dayNote(note.id)).color).toBeNull();
     });
   });
 
@@ -257,13 +269,13 @@ describe('Tool: update_day_note', () => {
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const note = createDayNote(testDb, day.id, trip.id, { sort_order: 3 });
-    testDb.prepare('UPDATE day_notes SET color = ? WHERE id = ?').run('#9333ea', note.id);
+    await updateRows(orm, DayNotes, { id: note.id }, { color: '#9333ea' });
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_day_note',
         arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, text: 'Only the text changed' },
       });
-      const row = testDb.prepare('SELECT color, sort_order FROM day_notes WHERE id = ?').get(note.id) as any;
+      const row = await dayNote(note.id);
       expect(row.color).toBe('#9333ea');
       expect(row.sort_order).toBe(3);
     });
@@ -280,7 +292,7 @@ describe('Tool: update_day_note', () => {
         arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, color: 'red' },
       });
       expect(result.isError).toBe(true);
-      expect((testDb.prepare('SELECT color FROM day_notes WHERE id = ?').get(note.id) as any).color).toBeNull();
+      expect((await dayNote(note.id)).color).toBeNull();
     });
   });
 
@@ -290,7 +302,10 @@ describe('Tool: update_day_note', () => {
     const day = createDay(testDb, trip.id);
     const note = createDayNote(testDb, day.id, trip.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'update_day_note', arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, text: 'Updated' } });
+      await h.client.callTool({
+        name: 'update_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, text: 'Updated' },
+      });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'dayNote:updated', expect.any(Object));
     });
   });
@@ -300,7 +315,10 @@ describe('Tool: update_day_note', () => {
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_day_note', arguments: { tripId: trip.id, dayId: day.id, noteId: 99999, text: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: 99999, text: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -312,7 +330,10 @@ describe('Tool: update_day_note', () => {
     const day = createDay(testDb, trip.id);
     const note = createDayNote(testDb, day.id, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_day_note', arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, text: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id, text: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -329,10 +350,13 @@ describe('Tool: delete_day_note', () => {
     const day = createDay(testDb, trip.id);
     const note = createDayNote(testDb, day.id, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_day_note', arguments: { tripId: trip.id, dayId: day.id, noteId: note.id } });
+      const result = await h.client.callTool({
+        name: 'delete_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id },
+      });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      expect(testDb.prepare('SELECT id FROM day_notes WHERE id = ?').get(note.id)).toBeUndefined();
+      expect(await findRow(orm, DayNotes, { id: note.id })).toBeNull();
     });
   });
 
@@ -342,7 +366,10 @@ describe('Tool: delete_day_note', () => {
     const day = createDay(testDb, trip.id);
     const note = createDayNote(testDb, day.id, trip.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'delete_day_note', arguments: { tripId: trip.id, dayId: day.id, noteId: note.id } });
+      await h.client.callTool({
+        name: 'delete_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id },
+      });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'dayNote:deleted', expect.any(Object));
     });
   });
@@ -352,7 +379,10 @@ describe('Tool: delete_day_note', () => {
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_day_note', arguments: { tripId: trip.id, dayId: day.id, noteId: 99999 } });
+      const result = await h.client.callTool({
+        name: 'delete_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: 99999 },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -364,7 +394,10 @@ describe('Tool: delete_day_note', () => {
     const day = createDay(testDb, trip.id);
     const note = createDayNote(testDb, day.id, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_day_note', arguments: { tripId: trip.id, dayId: day.id, noteId: note.id } });
+      const result = await h.client.callTool({
+        name: 'delete_day_note',
+        arguments: { tripId: trip.id, dayId: day.id, noteId: note.id },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -380,7 +413,7 @@ describe('Day-note tools — scope gating', () => {
   const WRITE_TOOLS = ['create_day_note', 'update_day_note', 'delete_day_note'];
 
   async function listToolNames(userId: number, scopes: string[] | null): Promise<string[]> {
-    const h = await createMcpHarness({ userId, withResources: false, scopes });
+    const h = await createMcpHarness({ realtime, userId, withResources: false, scopes });
     try {
       return (await h.client.listTools()).tools.map((t) => t.name);
     } finally {
@@ -473,7 +506,10 @@ describe('Tool: create_collab_note', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_collab_note', arguments: { tripId: trip.id, title: 'Quick note' } });
+      const result = await h.client.callTool({
+        name: 'create_collab_note',
+        arguments: { tripId: trip.id, title: 'Quick note' },
+      });
       const data = parseToolResult(result) as any;
       expect(data.note.category).toBe('General');
       expect(data.note.color).toBe('#6366f1');
@@ -490,8 +526,7 @@ describe('Tool: create_collab_note', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.note.website).toBe('https://example.com/tour');
-      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(data.note.id) as any).website)
-        .toBe('https://example.com/tour');
+      expect((await collabNote(data.note.id)).website).toBe('https://example.com/tour');
     });
   });
 
@@ -499,9 +534,12 @@ describe('Tool: create_collab_note', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_collab_note', arguments: { tripId: trip.id, title: 'Plain note' } });
+      const result = await h.client.callTool({
+        name: 'create_collab_note',
+        arguments: { tripId: trip.id, title: 'Plain note' },
+      });
       const data = parseToolResult(result) as any;
-      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(data.note.id) as any).website).toBeNull();
+      expect((await collabNote(data.note.id)).website).toBeNull();
     });
   });
 
@@ -519,7 +557,10 @@ describe('Tool: create_collab_note', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_collab_note', arguments: { tripId: trip.id, title: 'X' } });
+      const result = await h.client.callTool({
+        name: 'create_collab_note',
+        arguments: { tripId: trip.id, title: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -555,8 +596,7 @@ describe('Tool: update_collab_note', () => {
         name: 'update_collab_note',
         arguments: { tripId: trip.id, noteId: note.id, website: 'https://example.com/museum' },
       });
-      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(note.id) as any).website)
-        .toBe('https://example.com/museum');
+      expect((await collabNote(note.id)).website).toBe('https://example.com/museum');
     });
   });
 
@@ -564,10 +604,13 @@ describe('Tool: update_collab_note', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const note = createCollabNote(testDb, trip.id, user.id);
-    testDb.prepare('UPDATE collab_notes SET website = ? WHERE id = ?').run('https://example.com/old', note.id);
+    await updateRows(orm, CollabNotes, { id: note.id }, { website: 'https://example.com/old' });
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'update_collab_note', arguments: { tripId: trip.id, noteId: note.id, website: null } });
-      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(note.id) as any).website).toBeNull();
+      await h.client.callTool({
+        name: 'update_collab_note',
+        arguments: { tripId: trip.id, noteId: note.id, website: null },
+      });
+      expect((await collabNote(note.id)).website).toBeNull();
     });
   });
 
@@ -575,11 +618,13 @@ describe('Tool: update_collab_note', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const note = createCollabNote(testDb, trip.id, user.id);
-    testDb.prepare('UPDATE collab_notes SET website = ? WHERE id = ?').run('https://example.com/keep', note.id);
+    await updateRows(orm, CollabNotes, { id: note.id }, { website: 'https://example.com/keep' });
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'update_collab_note', arguments: { tripId: trip.id, noteId: note.id, title: 'Renamed' } });
-      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(note.id) as any).website)
-        .toBe('https://example.com/keep');
+      await h.client.callTool({
+        name: 'update_collab_note',
+        arguments: { tripId: trip.id, noteId: note.id, title: 'Renamed' },
+      });
+      expect((await collabNote(note.id)).website).toBe('https://example.com/keep');
     });
   });
 
@@ -593,7 +638,7 @@ describe('Tool: update_collab_note', () => {
         arguments: { tripId: trip.id, noteId: note.id, website: `https://example.com/${'x'.repeat(600)}` },
       });
       expect(result.isError).toBe(true);
-      expect((testDb.prepare('SELECT website FROM collab_notes WHERE id = ?').get(note.id) as any).website).toBeNull();
+      expect((await collabNote(note.id)).website).toBeNull();
     });
   });
 
@@ -602,7 +647,10 @@ describe('Tool: update_collab_note', () => {
     const trip = createTrip(testDb, user.id);
     const note = createCollabNote(testDb, trip.id, user.id);
     await withHarness(user.id, async (h) => {
-      await h.client.callTool({ name: 'update_collab_note', arguments: { tripId: trip.id, noteId: note.id, title: 'Updated' } });
+      await h.client.callTool({
+        name: 'update_collab_note',
+        arguments: { tripId: trip.id, noteId: note.id, title: 'Updated' },
+      });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'collab:note:updated', expect.any(Object));
     });
   });
@@ -611,7 +659,10 @@ describe('Tool: update_collab_note', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_collab_note', arguments: { tripId: trip.id, noteId: 99999, title: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_collab_note',
+        arguments: { tripId: trip.id, noteId: 99999, title: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -622,7 +673,10 @@ describe('Tool: update_collab_note', () => {
     const trip = createTrip(testDb, other.id);
     const note = createCollabNote(testDb, trip.id, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_collab_note', arguments: { tripId: trip.id, noteId: note.id, title: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_collab_note',
+        arguments: { tripId: trip.id, noteId: note.id, title: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -638,10 +692,13 @@ describe('Tool: delete_collab_note', () => {
     const trip = createTrip(testDb, user.id);
     const note = createCollabNote(testDb, trip.id, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_collab_note', arguments: { tripId: trip.id, noteId: note.id } });
+      const result = await h.client.callTool({
+        name: 'delete_collab_note',
+        arguments: { tripId: trip.id, noteId: note.id },
+      });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      expect(testDb.prepare('SELECT id FROM collab_notes WHERE id = ?').get(note.id)).toBeUndefined();
+      expect(await findRow(orm, CollabNotes, { id: note.id })).toBeNull();
     });
   });
 
@@ -650,19 +707,26 @@ describe('Tool: delete_collab_note', () => {
     const trip = createTrip(testDb, user.id);
     const note = createCollabNote(testDb, trip.id, user.id);
     // Insert a trip_file linked to this note
-    testDb.prepare(
-      `INSERT INTO trip_files (trip_id, note_id, filename, original_name, mime_type, file_size) VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(trip.id, note.id, 'test-file.pdf', 'document.pdf', 'application/pdf', 1024);
+    await makeTripFile(orm, trip.id, {
+      note: note.id,
+      filename: 'test-file.pdf',
+      original_name: 'document.pdf',
+      mime_type: 'application/pdf',
+      file_size: 1024,
+    });
 
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_collab_note', arguments: { tripId: trip.id, noteId: note.id } });
+      const result = await h.client.callTool({
+        name: 'delete_collab_note',
+        arguments: { tripId: trip.id, noteId: note.id },
+      });
       expect((parseToolResult(result) as any).success).toBe(true);
     });
 
     // trip_files rows are deleted as part of the transaction
-    expect(testDb.prepare('SELECT id FROM trip_files WHERE note_id = ?').all(note.id)).toHaveLength(0);
+    expect(await countRows(orm, TripFiles, { note: note.id })).toBe(0);
     // note itself is deleted
-    expect(testDb.prepare('SELECT id FROM collab_notes WHERE id = ?').get(note.id)).toBeUndefined();
+    expect(await findRow(orm, CollabNotes, { id: note.id })).toBeNull();
   });
 
   it('broadcasts collab:note:deleted event', async () => {
@@ -679,7 +743,10 @@ describe('Tool: delete_collab_note', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_collab_note', arguments: { tripId: trip.id, noteId: 99999 } });
+      const result = await h.client.callTool({
+        name: 'delete_collab_note',
+        arguments: { tripId: trip.id, noteId: 99999 },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -690,7 +757,10 @@ describe('Tool: delete_collab_note', () => {
     const trip = createTrip(testDb, other.id);
     const note = createCollabNote(testDb, trip.id, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'delete_collab_note', arguments: { tripId: trip.id, noteId: note.id } });
+      const result = await h.client.callTool({
+        name: 'delete_collab_note',
+        arguments: { tripId: trip.id, noteId: note.id },
+      });
       expect(result.isError).toBe(true);
     });
   });

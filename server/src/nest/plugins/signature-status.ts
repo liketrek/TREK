@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { PluginsRepository } from '../../db/repositories/Plugins.repository';
 
 /**
  * Signature/trust status shared between the registry installer, the read-side
@@ -21,10 +21,7 @@ import type Database from 'better-sqlite3';
  * for them, not even a disabled one.
  */
 export type SignatureCode =
-  | 'SIGNATURE_MISSING'
-  | 'SIGNATURE_INCOMPLETE'
-  | 'SIGNATURE_KEY_CHANGED'
-  | 'SIGNATURE_INVALID';
+  'SIGNATURE_MISSING' | 'SIGNATURE_INCOMPLETE' | 'SIGNATURE_KEY_CHANGED' | 'SIGNATURE_INVALID';
 
 /** The one code an admin may override, via POST /api/admin/plugins/:id/retrust. */
 export const RETRUSTABLE_CODE: SignatureCode = 'SIGNATURE_KEY_CHANGED';
@@ -67,14 +64,15 @@ export function keyFingerprint(pubkey: string | null | undefined): string | null
  * old code. A blocked update is not a broken runtime, and conflating them would
  * make the isolation-health dot lie.
  */
-export function setUpdateBlock(conn: Database.Database, id: string, code: SignatureCode, detail: string, version: string | null): void {
+export async function setUpdateBlock(
+  plugins: PluginsRepository,
+  id: string,
+  code: SignatureCode,
+  detail: string,
+  version: string | null,
+): Promise<void> {
   try {
-    conn.prepare('UPDATE plugins SET update_block_code = ?, update_block_detail = ?, update_block_version = ? WHERE id = ?').run(
-      code,
-      detail,
-      version,
-      id,
-    );
+    await plugins.setUpdateBlockColumns(id, code, detail, version);
   } catch {
     // Columns absent (a slimmed test app) — the block is a nicety, never a gate.
   }
@@ -84,9 +82,9 @@ export function setUpdateBlock(conn: Database.Database, id: string, code: Signat
  * activating the plugin at its OLD version resolves nothing, and letting an off/on
  * toggle erase the warning is exactly the silent-stops-updating failure this exists
  * to prevent. (Uninstall drops the row entirely, so it needs no explicit clear.) */
-export function clearUpdateBlock(conn: Database.Database, id: string): void {
+export async function clearUpdateBlock(plugins: PluginsRepository, id: string): Promise<void> {
   try {
-    conn.prepare('UPDATE plugins SET update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL WHERE id = ?').run(id);
+    await plugins.clearUpdateBlockColumns(id);
   } catch {
     // See setUpdateBlock.
   }

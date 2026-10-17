@@ -1,6 +1,6 @@
 # MCP Scopes
 
-OAuth scopes control exactly which data your AI client can read or write in TREK. You select scopes during the OAuth consent screen or when pre-creating an OAuth client. You can revoke access at any time by deleting the OAuth client or token from your **Settings → Integrations → MCP**.
+OAuth scopes control exactly which data your AI client can read or write in TREK. You select scopes during the OAuth consent screen or when pre-creating an OAuth client. You can revoke access at any time by deleting the OAuth client or token, or revoking the session, under **Settings → Integrations → MCP Configuration**.
 
 ![OAuth consent screen](assets/OAuthConsentDCR.png)
 
@@ -40,7 +40,7 @@ TREK defines 35 scopes across 17 groups.
 | | `journey:write` | Create, update, and delete journeys and their entries |
 | | `journey:share` | Create, update, and revoke public share links for journeys |
 | **Files** | `files:read` | List the documents on a trip: names, sizes, who uploaded them, what they link to |
-| | `files:write` | Rename and describe files, link them to bookings and places, star and trash them |
+| | `files:write` | Rename and describe files, link them to bookings and places, star and trash them. Also needed to upload a document with `upload_trip_file`, which additionally checks the trip's file upload permission |
 | | `files:content` | Read what is inside an uploaded document, such as a booking PDF or a ticket |
 | **Settings** | `settings:read` | Read units, time format, language, default currency, and start page |
 | | `settings:write` | Change units, time format, language, default currency, and start page |
@@ -65,12 +65,12 @@ Grant only what you need. Some examples:
 | Use case | Minimum scopes |
 |---|---|
 | Read-only AI assistant | All `:read` scopes relevant to your data |
-| Full trip planner | All scopes except `:delete` (use the Claude.ai or Claude Desktop preset) |
+| Full trip planner | All scopes except `trips:delete` (use the Claude.ai or Claude Desktop preset) |
 | Budget review only | `trips:read` + `budget:read` |
 | Packing list assistant | `trips:read` + `packing:read` + `packing:write` |
 | Journey writer | `trips:read` + `journey:read` + `journey:write` |
 
-The preset buttons in your **Settings → Integrations → MCP → OAuth 2.1 Clients** fill in a reasonable scope set for common clients. VS Code defaults to read-only scopes; Claude.ai and Claude Desktop default to all scopes except `:delete`.
+The preset buttons in your **Settings → Integrations → MCP Configuration → OAuth 2.1 Clients** fill in a reasonable scope set for common clients. VS Code defaults to read-only scopes; Claude.ai, Claude Desktop, Cursor, Windsurf and Zed default to all scopes except `trips:delete`. No preset includes `plugins:use`.
 
 ## Related
 

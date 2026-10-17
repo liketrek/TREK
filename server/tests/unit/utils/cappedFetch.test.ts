@@ -1,5 +1,12 @@
+import {
+  discardBody,
+  exceedsDeclaredLength,
+  readCapped,
+  readCappedJson,
+  readCappedText,
+} from '../../../src/utils/cappedFetch';
+
 import { describe, it, expect } from 'vitest';
-import { discardBody, exceedsDeclaredLength, readCapped, readCappedJson, readCappedText } from '../../../src/utils/cappedFetch';
 
 /** Response stub that streams `chunks` through a reader, tracking cancellation. */
 function streamed(chunks: string[], contentLength: string | null = null) {
@@ -15,9 +22,13 @@ function streamed(chunks: string[], contentLength: string | null = null) {
             i < chunks.length
               ? { done: false, value: new TextEncoder().encode(chunks[i++]) }
               : { done: true, value: undefined as unknown as Uint8Array },
-          cancel: async () => { state.cancelled = true; },
+          cancel: async () => {
+            state.cancelled = true;
+          },
         }),
-        cancel: async () => { state.cancelled = true; },
+        cancel: async () => {
+          state.cancelled = true;
+        },
       },
     },
   };
@@ -56,9 +67,12 @@ describe('readCapped', () => {
 
   it('CAP-005: survives a reader whose cancel rejects', async () => {
     const { res } = streamed(['aaaa', 'bbbb']);
-    res.body.getReader = ((orig) => () => ({ ...orig(), cancel: async () => { throw new Error('nope'); } }))(
-      res.body.getReader,
-    );
+    res.body.getReader = ((orig) => () => ({
+      ...orig(),
+      cancel: async () => {
+        throw new Error('nope');
+      },
+    }))(res.body.getReader);
     const { truncated } = await readCapped(res, 2);
     expect(truncated).toBe(true);
   });
@@ -131,7 +145,16 @@ describe('discardBody', () => {
 
   it('CAP-013: is a no-op for a response without a body, and swallows a rejecting cancel', async () => {
     expect(() => discardBody({})).not.toThrow();
-    expect(() => discardBody({ body: { getReader: () => ({ read: async () => ({ done: true }), cancel: async () => undefined }), cancel: async () => { throw new Error('nope'); } } })).not.toThrow();
+    expect(() =>
+      discardBody({
+        body: {
+          getReader: () => ({ read: async () => ({ done: true }), cancel: async () => undefined }),
+          cancel: async () => {
+            throw new Error('nope');
+          },
+        },
+      }),
+    ).not.toThrow();
     await Promise.resolve();
   });
 });

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { buildUser } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
+import { useAddonStore } from '../store/addonStore';
 import SettingsPage from './SettingsPage';
 
 // Mock heavy settings sub-tabs to focus on page-level concerns
@@ -150,6 +151,29 @@ describe('SettingsPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /about/i })).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('FE-PAGE-SETTINGS-007: Integrations tab without any integration addon', () => {
+    // API keys live in the Integrations tab and need no addon, so the tab has to
+    // be there on an instance where MCP, AirTrail, AI Parsing, Dawarich and the
+    // photo providers are all switched off.
+    it('still offers the Integrations tab and opens it', async () => {
+      seedStore(useAddonStore, { isEnabled: () => false, loadAddons: vi.fn().mockResolvedValue(undefined) });
+      const user = userEvent.setup();
+      render(<SettingsPage />);
+
+      await user.click(await screen.findByRole('button', { name: /integrations/i }));
+
+      expect(await screen.findByTestId('integrations-tab')).toBeInTheDocument();
+    });
+
+    it('keeps it on a managed install too', async () => {
+      seedStore(useAddonStore, { isEnabled: () => false, loadAddons: vi.fn().mockResolvedValue(undefined) });
+      seedStore(useAuthStore, { managed: true });
+      render(<SettingsPage />, { initialEntries: ['/settings?tab=integrations'] });
+
+      expect(await screen.findByTestId('integrations-tab')).toBeInTheDocument();
     });
   });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { DEFAULT_SETTINGS, forgetServerLanguage, useSettingsStore } from './settingsStore'
 import { settingsApi } from '../api/client'
 import { clearTileCache } from '../sync/tilePrefetcher'
@@ -158,5 +158,53 @@ describe('offline language fallback', () => {
 
     expect(localStorage.getItem('app_language_server')).toBeNull()
     expect(localStorage.getItem('app_language')).toBe('de')
+  })
+})
+
+// wiki/Languages.md: the account's language, then the browser's, then English
+// (the server default is the login page's, as before). The browser step only ran there,
+// so opening a trip with a live session in a fresh browser started in English (#2604).
+describe('language detection with a session', () => {
+  const languages = Object.getOwnPropertyDescriptor(window.navigator, 'languages')
+  const speak = (...langs: string[]) =>
+    Object.defineProperty(window.navigator, 'languages', { value: langs, configurable: true })
+
+  beforeEach(() => {
+    localStorage.removeItem('app_language')
+    localStorage.removeItem('app_language_server')
+    useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, language: 'en' } })
+  })
+  afterEach(() => {
+    if (languages) Object.defineProperty(window.navigator, 'languages', languages)
+    else delete (window.navigator as { languages?: unknown }).languages
+  })
+
+  it('SETTINGS-LANG-008: a cold start with nothing stored boots in the browser language', async () => {
+    speak('ko-KR', 'en')
+    vi.resetModules()
+    const fresh = await import('./settingsStore')
+    expect(fresh.DEFAULT_SETTINGS.language).toBe('ko')
+  })
+
+  it('SETTINGS-LANG-009: an account without a language takes the browser language, nothing is saved', async () => {
+    speak('ko-KR')
+    vi.mocked(settingsApi.get).mockResolvedValue({ settings: {} } as never)
+    await useSettingsStore.getState().loadSettings()
+    expect(useSettingsStore.getState().settings.language).toBe('ko')
+    expect(localStorage.getItem('app_language')).toBeNull()
+    expect(settingsApi.set).not.toHaveBeenCalledWith('language', expect.anything())
+  })
+
+  it('SETTINGS-LANG-011: the account language and an explicit choice both outrank the browser', async () => {
+    speak('ko-KR')
+    vi.mocked(settingsApi.get).mockResolvedValue({ settings: { language: 'fr' } } as never)
+    await useSettingsStore.getState().loadSettings()
+    expect(useSettingsStore.getState().settings.language).toBe('fr')
+
+    localStorage.setItem('app_language', 'de')
+    useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, language: 'de' } })
+    vi.mocked(settingsApi.get).mockResolvedValue({ settings: {} } as never)
+    await useSettingsStore.getState().loadSettings()
+    expect(useSettingsStore.getState().settings.language).toBe('de')
   })
 })

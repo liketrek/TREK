@@ -146,8 +146,7 @@ describe('NoteFormModal', () => {
   it('FE-W5CNF-007: the close button calls back without submitting', async () => {
     const user = userEvent.setup()
     const { onClose, onSubmit } = renderModal()
-    const header = screen.getByText('collab.notes.new').parentElement!
-    await user.click(header.querySelector('button')!)
+    await user.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
     expect(onSubmit).not.toHaveBeenCalled()
   })
@@ -159,9 +158,10 @@ describe('NoteFormModal', () => {
       categoryColors: { Sights: '#6366f1' },
     })
     const sights = screen.getByRole('button', { name: 'Sights' })
-    expect(sights.style.background).toBe('transparent')
+    expect(sights).toHaveAttribute('aria-pressed', 'false')
     await user.click(sights)
-    expect(sights.style.background).toBe('rgba(99, 102, 241, 0.094)')
+    expect(sights).toHaveAttribute('aria-pressed', 'true')
+    expect(sights.style.color).toBe('rgb(99, 102, 241)')
     await user.type(screen.getByPlaceholderText('collab.notes.titlePlaceholder'), 'Museum')
     await user.click(screen.getByRole('button', { name: 'collab.notes.create' }))
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())

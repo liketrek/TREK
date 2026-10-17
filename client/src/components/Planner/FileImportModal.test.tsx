@@ -1,4 +1,4 @@
-// FE-PLANNER-FILEIMP-001 to FE-PLANNER-FILEIMP-018
+// FE-PLANNER-FILEIMP-001 to FE-PLANNER-FILEIMP-021
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -237,10 +237,38 @@ describe('FileImportModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(document.querySelector('[style*="z-index: 99999"]') as HTMLElement);
+    // The backdrop is the dialog's parent; a press that starts and ends on it closes.
+    const backdrop = screen.getByRole('dialog').parentElement as HTMLElement;
+    fireEvent.mouseDown(backdrop);
+    fireEvent.click(backdrop);
     expect(onClose).toHaveBeenCalledTimes(2);
     // A click inside the card is swallowed.
+    fireEvent.mouseDown(screen.getByText('Import file'));
     fireEvent.click(screen.getByText('Import file'));
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-PLANNER-FILEIMP-020: Escape and the head band X close it as well', () => {
+    const onClose = vi.fn();
+    render(<FileImportModal {...defaultProps} onClose={onClose} />);
+    expect(screen.getByRole('dialog', { name: 'Import file' })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-PLANNER-FILEIMP-021: re-ticking a type lifts the block again', () => {
+    render(<FileImportModal {...defaultProps} initialFile={kml()} />);
+    const points = screen.getByRole('checkbox', { name: 'Points (Placemarks)' });
+    const paths = screen.getByRole('checkbox', { name: 'Paths (LineStrings)' });
+    expect(points).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(points);
+    fireEvent.click(paths);
+    expect(points).toHaveAttribute('aria-checked', 'false');
+    expect(importBtn()).toBeDisabled();
+    fireEvent.click(paths);
+    expect(screen.queryByText('Select at least one type to import.')).not.toBeInTheDocument();
+    expect(importBtn()).toBeEnabled();
   });
 });

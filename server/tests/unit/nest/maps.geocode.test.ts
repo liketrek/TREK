@@ -8,6 +8,12 @@
  * admin leaves it on), and that a failure on either side ends as a coordinate
  * or a null rather than a half-answer the importer would store.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
+import { buildMapsService } from '../../helpers/maps-service';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { mockSearch, mockNominatim } = vi.hoisted(() => ({
@@ -28,11 +34,11 @@ vi.mock('../../../src/nest/geo/nominatim.client', async (importOriginal) => ({
   nominatimFetch: mockNominatim,
 }));
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+// keyedProvider/resolveMapsKey (maps.service.ts) go through instance-api-keys.ts
+// on every call now — none of these cases configure a key, so the stubs just
+// answer "unset" the way the fake database.get(() => undefined) already did.
+const noAppSettings = { getValue: async () => null } as unknown as AppSettingsRepository;
+const noUsers = { getApiKeyColumn: async () => null } as unknown as UsersRepository;
 
 const QUERY = 'Hotel Adlon Kempinski, Unter den Linden 77, Berlin';
 
@@ -64,8 +70,14 @@ afterEach(() => {
 function make(enabled = true) {
   if (enabled) delete process.env.TREK_PLACES_ENABLED;
   else process.env.TREK_PLACES_ENABLED = 'false';
-  const database = { get: vi.fn(() => undefined) } as unknown as DatabaseService;
-  return new MapsService(database, {} as PlacePhotoCacheService);
+  return buildMapsService(
+    {} as PlacePhotoCacheService,
+    noAppSettings,
+    noUsers,
+    {} as never,
+    {} as never,
+    noGoogleQuota,
+  );
 }
 
 beforeEach(() => {

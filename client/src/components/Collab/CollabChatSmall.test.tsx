@@ -132,7 +132,7 @@ describe('WebsiteThumbnail', () => {
     render(<WebsiteThumbnail url="https://www.liketrek.com/docs" tripId={4} color="#000" />)
 
     expect(screen.getByText('liketrek.com')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByRole('link')).toHaveAttribute('title', 'TREK'))
+    await waitFor(() => expect(screen.getByRole('link')).toHaveAttribute('aria-label', 'TREK'))
     expect(linkPreview).toHaveBeenCalledWith(4, 'https://www.liketrek.com/docs')
   })
 
@@ -154,14 +154,15 @@ describe('WebsiteThumbnail', () => {
 
     expect(screen.getByText('blocked.example')).toBeInTheDocument()
     await waitFor(() => expect(linkPreview).toHaveBeenCalled())
-    expect(screen.getByRole('link')).toHaveAttribute('title', 'https://blocked.example/a')
+    expect(screen.getByRole('link')).toHaveAttribute('aria-label', 'https://blocked.example/a')
   })
 
   it('FE-W4CCS-017: a url that is not http(s) is shown but neither linked nor previewed', async () => {
-    const { unmount } = render(<WebsiteThumbnail url="javascript:alert(1)" tripId={4} color="#000" />)
+    const { unmount, container } = render(<WebsiteThumbnail url="javascript:alert(1)" tripId={4} color="#000" />)
 
     expect(screen.queryByRole('link')).toBeNull()
-    expect(screen.getByTitle('javascript:alert(1)')).toBeInTheDocument()
+    fireEvent.mouseEnter(container.firstElementChild!)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('javascript:alert(1)')
     unmount()
 
     render(<WebsiteThumbnail url="not a url" tripId={4} color="#000" />)
@@ -174,13 +175,13 @@ describe('WebsiteThumbnail', () => {
     linkPreview.mockResolvedValue({ title: 'Trip 4', image: null })
     const shared = 'https://example.com/shared'
     const first = render(<WebsiteThumbnail url={shared} tripId={4} color="#000" />)
-    await waitFor(() => expect(screen.getByRole('link')).toHaveAttribute('title', 'Trip 4'))
+    await waitFor(() => expect(screen.getByRole('link')).toHaveAttribute('aria-label', 'Trip 4'))
     first.unmount()
 
     linkPreview.mockResolvedValue({ title: 'Trip 9', image: null })
     render(<WebsiteThumbnail url={shared} tripId={9} color="#000" />)
 
-    await waitFor(() => expect(screen.getByRole('link')).toHaveAttribute('title', 'Trip 9'))
+    await waitFor(() => expect(screen.getByRole('link')).toHaveAttribute('aria-label', 'Trip 9'))
     expect(linkPreview).toHaveBeenCalledTimes(2)
     expect(linkPreview).toHaveBeenLastCalledWith(9, shared)
   })

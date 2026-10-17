@@ -11,44 +11,46 @@
  * The PDF is built here from synthetic text; the reporter's document is never
  * part of the repository.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { Addons } from '../../src/db/entities/Addons.entity';
+import { KitineraryExtractorService } from '../../src/nest/booking-import/kitinerary-extractor.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { NotificationsService } from '../../src/nest/notifications/notifications.service';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { ReservationImportModule } from '../../src/nest/reservation-import/reservation-import.module';
+import { upsertRow } from '../helpers/factories/rows';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
-const { canAccessTrip, safeFetchLlm } = vi.hoisted(() => ({ canAccessTrip: vi.fn(), safeFetchLlm: vi.fn() }));
+const { safeFetchLlm } = vi.hoisted(() => ({ safeFetchLlm: vi.fn() }));
 // The temp db is born inside the factory, which runs before anything imports it,
-// and read back below through the mocked module itself.
+// and read back below through the mocked module itself. It is a copy of the
+// migrated + seeded snapshot, so the schema is the MikroORM chain's. Trip access
+// is the real TripsRepository lookup against it.
 vi.mock('../../src/db/database', async () => {
-  const { default: Database } = await import('better-sqlite3');
-  const tmp = new Database(':memory:');
-  tmp.exec('PRAGMA journal_mode = WAL');
-  tmp.exec('PRAGMA foreign_keys = ON');
+  const { createSnapshotTestDb } = await import('../helpers/db-mock');
+  const tmp = createSnapshotTestDb();
   return {
     db: tmp,
-    canAccessTrip,
-    isOwner: vi.fn(() => true),
+    canAccessTrip: () => undefined,
+    isOwner: () => false,
     getPlaceWithTags: vi.fn(),
     closeDb: () => {},
     reinitialize: () => {},
   };
 });
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../src/utils/ssrfGuard', async (orig) => ({ ...(await orig<Record<string, unknown>>()), safeFetchLlm }));
-
-import { db } from '../../src/db/database';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { ReservationImportModule } from '../../src/nest/reservation-import/reservation-import.module';
-import { KitineraryExtractorService } from '../../src/nest/booking-import/kitinerary-extractor.service';
-import { NotificationsService } from '../../src/nest/notifications/notifications.service';
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 
 /** A one-page PDF whose text layer holds `lines`, in the standard Helvetica. */
 function pdfWithText(lines: string[]): Buffer {
@@ -108,9 +110,21 @@ describe('Booking import e2e (#2477): a schema-bound provider on the upload rout
   let tripId: number;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, ReservationImportModule] })
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        ReservationImportModule,
+      ],
+    })
       .overrideProvider(KitineraryExtractorService)
-      .useValue({ onModuleInit: () => {}, isAvailable: () => false, extract: vi.fn(), describe: () => ({ available: false }) })
+      .useValue({
+        onModuleInit: () => {},
+        isAvailable: () => false,
+        extract: vi.fn(),
+        describe: () => ({ available: false }),
+      })
       .overrideProvider(NotificationsService)
       .useValue({ send: vi.fn().mockResolvedValue(undefined) })
       .compile();
@@ -135,24 +149,33 @@ describe('Booking import e2e (#2477): a schema-bound provider on the upload rout
   };
 
   beforeAll(async () => {
-    createTables(db);
-    runMigrations(db);
-    db.prepare(
-      "INSERT INTO users (id, username, email, password_hash, role, password_version) VALUES (1, 'e2e-user', 'e2e@example.test', 'x', 'user', 0)",
-    ).run();
-    tripId = Number(db.prepare("INSERT INTO trips (user_id, title) VALUES (1, 'Albania')").run().lastInsertRowid);
+    const orm = await createTestOrm(db);
+    await makeUser(orm, { id: 1, username: 'e2e-user', email: 'e2e@example.test', role: 'user', password_version: 0 });
+    tripId = (await makeTrip(orm, 1, { title: 'Albania' })).id;
     // The instance config the reporter ran: Gemini behind the "openai" provider.
-    db.prepare(
-      `INSERT INTO addons (id, name, type, enabled, config) VALUES ('llm_parsing', 'AI Parsing', 'integration', 1, ?)
-       ON CONFLICT(id) DO UPDATE SET enabled = 1, config = excluded.config`,
-    ).run(JSON.stringify({ provider: 'openai', model: 'gemini-3.5-flash', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai' }));
+    await upsertRow(
+      orm,
+      Addons,
+      {
+        id: 'llm_parsing',
+        name: 'AI Parsing',
+        type: 'integration',
+        enabled: true,
+        config: {
+          provider: 'openai',
+          model: 'gemini-3.5-flash',
+          baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+        },
+      },
+      ['enabled', 'config'],
+    );
+    await orm.close();
     app = await build();
-    vi.spyOn(app.get(PermissionsService), 'checkPermission').mockReturnValue(true);
+    vi.spyOn(app.get(PermissionsService), 'checkPermission').mockResolvedValue(true);
     server = app.getHttpServer();
   });
 
   beforeEach(() => {
-    canAccessTrip.mockImplementation((id: unknown) => db.prepare('SELECT * FROM trips WHERE id = ?').get(id));
     safeFetchLlm.mockReset();
   });
 
@@ -191,12 +214,17 @@ describe('Booking import e2e (#2477): a schema-bound provider on the upload rout
     expect(res.body.items).toEqual([]);
     // One warning, not two: the copy is gone before the mapper sees it.
     expect(res.body.warnings).toHaveLength(1);
-    expect(res.body.warnings[0]).toMatch(/^Incomplete LodgingReservation in Bestätigung_1234567890\.PDF\[0\] \(no reservationFor\)/);
+    expect(res.body.warnings[0]).toMatch(
+      /^Incomplete LodgingReservation in Bestätigung_1234567890\.PDF\[0\] \(no reservationFor\)/,
+    );
     expect(res.body.files).toEqual([{ fileName: 'Bestätigung_1234567890.PDF', aiAvailable: true, aiUsed: true }]);
   });
 
   it('once Gemini fills the venue: one hotel in EUR, attached to the uploaded file', async () => {
-    const stay = { ...bareStay, reservationFor: { name: 'Harbour View Inn', address: 'Example Road 1, 1000 Sample Town' } };
+    const stay = {
+      ...bareStay,
+      reservationFor: { name: 'Harbour View Inn', address: 'Example Road 1, 1000 Sample Town' },
+    };
     geminiAnswers([stay, { ...stay }]);
     const res = await upload('Bestätigung_1.pdf', 'force-ai');
 

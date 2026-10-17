@@ -1,10 +1,9 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { FileDown } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { Eyebrow, FIELD_AREA_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
-import { packingApi } from '../../../../api/client'
-import { useTripStore } from '../../../../store/tripStore'
-import { parseImportLines } from '../../../../components/Packing/packingListPanel.helpers'
+import { usePackingImport } from '../../../../components/Packing/usePackingImport'
+import { PACKING_IMPORT_ACCEPT } from '../../../../components/Packing/packingListPanel.constants'
 import type { TripPlanner } from '../MTripShell'
 
 export interface MPackingImportSheetProps {
@@ -15,50 +14,23 @@ export interface MPackingImportSheetProps {
 
 /**
  * Bulk packing import (spec 03 §4.2 action-menu "Import"): one item per line,
- * `Category, Name, Weight(g), Bag, checked` — same parser + endpoint as the
- * desktop bulk-import modal (`packingListPanel.helpers.parseImportLines` +
- * `packingApi.bulkImport`), appended straight into the trip store so both
- * surfaces stay consistent.
+ * `Category, Name, Weight(g), Bag, checked`, run by the same `usePackingImport`
+ * as the desktop bulk-import dialog, which appends the result straight into the
+ * trip store so both surfaces stay consistent.
  */
 export default function MPackingImportSheet({ planner, open, onClose }: MPackingImportSheetProps) {
   const { t, toast, tripId } = planner
-  const [text, setText] = useState('')
-  const [importing, setImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const parsed = parseImportLines(text)
-
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    const reader = new FileReader()
-    reader.onload = () => { if (typeof reader.result === 'string') setText(reader.result) }
-    reader.readAsText(file)
-  }
-
-  const handleImport = async () => {
-    if (parsed.length === 0 || importing) return
-    setImporting(true)
-    try {
-      const result = await packingApi.bulkImport(tripId, parsed)
-      useTripStore.setState(s => ({ packingItems: [...s.packingItems, ...(result.items || [])] }))
-      toast.success(t('packing.importSuccess', { count: result.count }))
-      setText('')
-      onClose()
-    } catch {
-      toast.error(t('packing.importError'))
-    } finally {
-      setImporting(false)
-    }
-  }
+  const { text, setText, parsed, importing, readFile: handleFile, runImport: handleImport } =
+    usePackingImport({ tripId, t, toast, onImported: onClose, oneAtATime: true })
 
   return (
     <MSheet open={open} onClose={onClose} ariaLabel={t('packing.importTitle')}>
       <FormSheetHeader title={t('packing.importTitle')} onClose={onClose} closeLabel={t('common.close')} />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
-        <p className="mb-3 font-geist text-[0.71875rem] leading-[1.5] text-m-muted">{t('packing.importHint')}</p>
+        <p className="mb-1 font-geist text-[0.71875rem] leading-[1.5] text-m-muted">{t('packing.importHint')}</p>
+        <p className="mb-3 font-geist text-[0.71875rem] leading-[1.5] text-m-muted">{t('packing.importHintMarkdown')}</p>
 
         <textarea
           value={text}
@@ -68,7 +40,7 @@ export default function MPackingImportSheet({ planner, open, onClose }: MPacking
           className={`${FIELD_AREA_CLS} font-geist`}
         />
 
-        <input ref={fileInputRef} type="file" accept=".csv,.txt" onChange={handleFile} className="hidden" />
+        <input ref={fileInputRef} type="file" accept={PACKING_IMPORT_ACCEPT} onChange={handleFile} className="hidden" />
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}

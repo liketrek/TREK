@@ -15,6 +15,20 @@
  * readers want a real stream. The responses are genuine `Response` objects, so
  * headers, status and body behave as they do in production.
  */
+import type {
+  DocumentConnectionRef,
+  DocumentScopeRef,
+  PushRequest,
+} from '../../../../src/nest/doc-sync/document-provider';
+import { WebdavClient } from '../../../../src/nest/doc-sync/providers/webdav.client';
+import {
+  NextcloudDocumentProvider,
+  OpencloudDocumentProvider,
+  flavorOf,
+} from '../../../../src/nest/doc-sync/providers/webdav.provider';
+import { SsrfBlockedError } from '../../../../src/utils/ssrfGuard';
+
+import { Readable } from 'node:stream';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { safeFetchMock } = vi.hoisted(() => ({ safeFetchMock: vi.fn() }));
@@ -43,20 +57,6 @@ vi.mock('../../../../src/utils/cappedFetch', async (importOriginal) => ({
     }
   },
 }));
-
-import { Readable } from 'node:stream';
-import { SsrfBlockedError } from '../../../../src/utils/ssrfGuard';
-import {
-  NextcloudDocumentProvider,
-  OpencloudDocumentProvider,
-  flavorOf,
-} from '../../../../src/nest/doc-sync/providers/webdav.provider';
-import { WebdavClient } from '../../../../src/nest/doc-sync/providers/webdav.client';
-import type {
-  DocumentConnectionRef,
-  DocumentScopeRef,
-  PushRequest,
-} from '../../../../src/nest/doc-sync/document-provider';
 
 /** Raised by the truncation test only; everything else stays under the cap. */
 let capBytes = 1_000_000;
@@ -155,7 +155,9 @@ function multistatus(
       if (entry.checksums === undefined) missing.push('<oc:checksums/>');
       else found.push(`<oc:checksums><oc:checksum>${entry.checksums}</oc:checksum></oc:checksums>`);
 
-      const blocks = [`<d:propstat><d:prop>${found.join('')}</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat>`];
+      const blocks = [
+        `<d:propstat><d:prop>${found.join('')}</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat>`,
+      ];
       if (missing.length > 0) {
         blocks.push(
           `<d:propstat><d:prop>${missing.join('')}</d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat>`,
@@ -375,11 +377,7 @@ describe('scopes', () => {
   });
 
   it('creates the base folder when it is missing and reads the new id back', async () => {
-    route(
-      `MKCOL ${NC_ROOT}/TREK/Japan%202026`,
-      reply(null, { status: 409 }),
-      reply(null, { status: 201 }),
-    );
+    route(`MKCOL ${NC_ROOT}/TREK/Japan%202026`, reply(null, { status: 409 }), reply(null, { status: 201 }));
     route(`MKCOL ${NC_ROOT}/TREK`, reply(null, { status: 201 }));
     route(
       `PROPFIND ${NC_ROOT}/TREK/Japan%202026`,
@@ -388,7 +386,10 @@ describe('scopes', () => {
 
     const result = await nextcloud.createScope(ncConn, 'Japan 2026');
 
-    expect(result).toMatchObject({ success: true, data: { scopeKey: 'fileid:73', remoteRootPath: '/TREK/Japan 2026' } });
+    expect(result).toMatchObject({
+      success: true,
+      data: { scopeKey: 'fileid:73', remoteRootPath: '/TREK/Japan 2026' },
+    });
     expect(requests('MKCOL').map(pathOf)).toEqual([
       `${NC_ROOT}/TREK/Japan%202026`,
       `${NC_ROOT}/TREK`,
@@ -420,9 +421,14 @@ describe('scopes', () => {
   it('creates an OpenCloud space as a project drive', async () => {
     route(
       'POST /graph/v1.0/drives',
-      reply(JSON.stringify(drive('storage-1$new', 'Japan', 'project', `https://internal.lan:9200/dav/spaces/storage-1$new`)), {
-        status: 201,
-      }),
+      reply(
+        JSON.stringify(
+          drive('storage-1$new', 'Japan', 'project', `https://internal.lan:9200/dav/spaces/storage-1$new`),
+        ),
+        {
+          status: 201,
+        },
+      ),
     );
 
     const result = await opencloud.createScope(ocConn, 'Japan');
@@ -503,9 +509,10 @@ describe('list', () => {
   });
 
   it('skips the walk entirely when the root ETag has not moved', async () => {
-    route(`PROPFIND ${NC_ROOT}/TREK/trip%2042`, multistatus([
-      { href: `${NC_ROOT}/TREK/trip%2042/`, collection: true, fileid: '60', etag: '"root-1"' },
-    ]));
+    route(
+      `PROPFIND ${NC_ROOT}/TREK/trip%2042`,
+      multistatus([{ href: `${NC_ROOT}/TREK/trip%2042/`, collection: true, fileid: '60', etag: '"root-1"' }]),
+    );
 
     const result = await nextcloud.list(ncConn, { ...ncScope, cursor: '"root-1"' });
 
@@ -597,9 +604,10 @@ describe('push', () => {
 
   it('pins the modification time and the checksum, and normalises the id Nextcloud answers with', async () => {
     route(`PUT ${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`, uploaded);
-    route(`PROPPATCH ${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`, multistatus([
-      { href: `${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`, etag: '"x"' },
-    ]));
+    route(
+      `PROPPATCH ${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`,
+      multistatus([{ href: `${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`, etag: '"x"' }]),
+    );
 
     const result = await nextcloud.push(ncConn, ncScope, pushRequest());
 
@@ -616,7 +624,10 @@ describe('push', () => {
   });
 
   it('never sends a SHA256 checksum to OpenCloud, which answers 400 to one', async () => {
-    route(`PUT ${OC_ROOT}/reiseplan.pdf`, reply(null, { status: 201, headers: { 'oc-fileid': 'd1', 'oc-etag': '"e1"' } }));
+    route(
+      `PUT ${OC_ROOT}/reiseplan.pdf`,
+      reply(null, { status: 201, headers: { 'oc-fileid': 'd1', 'oc-etag': '"e1"' } }),
+    );
     route(`PROPPATCH ${OC_ROOT}/reiseplan.pdf`, multistatus([{ href: `${OC_ROOT}/reiseplan.pdf`, etag: '"e1"' }]));
 
     await opencloud.push(ocConn, ocScope, pushRequest());
@@ -638,9 +649,10 @@ describe('push', () => {
 
   it('asks for the id and version a proxy stripped from the response', async () => {
     route(`PUT ${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`, reply(null, { status: 201 }));
-    route(`PROPPATCH ${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`, multistatus([
-      { href: `${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`, etag: '"x"' },
-    ]));
+    route(
+      `PROPPATCH ${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`,
+      multistatus([{ href: `${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`, etag: '"x"' }]),
+    );
     route(
       `PROPFIND ${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`,
       multistatus([{ href: `${NC_ROOT}/TREK/trip%2042/reiseplan.pdf`, fileid: '62', etag: '"stored"', size: 5 }]),
@@ -762,7 +774,10 @@ describe('fetch, rename and trash', () => {
 
   it('renames inside the same folder and refuses to overwrite a namesake', async () => {
     route(`PROPFIND ${NC_ROOT}/TREK/trip%2042`, folder());
-    route(`MOVE ${NC_ROOT}/TREK/trip%2042/pass%20scan.pdf`, reply(null, { status: 201, headers: { 'oc-etag': '"doc-2"' } }));
+    route(
+      `MOVE ${NC_ROOT}/TREK/trip%2042/pass%20scan.pdf`,
+      reply(null, { status: 201, headers: { 'oc-etag': '"doc-2"' } }),
+    );
 
     const result = await nextcloud.rename(ncConn, ncScope, '61', 'Reisepass 2026.pdf');
 
@@ -784,7 +799,11 @@ describe('fetch, rename and trash', () => {
 
   it('deletes into the recycle bin and treats an already-deleted document as done', async () => {
     route(`PROPFIND ${NC_ROOT}/TREK/trip%2042`, folder());
-    route(`DELETE ${NC_ROOT}/TREK/trip%2042/pass%20scan.pdf`, reply(null, { status: 204 }), reply('<d:error/>', { status: 404 }));
+    route(
+      `DELETE ${NC_ROOT}/TREK/trip%2042/pass%20scan.pdf`,
+      reply(null, { status: 204 }),
+      reply('<d:error/>', { status: 404 }),
+    );
 
     expect(await nextcloud.trash(ncConn, ncScope, '61')).toEqual({ success: true, data: undefined });
     expect(await nextcloud.trash(ncConn, ncScope, '61')).toEqual({ success: true, data: undefined });
@@ -905,7 +924,9 @@ describe('an install below a path', () => {
     );
     route('GET /apps/nextcloud/ocs/v2.php/apps/webhook_listeners/api/v1/webhooks', reply('{}', { status: 403 }));
 
-    expect(await nextcloud.probe({ ...ncConn, baseUrl: `${APPS_ROOT}/apps/dashboard/` })).toMatchObject({ success: true });
+    expect(await nextcloud.probe({ ...ncConn, baseUrl: `${APPS_ROOT}/apps/dashboard/` })).toMatchObject({
+      success: true,
+    });
     expect(calls[0].url).toBe(`${APPS_ROOT}${NC_ROOT}`);
 
     calls = [];
@@ -918,7 +939,13 @@ describe('an install below a path', () => {
       `PROPFIND /nextcloud${NC_ROOT}/TREK/trip%2042`,
       multistatus([
         { href: `/nextcloud${NC_ROOT}/TREK/trip%2042/`, collection: true, fileid: '60', etag: '"root-1"' },
-        { href: `/nextcloud${NC_ROOT}/TREK/trip%2042/pass.pdf`, fileid: '61', etag: '"doc-1"', size: 4, type: 'application/pdf' },
+        {
+          href: `/nextcloud${NC_ROOT}/TREK/trip%2042/pass.pdf`,
+          fileid: '61',
+          etag: '"doc-1"',
+          size: 4,
+          type: 'application/pdf',
+        },
       ]),
     );
     route(`GET /nextcloud${NC_ROOT}/TREK/trip%2042/pass.pdf`, reply('pdf!', { headers: { etag: '"doc-1"' } }));
@@ -940,7 +967,10 @@ describe('an install below a path', () => {
         { href: `/nextcloud${NC_ROOT}/TREK/trip%2042/pass.pdf`, fileid: '61', size: 4, type: 'application/pdf' },
       ]),
     );
-    route(`MOVE /nextcloud${NC_ROOT}/TREK/trip%2042/pass.pdf`, reply(null, { status: 201, headers: { 'oc-etag': '"moved"' } }));
+    route(
+      `MOVE /nextcloud${NC_ROOT}/TREK/trip%2042/pass.pdf`,
+      reply(null, { status: 201, headers: { 'oc-etag': '"moved"' } }),
+    );
 
     const result = await nextcloud.rename(prefixedNc, ncScope, '61', 'passport.pdf');
 
@@ -951,7 +981,11 @@ describe('an install below a path', () => {
   it('re-bases an OpenCloud space below a path without spelling the path twice', async () => {
     route(
       'GET /oc/graph/v1.0/me/drives',
-      reply(JSON.stringify({ value: [drive(OC_DRIVE, 'TREK Trip 42', 'project', `https://internal.lan:9200/oc${OC_ROOT}`)] })),
+      reply(
+        JSON.stringify({
+          value: [drive(OC_DRIVE, 'TREK Trip 42', 'project', `https://internal.lan:9200/oc${OC_ROOT}`)],
+        }),
+      ),
     );
     route(
       `PROPFIND /oc${OC_ROOT}`,
@@ -973,7 +1007,9 @@ describe('an install below a path', () => {
     route(`PROPFIND ${NC_ROOT}`, multistatus([{ href: `${NC_ROOT}/`, collection: true, fileid: '1' }]));
     route('GET /ocs/v2.php/apps/webhook_listeners/api/v1/webhooks', reply('{}', { status: 403 }));
 
-    expect(await nextcloud.probe({ ...ncConn, baseUrl: `${NC_ORIGIN}/index.php/apps/files/` })).toMatchObject({ success: true });
+    expect(await nextcloud.probe({ ...ncConn, baseUrl: `${NC_ORIGIN}/index.php/apps/files/` })).toMatchObject({
+      success: true,
+    });
     expect(calls[0].url).toBe(`${NC_ORIGIN}${NC_ROOT}`);
   });
 });

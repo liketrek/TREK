@@ -137,6 +137,18 @@ describe('MAdminPluginsPanel — the installed row', () => {
     expect(screen.getByText('gotify.net')).toBeInTheDocument();
   });
 
+  it('FE-MOB-PLUGP-094: a plugin adding explore-pill categories says so on its row (#1781)', async () => {
+    mockPanel([plugin({
+      permissions: JSON.stringify(['hook:poi-category-provider']),
+      capabilities: JSON.stringify({
+        poiCategories: [{ id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' }],
+      }),
+    })]);
+    render(<MAdminPluginsPanel />);
+
+    expect(await screen.findByText('Adds map categories')).toBeInTheDocument();
+  });
+
   it('FE-MOB-PLUGP-005: covers the whole capability vocabulary, including a replaced planner tab', async () => {
     mockPanel([plugin({
       permissions: JSON.stringify([
@@ -289,7 +301,7 @@ describe('MAdminPluginsPanel — toolbar', () => {
       [registryEntry({ id: 'zulu', name: 'Zulu', latest: '2.0.0' }), registryEntry({ id: 'alpha', name: 'Alpha', latest: '1.0.0' })],
     );
     render(<MAdminPluginsPanel />);
-    await screen.findByText('1 updates available for your plugins.');
+    await screen.findByText('1 update available for your plugins.');
 
     fireEvent.click(screen.getByTitle('Sort: Name'));
     fireEvent.click(await screen.findByRole('button', { name: 'Updates first' }));
@@ -306,7 +318,7 @@ describe('MAdminPluginsPanel — toolbar', () => {
       [registryEntry({ id: 'alpha', name: 'Alpha', latest: '2.0.0' }), registryEntry({ id: 'zulu', name: 'Zulu', latest: '9.0.0' })],
     );
     render(<MAdminPluginsPanel />);
-    await screen.findByText('1 updates available for your plugins.');
+    await screen.findByText('1 update available for your plugins.');
 
     fireEvent.click(screen.getByTitle('Status: All'));
     fireEvent.click(await screen.findByRole('button', { name: 'Update available' }));
@@ -527,6 +539,46 @@ describe('MAdminPluginsPanel — the registry detail sheet', () => {
     expect(screen.getByText('Boarding-pass widget')).toBeInTheDocument();
   });
 
+  it('FE-MOB-PLUGP-095: the sheet lists the map categories a plugin adds, before the install (#1781)', async () => {
+    await openDetail({
+      ...registryEntry(),
+      size: null,
+      publishedAt: null,
+      manifest: {
+        ...manifest,
+        permissions: ['hook:poi-category-provider'],
+        capabilities: {
+          poiCategories: [
+            { id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' },
+            { id: 'swimming', label: 'Swimming spots', icon: 'Waves', color: '#0369a1' },
+          ],
+        },
+      },
+    });
+
+    const title = await screen.findByRole('heading', { name: 'Map categories it adds' });
+    const section = title.parentElement as HTMLElement;
+    expect(within(section).getAllByRole('listitem').map(li => li.textContent)).toEqual(['Trailheads', 'Swimming spots']);
+    expect(within(section).getAllByTestId('poi-category-swatch')[1].style.backgroundColor).toBe('rgb(3, 105, 161)');
+    expect(screen.getByText('Adds map categories')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-PLUGP-096: declared categories without the grant are not shown, the feed would never serve them', async () => {
+    await openDetail({
+      ...registryEntry(),
+      size: null,
+      publishedAt: null,
+      manifest: {
+        ...manifest,
+        capabilities: { poiCategories: [{ id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' }] },
+      },
+    });
+
+    expect(await screen.findByText('Reads your trips')).toBeInTheDocument();
+    expect(screen.queryByText('Map categories it adds')).not.toBeInTheDocument();
+    expect(screen.queryByText('Trailheads')).not.toBeInTheDocument();
+  });
+
   it('FE-MOB-PLUGP-030: a failed detail fetch is reported inside the sheet', async () => {
     mockPanel([], [registryEntry()]);
     server.use(http.get('*/api/admin/plugins/registry/trek-gotify', () =>
@@ -678,7 +730,7 @@ describe('MAdminPluginsPanel — operator-supplied egress hosts', () => {
 
     mockPanel([plugin({ operatorEgress: true, egressHostCount: 2 })]);
     render(<MAdminPluginsPanel />);
-    expect(await screen.findByRole('button', { name: '2 allowed host(s)' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '2 allowed hosts' })).toBeInTheDocument();
   });
 
   it('FE-MOB-PLUGP-042: the sheet adds and removes hosts through the API', async () => {
@@ -695,7 +747,7 @@ describe('MAdminPluginsPanel — operator-supplied egress hosts', () => {
     );
     render(<MAdminPluginsPanel />);
 
-    fireEvent.click(await screen.findByRole('button', { name: '1 allowed host(s)' }));
+    fireEvent.click(await screen.findByRole('button', { name: '1 allowed host' }));
     expect(await screen.findByText('gotify.mydomain.test')).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText('gotify.example.com'), { target: { value: ' ntfy.mydomain.test ' } });
@@ -880,7 +932,7 @@ describe('MAdminPluginsPanel — updates and consent', () => {
     );
     render(<MAdminPluginsPanel />);
 
-    expect(await screen.findByText('1 updates available for your plugins.')).toBeInTheDocument();
+    expect(await screen.findByText('1 update available for your plugins.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /update → v2\.0\.0/i })).toBeInTheDocument();
   });
 
@@ -908,6 +960,21 @@ describe('MAdminPluginsPanel — updates and consent', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Approve & turn on' }));
     await waitFor(() => expect(consentBody).toEqual({ consent: true }));
+  });
+
+  it('FE-MOB-PLUGP-097: an update asking for the POI category grant spells out what it sends (#1781)', async () => {
+    mockPanel([plugin({ source_repo: 'acme/gotify', signed: true, version: '1.0.0' })], [registryEntry()]);
+    server.use(
+      http.post('*/api/admin/plugins/trek-gotify/update', () =>
+        HttpResponse.json({ version: '2.0.0', activated: false, newPermissions: ['hook:poi-category-provider'], newEgress: [] })),
+    );
+    render(<MAdminPluginsPanel />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Update → v2.0.0' }));
+    expect(await screen.findByText(
+      'Add its own place categories to Explore places on the map; picking one sends the plugin the map area you are viewing',
+    )).toBeInTheDocument();
+    expect(screen.queryByText('hook:poi-category-provider')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-PLUGP-048: "Keep off for now" drops the prompt and says the update stays off', async () => {
@@ -1103,7 +1170,7 @@ describe('MAdminPluginsPanel — enabling a plugin', () => {
 
     await screen.findByText('Gotify');
     fireEvent.click(screen.getAllByRole('switch', { name: 'Enable plugin' })[0]);
-    await waitFor(() => expect(toastMessages()).toContain('Enabled required plugin(s) first: Zzz Base'));
+    await waitFor(() => expect(toastMessages()).toContain('Enabled the required plugin first: Zzz Base'));
     expect(toastMessages()).toContain('Plugin activated');
   });
 
@@ -1126,7 +1193,7 @@ describe('MAdminPluginsPanel — enabling a plugin', () => {
     render(<MAdminPluginsPanel />);
 
     fireEvent.click(await screen.findByRole('switch', { name: 'Enable plugin' }));
-    await waitFor(() => expect(toastMessages()).toContain('Enable the required addon(s) first: budget, vacay'));
+    await waitFor(() => expect(toastMessages()).toContain('Enable the required addons first: budget, vacay'));
   });
 
   it('FE-MOB-PLUGP-066: any other activation failure surfaces the server message', async () => {
@@ -1172,7 +1239,7 @@ describe('MAdminPluginsPanel — enabling a plugin', () => {
     await waitFor(() => expect(installBody).toEqual({ id: 'trek-base', constraint: '^1.0.0', withDependencies: true }));
     await waitFor(() => expect(toastMessages()).toContain('Downloaded trek-base'));
     // The dependency install revealed a disabled addon on top.
-    expect(toastMessages()).toContain('Enable the required addon(s) first: budget');
+    expect(toastMessages()).toContain('Enable the required addon first: budget');
     await waitFor(() => expect(activateCalls).toBe(2));
   });
 
@@ -1444,7 +1511,7 @@ describe('MAdminPluginsPanel — edge paths', () => {
     await escapeUntilGone('No errors logged.');
 
     // Allowed hosts → Escape, from the row chip.
-    fireEvent.click(screen.getByRole('button', { name: '1 allowed host(s)' }));
+    fireEvent.click(screen.getByRole('button', { name: '1 allowed host' }));
     await screen.findByText('No hosts added yet.');
     await escapeUntilGone('No hosts added yet.');
   });

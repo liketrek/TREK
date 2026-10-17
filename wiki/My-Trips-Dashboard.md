@@ -10,6 +10,20 @@ Use the toggle button in the top toolbar to switch between **grid** (card thumbn
 
 In both modes the dashboard shows a large [Spotlight card](#spotlight-card) for your most relevant trip at the top of the page — the toggle only changes how the trips below it are laid out. The spotlighted trip is taken out of that list when it earns the spot on its own: an ongoing trip, or the next upcoming one. If you have neither, the spotlight borrows your first trip for the header and that trip still shows up in the list below.
 
+## Searching Trips
+
+On desktop the trips section header has a search box, **Search trips or places**. It searches **every** trip you have, archived and completed ones included, whichever filter is selected:
+
+- by the trip's **title** and **description**,
+- by its **dates**, written as numbers (`2024-05`) or as words (`May 2024`, in your language),
+- by a **place** on the trip, once you have typed at least two letters. A trip found this way lists the matching places under its dates.
+
+Several words must all match, and accents do not matter, so `cafe` finds "Café". While a search is active, the **Planned / Archived / Completed** filter is dimmed and the grid shows only the matches; with none, it says *No trip matches "…"*. Clear the box with **×** or **Escape** to go back. Offline, the place part of the search is skipped and only titles, descriptions and dates are matched.
+
+## Calendar Subscription
+
+The calendar button next to the filter, **Subscribe to all trips**, opens one calendar feed for all your active trips. See [Calendar-Feeds](Calendar-Feeds).
+
 ## Sort Order
 
 Trips are always sorted in this order:
@@ -64,3 +78,4 @@ When you have no trips, the dashboard shows the TREK mascot with the caption **N
 - [Creating-a-Trip](Creating-a-Trip)
 - [Trip-Planner-Overview](Trip-Planner-Overview)
 - [Dashboard-Widgets](Dashboard-Widgets)
+- [Calendar-Feeds](Calendar-Feeds)

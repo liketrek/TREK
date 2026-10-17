@@ -31,6 +31,16 @@ describe('addonStore', () => {
       await useAddonStore.getState().loadAddons();
       expect(useAddonStore.getState().bagTracking).toBe(true);
     });
+
+    it('captures whether wanderer may be used under Tours', async () => {
+      server.use(http.get('/api/addons', () => HttpResponse.json({ toursWanderer: true, addons: [] })));
+      await useAddonStore.getState().loadAddons();
+      expect(useAddonStore.getState().toursWanderer).toBe(true);
+
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [] })));
+      await useAddonStore.getState().loadAddons();
+      expect(useAddonStore.getState().toursWanderer).toBe(false);
+    });
   });
 
   describe('FE-ADDON-002: isEnabled returns true for known addon', () => {

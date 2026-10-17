@@ -32,5 +32,9 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} wysłał testowe powiadomienie.',
   'notifications.test.tripTitle': '{actor} opublikował w Twojej podróży',
   'notifications.test.tripText': 'Testowe powiadomienie dla podróży "{trip}".',
+  'notifications.countLabel': 'powiadomienia',
+  'notifications.countLabel.one': 'powiadomienie',
+  'notifications.countLabel.few': 'powiadomienia',
+  'notifications.countLabel.many': 'powiadomień',
 };
 export default notifications;

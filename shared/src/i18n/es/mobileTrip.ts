@@ -7,6 +7,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addToDayQuestion': '¿Añadir a un día?',
   'mobileTrip.addTransportShort': 'Transporte',
   'mobileTrip.allDays': 'Todos los días',
+  'mobileTrip.today': 'Hoy',
+  'mobileTrip.jumpToToday': 'Ir a hoy',
   'mobileTrip.assignedDays': 'Días asignados',
   'mobileTrip.assignmentNotes': 'Notas específicas del día',
   'mobileTrip.bookingsEmpty': 'Aún no hay reservas',
@@ -35,14 +37,18 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.onMap': 'En el mapa',
   'mobileTrip.profileDriving': 'En coche',
   'mobileTrip.profileWalking': 'A pie',
+  'mobileTrip.profileCycling': 'En bici',
   'mobileTrip.renameDay': 'Cambiar nombre del día',
   'mobileTrip.resBadge': 'Reserva',
   'mobileTrip.showOnMap': 'Mostrar en el mapa',
   'mobileTrip.statDocuments': '{count} archivos',
+  'mobileTrip.statDocuments.one': '{count} archivo',
   'mobileTrip.statPeople': '{count} personas',
+  'mobileTrip.statPeople.one': '{count} persona',
   'mobileTrip.stay': 'Estancia',
   'mobileTrip.tapAgainToDelete': 'Toca de nuevo para eliminar',
   'mobileTrip.todoOpenCount': '{count} pendientes',
+  'mobileTrip.todoOpenCount.one': '{count} pendiente',
   'mobileTrip.travel': 'Viaje',
   'mobileTrip.upNext': 'A continuación',
   'mobileTrip.viewDetails': 'Ver detalles',
@@ -58,7 +64,9 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtStayScope':
     'La duración de la parada pertenece al lugar, así que cuenta en cada día en el que esta parada está prevista.',
   'mobileTrip.rtStayLess': '{count} minutos menos',
+  'mobileTrip.rtStayLess.one': '{count} minuto menos',
   'mobileTrip.rtStayMore': '{count} minutos más',
+  'mobileTrip.rtStayMore.one': '{count} minuto más',
   'mobileTrip.rtNightDesktopOnly':
     'Reservar una pernoctación en este lugar se hace en el planificador de escritorio. Aquí solo puedes descartarla.',
   'mobileTrip.rtReach': 'Hasta dónde',
@@ -67,10 +75,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtFromStart': 'Desde el inicio de la etapa',
   'mobileTrip.rtNoneAhead': 'No hay nada en la carretera que tienes por delante. Prueba con toda la etapa.',
   'mobileTrip.rtNoneOnStage': 'No hay nada de eso a lo largo de esta etapa.',
-  'mobileTrip.rtTruncated.one':
-    '1 tramo tenía más de lo que cabe en una respuesta. Elige menos tipos para ver el resto.',
   'mobileTrip.rtTruncated.other':
     '{count} tramos tenían más de lo que cabe en una respuesta. Elige menos tipos para ver el resto.',
+  'mobileTrip.rtTruncated.one':
+    '{count} tramo tenía más de lo que cabe en una respuesta. Elige menos tipos para ver el resto.',
   'mobileTrip.rtNoDay': 'Ningún día seleccionado',
   'mobileTrip.rtNoDayHint': 'El mapa muestra todo el viaje. Toca un día arriba para ver su ruta.',
 };

@@ -175,7 +175,7 @@ export default function DocSyncBinding({
             type="button"
             onClick={() => setOpen(!open)}
             aria-expanded={open}
-            className="flex w-full items-center gap-1.5 border-t border-edge-faint px-4 py-2.5 text-left text-caption text-content-muted transition-colors hover:bg-surface-hover"
+            className="flex w-full items-center gap-1.5 border-t border-edge-faint px-4 py-2.5 text-start text-caption text-content-muted transition-colors hover:bg-surface-hover"
           >
             <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
             {t('docsync.binding.settings')}

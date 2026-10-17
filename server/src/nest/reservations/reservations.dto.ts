@@ -1,10 +1,11 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   reservationCreateRequestSchema,
   reservationUpdateRequestSchema,
   reservationPositionsRequestSchema,
   reservationTravelersRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared reservation

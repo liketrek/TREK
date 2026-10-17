@@ -2,7 +2,7 @@
 import React from 'react'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render'
+import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render'
 import { server } from '../../../tests/helpers/msw/server'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { useVacayStore } from '../../store/vacayStore'
@@ -98,12 +98,15 @@ describe('VacaySharedCalendars errors', () => {
 
     fireEvent.click(screen.getByTitle('Share calendar'))
     const hint = await screen.findByRole('button', { name: 'Share' })
-    fireEvent.click(hint.closest('.fixed') as HTMLElement)
+    // The dialog frame only closes on a press that starts and ends on the backdrop.
+    const backdrop = hint.closest('.fixed') as HTMLElement
+    fireEvent.mouseDown(backdrop)
+    fireEvent.click(backdrop)
     expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByTitle('Share calendar'))
-    const header = (await screen.findByText('Share calendar')).closest('.justify-between') as HTMLElement
-    fireEvent.click(within(header).getByRole('button'))
+    await screen.findByText('Share calendar')
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByTitle('Share calendar'))

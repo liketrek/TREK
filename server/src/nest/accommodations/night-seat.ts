@@ -1,4 +1,3 @@
-import type Database from 'better-sqlite3';
 import { seamViaIndex } from '@trek/shared/roadtrip';
 
 /**
@@ -8,19 +7,30 @@ import { seamViaIndex } from '@trek/shared/roadtrip';
  * One rule, applied by everything that seats a night: AccommodationsService when a
  * night is booked or edited, DaysService when a trip's dates move and carry the
  * night to another day row, and the migration that brought the trips planned under
- * the old rule along. Written over the connection's `prepare` so a raw better-sqlite3
- * handle fits as well as DatabaseService. Everything here runs inside the caller's
- * transaction.
+ * the old rule along. The rule itself is pure (standsAhead, seatAmong, seatHolds and
+ * the via plan). The services apply it through their repositories (the `*With`
+ * functions, which take a structural store that DayAssignmentsRepository and
+ * RoadtripViasRepository satisfy); the frozen migration helper
+ * (db/reseat-booked-nights.ts) applies it with statements of its own, because it runs
+ * synchronously over the raw handle inside the migration's transaction. Nothing here
+ * injects anything, and nothing here spells SQL. Everything here runs inside the
+ * caller's transaction.
  */
-export interface SeatConnection {
-  prepare(sql: string): Database.Statement;
-}
 
-/** A stop of one day as the rule sees it: the clock it is measured by (dayStops), the
- *  booking that owns it, and whether the router counts it. */
+/**
+ * A stop of one day as the rule sees it: the clock it is measured by, the booking that
+ * owns it, and whether the router counts it (DayAssignmentsRepository.listSeatRows).
+ *
+ * `at` is the visit's own hour, else the place's. A stop a booking owns is measured by
+ * that booking's check-in instead, and by nothing else. That is the value the night
+ * seats itself by, so it has to be the value its peers see as well: read the same row
+ * as an hour pinned on the stop and the two nights of a day would answer the question
+ * differently depending on which of them is asking, and a pass that seats them both
+ * would never settle.
+ */
 export interface SeatRow {
   id: number;
-  order_index: number;
+  order_index: number | null;
   at: string | null;
   night_id: number | null;
   located: number;
@@ -33,41 +43,55 @@ export interface Night {
 }
 
 /** A via as the re-pinning reads it: where it is pinned and its place on that leg. */
-interface PinnedVia {
+export interface PinnedVia {
   id: number;
   after_order_index: number;
   sequence: number;
 }
 
-/**
- * A day's stops in order, each with the hour it is measured by: the visit's own, else
- * the place's.
- *
- * A stop a booking owns is measured by that booking's check-in instead, and by nothing
- * else. That is the value the night seats itself by, so it has to be the value its
- * peers see as well: read the same row as an hour pinned on the stop and the two nights
- * of a day would answer the question differently depending on which of them is asking,
- * and a pass that seats them both would never settle.
- */
-export function dayStops(db: SeatConnection, dayId: number): SeatRow[] {
-  return db.prepare(`
-    SELECT da.id, da.order_index,
-           CASE WHEN other.id IS NULL THEN COALESCE(da.assignment_time, p.place_time) ELSE other.check_in END AS at,
-           other.id AS night_id, (p.lat IS NOT NULL AND p.lng IS NOT NULL) AS located
-    FROM day_assignments da JOIN places p ON p.id = da.place_id
-    LEFT JOIN day_accommodations other ON other.id = da.accommodation_id
-    WHERE da.day_id = ?
-    ORDER BY da.order_index ASC, da.created_at ASC, da.id ASC
-  `).all(dayId) as SeatRow[];
+/** A day stop being carried: its row, the day it stands on and where. */
+export interface OwnStop {
+  id: number;
+  day_id: number;
+  order_index: number | null;
 }
+
+/** What seating a night through the ORM needs from day_assignments
+ *  (DayAssignmentsRepository satisfies it). */
+export interface SeatStopStore {
+  /** The day's {@link SeatRow}s, in day order. */
+  listSeatRows(dayId: number): Promise<SeatRow[]>;
+  closeGap(dayId: number, fromIndex: number): Promise<void>;
+  maxOrderIndexExcluding(dayId: number, excludeId: number): Promise<number | null>;
+  relocate(id: number, dayId: number, placeId: number, orderIndex: number): Promise<void>;
+  shiftFromExcluding(dayId: number, fromIndex: number, excludeId: number): Promise<void>;
+  setOrderIndex(id: number, dayId: number | undefined, orderIndex: number): Promise<void>;
+}
+
+/** What carrying the vias through the ORM needs from roadtrip_vias
+ *  (RoadtripViasRepository satisfies it). */
+export interface SeatViaStore {
+  listAnchors(dayId: number): Promise<PinnedVia[]>;
+  deleteInDay(id: number, dayId: number): Promise<void>;
+  setAnchor(id: number, dayId: number, afterOrderIndex: number): Promise<void>;
+  setSequence(id: number, dayId: number, sequence: number): Promise<void>;
+}
+
+/** What carrying a day's vias does to them (carryViasWith, and the migration helper). */
+export interface ViaPlan {
+  remove: number[];
+  moved: { id: number; after_order_index: number }[];
+  /** Vias of a merged leg whose sequence changes (renumberMergedLegs). */
+  resequence: { id: number; sequence: number }[];
+}
+
+// ---------------------------------------------------------------------------
+// The rule
+// ---------------------------------------------------------------------------
 
 /** The stops the router counts, in day order: the positions the vias are pinned to. */
 export function locatedIds(rows: readonly SeatRow[]): number[] {
-  return rows.filter(row => row.located).map(row => row.id);
-}
-
-export function locatedStopIds(db: SeatConnection, dayId: number): number[] {
-  return locatedIds(dayStops(db, dayId));
+  return rows.filter((row) => row.located).map((row) => row.id);
 }
 
 /**
@@ -107,15 +131,18 @@ export function seatAmong(others: readonly SeatRow[], night: Night): number {
 }
 
 /**
- * The order_index a fresh insert of the night gets, with everything from there on
- * moved down (AssignmentsService.createAssignment). `excludeId` leaves the night's
- * own row out of the chain it is measured against: without it a night parked at
- * the end of the day can find itself.
+ * The order_index a fresh insert of the night gets among a day's `rows`, with
+ * everything from there on moved down (AssignmentsService.createAssignment).
+ * `excludeId` leaves the night's own row out of the chain it is measured against:
+ * without it a night parked at the end of the day can find itself.
+ *
+ * `Number(order_index) + 1`: a stored NULL order_index added to 1 gave 1 under the
+ * legacy row type, and `Number(null)` keeps that coercion for the nullable column.
  */
-export function seatIndex(db: SeatConnection, dayId: number, night: Night, excludeId?: number): number {
-  const others = dayStops(db, dayId).filter(row => row.id !== excludeId);
+export function seatIndexAmong(rows: readonly SeatRow[], night: Night, excludeId?: number): number {
+  const others = rows.filter((row) => row.id !== excludeId);
   const seat = seatAmong(others, night);
-  return seat === 0 ? 0 : others[seat - 1].order_index + 1;
+  return seat === 0 ? 0 : Number(others[seat - 1].order_index) + 1;
 }
 
 /**
@@ -131,47 +158,20 @@ export function seatIndex(db: SeatConnection, dayId: number, night: Night, exclu
  */
 export function seatHolds(rows: readonly SeatRow[], ownId: number, checkIn: string | null | undefined): boolean {
   if (!checkIn) return true;
-  const own = rows.findIndex(row => row.id === ownId);
+  const own = rows.findIndex((row) => row.id === ownId);
   if (own < 0) return true;
-  const laterAhead = rows.slice(0, own).some(row => row.at !== null && row.at > checkIn);
-  const earlierBehind = rows.slice(own + 1).some(row =>
-    row.at !== null && (row.night_id === null ? row.at <= checkIn : row.at < checkIn));
+  const laterAhead = rows.slice(0, own).some((row) => row.at !== null && row.at > checkIn);
+  const earlierBehind = rows
+    .slice(own + 1)
+    .some((row) => row.at !== null && (row.night_id === null ? row.at <= checkIn : row.at < checkIn));
   return !laterAhead && !earlierBehind;
 }
 
 /**
- * Carry a night's own stop to `dayId` in place, seated where its check-in says.
- *
- * The gap it leaves on the day it came from is closed. Then it is parked at the end
- * of the target day and seated the way a fresh insert would be: two steps, because
- * the index it should get is read off a chain it is not part of yet.
- */
-export function reseatOwnStop(
-  db: SeatConnection,
-  stop: { id: number; day_id: number; order_index: number },
-  placeId: number,
-  dayId: number,
-  night: Night,
-): void {
-  db.prepare('UPDATE day_assignments SET order_index = order_index - 1 WHERE day_id = ? AND order_index > ?')
-    .run(stop.day_id, stop.order_index);
-  const max = db.prepare('SELECT MAX(order_index) AS max FROM day_assignments WHERE day_id = ? AND id != ?')
-    .get(dayId, stop.id) as { max: number | null };
-  const end = (max.max !== null ? max.max : -1) + 1;
-  db.prepare('UPDATE day_assignments SET day_id = ?, place_id = ?, order_index = ? WHERE id = ?').run(dayId, placeId, end, stop.id);
-
-  const seat = seatIndex(db, dayId, night, stop.id);
-  if (seat < end) {
-    db.prepare('UPDATE day_assignments SET order_index = order_index + 1 WHERE day_id = ? AND order_index >= ? AND id != ?')
-      .run(dayId, seat, stop.id);
-    db.prepare('UPDATE day_assignments SET order_index = ? WHERE id = ?').run(seat, stop.id);
-  }
-}
-
-/**
- * Keep every drawn road behind the stop it was drawn after, now that a write has
- * seated, moved or taken out a stop on this day. `previousIds` and `nextIds` are the
- * located stops in order before and after: the index space the vias are pinned to.
+ * What keeping every drawn road behind the stop it was drawn after does to one
+ * day's `vias`, now that a write has seated, moved or taken out a stop on it.
+ * `previousIds` and `nextIds` are the located stops in order before and after: the
+ * index space the vias are pinned to.
  *
  * The rules the planner applies when a stop is dragged or taken out: a via follows
  * its stop, a stop that left the day hands its road to the stop before it, and a
@@ -181,12 +181,10 @@ export function reseatOwnStop(
  * the road to tomorrow and no leg of the day. That rule is the planner's own
  * (`seamViaIndex`), so the two cannot disagree about it.
  *
- * Returns what changed, or null when nothing did.
+ * Null when nothing changes.
  */
-export function carryVias(db: SeatConnection, dayId: number, previousIds: number[], nextIds: number[]): { moved: number; removed: number } | null {
-  if (previousIds.length === nextIds.length && previousIds.every((id, i) => id === nextIds[i])) return null;
-  const vias = db.prepare('SELECT id, after_order_index, sequence FROM roadtrip_vias WHERE day_id = ?').all(dayId) as PinnedVia[];
-  if (!vias.length) return null;
+export function planViaCarry(vias: readonly PinnedVia[], previousIds: number[], nextIds: number[]): ViaPlan | null {
+  if (sameOrder(previousIds, nextIds) || !vias.length) return null;
 
   const remove: number[] = [];
   const moved: { id: number; after_order_index: number }[] = [];
@@ -197,13 +195,19 @@ export function carryVias(db: SeatConnection, dayId: number, previousIds: number
     else if (next !== via.after_order_index) moved.push({ id: via.id, after_order_index: next });
   }
   if (!remove.length && !moved.length) return null;
+  return {
+    remove,
+    moved,
+    resequence: renumberMergedLegs(
+      vias.filter((via) => !remove.includes(via.id)),
+      moved,
+    ),
+  };
+}
 
-  for (const viaId of remove) db.prepare('DELETE FROM roadtrip_vias WHERE id = ? AND day_id = ?').run(viaId, dayId);
-  for (const via of moved) {
-    db.prepare('UPDATE roadtrip_vias SET after_order_index = ? WHERE id = ? AND day_id = ?').run(via.after_order_index, via.id, dayId);
-  }
-  renumberMergedLegs(db, dayId, vias.filter(via => !remove.includes(via.id)), moved);
-  return { moved: moved.length, removed: remove.length };
+/** Whether a write left the day's located stops in the order they were in. */
+export function sameOrder(previousIds: number[], nextIds: number[]): boolean {
+  return previousIds.length === nextIds.length && previousIds.every((id, i) => id === nextIds[i]);
 }
 
 /**
@@ -230,20 +234,86 @@ function legAfter(index: number, previousIds: number[], nextIds: number[]): numb
  * draws the route orders by sequence: the drive would run through the first leg's
  * point, the second leg's, and back. Renumbered the way `RoadtripService.reanchor`
  * does it, the earlier leg's points first, then by their old sequence, then by id.
- * Only a leg that received a via is touched.
+ * Only a leg that received a via is touched, and only a via whose sequence changes
+ * is listed.
  */
-function renumberMergedLegs(db: SeatConnection, dayId: number, kept: PinnedVia[], moved: { id: number; after_order_index: number }[]): void {
-  const landed = new Map(moved.map(via => [via.id, via.after_order_index]));
+function renumberMergedLegs(
+  kept: PinnedVia[],
+  moved: { id: number; after_order_index: number }[],
+): { id: number; sequence: number }[] {
+  const landed = new Map(moved.map((via) => [via.id, via.after_order_index]));
   const byLeg = new Map<number, PinnedVia[]>();
   for (const via of kept) {
     const leg = landed.get(via.id) ?? via.after_order_index;
     byLeg.set(leg, [...(byLeg.get(leg) ?? []), via]);
   }
+  const resequence: { id: number; sequence: number }[] = [];
   for (const onLeg of byLeg.values()) {
-    if (!onLeg.some(via => landed.has(via.id))) continue;
+    if (!onLeg.some((via) => landed.has(via.id))) continue;
     onLeg.sort((a, b) => a.after_order_index - b.after_order_index || a.sequence - b.sequence || a.id - b.id);
     onLeg.forEach((via, index) => {
-      if (via.sequence !== index) db.prepare('UPDATE roadtrip_vias SET sequence = ? WHERE id = ? AND day_id = ?').run(index, via.id, dayId);
+      if (via.sequence !== index) resequence.push({ id: via.id, sequence: index });
     });
   }
+  return resequence;
+}
+
+// ---------------------------------------------------------------------------
+// Through the ORM (the services)
+// ---------------------------------------------------------------------------
+
+export async function locatedStopIdsWith(stops: SeatStopStore, dayId: number): Promise<number[]> {
+  return locatedIds(await stops.listSeatRows(dayId));
+}
+
+/** {@link seatIndexAmong} over the day as it stands now. */
+export async function seatIndexWith(
+  stops: SeatStopStore,
+  dayId: number,
+  night: Night,
+  excludeId?: number,
+): Promise<number> {
+  return seatIndexAmong(await stops.listSeatRows(dayId), night, excludeId);
+}
+
+/**
+ * Carry a night's own stop to `dayId` in place, seated where its check-in says.
+ *
+ * The gap it leaves on the day it came from is closed. Then it is parked at the end
+ * of the target day and seated the way a fresh insert would be: two steps, because
+ * the index it should get is read off a chain it is not part of yet.
+ */
+export async function reseatOwnStopWith(
+  stops: SeatStopStore,
+  stop: OwnStop,
+  placeId: number,
+  dayId: number,
+  night: Night,
+): Promise<void> {
+  await stops.closeGap(stop.day_id, Number(stop.order_index));
+  const max = await stops.maxOrderIndexExcluding(dayId, stop.id);
+  const end = (max !== null ? max : -1) + 1;
+  await stops.relocate(stop.id, dayId, placeId, end);
+
+  const seat = await seatIndexWith(stops, dayId, night, stop.id);
+  if (seat < end) {
+    await stops.shiftFromExcluding(dayId, seat, stop.id);
+    await stops.setOrderIndex(stop.id, undefined, seat);
+  }
+}
+
+/** Carry one day's vias ({@link planViaCarry}). Returns what changed, or null when nothing did. */
+export async function carryViasWith(
+  vias: SeatViaStore,
+  dayId: number,
+  previousIds: number[],
+  nextIds: number[],
+): Promise<{ moved: number; removed: number } | null> {
+  if (sameOrder(previousIds, nextIds)) return null;
+  const plan = planViaCarry(await vias.listAnchors(dayId), previousIds, nextIds);
+  if (!plan) return null;
+  for (const viaId of plan.remove) await vias.deleteInDay(viaId, dayId);
+  for (const via of plan.moved) await vias.setAnchor(via.id, dayId, via.after_order_index);
+  for (const via of plan.resequence) await vias.setSequence(via.id, dayId, via.sequence);
+  return { moved: plan.moved.length, removed: plan.remove.length };
 }

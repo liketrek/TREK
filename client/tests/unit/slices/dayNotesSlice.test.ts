@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { useTripStore } from '../../../src/store/tripStore';
 import { resetAllStores, seedStore } from '../../helpers/store';
 import { buildDay, buildDayNote } from '../../helpers/factories';
 import { server } from '../../helpers/msw/server';
+import { clearAll, offlineDb } from '../../../src/db/offlineDb';
 
 vi.mock('../../../src/api/websocket', () => ({
   connect: vi.fn(),
@@ -204,6 +205,51 @@ describe('dayNotesSlice', () => {
 
       const updatedDay = useTripStore.getState().days.find(d => d.id === 1);
       expect(updatedDay?.title).toBe('Day at the Beach');
+    });
+  });
+
+  // #2601: offline the plan writes wait in the queue instead of failing.
+  describe('offline', () => {
+    const setOnline = (v: boolean) => Object.defineProperty(navigator, 'onLine', { value: v, writable: true, configurable: true });
+    afterEach(() => setOnline(true));
+
+    it('FE-DAYNOTES-OFF-001: a note added offline stays on the day and waits in the queue', async () => {
+      await clearAll();
+      seedStore(useTripStore, { dayNotes: { '1': [] } });
+      setOnline(false);
+
+      const note = await useTripStore.getState().addDayNote(1, 1, { text: 'Lunch' });
+
+      expect(note.id).toBeLessThan(0);
+      expect(useTripStore.getState().dayNotes['1'].map(n => n.text)).toEqual(['Lunch']);
+      expect((await offlineDb.mutationQueue.toArray()).map(m => m.url)).toEqual(['/trips/1/days/1/notes']);
+    });
+
+    it('FE-DAYNOTES-OFF-002: a day renamed offline keeps the new name and waits in the queue', async () => {
+      await clearAll();
+      seedStore(useTripStore, { days: [buildDay({ id: 1, trip_id: 1, title: null })] });
+      setOnline(false);
+
+      await useTripStore.getState().updateDayTitle(1, 1, 'Arrival');
+
+      expect(useTripStore.getState().days[0].title).toBe('Arrival');
+      expect((await offlineDb.mutationQueue.toArray()).map(m => m.body)).toEqual([{ title: 'Arrival' }]);
+    });
+
+    it('FE-DAYNOTES-OFF-003: a note moved offline is created on the other day and deleted on its own, in that order', async () => {
+      await clearAll();
+      seedStore(useTripStore, { dayNotes: { '1': [buildDayNote({ id: 900, day_id: 1, text: 'Museum' })], '2': [] } });
+      setOnline(false);
+
+      await useTripStore.getState().moveDayNote(1, 1, 2, 900);
+
+      expect(useTripStore.getState().dayNotes['2'].map(n => n.text)).toEqual(['Museum']);
+      expect(useTripStore.getState().dayNotes['1']).toEqual([]);
+      const queued = (await offlineDb.mutationQueue.toArray()).sort((a, b) => a.createdAt - b.createdAt);
+      expect(queued.map(m => [m.method, m.url])).toEqual([
+        ['POST', '/trips/1/days/2/notes'],
+        ['DELETE', '/trips/1/days/1/notes/900'],
+      ]);
     });
   });
 });

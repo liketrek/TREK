@@ -1,5 +1,6 @@
-import { z } from 'zod';
 import { bookDocumentSchema } from './book.schema';
+
+import { z } from 'zod';
 
 /**
  * Storing a book.

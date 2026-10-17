@@ -56,7 +56,7 @@ const id: NotificationLocale = {
       title: 'Kegagalan replika penyimpanan',
       body:
         `Penulisan replika gagal pada '${p.backend}': ${p.op} dari ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` ${p.suppressed} kegagalan lainnya diabaikan sejak notifikasi terakhir.` : ''),
+        (p.suppressed !== '0' ? ` ${p.suppressed} kegagalan lainnya tidak dilaporkan sejak notifikasi terakhir.` : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Sesi Synology dihapus',

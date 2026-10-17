@@ -1,8 +1,8 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { AtlasService } from './atlas.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
 import type { User } from '../../types';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { AtlasService } from './atlas.service';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 
 /**
  * GET /api/auth/travel-stats — the dashboard's passport/stats card.
@@ -28,7 +28,7 @@ export class TravelStatsController {
   constructor(private readonly atlas: AtlasService) {}
 
   @Get('travel-stats')
-  travelStats(@CurrentUser() user: User) {
+  async travelStats(@CurrentUser() user: User) {
     return this.atlas.getTravelStats(user.id);
   }
 }

@@ -26,7 +26,7 @@ TREK supports email-based self-service password reset. On the login page, click 
 | Enumeration safety | `/forgot-password` always returns `{ok:true}` with a minimum response latency pad |
 | Rate limiting | 3 requests / 15-min per IP on `/forgot-password`; 5 requests / 15-min per IP on `/reset-password` |
 | MFA gate | If the account has 2FA enabled, a valid TOTP code or backup code is required to complete the reset — a compromised mailbox alone cannot take over a 2FA-protected account |
-| Session invalidation | Resetting the password bumps the `password_version` on the account and the `pv` claim in all JWTs, which immediately rejects every live session |
+| Session invalidation | Resetting the password ends every session of the account on the server and bumps the `password_version` on the account and the `pv` claim in all JWTs, so every live session is rejected immediately, including ones from before sessions were tracked |
 | Audit log | `user.password_reset_request`, `user.password_reset_success`, and `user.password_reset_fail` events are recorded |
 
 ### SMTP requirement
@@ -43,7 +43,7 @@ If the admin has globally disabled password login, no reset link is ever issued.
 
 ## Admin-initiated reset
 
-An admin can set a new password for any user directly from the admin panel (**Admin → Users**, edit the user). Leaving the **New Password** field empty keeps the current password; entering one saves it immediately — no email is required. Setting a password this way also bumps the account's `password_version`, which signs the user out of every live session; separately, it deletes all of their MCP tokens and revokes their OAuth tokens.
+An admin can set a new password for any user directly from the admin panel (**Admin → Users**, edit the user). Leaving the **New Password** field empty keeps the current password; entering one saves it immediately — no email is required. Setting a password this way also ends every session of the account and bumps its `password_version`, which signs the user out everywhere; separately, it deletes all of their MCP tokens and revokes their OAuth tokens.
 
 There is no **"Force password change on next login"** option in the Admin Panel. That prompt is raised only for the admin account TREK seeds on first boot and for accounts restored with the `reset-admin.js` recovery script (see [Troubleshooting](Troubleshooting)). An admin-set password neither raises the flag nor clears it, so a user who already carries it is still asked to choose their own password at the next sign-in.
 
@@ -59,6 +59,9 @@ When choosing a new password (whether via the reset flow, the forced-change prom
 - Contain at least one **number**
 - Contain at least one **special character**
 - Not be a commonly used password
+- Not consist of a single repeated character
+
+While you type, the form lists the five character rules under the password field and ticks each one off as it is met, so you see what is still missing before you submit.
 
 ## Rate limiting
 

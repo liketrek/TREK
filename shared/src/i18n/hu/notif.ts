@@ -21,6 +21,7 @@ const notif: TranslationStrings = {
   'notif.collection_invite.text': '{actor} meghívott egy gyűjteménybe',
   'notif.photos_shared.title': 'Fotók megosztva',
   'notif.photos_shared.text': '{actor} {count} fotót osztott meg a(z) {trip} utazásban',
+  'notif.photos_shared.text.one': '{actor} {count} fotót osztott meg a(z) {trip} utazásban',
   'notif.collab_message.title': 'Új üzenet',
   'notif.collab_message.text': '{actor} üzenetet küldött a(z) {trip} utazásban',
   'notif.packing_tagged.title': 'Csomagolási feladat',
@@ -29,7 +30,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'A TREK {version} elérhető',
   'notif.replica_failure.title': 'Tárhely-replika hiba',
   'notif.replica_failure.text': "Sikertelen írás a(z) '{backend}' replikán: {op} / {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Sikertelen írás a(z) '{backend}' replikán: {op} / {key} — {error}. Az utolsó értesítés óta {suppressed} további hiba lett elnyomva.",
+  'notif.replica_failure.textSuppressed':
+    "Sikertelen írás a(z) '{backend}' replikán: {op} / {key} — {error}. Az utolsó értesítés óta {suppressed} további hiba lett elnyomva.",
   'notif.action.view_trip': 'Utazás megtekintése',
   'notif.action.view_collab': 'Üzenetek megtekintése',
   'notif.action.view_packing': 'Csomagolás megtekintése',

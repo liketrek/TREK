@@ -114,7 +114,8 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'Synchronisierung fehlgeschlagen: {error}',
   'storage.sync.prompt': 'Vorhandene Objekte wurden noch nicht repliziert — jetzt synchronisieren?',
   'storage.sync.dismiss': 'Verwerfen',
-  'storage.usage.line': '{objects} Objekte · {size}',
+  'storage.usage.line': '{count} Objekte · {size}',
+  'storage.usage.line.one': '{count} Objekt · {size}',
   'storage.usage.computed': 'Nutzung berechnet {age}',
   'storage.usage.never': 'Nutzung noch nicht berechnet',
   'storage.usage.refresh': 'Aktualisieren',
@@ -123,7 +124,8 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Vorhandene Objekte auf das neue Backend verschieben?',
-  'storage.migrate.promptLine': '{category}: {objects} Objekte ({size}) von {from} nach {to}',
+  'storage.migrate.promptLine': '{category}: {count} Objekte ({size}) von {from} nach {to}',
+  'storage.migrate.promptLine.one': '{category}: {count} Objekt ({size}) von {from} nach {to}',
   'storage.migrate.promptLineUnknown':
     '{category}: unbekannte Größe (Nutzung noch nicht gescannt) von {from} nach {to}',
   'storage.migrate.move': 'Vorhandene Objekte verschieben',
@@ -133,10 +135,12 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} fehlgeschlagen — diese Objekte wurden nicht auf das neue Backend kopiert',
   'storage.migrate.failed': 'Verschieben fehlgeschlagen: {error} — die Kategorie wurde nicht umgestellt',
   'storage.migrate.cancelled': 'Verschieben abgebrochen — nichts wurde umgestellt',
-  'storage.migrate.reclaimable': '{objects} Objekte ({size}) verbleiben auf {from} — manuell freigeben',
+  'storage.migrate.reclaimable': '{count} Objekte ({size}) verbleiben auf {from}, manuell freigeben',
+  'storage.migrate.reclaimable.one': '{count} Objekt ({size}) verbleibt auf {from}, manuell freigeben',
   'storage.migrate.cancel': 'Verschieben abbrechen',
   'storage.migrate.promptCancel': 'Abbrechen',
   'storage.migrate.queued': 'In Warteschlange: {categories}',
-  'storage.migrate.queueDropped': 'Die nächste Verschiebung konnte nicht gestartet werden — die verbleibende Warteschlange wurde geleert: {categories}',
+  'storage.migrate.queueDropped':
+    'Die nächste Verschiebung konnte nicht gestartet werden — die verbleibende Warteschlange wurde geleert: {categories}',
 };
 export default storage;

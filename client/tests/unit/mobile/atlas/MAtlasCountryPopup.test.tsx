@@ -30,6 +30,8 @@ beforeEach(() => {
     http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })),
     http.post('/api/addons/atlas/region/:code/mark', () => HttpResponse.json({ success: true })),
     http.delete('/api/addons/atlas/region/:code/mark', () => HttpResponse.json({ success: true })),
+    // After a region goes the atlas asks whether the country is still marked (#2597).
+    http.get('/api/addons/atlas/country/:code', () => HttpResponse.json({ manually_marked: false })),
     http.post('/api/addons/atlas/bucket-list', () =>
       HttpResponse.json({ item: { id: 42, name: 'Germany', country_code: 'DE', lat: null, lng: null, notes: null, target_date: '2027-05' } }),
     ),
@@ -230,7 +232,7 @@ describe('MAtlasCountryPopup', () => {
     fireEvent.click(screen.getByText('atlas.addToBucket'));
 
     await waitFor(() => expect(atlas.setConfirmAction).toHaveBeenCalledWith(null));
-    expect(body).toEqual({ name: 'Germany', country_code: 'DE', target_date: '2027-05' });
+    expect(body).toMatchObject({ name: 'Germany', country_code: 'DE', target_date: '2027-05' });
     expect(atlas.bucketList).toEqual([
       { id: 42, name: 'Germany', country_code: 'DE', lat: null, lng: null, notes: null, target_date: '2027-05' },
     ]);

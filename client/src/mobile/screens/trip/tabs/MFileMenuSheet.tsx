@@ -4,7 +4,7 @@ import MSheet from '../../../components/MSheet'
 import MListRow from '../../../components/MListRow'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import { downloadFile } from '../../../../utils/fileDownload'
-import { filesApi } from '../../../../api/client'
+import { PHONE_FILE_UPDATE_RULES, trashFileWithToast, updateFileFields } from '../../../../components/Files/fileActions'
 import type { TripFile } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import { Eyebrow, TileHeader } from '../sheets/MTripSheetUi'
@@ -59,9 +59,7 @@ export default function MFileMenuSheet({ planner, file, onClose, onOpenLinks }: 
     const value = noteDraft.trim()
     if (value === (shown.description || '')) return
     setSaving(true)
-    filesApi.update(tripId, shown.id, { description: value })
-      .then(() => tripActions.loadFiles(tripId))
-      .catch(() => toast.error(t('files.toast.assignError')))
+    void updateFileFields(tripId, shown.id, { description: value }, { t, toast, refresh: () => tripActions.loadFiles(tripId) }, PHONE_FILE_UPDATE_RULES)
       .finally(() => setSaving(false))
   }
 
@@ -70,9 +68,7 @@ export default function MFileMenuSheet({ planner, file, onClose, onOpenLinks }: 
   const remove = () => {
     setConfirmDelete(false)
     setDeleting(true)
-    tripActions.deleteFile(tripId, shown.id)
-      .then(() => { toast.success(t('files.toast.trashed')); onClose() })
-      .catch(() => toast.error(t('files.toast.deleteError')))
+    void trashFileWithToast(() => tripActions.deleteFile(tripId, shown.id), { t, toast, onTrashed: onClose })
       .finally(() => setDeleting(false))
   }
 

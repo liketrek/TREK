@@ -1,23 +1,16 @@
-import {
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
-import type { Request, Response } from 'express';
 import { readEnv } from '../../app-config';
-import { contentDisposition } from '../common/content-disposition';
-import { FeedsService } from './feeds.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { Public } from '../auth-core/public.decorator';
+import { contentDisposition } from '../common/content-disposition';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { Public } from '../auth/public.decorator';
+import { Trip } from '../permissions/trip.decorator';
+import { FeedsService } from './feeds.service';
+import { Controller, Delete, Get, Param, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 // Resolve the public origin used to build feed URLs. APP_URL wins — it is the
 // canonical externally-reachable URL behind a reverse proxy. When it is unset
@@ -42,8 +35,8 @@ export class FeedsPublicController {
   constructor(private readonly feeds: FeedsService) {}
 
   @Get('trip/:token.ics')
-  tripFeed(@Param('token') token: string, @Res() res: Response): void {
-    const result = this.feeds.buildTripIcs(token);
+  async tripFeed(@Param('token') token: string, @Res() res: Response): Promise<void> {
+    const result = await this.feeds.buildTripIcs(token);
     if (!result) {
       res.status(404).json({ error: 'Feed not found' });
       return;
@@ -56,8 +49,8 @@ export class FeedsPublicController {
   }
 
   @Get('user/:token.ics')
-  userFeed(@Param('token') token: string, @Res() res: Response): void {
-    const result = this.feeds.buildUserIcs(token);
+  async userFeed(@Param('token') token: string, @Res() res: Response): Promise<void> {
+    const result = await this.feeds.buildUserIcs(token);
     if (!result) {
       res.status(404).json({ error: 'Feed not found' });
       return;
@@ -91,24 +84,31 @@ export class FeedsPublicController {
 export class TripFeedTokenController {
   constructor(private readonly feeds: FeedsService) {}
 
+  // `@Trip()` hands back `TripAccessGuard`'s already-resolved, already-numeric
+  // trip id (rule 21: the id is parsed once, at the gate, by the guard's own
+  // `Number(tripId)` + `findAccessible` — every handler below reuses that
+  // value rather than re-parsing `:tripId` itself). `@RequirePermission
+  // ('share_manage')` on the whole controller means the trip is already
+  // access-checked AND permission-checked before any of these run.
+
   @Get('token')
-  get(@CurrentUser() user: User, @Param('tripId') tripId: string, @Req() req: Request) {
-    return this.feeds.getTripToken(tripId, user.id, resolveFeedBase(req));
+  async get(@CurrentUser() user: User, @Trip() trip: TripAccess, @Req() req: Request) {
+    return await this.feeds.getTripToken(trip.id, user.id, resolveFeedBase(req));
   }
 
   @Post('token')
-  generate(@CurrentUser() user: User, @Param('tripId') tripId: string, @Req() req: Request) {
-    return this.feeds.generateTripToken(tripId, user.id, resolveFeedBase(req));
+  async generate(@CurrentUser() user: User, @Trip() trip: TripAccess, @Req() req: Request) {
+    return await this.feeds.generateTripToken(trip.id, user.id, resolveFeedBase(req));
   }
 
   @Put('token')
-  rotate(@CurrentUser() user: User, @Param('tripId') tripId: string, @Req() req: Request) {
-    return this.feeds.rotateTripToken(tripId, user.id, resolveFeedBase(req));
+  async rotate(@CurrentUser() user: User, @Trip() trip: TripAccess, @Req() req: Request) {
+    return await this.feeds.rotateTripToken(trip.id, user.id, resolveFeedBase(req));
   }
 
   @Delete('token')
-  disable(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    this.feeds.disableTripToken(tripId, user.id);
+  async disable(@CurrentUser() user: User, @Trip() trip: TripAccess) {
+    await this.feeds.disableTripToken(trip.id, user.id);
     return { feed_url: null };
   }
 }
@@ -123,23 +123,23 @@ export class UserFeedTokenController {
   constructor(private readonly feeds: FeedsService) {}
 
   @Get('token')
-  get(@CurrentUser() user: User, @Req() req: Request) {
-    return this.feeds.getUserToken(user.id, resolveFeedBase(req));
+  async get(@CurrentUser() user: User, @Req() req: Request) {
+    return await this.feeds.getUserToken(user.id, resolveFeedBase(req));
   }
 
   @Post('token')
-  generate(@CurrentUser() user: User, @Req() req: Request) {
-    return this.feeds.generateUserToken(user.id, resolveFeedBase(req));
+  async generate(@CurrentUser() user: User, @Req() req: Request) {
+    return await this.feeds.generateUserToken(user.id, resolveFeedBase(req));
   }
 
   @Put('token')
-  rotate(@CurrentUser() user: User, @Req() req: Request) {
-    return this.feeds.rotateUserToken(user.id, resolveFeedBase(req));
+  async rotate(@CurrentUser() user: User, @Req() req: Request) {
+    return await this.feeds.rotateUserToken(user.id, resolveFeedBase(req));
   }
 
   @Delete('token')
-  disable(@CurrentUser() user: User) {
-    this.feeds.disableUserToken(user.id);
+  async disable(@CurrentUser() user: User) {
+    await this.feeds.disableUserToken(user.id);
     return { feed_url: null };
   }
 }

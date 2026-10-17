@@ -124,6 +124,16 @@ describe('MNewTripSheet', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
+  it('FE-MOB-NTSH-003b: typing a title clears the title error (#2604)', () => {
+    render(<MNewTripSheet open trip={null} onClose={() => {}} onSave={vi.fn(async () => undefined)} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create New Trip' }))
+    expect(screen.getByText('Title is required')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. Summer in Japan'), { target: { value: 'P' } })
+    expect(screen.queryByText('Title is required')).not.toBeInTheDocument()
+  })
+
   it('FE-MOB-NTSH-004: an end date before the start blocks the save', () => {
     const onSave = vi.fn(async () => undefined);
     render(<MNewTripSheet open trip={null} onClose={() => {}} onSave={onSave} />);

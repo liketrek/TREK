@@ -1,3 +1,5 @@
+import { readEnv } from '../../app-config';
+
 import tzlookup from 'tz-lookup';
 
 /** Local calendar date and clock time for an instant in an IANA timezone. */
@@ -33,4 +35,14 @@ export function resolveTimeZone(lat: unknown, lng: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Today's date and the clock time where the instance runs, in the TZ the crons
+ * are scheduled in (CronRegistrarService). A UTC "today" disagreed with the
+ * schedule: east of Greenwich a 09:00 job saw the previous date.
+ */
+export function appClock(now: Date = new Date()): { date: string; time: string } {
+  const { date, time } = localParts(now.toISOString(), readEnv().app.tz || null);
+  return { date: date ?? now.toISOString().slice(0, 10), time: time ?? now.toISOString().slice(11, 16) };
 }

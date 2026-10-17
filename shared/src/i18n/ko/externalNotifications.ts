@@ -37,8 +37,8 @@ const ko: NotificationLocale = {
       body: `${p.actor}이(가) 컬렉션 공유에 초대했습니다. TREK을 열어 수락하거나 거절하세요.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count}장의 사진이 공유되었습니다`,
-      body: `${p.actor}이(가) "${p.trip}"에서 ${p.count}장의 사진을 공유했습니다.`,
+      title: `사진 ${p.count}장이 공유되었습니다`,
+      body: `${p.actor}이(가) "${p.trip}"에서 사진 ${p.count}장을 공유했습니다.`,
     }),
     collab_message: (p) => ({
       title: `"${p.trip}"의 새 메시지`,
@@ -56,7 +56,7 @@ const ko: NotificationLocale = {
       title: '스토리지 복제본 오류',
       body:
         `복제본 '${p.backend}'에 쓰기가 실패했습니다: ${p.op} / ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? `마지막 알림 이후 ${p.suppressed}개의 추가 실패가 억제되었습니다.` : ''),
+        (p.suppressed !== '0' ? ` 마지막 알림 이후 실패가 ${p.suppressed}건 더 있었지만 따로 알리지 않았습니다.` : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Synology 세션이 초기화되었습니다',

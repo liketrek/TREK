@@ -1,5 +1,3 @@
-import { Injectable } from '@nestjs/common';
-import { Readable } from 'node:stream';
 import {
   docFail,
   docOk,
@@ -24,6 +22,9 @@ import {
   type PaperlessTag,
 } from './paperless.client';
 import { DOWNLOAD_MAX_BYTES, guardDownload } from './provider-http';
+import { Injectable } from '@nestjs/common';
+
+import { Readable } from 'node:stream';
 
 /**
  * Paperless-ngx as a document scope.
@@ -166,9 +167,7 @@ function extensionOf(name: string): string | null {
  * on the way into Paperless.
  */
 export function documentFileName(doc: PaperlessDocument): string {
-  const base = doc.title.trim().length > 0
-    ? doc.title.trim()
-    : (doc.originalFileName ?? `document-${doc.id}`);
+  const base = doc.title.trim().length > 0 ? doc.title.trim() : (doc.originalFileName ?? `document-${doc.id}`);
   const fromOriginal = doc.originalFileName === null ? null : extensionOf(doc.originalFileName);
   const fromMime = doc.mimeType === null ? null : (EXTENSION_BY_MIME[doc.mimeType] ?? null);
   const extension = fromOriginal ?? fromMime;
@@ -262,10 +261,7 @@ function buildCursor(count: number | null, documents: PaperlessDocument[]): stri
 }
 
 /** Read a stream into memory, refusing to grow past the cap. */
-async function readStreamCapped(
-  body: Readable,
-  maxBytes: number,
-): Promise<{ bytes: Buffer; truncated: boolean }> {
+async function readStreamCapped(body: Readable, maxBytes: number): Promise<{ bytes: Buffer; truncated: boolean }> {
   const chunks: Buffer[] = [];
   let received = 0;
   for await (const chunk of body as AsyncIterable<Buffer | Uint8Array | string>) {
@@ -319,8 +315,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
       // A token whose user may not create workflows can still sync; it just
       // cannot subscribe itself, and the operator has to be told that here
       // rather than after the first silent hour of polling.
-      const canSubscribe = profile.permissions.length === 0
-        || profile.permissions.includes('add_workflow');
+      const canSubscribe = profile.permissions.length === 0 || profile.permissions.includes('add_workflow');
       return docOk({
         account: profile.username.length > 0 ? profile.username : 'paperless',
         capabilities: canSubscribe ? capabilities : { ...capabilities, push: 'webhook-manual' },
@@ -330,10 +325,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
     }
   }
 
-  async listScopes(
-    conn: DocumentConnectionRef,
-    query?: string,
-  ): Promise<DocResult<DocumentScopeOption[]>> {
+  async listScopes(conn: DocumentConnectionRef, query?: string): Promise<DocResult<DocumentScopeOption[]>> {
     const creds = credsOf(conn);
     if (creds === null) return missingToken();
     try {
@@ -344,10 +336,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
     }
   }
 
-  async createScope(
-    conn: DocumentConnectionRef,
-    name: string,
-  ): Promise<DocResult<DocumentScopeOption>> {
+  async createScope(conn: DocumentConnectionRef, name: string): Promise<DocResult<DocumentScopeOption>> {
     const creds = credsOf(conn);
     if (creds === null) return missingToken();
     try {
@@ -361,10 +350,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
     }
   }
 
-  async resolveScope(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-  ): Promise<DocResult<DocumentScopeOption>> {
+  async resolveScope(conn: DocumentConnectionRef, scope: DocumentScopeRef): Promise<DocResult<DocumentScopeOption>> {
     const creds = credsOf(conn);
     if (creds === null) return missingToken();
     const tagId = parseScopeKey(scope.scopeKey);
@@ -384,12 +370,14 @@ export class PaperlessDocumentProvider implements DocumentProvider {
   async list(
     conn: DocumentConnectionRef,
     scope: DocumentScopeRef,
-  ): Promise<DocResult<{
-    documents: RemoteDocument[];
-    cursor: string | null;
-    cursorUnchanged: boolean;
-    truncated: boolean;
-  }>> {
+  ): Promise<
+    DocResult<{
+      documents: RemoteDocument[];
+      cursor: string | null;
+      cursorUnchanged: boolean;
+      truncated: boolean;
+    }>
+  > {
     const creds = credsOf(conn);
     if (creds === null) return missingToken();
     const tagId = parseScopeKey(scope.scopeKey);
@@ -413,11 +401,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
     }
   }
 
-  async fetch(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-    remoteId: string,
-  ): Promise<DocResult<FetchResult>> {
+  async fetch(conn: DocumentConnectionRef, scope: DocumentScopeRef, remoteId: string): Promise<DocResult<FetchResult>> {
     const creds = credsOf(conn);
     if (creds === null) return missingToken();
     if (parseScopeKey(scope.scopeKey) === null) return badScope(scope.scopeKey);
@@ -451,11 +435,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
     }
   }
 
-  async push(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-    req: PushRequest,
-  ): Promise<DocResult<PushResult>> {
+  async push(conn: DocumentConnectionRef, scope: DocumentScopeRef, req: PushRequest): Promise<DocResult<PushResult>> {
     const creds = credsOf(conn);
     if (creds === null) return missingToken();
     const tagId = parseScopeKey(scope.scopeKey);
@@ -475,18 +455,13 @@ export class PaperlessDocumentProvider implements DocumentProvider {
       }
       bytes = read.bytes;
     } catch (err: unknown) {
-      return docFail(
-        'provider_error',
-        err instanceof Error ? err.message : 'could not read the local file',
-      );
+      return docFail('provider_error', err instanceof Error ? err.message : 'could not read the local file');
     }
 
     const file = { fileName: req.fileName, mimeType, bytes };
     const replacing = req.remoteId !== undefined;
     try {
-      const documentId = replacing
-        ? await this.replace(creds, file, req)
-        : await this.create(creds, tagId, file, req);
+      const documentId = replacing ? await this.replace(creds, file, req) : await this.create(creds, tagId, file, req);
       const doc = await this.client.getDocument(creds, documentId);
 
       // Paperless stores the sha256 of what it received. Comparing it here
@@ -499,10 +474,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
         // left alone: that document existed before and its earlier revisions
         // are still attached to it.
         if (!replacing) await this.discard(creds, doc.id);
-        return docFail(
-          'checksum_mismatch',
-          `Paperless stored ${stored} for document ${doc.id}`,
-        );
+        return docFail('checksum_mismatch', `Paperless stored ${stored} for document ${doc.id}`);
       }
 
       return docOk({
@@ -551,8 +523,9 @@ export class PaperlessDocumentProvider implements DocumentProvider {
     file: { fileName: string; mimeType: string; bytes: Buffer },
     req: PushRequest,
   ): Promise<number> {
-    const field = (await this.client.findCustomField(creds, TRIP_UID_FIELD_NAME))
-      ?? (await this.client.createCustomField(creds, TRIP_UID_FIELD_NAME));
+    const field =
+      (await this.client.findCustomField(creds, TRIP_UID_FIELD_NAME)) ??
+      (await this.client.createCustomField(creds, TRIP_UID_FIELD_NAME));
 
     const taskId = await this.client.postDocument(creds, file, {
       title: titleFromFileName(req.fileName),
@@ -635,11 +608,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
     }
   }
 
-  async trash(
-    conn: DocumentConnectionRef,
-    scope: DocumentScopeRef,
-    remoteId: string,
-  ): Promise<DocResult<void>> {
+  async trash(conn: DocumentConnectionRef, scope: DocumentScopeRef, remoteId: string): Promise<DocResult<void>> {
     const creds = credsOf(conn);
     if (creds === null) return missingToken();
     if (parseScopeKey(scope.scopeKey) === null) return badScope(scope.scopeKey);
@@ -684,10 +653,7 @@ export class PaperlessDocumentProvider implements DocumentProvider {
     }
   }
 
-  async unregisterWebhook(
-    conn: DocumentConnectionRef,
-    subscriptionId: string,
-  ): Promise<DocResult<void>> {
+  async unregisterWebhook(conn: DocumentConnectionRef, subscriptionId: string): Promise<DocResult<void>> {
     const creds = credsOf(conn);
     if (creds === null) return missingToken();
     const workflowId = parseRemoteId(subscriptionId);

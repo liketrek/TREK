@@ -60,6 +60,9 @@ vi.mock('../../../../src/mobile/screens/admin/MAdminStoragePanel', () => ({
 }));
 
 // The addon manager is reduced to the two controls MAdmin wires itself.
+vi.mock('../../../../src/components/Admin/paddle/PaddleRegionsPanel', () => ({
+  default: () => <div data-testid="paddle-regions-panel" />,
+}));
 vi.mock('../../../../src/mobile/screens/admin/MAdminAddonManager', () => ({
   default: ({
     bagTrackingEnabled,
@@ -214,6 +217,9 @@ describe('MAdmin', () => {
     await openSection('Personalization');
     expect(screen.getByTestId('packing-templates')).toBeInTheDocument();
     expect(screen.getByTestId('category-manager')).toBeInTheDocument();
+
+    await openSection('Addons');
+    expect(screen.getByTestId('paddle-regions-panel')).toBeInTheDocument();
 
     await openSection('Plugins');
     expect(screen.getByTestId('plugins-panel')).toBeInTheDocument();

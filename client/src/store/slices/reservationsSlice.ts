@@ -1,9 +1,9 @@
-import { reservationsApi } from '../../api/client'
-import { reservationRepo } from '../../repo/reservationRepo'
+import { reservationRepo, type ReservationPosition } from '../../repo/reservationRepo'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { Reservation } from '../../types'
 import { getApiErrorMessage } from '../../types'
+import { keepDayPositions } from '../../utils/mergedOrder'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -15,6 +15,7 @@ export interface ReservationsSlice {
   toggleReservationStatus: (tripId: number | string, id: number) => Promise<void>
   deleteReservation: (tripId: number | string, id: number) => Promise<void>
   setReservationTravelers: (tripId: number | string, id: number, userIds: number[]) => Promise<void>
+  updateReservationPositions: (tripId: number | string, positions: ReservationPosition[], dayId?: number) => Promise<void>
 }
 
 export const createReservationsSlice = (set: SetState, get: GetState): ReservationsSlice => ({
@@ -29,7 +30,7 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
 
   addReservation: async (tripId, data) => {
     try {
-      const result = await reservationsApi.create(tripId, data)
+      const result = await reservationRepo.create(tripId, data)
       set(state => ({ reservations: [result.reservation, ...state.reservations] }))
       return result.reservation
     } catch (err: unknown) {
@@ -39,9 +40,9 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
 
   updateReservation: async (tripId, id, data) => {
     try {
-      const result = await reservationsApi.update(tripId, id, data)
+      const result = await reservationRepo.update(tripId, id, data)
       set(state => ({
-        reservations: state.reservations.map(r => r.id === id ? result.reservation : r)
+        reservations: state.reservations.map(r => r.id === id ? keepDayPositions(result.reservation, r) : r)
       }))
       return result.reservation
     } catch (err: unknown) {
@@ -58,7 +59,7 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
       reservations: state.reservations.map(r => r.id === id ? { ...r, status: newStatus } : r)
     }))
     try {
-      await reservationsApi.update(tripId, id, { status: newStatus })
+      await reservationRepo.update(tripId, id, { status: newStatus })
     } catch (err: unknown) {
       // Roll back the optimistic toggle and surface the failure so the caller's
       // catch can notify the user — without it the status silently snaps back.
@@ -69,8 +70,11 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
 
   deleteReservation: async (tripId, id) => {
     try {
-      await reservationsApi.delete(tripId, id)
-      set(state => ({ reservations: state.reservations.filter(r => r.id !== id) }))
+      await reservationRepo.delete(tripId, id)
+      set(state => ({
+        reservations: state.reservations.filter(r => r.id !== id),
+        budgetItems: state.budgetItems.filter(i => i.reservation_id !== id),
+      }))
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error deleting reservation'))
     }
@@ -78,12 +82,17 @@ export const createReservationsSlice = (set: SetState, get: GetState): Reservati
 
   setReservationTravelers: async (tripId, id, userIds) => {
     try {
-      const result = await reservationsApi.setTravelers(tripId, id, userIds)
+      const result = await reservationRepo.setTravelers(tripId, id, userIds)
       set(state => ({
         reservations: state.reservations.map(r => r.id === id ? { ...r, travelers: result.travelers } : r),
       }))
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error updating travelers'))
     }
+  },
+
+  // The caller has already moved the transports in the store; this only stores it.
+  updateReservationPositions: async (tripId, positions, dayId) => {
+    await reservationRepo.updatePositions(tripId, positions, dayId)
   },
 })

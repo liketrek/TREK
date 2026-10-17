@@ -114,7 +114,7 @@ describe('MCollTripPickerSheet', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Japan 2020/ }))
     await waitFor(() => expect(onClose).toHaveBeenCalled())
     expect(onCopy).toHaveBeenCalledWith(1)
-    expect(addToast).toHaveBeenCalledWith('Copied 1 places', 'success', undefined)
+    expect(addToast).toHaveBeenCalledWith('Copied 1 place', 'success', undefined)
   })
 
   it('FE-MOB-CTRIPP-010: duplicates the server skipped get their own toast', async () => {
@@ -122,7 +122,7 @@ describe('MCollTripPickerSheet', () => {
       .mockResolvedValue({ copied: 2, skipped: [{ id: 9, name: 'Louvre' }] })
     setup({ onCopy })
     fireEvent.click(await screen.findByRole('button', { name: /Japan 2020/ }))
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Skipped 1 duplicates', 'info', undefined))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Skipped 1 duplicate', 'info', undefined))
     expect(addToast).toHaveBeenCalledWith('Copied 2 places', 'success', undefined)
   })
 

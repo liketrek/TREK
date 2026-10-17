@@ -1,4 +1,5 @@
 import { chronoOrder } from '../day/chrono-order';
+import { CARRIER_RESERVATION_TYPES } from '../reservation/reservation-types';
 import { haversineKm, type LatLng } from './corridor';
 import type { CarrierTerminal, RoadtripStop, RoutedLeg } from './planning-types';
 import { formatClock, formatDurationShort, parseClock } from './roadtripModel';
@@ -12,8 +13,10 @@ import { formatClock, formatDurationShort, parseClock } from './roadtripModel';
  * On the road trip such a booking is a seam: the road ends at the terminal it leaves
  * from and starts again at the one it lands at. Routing straight across it drew a
  * two-thousand-kilometre drive where a flight was booked (#2428).
+ *
+ * The set is the reservation catalog's `isCarrier` types (`reservation-types.ts`).
  */
-export const CARRIER_TYPES = ['flight', 'train', 'ferry', 'cruise', 'bus'] as const;
+export const CARRIER_TYPES = CARRIER_RESERVATION_TYPES;
 
 export function isCarrierType(type: string | null | undefined): boolean {
   return !!type && (CARRIER_TYPES as readonly string[]).includes(type);

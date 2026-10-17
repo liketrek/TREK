@@ -14,9 +14,11 @@
  * and, while the server answers, loads the page again from the server under a
  * URL no cache has seen. When a service worker served the page, the app shell
  * it keeps (the Workbox precache and the worker itself) is thrown away first,
- * since that is what answered with the broken file. Once per session, so a build
- * that is broken on the server cannot put the page in a reload loop. Offline
- * nothing happens: the precache is then the only way the app can start at all.
+ * since that is what answered with the broken file. A Web Push subscription
+ * ends with the worker and has to be switched on again, the price of an app
+ * that starts again. Once per session, so a build that is broken on the server
+ * cannot put the page in a reload loop. Offline nothing happens: the precache
+ * is then the only way the app can start at all.
  *
  * It also strips the query parameter such a reload carries, before the app
  * reads the URL. Keep the parameter and the cache filter in sync with

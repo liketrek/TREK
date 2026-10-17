@@ -88,6 +88,10 @@ HOST=10.0.0.72   # bind only on this LAN interface
 
 > **Note:** `HOST` is only relevant for source-based and Proxmox installs. Do not use it in Docker or any containerised deployment.
 
+### Outbound proxy
+
+If the container reaches the internet only through a proxy, set `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` in the same file, and `NODE_USE_ENV_PROXY=1` next to them: unlike the Docker image, a Proxmox install does not set that switch for you, and without it Node ignores the proxy for everything except TREK's guarded integration requests. See [Environment-Variables](Environment-Variables#outbound-https-proxy).
+
 See [Environment-Variables](Environment-Variables) for the full variable reference.
 
 ## Updating

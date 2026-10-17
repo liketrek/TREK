@@ -267,7 +267,7 @@ function Harness({ withPanel = true }: { withPanel?: boolean }): React.ReactElem
   );
 }
 
-function useAtlasHandlers(over: Partial<Record<string, unknown>> = {}) {
+function installAtlasHandlers(over: Partial<Record<string, unknown>> = {}) {
   server.use(
     http.get('/api/addons/atlas/stats', () => HttpResponse.json(over.stats ?? statsResponse)),
     http.get('/api/addons/atlas/bucket-list', () => HttpResponse.json({ items: over.bucket ?? [] })),
@@ -298,7 +298,7 @@ function regionCodesOf(layer: MockGeoJson | undefined): string[] {
 }
 
 async function mountAtlas(over: Partial<Record<string, unknown>> = {}, props: { withPanel?: boolean } = {}) {
-  useAtlasHandlers(over);
+  installAtlasHandlers(over);
   const view = render(<Harness {...props} />);
   await waitFor(() => expect(atlas.loading).toBe(false));
   return view;
@@ -332,7 +332,7 @@ describe('useAtlas', () => {
   });
 
   it('FE-HOOK-ATLAS-002: a failing stats request still ends the loading state', async () => {
-    useAtlasHandlers();
+    installAtlasHandlers();
     server.use(http.get('/api/addons/atlas/stats', () => HttpResponse.error()));
     render(<Harness />);
 
@@ -468,7 +468,7 @@ describe('useAtlas', () => {
     });
 
     it('FE-HOOK-ATLAS-011b: unmarking survives atlas data that never loaded', async () => {
-      useAtlasHandlers();
+      installAtlasHandlers();
       server.use(
         http.get('/api/addons/atlas/stats', () => HttpResponse.error()),
         http.delete('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ ok: true })),
@@ -836,7 +836,7 @@ describe('useAtlas', () => {
     });
 
     it('FE-HOOK-ATLAS-028: a failing plugin request simply leaves the map untinted', async () => {
-      useAtlasHandlers({ geo: geoCountries });
+      installAtlasHandlers({ geo: geoCountries });
       server.use(http.get('/api/atlas-layers', () => HttpResponse.error()));
       render(<Harness />);
       await waitFor(() => expect(atlas.loading).toBe(false));

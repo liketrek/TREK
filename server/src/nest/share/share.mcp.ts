@@ -1,14 +1,19 @@
+import { canShareTrips } from '../../mcp/scopes';
+import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
-  demoDenied, ok,
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
-import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { canShareTrips } from '../../mcp/scopes';
 import { ShareService } from './share.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 /**
  * Share-link MCP surface — ported 1:1 from the three share tools that lived in
@@ -22,15 +27,15 @@ import { ShareService } from './share.service';
 export class ShareMcp {
   constructor(
     private readonly share: ShareService,
-    private readonly auth: AuthService,
     private readonly guards: McpToolGuardsService,
   ) {}
 
   @Tool({
     name: 'get_share_link',
-    description: 'Get the current public share link for a trip, including its permission flags. Returns null if no share link exists.',
+    description:
+      'Get the current public share link for a trip, including its permission flags. Returns null if no share link exists.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: (ctx) => canShareTrips(ctx.scopes),
@@ -40,39 +45,73 @@ export class ShareMcp {
     // requires share_manage on every verb including this one: the payload is the
     // token itself, and a token is an anonymous copy of the trip. Leaving this
     // one on membership alone would just move the same hole to MCP.
-    if (!this.share.verifyTripAccess(String(tripId), ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('share_manage', tripId, ctx.userId)) return permissionDenied();
-    const link = this.share.get(String(tripId));
+    if (!(await this.share.verifyTripAccess(String(tripId), ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('share_manage', tripId, ctx.userId))) return permissionDenied();
+    const link = await this.share.get(String(tripId));
     return ok({ link });
   }
 
   @Tool({
     name: 'create_share_link',
-    description: 'Create or update the public share link for a trip. Set permission flags to control what is visible to guests.',
+    description:
+      'Create or update the public share link for a trip. Set permission flags to control what is visible to guests.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       share_map: z.boolean().optional().default(true).describe('Share the map and places'),
       share_bookings: z.boolean().optional().default(true).describe('Share reservations'),
       share_packing: z.boolean().optional().default(false).describe('Share packing list'),
       share_budget: z.boolean().optional().default(false).describe('Share budget'),
       share_collab: z.boolean().optional().default(false).describe('Share collab messages'),
+      share_travel_only: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          'Narrow the shared plan to transport and stays: no activities, no day notes, only transport and hotel bookings',
+        ),
+      share_hide_images: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe('Leave the place photos out of the shared page'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: (ctx) => canShareTrips(ctx.scopes),
   })
   async createShareLink(
-    { tripId, share_map, share_bookings, share_packing, share_budget, share_collab }: {
-      tripId: number; share_map?: boolean; share_bookings?: boolean; share_packing?: boolean; share_budget?: boolean; share_collab?: boolean;
+    {
+      tripId,
+      share_map,
+      share_bookings,
+      share_packing,
+      share_budget,
+      share_collab,
+      share_travel_only,
+      share_hide_images,
+    }: {
+      tripId: number;
+      share_map?: boolean;
+      share_bookings?: boolean;
+      share_packing?: boolean;
+      share_budget?: boolean;
+      share_collab?: boolean;
+      share_travel_only?: boolean;
+      share_hide_images?: boolean;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.share.verifyTripAccess(String(tripId), ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('share_manage', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.share.verifyTripAccess(String(tripId), ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('share_manage', tripId, ctx.userId))) return permissionDenied();
     // The zod .default()s above fill omitted flags, and ShareService applies
     // the same defaults again for undefined — no re-defaulting needed here.
-    const { token, created } = this.share.createOrUpdate(String(tripId), ctx.userId, {
-      share_map, share_bookings, share_packing, share_budget, share_collab,
+    const { token, created } = await this.share.createOrUpdate(String(tripId), ctx.userId, {
+      share_map,
+      share_bookings,
+      share_packing,
+      share_budget,
+      share_collab,
+      share_travel_only,
+      share_hide_images,
     });
     return ok({ token, created });
   }
@@ -81,16 +120,15 @@ export class ShareMcp {
     name: 'delete_share_link',
     description: 'Revoke the public share link for a trip. Guests will no longer be able to access the shared view.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: (ctx) => canShareTrips(ctx.scopes),
   })
   async deleteShareLink({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.share.verifyTripAccess(String(tripId), ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('share_manage', tripId, ctx.userId)) return permissionDenied();
-    this.share.remove(String(tripId));
+    if (!(await this.share.verifyTripAccess(String(tripId), ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('share_manage', tripId, ctx.userId))) return permissionDenied();
+    await this.share.remove(String(tripId));
     return ok({ success: true });
   }
 }

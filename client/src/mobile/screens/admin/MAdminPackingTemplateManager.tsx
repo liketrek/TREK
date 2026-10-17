@@ -1,13 +1,8 @@
-import { useState, useEffect, useRef, ReactNode } from 'react'
-import { adminApi } from '../../../api/client'
-import { useToast } from '../../../components/shared/Toast'
+import { ReactNode } from 'react'
+import { usePackingTemplateAdmin } from '../../../components/Admin/usePackingTemplateAdmin'
 import { useTranslation } from '../../../i18n'
 import { Plus, Trash2, Edit2, Package, X, Check, ChevronDown, ChevronRight, FolderPlus } from 'lucide-react'
 import { MAdminButton, MAdminCard, MAdminCardHead, MAdminInput } from './MAdminUi'
-
-interface TemplateCategory { id: number; template_id: number; name: string; sort_order: number }
-interface TemplateItem { id: number; category_id: number; name: string; sort_order: number }
-interface Template { id: number; name: string; item_count: number; category_count: number; created_by_name: string }
 
 // Small round icon action button in the mobile admin idiom (flat --m-ic circle).
 function PkIconBtn({
@@ -52,146 +47,19 @@ const inlineFieldCls =
 
 /**
  * Mobile-native re-skin of the admin Packing Template Manager: create/rename/
- * delete templates, expand a template to manage its categories and items. All
- * state, effects and adminApi mutations are preserved from the desktop version.
+ * delete templates, expand a template to manage its categories and items. The
+ * state, effects and adminApi writes live in the shared usePackingTemplateAdmin hook.
  */
 export default function MAdminPackingTemplateManager() {
-  const [templates, setTemplates] = useState<Template[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [showCreate, setShowCreate] = useState(false)
-  const [createName, setCreateName] = useState('')
-
-  // Expanded template state
-  const [expandedId, setExpandedId] = useState<number | null>(null)
-  const [categories, setCategories] = useState<TemplateCategory[]>([])
-  const [items, setItems] = useState<TemplateItem[]>([])
-
-  // Editing states
-  const [editingTemplate, setEditingTemplate] = useState<number | null>(null)
-  const [editTemplateName, setEditTemplateName] = useState('')
-  const [editingCatId, setEditingCatId] = useState<number | null>(null)
-  const [editCatName, setEditCatName] = useState('')
-  const [editingItemId, setEditingItemId] = useState<number | null>(null)
-  const [editItemName, setEditItemName] = useState('')
-
-  // Adding states
-  const [addingCategory, setAddingCategory] = useState(false)
-  const [newCatName, setNewCatName] = useState('')
-  const [addingItemToCatId, setAddingItemToCatId] = useState<number | null>(null)
-  const [newItemName, setNewItemName] = useState('')
-  const addItemRef = useRef<HTMLInputElement>(null)
-
-  const toast = useToast()
+  const {
+    templates, isLoading, showCreate, setShowCreate, createName, setCreateName, expandedId, categories, items,
+    editingTemplate, setEditingTemplate, editTemplateName, setEditTemplateName, editingCatId, setEditingCatId,
+    editCatName, setEditCatName, editingItemId, setEditingItemId, editItemName, setEditItemName, addingCategory,
+    setAddingCategory, newCatName, setNewCatName, addingItemToCatId, setAddingItemToCatId, newItemName,
+    setNewItemName, addItemRef, toggleExpand, handleCreateTemplate, handleDeleteTemplate, handleRenameTemplate,
+    handleAddCategory, handleRenameCategory, handleDeleteCategory, handleAddItem, handleRenameItem, handleDeleteItem,
+  } = usePackingTemplateAdmin({ genericDeleteErrors: true })
   const { t } = useTranslation()
-
-  useEffect(() => { loadTemplates() }, [])
-
-  const loadTemplates = async () => {
-    setIsLoading(true)
-    try {
-      const data = await adminApi.packingTemplates()
-      setTemplates(data.templates || [])
-    } catch { toast.error(t('admin.packingTemplates.loadError')) }
-    finally { setIsLoading(false) }
-  }
-
-  const toggleExpand = async (id: number) => {
-    if (expandedId === id) { setExpandedId(null); return }
-    setExpandedId(id)
-    setAddingCategory(false)
-    setAddingItemToCatId(null)
-    try {
-      const data = await adminApi.getPackingTemplate(id)
-      setCategories(data.categories || [])
-      setItems(data.items || [])
-    } catch { toast.error(t('admin.packingTemplates.loadError')) }
-  }
-
-  // Template CRUD
-  const handleCreateTemplate = async () => {
-    if (!createName.trim()) return
-    try {
-      const data = await adminApi.createPackingTemplate({ name: createName.trim() })
-      setTemplates(prev => [{ ...data.template, item_count: 0, category_count: 0 }, ...prev])
-      setCreateName(''); setShowCreate(false)
-      setExpandedId(data.template.id); setCategories([]); setItems([])
-      toast.success(t('admin.packingTemplates.created'))
-    } catch { toast.error(t('admin.packingTemplates.createError')) }
-  }
-
-  const handleDeleteTemplate = async (id: number) => {
-    try {
-      await adminApi.deletePackingTemplate(id)
-      setTemplates(prev => prev.filter(t => t.id !== id))
-      if (expandedId === id) setExpandedId(null)
-      toast.success(t('admin.packingTemplates.deleted'))
-    } catch { toast.error(t('admin.packingTemplates.deleteError')) }
-  }
-
-  const handleRenameTemplate = async (id: number) => {
-    if (!editTemplateName.trim()) { setEditingTemplate(null); return }
-    try {
-      await adminApi.updatePackingTemplate(id, { name: editTemplateName.trim() })
-      setTemplates(prev => prev.map(t => t.id === id ? { ...t, name: editTemplateName.trim() } : t))
-      setEditingTemplate(null)
-    } catch { toast.error(t('admin.packingTemplates.saveError')) }
-  }
-
-  // Category CRUD
-  const handleAddCategory = async () => {
-    if (!newCatName.trim() || !expandedId) return
-    try {
-      const data = await adminApi.addTemplateCategory(expandedId, { name: newCatName.trim() })
-      setCategories(prev => [...prev, data.category])
-      setNewCatName(''); setAddingCategory(false)
-    } catch { toast.error(t('admin.packingTemplates.saveError')) }
-  }
-
-  const handleRenameCategory = async (catId: number) => {
-    if (!editCatName.trim() || !expandedId) { setEditingCatId(null); return }
-    try {
-      await adminApi.updateTemplateCategory(expandedId, catId, { name: editCatName.trim() })
-      setCategories(prev => prev.map(c => c.id === catId ? { ...c, name: editCatName.trim() } : c))
-      setEditingCatId(null)
-    } catch { toast.error(t('admin.packingTemplates.saveError')) }
-  }
-
-  const handleDeleteCategory = async (catId: number) => {
-    if (!expandedId) return
-    try {
-      await adminApi.deleteTemplateCategory(expandedId, catId)
-      setCategories(prev => prev.filter(c => c.id !== catId))
-      setItems(prev => prev.filter(i => i.category_id !== catId))
-    } catch { toast.error(t('admin.toast.deleteError')) }
-  }
-
-  // Item CRUD
-  const handleAddItem = async (catId: number) => {
-    if (!newItemName.trim() || !expandedId) return
-    try {
-      const data = await adminApi.addTemplateItem(expandedId, catId, { name: newItemName.trim() })
-      setItems(prev => [...prev, data.item])
-      setNewItemName('')
-      setTimeout(() => addItemRef.current?.focus(), 30)
-    } catch { toast.error(t('admin.packingTemplates.saveError')) }
-  }
-
-  const handleRenameItem = async (itemId: number) => {
-    if (!editItemName.trim() || !expandedId) { setEditingItemId(null); return }
-    try {
-      await adminApi.updateTemplateItem(expandedId, itemId, { name: editItemName.trim() })
-      setItems(prev => prev.map(i => i.id === itemId ? { ...i, name: editItemName.trim() } : i))
-      setEditingItemId(null)
-    } catch { toast.error(t('admin.packingTemplates.saveError')) }
-  }
-
-  const handleDeleteItem = async (itemId: number) => {
-    if (!expandedId) return
-    try {
-      await adminApi.deleteTemplateItem(expandedId, itemId)
-      setItems(prev => prev.filter(i => i.id !== itemId))
-    } catch { toast.error(t('admin.toast.deleteError')) }
-  }
 
   return (
     <MAdminCard>
@@ -216,7 +84,7 @@ export default function MAdminPackingTemplateManager() {
               autoFocus
               value={createName}
               onChange={e => setCreateName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleCreateTemplate(); if (e.key === 'Escape') setShowCreate(false) }}
+              onKeyDown={e => { if (e.key === 'Enter') void handleCreateTemplate(); if (e.key === 'Escape') setShowCreate(false) }}
               placeholder={t('admin.packingTemplates.namePlaceholder')}
             />
           </div>
@@ -254,14 +122,14 @@ export default function MAdminPackingTemplateManager() {
                       value={editTemplateName}
                       onChange={e => setEditTemplateName(e.target.value)}
                       onBlur={() => handleRenameTemplate(tmpl.id)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleRenameTemplate(tmpl.id); if (e.key === 'Escape') setEditingTemplate(null) }}
+                      onKeyDown={e => { if (e.key === 'Enter') void handleRenameTemplate(tmpl.id); if (e.key === 'Escape') setEditingTemplate(null) }}
                     />
                   </div>
                 ) : (
-                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => toggleExpand(tmpl.id)}>
+                  <button type="button" className="min-w-0 flex-1 text-start" onClick={() => toggleExpand(tmpl.id)}>
                     <div className="truncate text-[0.8125rem] font-bold text-m-ink">{tmpl.name}</div>
                     <div className="mt-[1px] font-geist text-[0.59375rem] text-m-faint">
-                      {tmpl.category_count} {t('admin.packingTemplates.categories')} · {tmpl.item_count} {t('admin.packingTemplates.items')}
+                      {tmpl.category_count} {t('admin.packingTemplates.categories', { count: tmpl.category_count })} · {tmpl.item_count} {t('admin.packingTemplates.items', { count: tmpl.item_count })}
                     </div>
                   </button>
                 )}
@@ -278,7 +146,7 @@ export default function MAdminPackingTemplateManager() {
 
               {/* Expanded content */}
               {expandedId === tmpl.id && (
-                <div className="space-y-2 pb-3 pl-6">
+                <div className="space-y-2 pb-3 ps-6">
                   {categories.map(cat => {
                     const catItems = items.filter(i => i.category_id === cat.id)
                     return (
@@ -292,7 +160,7 @@ export default function MAdminPackingTemplateManager() {
                                 value={editCatName}
                                 onChange={e => setEditCatName(e.target.value)}
                                 onBlur={() => handleRenameCategory(cat.id)}
-                                onKeyDown={e => { if (e.key === 'Enter') handleRenameCategory(cat.id); if (e.key === 'Escape') setEditingCatId(null) }}
+                                onKeyDown={e => { if (e.key === 'Enter') void handleRenameCategory(cat.id); if (e.key === 'Escape') setEditingCatId(null) }}
                               />
                             </div>
                           ) : (
@@ -329,7 +197,7 @@ export default function MAdminPackingTemplateManager() {
                                         autoFocus
                                         value={editItemName}
                                         onChange={e => setEditItemName(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') handleRenameItem(item.id); if (e.key === 'Escape') setEditingItemId(null) }}
+                                        onKeyDown={e => { if (e.key === 'Enter') void handleRenameItem(item.id); if (e.key === 'Escape') setEditingItemId(null) }}
                                       />
                                     </div>
                                     <PkIconBtn size={28} variant="accent" ariaLabel={t('common.save')} onClick={() => handleRenameItem(item.id)}><Check size={13} /></PkIconBtn>
@@ -361,7 +229,7 @@ export default function MAdminPackingTemplateManager() {
                                   ref={addItemRef}
                                   value={newItemName}
                                   onChange={e => setNewItemName(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter' && newItemName.trim()) handleAddItem(cat.id); if (e.key === 'Escape') { setAddingItemToCatId(null); setNewItemName('') } }}
+                                  onKeyDown={e => { if (e.key === 'Enter' && newItemName.trim()) void handleAddItem(cat.id); if (e.key === 'Escape') { setAddingItemToCatId(null); setNewItemName('') } }}
                                   placeholder={t('admin.packingTemplates.itemName')}
                                   className={inlineFieldCls}
                                 />
@@ -383,7 +251,7 @@ export default function MAdminPackingTemplateManager() {
                           autoFocus
                           value={newCatName}
                           onChange={e => setNewCatName(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') handleAddCategory(); if (e.key === 'Escape') { setAddingCategory(false); setNewCatName('') } }}
+                          onKeyDown={e => { if (e.key === 'Enter') void handleAddCategory(); if (e.key === 'Escape') { setAddingCategory(false); setNewCatName('') } }}
                           placeholder={t('admin.packingTemplates.categoryName')}
                         />
                       </div>

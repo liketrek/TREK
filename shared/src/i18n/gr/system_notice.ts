@@ -58,15 +58,19 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.position': 'Ειδοποίηση {current} από {total}',
   'system_notice.release_notes.eyebrow': 'Ενημερώθηκε',
   'system_notice.release_notes.headline': 'Τέσσερα πράγματα που το TREK κάνει πλέον μόνο του.',
-  'system_notice.release_notes.intro': 'Δικό του API τοποθεσιών, οδικά ταξίδια σχεδιασμένα από την αρχή ως το τέλος, το ιστορικό τοποθεσίας σας στα χέρια σας, και τα έγγραφά σας σε συγχρονισμό.',
+  'system_notice.release_notes.intro':
+    'Δικό του API τοποθεσιών, οδικά ταξίδια σχεδιασμένα από την αρχή ως το τέλος, το ιστορικό τοποθεσίας σας στα χέρια σας, και τα έγγραφά σας σε συγχρονισμό.',
   'system_notice.release_notes.features_label': 'Τα σημαντικότερα',
   'system_notice.release_notes.features_aside': 'Και δεν είναι μόνο αυτά',
   'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': 'Ο πρώτος ανοιχτού κώδικα σχεδιαστής ταξιδιών με δικό του API τοποθεσιών. 73,6 εκατ. τοποθεσίες, χωρίς κλειδί, χωρίς όριο.',
+  'system_notice.release_notes.feature_places_body':
+    'Ο πρώτος ανοιχτού κώδικα σχεδιαστής ταξιδιών με δικό του API τοποθεσιών. 73,6 εκατ. τοποθεσίες, χωρίς κλειδί, χωρίς όριο.',
   'system_notice.release_notes.feature_roadtrip_title': 'Πρόσθετο «Οδικό ταξίδι»',
-  'system_notice.release_notes.feature_roadtrip_body': 'Σχεδιάζει τη διαδρομή μόνο του: δρομολόγιο, απόσταση, ώρες και στάσεις. Ανενεργό μέχρι να το ενεργοποιήσει ένας διαχειριστής.',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Σχεδιάζει τη διαδρομή μόνο του: δρομολόγιο, απόσταση, ώρες και στάσεις. Ανενεργό μέχρι να το ενεργοποιήσει ένας διαχειριστής.',
   'system_notice.release_notes.feature_dawarich_title': 'Ενσωμάτωση Dawarich',
-  'system_notice.release_notes.feature_dawarich_body': 'Η εναλλακτική του Google Timeline που φιλοξενείτε μόνοι σας, τώρα ορατή μέσα από το TREK. Το TREK διαβάζει, και μόνο διαβάζει.',
+  'system_notice.release_notes.feature_dawarich_body':
+    'Η εναλλακτική του Google Timeline που φιλοξενείτε μόνοι σας, τώρα ορατή μέσα από το TREK. Το TREK διαβάζει, και μόνο διαβάζει.',
   'system_notice.release_notes.footnote': 'Και ακόμη μια μεγάλη λίστα με μικρότερες αλλαγές σε όλο το υπόλοιπο TREK.',
   'system_notice.release_notes.notes_label': 'Σημειώσεις έκδοσης',
   'system_notice.release_notes.note_eyebrow': 'Μια σημείωση από τον δημιουργό',
@@ -87,6 +91,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Στηρίξτε στο Ko-fi',
   'system_notice.release_notes.feature_docsync_title': 'Συγχρονισμός εγγράφων',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud και Synology Drive. Τα έγγραφα ενός ταξιδιού ρέουν και προς τις δύο κατευθύνσεις με τον χώρο που ήδη χρησιμοποιείτε.',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx, Papra, Nextcloud, OpenCloud και Synology Drive. Τα έγγραφα ενός ταξιδιού ρέουν και προς τις δύο κατευθύνσεις με τον χώρο που ήδη χρησιμοποιείτε.',
 };
 export default system_notice;

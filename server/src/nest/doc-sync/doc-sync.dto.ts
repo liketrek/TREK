@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   docsyncConnectionInputSchema,
   docsyncConnectionTestSchema,
@@ -8,6 +7,8 @@ import {
   docsyncScopeCreateSchema,
   docsyncSyncNowSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Zod DTOs for every mutating route in this domain.

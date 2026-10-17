@@ -57,7 +57,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': '이 인스턴스에서는 Dawarich 애드온이 꺼져 있습니다.',
   'dawarich.error.offline': '연결이 필요합니다 — TREK이 지금 오프라인입니다.',
   'dawarich.error.invalid_url': 'TREK은 이 주소를 사용할 수 없습니다.',
-  'dawarich.warning.private_ip': '이 주소는 사설 IP({ip})를 가리킵니다. 의도한 설정인지 확인하세요. 서버에 ALLOW_INTERNAL_NETWORK=true가 필요할 수 있습니다.',
+  'dawarich.warning.private_ip':
+    '이 주소는 사설 IP({ip})를 가리킵니다. 의도한 설정인지 확인하세요. 서버에 ALLOW_INTERNAL_NETWORK=true가 필요할 수 있습니다.',
   'dawarich.error.unknown': 'Dawarich와 통신하는 중 문제가 발생했습니다.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -112,7 +113,7 @@ const dawarich: TranslationStrings = {
   'dawarich.accept.confirm.journal': '항목 추가',
   'dawarich.accept.confirm.bucket_list': '완료 처리',
   'dawarich.accept.recorded': '{from}부터 {to}까지 기록됨',
-  'dawarich.accept.duration': '{minutes}분',
+  'dawarich.accept.duration': '{count}분',
   'dawarich.accept.name': '이름',
   'dawarich.accept.date': '날짜',
   'dawarich.accept.from': '도착',
@@ -155,9 +156,8 @@ const dawarich: TranslationStrings = {
   'dawarich.atlas.loading': '기록을 읽는 중…',
   'dawarich.atlas.empty': '기록에는 TREK에 아직 없는 국가가 없습니다.',
   'dawarich.atlas.cities': '도시 {count}곳',
-  'dawarich.atlas.citiesOne': '도시 1곳',
-  'dawarich.atlas.accept': '국가 {count}곳 추가',
-  'dawarich.atlas.accepted': '국가 {count}곳을 추가했습니다',
+  'dawarich.atlas.accept': '{count}개국 추가',
+  'dawarich.atlas.accepted': '{count}개국을 추가했습니다',
   'dawarich.atlas.unresolved': 'TREK이 다음 항목을 국가와 연결하지 못했습니다: {names}.',
   'dawarich.atlas.source': 'Dawarich에서',
   'dawarich.atlas.range': '{from}부터 {to}까지 확인함',
@@ -171,10 +171,8 @@ const dawarich: TranslationStrings = {
   'dawarich.again': '다시 확인',
   'dawarich.bucket.metersAway': '{meters} m 거리',
   'dawarich.bucket.kilometersAway': '{km} km 거리',
-  'dawarich.bucket.rule': '{meters} m 이내에서 {minutes}분 이상 머무르면 소원을 이룬 것으로 봅니다.',
-
-  'dawarich.journey.dayStays.one': 'Dawarich 체류 1곳',
-  'dawarich.journey.dayStays.other': 'Dawarich 체류 {count}곳',
+  'dawarich.bucket.rule': '{meters} m 이내에서 {count}분 이상 머무르면 소원을 이룬 것으로 봅니다.',
+  'dawarich.journey.dayStays.other': 'Dawarich 방문 기록 {count}건',
 };
 
 export default dawarich;

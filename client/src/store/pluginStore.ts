@@ -1,4 +1,10 @@
 import { create } from 'zustand'
+import {
+  PLUGIN_POI_MAX_CATEGORIES,
+  PLUGIN_POI_PLUGIN_ID_RE,
+  pluginPoiCategorySchema,
+  type PluginPoiCategory,
+} from '@trek/shared'
 import { pluginsApi } from '../api/client'
 
 const PLUGIN_SESSION_NAMESPACE = 'trek:plugin-session:'
@@ -58,9 +64,42 @@ export interface ActivePlugin {
   /** Routing profiles the planner's route toggle offers (routeProvider hook;
    * the server only sends these when the hook permission is granted). */
   routeProfiles?: Array<{ id: string; label: string; icon?: string }>
+  /** Categories the map's explore pill offers (poiCategoryProvider hook, #1781; the
+   * server only sends these when the hook permission is granted). Re-validated on
+   * arrival by readPoiCategories, so everything here is safe to draw. */
+  poiCategories?: PluginPoiCategory[]
+  /** The plugin holds hook:search-provider (#2221), so the place search also asks the
+   * plugin route while it is typed; that route only reaches the plugins whose build
+   * implements `suggest`. */
+  searchProvider?: true
   /** The plugin holds the geolocation:read grant — its frames may ask the host
    * for the browser position over the bridge. */
   geolocation?: true
+}
+
+/**
+ * A plugin's POI categories as the feed sent them, checked again against the shared
+ * schema before anything draws them: the colour lands in marker markup and the label
+ * in the pill, so an entry the schema refuses is dropped rather than rendered. So is a
+ * repeated id (the pill key must be unique), anything past the cap, and everything
+ * when the plugin id could not be read back out of a pill key.
+ */
+export function readPoiCategories(pluginId: string, raw: unknown): PluginPoiCategory[] {
+  if (!Array.isArray(raw) || typeof pluginId !== 'string' || !PLUGIN_POI_PLUGIN_ID_RE.test(pluginId)) return []
+  const out: PluginPoiCategory[] = []
+  for (const entry of raw.slice(0, PLUGIN_POI_MAX_CATEGORIES)) {
+    const parsed = pluginPoiCategorySchema.safeParse(entry)
+    if (parsed.success && !out.some(c => c.id === parsed.data.id)) out.push(parsed.data)
+  }
+  return out
+}
+
+/** One feed entry with its POI categories re-validated, and the key gone when none survive. */
+function withPoiCategories(plugin: ActivePlugin): ActivePlugin {
+  const { poiCategories: raw, ...rest } = plugin
+  if (raw === undefined) return plugin
+  const poiCategories = readPoiCategories(plugin.id, raw)
+  return poiCategories.length ? { ...rest, poiCategories } : rest
 }
 
 interface PluginState {
@@ -83,7 +122,7 @@ export const usePluginStore = create<PluginState>((set, get) => ({
   loadPlugins: async () => {
     try {
       const data = await pluginsApi.active()
-      const plugins = (data.plugins as ActivePlugin[]) || []
+      const plugins = ((data.plugins as ActivePlugin[]) || []).map(withPoiCategories)
       set({ plugins, loaded: true })
       // After the state is committed: a sessionStorage failure (Safari private
       // mode, quota) must not cost us the plugin list we just fetched.

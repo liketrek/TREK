@@ -1,10 +1,11 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { DatabaseService } from '../../database/database.service';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
+import { TripAccessService } from '../../trip-membership/trip-access.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/map-layers/:tripId — bounded vector overlays plugins draw on the trip map
@@ -99,7 +100,9 @@ function normalize(pluginId: string, raw: unknown): MapLayer[] {
     const id = cap(l.id, 64);
     if (!id) continue;
     const feats: MapLayerFeature[] = [];
-    const rawFeats = Array.isArray(l.features) ? (l.features as Array<Record<string, unknown>>).slice(0, MAX_RAW_FEATURES) : [];
+    const rawFeats = Array.isArray(l.features)
+      ? (l.features as Array<Record<string, unknown>>).slice(0, MAX_RAW_FEATURES)
+      : [];
     for (const f of rawFeats) {
       if (features >= MAX_FEATURES || points >= MAX_POINTS) break;
       if (!f || typeof f !== 'object') continue;
@@ -147,7 +150,7 @@ function normalize(pluginId: string, raw: unknown): MapLayer[] {
 export class MapLayersController {
   constructor(
     private readonly hooks: PluginHooks,
-    private readonly dbs: DatabaseService,
+    private readonly trips: TripAccessService,
   ) {}
 
   @Get(':tripId')
@@ -158,7 +161,8 @@ export class MapLayersController {
     if (!pluginsEnabled()) return { layers: [] };
     const tripId = Number(tripIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(tripId) || userId == null || !this.dbs.canAccessTrip(tripId, userId)) return { layers: [] };
+    if (!Number.isFinite(tripId) || userId == null || !(await this.trips.findAccessible(tripId, userId)))
+      return { layers: [] };
 
     const ids = this.hooks.providersOf('mapLayerProvider');
     const perProvider = await Promise.all(

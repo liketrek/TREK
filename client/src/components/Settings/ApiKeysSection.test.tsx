@@ -155,14 +155,14 @@ describe('ApiKeysSection', () => {
     const user = userEvent.setup();
     renderSection();
 
-    await user.click(await screen.findByTitle('Delete key'));
+    await user.click(await screen.findByRole('button', { name: 'Delete key' }));
     expect(deleted).toBe(0);
     expect(screen.getByText(/stops working immediately/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /^Cancel$/ }));
     expect(deleted).toBe(0);
 
-    await user.click(await screen.findByTitle('Delete key'));
+    await user.click(await screen.findByRole('button', { name: 'Delete key' }));
     const [, confirm] = screen.getAllByRole('button', { name: /Delete key/ });
     await user.click(confirm);
     await waitFor(() => expect(deleted).toBe(1));

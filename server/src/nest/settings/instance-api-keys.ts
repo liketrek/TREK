@@ -1,4 +1,6 @@
-import { DatabaseService } from '../database/database.service';
+import { readEnv } from '../../app-config';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { UsersRepository, InstanceApiKeyName } from '../../db/repositories/Users.repository';
 import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import type { ApiKeySource } from '@trek/shared';
 
@@ -17,8 +19,12 @@ import type { ApiKeySource } from '@trek/shared';
  * Stored as an encrypted `app_settings` row under the name below, reusing
  * apiKeyCrypto, so the format matches what the users columns already hold and
  * a legacy plaintext value still reads back.
+ *
+ * `InstanceApiKeyName` itself now lives on `Users.repository.ts` (Plan 3a Task
+ * 0/5) — re-exported here so this module's existing external imports of the
+ * type (`auth/user-profile.service.ts` and others) keep working unchanged.
  */
-export type InstanceApiKeyName = 'maps_api_key' | 'unsplash_api_key' | 'amap_api_key';
+export type { InstanceApiKeyName };
 
 /** Instance names whose per-user column is still honoured as a last resort. */
 export const INSTANCE_API_KEY_NAMES: readonly InstanceApiKeyName[] = [
@@ -37,20 +43,65 @@ export const INSTANCE_API_KEY_NAMES: readonly InstanceApiKeyName[] = [
  */
 export type { ApiKeySource };
 
-// Full statements rather than an interpolated column: the name doubles as the
-// users column AND the app_settings key, and identifiers only ever come from a
-// literal allow-list.
-const USER_ROW_SQL: Record<InstanceApiKeyName, string> = {
-  maps_api_key: 'SELECT maps_api_key FROM users WHERE id = ?',
-  unsplash_api_key: 'SELECT unsplash_api_key FROM users WHERE id = ?',
-  amap_api_key: 'SELECT amap_api_key FROM users WHERE id = ?',
+/**
+ * These three functions used to take the raw-connection wrapper class
+ * (`nest/database/database.service.ts`'s injectable) and run raw SQL through
+ * it. They now take the caller's own `AppSettingsRepository`/`UsersRepository`
+ * directly — every one of the six callers (`nest/addons`, `nest/auth` × 2,
+ * `nest/maps`, `nest/transit`, `nest/unsplash`) constructor-injects them via
+ * `@InjectRepository` and its own module's `MikroOrmModule.forFeature`, the
+ * same wiring pattern every other converted domain in this plan uses.
+ *
+ * An earlier version of this file resolved the repositories itself from the
+ * ACTIVE MikroORM request context (`RequestContext.getEntityManager()`)
+ * instead of taking them as parameters, so none of the six callers' modules
+ * needed new wiring. That worked in production and in e2e (both always run
+ * inside a real request context, D6) but broke everywhere a unit test
+ * constructs one of those six services directly with no MikroORM context at
+ * all — which turned out to be the norm, not the exception: a full `npm run
+ * test` run surfaced 185 failures across 12 files
+ * (`addons.service.test.ts`, `auth.service.test.ts`,
+ * `user-profile.service.test.ts`, `maps.service.test.ts` and its siblings,
+ * `google-transit.provider.test.ts`, `unsplash.service.test.ts`,
+ * `places.service.test.ts` transitively via maps, plus the one MCP-harness
+ * case this was first caught from). Explicit repository parameters, matching
+ * how every other converted repository in this migration is consumed, has no
+ * such failure mode: a repository built via `t.repo(X)` (`allowGlobalContext:
+ * true` in tests) works with or without a request context, exactly like
+ * `AppSettingsRepository`'s/`SettingsRepository`'s own tests already prove.
+ */
+async function readInstanceValue(appSettings: AppSettingsRepository, name: InstanceApiKeyName): Promise<string | null> {
+  const value = await appSettings.getValue(name);
+  if (!value) return null;
+  return decrypt_api_key(value) || null;
+}
+
+/**
+ * The environment variable that overrides each instance key. Whatever it holds
+ * is the operator key resolveApiKey puts first, so the admin panel names the
+ * variable rather than showing a field that nothing reads (#1881).
+ */
+const OPERATOR_KEY_ENV: Record<InstanceApiKeyName, { variable: string; read: () => string | undefined }> = {
+  maps_api_key: { variable: 'PLACES_API_KEY', read: () => readEnv().maps.placesApiKey },
+  unsplash_api_key: { variable: 'UNSPLASH_ACCESS_KEY', read: () => readEnv().integrations.unsplashAccessKey },
+  amap_api_key: { variable: 'AMAP_API_KEY', read: () => readEnv().maps.amapApiKey },
 };
 
+/** The instance keys an environment variable sets, each with that variable's name. Never the value. */
+export function operatorKeyVariables(): Partial<Record<InstanceApiKeyName, string>> {
+  const set: Partial<Record<InstanceApiKeyName, string>> = {};
+  for (const name of INSTANCE_API_KEY_NAMES) {
+    if (OPERATOR_KEY_ENV[name].read()) set[name] = OPERATOR_KEY_ENV[name].variable;
+  }
+  return set;
+}
+
 /** The instance-wide value in cleartext, or null when unset/cleared. */
-export function readInstanceApiKey(db: DatabaseService, name: InstanceApiKeyName): string | null {
-  const row = db.get<{ value: string | null }>('SELECT value FROM app_settings WHERE key = ?', name);
-  if (!row?.value) return null;
-  return decrypt_api_key(row.value) || null;
+export async function readInstanceApiKey(
+  appSettings: AppSettingsRepository,
+  name: InstanceApiKeyName,
+): Promise<string | null> {
+  return readInstanceValue(appSettings, name);
 }
 
 /**
@@ -59,12 +110,12 @@ export function readInstanceApiKey(db: DatabaseService, name: InstanceApiKeyName
  * key", and a missing row would let the resolver fall through to whatever old
  * value still sits in their own users column.
  */
-export function writeInstanceApiKey(db: DatabaseService, name: InstanceApiKeyName, value: unknown): void {
-  db.run(
-    `INSERT INTO app_settings (key, value) VALUES (?, ?)
-     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-    name, maybe_encrypt_api_key(value) ?? ''
-  );
+export async function writeInstanceApiKey(
+  appSettings: AppSettingsRepository,
+  name: InstanceApiKeyName,
+  value: unknown,
+): Promise<void> {
+  await appSettings.setValue(name, maybe_encrypt_api_key(value) ?? '');
 }
 
 /**
@@ -79,20 +130,24 @@ export function writeInstanceApiKey(db: DatabaseService, name: InstanceApiKeyNam
  *
  * `userId` 0 means "nobody is asking" (the unauthenticated app-config read):
  * there is no personal key to find, so the chain ends at the instance.
+ *
+ * The per-user fallback used to be a literal `USER_ROW_SQL[name]` statement
+ * map; it is now `UsersRepository.getApiKeyColumn(userId, name)`, the typed
+ * dispatch `Users.repository.ts` (Plan 3a Task 0) already provides.
  */
-export function resolveApiKey(
-  db: DatabaseService,
+export async function resolveApiKey(
+  appSettings: AppSettingsRepository,
+  users: UsersRepository,
   name: InstanceApiKeyName,
   userId: number,
   operatorKey: string | undefined,
-): { key: string | null; source: ApiKeySource | null } {
+): Promise<{ key: string | null; source: ApiKeySource | null }> {
   if (operatorKey) return { key: operatorKey, source: 'operator-env' };
 
-  const instance = readInstanceApiKey(db, name);
+  const instance = await readInstanceValue(appSettings, name);
   if (instance) return { key: instance, source: 'instance' };
   if (!userId) return { key: null, source: null };
 
-  const row = db.get<Record<string, string | null>>(USER_ROW_SQL[name], userId);
-  const own = decrypt_api_key(row?.[name]) || null;
+  const own = decrypt_api_key(await users.getApiKeyColumn(userId, name)) || null;
   return own ? { key: own, source: 'user-row' } : { key: null, source: null };
 }

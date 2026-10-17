@@ -85,6 +85,7 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': 'Draag resterende vakantiedagen automatisch over naar het volgende jaar',
   'vacay.carriedOverPrevPeriod': 'van de vorige periode',
   'vacay.compUsedCount': '{count} compensatie',
+  'vacay.compUsedCount.one': '{count} compensatie',
   'vacay.yearType': 'Vakantiejaar',
   'vacay.yearTypeHint': 'Wanneer je vakantiejaar begint — recht, gebruik en overdracht richten zich daarnaar',
   'vacay.yearTypeCalendar': 'Kalenderjaar',

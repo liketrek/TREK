@@ -5,14 +5,16 @@ export interface UndoEntry {
   undo: () => Promise<void> | void
   /** The days the step acts on. Deleting one of them drops the step. */
   dayIds?: number[]
+  /** Place-backed steps become invalid if one of their Tour places is permanently deleted. */
+  placeIds?: number[]
 }
 
 export function usePlannerHistory(maxEntries = 30) {
   const historyRef = useRef<UndoEntry[]>([])
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0)
 
-  const pushUndo = (label: string, undoFn: () => Promise<void> | void, dayIds?: number[]) => {
-    historyRef.current = [{ label, undo: undoFn, dayIds }, ...historyRef.current].slice(0, maxEntries)
+  const pushUndo = (label: string, undoFn: () => Promise<void> | void, dayIds?: number[], placeIds?: number[]) => {
+    historyRef.current = [{ label, undo: undoFn, dayIds, placeIds }, ...historyRef.current].slice(0, maxEntries)
     forceUpdate()
   }
 
@@ -45,8 +47,15 @@ export function usePlannerHistory(maxEntries = 30) {
     forceUpdate()
   }, [])
 
+  const forgetPlace = useCallback((placeId: number) => {
+    const kept = historyRef.current.filter(entry => !entry.placeIds?.includes(placeId))
+    if (kept.length === historyRef.current.length) return
+    historyRef.current = kept
+    forceUpdate()
+  }, [])
+
   const canUndo = historyRef.current.length > 0
   const lastActionLabel = historyRef.current[0]?.label ?? null
 
-  return { pushUndo, undo, forgetDay, canUndo, lastActionLabel }
+  return { pushUndo, undo, forgetDay, forgetPlace, canUndo, lastActionLabel }
 }

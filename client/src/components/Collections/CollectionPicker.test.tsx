@@ -1,4 +1,4 @@
-// FE-COMP-COLPICKER-001 to FE-COMP-COLPICKER-016
+// FE-COMP-COLPICKER-001 to FE-COMP-COLPICKER-021
 import React from 'react'
 import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render'
 import type { Collection, CollectionDetailResponse, CollectionPlace } from '@trek/shared'
@@ -177,7 +177,7 @@ describe('CollectionPicker', () => {
   it('FE-COMP-COLPICKER-010: the status dropdown filters by saved status', async () => {
     setup()
     await screen.findByText('Zebra Cafe')
-    fireEvent.click(screen.getByRole('button', { name: /^All$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Status.*All/ }))
     fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /Visited/ }))
 
     expect(screen.getByText('Mystery Spot')).toBeInTheDocument()
@@ -248,5 +248,53 @@ describe('CollectionPicker', () => {
     expect(await screen.findByText('No saved places to add')).toBeInTheDocument()
     expect(collectionsApi.get).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: /All lists/ })).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * FE-COMP-COLPICKER-019..020 — the column in the place dialog's look: a labelled
+ * search that says what it searches, and rows named by what they show.
+ */
+describe('CollectionPicker in the place dialog', () => {
+  beforeEach(() => {
+    resetAllStores()
+    seedStore(useAuthStore, { user: buildUser(), placesPhotosEnabled: false })
+    vi.spyOn(collectionsApi, 'list').mockResolvedValue({ collections: [listA, listB], incomingInvites: [] })
+    vi.spyOn(collectionsApi, 'get').mockImplementation(async (id: number) =>
+      id === 1 ? detail(listA, [zebra]) : detail(listB, [alpha, noCoords]),
+    )
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('FE-COMP-COLPICKER-019: the search has its own label and is named after the saved places', async () => {
+    setup()
+    await screen.findByText('Zebra Cafe')
+    const search = screen.getByRole('textbox', { name: 'Search your saved places' })
+    expect(search).toBe(screen.getByPlaceholderText('Search your saved places'))
+    expect(screen.getByText('Search', { selector: 'label' })).toHaveAttribute('for', search.id)
+    expect(screen.getByRole('heading', { name: 'Saved places' })).toBeInTheDocument()
+  })
+
+  it('FE-COMP-COLPICKER-020: a row carries no native tooltip; its name and address say what it adds', async () => {
+    setup()
+    const row = await screen.findByRole('button', { name: /Zebra Cafe/ })
+    expect(row).not.toHaveAttribute('title')
+    expect(row).toHaveTextContent('Zebra CafeShibuya 1')
+  })
+
+  it('FE-COMP-COLPICKER-021: each filter has its own label, which names its trigger and its list', async () => {
+    setup()
+    await screen.findByText('Zebra Cafe')
+    const lists = screen.getByRole('button', { name: 'Collections All lists' })
+    const status = screen.getByRole('button', { name: 'Status All' })
+    expect(screen.getByText('Collections', { selector: 'span' })).toHaveAttribute('id', lists.getAttribute('aria-labelledby')?.split(' ')[0])
+    fireEvent.click(status)
+    expect(screen.getByRole('listbox', { name: 'Status' })).toBeInTheDocument()
+    // Picking changes the value half of the name, never the label half.
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: /Visited/ }))
+    expect(screen.getByRole('button', { name: /^Status Visited/ })).toBe(status)
   })
 })

@@ -71,7 +71,7 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': 'Dihapus di TREK',
   'docsync.state.scope_drift': 'Dipindahkan keluar folder',
 
-  'docsync.conflict.resolve': "Selesaikan {count}",
+  'docsync.conflict.resolve': 'Selesaikan {count}',
 
   'docsync.conflict.title': 'Kedua salinan berubah',
   'docsync.conflict.keepTrek': 'Pertahankan versi TREK',
@@ -178,7 +178,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Transfer tidak berhasil.',
 
   'docsync.error.unknown_provider': 'Penyedia ini tidak tersedia di instans ini.',
-  'docsync.error.provider_disabled': 'Dijeda: administrator menonaktifkan penyedia ini. Sinkronisasi berlanjut setelah penyedia diaktifkan kembali.',
+  'docsync.error.provider_disabled':
+    'Dijeda: administrator menonaktifkan penyedia ini. Sinkronisasi berlanjut setelah penyedia diaktifkan kembali.',
   'docsync.binding.reconnect': 'Hubungkan ulang',
 };
 

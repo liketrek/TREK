@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import MCollabChat from '../../../../src/mobile/screens/trip/tabs/MCollabChat'
-import type { ChatMessage } from '../../../../src/mobile/screens/trip/tabs/collabModel'
+import type { ChatMessage } from '../../../../src/components/Collab/collabModel'
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { addListener, removeListener } from '../../../../src/api/websocket'
 import { useAuthStore } from '../../../../src/store/authStore'

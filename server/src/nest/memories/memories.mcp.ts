@@ -1,13 +1,20 @@
-import {
-  McpController, Tool, TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
-  errorResult, ok, type McpContext,
-} from '../../nest-mcp';
-import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
+import { PhotoProviders } from '../../db/entities/PhotoProviders.entity';
+import type { PhotoProvidersRepository } from '../../db/repositories/PhotoProviders.repository';
+import {
+  McpController,
+  Tool,
+  TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+  errorResult,
+  ok,
+  type McpContext,
+} from '../../nest-mcp';
 import { AddonsService } from '../addons/addons.service';
-import { DatabaseService } from '../database/database.service';
 import { ImmichService } from './immich.service';
 import { SynologyService } from './synology.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+
+import { z } from 'zod';
 
 /**
  * The photo backends TREK can talk to, named rather than taken as a free
@@ -38,8 +45,8 @@ const SYNOLOGY_DEFAULT_LIMIT = 100;
  * provider counts as on, whatever its row says. Which of the two providers is
  * on is a per-call question, answered by providerRefusal().
  */
-const anyPhotoProviderEnabled = (_ctx: McpContext, self: MemoriesMcp): boolean =>
-  self.enabledProviderIds().length > 0;
+const anyPhotoProviderEnabled = async (_ctx: McpContext, self: MemoriesMcp): Promise<boolean> =>
+  (await self.enabledProviderIds()).length > 0;
 
 /**
  * Memories MCP surface: finding photos in a connected Immich or Synology Photos
@@ -65,17 +72,17 @@ export class MemoriesMcp {
   constructor(
     private readonly immich: ImmichService,
     private readonly synology: SynologyService,
-    private readonly db: DatabaseService,
     private readonly addons: AddonsService,
+    @InjectRepository(PhotoProviders) private readonly photoProviders: PhotoProvidersRepository,
   ) {}
 
   /**
    * Public because the `when:` gate above is a module-level function rather than
    * a method, the same reason the addon gates need a public `addons`.
    */
-  enabledProviderIds(): string[] {
-    if (!this.addons.isAddonEnabled(ADDON_IDS.JOURNEY)) return [];
-    return this.db.all<{ id: string }>('SELECT id FROM photo_providers WHERE enabled = 1').map((row) => row.id);
+  async enabledProviderIds(): Promise<string[]> {
+    if (!(await this.addons.isAddonEnabled(ADDON_IDS.JOURNEY))) return [];
+    return await this.photoProviders.listEnabledIds();
   }
 
   /**
@@ -84,39 +91,74 @@ export class MemoriesMcp {
    * disabled provider refuses the same way on both surfaces. The browse routes
    * themselves never checked it, so this only ever narrows what REST allows.
    */
-  private providerRefusal(provider: ProviderId) {
-    const row = this.db.get<{ enabled: number }>('SELECT enabled FROM photo_providers WHERE id = ?', provider);
+  private async providerRefusal(provider: ProviderId) {
+    const row = await this.photoProviders.findEnabled(provider);
     if (!row) return errorResult(`Provider: "${provider}" is not supported`);
-    if (row.enabled !== 1 || !this.addons.isAddonEnabled(ADDON_IDS.JOURNEY))
+    if (row.enabled !== 1 || !(await this.addons.isAddonEnabled(ADDON_IDS.JOURNEY)))
       return errorResult(`Provider: "${provider}" is not enabled, contact server administrator`);
     return null;
   }
 
   @Tool({
     name: 'search_provider_photos',
-    description: 'Search a connected photo library (Immich or Synology Photos) by capture date and return the matching asset ids with their capture time, place and coordinates. Start here when the user asks for the photos of a trip, a journey or a single day, then pass the ids on to add_journey_provider_photos. Prefer list_provider_albums when the user names an album instead of a date range. Metadata only: no image data crosses the wire, and the pictures themselves are fetched by the app, not by this tool.',
+    description:
+      'Search a connected photo library (Immich or Synology Photos) by capture date and return the matching asset ids with their capture time, place and coordinates. Start here when the user asks for the photos of a trip, a journey or a single day, then pass the ids on to add_journey_provider_photos. Prefer list_provider_albums when the user names an album instead of a date range. Metadata only: no image data crosses the wire, and the pictures themselves are fetched by the app, not by this tool.',
     inputSchema: {
       provider: PROVIDER.describe('Which connected library to search'),
       from: ISO_DATE.optional().describe('Earliest capture date, YYYY-MM-DD, inclusive'),
       to: ISO_DATE.optional().describe('Latest capture date, YYYY-MM-DD, inclusive'),
-      page: z.number().int().min(1).optional().describe('1-based page number, defaults to 1. Page forward while hasMore is true'),
-      size: z.number().int().min(1).max(MAX_PAGE_SIZE).optional().describe(`Photos per page, at most ${MAX_PAGE_SIZE}. Defaults to ${IMMICH_DEFAULT_SIZE} for Immich and ${SYNOLOGY_DEFAULT_LIMIT} for Synology Photos, as the REST routes do`),
-      utc_offset_minutes: z.number().int().min(-720).max(840).optional().describe('Which zone the dates are meant in, as minutes east of UTC (600 for UTC+10, -480 for UTC-8). Omitted means they name UTC days. Only Synology Photos needs it; Immich answers by the local capture date stored on each photo'),
+      page: z
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe('1-based page number, defaults to 1. Page forward while hasMore is true'),
+      size: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_PAGE_SIZE)
+        .optional()
+        .describe(
+          `Photos per page, at most ${MAX_PAGE_SIZE}. Defaults to ${IMMICH_DEFAULT_SIZE} for Immich and ${SYNOLOGY_DEFAULT_LIMIT} for Synology Photos, as the REST routes do`,
+        ),
+      utc_offset_minutes: z
+        .number()
+        .int()
+        .min(-720)
+        .max(840)
+        .optional()
+        .describe(
+          'Which zone the dates are meant in, as minutes east of UTC (600 for UTC+10, -480 for UTC-8). Omitted means they name UTC days. Only Synology Photos needs it; Immich answers by the local capture date stored on each photo',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
     when: anyPhotoProviderEnabled,
     access: { group: 'journey', mode: 'read' },
   })
   async searchProviderPhotos(
-    { provider, from, to, page, size, utc_offset_minutes }: { provider: ProviderId; from?: string; to?: string; page?: number; size?: number; utc_offset_minutes?: number },
+    {
+      provider,
+      from,
+      to,
+      page,
+      size,
+      utc_offset_minutes,
+    }: { provider: ProviderId; from?: string; to?: string; page?: number; size?: number; utc_offset_minutes?: number },
     ctx: McpContext,
   ) {
-    const refused = this.providerRefusal(provider);
-    if (refused) return refused;
+    const refused = await this.providerRefusal(provider);
+    if (await refused) return refused;
 
     if (provider === 'immich') {
       // Same coercion the REST route performs on the body before calling.
-      const result = await this.immich.searchPhotos(ctx.userId, from, to, Math.max(1, page ?? 1), Math.min(size ?? IMMICH_DEFAULT_SIZE, MAX_PAGE_SIZE));
+      const result = await this.immich.searchPhotos(
+        ctx.userId,
+        from,
+        to,
+        Math.max(1, page ?? 1),
+        Math.min(size ?? IMMICH_DEFAULT_SIZE, MAX_PAGE_SIZE),
+      );
       if (result.error) return errorResult(result.error);
       return ok({ provider, assets: result.assets ?? [], hasMore: !!result.hasMore });
     }
@@ -128,14 +170,22 @@ export class MemoriesMcp {
     const pageIndex = (page ?? 1) - 1;
     // Synology stores instants and knows nothing about the caller's zone, so a
     // date-only bound is a UTC day unless the caller says which one it meant.
-    const result = await this.synology.searchSynologyPhotos(ctx.userId, from, to, pageIndex > 0 ? pageIndex * limit : 0, limit, utc_offset_minutes ?? 0);
+    const result = await this.synology.searchSynologyPhotos(
+      ctx.userId,
+      from,
+      to,
+      pageIndex > 0 ? pageIndex * limit : 0,
+      limit,
+      utc_offset_minutes ?? 0,
+    );
     if ('error' in result) return errorResult(result.error.message);
     return ok({ provider, assets: result.data.assets, total: result.data.total, hasMore: result.data.hasMore });
   }
 
   @Tool({
     name: 'list_provider_albums',
-    description: 'List the albums of a connected photo library (Immich or Synology Photos), with each album id, name and photo count. Use this when the user names an album ("the Rome album") rather than a date range, then read its photos with list_provider_album_photos. For "photos from that week" use search_provider_photos instead.',
+    description:
+      'List the albums of a connected photo library (Immich or Synology Photos), with each album id, name and photo count. Use this when the user names an album ("the Rome album") rather than a date range, then read its photos with list_provider_album_photos. For "photos from that week" use search_provider_photos instead.',
     inputSchema: {
       provider: PROVIDER.describe('Which connected library to list albums from'),
     },
@@ -144,8 +194,8 @@ export class MemoriesMcp {
     access: { group: 'journey', mode: 'read' },
   })
   async listProviderAlbums({ provider }: { provider: ProviderId }, ctx: McpContext) {
-    const refused = this.providerRefusal(provider);
-    if (refused) return refused;
+    const refused = await this.providerRefusal(provider);
+    if (await refused) return refused;
 
     if (provider === 'immich') {
       const result = await this.immich.listAlbums(ctx.userId);
@@ -163,11 +213,18 @@ export class MemoriesMcp {
 
   @Tool({
     name: 'list_provider_album_photos',
-    description: 'List every photo in one album of a connected library, with asset ids, capture times and coordinates. Follow list_provider_albums with this once the right album is known, then hand the asset ids to add_journey_provider_photos. Metadata only, and unpaginated: a large album comes back whole.',
+    description:
+      'List every photo in one album of a connected library, with asset ids, capture times and coordinates. Follow list_provider_albums with this once the right album is known, then hand the asset ids to add_journey_provider_photos. Metadata only, and unpaginated: a large album comes back whole.',
     inputSchema: {
       provider: PROVIDER.describe('Which connected library the album lives in'),
       album_id: z.string().min(1).describe('Album id as returned by list_provider_albums'),
-      passphrase: z.string().min(1).optional().describe('Only for a Synology Photos album that was shared with the user: pass back the passphrase list_provider_albums returned for it, otherwise the album cannot be opened'),
+      passphrase: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'Only for a Synology Photos album that was shared with the user: pass back the passphrase list_provider_albums returned for it, otherwise the album cannot be opened',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
     when: anyPhotoProviderEnabled,
@@ -177,8 +234,8 @@ export class MemoriesMcp {
     { provider, album_id, passphrase }: { provider: ProviderId; album_id: string; passphrase?: string },
     ctx: McpContext,
   ) {
-    const refused = this.providerRefusal(provider);
-    if (refused) return refused;
+    const refused = await this.providerRefusal(provider);
+    if (await refused) return refused;
 
     if (provider === 'immich') {
       const result = await this.immich.getAlbumPhotos(ctx.userId, album_id);

@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const gr: NotificationLocale = {
   email: {
@@ -37,8 +38,14 @@ const gr: NotificationLocale = {
       body: `Ο/Η ${p.actor} σας προσκάλεσε να μοιραστείτε μια συλλογή. Ανοίξτε το TREK για να αποδεχτείτε ή να απορρίψετε.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} φωτογραφίες κοινοποιήθηκαν`,
-      body: `Ο/Η ${p.actor} κοινοποίησε ${p.count} φωτογραφία/ες στο "${p.trip}".`,
+      title: pluralForm(p.count, 'el', {
+        one: `${p.count} φωτογραφία κοινοποιήθηκε`,
+        other: `${p.count} φωτογραφίες κοινοποιήθηκαν`,
+      }),
+      body: pluralForm(p.count, 'el', {
+        one: `Ο/Η ${p.actor} κοινοποίησε ${p.count} φωτογραφία στο "${p.trip}".`,
+        other: `Ο/Η ${p.actor} κοινοποίησε ${p.count} φωτογραφίες στο "${p.trip}".`,
+      }),
     }),
     collab_message: (p) => ({
       title: `Νέο μήνυμα στο "${p.trip}"`,
@@ -56,7 +63,12 @@ const gr: NotificationLocale = {
       title: 'Αποτυχία αντιγράφου αποθήκευσης',
       body:
         `Η εγγραφή στο αντίγραφο '${p.backend}' απέτυχε: ${p.op} του ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` ${p.suppressed} επιπλέον αποτυχίες αποκρύφθηκαν από την τελευταία ειδοποίηση.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'el', {
+              one: ` ${p.suppressed} επιπλέον αποτυχία αποκρύφθηκε από την τελευταία ειδοποίηση και μετά.`,
+              other: ` ${p.suppressed} επιπλέον αποτυχίες αποκρύφθηκαν από την τελευταία ειδοποίηση και μετά.`,
+            })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Η σύνδεση Synology τερματίστηκε',

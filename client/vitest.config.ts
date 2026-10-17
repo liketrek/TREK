@@ -21,8 +21,12 @@ export default defineConfig({
     testTimeout: 15000,
     hookTimeout: 15000,
     pool: 'forks',
-    silent: false,
-    reporters: ['verbose'],
+    // Console output is kept for failing tests and dropped for passing ones: a
+    // green run used to print ~30k lines of MSW and act() warnings. `default`
+    // prints one line per file and the full detail only for failures; on CI the
+    // github-actions reporter adds inline annotations on the PR.
+    silent: 'passed-only',
+    reporters: process.env.CI ? ['default', 'github-actions'] : ['default'],
     coverage: {
       provider: 'v8',
       reporter: ['lcov', 'text'],

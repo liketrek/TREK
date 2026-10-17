@@ -97,7 +97,8 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 0 18px 0 10px;
+  padding-block: 0;
+  padding-inline: 10px 18px;
   min-width: 0;
   background: var(--glass-bg);
   border-bottom: 1px solid var(--glass-border);
@@ -142,10 +143,10 @@
   align-items: center;
   gap: 7px;
   flex: none;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 /* The undo/redo pair belongs together; everything else in the group breathes. */
-.trek-dash .st-bar-group .st-tool.is-icon + .st-tool.is-icon { margin-left: -5px; }
+.trek-dash .st-bar-group .st-tool.is-icon + .st-tool.is-icon { margin-inline-start: -5px; }
 
 .trek-dash .st-tool {
   display: inline-flex;
@@ -188,7 +189,7 @@
 .trek-dash .st-menu {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  inset-inline-end: 0;
   z-index: 3;
   min-width: 240px;
   padding: 8px;
@@ -220,7 +221,7 @@
   gap: 14px;
   padding: 9px 16px;
   border-radius: 10px;
-  text-align: left;
+  text-align: start;
   color: var(--ink-2);
   transition: background .16s, color .16s;
 }
@@ -282,7 +283,7 @@
   .trek-dash .st-inspector {
     position: absolute;
     top: 56px;
-    right: 0;
+    inset-inline-end: 0;
     bottom: 0;
     width: 300px;
     box-shadow: var(--sh-lg);
@@ -293,7 +294,7 @@
   .trek-dash .st-side {
     position: absolute;
     top: 56px;
-    left: 64px;
+    inset-inline-start: 64px;
     bottom: 0;
     width: 236px;
     box-shadow: var(--sh-lg);
@@ -309,8 +310,8 @@
   min-height: 0;
   z-index: 1;
 }
-.trek-dash .st-pages { border-right: 1px solid var(--glass-border); }
-.trek-dash .st-inspector { border-left: 1px solid var(--glass-border); }
+.trek-dash .st-pages { border-inline-end: 1px solid var(--glass-border); }
+.trek-dash .st-inspector { border-inline-start: 1px solid var(--glass-border); }
 
 .trek-dash .st-panel-head {
   display: flex;
@@ -386,7 +387,7 @@
   border: 2px solid transparent;
   padding: 3px;
   transition: border-color .18s, background .18s;
-  text-align: left;
+  text-align: start;
 }
 .trek-dash .st-thumb:focus { outline: none; }
 .trek-dash .st-thumb:focus-visible { border-color: var(--accent); }
@@ -499,7 +500,7 @@
   gap: 2px;
   padding: 8px 6px;
   background: var(--glass-bg);
-  border-right: 1px solid var(--glass-border);
+  border-inline-end: 1px solid var(--glass-border);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   z-index: 1;
@@ -527,7 +528,7 @@
 .trek-dash .st-rail-btn:hover { background: color-mix(in oklch, var(--ink) 6%, transparent); color: var(--ink-2); }
 .trek-dash .st-rail-btn.is-on { background: var(--accent-soft); color: var(--accent-ink); }
 
-.trek-dash .st-side { border-right: 1px solid var(--glass-border); }
+.trek-dash .st-side { border-inline-end: 1px solid var(--glass-border); }
 
 .trek-dash .st-tabs {
   display: flex;
@@ -562,7 +563,7 @@
   justify-content: center;
   min-width: 16px;
   height: 15px;
-  margin-left: 5px;
+  margin-inline-start: 5px;
   padding: 0 4px;
   border-radius: 999px;
   background: color-mix(in oklch, var(--ink) 10%, transparent);
@@ -641,7 +642,7 @@
   background: transparent;
   color: var(--ink-3);
   font-weight: 500;
-  padding-left: 2px;
+  padding-inline-start: 2px;
   flex: 0 1 auto;
   min-width: 0;
 }
@@ -682,7 +683,7 @@
   height: 44px;
   padding: 0 13px;
   border-radius: 10px;
-  text-align: left;
+  text-align: start;
   color: var(--ink);
   background: color-mix(in oklch, var(--surface) 65%, transparent);
   border: 1px solid var(--line);
@@ -972,7 +973,7 @@
 /* A figure in the head, for a section worth reading while it is folded. It
    sits against the caret rather than the label, so the labels stay aligned. */
 .trek-dash .st-section-badge {
-  margin-left: auto;
+  margin-inline-start: auto;
   font-size: 10.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -1019,12 +1020,12 @@
 .trek-dash .st-num { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .trek-dash .st-num-label { flex: none; font-size: 11px; color: var(--ink-3); min-width: 13px; }
 .trek-dash .st-num-box { position: relative; flex: 1; min-width: 0; display: flex; }
-.trek-dash .st-num-box .st-input { padding-right: 26px; }
+.trek-dash .st-num-box .st-input { padding-inline-end: 26px; }
 /* The unit sits inside the field, so the number and what it is in read as one
    value rather than as a field with a word next to it. */
 .trek-dash .st-num-unit {
   position: absolute;
-  right: 9px;
+  inset-inline-end: 9px;
   top: 50%;
   transform: translateY(-50%);
   font-size: 10.5px;
@@ -1398,7 +1399,7 @@
   line-height: 1.3;
   font-weight: 500;
   color: var(--ink-3);
-  text-align: left;
+  text-align: start;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1416,7 +1417,7 @@
 .trek-dash .st-thumb-actions {
   position: absolute;
   top: 7px;
-  right: 7px;
+  inset-inline-end: 7px;
   display: flex;
   gap: 2px;
   padding: 2px;
@@ -1662,118 +1663,6 @@
 @keyframes st-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .trek-dash .st-spin { animation: none; } }
 
-/* ── Export dialog (#1973) ────────────────────────────────────────────────
-   Its own prefix rather than `.st-field` and friends: those already mean a
-   labelled row in the toolbar, and one class doing two jobs is how a toolbar
-   tweak silently reflows a dialog. */
-.trek-dash .st-ex {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: color-mix(in oklch, var(--ink) 42%, transparent);
-  backdrop-filter: blur(2px);
-}
-.trek-dash .st-ex-card {
-  width: 100%;
-  max-width: 380px;
-  /* Opaque for the same reason as .st-menu — see there. */
-  background: var(--surface);
-  border: 1px solid var(--line-2);
-  border-radius: 14px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
-  overflow: hidden;
-}
-.trek-dash .st-ex-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--line);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-.trek-dash .st-ex-x {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  color: var(--ink-3);
-}
-.trek-dash .st-ex-x:hover { background: color-mix(in oklch, var(--ink) 8%, transparent); color: var(--ink); }
-.trek-dash .st-ex-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
-.trek-dash .st-ex-field { display: flex; flex-direction: column; gap: 6px; }
-.trek-dash .st-ex-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-.trek-dash .st-ex-opt {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 11px;
-  text-align: left;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface-2);
-  color: var(--ink-2);
-}
-.trek-dash .st-ex-opt:hover { border-color: color-mix(in oklch, var(--accent) 40%, var(--line)); }
-.trek-dash .st-ex-opt.is-on {
-  border-color: var(--accent);
-  background: color-mix(in oklch, var(--accent) 9%, var(--surface-2));
-  color: var(--ink);
-}
-.trek-dash .st-ex-opt svg { margin-top: 1px; flex: 0 0 auto; }
-.trek-dash .st-ex-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.trek-dash .st-ex-name { font-size: 12.5px; font-weight: 600; color: var(--ink); }
-.trek-dash .st-ex-hint { font-size: 11px; line-height: 1.35; color: var(--ink-2); }
-.trek-dash .st-ex-note {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.45;
-  color: var(--ink-3);
-}
-.trek-dash .st-ex-foot {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 14px;
-  border-top: 1px solid var(--line);
-}
-.trek-dash .st-ex-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 13px;
-  border-radius: 9px;
-  border: 1px solid var(--line-2);
-  background: var(--surface-2);
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink);
-}
-.trek-dash .st-ex-btn:hover { background: color-mix(in oklch, var(--ink) 6%, var(--surface-2)); }
-.trek-dash .st-ex-btn.is-primary {
-  border-color: transparent;
-  background: var(--accent);
-  color: var(--accent-text, #fff);
-}
-.trek-dash .st-ex-btn.is-primary:hover { filter: brightness(1.06); }
-.trek-dash .st-ex-btn[disabled] { opacity: 0.55; }
-
 /* ── Presence and pointers (#1973) ────────────────────────────────────────
    The arrow is positioned in the sheet's millimetres and scales itself back
    out, so it stays one size at every zoom — see PeerCursors.tsx. */
@@ -1809,7 +1698,7 @@
   gap: 7px;
   height: 28px;
   padding: 0 10px 0 7px;
-  margin-left: 4px;
+  margin-inline-start: 4px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--surface-2);
@@ -1829,15 +1718,15 @@
   /* The ring is the badge's own fill, so the faces read as cut out of it. */
   border: 1.5px solid var(--surface-2);
   /* Overlapped, the way a stack of faces reads as a group rather than a list. */
-  margin-right: -7px;
+  margin-inline-end: -7px;
 }
-.trek-dash .st-peer-dot:last-child { margin-right: 0; }
+.trek-dash .st-peer-dot:last-child { margin-inline-end: 0; }
 .trek-dash .st-peer-dot img { width: 100%; height: 100%; object-fit: cover; }
 .trek-dash .st-peer-more {
   font-size: 10.5px;
   font-weight: 600;
   color: var(--ink-3);
-  margin-left: 11px;
+  margin-inline-start: 11px;
 }
 .trek-dash .st-peer-label {
   font-size: 11px;
@@ -2037,7 +1926,7 @@
 }
 /* The name takes the slack; the count and the chevron stay at the right edge. */
 .trek-dash .st-filter-chip > button:first-child { flex: 1; justify-content: flex-start; }
-.trek-dash .st-filter-chip > button + button { padding: 0 8px 0 3px; margin-left: -5px; }
+.trek-dash .st-filter-chip > button + button { padding-block: 0; padding-inline: 3px 8px; margin-inline-start: -5px; }
 .trek-dash .st-filter-chip > button:hover { background: color-mix(in oklch, var(--ink) 7%, transparent); }
 .trek-dash .st-filter-chip.is-on > button:hover { background: color-mix(in oklch, var(--accent-text, #fff) 14%, transparent); }
 .trek-dash .st-filter-name {
@@ -2046,7 +1935,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-align: left;
+  text-align: start;
 }
 /* The count, set like the one in the tabs: a footnote, not part of the name. */
 .trek-dash .st-filter-chip em {
@@ -2059,8 +1948,7 @@
 /* Hung under the chip and as wide as it: a menu narrower than the control that
    opens it reads as belonging to something else. */
 .trek-dash .st-filter-row .st-menu {
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   min-width: 0;
   max-width: none;
 }
@@ -2176,3 +2064,14 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* ----------------- saved layouts (#2316) ----------------- *
+ * The book's own layouts sit above the built-in ones, with the save button
+ * closing their group, so what a click keeps and where it goes read as one.
+ */
+.trek-dash .st-saved-layouts { display: flex; flex-direction: column; margin-bottom: 14px; }
+.trek-dash .st-saved-layouts .st-hint { margin: 0 0 4px; }
+.trek-dash .st-saved-layouts .st-add-page { margin-top: 8px; }
+.trek-dash .st-saved-layouts .st-add-page:disabled { opacity: .5; cursor: default; }
+.trek-dash .st-saved-layouts .st-add-page:disabled:hover { background: none; border-color: var(--line-2); color: var(--ink-3); }
+.trek-dash .st-saved-layouts .st-builtin-label { margin-top: 18px; }

@@ -1,12 +1,21 @@
 import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  demoDenied, errorResult, ok,
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  errorResult,
+  ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
-import { MASKED_SETTING_VALUE, SUPPORTED_LANGUAGE_CODES, settingsBulkRequestSchema } from '@trek/shared';
-import { AuthService } from '../auth/auth.service';
 import { SettingsService } from './settings.service';
+import {
+  MASKED_SETTING_VALUE,
+  SUPPORTED_LANGUAGE_CODES,
+  settingsBulkRequestSchema,
+  weekStartSchema,
+} from '@trek/shared';
+
+import { z } from 'zod';
 
 /**
  * The only settings keys this surface may read or write.
@@ -39,14 +48,24 @@ const DISPLAY_PREFERENCES = {
   // trip-page plugins are addressable as `plugin:<id>`, so the id set is not
   // closed. Core ids are named in the tool description instead.
   start_trip_tab: z.string().min(1).max(64),
-  default_currency: z.union([z.literal(''), z.string().regex(/^[A-Z]{3}$/, 'Expected a three-letter uppercase ISO 4217 code, e.g. EUR, or "" to clear it')]),
-  language: z.string().refine(
-    (value) => SUPPORTED_LANGUAGE_CODES.includes(value),
-    { message: `Expected one of: ${SUPPORTED_LANGUAGE_CODES.join(', ')}` },
-  ),
+  default_currency: z.union([
+    z.literal(''),
+    z.string().regex(/^[A-Z]{3}$/, 'Expected a three-letter uppercase ISO 4217 code, e.g. EUR, or "" to clear it'),
+  ]),
+  language: z.string().refine((value) => SUPPORTED_LANGUAGE_CODES.includes(value), {
+    message: `Expected one of: ${SUPPORTED_LANGUAGE_CODES.join(', ')}`,
+  }),
+  // Place names and addresses in search (#1799); '' follows `language`.
+  place_language: z.union([
+    z.literal(''),
+    z.string().refine((value) => SUPPORTED_LANGUAGE_CODES.includes(value), {
+      message: `Expected "" or one of: ${SUPPORTED_LANGUAGE_CODES.join(', ')}`,
+    }),
+  ]),
   temperature_unit: z.enum(['celsius', 'fahrenheit']),
   distance_unit: z.enum(['metric', 'imperial']),
   time_format: z.enum(['12h', '24h']),
+  week_start: weekStartSchema,
   // Booleans are the pre-'auto' form and still sit in older rows, so they stay
   // writable: this is exactly the VALID_VALUES.dark_mode set the admin-defaults
   // path accepts, and refusing them here would make a value TREK itself wrote
@@ -91,18 +110,15 @@ const KEY_LIST = DISPLAY_PREFERENCE_KEYS.join(', ');
  */
 @McpController()
 export class SettingsMcp {
-  constructor(
-    private readonly settings: SettingsService,
-    private readonly auth: AuthService,
-  ) {}
+  constructor(private readonly settings: SettingsService) {}
 
   /**
    * getUserSettings resolves admin defaults and the managed-install token
    * injection before this filter runs, so the caller sees the same effective
    * value the web UI does, minus everything not named on the allow-list.
    */
-  private readDisplayPreferences(userId: number): Record<string, unknown> {
-    const all = this.settings.getUserSettings(userId);
+  private async readDisplayPreferences(userId: number): Promise<Record<string, unknown>> {
+    const all = await this.settings.getUserSettings(userId);
     const picked: Record<string, unknown> = {};
     for (const key of DISPLAY_PREFERENCE_KEYS) {
       if (Object.hasOwn(all, key)) picked[key] = all[key];
@@ -112,28 +128,27 @@ export class SettingsMcp {
 
   @Tool({
     name: 'get_display_settings',
-    description: `Read the current user's display preferences: ${KEY_LIST}. Call this before rendering a temperature, a distance, a time of day or an amount, so the answer matches what the person sees inside TREK instead of being guessed, and call it before update_display_settings whenever the request is relative ("switch me back", "use the other unit"). Only keys that are actually set are returned; TREK's own fallbacks for the rest are celsius, metric, 24h, language en, start_page dashboard, start_trip_tab plan, and no personal default currency, which means amounts fall back to the currency of the trip they belong to. Stored credentials (map tokens, LLM API keys, webhook URLs, SMTP) are deliberately not part of this surface and never appear in the result.`,
+    description: `Read the current user's display preferences: ${KEY_LIST}. Call this before rendering a temperature, a distance, a time of day or an amount, so the answer matches what the person sees inside TREK instead of being guessed, and call it before update_display_settings whenever the request is relative ("switch me back", "use the other unit"). Only keys that are actually set are returned; TREK's own fallbacks for the rest are celsius, metric, 24h, week_start monday, language en, start_page dashboard, start_trip_tab plan, and no personal default currency, which means amounts fall back to the currency of the trip they belong to. Stored credentials (map tokens, LLM API keys, webhook URLs, SMTP) are deliberately not part of this surface and never appear in the result.`,
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'settings', mode: 'read' },
   })
   async getDisplaySettings(_input: Record<string, never>, ctx: McpContext) {
-    return ok({ settings: this.readDisplayPreferences(ctx.userId) });
+    return ok({ settings: await this.readDisplayPreferences(ctx.userId) });
   }
 
   @Tool({
     name: 'update_display_settings',
-    description: `Change one or more of the current user's display preferences. Pass a settings object holding only the keys to change; anything left out keeps its current value. Writable keys: ${KEY_LIST}. start_page is dashboard or active_trip, start_trip_tab is one of plan, transports, buchungen, listen, finanzplan, dateien, collab (the ids are the planner's internal German ones) or plugin:<id> for a plugin tab, default_currency is a three-letter ISO code or "" to fall back to each trip's own currency, dark_mode is light, dark or auto. Every other key is refused, including API keys, map tokens, LLM endpoint settings and SMTP: those belong to the account owner or to whoever operates the instance and are set in TREK itself, not here. Prefer get_display_settings when you only need to read a value.`,
+    description: `Change one or more of the current user's display preferences. Pass a settings object holding only the keys to change; anything left out keeps its current value. Writable keys: ${KEY_LIST}. start_page is dashboard or active_trip, start_trip_tab is one of plan, transports, buchungen, listen, finanzplan, dateien, collab (the ids are the planner's internal German ones) or plugin:<id> for a plugin tab, default_currency is a three-letter ISO code or "" to fall back to each trip's own currency, dark_mode is light, dark or auto, week_start is monday, sunday or saturday and sets the first column of every date picker in TREK. Every other key is refused, including API keys, map tokens, LLM endpoint settings and SMTP: those belong to the account owner or to whoever operates the instance and are set in TREK itself, not here. Prefer get_display_settings when you only need to read a value.`,
     inputSchema: {
-      settings: settingsBulkRequestSchema.shape.settings
-        .describe(`Object of preference key to new value, e.g. {"temperature_unit": "fahrenheit", "distance_unit": "imperial"}. At least one key, and every key must be one of: ${KEY_LIST}.`),
+      settings: settingsBulkRequestSchema.shape.settings.describe(
+        `Object of preference key to new value, e.g. {"temperature_unit": "fahrenheit", "distance_unit": "imperial"}. At least one key, and every key must be one of: ${KEY_LIST}.`,
+      ),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'settings', mode: 'write' },
   })
   async updateDisplaySettings({ settings }: { settings: Record<string, unknown> }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-
     const entries = Object.entries(settings);
     if (entries.length === 0) {
       return errorResult(`No preference given. Pass at least one of: ${KEY_LIST}.`);
@@ -141,7 +156,9 @@ export class SettingsMcp {
 
     const rejected = entries.map(([key]) => key).filter((key) => !ALLOWED.has(key));
     if (rejected.length > 0) {
-      return errorResult(`Not a display preference: ${rejected.join(', ')}. This tool writes only ${KEY_LIST}. Credentials and instance configuration (API keys, map tokens, LLM endpoints, SMTP) are not reachable from MCP at all.`);
+      return errorResult(
+        `Not a display preference: ${rejected.join(', ')}. This tool writes only ${KEY_LIST}. Credentials and instance configuration (API keys, map tokens, LLM endpoints, SMTP) are not reachable from MCP at all.`,
+      );
     }
 
     // Everything is validated before anything is written, so a bad key in a
@@ -153,7 +170,9 @@ export class SettingsMcp {
       // bulkUpsertSettings skips them, which for a display preference would be
       // a silent no-op rather than the refusal a caller can learn from.
       if (value === MASKED_SETTING_VALUE) {
-        return errorResult(`Invalid value for ${key}: ${MASKED_SETTING_VALUE} is the placeholder TREK shows in place of a redacted secret, not a value.`);
+        return errorResult(
+          `Invalid value for ${key}: ${MASKED_SETTING_VALUE} is the placeholder TREK shows in place of a redacted secret, not a value.`,
+        );
       }
       const parsed = DISPLAY_PREFERENCES[key as DisplayPreferenceKey].safeParse(value);
       if (!parsed.success) {
@@ -163,9 +182,9 @@ export class SettingsMcp {
       validated[key] = parsed.data;
     }
 
-    const updated = this.settings.bulkUpsertSettings(ctx.userId, validated);
+    const updated = await this.settings.bulkUpsertSettings(ctx.userId, validated);
     // Read back rather than echoing the input: an admin default or the managed
     // token injection can still shape what the user ends up seeing.
-    return ok({ success: true, updated, settings: this.readDisplayPreferences(ctx.userId) });
+    return ok({ success: true, updated, settings: await this.readDisplayPreferences(ctx.userId) });
   }
 }

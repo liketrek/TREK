@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const ru: NotificationLocale = {
   email: {
@@ -37,7 +38,12 @@ const ru: NotificationLocale = {
       body: `${p.actor} приглашает вас поделиться коллекцией. Откройте TREK для подтверждения.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} фото`,
+      title: pluralForm(p.count, 'ru', {
+        one: `${p.count} фото опубликовано`,
+        few: `${p.count} фото опубликованы`,
+        many: `${p.count} фото опубликовано`,
+        other: `${p.count} фото опубликовано`,
+      }),
       body: `${p.actor} поделился ${p.count} фото в "${p.trip}".`,
     }),
     collab_message: (p) => ({
@@ -56,7 +62,14 @@ const ru: NotificationLocale = {
       title: 'Сбой реплики хранилища',
       body:
         `Ошибка записи в реплику '${p.backend}': ${p.op} для ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` С момента последнего уведомления подавлено ещё ${p.suppressed} ошибок.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'ru', {
+              one: ` С момента последнего уведомления подавлена ещё ${p.suppressed} ошибка.`,
+              few: ` С момента последнего уведомления подавлено ещё ${p.suppressed} ошибки.`,
+              many: ` С момента последнего уведомления подавлено ещё ${p.suppressed} ошибок.`,
+              other: ` С момента последнего уведомления подавлено ещё ${p.suppressed} ошибки.`,
+            })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Сессия Synology сброшена',

@@ -87,6 +87,7 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': 'Megmaradt szabadságnapok automatikus átvitele a következő évre',
   'vacay.carriedOverPrevPeriod': 'az előző időszakból',
   'vacay.compUsedCount': '{count} csúsztatás',
+  'vacay.compUsedCount.one': '{count} csúsztatás',
   'vacay.yearType': 'Szabadságév',
   'vacay.yearTypeHint': 'Mikor kezdődik a szabadságéved — a keret, a felhasználás és az átvitel ehhez igazodik',
   'vacay.yearTypeCalendar': 'Naptári év',

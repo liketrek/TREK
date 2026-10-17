@@ -6,6 +6,7 @@ import MIconBtn from '../../../components/MIconBtn'
 import { FormSheetHeader } from './PlSheetChrome'
 import ImpFileStep from './ImpFileStep'
 import ImpListStep from './ImpListStep'
+import { useAddonStore } from '../../../../store/addonStore'
 import type { TripPlanner } from '../MTripShell'
 
 export interface MImportSheetProps {
@@ -24,6 +25,9 @@ type ImportStep = 'menu' | 'file' | 'list'
 export default function MImportSheet({ planner, open, onClose }: MImportSheetProps) {
   const { t } = planner
   const [step, setStep] = useState<ImportStep>('menu')
+  // File import (GPX/KML/KMZ) belongs to Tours mode while the addon is on;
+  // list import stays here in both states.
+  const toursEnabled = useAddonStore(s => s.isEnabled('tours'))
 
   useEffect(() => {
     if (open) setStep('menu')
@@ -50,12 +54,14 @@ export default function MImportSheet({ planner, open, onClose }: MImportSheetPro
 
       {step === 'menu' && (
         <div className="px-[14px] pb-[14px] pt-1">
+          {!toursEnabled && (
           <ImpMenuRow
             icon={FileDown}
             title={t('places.importFile')}
             sub="GPX · KML · KMZ"
             onClick={() => setStep('file')}
           />
+          )}
           <ImpMenuRow
             icon={MapPin}
             title={t('places.importList')}
@@ -85,7 +91,7 @@ function ImpMenuRow({ icon: Icon, title, sub, onClick, className = '' }: ImpMenu
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[13px] text-left ${className}`}
+      className={`flex w-full items-center gap-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[13px] text-start ${className}`}
     >
       <span className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-[12px] bg-[color:var(--m-glass)]">
         <Icon size={17} strokeWidth={1.9} />

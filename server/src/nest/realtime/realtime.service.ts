@@ -1,35 +1,27 @@
+import { broadcast, broadcastToUser, getOnlineUserIds } from './ws-state';
 import { Injectable } from '@nestjs/common';
-import type {
-  TrekWsPayload,
-  TrekWsPluginEventName,
-  TrekWsTripEventName,
-  TrekWsUserEventName,
-} from '@trek/shared';
-import { broadcast, broadcastToUser, getOnlineUserIds } from '../../websocket';
+import type { TrekWsPayload, TrekWsPluginEventName, TrekWsTripEventName, TrekWsUserEventName } from '@trek/shared';
 
 /**
- * Injectable facade over the websocket module singleton (roadmap Phase 0 item 3).
+ * Injectable facade over the socket registry in ws-state.ts.
  *
- * Migrated Nest services inject this instead of importing `broadcast`/
- * `broadcastToUser` module globals. The actual transport (rooms, auth,
- * heartbeat, rate limiting) stays in src/websocket.ts — a future
- * @WebSocketGateway swap happens behind this facade, invisibly.
+ * Nest services inject this instead of importing the `broadcast`/
+ * `broadcastToUser` module functions. The transport itself (rooms, the
+ * handshake, the wire protocol) is RealtimeGateway, TrekWsAdapter and
+ * ws-state.ts next door.
  *
- * Both methods delegate to the live module exports *at call time* (same
- * pattern as DatabaseService.canAccessTrip): tests vi.mock src/websocket
- * per file, and the stubs must keep flowing through here. Never capture
- * the functions at construction, and never dereference an export the
- * method wasn't asked for — many test mocks provide `broadcast` only.
+ * Tests observe broadcasts through DI: a FakeRealtimeService
+ * (tests/helpers/fake-realtime.ts) takes this class's place, so nothing has to
+ * mock the transport module.
  *
  * The service is deliberately dependency-free so out-of-container code (the
- * auth.bridge graph, the no-Nest test harnesses) can construct it with a bare
- * `new RealtimeService()`.
+ * no-Nest test harnesses) can construct it with a bare `new RealtimeService()`.
  */
 @Injectable()
 export class RealtimeService {
   /**
    * Broadcast an event to all sockets in a trip room. Mirrors the
-   * websocket.ts signature exactly: `excludeSid` is the X-Socket-Id
+   * ws-state.ts signature exactly: `excludeSid` is the X-Socket-Id
    * echo-suppression contract (the originating client is skipped);
    * `onlyUserId` narrows delivery to one user's sockets (#858 private
    * packing items).
@@ -40,9 +32,8 @@ export class RealtimeService {
    * ships silence. The `plugin:` overload is the deliberate escape hatch for
    * the host's force-namespaced `plugin:<id>:<event>` broadcasts.
    *
-   * Rest-spread keeps the caller's exact argument arity — dozens of test
-   * mocks assert the precise call shape (3, 4 or 5 args), so the facade
-   * must not pad omitted optionals with explicit `undefined`s.
+   * Rest-spread keeps the caller's exact argument arity: the facade must not
+   * pad omitted optionals with explicit `undefined`s.
    */
   broadcast<E extends TrekWsTripEventName>(
     tripId: number | string,
@@ -85,21 +76,18 @@ export class RealtimeService {
     payload: { type: TrekWsPluginEventName } & Record<string, unknown>,
     excludeSid?: number | string,
   ): void;
-  broadcastToUser(
-    ...args: [userId: number, payload: Record<string, unknown>, excludeSid?: number | string]
-  ): void {
+  broadcastToUser(...args: [userId: number, payload: Record<string, unknown>, excludeSid?: number | string]): void {
     broadcastToUser(...args);
   }
 
   /**
    * Which users currently hold an open socket.
    *
-   * AdminService read this through a lazy `require('../../websocket')` inside a
+   * AdminService read this through a lazy `require()` of the transport inside a
    * try/catch, which is what the facade exists to avoid. Deliberately NOT
    * guarded here: a guard on the facade would swallow the failure for every
    * future caller, and the one caller that wants a degraded answer rather than
-   * an error keeps its own catch. Delegates at call time, like its two
-   * siblings, so per-file vi.mock stubs keep flowing through.
+   * an error keeps its own catch.
    */
   getOnlineUserIds(): Set<number> {
     return getOnlineUserIds();

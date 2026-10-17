@@ -80,7 +80,7 @@ describe('HelpPage', () => {
 
     const inactive = screen.getByRole('link', { name: 'FAQ' })
     expect(inactive.className).toContain('text-content-secondary')
-    expect(inactive.querySelector('span')?.className).toContain('pl-[18px]')
+    expect(inactive.querySelector('span')?.className).toContain('ps-[18px]')
   })
 
   it('FE-PAGE-HELPUI-003: typing in the search box reports the query upwards', () => {

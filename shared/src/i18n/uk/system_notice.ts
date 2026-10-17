@@ -57,15 +57,19 @@ const system_notice: TranslationStrings = {
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Оновлення встановлено',
   'system_notice.release_notes.headline': 'Чотири речі, які TREK тепер робить сам.',
-  'system_notice.release_notes.intro': 'Власний API місць, автоподорожі від початку до кінця, ваша історія розташувань у ваших руках, і ваші документи в синхронізації.',
+  'system_notice.release_notes.intro':
+    'Власний API місць, автоподорожі від початку до кінця, ваша історія розташувань у ваших руках, і ваші документи в синхронізації.',
   'system_notice.release_notes.features_label': 'Головні новинки',
   'system_notice.release_notes.features_aside': 'І це далеко не все',
   'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': 'Перший планувальник подорожей з відкритим кодом і власним API місць. 73,6 мільйона місць, без ключа й квот.',
+  'system_notice.release_notes.feature_places_body':
+    'Перший планувальник подорожей з відкритим кодом і власним API місць. 73,6 мільйона місць, без ключа й квот.',
   'system_notice.release_notes.feature_roadtrip_title': 'Доповнення «Автоподорож»',
-  'system_notice.release_notes.feature_roadtrip_body': 'Планує поїздку сам: маршрут, відстань, години й зупинки. Вимкнено, поки адмін не ввімкне.',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Планує поїздку сам: маршрут, відстань, години й зупинки. Вимкнено, поки адмін не ввімкне.',
   'system_notice.release_notes.feature_dawarich_title': 'Інтеграція з Dawarich',
-  'system_notice.release_notes.feature_dawarich_body': 'Self-hosted альтернатива Google Timeline, яку тепер можна читати прямо в TREK. TREK читає, і тільки читає.',
+  'system_notice.release_notes.feature_dawarich_body':
+    'Self-hosted альтернатива Google Timeline, яку тепер можна читати прямо в TREK. TREK читає, і тільки читає.',
   'system_notice.release_notes.footnote': 'А також довгий список дрібніших змін по всьому TREK.',
   'system_notice.release_notes.notes_label': 'Нотатки до релізу',
   'system_notice.release_notes.note_eyebrow': 'Слово від мейнтейнера',
@@ -86,6 +90,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Підтримати на Ko-fi',
   'system_notice.release_notes.feature_docsync_title': 'Синхронізація документів',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud і Synology Drive. Документи подорожі рухаються в обидва боки зі сховищем, яке ви вже використовуєте.',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx, Papra, Nextcloud, OpenCloud і Synology Drive. Документи подорожі рухаються в обидва боки зі сховищем, яке ви вже використовуєте.',
 };
 export default system_notice;

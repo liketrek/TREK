@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { BedDouble, MapPin } from 'lucide-react'
 import type { BookingExpenseRequest } from '../../../../src/components/Planner/BookingCostsSection.types'
 import type { ExpensePrefill } from '../../../../src/components/Budget/CostsPanel'
+import type { TourListItem } from '@trek/shared'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { BudgetItem, Reservation, Trip } from '../../../../src/types'
 import { useAuthStore } from '../../../../src/store/authStore'
@@ -10,9 +11,9 @@ import { useSettingsStore } from '../../../../src/store/settingsStore'
 import { useTripStore } from '../../../../src/store/tripStore'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
-import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
-// FE-MOB-SHOST-001 to FE-MOB-SHOST-029 and FE-MOB-SHOST-032 (030 and 031 live in MTripSheets.members.test.tsx)
+// FE-MOB-SHOST-001 to FE-MOB-SHOST-029 and FE-MOB-SHOST-032 to FE-MOB-SHOST-034 (030 and 031 live in MTripSheets.members.test.tsx)
 //
 // Every child sheet is stubbed: this file is about the host — which sheet is
 // mounted for which shell.sheet id, and how the host's own callbacks wire the
@@ -159,18 +160,20 @@ vi.mock('../../../../src/components/Trips/TripMembersModal', () => ({
 }))
 
 vi.mock('../../../../src/components/Planner/TransitJourneyModal', () => ({
-  default: ({ reservation, canEdit, onClose, onSave, onDelete, onChangeRoute }: {
+  default: ({ reservation, canEdit, onClose, onSave, onDelete, onChangeRoute, onEditDetails }: {
     reservation: Reservation
     canEdit: boolean
     onClose: () => void
     onSave: (fields: Record<string, unknown>) => Promise<void>
     onDelete: () => Promise<void>
     onChangeRoute: () => void
+    onEditDetails: () => void
   }) => (
     <div data-testid="stub-transit" data-title={reservation.title} data-canedit={String(canEdit)}>
       <button type="button" onClick={() => void onSave({ title: 'Renamed' })}>save transit</button>
       <button type="button" onClick={() => void onDelete()}>delete transit</button>
       <button type="button" onClick={onChangeRoute}>change route</button>
+      <button type="button" onClick={onEditDetails}>edit details</button>
       <button type="button" onClick={onClose}>close transit</button>
     </div>
   ),
@@ -187,7 +190,7 @@ const JOURNEY = {
 } as unknown as Reservation
 
 function renderHost(plannerOverrides: Partial<TripPlanner> = {}, shellOverrides: Partial<MTripShellApi> = {}) {
-  const planner = buildPlanner(plannerOverrides)
+  const planner = buildPlanner({ isTourPlace: vi.fn(() => false), ...plannerOverrides })
   const shell = buildShell(shellOverrides)
   render(<MTripSheets planner={planner} shell={shell} />)
   return { planner, shell }
@@ -235,6 +238,18 @@ describe('MTripSheets', () => {
     for (const other of hostRouted) {
       expect(screen.getByTestId(other)).toHaveAttribute('data-open', String(other === testid))
     }
+  })
+
+  it('FE-MOB-SHOST-033: the map\'s places filter opens for its own id and closes through the shell', async () => {
+    const { shell } = renderHost({}, { sheet: { id: 'placesFilter' } })
+    const sheet = await screen.findByRole('dialog', { name: 'Filters' })
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }))
+    expect(shell.closeSheet).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-MOB-SHOST-033b: no places filter while another sheet is open', () => {
+    renderHost({}, { sheet: { id: 'day' } })
+    expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-SHOST-004: hands the note payload to the note sheet and only for that id', () => {
@@ -360,6 +375,16 @@ describe('MTripSheets', () => {
     expect(planner.setTransportModalDayId).toHaveBeenCalledWith(null)
   })
 
+  it('FE-MOB-SHOST-034: editing the details opens the transport editor on the newer store copy', () => {
+    const fresh = { ...JOURNEY, title: 'Tokyo → Kyoto (saved)' } as Reservation
+    const { planner } = renderHost({ transitJourney: JOURNEY, reservations: [fresh] })
+    fireEvent.click(screen.getByText('edit details'))
+    expect(planner.openTransportEditor).toHaveBeenCalledWith(fresh)
+    expect(planner.setEditingTransport).toHaveBeenCalledWith(fresh)
+    expect(planner.setTransportModalAutomated).toHaveBeenCalledWith(false)
+    expect(planner.setShowTransportModal).toHaveBeenCalledWith(true)
+  })
+
   it('FE-MOB-SHOST-020: a booking opens the expense editor for its linked item and closes again', () => {
     renderHost()
     expect(screen.queryByTestId('stub-cost')).not.toBeInTheDocument()
@@ -418,6 +443,44 @@ describe('MTripSheets', () => {
     expect(screen.getByTestId('stub-cost')).toHaveAttribute('data-me', '-1')
   })
 
+  it.each([[false, false], [true, false], [false, true], [true, true]])(
+    'keeps the mobile Tour host View/Attach-only with place_edit=%s day_edit=%s', (placeEdit, dayEdit) => {
+      const mobilePlace = {
+        id: 42, trip_id: 1, name: 'Mobile ridge', lat: 48, lng: 11,
+        route_geometry: '[[48,11,500],[48.01,11.01,510]]', route_color: '#ff0000',
+      } as never
+      const mobileTour = {
+        place_id: 42, name: 'Mobile ridge', tour_type: 'hike', distance: 1,
+        elevation_gain: 10, elevation_loss: 0, duration: null, difficulty: null,
+        wanderer_ref: null, match_confidence: 1,
+        max_hiking_difficulty: 2, planned: false, caution: false,
+      } as TourListItem
+      const readOnlyFile = {
+        id: 19, trip_id: 1, place_id: 42, filename: 'ridge.gpx', original_name: 'ridge.gpx',
+        file_size: 32, mime_type: 'application/gpx+xml', url: '/api/files/19', created_at: '2026-01-01',
+      }
+      const can = vi.fn((permission: string) => permission === 'place_edit' ? placeEdit : permission === 'day_edit' && dayEdit)
+      renderHost({
+        selectedPlace: mobilePlace,
+        selectedTour: mobileTour,
+        selectedDayId: 7,
+        days: [{ id: 7, trip_id: 1, day_number: 1, title: 'Day one' } as never],
+        files: [readOnlyFile as never],
+        can: can as TripPlanner['can'],
+        canUploadFiles: true,
+      })
+
+      expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1)
+      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Upload' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Edit track colour' })).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: '1 file' }))
+      expect(screen.getByText('ridge.gpx')).toBeInTheDocument()
+      expect(Boolean(screen.queryByRole('button', { name: /Add to day/i }))).toBe(dayEdit)
+    },
+  )
+
   it('FE-MOB-SHOST-025: the delete-place confirm runs the planner confirmation and disarms', () => {
     const { planner } = renderHost({ deletePlaceId: 101 })
     expect(screen.getByTestId('stub-confirm')).toHaveAttribute('data-title', 'common.delete')
@@ -426,6 +489,17 @@ describe('MTripSheets', () => {
     fireEvent.click(screen.getByText('confirm delete'))
     expect(planner.confirmDeletePlace).toHaveBeenCalledTimes(1)
     expect(planner.setDeletePlaceId).toHaveBeenCalledWith(null)
+  })
+
+  it('shows permanent Tour deletion language in the mobile confirmation', () => {
+    const { planner } = renderHost({ deletePlaceId: 101, isTourPlace: vi.fn(() => true) })
+    const confirm = screen.getByTestId('stub-confirm')
+
+    expect(confirm).toHaveAttribute('data-confirm', 'tours.delete.confirmAction')
+    expect(confirm).toHaveTextContent('tours.delete.confirmBody')
+    expect(confirm).not.toHaveTextContent('Undo')
+    fireEvent.click(screen.getByText('confirm delete'))
+    expect(planner.confirmDeletePlace).toHaveBeenCalledTimes(1)
   })
 
   it('FE-MOB-SHOST-029: a night booked at the place is said before the yes, and only then', () => {

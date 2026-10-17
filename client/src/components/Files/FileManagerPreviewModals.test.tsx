@@ -86,15 +86,16 @@ describe('PdfPreviewModal', () => {
 
   it('FE-W4FPM-006: the close button and the backdrop clear the preview, the card does not', () => {
     const { baseElement } = render(<PdfPreviewModal {...state()} />)
-    const backdrop = baseElement.querySelector('div[style*="rgba(0, 0, 0, 0.85)"]') as HTMLElement
+    const backdrop = baseElement.querySelector('.trek-modal-backdrop') as HTMLElement
 
-    fireEvent.click(screen.getAllByRole('button')[2])
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(setPreviewFile).toHaveBeenCalledWith(null)
 
     setPreviewFile.mockClear()
-    fireEvent.click(backdrop.firstElementChild!)
+    fireEvent.click(screen.getByRole('dialog'))
     expect(setPreviewFile).not.toHaveBeenCalled()
 
+    fireEvent.mouseDown(backdrop)
     fireEvent.click(backdrop)
     expect(setPreviewFile).toHaveBeenCalledWith(null)
   })
@@ -107,15 +108,13 @@ describe('PdfPreviewModal', () => {
     expect(openFile).toHaveBeenCalledWith('/uploads/files/ticket.pdf', 'ticket.pdf')
   })
 
-  it('FE-W4FPM-014: the toolbar buttons brighten on hover and dim again', () => {
+  it('FE-W4FPM-014: the head band carries the name, open, download and close', () => {
     render(<PdfPreviewModal {...state()} />)
 
-    for (const button of screen.getAllByRole('button').slice(0, 3)) {
-      fireEvent.mouseEnter(button)
-      expect(button.style.color).toBe('var(--text-primary)')
-      fireEvent.mouseLeave(button)
-      expect(button.style.color).toBe(button === screen.getAllByRole('button')[2] ? 'var(--text-faint)' : 'var(--text-muted)')
-    }
+    expect(screen.getByRole('dialog', { name: 'ticket.pdf' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /openTab/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'files.download' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
   })
 })
 
@@ -173,7 +172,7 @@ describe('MarkdownPreviewModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'files.download' }))
     expect(downloadFile).toHaveBeenCalledWith('/uploads/files/notes.md', 'notes.md')
 
-    fireEvent.click(screen.getAllByRole('button')[2])
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(setPreviewFile).toHaveBeenCalledWith(null)
     await waitFor(() => expect(screen.getByText('hi')).toBeInTheDocument())
   })

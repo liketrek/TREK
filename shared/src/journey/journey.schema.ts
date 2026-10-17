@@ -54,6 +54,16 @@ export const journeyReorderEntriesRequestSchema = z.looseObject({
 });
 export type JourneyReorderEntriesRequest = z.infer<typeof journeyReorderEntriesRequestSchema>;
 
+/**
+ * The photos of one entry in their new order (#824): every journey photo id the
+ * entry holds, each once. Strict, unlike the legacy reorder above: nothing older
+ * relies on a looser shape here.
+ */
+export const journeyReorderEntryPhotosRequestSchema = z.object({
+  orderedIds: z.array(z.number().int().positive()).min(1).max(500),
+});
+export type JourneyReorderEntryPhotosRequest = z.infer<typeof journeyReorderEntryPhotosRequestSchema>;
+
 export const journeyContributorRequestSchema = z.looseObject({
   // Handler answers 'user_id required'; role is cast, never validated.
   user_id: z.unknown().optional(),
@@ -105,7 +115,10 @@ export type JourneyPhotoUpdateRequest = z.infer<typeof journeyPhotoUpdateRequest
  */
 export const journalPluginPhotoInputSchema = z.strictObject({
   name: z.string().trim().min(1).max(255),
-  content_base64: z.string().min(1).max(14 * 1024 * 1024),
+  content_base64: z
+    .string()
+    .min(1)
+    .max(14 * 1024 * 1024),
   caption: z.string().max(2000).optional(),
 });
 export type JournalPluginPhotoInput = z.infer<typeof journalPluginPhotoInputSchema>;
@@ -128,15 +141,19 @@ export type JourneyEntryUpdateRequest = z.infer<typeof journeyEntryUpdateRequest
  * uploaded' for the empty case. Without this the pipe would answer
  * 'body: Invalid input: expected object' first and the message would change.
  */
-export const journeyEntryPhotoUploadRequestSchema = z.looseObject({
-  caption: z.unknown().optional(),
-}).optional();
+export const journeyEntryPhotoUploadRequestSchema = z
+  .looseObject({
+    caption: z.unknown().optional(),
+  })
+  .optional();
 export type JourneyEntryPhotoUploadRequest = z.infer<typeof journeyEntryPhotoUploadRequestSchema>;
 
 /** Multipart field alongside the uploaded video — absent body for the same reason. */
-export const journeyGalleryVideoRequestSchema = z.looseObject({
-  duration_ms: z.unknown().optional(),
-}).optional();
+export const journeyGalleryVideoRequestSchema = z
+  .looseObject({
+    duration_ms: z.unknown().optional(),
+  })
+  .optional();
 export type JourneyGalleryVideoRequest = z.infer<typeof journeyGalleryVideoRequestSchema>;
 
 /** Free-form: per-user display preferences, forwarded whole. */
@@ -172,3 +189,61 @@ export const journeyTracksResponseSchema = z.object({
   tracks: z.array(journeyTrackSchema),
 });
 export type JourneyTracksResponse = z.infer<typeof journeyTracksResponseSchema>;
+
+// ── Responses ───────────────────────────────────────────────────────────────
+
+/**
+ * A journeys row as the routes return it. Unlike most tables its times are epoch
+ * milliseconds, and its flags SQLite 0/1, as stored.
+ */
+export const journeySchema = z.object({
+  id: z.number(),
+  user_id: z.number(),
+  title: z.string(),
+  subtitle: z.string().nullable(),
+  cover_gradient: z.string().nullable(),
+  status: z.string().nullable(),
+  created_at: z.number(),
+  updated_at: z.number(),
+  cover_image: z.string().nullable(),
+  show_trip_tracks: z.number(),
+  show_verdict: z.number(),
+  show_mood: z.number(),
+  show_weather: z.number(),
+  status_override: z.string().nullable(),
+  photo_location: z.number(),
+});
+export type JourneyRecord = z.infer<typeof journeySchema>;
+
+/** A journey on the dashboard, with its stat pills. */
+export const journeyListItemSchema = journeySchema.extend({
+  entry_count: z.number(),
+  photo_count: z.number(),
+  place_count: z.number(),
+  trip_date_min: z.string().nullable(),
+  trip_date_max: z.string().nullable(),
+});
+export type JourneyListItem = z.infer<typeof journeyListItemSchema>;
+
+/** GET /api/journeys */
+export const journeyListResponseSchema = z.object({ journeys: z.array(journeyListItemSchema) });
+export type JourneyListResponse = z.infer<typeof journeyListResponseSchema>;
+
+/** A journey's public share link and what it shows. */
+export const journeyShareLinkSchema = z.object({
+  token: z.string(),
+  created_at: z.string().nullable(),
+  share_timeline: z.boolean(),
+  share_gallery: z.boolean(),
+  share_map: z.boolean(),
+  newest_first: z.boolean(),
+});
+export type JourneyShareLink = z.infer<typeof journeyShareLinkSchema>;
+
+/** GET :id/share-link: the link, or null while the journey is not published. */
+export const journeyShareLinkResponseSchema = z.object({ link: journeyShareLinkSchema.nullable() });
+export type JourneyShareLinkResponse = z.infer<typeof journeyShareLinkResponseSchema>;
+
+/** POST :id/share-link: the token, and whether this call minted it. */
+export const journeyShareLinkSetResponseSchema = z.object({ token: z.string(), created: z.boolean() });
+export type JourneyShareLinkSetResponse = z.infer<typeof journeyShareLinkSetResponseSchema>;

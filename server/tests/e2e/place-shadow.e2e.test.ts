@@ -1,45 +1,37 @@
 /**
  * /api/place-shadow e2e — the real JwtAuthGuard, the real AdminGuard and the
- * real Zod pipe against a temp SQLite db.
+ * real Zod pipe against a migrated temp SQLite db.
  *
  * The three things worth booting a server for: that a non-admin cannot read
  * other people's searches, that a switched-off log answers 200 instead of an
  * error the client would log forever, and that the pipe rejects a malformed
  * body before the service ever sees it.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { PlaceShadowPicks } from '../../src/db/entities/PlaceShadowPicks.entity';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { PlaceShadowModule } from '../../src/nest/place-shadow/place-shadow.module';
+import { countRows, deleteRows } from '../helpers/factories/rows';
+import { setAppSetting } from '../helpers/factories/settings';
+import { makeAdmin, makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { APP_PIPE } from '@nestjs/core';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { APP_PIPE } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
-const { db } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3');
-  const tmp = new Database(':memory:');
-  tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0);`);
-  tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
-  tmp.exec(`CREATE TABLE place_shadow_picks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    query TEXT NOT NULL, lang TEXT, bias_lat REAL, bias_lng REAL, source TEXT NOT NULL,
-    live_rank INTEGER NOT NULL, live_count INTEGER NOT NULL,
-    picked_name TEXT NOT NULL, picked_lat REAL NOT NULL, picked_lng REAL NOT NULL,
-    picked_place_id TEXT);`);
-  return { db: tmp };
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
 
-vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip: vi.fn(), isOwner: vi.fn(), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
-}));
-
-import { PlaceShadowModule } from '../../src/nest/place-shadow/place-shadow.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+let orm: TestOrm;
 
 const PICK = {
   query: 'kaffee bar am dobi',
@@ -55,18 +47,20 @@ const PICK = {
 const USER = 1;
 const ADMIN = 2;
 
-function enable(on: boolean) {
-  db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
-    .run('place_shadow_enabled', on ? 'true' : 'false');
+async function enable(on: boolean): Promise<void> {
+  await setAppSetting(orm, 'place_shadow_enabled', on ? 'true' : 'false');
 }
 
-describe('/api/place-shadow e2e (real guards + temp SQLite)', () => {
+describe('/api/place-shadow e2e (real guards + migrated temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
+    // JwtAuthGuard (Plan 3b Task 1) injects EntityManager, so it needs
+    // MikroOrmModule.forRoot in the graph, same as every other e2e harness
+    // guarding a route with it.
     const moduleRef = await Test.createTestingModule({
-      imports: [DatabaseModule, PlaceShadowModule],
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), PlaceShadowModule],
       providers: [{ provide: APP_PIPE, useClass: ZodValidationPipe }],
     }).compile();
     const nest = moduleRef.createNestApplication();
@@ -77,19 +71,22 @@ describe('/api/place-shadow e2e (real guards + temp SQLite)', () => {
   }
 
   beforeAll(async () => {
-    seedUser(db as never, { id: USER });
-    seedUser(db as never, { id: ADMIN, email: 'admin@example.com', role: 'admin' });
+    orm = await createTestOrm(db);
+    // Pinned ids: sessionCookie(USER) and (ADMIN) sign for exactly these users.
+    await makeUser(orm, { id: USER, email: 'e2e@example.test' });
+    await makeAdmin(orm, { id: ADMIN, email: 'admin@example.com' });
     app = await build();
     server = app.getHttpServer();
   });
 
   afterAll(async () => {
     await app.close();
+    await orm.close();
   });
 
-  beforeEach(() => {
-    db.prepare('DELETE FROM place_shadow_picks').run();
-    enable(true);
+  beforeEach(async () => {
+    await deleteRows(orm, PlaceShadowPicks);
+    await enable(true);
   });
 
   describe('POST pick', () => {
@@ -101,15 +98,15 @@ describe('/api/place-shadow e2e (real guards + temp SQLite)', () => {
       const res = await request(server).post('/api/place-shadow/pick').set('Cookie', sessionCookie(USER)).send(PICK);
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ recorded: true });
-      expect(db.prepare('SELECT COUNT(*) AS n FROM place_shadow_picks').get()).toEqual({ n: 1 });
+      expect(await countRows(orm, PlaceShadowPicks)).toBe(1);
     });
 
     it('200 { recorded: false } while the log is off, not an error status', async () => {
-      enable(false);
+      await enable(false);
       const res = await request(server).post('/api/place-shadow/pick').set('Cookie', sessionCookie(USER)).send(PICK);
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ recorded: false });
-      expect(db.prepare('SELECT COUNT(*) AS n FROM place_shadow_picks').get()).toEqual({ n: 0 });
+      expect(await countRows(orm, PlaceShadowPicks)).toBe(0);
     });
 
     it('400 from the pipe on a malformed body, and nothing is written', async () => {
@@ -123,12 +120,16 @@ describe('/api/place-shadow e2e (real guards + temp SQLite)', () => {
         const res = await request(server).post('/api/place-shadow/pick').set('Cookie', sessionCookie(USER)).send(bad);
         expect(res.status, JSON.stringify(bad).slice(0, 60)).toBe(400);
       }
-      expect(db.prepare('SELECT COUNT(*) AS n FROM place_shadow_picks').get()).toEqual({ n: 0 });
+      expect(await countRows(orm, PlaceShadowPicks)).toBe(0);
     });
   });
 
   describe('reading is admin only', () => {
-    for (const [method, path] of [['get', '/api/place-shadow/summary'], ['get', '/api/place-shadow/export'], ['delete', '/api/place-shadow']] as const) {
+    for (const [method, path] of [
+      ['get', '/api/place-shadow/summary'],
+      ['get', '/api/place-shadow/export'],
+      ['delete', '/api/place-shadow'],
+    ] as const) {
       it(`403 for a non-admin on ${method.toUpperCase()} ${path}`, async () => {
         expect((await request(server)[method](path).set('Cookie', sessionCookie(USER))).status).toBe(403);
       });
@@ -140,7 +141,10 @@ describe('/api/place-shadow e2e (real guards + temp SQLite)', () => {
 
     it('an admin gets the summary', async () => {
       await request(server).post('/api/place-shadow/pick').set('Cookie', sessionCookie(USER)).send(PICK);
-      await request(server).post('/api/place-shadow/pick').set('Cookie', sessionCookie(USER)).send({ ...PICK, liveRank: 0 });
+      await request(server)
+        .post('/api/place-shadow/pick')
+        .set('Cookie', sessionCookie(USER))
+        .send({ ...PICK, liveRank: 0 });
       const res = await request(server).get('/api/place-shadow/summary').set('Cookie', sessionCookie(ADMIN));
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({
@@ -163,7 +167,7 @@ describe('/api/place-shadow e2e (real guards + temp SQLite)', () => {
       const wiped = await request(server).delete('/api/place-shadow').set('Cookie', sessionCookie(ADMIN));
       expect(wiped.status).toBe(200);
       expect(wiped.body).toEqual({ removed: 1 });
-      expect(db.prepare('SELECT COUNT(*) AS n FROM place_shadow_picks').get()).toEqual({ n: 0 });
+      expect(await countRows(orm, PlaceShadowPicks)).toBe(0);
     });
   });
 });

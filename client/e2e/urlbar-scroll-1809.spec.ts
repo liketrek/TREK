@@ -71,18 +71,29 @@ test('#1809 iPhone: flow screens scroll the document, full-screen ones do not', 
   await expect.poll(() => page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(0)
 
   // 4. The shared body scroll lock: with the document as the scroller, an open
-  //    sheet must freeze the page behind it and give the position back.
+  //    sheet must freeze the page behind it and give the position back. The
+  //    lock is body overflow: hidden, which reaches the viewport only while
+  //    html stays overflow: visible (index.css), and there it stops the swipe.
+  //    It does not stop a script: window.scrollBy moves an overflow: hidden
+  //    viewport in every engine, so the lock is read where it takes effect.
   await page.evaluate(() => window.scrollBy(0, 300))
   const locked = await page.evaluate(readScroll)
   expect(locked.top).toBeGreaterThan(0)
 
   await page.getByRole('button', { name: 'New Trip' }).click()
   await expect(page.getByRole('dialog')).toBeVisible()
-  await page.evaluate(() => window.scrollBy(0, 300))
-  expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(locked.top)
+  const lock = await page.evaluate(() => ({
+    body: getComputedStyle(document.body).overflowY,
+    html: getComputedStyle(document.documentElement).overflowY,
+    top: document.scrollingElement!.scrollTop,
+  }))
+  expect(lock.body, 'the open sheet locks body').toBe('hidden')
+  expect(lock.html, 'html stays visible, so the lock reaches the viewport').toBe('visible')
+  expect(lock.top, 'opening the sheet does not move the page').toBe(locked.top)
 
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(await page.evaluate(() => getComputedStyle(document.body).overflowY), 'the lock is released').not.toBe('hidden')
   expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(locked.top)
   await page.evaluate(() => window.scrollBy(0, 200))
   expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBeGreaterThan(locked.top)

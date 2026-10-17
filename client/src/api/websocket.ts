@@ -1,5 +1,7 @@
 // Singleton WebSocket manager for real-time collaboration
 
+import { useServerVersionStore } from '../store/serverVersionStore'
+
 type WebSocketListener = (event: Record<string, unknown>) => void
 type RefetchCallback = (tripId: string) => void
 
@@ -22,6 +24,9 @@ let shouldReconnect = false
 let refetchCallback: RefetchCallback | null = null
 let mySocketId: string | null = null
 let connecting = false
+// Bumped by disconnect(): a connect that was still waiting for its token when
+// the user logged out must not open a socket afterwards.
+let generation = 0
 /** Hook run before refetchCallback on reconnect. Awaited so mutations land first. */
 let preReconnectHook: (() => Promise<void>) | null = null
 
@@ -78,6 +83,7 @@ function handleMessage(event: MessageEvent): void {
     const parsed = JSON.parse(event.data)
     if (parsed.type === 'welcome') {
       mySocketId = parsed.socketId
+      useServerVersionStore.getState().note(parsed.version)
       return
     }
     listeners.forEach(fn => {
@@ -93,7 +99,7 @@ function scheduleReconnect(): void {
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null
     if (shouldReconnect) {
-      connectInternal(true)
+      void connectInternal(true)
     }
   }, reconnectDelay)
   reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY)
@@ -106,8 +112,12 @@ async function connectInternal(_isReconnect = false): Promise<void> {
   }
 
   connecting = true
+  const started = generation
   const wsToken = await fetchWsToken()
   connecting = false
+  // Logged out while the token was on its way: opening now would leave a socket
+  // authenticated as the previous user, which the next login would reuse.
+  if (started !== generation || !shouldReconnect) return
 
   if (!wsToken) {
     if (shouldReconnect) scheduleReconnect()
@@ -141,7 +151,7 @@ async function connectInternal(_isReconnect = false): Promise<void> {
         // Flush queued mutations first so local writes land before server read-back.
         // If the hook fails, still refetch to keep the UI correct.
         if (preReconnectHook) {
-          preReconnectHook().catch(console.error).then(doRefetch)
+          void preReconnectHook().catch(console.error).then(doRefetch)
         } else {
           doRefetch()
         }
@@ -163,6 +173,17 @@ async function connectInternal(_isReconnect = false): Promise<void> {
   }
 }
 
+/**
+ * The network came back or the tab became visible: a socket waiting out its
+ * backoff (up to 30 s) reconnects now. Does nothing while logged out or while
+ * a socket is open or opening.
+ */
+export function reconnectNow(): void {
+  if (!shouldReconnect) return
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return
+  connect()
+}
+
 export function connect(): void {
   shouldReconnect = true
   reconnectDelay = 1000
@@ -170,11 +191,12 @@ export function connect(): void {
     clearTimeout(reconnectTimer)
     reconnectTimer = null
   }
-  connectInternal(false)
+  void connectInternal(false)
 }
 
 export function disconnect(): void {
   shouldReconnect = false
+  generation++
   if (reconnectTimer) {
     clearTimeout(reconnectTimer)
     reconnectTimer = null

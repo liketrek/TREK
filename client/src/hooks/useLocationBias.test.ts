@@ -1,7 +1,7 @@
-// FE-HOOK-LOCBIAS-001 to FE-HOOK-LOCBIAS-008
+// FE-HOOK-LOCBIAS-001 to FE-HOOK-LOCBIAS-014
 import { renderHook } from '@testing-library/react';
 import { useTripStore } from '../store/tripStore';
-import { boxFromCoords, pointFromBox, radiusKm, useLocationBias } from './useLocationBias';
+import { boxFromCoords, pointFromBox, radiusKm, useLocationBias, viewportBox } from './useLocationBias';
 
 // Coordinates of real places, because the whole point of the hint is distance
 // and a made-up grid would not show when a box stops being useful.
@@ -10,7 +10,7 @@ const KYOTO_B = { id: 2, lat: 34.9949, lng: 135.7850 };   // Kiyomizu-dera, ~2 k
 const TOKIO = { id: 3, lat: 35.6762, lng: 139.6503 };     // ~370 km entfernt
 
 function seed(state: Record<string, unknown>) {
-  useTripStore.setState({ places: [], assignments: {}, selectedDayId: null, ...state } as never);
+  useTripStore.setState({ trip: null, places: [], assignments: {}, selectedDayId: null, planMapViewport: null, ...state } as never);
 }
 
 afterEach(() => seed({}));
@@ -79,5 +79,64 @@ describe('useLocationBias', () => {
   it('verwirft die zu weite Reise-Box auch dann, wenn ein Tag gewaehlt aber leer ist', () => {
     seed({ places: [KYOTO_A, TOKIO], assignments: { '7': [] }, selectedDayId: 7 });
     expect(renderHook(() => useLocationBias()).result.current).toEqual({});
+  });
+});
+
+// Der Kartenausschnitt, auf den gerade geschaut wird (#2620). Rund 11 x 9 km um
+// den Kyoto Bahnhof, so wie ihn die Karte auf Zoom 13 meldet.
+const KYOTO_VIEW = { tripId: 5, south: 34.96, west: 135.70, north: 35.06, east: 135.82 };
+// Ganz Honshu auf Zoom 6, viel zu weit fuer einen brauchbaren Hinweis.
+const HONSHU_VIEW = { tripId: 5, south: 33.0, west: 132.0, north: 38.0, east: 142.0 };
+
+describe('useLocationBias mit Kartenausschnitt', () => {
+  it('nimmt den sichtbaren Ausschnitt vor allem anderen, auch bei zu weiter Reise', () => {
+    // Kyoto und Tokio: ohne Ausschnitt gaebe es gar keinen Hinweis.
+    seed({ trip: { id: 5 }, places: [KYOTO_A, TOKIO], planMapViewport: KYOTO_VIEW });
+    const { box, point } = renderHook(() => useLocationBias()).result.current;
+    expect(box).toEqual({ low: { lat: 34.96, lng: 135.70 }, high: { lat: 35.06, lng: 135.82 } });
+    expect(point?.lat).toBeCloseTo(35.01, 6);
+    expect(point?.lng).toBeCloseTo(135.76, 6);
+  });
+
+  it('schlaegt auch den geoeffneten Tag', () => {
+    // Der Tag spielt in Tokio, die Karte steht aber auf Kyoto: gesucht wird, wo hingeschaut wird.
+    seed({
+      trip: { id: 5 },
+      places: [KYOTO_A, TOKIO],
+      assignments: { '7': [{ place_id: 3 }] },
+      selectedDayId: 7,
+      planMapViewport: KYOTO_VIEW,
+    });
+    const { box } = renderHook(() => useLocationBias()).result.current;
+    expect(box?.high.lng).toBeLessThan(TOKIO.lng);
+  });
+
+  it('faellt bei einem zu weiten Ausschnitt auf den Tag zurueck', () => {
+    seed({
+      trip: { id: 5 },
+      places: [KYOTO_A, KYOTO_B, TOKIO],
+      assignments: { '7': [{ place_id: 1 }, { place_id: 2 }] },
+      selectedDayId: 7,
+      planMapViewport: HONSHU_VIEW,
+    });
+    const { box } = renderHook(() => useLocationBias()).result.current;
+    expect(box).toEqual(boxFromCoords([KYOTO_A, KYOTO_B]));
+  });
+
+  it('faellt bei einem zu weiten Ausschnitt und zu weiter Reise auf keinen Hinweis zurueck', () => {
+    seed({ trip: { id: 5 }, places: [KYOTO_A, TOKIO], planMapViewport: HONSHU_VIEW });
+    expect(renderHook(() => useLocationBias()).result.current).toEqual({});
+  });
+
+  it('ignoriert den Ausschnitt einer anderen Reise', () => {
+    seed({ trip: { id: 9 }, places: [KYOTO_A, TOKIO], planMapViewport: KYOTO_VIEW });
+    expect(renderHook(() => useLocationBias()).result.current).toEqual({});
+  });
+
+  it('nimmt keinen Ausschnitt ueber die Datumsgrenze oder ausserhalb der Welt', () => {
+    expect(viewportBox({ tripId: 5, south: -18, west: 179.5, north: -17, east: -179.5 })).toBeUndefined();
+    expect(viewportBox({ tripId: 5, south: -18, west: -180.5, north: -17, east: -179.5 })).toBeUndefined();
+    expect(viewportBox({ tripId: 5, south: Number.NaN, west: 1, north: 2, east: 2 })).toBeUndefined();
+    expect(viewportBox(KYOTO_VIEW)).toEqual({ low: { lat: 34.96, lng: 135.70 }, high: { lat: 35.06, lng: 135.82 } });
   });
 });

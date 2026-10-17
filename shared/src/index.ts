@@ -10,9 +10,14 @@
  */
 export * from './common/primitives.schema';
 export * from './common/pagination.schema';
+export * from './common/compare';
 
 // Domain contracts
 export * from './weather/weather.schema';
+export * from './weather/wind.schema';
+export * from './paddle/paddle-obstacles.schema';
+export * from './paddle/paddle-route-relation';
+export * from './paddle/paddle-regions.schema';
 export * from './public-api/public-api.schema';
 export * from './airport/airport.schema';
 export * from './config/config.schema';
@@ -27,9 +32,12 @@ export * from './memories/memories.schema';
 export * from './atlas/atlas.schema';
 export * from './vacay/vacay.schema';
 export * from './packing/packing.schema';
+export * from './packing/packed-count';
 export * from './todo/todo.schema';
 export * from './budget/budget.schema';
+export * from './budget/receipt-scan.schema';
 export * from './reservation/reservation.schema';
+export * from './reservation/reservation-types';
 export * from './reservation/ki-reservation.schema';
 export * from './datetime/datetime-normalize';
 export * from './airtrail/airtrail.schema';
@@ -45,9 +53,21 @@ export * from './place/place-match';
 export * from './place/place-website';
 export * from './roadtrip/roadtrip.schema';
 export * from './place/track-colors';
+export * from './tours/tours.schema';
+export * from './tours/tour-provenance.schema';
+export * from './tours/tours.metrics';
+export * from './tours/tour-gpx-import.schema';
+export * from './tours/paddle-plan.schema';
+export * from './tours/paddle-plan';
+export * from './tours/paddle-check.schema';
+export * from './tours/paddle-check-basis';
+export * from './tours/paddle-check';
+export * from './wanderer/wanderer.schema';
+export * from './geo/haversine';
 export * from './collection/collection.schema';
 export * from './collection/collection-file.schema';
 export * from './trip/trip.schema';
+export * from './place/place-hours';
 export * from './trip/day-grid';
 export * from './trip-invite/trip-invite.schema';
 export * from './collab/collab.schema';
@@ -62,6 +82,8 @@ export * from './settings/settings.schema';
 export * from './appearance/appearance.schema';
 export * from './backup/backup.schema';
 export * from './auth/auth.schema';
+export * from './auth/password-policy';
+export * from './sessions/sessions.schema';
 export * from './oidc/oidc.schema';
 export * from './oauth/oauth.schema';
 export * from './admin/admin.schema';
@@ -80,12 +102,18 @@ export * from './geo/gcj02';
 
 // i18n registry (language list + pure helpers — no locale data)
 export * from './i18n/languages';
+export * from './i18n/plural';
 
 // Plugin permission list, generated from the host's protocol/envelope.ts
 // (server/scripts/gen-plugin-facts.ts). The admin consent screens render from it.
 export * from './plugin-permissions';
 // Plugin settings contracts: the settings-field descriptor + admin instance-config wire shapes.
 export * from './plugins/plugins.schema';
+// Plugin POI categories (#1781): the declared category, the icon allow-list and GET /api/plugin-pois.
+export * from './plugins/plugin-poi-facts';
+export * from './plugins/plugin-poi.schema';
+// Plugin search providers (#2221): the row GET /api/plugin-search and its typed-ahead twin answer with.
+export * from './plugins/plugin-search.schema';
 export * from './roadtrip/preferences.schema';
 export * from './roadtrip/hazards.schema';
 export * from './roadtrip/planning.schema';
@@ -94,3 +122,14 @@ export * from './roadtrip/google-import.schema';
 export * from './roadtrip/charging.schema';
 
 export * from './vacay/school-holiday-catalog.schema';
+
+// Money arithmetic in whole hundredths (sums, equal splits, currency precision).
+export * from './money/money';
+
+// Trip permission catalog (keys, levels, defaults) and the rule that decides a check.
+export * from './permissions/permissions';
+
+// Via ferratas around a trip, from OpenStreetMap through Overpass (GET /api/trips/:tripId/ferratas).
+export * from './ferratas/ferratas.schema';
+// The 0.05 degree tile grid both ends load, cache and persist the layer on.
+export * from './ferratas/ferrataGrid';

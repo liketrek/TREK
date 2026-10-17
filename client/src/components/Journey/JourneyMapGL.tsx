@@ -5,6 +5,7 @@ import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings,
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
 import type { JourneyTrack } from '@trek/shared'
 import { SHOT_INDEX_ATTR, ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
+import { clusterPhotos, photoMarkerHtml, type MapPhoto } from './journeyPhotoLayer'
 
 export interface JourneyMapGLHandle {
   highlightMarker: (id: string | null) => void
@@ -47,6 +48,9 @@ interface Props {
    * card stays the inert label it has always been.
    */
   onMarkerPhotoClick?: (entryId: string, photoIndex: number) => void
+  /** Photos placed by their own capture coordinates, clustered by proximity (#2453). */
+  photos?: MapPhoto[]
+  onPhotoClick?: (photoIds: string[]) => void
   paddingBottom?: number
   glProvider?: GlMapProvider
   /**
@@ -128,7 +132,7 @@ const EMPTY_TRACKS: JourneyTrack[] = []
 const TRACK_FALLBACK_COLOR = '#4f46e5'
 
 function JourneyMapGL(
-  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl, hideMarkerTooltip, onMarkerPhotoClick, ref }: Props,
+  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl, hideMarkerTooltip, onMarkerPhotoClick, photos, onPhotoClick, ref }: Props,
 ) {
   const hideMarkerTooltipRef = useRef(hideMarkerTooltip)
   hideMarkerTooltipRef.current = hideMarkerTooltip
@@ -158,6 +162,9 @@ function JourneyMapGL(
   const popupRef = useRef<any | null>(null)
   const onMarkerClickRef = useRef(onMarkerClick)
   onMarkerClickRef.current = onMarkerClick
+  const onPhotoClickRef = useRef(onPhotoClick)
+  onPhotoClickRef.current = onPhotoClick
+  const photoMarkersRef = useRef<{ remove: () => void }[]>([])
   const darkRef = useRef(dark)
   darkRef.current = dark
   const mapLangRef = useRef(mapLang)
@@ -239,7 +246,7 @@ function JourneyMapGL(
     const nextInner = next.querySelector('.trek-journey-marker-inner') as HTMLDivElement
     currentInner.style.cssText = nextInner.style.cssText
     currentInner.innerHTML = nextInner.innerHTML
-    el.style.zIndex = highlighted ? '1000' : '0'
+    el.style.zIndex = highlighted ? '1000' : '1'
   }, [])
 
   const highlightMarker = useCallback((id: string | null) => {
@@ -390,6 +397,8 @@ function JourneyMapGL(
       // markers
       items.forEach((item) => {
         const el = markerHtml(item.dayColor, item.dayLabel, false)
+        // Above the photo thumbnails, which stay at auto: the itinerary is the point of the map (#2453).
+        el.style.zIndex = '1'
         const marker = new gl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat([item.lng, item.lat])
           .addTo(map)
@@ -426,6 +435,42 @@ function JourneyMapGL(
       mapRef.current = null
     }
   }, [entries, stableTrail, stableTracks, glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality, fullScreen, paddingBottom])
+
+  // Photo layer (#2453), the GL twin of the Leaflet one: its own effect so photos
+  // arriving do not rebuild the map, redrawn on every move because the clustering
+  // is done in screen space. Same dependencies as the build effect above, so it
+  // attaches to the map that effect just made.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const clear = () => {
+      photoMarkersRef.current.forEach(m => m.remove())
+      photoMarkersRef.current = []
+    }
+    const draw = () => {
+      clear()
+      if (!photos?.length) return
+      for (const cluster of clusterPhotos(photos, (lat, lng) => map.project([lng, lat]))) {
+        const el = document.createElement('div')
+        el.style.cssText = 'position:relative;width:48px;height:48px;cursor:pointer'
+        el.innerHTML = photoMarkerHtml(cluster.members[0].thumbUrl, cluster.members.length)
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation()
+          onPhotoClickRef.current?.(cluster.members.map(m => m.id))
+        })
+        photoMarkersRef.current.push(new gl.Marker({ element: el, anchor: 'center' }).setLngLat([cluster.lng, cluster.lat]).addTo(map))
+      }
+    }
+    if (map.loaded()) draw()
+    else map.once('load', draw)
+    map.on('moveend', draw)
+    return () => {
+      map.off('moveend', draw)
+      map.off('load', draw)
+      clear()
+    }
+    // gl is the injected engine and does not change for the life of a map.
+  }, [photos, gl, entries, stableTrail, stableTracks, glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality, fullScreen, paddingBottom])
 
   // Switching the UI language has to repin the basemap labels without tearing
   // the map down. The load handler covers the initial run.

@@ -1,8 +1,11 @@
 import { calculateRouteWithLegs, RoutingRefusedError, type RouteProfileKey } from './RouteCalculator'
 import { buildDayRouteRuns, type DayRouteInputs, type DayRoutePoint } from './dayRoutePlan'
+import { dayViaLookup, foldViaLegs, threadVias, viasOnDayLeg, type DayViaLookup } from '../../utils/dayRouteVias'
+import { projectDayItinerary } from './dayTourProjection'
 import { resolveLegMode } from '../Planner/legMode'
 import { dayColor } from '../Roadtrip/dayColors'
-import type { Day, RouteSegment } from '../../types'
+import type { RoadtripVia } from '@trek/shared'
+import type { AssignmentsMap, Day, DistanceUnit, RouteSegment } from '../../types'
 
 /** One travel day of the overview: the roads it covers, in its own colour. */
 export interface TripOverviewDay {
@@ -15,6 +18,8 @@ export interface TripOverviewDay {
   color: { line: string; casing: string }
   /** One polyline per run of the day, `[lat, lng]`. */
   lines: [number, number][][]
+  /** Saved Tours are not routed legs and keep their own map style. */
+  tourLines?: [number, number][][]
   segments: RouteSegment[]
   /** Metres and seconds, summed over the day's legs. */
   distance: number
@@ -45,11 +50,19 @@ export interface TripRouteSummary {
 }
 
 /** Neighbouring legs of one run that resolve to the same mode travel as one request,
- *  exactly as the single-day route builds them. */
-interface Chunk { points: DayRoutePoint[]; mode: string }
+ *  exactly as the single-day route builds them. `waypoints` are the points with the road
+ *  trip's vias threaded in, and `stopAt` says which waypoint each point became. */
+interface Chunk { points: DayRoutePoint[]; mode: string; waypoints: { lat: number; lng: number }[]; stopAt: number[] }
+
+/** The day inputs plus the road trip's vias, which bend a day the way it was picked there (#2580). */
+interface TripRouteInputs extends DayRouteInputs {
+  /** The stored day lists the vias are anchored in, hidden rows included. Absent: `assignments`. */
+  storedAssignments?: AssignmentsMap
+  viasByDay?: Record<number, readonly RoadtripVia[]>
+}
 
 /** A day reduced to the routing requests it needs, in the order they draw. */
-export interface TripRoutePlanDay { day: Day; runs: Chunk[][] }
+export interface TripRoutePlanDay { day: Day; runs: Chunk[][]; tourLines?: [number, number][][] }
 
 type Answer = { coordinates: [number, number][]; legs: RouteSegment[] } | null
 /** Every leg's answer so far, indexed like the plan: day, run, chunk. */
@@ -59,14 +72,16 @@ export type TripRouteAnswers = Answer[][][]
 export const dayRouteColor = (day: Day): { line: string; casing: string } =>
   dayColor(day.day_number ?? 0)
 
-function chunkRun(run: DayRoutePoint[], dayDefaultMode: string): Chunk[] {
+function chunkRun(run: DayRoutePoint[], dayDefaultMode: string, dayId: number, viaLookup: DayViaLookup | null): Chunk[] {
   const chunks: Chunk[] = []
   let i = 0
   while (i < run.length - 1) {
     const mode = resolveLegMode(run[i], run[i + 1], dayDefaultMode)
     let end = i + 1
     while (end < run.length - 1 && resolveLegMode(run[end], run[end + 1], dayDefaultMode) === mode) end++
-    chunks.push({ points: run.slice(i, end + 1), mode })
+    const points = run.slice(i, end + 1)
+    const { waypoints, stopAt } = threadVias(points, (from, to) => viasOnDayLeg(viaLookup, dayId, mode, from, to))
+    chunks.push({ points, mode, waypoints, stopAt })
     i = end
   }
   return chunks
@@ -80,14 +95,24 @@ const straight = (points: DayRoutePoint[]): [number, number][] => points.map(p =
  * Pure and synchronous, so a caller can compare two plans (the map keys its routing
  * round on one) before spending a single request.
  */
-export function planTripRoute(input: DayRouteInputs, profile: RouteProfileKey): TripRoutePlanDay[] {
+export function planTripRoute(input: TripRouteInputs, profile: RouteProfileKey): TripRoutePlanDay[] {
+  const viaLookup = dayViaLookup(input.storedAssignments ?? input.assignments, input.viasByDay)
   return [...input.days]
     .sort((a, b) => (a.day_number ?? 0) - (b.day_number ?? 0))
-    .map(day => ({ day, runs: buildDayRouteRuns(day.id, input) }))
-    .filter(entry => entry.runs.length > 0)
-    .map(({ day, runs }) => ({
+    .map(day => ({
       day,
-      runs: runs.map(run => chunkRun(run, day.default_transport_mode || profile)),
+      runs: buildDayRouteRuns(day.id, input),
+      tourLines: projectDayItinerary(
+        (input.assignments[String(day.id)] ?? []).filter(assignment => assignment.accommodation_id == null),
+        input.toursEnabled ?? false,
+        input.places,
+      ).flatMap(item => item.kind === 'tour' && item.geometry.length >= 2 ? [item.geometry] : []),
+    }))
+    .filter(entry => entry.runs.length > 0 || entry.tourLines.length > 0)
+    .map(({ day, runs, tourLines }) => ({
+      day,
+      runs: runs.map(run => chunkRun(run, day.default_transport_mode || profile, day.id, viaLookup)),
+      tourLines,
     }))
 }
 
@@ -97,7 +122,7 @@ export const emptyAnswers = (plan: TripRoutePlanDay[]): Answer[][][] =>
 
 /** Stitch the routed answers back onto the plan, in the order the days are travelled. */
 export function assembleTripRoute(plan: TripRoutePlanDay[], routed: Answer[][][]): TripOverviewDay[] {
-  return plan.map(({ day, runs }, d) => {
+  return plan.map(({ day, runs, tourLines }, d) => {
     const lines: [number, number][][] = []
     const segments: RouteSegment[] = []
     let unroutedLegs = 0
@@ -127,6 +152,7 @@ export function assembleTripRoute(plan: TripRoutePlanDay[], routed: Answer[][][]
       title: day.title ?? null,
       color: dayRouteColor(day),
       lines,
+      tourLines,
       segments,
       distance: segments.reduce((sum, s) => sum + s.distance, 0),
       duration: segments.reduce((sum, s) => sum + s.duration, 0),
@@ -143,7 +169,7 @@ export function summariseTripRoute(days: TripOverviewDay[]): TripRouteSummary {
     lines,
     lineColors: days.flatMap(d => d.lines.map(() => d.color)),
     segments: days.flatMap(d => d.segments),
-    focusPoints: lines.flat(),
+    focusPoints: [...lines.flat(), ...days.flatMap(day => (day.tourLines ?? []).flat())],
     totalDistance: days.reduce((sum, d) => sum + d.distance, 0),
     totalDuration: days.reduce((sum, d) => sum + d.duration, 0),
     unroutedLegs: days.reduce((sum, d) => sum + (d.unroutedLegs ?? 0), 0),
@@ -192,9 +218,11 @@ const sleep = (ms: number, signal?: AbortSignal): Promise<void> =>
  */
 export async function routeTripLegs(
   plan: TripRoutePlanDay[],
-  { tripId, signal, onAnswer }: {
+  { tripId, signal, onAnswer, unit }: {
     tripId: number | null
     signal?: AbortSignal
+    /** The unit a leg bent through vias has its text written again in. */
+    unit?: DistanceUnit
     /** Called after each answer, for a caller that wants to draw as they arrive. */
     onAnswer?: (routed: Answer[][][]) => void
   },
@@ -205,15 +233,14 @@ export async function routeTripLegs(
     runs.forEach((chunks, r) => {
       chunks.forEach((chunk, c) => {
         tasks.push(async () => {
-          const waypoints = chunk.points.map(p => ({ lat: p.lat, lng: p.lng }))
           for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
             if (signal?.aborted) return
             try {
               const answer = await calculateRouteWithLegs(
-                waypoints,
+                chunk.waypoints,
                 { signal, profile: chunk.mode, tripId, dayId: day.id },
               )
-              routed[d][r][c] = { coordinates: answer.coordinates, legs: answer.legs }
+              routed[d][r][c] = { coordinates: answer.coordinates, legs: foldViaLegs(answer.legs, chunk.stopAt, unit) }
               onAnswer?.(routed)
               return
             } catch (err) {
@@ -248,12 +275,13 @@ export async function routeTripLegs(
  * requests against a shared router, and no document is worth that wait.
  */
 export async function routeTrip(
-  input: DayRouteInputs,
-  { profile, tripId, signal, timeoutMs }: {
+  input: TripRouteInputs,
+  { profile, tripId, signal, timeoutMs, unit }: {
     profile: RouteProfileKey
     tripId: number | null
     signal?: AbortSignal
     timeoutMs?: number
+    unit?: DistanceUnit
   },
 ): Promise<TripRouteSummary> {
   const plan = planTripRoute(input, profile)
@@ -262,7 +290,7 @@ export async function routeTrip(
   const timer = deadline ? setTimeout(() => deadline.abort(), timeoutMs) : null
   if (deadline && signal) signal.addEventListener('abort', () => deadline.abort(), { once: true })
   try {
-    const routed = await routeTripLegs(plan, { tripId, signal: deadline?.signal ?? signal })
+    const routed = await routeTripLegs(plan, { tripId, signal: deadline?.signal ?? signal, unit })
     return summariseTripRoute(assembleTripRoute(plan, routed))
   } finally {
     if (timer) clearTimeout(timer)

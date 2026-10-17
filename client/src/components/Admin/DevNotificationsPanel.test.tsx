@@ -297,14 +297,13 @@ describe('DevNotificationsPanel', () => {
     expect(screen.getByText('Admin-Scoped Events')).toBeInTheDocument();
   });
 
-  it('FE-ADMIN-DEVNOTIF-016: hovering a trigger paints and restores its background', async () => {
+  it('FE-ADMIN-DEVNOTIF-016: a trigger takes its hover background from CSS, not inline styles', async () => {
     render(<><ToastContainer /><DevNotificationsPanel /></>);
     await screen.findByText('Type Testing');
 
     const btn = screen.getByText('Simple → Me').closest('button')!;
     fireEvent.mouseEnter(btn);
-    expect(btn.style.background).toBe('var(--bg-hover)');
-    fireEvent.mouseLeave(btn);
-    expect(btn.style.background).toBe('var(--bg-card)');
+    expect(btn.style.background).toBe('');
+    expect(btn.className).toContain('hover:bg-surface-secondary');
   });
 });

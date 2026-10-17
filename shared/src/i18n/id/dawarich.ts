@@ -11,8 +11,7 @@ const dawarich: TranslationStrings = {
   'dawarich.apiKeyHint':
     'Ada di Dawarich pada Account → API key. Disimpan terenkripsi dan tidak pernah ditampilkan lagi.',
   'dawarich.allowInsecureTls': 'Izinkan sertifikat yang ditandatangani sendiri',
-  'dawarich.allowInsecureTlsHint':
-    'Hanya perlu jika instansmu memakai sertifikat yang tidak dipercaya oleh servermu.',
+  'dawarich.allowInsecureTlsHint': 'Hanya perlu jika instansmu memakai sertifikat yang tidak dipercaya oleh servermu.',
   'dawarich.syncEnabled': 'Periksa persinggahan baru secara otomatis',
   'dawarich.syncEnabledHint': 'Jika mati, TREK hanya membaca Dawarich saat kamu memintanya.',
   'dawarich.test.button': 'Uji koneksi',
@@ -59,7 +58,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Addon Dawarich dimatikan untuk instans ini.',
   'dawarich.error.offline': 'Ini butuh koneksi — TREK sedang offline.',
   'dawarich.error.invalid_url': 'TREK tidak bisa memakai alamat itu.',
-  'dawarich.warning.private_ip': 'Alamat itu mengarah ke IP privat ({ip}). Pastikan memang itu maksudmu — server mungkin perlu ALLOW_INTERNAL_NETWORK=true untuk menjangkaunya.',
+  'dawarich.warning.private_ip':
+    'Alamat itu mengarah ke IP privat ({ip}). Pastikan memang itu maksudmu — server mungkin perlu ALLOW_INTERNAL_NETWORK=true untuk menjangkaunya.',
   'dawarich.error.unknown': 'Terjadi kesalahan saat berkomunikasi dengan Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -114,7 +114,7 @@ const dawarich: TranslationStrings = {
   'dawarich.accept.confirm.journal': 'Tambah entri',
   'dawarich.accept.confirm.bucket_list': 'Coret',
   'dawarich.accept.recorded': 'Terekam {from} sampai {to}',
-  'dawarich.accept.duration': '{minutes} mnt',
+  'dawarich.accept.duration': '{count} mnt',
   'dawarich.accept.name': 'Nama',
   'dawarich.accept.date': 'Tanggal',
   'dawarich.accept.from': 'Tiba',
@@ -157,7 +157,6 @@ const dawarich: TranslationStrings = {
   'dawarich.atlas.loading': 'Membaca rekamanmu…',
   'dawarich.atlas.empty': 'Rekamanmu tidak menunjukkan negara yang belum dimiliki TREK.',
   'dawarich.atlas.cities': '{count} kota',
-  'dawarich.atlas.citiesOne': '1 kota',
   'dawarich.atlas.accept': 'Tambah {count} negara',
   'dawarich.atlas.accepted': '{count} negara ditambahkan',
   'dawarich.atlas.unresolved': 'TREK tidak dapat mencocokkan ini dengan sebuah negara: {names}.',
@@ -173,9 +172,8 @@ const dawarich: TranslationStrings = {
   'dawarich.again': 'Periksa lagi',
   'dawarich.bucket.metersAway': '{meters} m dari sana',
   'dawarich.bucket.kilometersAway': '{km} km dari sana',
-  'dawarich.bucket.rule': 'Sebuah keinginan dianggap tercapai dalam radius {meters} m dan setelah {minutes} menit di lokasi.',
-
-  'dawarich.journey.dayStays.one': '1 persinggahan dari Dawarich',
+  'dawarich.bucket.rule':
+    'Sebuah keinginan dianggap tercapai dalam radius {meters} m dan setelah {count} menit di lokasi.',
   'dawarich.journey.dayStays.other': '{count} persinggahan dari Dawarich',
 };
 

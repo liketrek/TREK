@@ -7,6 +7,7 @@ const pdf: TranslationStrings = {
   'pdf.preview': 'Pratinjau PDF',
   'pdf.saveAsPdf': 'Simpan sebagai PDF',
   'pdf.pageBreakPerDay': 'Pemisah halaman per hari',
+  'pdf.transportNotes': 'Catatan transportasi',
   'pdf.mapTitle': 'Ringkasan rute',
   'pdf.distanceLabel': 'Jarak',
   'pdf.mapCredit': 'Garis batas negara: geoBoundaries (CC BY 4.0)',

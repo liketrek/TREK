@@ -3,8 +3,9 @@ import { useTranslation } from '../../../i18n/TranslationContext'
 import { DOCUMENT_PROVIDER_ICONS } from '../../shared/DocumentProviderIcons'
 import TrekIcon from '../../shared/TrekIcon'
 import { Badge } from './DocSyncBits'
+import { toggledDirection, type SyncDirection } from './docSyncModel'
 
-export type SyncDirection = 'both' | 'pull' | 'push'
+export type { SyncDirection }
 
 export interface FlowHoldings {
   /** Documents this trip has in TREK. */
@@ -58,10 +59,8 @@ export default function DocSyncFlow({
   /** Turning a lane off leaves the other one; turning the last one off is refused. */
   const toggle = (lane: 'push' | 'pull') => {
     if (disabled) return
-    const nextPush = lane === 'push' ? !pushOn : pushOn
-    const nextPull = lane === 'pull' ? !pullOn : pullOn
-    if (!nextPush && !nextPull) return
-    onChange(nextPush && nextPull ? 'both' : nextPush ? 'push' : 'pull')
+    const next = toggledDirection(direction, lane)
+    if (next) onChange(next)
   }
 
   return (
@@ -193,7 +192,7 @@ function Lane({
 
       {/* Explicitly aligned to the arrow's side: the dialog inherits a centred
           text-align, which would otherwise float the label away from it. */}
-      <span className={`relative min-w-0 flex-1 truncate font-medium ${reverse ? 'text-right' : 'text-left'}`}>
+      <span className={`relative min-w-0 flex-1 truncate font-medium ${reverse ? 'text-end' : 'text-start'}`}>
         {caption}
       </span>
 

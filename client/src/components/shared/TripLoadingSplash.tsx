@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
 import { useTranslation } from '../../i18n'
-import MDancingTrek, { type TrekScene } from '../../mobile/components/MDancingTrek'
+import MDancingTrek from '../../mobile/components/MDancingTrek'
+import { useTripSplashBeats } from './useTripSplashBeats'
 
 /**
  * Trip-open splash for desktop â€” the same little journey the mobile splash
@@ -15,15 +15,6 @@ import MDancingTrek, { type TrekScene } from '../../mobile/components/MDancingTr
  * freezes and the mascot parks on "loading photos". Palette + glass tint swap
  * for light/dark via the .dark class the app puts on <html>.
  */
-const STEPS: { scene: TrekScene; key: string }[] = [
-  { scene: 'packing', key: 'trip.loadingSteps.pack' },
-  { scene: 'transport', key: 'trip.loadingSteps.road' },
-  { scene: 'dashboard', key: 'trip.loadingPhotos' },
-  { scene: 'collections', key: 'trip.loadingSteps.arrive' },
-]
-const STEP_MS = 1400
-const STILL_INDEX = 2
-
 const SPLASH_CSS = `
 .m-splash-root { background: #eef0fb; }
 .dark .m-splash-root { background: #0c0c12; }
@@ -158,18 +149,7 @@ const SPLASH_CSS = `
 
 export default function TripLoadingSplash({ title }: { title?: string }) {
   const { t } = useTranslation()
-  const reduceMotion =
-    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-
-  const [index, setIndex] = useState(0)
-  useEffect(() => {
-    if (reduceMotion) return
-    const id = setInterval(() => setIndex((n) => (n + 1) % STEPS.length), STEP_MS)
-    return () => clearInterval(id)
-  }, [reduceMotion])
-
-  const activeIndex = reduceMotion ? STILL_INDEX : index
-  const step = STEPS[activeIndex]
+  const { reduceMotion, activeIndex, step, steps } = useTripSplashBeats({ liveReducedMotion: false })
 
   return (
     <div
@@ -203,7 +183,7 @@ export default function TripLoadingSplash({ title }: { title?: string }) {
 
           {/* Beat dots â€” the active stage widens into a pill. */}
           <div className="flex items-center gap-1.5">
-            {STEPS.map((_, i) => (
+            {steps.map((_, i) => (
               <span
                 key={i}
                 className="h-[6px] rounded-full transition-all duration-[400ms] ease-out"

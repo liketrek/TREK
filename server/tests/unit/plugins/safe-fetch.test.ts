@@ -2,12 +2,12 @@
  * SSRF-hardened installer download (#plugins, M4): host allowlist, private-IP
  * refusal, manual redirect following, size cap, sha256.
  */
+import { isPrivateIp, sha256Matches, safeDownload, DownloadError } from '../../../src/nest/plugins/install/safe-fetch';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { lookup } = vi.hoisted(() => ({ lookup: vi.fn(async () => [{ address: '140.82.121.3', family: 4 }]) }));
 vi.mock('node:dns/promises', () => ({ default: { lookup } }));
-
-import { isPrivateIp, sha256Matches, safeDownload, DownloadError } from '../../../src/nest/plugins/install/safe-fetch';
 
 beforeEach(() => {
   lookup.mockResolvedValue([{ address: '140.82.121.3', family: 4 }]);
@@ -49,7 +49,10 @@ describe('safeDownload', () => {
     const fetchMock = vi
       .fn()
       // GitHub 302s release assets to a rotating *.githubusercontent.com host
-      .mockResolvedValueOnce({ status: 302, headers: new Headers({ location: 'https://release-assets.githubusercontent.com/x/plugin.zip' }) })
+      .mockResolvedValueOnce({
+        status: 302,
+        headers: new Headers({ location: 'https://release-assets.githubusercontent.com/x/plugin.zip' }),
+      })
       .mockResolvedValueOnce({ status: 200, ok: true, headers: new Headers(), arrayBuffer: async () => bytes });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -64,12 +67,20 @@ describe('safeDownload', () => {
   });
 
   it('rejects a redirect without a location header', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ status: 302, headers: new Headers() }) as unknown as Response));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ status: 302, headers: new Headers() }) as unknown as Response),
+    );
     await expect(safeDownload('https://github.com/x')).rejects.toThrow(/redirect without/);
   });
 
   it('enforces the size cap', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ status: 200, ok: true, headers: new Headers(), arrayBuffer: async () => Buffer.alloc(2000) });
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      headers: new Headers(),
+      arrayBuffer: async () => Buffer.alloc(2000),
+    });
     vi.stubGlobal('fetch', fetchMock);
     await expect(safeDownload('https://github.com/x', 1000)).rejects.toThrow(DownloadError);
   });

@@ -11,18 +11,12 @@ import { roadtripPreferencesRepo } from '../repo/roadtripPreferencesRepo'
  *   - trip list refresh (DashboardPage)
  *   - WS reconnect (phase 7)
  */
-import { tripsApi, tagsApi, categoriesApi } from '../api/client'
+import { tripsApi, tagsApi, categoriesApi, toursApi } from '../api/client'
 import {
   offlineDb,
   upsertTrip,
-  upsertDays,
-  upsertPlaces,
-  upsertPackingItems,
-  upsertTodoItems,
-  upsertBudgetItems,
-  upsertReservations,
-  upsertTripFiles,
-  upsertAccommodations,
+  replaceTripRows,
+  replaceTripTours,
   upsertTripMembers,
   upsertTags,
   upsertCategories,
@@ -36,6 +30,7 @@ import { isAuthed } from './authGate'
 import { isEffectivelyOffline } from './networkMode'
 import { getOfflinePrefs, isTripOfflineEnabled, isTripPinned } from './offlinePrefs'
 import { useSettingsStore } from '../store/settingsStore'
+import { useAddonStore } from '../store/addonStore'
 import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile, Accommodation, TripMember } from '../types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -116,15 +111,17 @@ function isVideo(file: TripFile): boolean {
 async function syncTrip(tripId: number): Promise<void> {
   const bundle = await tripsApi.bundle(tripId) as TripBundle
 
+  // Replace, not merge: deletions made elsewhere while this device was offline
+  // reach the cache only through here, since the live events were missed.
   await upsertTrip(bundle.trip)
-  await upsertDays(bundle.days)
-  await upsertPlaces(bundle.places)
-  await upsertPackingItems(bundle.packingItems)
-  await upsertTodoItems(bundle.todoItems)
-  await upsertBudgetItems(bundle.budgetItems)
-  await upsertReservations(bundle.reservations)
-  await upsertTripFiles(bundle.files)
-  await upsertAccommodations(bundle.accommodations || [])
+  await replaceTripRows('days', tripId, bundle.days)
+  await replaceTripRows('places', tripId, bundle.places)
+  await replaceTripRows('packingItems', tripId, bundle.packingItems)
+  await replaceTripRows('todoItems', tripId, bundle.todoItems)
+  await replaceTripRows('budgetItems', tripId, bundle.budgetItems)
+  await replaceTripRows('reservations', tripId, bundle.reservations)
+  await replaceTripRows('tripFiles', tripId, bundle.files)
+  await replaceTripRows('accommodations', tripId, bundle.accommodations || [])
   await upsertTripMembers(tripId, bundle.members || [])
   // Merged onto the existing row, not written over it: `put` replaces the whole
   // record, and the row also carries `areaPlacesKey` — the fingerprint that says
@@ -150,6 +147,17 @@ async function syncTrip(tripId: number): Promise<void> {
   // threw the whole downloaded bundle away for that trip while the run still
   // reported it stored, so Settings said "N trips ready" over an empty database.
   await roadtripPreferencesRepo.read(tripId).catch(() => { /* optional addon, optional cache */ })
+
+  // Tours, the same way: optional, and never fatal. Without them every Tour
+  // reads as a plain place offline. Asked only while the addon is on, so a
+  // sync of many trips does not spend a refused request on each.
+  if (useAddonStore.getState().isEnabled('tours')) {
+    try {
+      await replaceTripTours(tripId, (await toursApi.list(tripId)).tours)
+    } catch (err) {
+      console.warn(`[sync] tours for trip ${tripId} not cached:`, err)
+    }
+  }
 }
 
 /** Cache non-photo file blobs for a trip. Fire-and-forget safe. */
@@ -203,15 +211,38 @@ export interface PrepareProgress {
 
 let _syncing = false
 
+/** The user's archived trips, or null when the list could not be read. */
+function archivedTrips(): Promise<Trip[] | null> {
+  return (tripsApi.list({ archived: 1 }) as Promise<{ trips: Trip[] }>)
+    .then(r => r.trips)
+    .catch(() => null)
+}
+
 /**
  * Decide which trips to cache and which to drop, honouring both the date rule
  * and the user's per-trip offline choices (#1135 ask 2). Returns the trips to
  * sync; clears Dexie for stale or user-disabled trips as a side effect.
  */
-async function reconcileTrips(trips: Trip[]): Promise<Trip[]> {
-  const stale = trips.filter(isStale)
+async function reconcileTrips(trips: Trip[], archived: Trip[] | null): Promise<Trip[]> {
+  // A cached trip the server lists neither as active nor as archived was
+  // deleted, or this user was removed from it. Its data has no business staying
+  // on the device. The plain list leaves archived trips out, so without the
+  // archived list every archived trip would read as gone; when that list could
+  // not be read, nothing is treated as gone this round.
+  const cached = await offlineDb.trips.toArray()
+  if (archived) {
+    const listed = new Set([...trips, ...archived].map(t => t.id))
+    const gone = cached.filter(t => t.id > 0 && !listed.has(t.id))
+    await Promise.all(gone.map(t => clearTripData(t.id).catch(console.error)))
+  }
+
+  // An archived trip on the device is kept but never synced again, so the date
+  // rule and the user's switch are the only things that ever take it off.
+  const cachedIds = new Set(cached.map(t => t.id))
+  const known = [...trips, ...(archived ?? []).filter(t => cachedIds.has(t.id))]
+  const stale = known.filter(isStale)
   // Trips the user turned off explicitly are evicted regardless of date.
-  const disabled = trips.filter(t => !isTripOfflineEnabled(t.id))
+  const disabled = known.filter(t => !isTripOfflineEnabled(t.id))
   await Promise.all([...stale, ...disabled].map(t => clearTripData(t.id).catch(console.error)))
   return trips.filter(t => shouldCache(t) && isTripOfflineEnabled(t.id))
 }
@@ -248,8 +279,8 @@ export const tripSyncManager = {
     if (skipped) return skipped
     _syncing = true
     try {
-      const { trips } = await tripsApi.list() as { trips: Trip[] }
-      const toSync = await reconcileTrips(trips)
+      const [{ trips }, archived] = await Promise.all([tripsApi.list() as Promise<{ trips: Trip[] }>, archivedTrips()])
+      const toSync = await reconcileTrips(trips, archived)
 
       for (const trip of toSync) {
         // The gate is re-read per trip: a logout halfway through must not keep
@@ -265,8 +296,8 @@ export const tripSyncManager = {
       // Cache global user data (tags + categories) — fire-and-forget, so the
       // gate has to be re-read when the response lands, not when it was issued:
       // a logout in between would put these rows in the anonymous database.
-      tagsApi.list().then(d => { if (isAuthed()) upsertTags(d.tags) }).catch(() => {})
-      categoriesApi.list().then(d => { if (isAuthed()) upsertCategories(d.categories) }).catch(() => {})
+      tagsApi.list().then(d => { if (isAuthed()) void upsertTags(d.tags) }).catch(() => {})
+      categoriesApi.list().then(d => { if (isAuthed()) void upsertCategories(d.categories) }).catch(() => {})
 
       // Cache file blobs + map tiles in background (don't block syncAll)
       const cacheTiles = getOfflinePrefs().cacheTiles
@@ -321,8 +352,8 @@ export const tripSyncManager = {
     if (skipped) return skipped
     _syncing = true
     try {
-      const { trips } = await tripsApi.list() as { trips: Trip[] }
-      const toSync = await reconcileTrips(trips)
+      const [{ trips }, archived] = await Promise.all([tripsApi.list() as Promise<{ trips: Trip[] }>, archivedTrips()])
+      const toSync = await reconcileTrips(trips, archived)
       const total = toSync.length
 
       // 1) Trip bundles (structured data).

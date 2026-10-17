@@ -25,10 +25,16 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'Inget e-postmeddelande har mottagits från leverantören.',
   'login.oidc.tokenFailed': 'Autentiseringen misslyckades.',
   'login.oidc.invalidState': 'Ogiltig session. Försök igen.',
+  'login.oidc.emailNotVerified':
+    'Din inloggningsleverantör har inte bekräftat den här e-postadressen, så den kan inte kopplas till ett befintligt konto.',
+  'login.oidc.emailLinkBlocked':
+    'Inloggningen kunde inte kopplas till det befintliga kontot med den här e-postadressen. Be administratören bekräfta adressen.',
   'login.demoFailed': 'Inloggningen för demoversionen misslyckades',
   'login.oidcSignIn': 'Logga in med {name}',
   'login.oidcOnly': 'Lösenordsautentisering är inaktiverad. Logga in via din SSO-leverantör.',
   'login.oidcLoggedOut': 'Du har loggats ut. Logga in igen via din SSO-leverantör.',
+  'login.oidcRedirecting': 'Skickar dig till {name}…',
+  'login.oidcRedirectSlow': 'Fortfarande här? Fortsätt till {name}',
   'login.demoHint': 'Prova demoversionen – ingen registrering krävs',
   'login.mfaTitle': 'Tvåfaktorsautentisering',
   'login.mfaSubtitle': 'Ange den 6-siffriga koden från din autentiseringsapp.',

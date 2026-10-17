@@ -6,7 +6,7 @@ const files: TranslationStrings = {
   'files.linkTitle': '關聯檔案',
   'files.linkEmpty': '暫無可關聯的地點或預訂',
   'files.menu': '更多選項',
-  'files.uploadErrorSize': '檔案過大（最大 50 MB）',
+  'files.uploadErrorSize': '檔案過大（最大 {max} MB）',
   'files.title': '檔案',
   'files.pageTitle': '檔案與文件',
   'files.subtitle': '{trip} 的 {count} 個檔案',
@@ -14,8 +14,7 @@ const files: TranslationStrings = {
   'files.openError': '無法開啟檔案',
   'files.downloadPdf': '下載 PDF',
   'files.count': '{count} 個檔案',
-  'files.countSingular': '1 個檔案',
-  'files.uploaded': '已上傳 {count} 個',
+  'files.uploaded': '已上傳 {count} 個檔案',
   'files.uploadError': '上傳失敗',
   'files.uploadErrorType': '不支援此檔案類型',
   'files.dropzone': '將檔案拖放到此處',
@@ -62,5 +61,8 @@ const files: TranslationStrings = {
   'files.confirm.emptyTrash': '永久刪除回收站中的所有檔案？此操作無法撤銷。',
   'files.noteLabel': '備註',
   'files.notePlaceholder': '新增備註...',
+  'files.uploadNeedsConnection': '上傳需要網路連線。請在 TREK 恢復連線後再試一次。',
+  'files.linkNeedsConnection': '移除此連結需要網路連線。請在 TREK 恢復連線後再試一次。',
+  'files.placeFilesNeedConnection': '檔案需要網路連線才能上傳。移除新檔案即可離線儲存此地點，或在恢復連線後再儲存。',
 };
 export default files;

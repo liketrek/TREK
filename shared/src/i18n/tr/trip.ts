@@ -1,7 +1,7 @@
 import type { TranslationStrings } from '../types';
 
 const trip: TranslationStrings = {
-  'trip.tabs.plan': 'Planı',
+  'trip.tabs.plan': 'Plan',
   'trip.tabs.transports': 'Ulaşım',
   'trip.tabs.reservations': 'Rezervasyonlar',
   'trip.tabs.reservationsShort': 'Rezerv.',
@@ -16,8 +16,9 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.pack': 'Bavullar toplanıyor...',
   'trip.loadingSteps.road': 'Yola çıkılıyor...',
   'trip.loadingSteps.arrive': 'Az kaldı...',
-  'trip.mobilePlan': 'Planı',
+  'trip.mobilePlan': 'Plan',
   'trip.mobilePlaces': 'Yerler',
+  'trip.panelWidth': 'Panel genişliği',
   'trip.toast.placeUpdated': 'Yer güncellendi',
   'trip.toast.tripUpdated': 'Gezi güncellendi',
   'trip.toast.placeAdded': 'Yer eklendi',
@@ -30,8 +31,10 @@ const trip: TranslationStrings = {
   'trip.toast.reservationAdded': 'Rezervasyon eklendi',
   'trip.toast.deleted': 'Silindi',
   'trip.confirm.deletePlace': 'Bu yeri silmek istediğinizden emin misiniz?',
-  'trip.confirm.deletePlaces': '{count} Yer silinsin mi?',
+  'trip.confirm.deletePlaces': '{count} yer silinsin mi?',
+  'trip.confirm.deletePlaces.one': '{count} yer silinsin mi?',
   'trip.toast.placesDeleted': '{count} yer silindi',
+  'trip.toast.placesDeleted.one': '{count} yer silindi',
   'trip.invite.linkTitle': 'Seyahat davet bağlantısı',
   'trip.invite.linkHint':
     'TREK hesabı olan ve bu bağlantıyı açan herkes seyahate üye olarak katılır. Eski bağlantıyı geçersiz kılmak için yeniden oluşturun.',
@@ -68,8 +71,11 @@ const trip: TranslationStrings = {
   'transit.noResults': 'Bağlantı bulunamadı. Farklı bir saat veya filtre deneyin.',
   'transit.direct': 'Aktarmasız',
   'transit.transfers': '{count} aktarma',
+  'transit.transfers.one': '{count} aktarma',
   'transit.min': '{count} dk',
+  'transit.min.one': '{count} dk',
   'transit.stops': '{count} durak',
+  'transit.stops.one': '{count} durak',
   'transit.walkTo': '{name} durağına yürü',
   'transit.platform': 'Peron {track}',
   'transit.adding': 'Ekleniyor…',

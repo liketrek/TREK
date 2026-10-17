@@ -7,10 +7,7 @@ import { windowMonths } from '../../vacay/yearWindow'
 import type { VacayStat, TranslationFn } from '../../types'
 import { NumericInput } from '../shared/NumericInput'
 import VacayBadge from './VacayBadge'
-
-// Used/remaining can be fractional once half days (#552) are in play; entry
-// fractions are exact multiples of 0.5, so one decimal is enough and never drifts.
-const fmtDays = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
+import { fmtDays } from './vacayFormat'
 
 // The sidebar card can be folded away; the choice is a personal view preference,
 // so it lives in localStorage rather than on the plan.
@@ -52,7 +49,7 @@ export default function VacayStats() {
       <button type="button"
         onClick={toggleCollapsed}
         aria-expanded={!collapsed}
-        className={`w-full flex items-start gap-2 text-left ${collapsed ? '' : 'mb-2.5'}`}
+        className={`w-full flex items-start gap-2 text-start ${collapsed ? '' : 'mb-2.5'}`}
         style={{ background: 'transparent', border: 0, padding: 0, cursor: 'pointer', font: 'inherit' }}
       >
         <span className="min-w-0 flex-1">
@@ -118,7 +115,7 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, isShiftedYear, onSave,
     setEditing(false)
     const days = Number.parseInt(String(localDays))
     if (!Number.isNaN(days) && days >= 0 && days <= 365 && days !== s.vacation_days) {
-      onSave(selectedYear, days, s.user_id)
+      void onSave(selectedYear, days, s.user_id)
     }
   }
 
@@ -145,7 +142,7 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, isShiftedYear, onSave,
           {s.person_name}
         </span>
         {isMe && <VacayBadge label={t('vacay.you')} />}
-        <span className="tabular-nums ml-auto" style={{ fontFamily: 'var(--font-subtext)', fontSize: 10.5, color: 'var(--vg-ink3)' }}>{fmtDays(s.used)}/{s.total_available}</span>
+        <span className="tabular-nums ms-auto" style={{ fontFamily: 'var(--font-subtext)', fontSize: 10.5, color: 'var(--vg-ink3)' }}>{fmtDays(s.used)}/{s.total_available}</span>
       </div>
       <div className="overflow-hidden" style={{ height: 6, borderRadius: 99, background: 'var(--vg-surf2)', marginBottom: 7 }}>
         <div
@@ -203,7 +200,7 @@ function StatCard({ stat: s, isMe, canEdit, selectedYear, isShiftedYear, onSave,
           {compUsed > 0 && (
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-md" style={{ background: 'var(--vg-surf2)', border: '1px solid var(--vg-line)' }}>
               <Clock size={9} style={{ color: 'var(--vg-ink3)' }} />
-              <span className="text-[10px]" style={{ color: 'var(--vg-ink2)' }}>{t('vacay.compUsedCount', { count: fmtDays(compUsed) })}</span>
+              <span className="text-[10px]" style={{ color: 'var(--vg-ink2)' }}>{t('vacay.compUsedCount', { count: Number(fmtDays(compUsed)) })}</span>
             </div>
           )}
         </div>

@@ -1,10 +1,24 @@
-import { Injectable } from '@nestjs/common';
-import crypto from 'crypto';
-import { DatabaseService } from '../database/database.service';
+import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
+import { JourneyEntryPhotos } from '../../db/entities/JourneyEntryPhotos.entity';
+import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
+import { JourneyShareTokens } from '../../db/entities/JourneyShareTokens.entity';
+import { Journeys } from '../../db/entities/Journeys.entity';
+import type { JourneyEntriesRepository } from '../../db/repositories/JourneyEntries.repository';
+import type {
+  JourneyEntryPhotosRepository,
+  JourneyPublicEntryPhotoRow,
+} from '../../db/repositories/JourneyEntryPhotos.repository';
+import type { JourneyPhotosRepository } from '../../db/repositories/JourneyPhotos.repository';
+import type { JourneyShareTokensRepository } from '../../db/repositories/JourneyShareTokens.repository';
+import type { JourneysRepository } from '../../db/repositories/Journeys.repository';
+import { UnitOfWork } from '../database/unit-of-work';
+import { SettingsService } from '../settings/settings.service';
 import { JourneyDomainService } from './journey-domain.service';
 import { decodeEntryRow } from './journey-entry-row';
-import { GALLERY_CHRONOLOGICAL_ORDER } from './journey-gallery-order';
-import { SettingsService } from '../settings/settings.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+import crypto from 'crypto';
 
 interface JourneySharePermissions {
   share_timeline?: boolean;
@@ -16,7 +30,7 @@ interface JourneySharePermissions {
 
 interface JourneyShareTokenInfo {
   token: string;
-  created_at: string;
+  created_at: string | null;
   share_timeline: boolean;
   share_gallery: boolean;
   share_map: boolean;
@@ -34,47 +48,87 @@ interface JourneyShareTokenInfo {
 @Injectable()
 export class JourneyShareService {
   constructor(
-    private readonly db: DatabaseService,
     private readonly journey: JourneyDomainService,
     private readonly settings: SettingsService,
+    @InjectRepository(JourneyShareTokens) private readonly shareTokensRepo: JourneyShareTokensRepository,
+    // JS8/JS12's unscoped `SELECT * FROM journeys WHERE id = ?` reuses Task 1's
+    // already-stable `JourneysRepository.findById` (the JG5 dup group) rather
+    // than a second, hand-kept copy of the same statement.
+    @InjectRepository(Journeys) private readonly journeysRepo: JourneysRepository,
+    // Fix-wave additions (task-5-review.md):
+    // - `uow` (L1): `createOrUpdateJourneyShareLink`'s existing-link read and
+    //   its insert are separate awaits now, so two concurrent first-creates
+    //   for the same journey could both read "no link yet" and both insert —
+    //   the second hits `UNIQUE(journey_id)` and 500s instead of returning
+    //   `{created:false}` like the legacy synchronous path always did.
+    // - `photosRepo` (L2): `getPublicJourney`'s gallery read (JS15) reuses
+    //   `JourneyPhotosRepository.galleryRead` instead of carrying its own
+    //   byte-identical copy of the ORDER BY builder and the gallery query.
+    private readonly uow: UnitOfWork,
+    @InjectRepository(JourneyPhotos) private readonly photosRepo: JourneyPhotosRepository,
+    // Plan 4 Task 8b constructor-ripple: JS7/JS10 (`photosRepo`, above) and
+    // JS13/JS14 (`entriesRepo`/`entryPhotosRepo`, below) relocated off
+    // `JourneyShareTokensRepository`'s own fallback stub onto their natural
+    // home repositories — both already registered in `journey-domain.module
+    // .ts`'s `forFeature` array for `JourneyDomainService`'s own use, no
+    // module change needed.
+    @InjectRepository(JourneyEntries) private readonly entriesRepo: JourneyEntriesRepository,
+    @InjectRepository(JourneyEntryPhotos) private readonly entryPhotosRepo: JourneyEntryPhotosRepository,
   ) {}
 
-  createOrUpdateJourneyShareLink(
+  async createOrUpdateJourneyShareLink(
     journeyId: number,
     createdBy: number,
-    permissions: JourneySharePermissions
-  ): { token: string; created: boolean } | null {
+    permissions: JourneySharePermissions,
+  ): Promise<{ token: string; created: boolean } | null> {
     // Public sharing is an owner-only action — editors/viewers must not be
     // able to publish the journey or change which screens are shared.
-    if (!this.journey.isOwner(journeyId, createdBy)) return null;
+    if (!(await this.journey.isOwner(journeyId, createdBy))) return null;
 
-    const existing = this.db.prepare('SELECT token, share_timeline, share_gallery, share_map, newest_first FROM journey_share_tokens WHERE journey_id = ?')
-      .get(journeyId) as { token: string; share_timeline: number; share_gallery: number; share_map: number; newest_first: number } | undefined;
+    // L1 (rule 11/24) — the existing-link read and the insert below are
+    // separate awaits, so two concurrent first-creates for the same journey
+    // could both read "no link yet" and both try to insert: the loser hits
+    // `UNIQUE(journey_id)` and throws (a 500 over HTTP) instead of the
+    // legacy's `{created:false}` outcome. Wrapped whole, DB-only, same fix
+    // as M1: the mutex serializes the second caller's read behind the
+    // first's commit, so it finds the row the first just created and takes
+    // the UPDATE branch instead, exactly like the synchronous legacy path.
+    return this.uow.transactional(async () => {
+      // JS1 — `JourneyShareTokensRepository.findFlagsByJourneyId`.
+      const existing = await this.shareTokensRepo.findFlagsByJourneyId(journeyId);
 
-    if (existing) {
-      // An update only changes the flags it was actually given. Falling back to
-      // the create-time defaults here would silently re-publish a gallery or map
-      // the owner had switched off, at the unchanged token.
-      const share_timeline = permissions.share_timeline ?? !!existing.share_timeline;
-      const share_gallery = permissions.share_gallery ?? !!existing.share_gallery;
-      const share_map = permissions.share_map ?? !!existing.share_map;
-      const newest_first = permissions.newest_first ?? !!existing.newest_first;
-      this.db.prepare('UPDATE journey_share_tokens SET share_timeline = ?, share_gallery = ?, share_map = ?, newest_first = ? WHERE journey_id = ?')
-        .run(share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, newest_first ? 1 : 0, journeyId);
-      return { token: existing.token, created: false };
-    }
+      if (existing) {
+        // An update only changes the flags it was actually given. Falling back to
+        // the create-time defaults here would silently re-publish a gallery or map
+        // the owner had switched off, at the unchanged token.
+        const share_timeline = permissions.share_timeline ?? !!existing.share_timeline;
+        const share_gallery = permissions.share_gallery ?? !!existing.share_gallery;
+        const share_map = permissions.share_map ?? !!existing.share_map;
+        const newest_first = permissions.newest_first ?? !!existing.newest_first;
+        // JS2 — the SERVICE resolves the final value of every flag (above); the
+        // repository writes exactly those four already-resolved booleans, a
+        // plain 4-column UPDATE, not a presence-sentinel one.
+        await this.shareTokensRepo.updateFlags(journeyId, {
+          share_timeline: share_timeline ? 1 : 0,
+          share_gallery: share_gallery ? 1 : 0,
+          share_map: share_map ? 1 : 0,
+          newest_first: newest_first ? 1 : 0,
+        });
+        return { token: existing.token, created: false };
+      }
 
-    const {
-      share_timeline = true,
-      share_gallery = true,
-      share_map = true,
-      newest_first = false,
-    } = permissions;
+      const { share_timeline = true, share_gallery = true, share_map = true, newest_first = false } = permissions;
 
-    const token = crypto.randomBytes(24).toString('base64url');
-    this.db.prepare('INSERT INTO journey_share_tokens (journey_id, token, created_by, share_timeline, share_gallery, share_map, newest_first) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .run(journeyId, token, createdBy, share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, newest_first ? 1 : 0);
-    return { token, created: true };
+      const token = crypto.randomBytes(24).toString('base64url');
+      // JS3.
+      await this.shareTokensRepo.insertLink(journeyId, token, createdBy, {
+        share_timeline: share_timeline ? 1 : 0,
+        share_gallery: share_gallery ? 1 : 0,
+        share_map: share_map ? 1 : 0,
+        newest_first: newest_first ? 1 : 0,
+      });
+      return { token, created: true };
+    });
   }
 
   /**
@@ -87,16 +141,17 @@ export class JourneyShareService {
    * unpublished puts a "create link" button in front of somebody it will then
    * refuse. Both the REST route and the MCP tool read the link through here.
    */
-  readJourneyShareLink(
+  async readJourneyShareLink(
     journeyId: number,
     userId: number,
-  ): { allowed: false } | { allowed: true; link: JourneyShareTokenInfo | null } {
-    if (!this.journey.isOwner(journeyId, userId)) return { allowed: false };
-    return { allowed: true, link: this.getJourneyShareLink(journeyId) };
+  ): Promise<{ allowed: false } | { allowed: true; link: JourneyShareTokenInfo | null }> {
+    if (!(await this.journey.isOwner(journeyId, userId))) return { allowed: false };
+    return { allowed: true, link: await this.getJourneyShareLink(journeyId) };
   }
 
-  getJourneyShareLink(journeyId: number): JourneyShareTokenInfo | null {
-    const row = this.db.prepare('SELECT * FROM journey_share_tokens WHERE journey_id = ?').get(journeyId) as any;
+  async getJourneyShareLink(journeyId: number): Promise<JourneyShareTokenInfo | null> {
+    // JS4.
+    const row = await this.shareTokensRepo.findByJourneyId(journeyId);
     if (!row) return null;
     return {
       token: row.token,
@@ -108,104 +163,90 @@ export class JourneyShareService {
     };
   }
 
-  deleteJourneyShareLink(journeyId: number, userId: number): boolean {
-    if (!this.journey.isOwner(journeyId, userId)) return false;
-    this.db.prepare('DELETE FROM journey_share_tokens WHERE journey_id = ?').run(journeyId);
+  async deleteJourneyShareLink(journeyId: number, userId: number): Promise<boolean> {
+    if (!(await this.journey.isOwner(journeyId, userId))) return false;
+    // JS5.
+    await this.shareTokensRepo.deleteByJourneyId(journeyId);
     return true;
   }
 
-  validateShareTokenForPhoto(token: string, photoId: number): { journeyId: number; ownerId: number } | null {
-    const row = this.db.prepare('SELECT journey_id, share_gallery FROM journey_share_tokens WHERE token = ?').get(token) as any;
+  async validateShareTokenForPhoto(
+    token: string,
+    photoId: number,
+  ): Promise<{ journeyId: number; ownerId: number } | null> {
+    // JS6 — exact-match token lookup, no LIKE/COLLATE (R4).
+    const row = await this.shareTokensRepo.findAccessByToken(token);
     if (!row) return null;
     // Photos only ever surface (inline or in the gallery) when share_gallery is on,
     // so the byte proxy must honour the flag server-side too — the JSON payload
     // already strips photos when it is off. Enumerable photo ids otherwise stay
     // fetchable after the owner disables the gallery.
     if (!row.share_gallery) return null;
-    const photo = this.db.prepare(`
-      SELECT gp.photo_id, tkp.owner_id, gp.journey_id
-      FROM journey_photos gp
-      JOIN trek_photos tkp ON tkp.id = gp.photo_id
-      WHERE gp.photo_id = ? AND gp.journey_id = ?
-    `).get(photoId, row.journey_id) as any;
+    // JS7 (Plan 4 Task 8b: relocated to `JourneyPhotosRepository`).
+    const photo = await this.photosRepo.findGalleryPhotoForValidation(photoId, row.journey_id);
     if (!photo) return null;
-    const journey = this.db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(row.journey_id) as any;
+    // JS8 — reuses `JourneysRepository.findById` (JG5's dup group), no
+    // `canAccessJourney` involved: public means public.
+    const journey = await this.journeysRepo.findById(row.journey_id);
     return journey ? { journeyId: row.journey_id, ownerId: photo.owner_id || journey.user_id } : null;
   }
 
-  validateShareTokenForAsset(token: string, assetId: string): { ownerId: number } | null {
-    const row = this.db.prepare('SELECT journey_id, share_gallery FROM journey_share_tokens WHERE token = ?').get(token) as any;
+  async validateShareTokenForAsset(token: string, assetId: string): Promise<{ ownerId: number } | null> {
+    // JS9 — exact-match token lookup, no LIKE/COLLATE (R4).
+    const row = await this.shareTokensRepo.findAccessByToken(token);
     if (!row) return null;
     // Same as the unified photo proxy: no asset bytes leave the host unless the
     // owner shared the gallery.
     if (!row.share_gallery) return null;
-    const photo = this.db.prepare(`
-      SELECT tkp.owner_id, j.user_id AS journey_owner_id
-      FROM journey_photos gp
-      JOIN trek_photos tkp ON tkp.id = gp.photo_id
-      JOIN journeys j ON j.id = gp.journey_id
-      WHERE tkp.asset_id = ? AND gp.journey_id = ?
-    `).get(assetId, row.journey_id) as any;
+    // JS10 (Plan 4 Task 8b: relocated to `JourneyPhotosRepository`) —
+    // security-critical: whose provider credentials get tried must never
+    // come from a number an anonymous caller put in the URL. Only this join
+    // resolves `ownerId`; a caller-supplied value never reaches it.
+    const photo = await this.photosRepo.findAssetForValidation(assetId, row.journey_id);
     // Only resolve assets that actually belong to this shared journey.
     if (!photo) return null;
     // trek_photos.owner_id can be NULL. The journey's owner is the fallback, the
-    // same one the photo proxy uses. Whose provider credentials get tried must
-    // never come from a number an anonymous caller put in the URL.
+    // same one the photo proxy uses.
     return { ownerId: photo.owner_id || photo.journey_owner_id };
   }
 
-  getPublicJourney(token: string) {
-    const row = this.db.prepare('SELECT * FROM journey_share_tokens WHERE token = ?').get(token) as any;
+  async getPublicJourney(token: string) {
+    // JS11 — exact-match token lookup, no LIKE/COLLATE (R4).
+    const row = await this.shareTokensRepo.findByToken(token);
     if (!row) return null;
 
-    const journey = this.db.prepare('SELECT * FROM journeys WHERE id = ?').get(row.journey_id) as any;
+    // JS12 — reuses `JourneysRepository.findById`, same as JS8.
+    const journey = await this.journeysRepo.findById(row.journey_id);
     if (!journey) return null;
 
-    // Entries with photos
-    const entries = this.db.prepare(`
-      SELECT je.* FROM journey_entries je
-      WHERE je.journey_id = ? AND je.type != 'skeleton' AND je.dismissed = 0
-      ORDER BY je.entry_date, je.sort_order
-    `).all(row.journey_id) as any[];
+    // Entries with photos — JS13 (Plan 4 Task 8b: relocated to `JourneyEntriesRepository`).
+    const entries = await this.entriesRepo.listPublicEntries(row.journey_id);
 
-    const photos = this.db.prepare(`
-      SELECT gp.id, jep.entry_id, gp.photo_id, gp.caption, jep.sort_order, gp.shared, gp.created_at,
-             tkp.provider, tkp.asset_id, tkp.owner_id, tkp.file_path, tkp.thumbnail_path, tkp.width, tkp.height,
-             tkp.media_type, tkp.duration_ms, tkp.taken_at, tkp.lat, tkp.lng
-      FROM journey_entry_photos jep
-      JOIN journey_photos gp ON gp.id = jep.journey_photo_id
-      JOIN trek_photos tkp ON tkp.id = gp.photo_id
-      WHERE gp.journey_id = ?
-      ORDER BY jep.sort_order
-    `).all(row.journey_id) as any[];
+    // JS14 (Plan 4 Task 8b: relocated to `JourneyEntryPhotosRepository`, dedupe against `JP_COLUMNS`).
+    const photos = await this.entryPhotosRepo.listForPublicJourney(row.journey_id);
 
-    const photosByEntry: Record<number, any[]> = {};
+    const photosByEntry: Record<number, JourneyPublicEntryPhotoRow[]> = {};
     for (const p of photos) {
       (photosByEntry[p.entry_id] ||= []).push(p);
     }
 
-    const gallery = this.db.prepare(`
-      SELECT gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
-             tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height,
-             tp.media_type, tp.duration_ms, tp.taken_at, tp.lat, tp.lng
-      FROM journey_photos gp
-      JOIN trek_photos tp ON tp.id = gp.photo_id
-      WHERE gp.journey_id = ?
-      ${GALLERY_CHRONOLOGICAL_ORDER}
-    `).all(row.journey_id) as any[];
+    // JS15 (R1's second `GALLERY_CHRONOLOGICAL_ORDER` site) — L2: reuses
+    // `JourneyPhotosRepository.galleryRead` (same `GALLERY_COLUMNS`, same
+    // ORDER BY) rather than a second, hand-kept copy of the same query.
+    // A photo whose every entry is a draft stays off the public page (#696).
+    const gallery = await this.photosRepo.galleryRead(row.journey_id, { hideDraftOnly: true });
 
-    const enrichedEntries = entries
-      .map(e => ({
-        ...decodeEntryRow(e),
-        photos: photosByEntry[e.id] || [],
-      }));
+    const enrichedEntries = entries.map((e) => ({
+      ...decodeEntryRow(e),
+      photos: photosByEntry[e.id] || [],
+    }));
 
     // Stats are derived from the full data so the overview pills stay accurate
     // even when a section is hidden.
     const stats = {
       entries: entries.length,
       photos: gallery.length,
-      places: new Set(entries.filter(e => e.location_name).map(e => e.location_name)).size,
+      places: new Set(entries.filter((e) => e.location_name).map((e) => e.location_name)).size,
     };
 
     const shareTimeline = !!row.share_timeline;
@@ -218,16 +259,19 @@ export class JourneyShareService {
     if (shareTimeline) {
       // Include the full entry, but drop GPS unless the map is shared and inline
       // photos unless the gallery is shared.
-      publicEntries = enrichedEntries.map(e => {
+      publicEntries = enrichedEntries.map((e) => {
         const projected: Record<string, unknown> = { ...e };
-        if (!shareMap) { projected.location_lat = null; projected.location_lng = null; }
+        if (!shareMap) {
+          projected.location_lat = null;
+          projected.location_lng = null;
+        }
         if (!shareGallery) projected.photos = [];
         else if (!shareMap) projected.photos = stripPhotoGps(e.photos);
         return projected;
       });
     } else if (shareMap) {
       // Map-only share: just enough to plot markers, no story/photos/mood.
-      publicEntries = enrichedEntries.map(e => ({
+      publicEntries = enrichedEntries.map((e) => ({
         id: e.id,
         journey_id: e.journey_id,
         type: e.type,
@@ -247,7 +291,7 @@ export class JourneyShareService {
     // instance default and the managed-instance key in that order; carto_api_key is
     // encrypted at rest but deliberately unmasked, since it is useless until it
     // reaches a browser.
-    const ownerCartoKey = this.settings.getUserSettings(journey.user_id)['carto_api_key'];
+    const ownerCartoKey = (await this.settings.getUserSettings(journey.user_id))['carto_api_key'];
     const cartoApiKey = typeof ownerCartoKey === 'string' ? ownerCartoKey.trim() : '';
 
     return {
@@ -284,5 +328,5 @@ export class JourneyShareService {
 
 /** Drop capture coordinates from a photo list, keeping everything else. */
 function stripPhotoGps<T>(photos: T[] | undefined | null): T[] {
-  return (photos ?? []).map(p => ({ ...(p as Record<string, unknown>), lat: null, lng: null })) as T[];
+  return (photos ?? []).map((p) => ({ ...(p as Record<string, unknown>), lat: null, lng: null })) as T[];
 }

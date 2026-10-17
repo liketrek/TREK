@@ -2,17 +2,28 @@
  * Files + photos e2e — exercises the migrated /api/trips/:tripId/files and
  * /api/photos endpoints through the real JwtAuthGuard against a temp SQLite db.
  * FilesService is DI-native (no service mock): the file rows live in the temp
- * db and the SQL runs for real; only canAccessTrip, the permission check, the
- * photo services and the broadcast are mocked. Focuses on auth (incl. the
+ * db and the SQL runs for real; only canAccessTrip, the permission check and the
+ * photo services are mocked. Focuses on auth (incl. the
  * unguarded download's own token auth), trip-access 404, permission 403, the
  * photo id/access guards and status codes.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+import { TripFiles } from '../../src/db/entities/TripFiles.entity';
+import { Trips } from '../../src/db/entities/Trips.entity';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { FilesModule } from '../../src/nest/files/files.module';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { PhotosModule } from '../../src/nest/photos/photos.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { deleteRows, insertRow, updateRows } from '../helpers/factories/rows';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -25,11 +36,18 @@ const { db } = vi.hoisted(() => {
   // FilesService runs its real SQL against these (FILE_SELECT joins reservations
   // and users; the link batch reads file_links; findForeignLinkTarget probes
   // reservations/places/day_assignments).
-  tmp.exec('CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT);');
+  // An ORM insert into trips names every column the entity gives a default
+  // (is_archived, reminder_days and the two timestamps); the real schema has all four.
+  tmp.exec(`CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, currency TEXT,
+    is_archived INTEGER DEFAULT 0, reminder_days INTEGER DEFAULT 3,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+  // TripAccessGuard now reads TripsRepository.findAccessible directly
+  // (Plan 3c Task 0b), a real join against trip_members.
+  tmp.exec('CREATE TABLE trip_members (trip_id INTEGER NOT NULL, user_id INTEGER NOT NULL);');
   tmp.exec(`CREATE TABLE trip_files (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
     place_id INTEGER, reservation_id INTEGER, message_id INTEGER, filename TEXT NOT NULL,
     original_name TEXT NOT NULL, file_size INTEGER, mime_type TEXT, description TEXT,
-    uploaded_by INTEGER, starred INTEGER DEFAULT 0,
+    note_id INTEGER, uploaded_by INTEGER, starred INTEGER DEFAULT 0,
     deleted_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE file_links (id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER NOT NULL,
     reservation_id INTEGER, assignment_id INTEGER, place_id INTEGER, budget_item_id INTEGER,
@@ -47,12 +65,13 @@ const { db } = vi.hoisted(() => {
 
 const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
 vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
+  db,
+  canAccessTrip,
+  getPlaceWithTags: vi.fn(),
+  closeDb: () => {},
+  reinitialize: () => {},
 }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
 vi.mock('../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
@@ -76,18 +95,21 @@ vi.mock('../../src/nest/memories/memories-access.service', async (importOriginal
   return actual;
 });
 
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { FilesModule } from '../../src/nest/files/files.module';
-import { PhotosModule } from '../../src/nest/photos/photos.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-
 describe('Files + photos e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
+  let orm: TestOrm;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, FilesModule, PhotosModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        FilesModule,
+        PhotosModule,
+      ],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -97,22 +119,38 @@ describe('Files + photos e2e (real auth guard + temp SQLite)', () => {
 
   beforeAll(async () => {
     seedUser(db as never, { id: 1 });
-    db.prepare('INSERT INTO trips (id, user_id, title) VALUES (5, 1, ?)').run('Trip');
-    db.prepare("INSERT INTO trip_files (id, trip_id, filename, original_name, uploaded_by) VALUES (1, 5, 'stored-a.pdf', 'a.pdf', 1)").run();
-    db.prepare("INSERT INTO trip_files (id, trip_id, filename, original_name, uploaded_by, starred) VALUES (9, 5, 'stored-b.pdf', 'b.pdf', 1, 0)").run();
+    orm = await createTestOrm(db);
+    await insertRow(orm, Trips, { id: 5, user: 1, title: 'Trip' });
+    await insertRow(orm, TripFiles, {
+      id: 1,
+      trip: 5,
+      filename: 'stored-a.pdf',
+      original_name: 'a.pdf',
+      uploadedByRef: 1,
+    });
+    await insertRow(orm, TripFiles, {
+      id: 9,
+      trip: 5,
+      filename: 'stored-b.pdf',
+      original_name: 'b.pdf',
+      uploadedByRef: 1,
+      starred: 0,
+    });
     app = await build();
     checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
     server = app.getHttpServer();
   });
 
   beforeEach(() => {
-    canAccessTrip.mockReturnValue({ id: 5, user_id: 1 });
+    // 0b review L2 / security review F-B7: dead mock scaffolding — see
+    // budget.e2e.test.ts's identical comment.
     checkPermission.mockReturnValue(true);
     helperSvc.canAccessTrekPhoto.mockReturnValue(true);
   });
 
   afterAll(async () => {
     await app.close();
+    await orm.close();
   });
 
   it('401 listing files without a session cookie', async () => {
@@ -130,10 +168,19 @@ describe('Files + photos e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('404 when the trip is not accessible', async () => {
-    canAccessTrip.mockReturnValue(undefined);
-    const res = await request(server).get('/api/trips/5/files').set('Cookie', sessionCookie(1));
-    expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Trip not found' });
+    // Plan 3c Task 0b: TripAccessGuard reads TripsRepository.findAccessible
+    // directly now, a real query — `canAccessTrip.mockReturnValue(...)` no
+    // longer intercepts it. Trip 5 is a persistent row seeded once in
+    // `beforeAll` (not re-seeded per test), so it is removed and restored
+    // around this one assertion instead.
+    await deleteRows(orm, Trips, { id: 5 });
+    try {
+      const res = await request(server).get('/api/trips/5/files').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: 'Trip not found' });
+    } finally {
+      await insertRow(orm, Trips, { id: 5, user: 1, title: 'Trip' });
+    }
   });
 
   it('200 toggling a star with permission (real UPDATE + re-select)', async () => {
@@ -142,7 +189,7 @@ describe('Files + photos e2e (real auth guard + temp SQLite)', () => {
     expect(res.body.file.id).toBe(9);
     expect(res.body.file.starred).toBe(1);
     // put it back so the case is order-independent
-    db.prepare('UPDATE trip_files SET starred = 0 WHERE id = 9').run();
+    await updateRows(orm, TripFiles, { id: 9 }, { starred: 0 });
   });
 
   it('403 deleting without file_delete permission', async () => {

@@ -7,7 +7,7 @@ export function PackingList(S: PackingState) {
     items, gruppiert, t, tripId, allCategories, handleRenameCategory, handleDeleteCategory, handleDeleteItem,
     handleAddItemToCategory, categoryAssignees, tripMembers, handleSetAssignees,
     bagTrackingEnabled, bags, handleCreateBagByName, canEdit, reorderPackingItems,
-    currentUserId, handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem,
+    currentUserId, handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem, sort,
   } = S
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0 16px' }}>
@@ -39,6 +39,7 @@ export function PackingList(S: PackingState) {
               canEdit={canEdit}
               allItems={items}
               onReorder={(orderedIds) => reorderPackingItems(tripId, orderedIds)}
+              reorderable={sort === 'manual'}
               currentUserId={currentUserId}
               onSetSharing={handleSetSharing}
               onClone={handleCloneItem}

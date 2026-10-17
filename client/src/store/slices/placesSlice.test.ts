@@ -133,6 +133,30 @@ describe('placesSlice', () => {
   });
 
   describe('deletePlace', () => {
+    it('removes a deleted Tour and all local assignments after server success', async () => {
+      const tour = buildPlace({ id: 10, trip_id: 1, tour_place_id: 10, route_geometry: '[[1,2],[3,4]]' })
+      const ordinary = buildPlace({ id: 20, trip_id: 1 })
+      const tourDayOne = buildAssignment({ id: 100, day_id: 1, place: tour })
+      const ordinaryDayOne = buildAssignment({ id: 101, day_id: 1, place: ordinary })
+      const tourDayTwo = buildAssignment({ id: 200, day_id: 2, place: tour })
+      seedStore(useTripStore, {
+        places: [tour, ordinary],
+        assignments: { '1': [tourDayOne, ordinaryDayOne], '2': [tourDayTwo] },
+      })
+      server.use(
+        http.delete('/api/trips/1/places/10', () =>
+          HttpResponse.json({ success: true, tourPlaceIds: [10] }),
+        ),
+      )
+
+      const result = await useTripStore.getState().deletePlace(1, tour.id)
+
+      expect(result).toMatchObject({ success: true, tourPlaceIds: [tour.id] })
+      expect(useTripStore.getState().places).toEqual([ordinary])
+      expect(useTripStore.getState().assignments['1']).toEqual([ordinaryDayOne])
+      expect(useTripStore.getState().assignments['2']).toEqual([])
+    })
+
     it('FE-TSLICE-PLACE-007: rethrows the server message and keeps the pool intact', async () => {
       const place = buildPlace({ id: 10, trip_id: 1 });
       seedStore(useTripStore, { places: [place] });

@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   pluginActivateRequestSchema,
   pluginEgressHostsRequestSchema,
@@ -11,6 +10,8 @@ import {
   pluginUpdateRequestSchema,
   pluginUserSettingsUpdateRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Nest DTO classes for the plugin surfaces — thin wrappers over the shared

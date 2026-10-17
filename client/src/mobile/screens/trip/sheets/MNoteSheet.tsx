@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import MSheet from '../../../components/MSheet'
 import { ChevronDown } from 'lucide-react'
 import { NOTE_COLORS } from '@trek/shared'
-import { NOTE_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
+import { DAY_NOTE_DETAIL_MAX, NOTE_ICONS, dayNoteNearLimit, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { noteSurface } from '../../../../components/Planner/noteSurface'
 import NoteFormatToolbar from '../../../../components/shared/NoteFormatToolbar'
 import { useTripStore } from '../../../../store/tripStore'
+import { dayNoteDraft, writeDayNote } from '../../../../hooks/useDayNotes'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import type { DayNote } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
@@ -22,8 +23,6 @@ export interface MNoteSheetProps {
   payload?: MNoteSheetPayload
   onClose: () => void
 }
-
-const DETAIL_MAX = 2000
 
 /**
  * Day-note sheet: the demo's icon grid over title + detail. Persists through
@@ -54,12 +53,13 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
   const payloadDayId = payload?.dayId
   useEffect(() => {
     if (!open) return
+    const draft = dayNoteDraft(payload?.note)
     setSheetPayload(payload)
-    setIcon(payload?.note?.icon || 'FileText')
-    setColor(payload?.note?.color ?? null)
+    setIcon(draft.icon)
+    setColor(draft.color)
     setIconOpen(false)
-    setTitle(payload?.note?.text || '')
-    setDetail(payload?.note?.time || '')
+    setTitle(draft.text)
+    setDetail(draft.time)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, payloadNoteId, payloadDayId])
 
@@ -73,7 +73,7 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
     setIsSaving(true)
     try {
       if (note) {
-        await tripActions.updateDayNote(tripId, dayId, note.id, { text: title.trim(), time: detail || null, icon, color })
+        await writeDayNote(tripActions, tripId, dayId, { add: false, noteId: note.id }, { text: title, time: detail, icon, color })
       } else {
         // Append at the end of the day timeline: after the last assignment or note.
         const state = useTripStore.getState()
@@ -82,13 +82,7 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
           ...(state.assignments[String(dayId)] ?? []).map(a => a.order_index ?? 0),
           ...(state.dayNotes[String(dayId)] ?? []).map(n => n.sort_order ?? 0),
         )
-        await tripActions.addDayNote(tripId, dayId, {
-          text: title.trim(),
-          time: detail || null,
-          icon,
-          color,
-          sort_order: maxKey + 1,
-        })
+        await writeDayNote(tripActions, tripId, dayId, { add: true, sortOrder: maxKey + 1 }, { text: title, time: detail, icon, color })
       }
       onClose()
     } catch (err: unknown) {
@@ -134,7 +128,7 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
             <ChevronDown
               size={11}
               strokeWidth={2.4}
-              className={`absolute bottom-[3px] right-[3px] text-m-faint transition-transform duration-200 ${iconOpen ? 'rotate-180' : ''}`}
+              className={`absolute bottom-[3px] end-[3px] text-m-faint transition-transform duration-200 ${iconOpen ? 'rotate-180' : ''}`}
             />
           </button>
 
@@ -202,14 +196,14 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
           value={detail}
           onChange={e => setDetail(e.target.value)}
           rows={4}
-          maxLength={DETAIL_MAX}
+          maxLength={DAY_NOTE_DETAIL_MAX}
           placeholder={t('notes.bodyPlaceholder')}
           className={FIELD_AREA_CLS}
         />
         <div className="mt-1 flex items-center justify-between gap-2 font-geist text-[0.59375rem]">
           <span className="text-m-faint">{t('notes.markdownHint')}</span>
-          <span className={detail.length >= DETAIL_MAX - 100 ? 'text-[color:var(--m-st-pending)]' : 'text-m-faint'}>
-            {detail.length}/{DETAIL_MAX}
+          <span className={dayNoteNearLimit(detail.length) ? 'text-[color:var(--m-st-pending)]' : 'text-m-faint'}>
+            {detail.length}/{DAY_NOTE_DETAIL_MAX}
           </span>
         </div>
       </div>

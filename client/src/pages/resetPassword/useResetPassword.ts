@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router'
 import { authApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import { useTranslation } from '../../i18n'
+import { passwordErrorKey } from '../../utils/passwordError'
 
 /**
  * Reset-password data hook — owns the token lookup, the form state, the
@@ -34,7 +35,8 @@ export function useResetPassword() {
     if (isLoading) return
     setError('')
     if (!token) return
-    if (pw.length < 8) { setError(t('login.passwordMinLength')); return }
+    const weak = passwordErrorKey(pw)
+    if (weak) { setError(t(weak)); return }
     if (pw !== pw2) { setError(t('login.passwordsDontMatch')); return }
     setIsLoading(true)
     try {

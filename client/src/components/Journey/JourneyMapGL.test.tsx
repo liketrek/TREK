@@ -1,4 +1,4 @@
-// FE-COMP-JMAPGL-001 to FE-COMP-JMAPGL-026
+// FE-COMP-JMAPGL-001 to FE-COMP-JMAPGL-026, FE-COMP-JMAPGL-2453
 
 type Spy = ReturnType<typeof vi.fn>
 
@@ -32,6 +32,11 @@ interface BoundsStub {
 const gl = vi.hoisted(() => {
   const map = {
     on: vi.fn(),
+    off: vi.fn(),
+    once: vi.fn(),
+    loaded: vi.fn(() => true),
+    // Container pixels from lng/lat, ten per degree: enough to tell near from far.
+    project: vi.fn(([lng, lat]: [number, number]) => ({ x: lng * 10, y: lat * 10 })),
     remove: vi.fn(),
     resize: vi.fn(),
     flyTo: vi.fn(),
@@ -272,6 +277,16 @@ describe('JourneyMapGL', () => {
     expect(gl.map.addLayer).not.toHaveBeenCalled()
   })
 
+  it('FE-COMP-JMAPGL-037: the fullScreen map draws the route once the entries arrive after mount', () => {
+    withToken()
+    const { rerender } = render(<JourneyMapGL checkins={[]} entries={[]} fullScreen />)
+    expect(gl.map.addSource).not.toHaveBeenCalledWith('journey-route', expect.anything())
+
+    rerender(<JourneyMapGL checkins={[]} entries={entries} fullScreen />)
+    expect(gl.map.addSource).toHaveBeenCalledWith('journey-route', expect.objectContaining({ type: 'geojson' }))
+    expect(gl.map.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'journey-route-line' }))
+  })
+
   it('FE-COMP-JMAPGL-010: the camera fits entries and trail with the requested bottom padding', () => {
     withToken()
     render(
@@ -424,7 +439,7 @@ describe('JourneyMapGL', () => {
 
     const firstInner = gl.markers[0].element.querySelector('.trek-journey-marker-inner') as HTMLElement
     expect(firstInner.style.transform).toBe('scale(1)')
-    expect(gl.markers[0].element.style.zIndex).toBe('0')
+    expect(gl.markers[0].element.style.zIndex).toBe('1')
   })
 
   it('FE-COMP-JMAPGL-019: dark mode tags the popup class on creation', () => {
@@ -450,7 +465,7 @@ describe('JourneyMapGL', () => {
     render(<JourneyMapGL ref={ref} checkins={[]} entries={entries} />)
     act(() => { ref.current!.highlightMarker('ghost') })
     expect(gl.popups).toHaveLength(0)
-    expect(gl.markers[0].element.style.zIndex).toBe('')
+    expect(gl.markers[0].element.style.zIndex).toBe('1')
   })
 
   it('FE-COMP-JMAPGL-022: the popup stylesheet is injected exactly once', () => {
@@ -498,6 +513,24 @@ describe('JourneyMapGL', () => {
 
     expect(() => act(() => { ref.current!.focusMarker('e1') })).not.toThrow()
     expect(gl.map.flyTo).not.toHaveBeenCalled()
+  })
+
+  it('FE-COMP-JMAPGL-2453: geotagged photos become clustered thumbnails under the pins and open on a tap', () => {
+    withToken()
+    const onPhotoClick = vi.fn()
+    const photos = [
+      { id: 'a', lat: 45, lng: 5, thumbUrl: '/api/photos/1/thumbnail' },
+      { id: 'b', lat: 45.1, lng: 5.1, thumbUrl: '/api/photos/2/thumbnail' },
+      { id: 'c', lat: 48, lng: 11, thumbUrl: '/api/photos/3/thumbnail' },
+    ]
+    render(<JourneyMapGL checkins={[]} entries={entries} photos={photos} onPhotoClick={onPhotoClick} />)
+    const thumbs = gl.markers.filter(m => m.element.innerHTML.includes('/api/photos/'))
+    // a and b fall in one 64px bucket at ten pixels a degree, c in its own.
+    expect(thumbs).toHaveLength(2)
+    expect(thumbs[0].element.innerHTML).toContain('>2<')
+    thumbs[0].element.click()
+    expect(onPhotoClick).toHaveBeenCalledWith(['a', 'b'])
+    expect(gl.map.on).toHaveBeenCalledWith('moveend', expect.any(Function))
   })
 
   it('FE-COMP-JMAPGL-026: focusMarker on an unknown id is a no-op', () => {

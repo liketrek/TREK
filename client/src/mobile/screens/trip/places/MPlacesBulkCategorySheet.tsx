@@ -39,7 +39,7 @@ export default function MPlacesBulkCategorySheet({ open, count, categories, onPi
               key={c.id}
               type="button"
               onClick={() => onPick(c.id)}
-              className="flex w-full items-center gap-3 rounded-xl px-2 py-[11px] text-left text-[0.84375rem] font-medium text-m-ink"
+              className="flex w-full items-center gap-3 rounded-xl px-2 py-[11px] text-start text-[0.84375rem] font-medium text-m-ink"
             >
               <CatIcon size={16} strokeWidth={2} className="flex-none" style={{ color: c.color || 'var(--m-muted)' }} />
               <span className="min-w-0 flex-1 truncate">{c.name}</span>
@@ -49,7 +49,7 @@ export default function MPlacesBulkCategorySheet({ open, count, categories, onPi
         <button
           type="button"
           onClick={() => onPick(null)}
-          className={`flex w-full items-center gap-3 px-2 py-[11px] text-left text-[0.84375rem] font-medium text-m-muted ${
+          className={`flex w-full items-center gap-3 px-2 py-[11px] text-start text-[0.84375rem] font-medium text-m-muted ${
             categories.length > 0 ? 'border-t border-[color:var(--m-rowbr)]' : ''
           }`}
         >

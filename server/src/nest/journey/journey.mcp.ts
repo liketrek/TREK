@@ -1,18 +1,25 @@
-import {
-  McpController, Tool, Resource, ResourceTemplate,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  demoDenied, ok, type McpContext,
-} from '../../nest-mcp';
-import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
-import { JourneyDomainService } from './journey-domain.service';
-import { JourneyShareService } from './journey-share.service';
+import {
+  McpController,
+  Tool,
+  Resource,
+  ResourceTemplate,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  ok,
+  type McpContext,
+} from '../../nest-mcp';
 import type { JourneyContributor } from '../../types';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { AuthService } from '../auth/auth.service';
-import { PhotoCaptureBackfillService } from '../memories/photo-capture-backfill.service';
+import { JourneyDomainService } from './journey-domain.service';
+import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
+import { JourneyShareService } from './journey-share.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 /** Legacy registrar gate: the whole journey surface rode the journey addon. */
 const journeyAddonOn = addonGate(ADDON_IDS.JOURNEY);
@@ -28,21 +35,25 @@ function parseId(value: string | string[]): number | null {
 
 function accessDenied(uri: string) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify({ error: 'Trip not found or access denied' }),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify({ error: 'Trip not found or access denied' }),
+      },
+    ],
   };
 }
 
 function jsonContent(uri: string, data: unknown) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify(data, null, 2),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
   };
 }
 
@@ -109,8 +120,7 @@ export class JourneyMcp {
     private readonly journey: JourneyDomainService,
     private readonly share: JourneyShareService,
     readonly addons: AddonsService,
-    private readonly auth: AuthService,
-    private readonly captureBackfill: PhotoCaptureBackfillService,
+    private readonly photoCapture: JourneyPhotoCaptureService,
   ) {}
 
   // ── Read ────────────────────────────────────────────────────────────────
@@ -123,37 +133,43 @@ export class JourneyMcp {
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'read' },
   })
-  listJourneys(_args: unknown, ctx: McpContext) {
-    return ok({ journeys: this.journey.listJourneys(ctx.userId) });
+  async listJourneys(_args: unknown, ctx: McpContext) {
+    return ok({ journeys: await this.journey.listJourneys(ctx.userId) });
   }
 
   @Tool({
     name: 'get_journey',
     description: 'Get a full journey including entries, contributors, and linked trips.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'read' },
   })
-  getJourney({ journeyId }: { journeyId: number }, ctx: McpContext) {
-    const journey = this.journey.getJourneyFull(journeyId, ctx.userId);
+  async getJourney({ journeyId }: { journeyId: number }, ctx: McpContext) {
+    const journey = await this.journey.getJourneyFull(journeyId, ctx.userId);
     if (!journey) return notFound('Journey not found or access denied.');
     return ok({ journey });
   }
 
   @Tool({
     name: 'get_journey_stats',
-    description: 'What a journey adds up to: distance travelled in metres, calendar days spanned, countries in visit order, the furthest point reached, and entry, photo and place counts. Stops the traveller switched off with update_journey_entry count towards none of those and are listed under excluded instead. Prefer this over get_journey whenever the question is about totals, since the stats get_journey carries are three counts and nothing else.',
+    description:
+      'What a journey adds up to: distance travelled in metres, calendar days spanned, countries in visit order, the furthest point reached, and entry, photo and place counts. Stops the traveller switched off with update_journey_entry count towards none of those and are listed under excluded instead. Prefer this over get_journey whenever the question is about totals, since the stats get_journey carries are three counts and nothing else.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      include_route: z.boolean().optional().describe('Also return the route itself, up to 400 stops with coordinates. Off by default: the totals and the country list do not need it.'),
+      journeyId: idSchema,
+      include_route: z
+        .boolean()
+        .optional()
+        .describe(
+          'Also return the route itself, up to 400 stops with coordinates. Off by default: the totals and the country list do not need it.',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'read' },
   })
-  getJourneyStats({ journeyId, include_route }: { journeyId: number; include_route?: boolean }, ctx: McpContext) {
-    const stats = this.journey.journeyStats(journeyId, ctx.userId);
+  async getJourneyStats({ journeyId, include_route }: { journeyId: number; include_route?: boolean }, ctx: McpContext) {
+    const stats = await this.journey.journeyStats(journeyId, ctx.userId);
     if (!stats) return notFound('Journey not found or access denied.');
     // Same payload as GET /api/journeys/:id/stats. The route is left out unless
     // it was asked for: 400 coordinate pairs answer a different question than
@@ -166,26 +182,27 @@ export class JourneyMcp {
   @Tool({
     name: 'list_journey_entries',
     description: 'List all entries in a journey.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'read' },
   })
-  listJourneyEntries({ journeyId }: { journeyId: number }, ctx: McpContext) {
-    if (!this.journey.canAccessJourney(journeyId, ctx.userId)) return notFound('Journey not found or access denied.');
-    return ok({ entries: this.journey.listEntries(journeyId, ctx.userId) });
+  async listJourneyEntries({ journeyId }: { journeyId: number }, ctx: McpContext) {
+    if (!(await this.journey.canAccessJourney(journeyId, ctx.userId)))
+      return notFound('Journey not found or access denied.');
+    return ok({ entries: await this.journey.listEntries(journeyId, ctx.userId) });
   }
 
   @Tool({
     name: 'list_journey_contributors',
     description: 'List all contributors (owner and collaborators) of a journey.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'read' },
   })
-  listJourneyContributors({ journeyId }: { journeyId: number }, ctx: McpContext) {
-    const journey = this.journey.getJourneyFull(journeyId, ctx.userId);
+  async listJourneyContributors({ journeyId }: { journeyId: number }, ctx: McpContext) {
+    const journey = await this.journey.getJourneyFull(journeyId, ctx.userId);
     if (!journey) return notFound('Journey not found or access denied.');
     return ok({ contributors: (journey as { contributors?: JourneyContributor[] }).contributors ?? [] });
   }
@@ -198,8 +215,8 @@ export class JourneyMcp {
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'read' },
   })
-  getJourneySuggestions(_args: unknown, ctx: McpContext) {
-    return ok({ trips: this.journey.getSuggestions(ctx.userId) });
+  async getJourneySuggestions(_args: unknown, ctx: McpContext) {
+    return ok({ trips: await this.journey.getSuggestions(ctx.userId) });
   }
 
   @Tool({
@@ -210,8 +227,8 @@ export class JourneyMcp {
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'read' },
   })
-  listJourneyAvailableTrips(_args: unknown, ctx: McpContext) {
-    return ok({ trips: this.journey.listUserTrips(ctx.userId) });
+  async listJourneyAvailableTrips(_args: unknown, ctx: McpContext) {
+    return ok({ trips: await this.journey.listUserTrips(ctx.userId) });
   }
 
   // ── Write ───────────────────────────────────────────────────────────────
@@ -222,65 +239,83 @@ export class JourneyMcp {
     inputSchema: {
       title: z.string().min(1).max(200),
       subtitle: z.string().max(300).optional(),
-      trip_ids: z.array(z.number().int().positive()).optional(),
+      trip_ids: z.array(idSchema).optional(),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  createJourney(
+  async createJourney(
     { title, subtitle, trip_ids }: { title: string; subtitle?: string; trip_ids?: number[] },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const journey = this.journey.createJourney(ctx.userId, { title, subtitle, trip_ids });
+    const journey = await this.journey.createJourney(ctx.userId, { title, subtitle, trip_ids });
     // Return the fully-hydrated journey (entries/contributors/trips/stats/my_role),
     // matching get_journey, rather than the bare row.
-    return ok({ journey: this.journey.getJourneyFull(journey.id, ctx.userId) ?? journey });
+    return ok({ journey: (await this.journey.getJourneyFull(journey.id, ctx.userId)) ?? journey });
   }
 
   @Tool({
     name: 'update_journey',
-    description: "Update an existing journey's title, subtitle, cover, or status. Owner only.",
+    description:
+      "Update an existing journey's title, subtitle, cover, or status. Owner only. status_override sets the state shown for the journey (draft, live, completed) instead of deriving it from the linked trips' dates; null goes back to the dates.",
     inputSchema: {
-      journeyId: z.number().int().positive(),
+      journeyId: idSchema,
       title: z.string().min(1).max(200).optional(),
       subtitle: z.string().max(300).optional(),
       status: z.enum(['draft', 'active', 'completed', 'archived']).optional(),
+      status_override: z
+        .enum(['draft', 'live', 'completed'])
+        .nullable()
+        .optional()
+        .describe('Shown state set by hand, or null to follow the trip dates'),
       show_verdict: z.boolean().optional().describe('Whether entries in this journey offer a pros/cons list'),
       show_mood: z.boolean().optional().describe('Whether entries in this journey offer a mood'),
       show_weather: z.boolean().optional().describe('Whether entries in this journey offer a weather note'),
+      photo_location: z
+        .boolean()
+        .optional()
+        .describe('Whether an entry without a place takes the position of the first geotagged photo added to it'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  updateJourney(
-    { journeyId, ...data }: {
-      journeyId: number; title?: string; subtitle?: string; status?: string;
-      show_verdict?: boolean; show_mood?: boolean; show_weather?: boolean;
+  async updateJourney(
+    {
+      journeyId,
+      ...data
+    }: {
+      journeyId: number;
+      title?: string;
+      subtitle?: string;
+      status?: string;
+      status_override?: string | null;
+      show_verdict?: boolean;
+      show_mood?: boolean;
+      show_weather?: boolean;
+      photo_location?: boolean;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const journey = this.journey.updateJourney(journeyId, ctx.userId, data);
+    const journey = await this.journey.updateJourney(journeyId, ctx.userId, data);
     if (!journey) return notFound('Journey not found or access denied.');
     return ok({ journey });
   }
 
   @Tool({
     name: 'restore_journey_suggestions',
-    description: 'Bring back every trip-derived suggestion that was dismissed from this journey. Answers with how many came back.',
+    description:
+      'Bring back every trip-derived suggestion that was dismissed from this journey. Answers with how many came back.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
+      journeyId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  restoreJourneySuggestions({ journeyId }: { journeyId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const result = this.journey.restoreDismissedSuggestions(journeyId, ctx.userId);
+  async restoreJourneySuggestions({ journeyId }: { journeyId: number }, ctx: McpContext) {
+    const result = await this.journey.restoreDismissedSuggestions(journeyId, ctx.userId);
     if (!result) return notFound('Journey not found or access denied.');
     return ok(result);
   }
@@ -288,143 +323,218 @@ export class JourneyMcp {
   @Tool({
     name: 'delete_journey',
     description: 'Delete a journey. Owner only — this cannot be undone.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  deleteJourney({ journeyId }: { journeyId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.journey.deleteJourney(journeyId, ctx.userId)) return notFound('Journey not found or access denied.');
+  async deleteJourney({ journeyId }: { journeyId: number }, ctx: McpContext) {
+    if (!(await this.journey.deleteJourney(journeyId, ctx.userId)))
+      return notFound('Journey not found or access denied.');
     return ok({ success: true });
   }
 
   @Tool({
     name: 'add_journey_trip',
     description: 'Link a trip to a journey. Syncs skeleton entries for all places in the trip.',
-    inputSchema: { journeyId: z.number().int().positive(), tripId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema, tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  addJourneyTrip({ journeyId, tripId }: { journeyId: number; tripId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.journey.canAccessJourney(journeyId, ctx.userId)) return notFound('Journey not found or access denied.');
-    return ok({ success: this.journey.addTripToJourney(journeyId, tripId, ctx.userId) });
+  async addJourneyTrip({ journeyId, tripId }: { journeyId: number; tripId: number }, ctx: McpContext) {
+    if (!(await this.journey.canAccessJourney(journeyId, ctx.userId)))
+      return notFound('Journey not found or access denied.');
+    return ok({ success: await this.journey.addTripToJourney(journeyId, tripId, ctx.userId) });
   }
 
   @Tool({
     name: 'remove_journey_trip',
     description: 'Unlink a trip from a journey. Owner only.',
-    inputSchema: { journeyId: z.number().int().positive(), tripId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema, tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  removeJourneyTrip({ journeyId, tripId }: { journeyId: number; tripId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const success = this.journey.removeTripFromJourney(journeyId, tripId, ctx.userId);
+  async removeJourneyTrip({ journeyId, tripId }: { journeyId: number; tripId: number }, ctx: McpContext) {
+    const success = await this.journey.removeTripFromJourney(journeyId, tripId, ctx.userId);
     if (!success) return notFound('Journey not found or access denied.');
     return ok({ success });
   }
 
   @Tool({
     name: 'create_journey_entry',
-    description: 'Create a new entry in a journey. Give location_lat/location_lng whenever the place is known, otherwise the entry is text-only and never appears on the journey map or in its distance.',
+    description:
+      'Create a new entry in a journey. Give location_lat/location_lng whenever the place is known, otherwise the entry is text-only and never appears on the journey map or in its distance.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe('Entry date (YYYY-MM-DD)'),
+      journeyId: idSchema,
+      entry_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .describe('Entry date (YYYY-MM-DD)'),
       title: z.string().max(300).optional(),
       story: z.string().optional(),
       entry_time: z.string().optional().describe('Time of day (e.g. "14:30")'),
       location_name: z.string().optional(),
-      location_lat: z.number().min(-90).max(90).optional().describe('Latitude; needed, with location_lng, to place the entry on the journey map'),
+      location_lat: z
+        .number()
+        .min(-90)
+        .max(90)
+        .optional()
+        .describe('Latitude; needed, with location_lng, to place the entry on the journey map'),
       location_lng: z.number().min(-180).max(180).optional(),
       mood: z.string().optional(),
-      weather: z.string().max(100).optional().describe('Weather as the traveller recorded it (e.g. "sunny", "24C and windy")'),
+      weather: z
+        .string()
+        .max(100)
+        .optional()
+        .describe('Weather as the traveller recorded it (e.g. "sunny", "24C and windy")'),
       tags: z.array(z.string()).optional(),
       pros_cons: PROS_CONS.optional().describe('The verdict on the place: what was worth it and what was not'),
-      visibility: ENTRY_VISIBILITY.optional().describe('Defaults to private; "shared" and "public" expose the entry through the journey share link'),
-      type: ENTRY_TYPE.optional().describe('Defaults to "entry"; "skeleton" is the stub TREK derives from a trip place and hides behind the hide-skeletons preference'),
+      visibility: ENTRY_VISIBILITY.optional().describe(
+        'Defaults to private; "shared" and "public" expose the entry through the journey share link',
+      ),
+      type: ENTRY_TYPE.optional().describe(
+        'Defaults to "entry"; "skeleton" is the stub TREK derives from a trip place and hides behind the hide-skeletons preference',
+      ),
       sort_order: z.number().int().min(0).optional(),
+      is_draft: z
+        .boolean()
+        .optional()
+        .describe('True keeps the entry a draft: contributors see it, the journey share link does not'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  createJourneyEntry(
-    { journeyId, ...data }: {
-      journeyId: number; entry_date: string; title?: string; story?: string; entry_time?: string;
-      location_name?: string; location_lat?: number; location_lng?: number; mood?: string; weather?: string;
-      tags?: string[]; pros_cons?: { pros: string[]; cons: string[] }; visibility?: EntryVisibility;
-      type?: EntryType; sort_order?: number;
+  async createJourneyEntry(
+    {
+      journeyId,
+      ...data
+    }: {
+      journeyId: number;
+      entry_date: string;
+      title?: string;
+      story?: string;
+      entry_time?: string;
+      location_name?: string;
+      location_lat?: number;
+      location_lng?: number;
+      mood?: string;
+      weather?: string;
+      tags?: string[];
+      pros_cons?: { pros: string[]; cons: string[] };
+      visibility?: EntryVisibility;
+      type?: EntryType;
+      sort_order?: number;
+      is_draft?: boolean;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const entry = this.journey.createEntry(journeyId, ctx.userId, data);
+    const entry = await this.journey.createEntry(journeyId, ctx.userId, data);
     if (!entry) return notFound('Journey not found or access denied.');
     // Return through the listEntries enrichment (parsed tags/pros_cons, photos, source_trip_name).
-    const enriched = this.journey.listEntries(journeyId, ctx.userId)?.find(e => e.id === entry.id) ?? entry;
+    const enriched = (await this.journey.listEntries(journeyId, ctx.userId))?.find((e) => e.id === entry.id) ?? entry;
     return ok({ entry: enriched });
   }
 
   @Tool({
     name: 'update_journey_entry',
-    description: 'Update an existing journey entry: its text, date, place, coordinates, weather, tags, verdict, visibility, or whether it counts as a stop. Fields left out keep their value; pass null to clear one. To move an entry within its day use reorder_journey_entries rather than setting sort_order here.',
+    description:
+      'Update an existing journey entry: its text, date, place, coordinates, weather, tags, verdict, visibility, whether it is a draft, or whether it counts as a stop. Fields left out keep their value; pass null to clear one. To move an entry within its day use reorder_journey_entries rather than setting sort_order here.',
     inputSchema: {
-      entryId: z.number().int().positive(),
+      entryId: idSchema,
       title: z.string().max(300).nullable().optional(),
       story: z.string().nullable().optional(),
-      entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      entry_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
       entry_time: z.string().nullable().optional(),
       location_name: z.string().nullable().optional(),
-      location_lat: z.number().min(-90).max(90).nullable().optional().describe('Latitude, or null to take the entry off the journey map'),
+      location_lat: z
+        .number()
+        .min(-90)
+        .max(90)
+        .nullable()
+        .optional()
+        .describe('Latitude, or null to take the entry off the journey map'),
       location_lng: z.number().min(-180).max(180).nullable().optional(),
       mood: z.string().nullable().optional(),
       weather: z.string().max(100).nullable().optional(),
       tags: z.array(z.string()).nullable().optional(),
       pros_cons: PROS_CONS.nullable().optional().describe('Replaces the whole verdict; null clears it'),
       visibility: ENTRY_VISIBILITY.optional(),
-      type: ENTRY_TYPE.optional().describe('Promote a trip-derived "skeleton" to a real "entry" once it has been written up'),
+      type: ENTRY_TYPE.optional().describe(
+        'Promote a trip-derived "skeleton" to a real "entry" once it has been written up',
+      ),
       sort_order: z.number().int().min(0).optional(),
-      stats_excluded: z.boolean().optional().describe('True leaves the entry in the journal but takes it off the journey route and out of its distance, countries and step count (see get_journey_stats); false puts it back. For the home airport, a stopover, the place the trip was planned from'),
-      dismissed: z.boolean().optional().describe('True waves a trip-derived suggestion away: it leaves the journey without being deleted, so the trip sync does not offer it again. restore_journey_suggestions brings every dismissed one back'),
+      stats_excluded: z
+        .boolean()
+        .optional()
+        .describe(
+          'True leaves the entry in the journal but takes it off the journey route and out of its distance, countries and step count (see get_journey_stats); false puts it back. For the home airport, a stopover, the place the trip was planned from',
+        ),
+      dismissed: z
+        .boolean()
+        .optional()
+        .describe(
+          'True waves a trip-derived suggestion away: it leaves the journey without being deleted, so the trip sync does not offer it again. restore_journey_suggestions brings every dismissed one back',
+        ),
+      is_draft: z
+        .boolean()
+        .optional()
+        .describe('True turns the entry into a draft that the journey share link leaves out; false publishes it'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  updateJourneyEntry(
-    { entryId, ...data }: {
-      entryId: number; title?: string | null; story?: string | null; entry_date?: string;
-      entry_time?: string | null; location_name?: string | null; location_lat?: number | null;
-      location_lng?: number | null; mood?: string | null; weather?: string | null;
-      tags?: string[] | null; pros_cons?: { pros: string[]; cons: string[] } | null;
-      visibility?: EntryVisibility; type?: EntryType; sort_order?: number; stats_excluded?: boolean;
+  async updateJourneyEntry(
+    {
+      entryId,
+      ...data
+    }: {
+      entryId: number;
+      title?: string | null;
+      story?: string | null;
+      entry_date?: string;
+      entry_time?: string | null;
+      location_name?: string | null;
+      location_lat?: number | null;
+      location_lng?: number | null;
+      mood?: string | null;
+      weather?: string | null;
+      tags?: string[] | null;
+      pros_cons?: { pros: string[]; cons: string[] } | null;
+      visibility?: EntryVisibility;
+      type?: EntryType;
+      sort_order?: number;
+      stats_excluded?: boolean;
       dismissed?: boolean;
+      is_draft?: boolean;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const entry = this.journey.updateEntry(entryId, ctx.userId, data, undefined);
+    const entry = await this.journey.updateEntry(entryId, ctx.userId, data, undefined);
     if (!entry) return notFound('Entry not found or access denied.');
     // Return through the listEntries enrichment (parsed tags/pros_cons, photos), matching create_journey_entry.
-    const enriched = this.journey.listEntries(entry.journey_id, ctx.userId)?.find(e => e.id === entry.id) ?? entry;
+    const enriched =
+      (await this.journey.listEntries(entry.journey_id, ctx.userId))?.find((e) => e.id === entry.id) ?? entry;
     return ok({ entry: enriched });
   }
 
   @Tool({
     name: 'delete_journey_entry',
     description: 'Delete a journey entry.',
-    inputSchema: { entryId: z.number().int().positive() },
+    inputSchema: { entryId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  deleteJourneyEntry({ entryId }: { entryId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.journey.deleteEntry(entryId, ctx.userId, undefined)) return notFound('Entry not found or access denied.');
+  async deleteJourneyEntry({ entryId }: { entryId: number }, ctx: McpContext) {
+    if (!(await this.journey.deleteEntry(entryId, ctx.userId, undefined)))
+      return notFound('Entry not found or access denied.');
     return ok({ success: true });
   }
 
@@ -432,17 +542,35 @@ export class JourneyMcp {
     name: 'reorder_journey_entries',
     description: 'Reorder entries within a journey by providing the desired order of entry IDs.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      orderedIds: z.array(z.number().int().positive()),
+      journeyId: idSchema,
+      orderedIds: z.array(idSchema),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  reorderJourneyEntries({ journeyId, orderedIds }: { journeyId: number; orderedIds: number[] }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const success = this.journey.reorderEntries(journeyId, ctx.userId, orderedIds, undefined);
+  async reorderJourneyEntries({ journeyId, orderedIds }: { journeyId: number; orderedIds: number[] }, ctx: McpContext) {
+    const success = await this.journey.reorderEntries(journeyId, ctx.userId, orderedIds, undefined);
     if (!success) return notFound('Journey not found, access denied, or entry IDs do not belong to this journey.');
+    return ok({ success: true });
+  }
+
+  @Tool({
+    name: 'reorder_journey_entry_photos',
+    description:
+      'Put the photos of one journey entry in a new order. Pass every photo id the entry holds (the journey photo ids list_journey_entries returns), each once, first photo first. The first one is the entry cover.',
+    inputSchema: {
+      entryId: idSchema,
+      orderedIds: z.array(idSchema).min(1).max(500),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    when: journeyAddonOn,
+    access: { group: 'journey', mode: 'write' },
+  })
+  async reorderJourneyEntryPhotos({ entryId, orderedIds }: { entryId: number; orderedIds: number[] }, ctx: McpContext) {
+    if (!(await this.journey.reorderEntryPhotos(entryId, ctx.userId, orderedIds, undefined))) {
+      return notFound('Entry not found, access denied, or the ids are not exactly the photos of this entry.');
+    }
     return ok({ success: true });
   }
 
@@ -450,20 +578,20 @@ export class JourneyMcp {
     name: 'add_journey_contributor',
     description: 'Add a contributor to a journey. Owner only.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      targetUserId: z.number().int().positive(),
+      journeyId: idSchema,
+      targetUserId: idSchema,
       role: z.enum(['editor', 'viewer']),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  addJourneyContributor(
+  async addJourneyContributor(
     { journeyId, targetUserId, role }: { journeyId: number; targetUserId: number; role: 'editor' | 'viewer' },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.journey.addContributor(journeyId, ctx.userId, targetUserId, role)) return notFound('Journey not found or access denied.');
+    if (!(await this.journey.addContributor(journeyId, ctx.userId, targetUserId, role)))
+      return notFound('Journey not found or access denied.');
     return ok({ success: true });
   }
 
@@ -471,20 +599,20 @@ export class JourneyMcp {
     name: 'update_journey_contributor_role',
     description: 'Update the role of a journey contributor. Owner only.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      targetUserId: z.number().int().positive(),
+      journeyId: idSchema,
+      targetUserId: idSchema,
       role: z.enum(['editor', 'viewer']),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  updateJourneyContributorRole(
+  async updateJourneyContributorRole(
     { journeyId, targetUserId, role }: { journeyId: number; targetUserId: number; role: 'editor' | 'viewer' },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.journey.updateContributorRole(journeyId, ctx.userId, targetUserId, role)) return notFound('Journey not found or access denied.');
+    if (!(await this.journey.updateContributorRole(journeyId, ctx.userId, targetUserId, role)))
+      return notFound('Journey not found or access denied.');
     return ok({ success: true });
   }
 
@@ -492,16 +620,19 @@ export class JourneyMcp {
     name: 'remove_journey_contributor',
     description: 'Remove a contributor from a journey. Owner only.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      targetUserId: z.number().int().positive(),
+      journeyId: idSchema,
+      targetUserId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  removeJourneyContributor({ journeyId, targetUserId }: { journeyId: number; targetUserId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.journey.removeContributor(journeyId, ctx.userId, targetUserId)) return notFound('Journey not found or access denied.');
+  async removeJourneyContributor(
+    { journeyId, targetUserId }: { journeyId: number; targetUserId: number },
+    ctx: McpContext,
+  ) {
+    if (!(await this.journey.removeContributor(journeyId, ctx.userId, targetUserId)))
+      return notFound('Journey not found or access denied.');
     return ok({ success: true });
   }
 
@@ -509,19 +640,18 @@ export class JourneyMcp {
     name: 'update_journey_preferences',
     description: 'Update per-user preferences for a journey (e.g. hide skeleton entries).',
     inputSchema: {
-      journeyId: z.number().int().positive(),
+      journeyId: idSchema,
       hide_skeletons: z.boolean().optional(),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  updateJourneyPreferences(
+  async updateJourneyPreferences(
     { journeyId, hide_skeletons }: { journeyId: number; hide_skeletons?: boolean },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const result = this.journey.updateJourneyPreferences(journeyId, ctx.userId, { hide_skeletons });
+    const result = await this.journey.updateJourneyPreferences(journeyId, ctx.userId, { hide_skeletons });
     if (!result) return notFound('Journey not found or access denied.');
     // Return the service result ({ hide_skeletons }), matching the REST route.
     return ok(result);
@@ -529,54 +659,99 @@ export class JourneyMcp {
 
   @Tool({
     name: 'add_journey_provider_photos',
-    description: 'Attach photos from a connected library (Immich or Synology Photos) to a journey: to one entry when entryId is given, otherwise to the journey gallery only. Find the asset ids first with search_provider_photos or list_provider_album_photos. No image data passes through here, the journey stores a reference and the app fetches the picture, so this also works for photos far too large to hand to a model. An asset already attached is skipped rather than duplicated, which makes re-running the same call safe.',
+    description:
+      'Attach photos from a connected library (Immich or Synology Photos) to a journey: to one entry when entryId is given, otherwise to the journey gallery only. Find the asset ids first with search_provider_photos or list_provider_album_photos. No image data passes through here, the journey stores a reference and the app fetches the picture, so this also works for photos far too large to hand to a model. An asset already attached is skipped rather than duplicated, which makes re-running the same call safe.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      entryId: z.number().int().positive().optional().describe('Attach to this entry, which must belong to journeyId. The photo lands in the journey gallery either way; omitting this adds it to the gallery alone'),
+      journeyId: idSchema,
+      entryId: idSchema
+        .optional()
+        .describe(
+          'Attach to this entry, which must belong to journeyId. The photo lands in the journey gallery either way; omitting this adds it to the gallery alone',
+        ),
       provider: PHOTO_PROVIDER.describe('The library the asset ids came from'),
-      asset_ids: z.array(z.string().min(1)).min(1).max(MAX_PROVIDER_PHOTOS_PER_CALL).describe('Provider asset ids, as returned by the search and album tools'),
-      media_types: z.array(z.enum(['image', 'video'])).optional().describe('Parallel to asset_ids; anything not named here counts as an image'),
-      caption: z.string().max(500).optional().describe('Stored only when entryId is given, matching the REST routes: the gallery add records no caption'),
-      passphrase: z.string().min(1).optional().describe('Only for a Synology Photos album shared with the user: the passphrase list_provider_albums returned for that album'),
+      asset_ids: z
+        .array(z.string().min(1))
+        .min(1)
+        .max(MAX_PROVIDER_PHOTOS_PER_CALL)
+        .describe('Provider asset ids, as returned by the search and album tools'),
+      media_types: z
+        .array(z.enum(['image', 'video']))
+        .optional()
+        .describe('Parallel to asset_ids; anything not named here counts as an image'),
+      caption: z
+        .string()
+        .max(500)
+        .optional()
+        .describe('Stored only when entryId is given, matching the REST routes: the gallery add records no caption'),
+      passphrase: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'Only for a Synology Photos album shared with the user: the passphrase list_provider_albums returned for that album',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
   })
-  addJourneyProviderPhotos(
-    { journeyId, entryId, provider, asset_ids, media_types, caption, passphrase }: {
-      journeyId: number; entryId?: number; provider: z.infer<typeof PHOTO_PROVIDER>;
-      asset_ids: string[]; media_types?: Array<'image' | 'video'>; caption?: string; passphrase?: string;
+  async addJourneyProviderPhotos(
+    {
+      journeyId,
+      entryId,
+      provider,
+      asset_ids,
+      media_types,
+      caption,
+      passphrase,
+    }: {
+      journeyId: number;
+      entryId?: number;
+      provider: z.infer<typeof PHOTO_PROVIDER>;
+      asset_ids: string[];
+      media_types?: Array<'image' | 'video'>;
+      caption?: string;
+      passphrase?: string;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     // The REST routes derive the journey from the entry and let each per-asset
     // add answer for itself, which in the array branch means a caller with no
     // access gets an empty 200. Checking up front instead turns that silence
     // into a sentence, and is what makes journeyId worth asking for: the entry
     // has to be shown to belong to it before anything is written.
-    if (!this.journey.canEdit(journeyId, ctx.userId)) return notFound('Journey not found or access denied.');
-    if (entryId !== undefined && !this.journey.listEntries(journeyId, ctx.userId)?.some(e => e.id === entryId)) {
+    if (!(await this.journey.canEdit(journeyId, ctx.userId))) return notFound('Journey not found or access denied.');
+    if (
+      entryId !== undefined &&
+      !(await this.journey.listEntries(journeyId, ctx.userId))?.some((e) => e.id === entryId)
+    ) {
       return notFound('Entry not found in this journey.');
     }
 
     const photos: unknown[] = [];
-    asset_ids.forEach((assetId, i) => {
+    for (let i = 0; i < asset_ids.length; i++) {
+      const assetId = asset_ids[i];
       const mediaType = media_types?.[i] === 'video' ? 'video' : 'image';
-      const photo = entryId === undefined
-        ? this.journey.addProviderPhotoToGallery(journeyId, ctx.userId, provider, assetId, undefined, passphrase, mediaType)
-        : this.journey.addProviderPhoto(entryId, ctx.userId, provider, assetId, caption, passphrase, mediaType);
+      const photo =
+        entryId === undefined
+          ? await this.journey.addProviderPhotoToGallery(
+              journeyId,
+              ctx.userId,
+              provider,
+              assetId,
+              undefined,
+              passphrase,
+              mediaType,
+            )
+          : await this.journey.addProviderPhoto(entryId, ctx.userId, provider, assetId, caption, passphrase, mediaType);
       if (photo) photos.push(photo);
-    });
+    }
 
     // Detached, exactly as the REST routes schedule it: the provider is asked
     // when and where each photo was taken, and without that answer an attached
-    // photo can never appear on the journey map (#1614).
-    this.captureBackfill.schedule(
-      photos.map(p => (p as { photo_id?: number }).photo_id).filter((id): id is number => typeof id === 'number'),
-      ctx.userId,
-    );
+    // photo can never appear on the journey map (#1614). Open clients are told
+    // once it lands, so the gallery re-sorts without a reload (#1587).
+    this.photoCapture.scheduleForJourney(journeyId, photos, ctx.userId);
     // `skipped` is what tells a caller that a shortfall was duplicates rather
     // than a failure; the REST body carries only photos and added.
     return ok({ photos, added: photos.length, skipped: asset_ids.length - photos.length });
@@ -587,24 +762,25 @@ export class JourneyMcp {
   @Tool({
     name: 'get_journey_share_link',
     description: 'Get the current public share link for a journey. Owner only. Returns null if none exists.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'share' },
   })
-  getJourneyShareLink({ journeyId }: { journeyId: number }, ctx: McpContext) {
+  async getJourneyShareLink({ journeyId }: { journeyId: number }, ctx: McpContext) {
     // Same read the REST route uses, so the owner check cannot drift apart
     // between the two surfaces: handing out the token is handing out the journey.
-    const result = this.share.readJourneyShareLink(journeyId, ctx.userId);
+    const result = await this.share.readJourneyShareLink(journeyId, ctx.userId);
     if (!result.allowed) return notFound('Journey not found or access denied.');
     return ok({ shareLink: result.link });
   }
 
   @Tool({
     name: 'create_journey_share_link',
-    description: 'Create or update the public share link for a journey. Owner only. Flags left out keep their current value on an existing link; a new link defaults to timeline/gallery/map on.',
+    description:
+      'Create or update the public share link for a journey. Owner only. Flags left out keep their current value on an existing link; a new link defaults to timeline/gallery/map on.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
+      journeyId: idSchema,
       share_timeline: z.boolean().optional(),
       share_gallery: z.boolean().optional(),
       share_map: z.boolean().optional(),
@@ -614,9 +790,20 @@ export class JourneyMcp {
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'share' },
   })
-  createJourneyShareLink({ journeyId, ...permissions }: { journeyId: number; share_timeline?: boolean; share_gallery?: boolean; share_map?: boolean; newest_first?: boolean }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const shareLink = this.share.createOrUpdateJourneyShareLink(journeyId, ctx.userId, permissions);
+  async createJourneyShareLink(
+    {
+      journeyId,
+      ...permissions
+    }: {
+      journeyId: number;
+      share_timeline?: boolean;
+      share_gallery?: boolean;
+      share_map?: boolean;
+      newest_first?: boolean;
+    },
+    ctx: McpContext,
+  ) {
+    const shareLink = await this.share.createOrUpdateJourneyShareLink(journeyId, ctx.userId, permissions);
     if (!shareLink) return notFound('Journey not found or access denied.');
     return ok({ shareLink });
   }
@@ -624,14 +811,14 @@ export class JourneyMcp {
   @Tool({
     name: 'delete_journey_share_link',
     description: 'Revoke the public share link for a journey. Owner only.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'share' },
   })
-  deleteJourneyShareLink({ journeyId }: { journeyId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.share.deleteJourneyShareLink(journeyId, ctx.userId)) return notFound('Journey not found or access denied.');
+  async deleteJourneyShareLink({ journeyId }: { journeyId: number }, ctx: McpContext) {
+    if (!(await this.share.deleteJourneyShareLink(journeyId, ctx.userId)))
+      return notFound('Journey not found or access denied.');
     return ok({ success: true });
   }
 
@@ -650,7 +837,7 @@ export class JourneyMcp {
     access: { group: 'journey', mode: 'read' },
   })
   async journeysResource(uri: URL, ctx: McpContext) {
-    return jsonContent(uri.href, this.journey.listJourneys(ctx.userId));
+    return jsonContent(uri.href, await this.journey.listJourneys(ctx.userId));
   }
 
   @ResourceTemplate({
@@ -664,7 +851,7 @@ export class JourneyMcp {
   async journeyDetailResource(uri: URL, { journeyId }: { journeyId: string | string[] }, ctx: McpContext) {
     const id = parseId(journeyId);
     if (id === null) return accessDenied(uri.href);
-    const journey = this.journey.getJourneyFull(id, ctx.userId);
+    const journey = await this.journey.getJourneyFull(id, ctx.userId);
     if (!journey) return accessDenied(uri.href);
     return jsonContent(uri.href, journey);
   }
@@ -680,8 +867,8 @@ export class JourneyMcp {
   async journeyEntriesResource(uri: URL, { journeyId }: { journeyId: string | string[] }, ctx: McpContext) {
     const id = parseId(journeyId);
     if (id === null) return accessDenied(uri.href);
-    if (!this.journey.canAccessJourney(id, ctx.userId)) return accessDenied(uri.href);
-    return jsonContent(uri.href, this.journey.listEntries(id, ctx.userId));
+    if (!(await this.journey.canAccessJourney(id, ctx.userId))) return accessDenied(uri.href);
+    return jsonContent(uri.href, await this.journey.listEntries(id, ctx.userId));
   }
 
   @ResourceTemplate({
@@ -695,7 +882,7 @@ export class JourneyMcp {
   async journeyContributorsResource(uri: URL, { journeyId }: { journeyId: string | string[] }, ctx: McpContext) {
     const id = parseId(journeyId);
     if (id === null) return accessDenied(uri.href);
-    const journey = this.journey.getJourneyFull(id, ctx.userId);
+    const journey = await this.journey.getJourneyFull(id, ctx.userId);
     if (!journey) return accessDenied(uri.href);
     return jsonContent(uri.href, (journey as { contributors?: JourneyContributor[] }).contributors ?? []);
   }

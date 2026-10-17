@@ -1,6 +1,9 @@
 import { Plus, MoreHorizontal } from 'lucide-react'
 import type { NavItemDef } from '../Layout/navItems'
 
+/** One circle of the dock: the card surface on a hairline ring, the icon in the secondary ink. */
+const SLOT = 'flex h-8 w-8 flex-none items-center justify-center rounded-full bg-surface-card text-content-secondary shadow-[inset_0_0_0_1px_var(--border-faint)]'
+
 /**
  * A live, non-interactive mock of the mobile bottom dock that mirrors the
  * customizer's current split: Dashboard + bar items around the raised centre
@@ -29,8 +32,7 @@ export default function MobileNavPreview({
       <span
         key={item.id}
         title={item.label}
-        className="flex h-8 w-8 flex-none items-center justify-center rounded-full"
-        style={{ background: 'var(--bg-card)', color: 'var(--text-secondary)', boxShadow: 'inset 0 0 0 1px var(--border-faint)' }}
+        className={SLOT}
       >
         <Icon size={16} strokeWidth={1.9} />
       </span>
@@ -38,16 +40,10 @@ export default function MobileNavPreview({
   }
 
   return (
-    <div
-      className="flex items-center justify-center gap-1.5 rounded-full px-3 py-2"
-      style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-faint)' }}
-    >
+    <div className="flex items-center justify-center gap-1.5 rounded-full border border-edge-faint bg-surface-hover px-3 py-2">
       {left.map(circle)}
 
-      <span
-        className="mx-1 flex h-9 w-9 flex-none items-center justify-center rounded-full"
-        style={{ background: 'var(--text-primary)', color: 'var(--bg-card)' }}
-      >
+      <span className="mx-1 flex h-9 w-9 flex-none items-center justify-center rounded-full bg-content text-surface-card shadow-sm">
         <Plus size={18} strokeWidth={2.4} />
       </span>
 
@@ -55,8 +51,7 @@ export default function MobileNavPreview({
       {hasMore && (
         <span
           title={moreLabel}
-          className="flex h-8 w-8 flex-none items-center justify-center rounded-full"
-          style={{ background: 'var(--bg-card)', color: 'var(--text-secondary)', boxShadow: 'inset 0 0 0 1px var(--border-faint)' }}
+          className={SLOT}
         >
           <MoreHorizontal size={16} strokeWidth={1.9} />
         </span>

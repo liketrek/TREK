@@ -32,5 +32,6 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} が管理者全員に通知を送りました。',
   'notifications.test.tripTitle': '{actor} が旅行に投稿しました',
   'notifications.test.tripText': '旅行「{trip}」のテスト通知です。',
+  'notifications.countLabel': '件の通知',
 };
 export default notifications;

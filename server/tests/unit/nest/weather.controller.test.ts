@@ -1,11 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
 import { WeatherController } from '../../../src/nest/weather/weather.controller';
 import { ApiError } from '../../../src/nest/weather/weather.impl';
 import type { WeatherService } from '../../../src/nest/weather/weather.service';
+import type { WindService } from '../../../src/nest/weather/wind.service';
+import { HttpException } from '@nestjs/common';
 
-function makeController(svc: Partial<WeatherService>) {
-  return new WeatherController(svc as WeatherService);
+import { describe, it, expect, vi } from 'vitest';
+
+function makeController(svc: Partial<WeatherService>, wind: Partial<WindService> = {}) {
+  return new WeatherController(svc as WeatherService, wind as WindService);
 }
 
 /** Run `fn`, expecting it to throw an HttpException; return its { status, body }. */
@@ -19,6 +21,16 @@ async function thrown(fn: () => Promise<unknown>): Promise<{ status: number; bod
   }
   throw new Error('expected the handler to throw');
 }
+
+describe('WeatherController GET /api/weather/wind (PAD-08)', () => {
+  it('hands the validated query to the wind forecast and answers with it', async () => {
+    const answer = { status: 'past', hours: [], day: null };
+    const forecast = vi.fn().mockResolvedValue(answer);
+    const c = makeController({}, { forecast });
+    expect(await c.getWind({ lat: 47.5, lng: 9.7, date: '2026-10-18' })).toBe(answer);
+    expect(forecast).toHaveBeenCalledWith({ lat: 47.5, lng: 9.7, date: '2026-10-18' });
+  });
+});
 
 describe('WeatherController (parity with the legacy /api/weather route)', () => {
   const sample = { temp: 21, main: 'Clear', description: 'Klar', type: 'current' };

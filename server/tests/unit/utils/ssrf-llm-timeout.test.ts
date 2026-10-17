@@ -1,3 +1,11 @@
+import {
+  createPinnedDispatcher,
+  DEFAULT_RESPONSE_TIMEOUT_MS,
+  safeFetchAdminConfigured,
+  safeFetchLlm,
+} from '../../../src/utils/ssrfGuard';
+
+import dns from 'dns/promises';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
@@ -24,19 +32,22 @@ vi.mock('dns/promises', () => ({ default: { lookup: vi.fn() }, lookup: vi.fn() }
 
 // ssrfGuard reads env at module load, so the mock must answer before the import.
 const { readEnvMock } = vi.hoisted(() => ({
-  readEnvMock: vi.fn(() => ({ net: { allowInternalNetwork: true }, integrations: { llmTimeoutMs: 900_000 } })),
+  readEnvMock: vi.fn(() => ({
+    net: { allowInternalNetwork: true, proxy: { noProxy: [] } },
+    integrations: { llmTimeoutMs: 900_000 },
+  })),
 }));
 vi.mock('../../../src/app-config', () => ({ readEnv: readEnvMock }));
-
-import dns from 'dns/promises';
-import { createPinnedDispatcher, safeFetchLlm, safeFetchAdminConfigured } from '../../../src/utils/ssrfGuard';
 
 const mockLookup = vi.mocked(dns.lookup);
 
 beforeEach(() => {
   AgentMock.mockClear();
   readEnvMock.mockClear();
-  readEnvMock.mockReturnValue({ net: { allowInternalNetwork: true }, integrations: { llmTimeoutMs: 900_000 } });
+  readEnvMock.mockReturnValue({
+    net: { allowInternalNetwork: true, proxy: { noProxy: [] } },
+    integrations: { llmTimeoutMs: 900_000 },
+  });
   mockLookup.mockResolvedValue({ address: '203.0.113.10', family: 4 });
 });
 
@@ -73,7 +84,8 @@ describe('createPinnedDispatcher — response ceiling', () => {
   it('still pins the connection to the validated IP', () => {
     createPinnedDispatcher('10.0.0.5', true, 900_000);
 
-    const lookup = (optionsOf().connect as { lookup: (h: string, o: object, cb: (...a: unknown[]) => void) => void }).lookup;
+    const lookup = (optionsOf().connect as { lookup: (h: string, o: object, cb: (...a: unknown[]) => void) => void })
+      .lookup;
     const seen: unknown[] = [];
     lookup('evil.example', {}, (...args: unknown[]) => seen.push(...args));
     expect(seen).toContain('10.0.0.5');
@@ -82,7 +94,10 @@ describe('createPinnedDispatcher — response ceiling', () => {
 
 describe('the ceiling belongs to the model lane only', () => {
   it('safeFetchLlm carries the configured ceiling to the dispatcher', async () => {
-    readEnvMock.mockReturnValue({ net: { allowInternalNetwork: true }, integrations: { llmTimeoutMs: 120_000 } });
+    readEnvMock.mockReturnValue({
+      net: { allowInternalNetwork: true, proxy: { noProxy: [] } },
+      integrations: { llmTimeoutMs: 120_000 },
+    });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({ status: 200 })));
 
     await safeFetchLlm('https://api.provider.example/v1/chat/completions');
@@ -91,12 +106,24 @@ describe('the ceiling belongs to the model lane only', () => {
     expect(optionsOf().bodyTimeout).toBe(120_000);
   });
 
-  it('safeFetchAdminConfigured keeps undici default — OIDC and plugin OAuth ride this lane', async () => {
+  it('safeFetchAdminConfigured leaves the deadline to the caller signal: OIDC and plugin OAuth ride this lane', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({ status: 200 })));
+
+    await safeFetchAdminConfigured('https://idp.example/token', {
+      method: 'POST',
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    expect(optionsOf().headersTimeout).toBeUndefined();
+    expect(optionsOf().bodyTimeout).toBeUndefined();
+  });
+
+  it('safeFetchAdminConfigured without a signal waits a bounded time for the headers, not for the body', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({ status: 200 })));
 
     await safeFetchAdminConfigured('https://idp.example/token', { method: 'POST' });
 
-    expect(optionsOf().headersTimeout).toBeUndefined();
+    expect(optionsOf().headersTimeout).toBe(DEFAULT_RESPONSE_TIMEOUT_MS);
     expect(optionsOf().bodyTimeout).toBeUndefined();
   });
 

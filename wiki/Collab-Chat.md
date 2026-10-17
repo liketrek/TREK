@@ -1,63 +1,63 @@
 # Collab Chat
 
-Chat with your group in real time, without leaving the trip planner.
+Talk with everyone on the trip in real time, without leaving the planner.
 
-![The trip chat, with messages from three trip members](assets/CollabChat.png)
+![The trip chat: your own messages in the accent colour on the right, the others as cards on the left with their name and time, and the message field at the foot](assets/CollabChat.png)
 
 ## Where to find it
 
-Open the trip planner and select the **Collab** tab. If the Chat sub-feature is enabled, a Chat panel appears — on desktop as the left column, on mobile as the first tab in the tab bar.
+Open the trip planner and select the **Collab** tab. With the Chat sub-feature on, the chat is the column on the left of the tab, a card headed **Chat** like the Notes, Links, Polls and What's Next cards beside it. When Chat is the only sub-feature that is on, it takes the whole width. In a window narrower than 1024 px the Collab tab turns into a tab bar with one panel at a time, and Chat is the first tab.
 
 The Collab addon must be enabled by an admin and the Chat sub-feature must be turned on. See [Real-Time-Collaboration](Real-Time-Collaboration).
 
 ## Sending messages
 
-Type in the input field at the bottom and press **Enter** (or click the send button) to post. Hold **Shift + Enter** to insert a line break without sending.
+Type into the field at the bottom (*Type a message...*) and press **Enter**, or click the round send button, to post. **Shift + Enter** starts a new line without sending. The field grows with the text up to a few lines and scrolls after that.
 
-Messages load in pages of 100. A **Load older messages** button appears at the top of the chat when older messages are available.
+The chat opens on the latest messages and loads them in pages of 100. When older messages exist, **Load older messages** appears at the top. Messages are grouped under date separators (**Today**, **Yesterday**, or the date).
 
 ### Images
 
-A message can carry up to **four images**. Click the image button in the composer, paste them from the clipboard, or drop them onto the composer. JPEG, PNG, GIF and WebP are accepted, up to **10 MB** each; TREK checks the file type and the extension, and anything else is refused with *Only JPEG, PNG, GIF and WebP images up to 10 MB are allowed*. Each picked image shows as a thumbnail above the input with an **×** to drop it again, and a message can consist of images alone, with no text. Sending an image needs the `file_upload` permission on top of `collab_edit`.
+A message can carry up to **four images**. Click the image button in the composer, paste them from the clipboard, or drop them onto the composer. JPEG, PNG, GIF and WebP are accepted, up to **10 MB** each; TREK checks the file type and the extension, and anything else is refused with *Only JPEG, PNG, GIF and WebP images up to 10 MB are allowed*. Each picked image shows as a thumbnail above the field with an **×** to drop it again, and a message can consist of images alone, with no text. While they upload, the composer shows the progress. Sending an image needs the `file_upload` permission on top of `collab_edit`.
 
 ## Emoji
 
-Click the smiley-face button in the composer to open the emoji picker. The picker has three categories:
+The smiley button in the composer opens the emoji picker. It has three groups:
 
-- **Smileys** — facial expressions and gestures
-- **Reactions** — hearts, fire, thumbs, and similar
-- **Travel** — planes, maps, food, cameras, and destinations
+- **Smileys**: faces and gestures
+- **Reactions**: hearts, fire, thumbs, stars and similar
+- **Travel**: planes, maps, suitcases, food, cameras and places
 
-Emoji are rendered via Twemoji for consistent appearance across platforms.
+Emoji are drawn with Twemoji, so they look the same on every platform.
 
 ## Reactions
 
-**Right-click** a message on desktop (or **double-tap** on mobile) to open the quick-reaction menu. Eight quick reactions are available: ❤️ 😂 👍 😮 😢 🔥 👏 🎉. Click any reaction to toggle it on or off. Reactions from all users aggregate beneath the message; hover a reaction badge to see who reacted.
+**Right-click** a message on a desktop, or **double-tap** it on a touch screen, to open the quick reactions: ❤️ 😂 👍 😮 😢 🔥 👏 🎉. Click one to add it, and click it again to take it back. Reactions from everyone gather as badges under the message; hover a badge to see who reacted, and click it to add or remove your own.
 
 ## Replies
 
-Hover a message to reveal the action buttons. Click **Reply** to quote that message. A preview of the quoted text appears above your new message in the composer; click the **×** to cancel the reply. The quoted text is displayed inline inside your bubble when sent.
+Hover a message to bring up its buttons. **Reply** (the arrow) quotes that message: a preview with a bar in the accent colour appears above the field, with an **×** to cancel. Once sent, the quoted text sits inside your bubble above your answer.
 
 ## URL link previews
 
-When a message contains a URL, TREK automatically fetches an Open Graph preview (title, description, and thumbnail image) and displays it below the message text. Only the first URL in a message generates a preview.
+When a message contains a web address, TREK fetches an Open Graph preview (site, title, description and image) and shows it under the text. Only the first address in a message gets a preview.
 
-The fetch runs on the server, so it is kept on a short leash: only trip members can request one, the target must be a public HTTP(S) address (addresses on your own network are refused), a preview is remembered for ten minutes, and a member can trigger sixty new fetches a minute. A preview that is refused or runs past the budget is simply not shown — the message itself is unaffected.
+The fetch runs on the server, so it is kept on a short leash: only trip members can ask for one, the target must be a public HTTP(S) address (addresses on your own network are refused), a preview is remembered for ten minutes, and a member can trigger sixty new fetches a minute. A preview that is refused or runs over that budget is simply not shown; the message itself is unaffected.
 
 ## Message styling
 
-Your own messages appear **right-aligned** with a blue bubble. Other members' messages appear **left-aligned** with a gray bubble. The username is shown above the first message in a group of consecutive messages from the same person; the avatar is shown beside the **last** message in that group. Timestamps appear below the last message in each group.
+Your own messages sit on the **right**, in your **accent colour** (see [Appearance-Settings](Appearance-Settings)). Everyone else's sit on the **left** as white cards, dark in dark mode. The name is shown above the first message of a run from the same person, the avatar beside the **last** one, and the time under it.
 
-Messages that consist of only 1–3 emoji are displayed larger without a bubble.
+A message of just one to three emoji is shown larger, without a bubble.
 
 ## Deleting messages
 
-Hover your own message to reveal the delete button (trash icon). The delete button is only visible when you have the `collab_edit` permission. Deleting replaces the bubble with an italicised notice — showing your username, "deleted a message", and a timestamp — visible to all members.
+Hover one of your own messages and click the bin beside **Reply** to delete it. The bin is only there with the `collab_edit` permission. A deleted message is replaced, for everyone, by a line in italics with your name, *deleted a message*, and the time.
 
 ## Read-only viewers
 
-Users without the `collab_edit` permission can read all messages but the composer is disabled — they cannot send, react, or delete messages. The reply button is visible to all users, but completing a reply still requires `collab_edit` (the send button is hidden for read-only users).
+Members without the `collab_edit` permission can read every message, but the field is greyed out and the send, image and emoji buttons are gone, so they cannot post, react or delete. The **Reply** button still appears on hover, but a reply cannot be sent without `collab_edit`.
 
 ## Related pages
 
-[Real-Time-Collaboration](Real-Time-Collaboration) · [Collab-Notes](Collab-Notes) · [Collab-Polls](Collab-Polls)
+[Real-Time-Collaboration](Real-Time-Collaboration) · [Collab-Notes](Collab-Notes) · [Collab-Polls](Collab-Polls) · [Whats-Next-Widget](Whats-Next-Widget)

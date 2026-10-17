@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { collectionsApi } from '../api/collections'
+import { loadUnionPlaces } from './collectionUnion'
 import type {
   Collection,
   CollectionPlace,
@@ -95,6 +96,26 @@ interface CollectionState {
 }
 
 /**
+ * What the user last asked to look at, and the "All saved" union read that may
+ * be running for it. A list or union read that comes back after the user has
+ * moved on is dropped instead of painting the old places over the new ones, and
+ * reloads of the union asked for while one is running fold into a single further
+ * pass instead of stacking up full reads of every list (#2559).
+ */
+const activeLoad = {
+  /** Bumped by every setActive/refreshActive, so a read can tell it was overtaken. */
+  seq: 0,
+  target: null as ActiveCollectionId,
+  union: null as Promise<void> | null,
+  unionAgain: false,
+}
+
+/** True once a newer setActive has turned away from what a read started at `seq` was for. */
+function overtaken(seq: number, id: ActiveCollectionId): boolean {
+  return activeLoad.seq !== seq && activeLoad.target !== id
+}
+
+/**
  * Load whatever `id` points at (a list, the "All saved" union, or nothing) into
  * the store. Split out of setActive() because switching lists also has to drop
  * the per-list UI state, while re-reading the list that is already open must not
@@ -105,36 +126,48 @@ async function loadActive(
   get: () => CollectionState,
   id: ActiveCollectionId,
 ): Promise<void> {
+  activeLoad.seq++
+  activeLoad.target = id
   if (id === null) {
     set({ activeId: null, places: [], members: [], labels: [] })
     return
   }
   if (id === ALL_SAVED) {
     set({ activeId: ALL_SAVED, members: [], labels: [], placesLoading: true })
-    try {
+    if (activeLoad.union !== null) {
+      activeLoad.unionAgain = true
+      return activeLoad.union
+    }
+    activeLoad.union = loadUnion(set, get)
+    return activeLoad.union
+  }
+  await get().loadCollection(id)
+}
+
+/** The "All saved" union, read again as long as reloads keep coming in while it runs. */
+async function loadUnion(
+  set: (partial: Partial<CollectionState>) => void,
+  get: () => CollectionState,
+): Promise<void> {
+  try {
+    do {
+      activeLoad.unionAgain = false
       // Client-side union of every list the user owns or co-owns (no server change).
       // On first load the lists may not be fetched yet (loadAll still in flight),
       // which would union nothing — make sure they're loaded first.
       let lists = get().collections
       if (lists.length === 0) { await get().loadAll(); lists = get().collections }
-      const results = await Promise.all(lists.map(l => collectionsApi.get(l.id).catch(() => null)))
-      const seen = new Set<number>()
-      const merged: CollectionPlace[] = []
-      for (const res of results) {
-        if (!res) continue
-        for (const p of res.places) {
-          if (seen.has(p.id)) continue
-          seen.add(p.id)
-          merged.push(p)
-        }
-      }
+      const merged = await loadUnionPlaces(lists.map(l => l.id))
+      if (activeLoad.target !== ALL_SAVED) return
       set({ places: merged })
-    } finally {
-      set({ placesLoading: false })
-    }
-    return
+    } while (activeLoad.unionAgain && activeLoad.target === ALL_SAVED)
+  } finally {
+    // Cleared here and not after the promise settles, so a reload asked for from
+    // now on starts a pass of its own instead of joining one that has ended.
+    activeLoad.union = null
+    // A list opened meanwhile clears the flag when its own read is done.
+    if (typeof activeLoad.target !== 'number') set({ placesLoading: false })
   }
-  await get().loadCollection(id)
 }
 
 export const useCollectionStore = create<CollectionState>((set, get) => ({
@@ -168,9 +201,11 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   },
 
   loadCollection: async (id: number) => {
+    const seq = activeLoad.seq
     set({ placesLoading: true })
     try {
       const data = await collectionsApi.get(id)
+      if (overtaken(seq, id)) return
       set({
         activeId: id,
         places: data.places,
@@ -180,11 +215,12 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
     } catch {
       // The list may have been left / removed / deleted out from under us (a WS
       // event or the URL sync can re-request an id we just lost access to). Clear
-      // it instead of leaving an uncaught 403/404 rejection; the route sync then
-      // bounces to /collections.
-      if (get().activeId === id) set({ activeId: null, places: [], members: [], labels: [] })
+      // it instead of leaving an uncaught 403/404 rejection; useCollections drops
+      // a route id that is no longer one of the lists.
+      if (!overtaken(seq, id) && get().activeId === id) set({ activeId: null, places: [], members: [], labels: [] })
     } finally {
-      set({ placesLoading: false })
+      // Whatever overtook this read owns the flag now; nothing does after setActive(null).
+      if (!overtaken(seq, id) || activeLoad.target === null) set({ placesLoading: false })
     }
   },
 

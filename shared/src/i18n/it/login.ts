@@ -25,10 +25,16 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'Nessuna email ricevuta dal provider.',
   'login.oidc.tokenFailed': 'Autenticazione fallita.',
   'login.oidc.invalidState': 'Sessione non valida. Riprova.',
+  'login.oidc.emailNotVerified':
+    'Il tuo provider di accesso non ha confermato questo indirizzo email, quindi non può essere collegato a un account esistente.',
+  'login.oidc.emailLinkBlocked':
+    "Non è stato possibile collegare questo accesso all'account esistente con questa email. Chiedi all'amministratore di confermare l'indirizzo.",
   'login.demoFailed': 'Accesso demo fallito',
   'login.oidcSignIn': 'Accedi con {name}',
   'login.oidcOnly': "L'autenticazione tramite password è disabilitata. Accedi utilizzando il tuo provider SSO.",
   'login.oidcLoggedOut': 'Sei stato disconnesso. Accedi nuovamente tramite il tuo provider SSO.',
+  'login.oidcRedirecting': 'Reindirizzamento a {name}…',
+  'login.oidcRedirectSlow': 'Ancora qui? Continua su {name}',
   'login.demoHint': 'Prova la demo — nessuna registrazione necessaria',
   'login.mfaTitle': 'Autenticazione a due fattori',
   'login.mfaSubtitle': 'Inserisci il codice a 6 cifre dalla tua app authenticator.',

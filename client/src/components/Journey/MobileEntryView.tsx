@@ -129,7 +129,7 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
             </button>
 
             {photos.length > 1 && (
-              <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white rounded-full px-2.5 py-1 text-[11px] font-medium">
+              <div className="absolute bottom-3 end-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white rounded-full px-2.5 py-1 text-[11px] font-medium">
                 <Camera size={12} />
                 {t('mobileJourney.photosCount', { count: photos.length })}
               </div>

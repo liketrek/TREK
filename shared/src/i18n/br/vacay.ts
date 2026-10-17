@@ -89,6 +89,7 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': 'Levar automaticamente os dias de férias restantes para o ano seguinte',
   'vacay.carriedOverPrevPeriod': 'do período anterior',
   'vacay.compUsedCount': '{count} banco de horas',
+  'vacay.compUsedCount.one': '{count} banco de horas',
   'vacay.yearType': 'Ano de férias',
   'vacay.yearTypeHint': 'Quando começa seu ano de férias — direito, uso e acúmulo seguem essa data',
   'vacay.yearTypeCalendar': 'Calendário',

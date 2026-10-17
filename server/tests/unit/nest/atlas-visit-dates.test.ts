@@ -2,9 +2,9 @@
  * The First trip / Last trip dates behind the Atlas tooltip (#1535). Pure, so no DB:
  * every case is a set of trips and the status the country ended up with.
  */
-import { describe, it, expect } from 'vitest';
-
 import { countryVisitDates } from '../../../src/nest/atlas/visit-dates';
+
+import { describe, it, expect } from 'vitest';
 
 const TODAY = '2026-09-15';
 

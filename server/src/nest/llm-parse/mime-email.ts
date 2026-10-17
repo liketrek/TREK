@@ -83,7 +83,7 @@ export function parseEmail(buffer: Buffer): ParsedMail | null {
  * is better served by the caller's raw handling.
  */
 function looksLikeMail(raw: string, headers: Headers): boolean {
-  return /^[!-9;-~]+:/.test(raw) && MAIL_HEADERS.some(name => headers.has(name));
+  return /^[!-9;-~]+:/.test(raw) && MAIL_HEADERS.some((name) => headers.has(name));
 }
 
 function summarizeHeaders(headers: Headers): string[] {
@@ -228,7 +228,10 @@ function decodeQuotedPrintable(payload: string): Buffer {
 }
 
 function decodeCharset(bytes: Buffer, charset: string | undefined): string {
-  const label = (charset ?? '').trim().toLowerCase().replace(/^["']|["']$/g, '');
+  const label = (charset ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^["']|["']$/g, '');
   if (!label || label === 'utf-8' || label === 'utf8' || label === 'us-ascii' || label === 'ascii') {
     return bytes.toString('utf8');
   }

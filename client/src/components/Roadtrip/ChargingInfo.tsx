@@ -65,9 +65,9 @@ export default function ChargingInfo({ placeId, lat, lng, name, compact = false 
     <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 [&::-webkit-details-marker]:hidden">
       <PlugZap size={13} className="shrink-0 text-content-faint" />
       <span className="font-medium">{t('roadtrip.poi.charging')}</span>
-      <span className="ml-2 text-content-muted">{status}</span>
-      {cheapest && <span className="ml-auto whitespace-nowrap font-medium">{price(cheapest.price, cheapest.currency)}/kWh*</span>}
-      <ChevronDown size={13} className={'shrink-0 text-content-faint group-open:rotate-180 ' + (cheapest ? '' : 'ml-auto')} />
+      <span className="ms-2 text-content-muted">{status}</span>
+      {cheapest && <span className="ms-auto whitespace-nowrap font-medium">{price(cheapest.price, cheapest.currency)}/kWh*</span>}
+      <ChevronDown size={13} className={'shrink-0 text-content-faint group-open:rotate-180 ' + (cheapest ? '' : 'ms-auto')} />
     </summary>
     <div className="space-y-2 px-3 pb-3 text-content-muted">
     {info?.station && <p>{info.station}</p>}

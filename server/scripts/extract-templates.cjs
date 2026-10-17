@@ -6,16 +6,16 @@
  * out on an A4 landscape book as it does on the 210mm square it was designed
  * for. Run from server/, output goes to the client.
  */
-const Database = require('better-sqlite3')
-const fs = require('fs')
+const Database = require('better-sqlite3');
+const fs = require('fs');
 
-const JOURNEY = Number(process.argv[2] || 7)
-const OUT = process.argv[3] || '../client/src/components/Studio/bookTemplates.data.ts'
+const JOURNEY = Number(process.argv[2] || 7);
+const OUT = process.argv[3] || '../client/src/components/Studio/bookTemplates.data.ts';
 
-const db = new Database('data/travel.db', { readonly: true })
-const row = db.prepare('SELECT document FROM journey_books WHERE journey_id = ?').get(JOURNEY)
-db.close()
-if (!row) throw new Error(`no book on journey ${JOURNEY}`)
+const db = new Database('data/travel.db', { readonly: true });
+const row = db.prepare('SELECT document FROM journey_books WHERE journey_id = ?').get(JOURNEY);
+db.close();
+if (!row) throw new Error(`no book on journey ${JOURNEY}`);
 
 /*
  * Through the contract on the way in, so a template carries every field the
@@ -23,40 +23,44 @@ if (!row) throw new Error(`no book on journey ${JOURNEY}`)
  * Without it a template written today is missing tomorrow's defaults and does
  * not typecheck as a BookElement.
  */
-const { normalizeBookDocument } = require('@trek/shared')
-const doc = normalizeBookDocument(JSON.parse(row.document))
-const PW = doc.page.pageWidth
-const PH = doc.page.pageHeight
+const { normalizeBookDocument } = require('@trek/shared');
+const doc = normalizeBookDocument(JSON.parse(row.document));
+const PW = doc.page.pageWidth;
+const PH = doc.page.pageHeight;
 
-const r4 = n => Math.round(n * 10000) / 10000
+const r4 = (n) => Math.round(n * 10000) / 10000;
 
 /** A frame as fractions of one page's width and of the page height. */
 function relFrame(f) {
-  return { x: r4(f.x / PW), y: r4(f.y / PH), w: r4(f.w / PW), h: r4(f.h / PH) }
+  return { x: r4(f.x / PW), y: r4(f.y / PH), w: r4(f.w / PW), h: r4(f.h / PH) };
 }
 
 /** Type size as a fraction of the page height, so it scales with the sheet. */
-const relSize = n => r4(n / PH)
+const relSize = (n) => r4(n / PH);
 
 function element(e) {
   // The id travels with the template and is replaced when it is applied —
   // dropping it here would leave the element off the BookElement union.
-  const out = { ...e, frame: relFrame(e.frame) }
-  if (typeof out.size === 'number') out.size = relSize(out.size)
-  if (typeof out.radius === 'number') out.radius = r4(out.radius / PW)
-  if (typeof out.strokeWidth === 'number') out.strokeWidth = r4(out.strokeWidth / PW)
-  return out
+  const out = { ...e, frame: relFrame(e.frame) };
+  if (typeof out.size === 'number') out.size = relSize(out.size);
+  if (typeof out.radius === 'number') out.radius = r4(out.radius / PW);
+  if (typeof out.strokeWidth === 'number') out.strokeWidth = r4(out.strokeWidth / PW);
+  return out;
 }
 
 const spreads = doc.spreads
   .map((s, i) => ({ index: i, role: s.role, background: s.background, elements: s.elements.map(element) }))
-  .filter(s => s.role === 'inner')
+  .filter((s) => s.role === 'inner');
 
-const body = spreads.map((s, i) => `  {
+const body = spreads
+  .map(
+    (s, i) => `  {
     id: 'ref-${i + 1}',
     background: ${JSON.stringify(s.background)},
     elements: ${JSON.stringify(s.elements, null, 6).replace(/\n/g, '\n    ')},
-  },`).join('\n')
+  },`,
+  )
+  .join('\n');
 
 const file = `import type { BookElement } from '@trek/shared'
 
@@ -103,7 +107,7 @@ export interface SpreadTemplate {
 export const SPREAD_TEMPLATES: SpreadTemplate[] = [
 ${body}
 ]
-`
+`;
 
-fs.writeFileSync(OUT, file)
-console.log(`wrote ${spreads.length} templates to ${OUT}`)
+fs.writeFileSync(OUT, file);
+console.log(`wrote ${spreads.length} templates to ${OUT}`);

@@ -6,7 +6,7 @@ Install, review, enable, update, and remove third-party plugins on your instance
 
 ## Where to find it
 
-Open the **Admin Panel** and select the **Plugins** tab. *Install and manage third-party plugins on your instance.*
+Open the **Admin Panel** and select the **Plugins** tab (in the **Configuration** group of the side navigation). *Install and manage third-party plugins on your instance.*
 
 > **Admin:** This whole panel is admin-only. It also needs the plugin runtime turned on — otherwise you get *Plugins are disabled*: **The plugin runtime is turned off (`TREK_PLUGINS_ENABLED`). No plugin can run until an admin enables it in the server configuration.** When the runtime is on, a green **Runtime on** pill appears in the header.
 
@@ -38,6 +38,8 @@ A newly installed plugin is **off**. Nothing runs until you enable it.
 Before installing, read these sections:
 
 - **What it can access** — a plain-language summary of what the plugin's permissions let it do ("Reads your trips", "Edits places", "Provides photos"), plus a line for its own isolated database. It is a summary, not the raw permission list: permissions TREK has no summary line for — `notify:send`, `ai:invoke`, `jobs:run`, `db:write:members` and others — do not appear here at all, and a plugin that asks only for those still reads *Needs no special access.* For the complete list, read the manifest in the plugin's source repository. Only the consent dialog for an update renders permissions code by code, unknown codes verbatim.
+- **Map categories it adds**: for a plugin that asks for `hook:poi-category-provider`, each button it would add to the category row on the trip map (see [Places and Search](Places-and-Search#categories-from-plugins)), with its icon on its colour and its name in your language. The access list above reads *Adds map categories* for the same permission, and so does a chip on the plugin's row once it is installed. A plugin that declares categories without asking for the permission shows no list, because its buttons would never appear. The consent dialog of an update that adds the permission spells out what it shares: *Add its own place categories to Explore places on the map; picking one sends the plugin the map area you are viewing.*
+- A plugin that asks for `hook:search-provider` reads **Answers searches** in the access list: its own index answers place searches beside TREK's results, and a plugin built for it also answers while the search is still being typed, with its places marked with the plugin's name (see [Places and Search](Places-and-Search#suggestions-while-you-type)).
 - **Connects to** — every host the manifest declares it may reach, as monospace chips.
 - **Setup** — settings the plugin will ask you (or each user) to fill in, tagged **Instance-wide** or **Per user**, and **Required** where applicable.
 - **Details** — version, size, the TREK version range it requires, when it was reviewed, and total downloads.

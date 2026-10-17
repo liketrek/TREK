@@ -341,11 +341,13 @@ describe('MDaySheet', () => {
     expect(screen.getByText('Hotel Sacher')).toBeInTheDocument()
     expect(screen.getByText('Philharmonikerstrasse 4')).toBeInTheDocument()
     expect(screen.getByText('15:00 – 18:00')).toBeInTheDocument()
-    expect(screen.getByText('11:00')).toBeInTheDocument()
+    // The arrival day names the desk time that matters that day, not the departure (#2393).
+    expect(screen.queryByText('11:00')).not.toBeInTheDocument()
     expect(screen.getByText('ABC123')).toBeInTheDocument()
     expect(screen.getByText('Confirmed · #X9')).toBeInTheDocument()
-    // start_day_id is this day, end_day_id a later one → check-in badge plus the stat label.
-    expect(screen.getAllByText('Check-in')).toHaveLength(2)
+    // start_day_id is this day, end_day_id a later one → the check-in time carries the
+    // state in its own label, so the head drops the badge (#2393).
+    expect(screen.getAllByText('Check-in')).toHaveLength(1)
 
     // Tapping the stay edits the stay; the place is one tap further right (#2001).
     fireEvent.click(screen.getByText('Hotel Sacher'))
@@ -359,8 +361,16 @@ describe('MDaySheet', () => {
     expect(shell.openSheet).toHaveBeenCalledWith('accommodation', { dayId: 2 })
   })
 
-  it('FE-MOB-DAYSH-024: labels a stay that both starts and ends on this day', async () => {
+  it('FE-MOB-DAYSH-024: a stay that both starts and ends on this day shows both desk times', async () => {
     const acc = [{ ...ACCOMMODATIONS[0], end_day_id: 2 }] as unknown as Accommodation[]
+    await renderSheet(makePlanner({ tripAccommodations: acc }))
+    expect(screen.getByText('15:00 – 18:00')).toBeInTheDocument()
+    expect(screen.getByText('11:00')).toBeInTheDocument()
+    expect(screen.queryByText('Check-in & Check-out')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-DAYSH-024b: a stay without desk times keeps its badge in the head', async () => {
+    const acc = [{ ...ACCOMMODATIONS[0], end_day_id: 2, check_in: null, check_in_end: null, check_out: null }] as unknown as Accommodation[]
     await renderSheet(makePlanner({ tripAccommodations: acc }))
     expect(screen.getByText('Check-in & Check-out')).toBeInTheDocument()
   })
@@ -368,8 +378,10 @@ describe('MDaySheet', () => {
   it('FE-MOB-DAYSH-025: labels the check-out day and a plain mid-stay day', async () => {
     const checkOutDay = [{ ...ACCOMMODATIONS[0], start_day_id: 1, end_day_id: 2 }] as unknown as Accommodation[]
     const { unmount } = await renderSheet(makePlanner({ tripAccommodations: checkOutDay }))
-    // Badge plus the check-out stat label.
-    expect(screen.getAllByText('Check-out')).toHaveLength(2)
+    // Only the check-out stat, which carries the state itself.
+    expect(screen.getAllByText('Check-out')).toHaveLength(1)
+    expect(screen.getByText('11:00')).toBeInTheDocument()
+    expect(screen.queryByText('15:00 – 18:00')).not.toBeInTheDocument()
     expect(screen.queryByText('Stay')).not.toBeInTheDocument()
     unmount()
 

@@ -23,7 +23,7 @@ export default function MListRow({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-[11px] rounded-xl px-[10px] py-[11px] text-left text-[0.84375rem] font-semibold active:bg-[color:var(--m-ic)] ${
+      className={`flex w-full items-center gap-[11px] rounded-xl px-[10px] py-[11px] text-start text-[0.84375rem] font-semibold active:bg-[color:var(--m-ic)] ${
         danger ? 'text-[color:var(--m-st-danger)]' : 'text-m-ink'
       } ${className}`}
     >

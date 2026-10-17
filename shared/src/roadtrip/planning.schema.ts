@@ -41,5 +41,12 @@ export const roadtripGpxImportSchema = z.object({
   importWaypoints: z.boolean().default(true),
   importRoutes: z.boolean().default(true),
   importTracks: z.boolean().default(true),
+  // Look each imported waypoint up on Google afterwards, as a list import can (#2536).
+  enrich: z
+    .boolean()
+    .optional()
+    .describe(
+      'Fill in photo, address, website and phone of the imported waypoints from Google Places, in the background. Needs a Google Maps key',
+    ),
 });
 export type RoadtripGpxImport = z.infer<typeof roadtripGpxImportSchema>;

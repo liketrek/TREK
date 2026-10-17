@@ -11,5 +11,10 @@ const share: TranslationStrings = {
   'share.permPacking': '行李',
   'share.permBudget': '费用',
   'share.permCollab': '聊天',
+  'share.options': '选项',
+  'share.optTravelOnly': '仅交通和住宿',
+  'share.optTravelOnlyHint': '只显示交通和住宿，不包括活动、每日备注和空白日',
+  'share.optHideImages': '不含照片',
+  'share.optHideImagesHint': '共享页面中不显示地点照片',
 };
 export default share;

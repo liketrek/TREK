@@ -6,9 +6,11 @@ import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { splitReservationDateTime } from '../../../../utils/formatters'
-import { getFlightLegs, getTrainLegs } from '../../../../utils/flightLegs'
+import { getFlightLegs, getTrainLegs, usesStationRoute } from '../../../../utils/flightLegs'
 import { openFile } from '../../../../utils/fileDownload'
 import { runsOnDay } from '../../../../utils/reservationRoutes'
+import { filesFor } from '../../../../utils/reservationFiles'
+import { bookingDayLabel, segmentCodeLabel } from '../../../../components/Planner/transportDetailModel'
 import type { Reservation } from '../../../../types'
 import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
 
@@ -87,11 +89,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   if (meta.flight_number) subParts.push(meta.flight_number)
   if (meta.train_number) subParts.push(meta.train_number)
   if (from?.name && to?.name) subParts.push(`${from.name} → ${to.name}`)
-  else if (date) {
-    subParts.push(new Date(`${date}T00:00:00Z`).toLocaleDateString(locale, {
-      weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
-    }))
-  }
+  else if (date) subParts.push(bookingDayLabel(date, locale))
 
   const seat = meta.seat
   const platform = meta.platform
@@ -99,12 +97,10 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
 
   // Per-segment booking codes (#1943), only on a real stopover booking: the
   // single-leg fallback would just echo the booking's own code shown below.
-  const routeLegs = res.type === 'flight' ? getFlightLegs(res) : res.type === 'train' ? getTrainLegs(res) : []
+  const routeLegs = res.type === 'flight' ? getFlightLegs(res) : usesStationRoute(res.type) ? getTrainLegs(res) : []
   const legCodes = routeLegs.length > 1 ? routeLegs.filter(l => l.confirmation_number) : []
 
-  const resFiles = (planner.files || []).filter(f =>
-    !f.deleted_at && (f.reservation_id === res.id || (f.linked_reservation_ids || []).includes(res.id)),
-  )
+  const resFiles = filesFor(res, planner.files || [])
 
   const confirmed = res.status === 'confirmed'
   const codeBlurred = blurCodes && !codeRevealed
@@ -144,7 +140,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   }
 
   const deleteTransport = () => {
-    planner.handleDeleteReservation(res.id)
+    void planner.handleDeleteReservation(res.id)
     shell.closeSheet()
   }
 
@@ -248,7 +244,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
             {legCodes.map((leg, i) => (
               <div key={i} className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate text-[0.71875rem] font-medium">
-                  {[leg.from, leg.to].filter(Boolean).join(' → ') || t('reservations.confirmationCode')}
+                  {segmentCodeLabel(leg, t)}
                 </span>
                 <button
                   type="button"
@@ -300,7 +296,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
             <button
               type="button"
               onClick={editTransport}
-              className="ml-auto flex items-center gap-[5px] rounded-full bg-m-act px-3 py-[7px] text-[0.75rem] font-semibold text-m-actfg"
+              className="ms-auto flex items-center gap-[5px] rounded-full bg-m-act px-3 py-[7px] text-[0.75rem] font-semibold text-m-actfg"
             >
               <Pencil size={13} strokeWidth={2} />
               {t('common.edit')}

@@ -63,9 +63,12 @@ vi.mock('../../hooks/useAirtrailConnection', () => ({
   useAirtrailConnection: () => ({ airtrailEnabled: false, connected: false, available: false, loading: false }),
 }))
 
-vi.mock('../../repo/accommodationRepo', () => ({
-  accommodationRepo: { list: vi.fn(async () => ({ accommodations: [] })) },
-}))
+// Only the list read is stubbed; a stay is written through the real repo, which sends
+// it to accommodationsApi like the planner does online.
+vi.mock('../../repo/accommodationRepo', async importOriginal => {
+  const real = await importOriginal<typeof import('../../repo/accommodationRepo')>()
+  return { accommodationRepo: { ...real.accommodationRepo, list: vi.fn(async () => ({ accommodations: [] })) } }
+})
 
 vi.mock('../../services/photoService', () => ({
   getCached: vi.fn(() => undefined),
@@ -252,6 +255,12 @@ function seedTrip(extra: Partial<TripStoreState> = {}) {
   return trip
 }
 
+/** A trip of one day, day 5, which the corridor is searching: where most cases start. */
+function seedSearchedDay() {
+  seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
+  rt.corridor.day = { dayId: 5, dayNumber: 1 }
+}
+
 /**
  * Demote the current session to somebody who may look but not touch.
  *
@@ -344,8 +353,11 @@ beforeEach(() => {
   }) as unknown as typeof window.__addToast
   seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true, placesPhotosEnabled: false })
 
-  // The two switches this whole file depends on.
+  // The two switches this whole file depends on. The mode sits on the account as well
+  // as in the tab (#2639), with the settings already loaded, so a toggle saves straight
+  // away instead of leaving a settings fetch behind that lands in the next test.
   sessionStorage.setItem('trip-roadtrip-42', '1')
+  useSettingsStore.setState(s => ({ isLoaded: true, settings: { ...s.settings, planner_trip_views: { '42': { roadtrip: true } } } }))
   vi.spyOn(addonsApi, 'enabled').mockResolvedValue({ addons: [{ id: 'roadtrip' }] } as never)
 
   vi.spyOn(authApi, 'getAppConfig').mockResolvedValue({})
@@ -411,8 +423,7 @@ describe('visit day-end controls', () => {
 
 describe('useTripPlanner road trip: a hit on the drive', () => {
   it('FE-TP-ROAD-001: a corridor hit opens the popup on the day being searched, at its place in the chain', async () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.corridor.insertIndexFor.mockReturnValue(2)
 
     const { result } = await renderRoadtrip()
@@ -444,8 +455,7 @@ describe('useTripPlanner road trip: a hit on the drive', () => {
   })
 
   it('FE-TP-ROAD-003: on the last day of the trip the night ends where it began', async () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
 
     const { result } = await renderRoadtrip()
     act(() => { result.current.handlePoiClick(poi({ category: 'campsite' }) as never) })
@@ -454,8 +464,7 @@ describe('useTripPlanner road trip: a hit on the drive', () => {
   })
 
   it('FE-TP-ROAD-004: a fuel stop gets no overnight mode, so the popup stays a dwell dialog', async () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
 
     const { result } = await renderRoadtrip()
     act(() => { result.current.handlePoiClick(poi() as never) })
@@ -466,8 +475,7 @@ describe('useTripPlanner road trip: a hit on the drive', () => {
   it('FE-TP-ROAD-005: an ordinary map POI still goes to the full form, carrying the day being driven', async () => {
     // Without the day it lands in the unplanned pool, and road trip mode shows no pool,
     // so a just-added place would disappear without a trace.
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
 
     const { result } = await renderRoadtrip()
     const { alongKm: _drop, offRouteKm: _drop2, ...plain } = poi()
@@ -480,8 +488,7 @@ describe('useTripPlanner road trip: a hit on the drive', () => {
 
   it('FE-TP-ROAD-006: a reader who may not add places gets nothing at all', async () => {
     asReader('place_edit')
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
 
     const { result } = await renderRoadtrip()
     act(() => { result.current.handlePoiClick(poi() as never) })
@@ -493,8 +500,7 @@ describe('useTripPlanner road trip: a hit on the drive', () => {
 
 describe('useTripPlanner road trip: saving a hit', () => {
   const openDraft = async () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.corridor.insertIndexFor.mockReturnValue(1)
     const rendered = await renderRoadtrip()
     act(() => { rendered.result.current.handlePoiClick(poi() as never) })
@@ -530,8 +536,7 @@ describe('useTripPlanner road trip: saving a hit', () => {
   })
 
   it('FE-TP-ROAD-009: saving with nothing open writes nothing', async () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     const { result } = await renderRoadtrip()
 
     await act(async () => { await result.current.saveStopDraft({ stopType: 'fuel', dwellMinutes: 10 }) })
@@ -620,8 +625,7 @@ describe('useTripPlanner road trip: saving a hit', () => {
     // Both the via and the new stop are projected onto the day's current routed line,
     // so the comparison is "which one does the car reach first" rather than a
     // straight-line guess.
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.corridor.insertIndexFor.mockReturnValue(1)
     rt.routes.days = [{
       dayId: 5,
@@ -645,8 +649,7 @@ describe('useTripPlanner road trip: saving a hit', () => {
   it('FE-TP-ROAD-058: saving through the full form still lands the stop where it will be driven past', async () => {
     // The slice has taken a position all along and nothing ever passed it, so a place
     // added by way of the full form went to the end of the day.
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.corridor.insertIndexFor.mockReturnValue(2)
     const { result } = await renderRoadtrip()
 
@@ -659,8 +662,7 @@ describe('useTripPlanner road trip: saving a hit', () => {
   })
 
   it('FE-TP-ROAD-059: a day link that fails is said out loud, and the place itself stands', async () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     const { result } = await renderRoadtrip()
     actions.assignPlaceToDay.mockRejectedValue(new Error('day gone'))
 
@@ -673,8 +675,7 @@ describe('useTripPlanner road trip: saving a hit', () => {
   })
 
   it('FE-TP-ROAD-016: with nothing open there is nothing to warn about', async () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     const { result } = await renderRoadtrip()
 
     expect(result.current.stopDraftDuplicate).toBeNull()
@@ -882,8 +883,7 @@ describe('useTripPlanner road trip: one stop at a time', () => {
 
   it('FE-TP-ROAD-032: a reader may not set a stay', async () => {
     asReader('place_edit')
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     const { result } = await renderRoadtrip()
 
     await act(async () => { await result.current.setRoadtripStay(1011, 45) })
@@ -911,8 +911,7 @@ describe('useTripPlanner road trip: other ways of driving a leg', () => {
   const DETOUR: [number, number][] = [[53.55, 9.99], [53.4, 11.5], [53.3, 12.8], [52.52, 13.4]]
 
   const routedDay = () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.routes.days = [{
       dayId: 5,
       dayNumber: 1,
@@ -1480,8 +1479,7 @@ describe('useTripPlanner road trip: shaping the drive on the map', () => {
 
   it('FE-TP-ROAD-050: a reader may not shape the drive at all', async () => {
     asReader('day_edit')
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.routes.days = [{ dayId: 5, stops: [{ lat: 53.55, lng: 9.99 }, { lat: 52.52, lng: 13.4 }], geometry: [[53.55, 9.99], [52.52, 13.4]] }]
     const { result } = await renderRoadtrip()
 
@@ -1511,8 +1509,7 @@ describe('useTripPlanner road trip: shaping the drive on the map', () => {
     // pulled beyond the stop it used to precede kept claiming the earlier leg: the route
     // ran out to the point and back before carrying on, which reads as the drag doing
     // nothing at all. Three stops so there are two legs to land between.
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.routes.days = [{
       dayId: 5,
       stops: [{ lat: 53.55, lng: 9.99 }, { lat: 53.85, lng: 11.45 }, { lat: 52.52, lng: 13.4 }],
@@ -1548,8 +1545,7 @@ describe('useTripPlanner road trip: shaping the drive on the map', () => {
     // No distance guard on a drag, unlike on a click: pulling a via well away from the
     // current road is the whole point of the gesture. A day with no line to measure
     // against simply sends no anchor, and the existing pin stays as it was.
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.routes.days = [{ dayId: 5, stops: [], geometry: [] }]
     const { result } = await renderRoadtrip()
 
@@ -1573,8 +1569,7 @@ describe('useTripPlanner road trip: shaping the drive on the map', () => {
 
 describe('useTripPlanner road trip: dropping a hit where it belongs', () => {
   const corridorWithHit = () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.corridor.visible = [poi({ osm_id: 'node/7' })]
     rt.corridor.search.spine = [
       { lat: 53.55, lng: 9.99 },
@@ -1635,8 +1630,7 @@ describe('useTripPlanner road trip: dropping a hit where it belongs', () => {
 
   it('FE-TP-ROAD-056: a reader may not drop one at all', async () => {
     asReader('place_edit')
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.corridor.visible = [poi({ osm_id: 'node/7' })]
     rt.corridor.search.spine = [{ lat: 53.55, lng: 9.99 }, { lat: 52.52, lng: 13.4 }]
     const { result } = await renderRoadtrip()
@@ -1789,8 +1783,7 @@ describe('useTripPlanner road trip: a stop added by hand', () => {
   })
 
   it('FE-TP-ROAD-084: a stop dropped into a routed day re-anchors its vias before it re-routes', async () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.routes.days = [{
       dayId: 5,
       dayNumber: 1,
@@ -2818,8 +2811,7 @@ describe('useTripPlanner road trip: a booked night in the popup', () => {
 
 describe('useTripPlanner road trip: a hit handed to the full form', () => {
   it('FE-TP-ROAD-107: saving it through the form re-anchors the vias the way the popup does', async () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.corridor.insertIndexFor.mockReturnValue(1)
     rt.routes.days = [{
       dayId: 5,
@@ -2878,8 +2870,7 @@ describe('useTripPlanner road trip: a ride on the drive (#2428)', () => {
     carrier: { reservationId: 70, type: 'flight', role, title: 'LH 2020', code: role === 'departure' ? 'HAM' : 'MUC', at: null },
   })
   const flownDay = () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.routes.days = [{
       dayId: 5,
       dayNumber: 1,
@@ -3139,8 +3130,7 @@ describe('useTripPlanner road trip: a booked night at the edge of a day', () => 
    * on one straight road, so every leg is a stretch of the line of its own.
    */
   const transferDay = () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.routes.days = [{
       dayId: 5,
       dayNumber: 1,
@@ -3206,8 +3196,7 @@ describe('useTripPlanner road trip: a booked night at the edge of a day', () => 
   })
 
   it('FE-TP-ROAD-145: behind a terminal, and on the road after the next place, a place lands where it fell', async () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     const carrier = (role: 'departure' | 'arrival') =>
       ({ reservationId: 70, type: 'flight', role, title: 'LH 2020', code: null, at: null })
     rt.routes.days = [{
@@ -3259,8 +3248,7 @@ describe('useTripPlanner road trip: a booked night at the edge of a day', () => 
 
   it('FE-TP-ROAD-147: a way chosen for the first leg after the morning hotel is still that leg', async () => {
     const LINE: [number, number][] = [[53, 10], [53, 11]]
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.routes.days = [{
       dayId: 5,
       dayNumber: 1,
@@ -3383,8 +3371,7 @@ describe('useTripPlanner road trip: a booked night at the edge of a day', () => 
     // Out of the hotel east to the lookout, then back west past the hotel to the falls:
     // the road between the hotel and the lookout is driven twice, and only the second
     // pass is a leg a via can be filed on.
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.routes.days = [{
       dayId: 5,
       dayNumber: 1,
@@ -3406,8 +3393,7 @@ describe('useTripPlanner road trip: a booked night at the edge of a day', () => 
   })
 
   it('FE-TP-ROAD-152: a road only the hotel’s drives use, out in the morning and back at night, still takes none', async () => {
-    seedTrip({ days: [buildDay({ id: 5, day_number: 1 })] })
-    rt.corridor.day = { dayId: 5, dayNumber: 1 }
+    seedSearchedDay()
     rt.routes.days = [{
       dayId: 5,
       dayNumber: 1,

@@ -7,6 +7,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addToDayQuestion': 'Hozzáadás egy naphoz?',
   'mobileTrip.addTransportShort': 'Közlekedés',
   'mobileTrip.allDays': 'Minden nap',
+  'mobileTrip.today': 'Ma',
+  'mobileTrip.jumpToToday': 'Ugrás a mai napra',
   'mobileTrip.assignedDays': 'Hozzárendelt napok',
   'mobileTrip.assignmentNotes': 'Napra szóló jegyzetek',
   'mobileTrip.bookingsEmpty': 'Még nincsenek foglalások',
@@ -35,14 +37,18 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.onMap': 'Térképen',
   'mobileTrip.profileDriving': 'Autózás',
   'mobileTrip.profileWalking': 'Gyaloglás',
+  'mobileTrip.profileCycling': 'Kerékpározás',
   'mobileTrip.renameDay': 'Nap átnevezése',
   'mobileTrip.resBadge': 'Foglalás',
   'mobileTrip.showOnMap': 'Megjelenítés térképen',
   'mobileTrip.statDocuments': '{count} fájl',
+  'mobileTrip.statDocuments.one': '{count} fájl',
   'mobileTrip.statPeople': '{count} fő',
+  'mobileTrip.statPeople.one': '{count} fő',
   'mobileTrip.stay': 'Tartózkodás',
   'mobileTrip.tapAgainToDelete': 'Koppints újra a törléshez',
   'mobileTrip.todoOpenCount': '{count} nyitott',
+  'mobileTrip.todoOpenCount.one': '{count} nyitott',
   'mobileTrip.travel': 'Utazás',
   'mobileTrip.upNext': 'Következő',
   'mobileTrip.viewDetails': 'Részletek megtekintése',
@@ -58,7 +64,9 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtStayScope':
     'Az itt töltött idő a helyhez tartozik, ezért minden olyan napon számít, amelyre ez a megálló be van tervezve.',
   'mobileTrip.rtStayLess': '{count} perccel kevesebb',
+  'mobileTrip.rtStayLess.one': '{count} perccel kevesebb',
   'mobileTrip.rtStayMore': '{count} perccel több',
+  'mobileTrip.rtStayMore.one': '{count} perccel több',
   'mobileTrip.rtNightDesktopOnly':
     'Az éjszakázást ezen a helyen az asztali tervezőben lehet megadni. Itt csak elvetni tudod.',
   'mobileTrip.rtReach': 'Meddig',
@@ -67,10 +75,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtFromStart': 'A szakasz elejétől',
   'mobileTrip.rtNoneAhead': 'Az előtted lévő úton nincs semmi. Próbáld az egész szakaszt.',
   'mobileTrip.rtNoneOnStage': 'Ezen a szakaszon nincs ilyesmi.',
-  'mobileTrip.rtTruncated.one':
-    '1 szakaszon több volt, mint ami egy válaszba fér. Válassz kevesebb fajtát, hogy lásd a többit.',
   'mobileTrip.rtTruncated.other':
-    '{count} szakaszon több volt, mint ami egy válaszba fér. Válassz kevesebb fajtát, hogy lásd a többit.',
+    '{count} szakaszon több találat volt, mint amennyi egy válaszba belefér. Válassz kevesebb fajtát, hogy lásd a többit.',
+  'mobileTrip.rtTruncated.one':
+    '{count} szakaszon több találat volt, mint amennyi egy válaszba belefér. Válassz kevesebb fajtát, hogy lásd a többit.',
   'mobileTrip.rtNoDay': 'Nincs kiválasztott nap',
   'mobileTrip.rtNoDayHint': 'A térkép a teljes utat mutatja. Koppints fent egy napra a napi útvonalhoz.',
 };

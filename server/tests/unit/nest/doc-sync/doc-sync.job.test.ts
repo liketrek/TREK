@@ -13,8 +13,43 @@
  * The last block is the exception: an admin's provider switch lives in the
  * service's query, so it runs the tick over the real service and a database.
  */
+import { ADDON_IDS } from '../../../../src/addons';
+import { DocumentConnections } from '../../../../src/db/entities/DocumentConnections.entity';
+import { DocumentProviders } from '../../../../src/db/entities/DocumentProviders.entity';
+import { TripDocumentLinks } from '../../../../src/db/entities/TripDocumentLinks.entity';
+import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
+import type { AddonsService } from '../../../../src/nest/addons/addons.service';
+import { DocSyncConfigService, type LinkRow } from '../../../../src/nest/doc-sync/doc-sync-config.service';
+import { SETTING_POLL_INTERVAL, SETTING_SYNC_ENABLED } from '../../../../src/nest/doc-sync/doc-sync.constants';
+import { DocSyncJob } from '../../../../src/nest/doc-sync/doc-sync.job';
+import { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
+import type { DocumentProvider } from '../../../../src/nest/doc-sync/document-provider';
+import { DocumentProviderRegistry } from '../../../../src/nest/doc-sync/document-provider.registry';
+import { AllowedFileTypesService } from '../../../../src/nest/files/allowed-file-types.service';
+import type { FilesService } from '../../../../src/nest/files/files.service';
+import type { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
+import type { CronRegistrarService } from '../../../../src/nest/scheduling/cron-registrar.service';
+import type { StorageService } from '../../../../src/nest/storage/storage.service';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import {
+  createTestDocumentConnectionsRepo,
+  createTestDocumentProviderFieldsRepo,
+  createTestDocumentProvidersRepo,
+  createTestDocumentSyncItemsRepo,
+  createTestFileLinksRepo,
+  createTestTripDocumentLinksRepo,
+  createTestTripFilesRepo,
+} from '../../../helpers/doc-sync-repos';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { findRow, insertRow, updateRows } from '../../../helpers/factories/rows';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestTripsRepo,
+  sharedTestOrm,
+} from '../../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
 
 const log = vi.hoisted(() => ({
   LOG_LEVEL: 'error',
@@ -25,25 +60,7 @@ const log = vi.hoisted(() => ({
 }));
 vi.mock('../../../../src/nest/audit/audit-log.logger', () => log);
 
-import { ADDON_IDS } from '../../../../src/addons';
-import { DocSyncJob } from '../../../../src/nest/doc-sync/doc-sync.job';
-import { SETTING_POLL_INTERVAL, SETTING_SYNC_ENABLED } from '../../../../src/nest/doc-sync/doc-sync.constants';
-import { DocSyncConfigService, type LinkRow } from '../../../../src/nest/doc-sync/doc-sync-config.service';
-import { DocSyncService } from '../../../../src/nest/doc-sync/doc-sync.service';
-import { DocumentProviderRegistry } from '../../../../src/nest/doc-sync/document-provider.registry';
-import type { DocumentProvider } from '../../../../src/nest/doc-sync/document-provider';
-import type { AddonsService } from '../../../../src/nest/addons/addons.service';
-import { DatabaseService } from '../../../../src/nest/database/database.service';
-import type { CronRegistrarService } from '../../../../src/nest/scheduling/cron-registrar.service';
-import { AllowedFileTypesService } from '../../../../src/nest/files/allowed-file-types.service';
-import type { FilesService } from '../../../../src/nest/files/files.service';
-import type { StorageService } from '../../../../src/nest/storage/storage.service';
-import type { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
-import { createTables } from '../../../../src/db/schema';
-import { runMigrations } from '../../../../src/db/migrations';
-import { createTrip, createUser } from '../../../helpers/factories';
-
-const link = (id: number): LinkRow => ({ id, provider_id: 'paperless' } as LinkRow);
+const link = (id: number): LinkRow => ({ id, provider_id: 'paperless' }) as LinkRow;
 
 const RUN = { state: 'ok', pulled: 0, pushed: 0, conflicts: 0, missing: 0 };
 
@@ -64,13 +81,11 @@ function makeJob(over: Partial<Setup> = {}) {
   if (setup.interval !== undefined) settings.set(SETTING_POLL_INTERVAL, setup.interval);
   if (setup.killSwitch !== undefined) settings.set(SETTING_SYNC_ENABLED, setup.killSwitch);
 
-  // Shaped like the real `get<T>(sql, ...params)` so the stub cannot drift from
-  // the signature the job calls, and so a case can tell the two keys apart.
-  const db = {
-    get: vi.fn((_sql: string, key?: unknown) => {
-      const value = settings.get(String(key));
-      return value === undefined ? undefined : { value };
-    }),
+  // Shaped like the real `AppSettingsRepository.getValue(key): Promise<string
+  // | null>` so the stub cannot drift from the signature the job calls, and
+  // so a case can tell the two keys apart.
+  const appSettings = {
+    getValue: vi.fn(async (key: string) => settings.get(key) ?? null),
   };
 
   let onTick: (() => void | Promise<void>) | undefined;
@@ -81,6 +96,13 @@ function makeJob(over: Partial<Setup> = {}) {
       return setup.registrarEnabled;
     }),
     unregister: vi.fn(),
+    // task-6-fix-brief.md item 7: the boot-time banner read now runs through
+    // CronRegistrarService.runOnBoot instead of directly inline — this
+    // double just runs fn immediately, reproducing the pre-fix behaviour
+    // exactly, so every existing assertion below is unaffected.
+    runOnBoot: vi.fn(async (_name: string, fn: () => void | Promise<void>) => {
+      await fn();
+    }),
   };
 
   // Both stubs carry the real signatures, so a case can read back which link a
@@ -93,72 +115,78 @@ function makeJob(over: Partial<Setup> = {}) {
   const addons = { isAddonEnabled: vi.fn(() => setup.addonOn) };
 
   const job = new DocSyncJob(
-    db as unknown as DatabaseService,
+    appSettings as unknown as AppSettingsRepository,
     sync as unknown as DocSyncService,
     config as unknown as DocSyncConfigService,
     addons as unknown as AddonsService,
     registrar as unknown as CronRegistrarService,
   );
-  return { job, db, registrar, sync, config, addons, takeTick: () => onTick };
+  return { job, appSettings, registrar, sync, config, addons, takeTick: () => onTick };
 }
 
 beforeEach(() => vi.clearAllMocks());
 
 describe('DocSyncJob bootstrap', () => {
-  it('schedules nothing, reads nothing and logs nothing while the registrar is off', () => {
+  it('schedules nothing, reads nothing and logs nothing while the registrar is off', async () => {
     // The test gate. A job that registered past it would have every suite boot
     // start polling whatever document store sits in the fixture database.
-    const { job, registrar, db } = makeJob({ registrarEnabled: false });
-    job.onApplicationBootstrap();
+    const { job, registrar, appSettings } = makeJob({ registrarEnabled: false });
+    await job.onApplicationBootstrap();
     expect(registrar.register).not.toHaveBeenCalled();
-    expect(db.get).not.toHaveBeenCalled();
+    expect(appSettings.getValue).not.toHaveBeenCalled();
     expect(log.logInfo).not.toHaveBeenCalled();
   });
 
-  it('registers one cron under a name of its own, on the minute', () => {
+  it('registers one cron under a name of its own, on the minute', async () => {
     // Every minute, with the tick deciding whether it is due. Baking the
     // interval into the expression at bootstrap meant a changed setting did
     // nothing until a restart, which is the opposite of what this job's own
     // comment promises, and nothing re-registers it (auto-backup has a start()
     // its settings save calls; this has no such path).
     const { job, registrar } = makeJob();
-    job.onApplicationBootstrap();
+    await job.onApplicationBootstrap();
     expect(registrar.register).toHaveBeenCalledWith('docsync', '* * * * *', expect.any(Function));
     expect(log.logInfo).toHaveBeenCalledWith('Document sync: polling every 300s');
   });
 
-  it('reads the interval from its own app_settings key', () => {
-    const { job, db } = makeJob({ interval: '600' });
-    job.onApplicationBootstrap();
-    expect(db.get).toHaveBeenCalledWith('SELECT value FROM app_settings WHERE key = ?', SETTING_POLL_INTERVAL);
+  it('reads the interval from its own app_settings key', async () => {
+    const { job, appSettings } = makeJob({ interval: '600' });
+    await job.onApplicationBootstrap();
+    expect(appSettings.getValue).toHaveBeenCalledWith(SETTING_POLL_INTERVAL);
   });
 
   it('hands the registrar the tick itself, so a fired cron reaches the sync', async () => {
     const { job, sync, takeTick } = makeJob({ links: [link(1)] });
-    job.onApplicationBootstrap();
+    await job.onApplicationBootstrap();
     const tick = takeTick();
     expect(tick).toBeTypeOf('function');
     await tick?.();
     expect(sync.syncLink).toHaveBeenCalledTimes(1);
   });
 
-  it('does not decide at bootstrap whether the addon is on', () => {
+  it('does not decide at bootstrap whether the addon is on', async () => {
     // Asking here would freeze the answer for the life of the process, and the
     // bug would read as "the documents toggle needs a restart".
     const { job, addons } = makeJob();
-    job.onApplicationBootstrap();
+    await job.onApplicationBootstrap();
     expect(addons.isAddonEnabled).not.toHaveBeenCalled();
+  });
+
+  it('the boot-time interval banner goes through CronRegistrarService.runOnBoot (task-6-review-parity.md C1 — the boot-sweep choke point)', async () => {
+    const { job, registrar } = makeJob({ interval: '90' });
+    await job.onApplicationBootstrap();
+    expect(registrar.runOnBoot).toHaveBeenCalledWith('docsync-boot', expect.any(Function));
   });
 });
 
 describe('DocSyncJob tick', () => {
   it('does nothing at all while the documents addon is off', async () => {
-    const { job, sync, config, db } = makeJob({ addonOn: false, links: [link(1)] });
+    const { job, sync, config, appSettings } = makeJob({ addonOn: false, links: [link(1)] });
     await job.tick();
     expect(sync.dueLinks).not.toHaveBeenCalled();
     expect(sync.syncLink).not.toHaveBeenCalled();
     expect(config.markOrphanedLinks).not.toHaveBeenCalled();
-    expect(db.get).not.toHaveBeenCalled();
+    expect(appSettings.getValue).not.toHaveBeenCalled();
   });
 
   it('asks the addon gate again on every tick, so switching it on needs no restart', async () => {
@@ -174,9 +202,9 @@ describe('DocSyncJob tick', () => {
   });
 
   it('stops the run on the kill switch, without touching the bindings', async () => {
-    const { job, sync, config, db } = makeJob({ killSwitch: 'false', links: [link(1)] });
+    const { job, sync, config, appSettings } = makeJob({ killSwitch: 'false', links: [link(1)] });
     await job.tick();
-    expect(db.get).toHaveBeenCalledWith('SELECT value FROM app_settings WHERE key = ?', SETTING_SYNC_ENABLED);
+    expect(appSettings.getValue).toHaveBeenCalledWith(SETTING_SYNC_ENABLED);
     expect(config.markOrphanedLinks).not.toHaveBeenCalled();
     expect(sync.dueLinks).not.toHaveBeenCalled();
   });
@@ -194,10 +222,10 @@ describe('DocSyncJob tick', () => {
   });
 
   it('re-reads the kill switch per tick instead of remembering the first answer', async () => {
-    const { job, db } = makeJob({ links: [link(1)] });
+    const { job, appSettings } = makeJob({ links: [link(1)] });
     await job.tick();
     await job.tick();
-    const killSwitchReads = db.get.mock.calls.filter((c) => c[1] === SETTING_SYNC_ENABLED).length;
+    const killSwitchReads = appSettings.getValue.mock.calls.filter((c) => c[0] === SETTING_SYNC_ENABLED).length;
     expect(killSwitchReads).toBe(2);
   });
 
@@ -355,18 +383,15 @@ describe('DocSyncJob due-ness', () => {
 
   it('takes a changed setting without a restart, which is the whole point', async () => {
     const settings = new Map<string, string>([[SETTING_POLL_INTERVAL, '3600']]);
-    const db = {
-      get: vi.fn((_sql: string, key?: unknown) => {
-        const value = settings.get(String(key));
-        return value === undefined ? undefined : { value };
-      }),
+    const appSettings = {
+      getValue: vi.fn(async (key: string) => settings.get(key) ?? null),
     };
     const sync = {
       dueLinks: vi.fn(() => [link(1)]),
       syncLink: vi.fn(async () => RUN),
     };
     const job = new DocSyncJob(
-      db as unknown as DatabaseService,
+      appSettings as unknown as AppSettingsRepository,
       sync as unknown as DocSyncService,
       { markOrphanedLinks: vi.fn(() => 0) } as unknown as DocSyncConfigService,
       { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
@@ -401,92 +426,133 @@ describe('DocSyncJob due-ness', () => {
  * whatever this file told it.
  */
 describe('DocSyncJob and a provider switched off in the admin panel', () => {
-  const testDb = new Database(':memory:');
-  const dbs = new DatabaseService(testDb);
+  const testDb = createSnapshotTestDb();
   let paperlessLink: number;
   let nextcloudLink: number;
 
   const fakeProvider = (id: string) => ({
     id,
     capabilities: () => ({
-      push: 'none', stableId: true, remoteTrash: true, replaceInPlace: true, contentHashInListing: true,
-      maxUploadBytes: null, acceptedMimeTypes: null, canCreateScope: true,
+      push: 'none',
+      stableId: true,
+      remoteTrash: true,
+      replaceInPlace: true,
+      contentHashInListing: true,
+      maxUploadBytes: null,
+      acceptedMimeTypes: null,
+      canCreateScope: true,
     }),
-    resolveScope: vi.fn(async () => ({ success: true, data: { scopeKey: 'tag:1', label: 'Japan', remoteRootId: '1', remoteRootPath: null } })),
-    list: vi.fn(async () => ({ success: true, data: { documents: [], cursor: null, cursorUnchanged: false, truncated: false } })),
+    resolveScope: vi.fn(async () => ({
+      success: true,
+      data: { scopeKey: 'tag:1', label: 'Japan', remoteRootId: '1', remoteRootPath: null },
+    })),
+    list: vi.fn(async () => ({
+      success: true,
+      data: { documents: [], cursor: null, cursorUnchanged: false, truncated: false },
+    })),
   });
   const paperless = fakeProvider('paperless');
   const nextcloud = fakeProvider('nextcloud');
 
   const addons = { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService;
   const registry = new DocumentProviderRegistry([paperless, nextcloud] as unknown as DocumentProvider[]);
-  const config = new DocSyncConfigService(dbs, registry);
-  const service = new DocSyncService(
-    dbs, config, registry,
-    {} as StorageService, {} as FilesService, new AllowedFileTypesService(dbs),
-    { broadcast: vi.fn() } as unknown as RealtimeService,
-    addons,
-  );
+  // Built in beforeAll: DocSyncConfigService and DocSyncService now take a
+  // UnitOfWork, and createTestUnitOfWork is async — module-scope construction
+  // cannot await it.
+  let config: DocSyncConfigService;
+  let service: DocSyncService;
+  let appSettingsRepo: AppSettingsRepository;
   const registrar = { isEnabled: () => false } as unknown as CronRegistrarService;
   /** A job of its own per pass, so the interval never decides whether a tick runs. */
-  const tick = () => new DocSyncJob(dbs, service, config, addons, registrar).tick();
+  const tick = () => new DocSyncJob(appSettingsRepo, service, config, addons, registrar).tick();
 
-  const switchProvider = (id: string, on: boolean) =>
-    testDb.prepare('UPDATE document_providers SET enabled = ? WHERE id = ?').run(on ? 1 : 0, id);
-  const linkRow = (id: number) => testDb.prepare('SELECT * FROM trip_document_links WHERE id = ?').get(id);
+  const switchProvider = async (id: string, on: boolean) =>
+    updateRows(await sharedTestOrm(testDb), DocumentProviders, { id }, { enabled: on ? 1 : 0 });
+  const linkRow = async (id: number) => findRow(await sharedTestOrm(testDb), TripDocumentLinks, { id });
 
-  beforeAll(() => {
-    createTables(testDb);
-    runMigrations(testDb);
+  beforeAll(async () => {
+    appSettingsRepo = await createTestAppSettingsRepo(testDb);
+    config = new DocSyncConfigService(
+      await createTestTripsRepo(testDb),
+      await createTestDocumentProvidersRepo(testDb),
+      await createTestDocumentProviderFieldsRepo(testDb),
+      await createTestDocumentConnectionsRepo(testDb),
+      await createTestTripDocumentLinksRepo(testDb),
+      await createTestDocumentSyncItemsRepo(testDb),
+      registry,
+      await createTestUnitOfWork(testDb),
+    );
+    service = new DocSyncService(
+      await createTestTripDocumentLinksRepo(testDb),
+      await createTestDocumentSyncItemsRepo(testDb),
+      await createTestTripFilesRepo(testDb),
+      await createTestFileLinksRepo(testDb),
+      appSettingsRepo,
+      config,
+      registry,
+      {} as StorageService,
+      {} as FilesService,
+      new AllowedFileTypesService(appSettingsRepo),
+      { broadcast: vi.fn() } as unknown as RealtimeService,
+      addons,
+      await createTestUnitOfWork(testDb),
+    );
     const ownerId = createUser(testDb, { username: 'owner', email: 'owner@docsync-job.test' }).user.id;
     const tripId = createTrip(testDb, ownerId, { title: 'Japan' }).id;
-    const bind = (providerId: string) => {
-      const conn = testDb
-        .prepare(
-          `INSERT INTO document_connections (trip_id, provider_id, owner_user_id, base_url, secrets, settings)
-           VALUES (?, ?, ?, 'https://docs.example.com', NULL, '{}')`,
-        )
-        .run(tripId, providerId, ownerId);
-      return Number(testDb
-        .prepare(
-          `INSERT INTO trip_document_links
-             (trip_id, connection_id, provider_id, remote_scope_key, remote_label, direction, delete_policy,
-              conflict_policy, sync_enabled, created_by)
-           VALUES (?, ?, ?, 'tag:1', 'Japan', 'both', 'unlink', 'manual', 1, ?)`,
-        )
-        .run(tripId, conn.lastInsertRowid, providerId, ownerId).lastInsertRowid);
+    const orm = await sharedTestOrm(testDb);
+    const bind = async (providerId: string) => {
+      const connectionId = await insertRow(orm, DocumentConnections, {
+        trip: tripId,
+        provider: providerId,
+        ownerUser: ownerId,
+        base_url: 'https://docs.example.com',
+        secrets: null,
+        settings: '{}',
+      });
+      return insertRow(orm, TripDocumentLinks, {
+        trip: tripId,
+        connection: connectionId,
+        provider_id: providerId,
+        remote_scope_key: 'tag:1',
+        remote_label: 'Japan',
+        direction: 'both',
+        delete_policy: 'unlink',
+        conflict_policy: 'manual',
+        sync_enabled: 1,
+        createdByRef: ownerId,
+      });
     };
-    paperlessLink = bind('paperless');
-    nextcloudLink = bind('nextcloud');
+    paperlessLink = await bind('paperless');
+    nextcloudLink = await bind('nextcloud');
   });
 
   afterAll(() => testDb.close());
 
-  beforeEach(() => {
-    switchProvider('paperless', false);
-    switchProvider('nextcloud', true);
+  beforeEach(async () => {
+    await switchProvider('paperless', false);
+    await switchProvider('nextcloud', true);
   });
 
   it('runs the bindings that may run and leaves the switched-off one exactly as it was', async () => {
-    const before = linkRow(paperlessLink);
+    const before = await linkRow(paperlessLink);
 
     await tick();
 
     expect(nextcloud.list).toHaveBeenCalledTimes(1);
     expect(paperless.resolveScope).not.toHaveBeenCalled();
     expect(paperless.list).not.toHaveBeenCalled();
-    expect(linkRow(paperlessLink)).toEqual(before);
-    expect(linkRow(nextcloudLink)).toMatchObject({ last_sync_state: 'ok' });
+    expect(await linkRow(paperlessLink)).toEqual(before);
+    expect(await linkRow(nextcloudLink)).toMatchObject({ last_sync_state: 'ok' });
   });
 
   it('picks the binding up again on the next tick once the provider is back on', async () => {
     await tick();
     expect(paperless.list).not.toHaveBeenCalled();
 
-    switchProvider('paperless', true);
+    await switchProvider('paperless', true);
     await tick();
 
     expect(paperless.list).toHaveBeenCalledTimes(1);
-    expect(linkRow(paperlessLink)).toMatchObject({ last_sync_state: 'ok', failure_count: 0 });
+    expect(await linkRow(paperlessLink)).toMatchObject({ last_sync_state: 'ok', failure_count: 0 });
   });
 });

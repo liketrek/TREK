@@ -386,13 +386,17 @@ describe('JourneyMap', () => {
     expect(L.polyline).not.toHaveBeenCalled();
   });
 
-  it('FE-COMP-JOURNEYMAP-022: fullScreen enables wheel zoom and drops the route polyline', () => {
+  it('FE-COMP-JOURNEYMAP-022: fullScreen enables wheel zoom and still draws the dashed route polyline', () => {
     render(
       <JourneyMap checkins={[]} entries={entriesWithCoords} fullScreen />
     );
     expect(vi.mocked(L.map).mock.calls[0][1]).toMatchObject({ scrollWheelZoom: true });
-    // The connecting route line is a sidebar-only decoration
-    expect(L.polyline).not.toHaveBeenCalled();
+    // The public sidebar and the mobile map+carousel view both pass fullScreen,
+    // and the line joining the entries has to show there too (#2606)
+    expect(L.polyline).toHaveBeenCalledWith(
+      [[48.8566, 2.3522], [52.52, 13.405]],
+      expect.objectContaining({ dashArray: '4 6' }),
+    );
   });
 
   it('FE-COMP-JOURNEYMAP-023: clicking a marker reports the entry id', () => {

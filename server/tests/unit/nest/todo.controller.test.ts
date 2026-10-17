@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
 import { TodoController } from '../../../src/nest/todo/todo.controller';
 import type { TodoService } from '../../../src/nest/todo/todo.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 const trip = { id: 5, user_id: 1 };
@@ -16,9 +17,9 @@ function makeService(overrides: Partial<TodoService> = {}): TodoService {
   } as unknown as TodoService;
 }
 
-function thrown(fn: () => unknown): { status: number; body: unknown } {
+async function thrown(fn: () => unknown): Promise<{ status: number; body: unknown }> {
   try {
-    fn();
+    await fn();
   } catch (err) {
     expect(err).toBeInstanceOf(HttpException);
     const e = err as HttpException;
@@ -30,90 +31,99 @@ function thrown(fn: () => unknown): { status: number; body: unknown } {
 // The 404 "Trip not found" and 403 "No permission" cases moved to
 // trip-access.guard.test.ts with the check itself.
 describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)', () => {
-
-  it('GET / returns items', () => {
-    const svc = makeService({ listItems: vi.fn().mockReturnValue([{ id: 1 }]) } as Partial<TodoService>);
-    expect(new TodoController(svc).list(user, '5')).toEqual({ items: [{ id: 1 }] });
+  it('GET / returns items', async () => {
+    const svc = makeService({ listItems: vi.fn().mockResolvedValue([{ id: 1 }]) } as Partial<TodoService>);
+    expect(await new TodoController(svc).list(user, '5')).toEqual({ items: [{ id: 1 }] });
   });
 
   describe('POST /', () => {
-
     // The missing-name 400 moved from a bespoke controller check into the
     // ZodValidationPipe (todoCreateItemRequestSchema) — direct method calls
     // bypass parameter pipes, so that path is covered by the e2e suite and
     // the schema spec in @trek/shared.
 
-    it('creates and broadcasts', () => {
-      const createItem = vi.fn().mockReturnValue({ id: 9, name: 'Pack' });
+    it('creates and broadcasts', async () => {
+      const createItem = vi.fn().mockResolvedValue({ id: 9, name: 'Pack' });
       const broadcast = vi.fn();
       const svc = makeService({ createItem, broadcast } as Partial<TodoService>);
-      expect(new TodoController(svc).create(user, '5', { name: 'Pack', priority: 2 }, 'sock')).toEqual({ item: { id: 9, name: 'Pack' } });
+      expect(await new TodoController(svc).create(user, '5', { name: 'Pack', priority: 2 }, 'sock')).toEqual({
+        item: { id: 9, name: 'Pack' },
+      });
       expect(broadcast).toHaveBeenCalledWith('5', 'todo:created', { item: { id: 9, name: 'Pack' } }, 'sock');
     });
   });
 
   describe('PUT /:id', () => {
-    it('404 when item missing', () => {
-      const svc = makeService({ updateItem: vi.fn().mockReturnValue(null) } as Partial<TodoService>);
-      expect(thrown(() => new TodoController(svc).update(user, '5', '9', { name: 'X' }))).toEqual({
-        status: 404, body: { error: 'Item not found' },
+    it('404 when item missing', async () => {
+      const svc = makeService({ updateItem: vi.fn().mockResolvedValue(null) } as Partial<TodoService>);
+      expect(await thrown(() => new TodoController(svc).update(user, '5', '9', { name: 'X' }))).toEqual({
+        status: 404,
+        body: { error: 'Item not found' },
       });
     });
 
-    it('updates, forwards changed keys, normalizes checked to 0/1, broadcasts', () => {
-      const updateItem = vi.fn().mockReturnValue({ id: 9 });
+    it('updates, forwards changed keys, normalizes checked to 0/1, broadcasts', async () => {
+      const updateItem = vi.fn().mockResolvedValue({ id: 9 });
       const broadcast = vi.fn();
       const svc = makeService({ updateItem, broadcast } as Partial<TodoService>);
-      new TodoController(svc).update(user, '5', '9', { checked: true }, 'sock');
-      expect(updateItem).toHaveBeenCalledWith('5', '9', expect.objectContaining({ checked: 1 }), ['checked']);
+      await new TodoController(svc).update(user, '5', '9', { checked: true }, 'sock');
+      expect(updateItem).toHaveBeenCalledWith('5', 9, expect.objectContaining({ checked: 1 }), ['checked']);
       expect(broadcast).toHaveBeenCalledWith('5', 'todo:updated', { item: { id: 9 } }, 'sock');
     });
 
-    it('normalizes checked false to 0', () => {
-      const updateItem = vi.fn().mockReturnValue({ id: 9 });
+    it('normalizes checked false to 0', async () => {
+      const updateItem = vi.fn().mockResolvedValue({ id: 9 });
       const svc = makeService({ updateItem, broadcast: vi.fn() } as Partial<TodoService>);
-      new TodoController(svc).update(user, '5', '9', { checked: false });
-      expect(updateItem).toHaveBeenCalledWith('5', '9', expect.objectContaining({ checked: 0 }), ['checked']);
+      await new TodoController(svc).update(user, '5', '9', { checked: false });
+      expect(updateItem).toHaveBeenCalledWith('5', 9, expect.objectContaining({ checked: 0 }), ['checked']);
     });
   });
 
   describe('DELETE /:id', () => {
-    it('404 when item missing', () => {
-      const svc = makeService({ deleteItem: vi.fn().mockReturnValue(false) } as Partial<TodoService>);
-      expect(thrown(() => new TodoController(svc).remove(user, '5', '9'))).toEqual({
-        status: 404, body: { error: 'Item not found' },
+    it('404 when item missing', async () => {
+      const svc = makeService({ deleteItem: vi.fn().mockResolvedValue(false) } as Partial<TodoService>);
+      expect(await thrown(() => new TodoController(svc).remove(user, '5', '9'))).toEqual({
+        status: 404,
+        body: { error: 'Item not found' },
       });
     });
 
-    it('deletes and broadcasts', () => {
-      const deleteItem = vi.fn().mockReturnValue(true);
+    it('deletes and broadcasts', async () => {
+      const deleteItem = vi.fn().mockResolvedValue(true);
       const broadcast = vi.fn();
       const svc = makeService({ deleteItem, broadcast } as Partial<TodoService>);
-      expect(new TodoController(svc).remove(user, '5', '9', 'sock')).toEqual({ success: true });
+      expect(await new TodoController(svc).remove(user, '5', '9', 'sock')).toEqual({ success: true });
       expect(broadcast).toHaveBeenCalledWith('5', 'todo:deleted', { itemId: 9 }, 'sock');
     });
   });
 
-  it('PUT /reorder succeeds with permission', () => {
-    const reorderItems = vi.fn();
+  it('PUT /reorder succeeds with permission', async () => {
+    const reorderItems = vi.fn().mockResolvedValue(undefined);
     const svc = makeService({ reorderItems } as Partial<TodoService>);
-    expect(new TodoController(svc).reorder(user, '5', { orderedIds: [3, 1, 2] })).toEqual({ success: true });
+    expect(await new TodoController(svc).reorder(user, '5', { orderedIds: [3, 1, 2] })).toEqual({ success: true });
     expect(reorderItems).toHaveBeenCalledWith('5', [3, 1, 2]);
   });
 
   describe('category assignees', () => {
-    it('GET returns assignees', () => {
-      const svc = makeService({ getCategoryAssignees: vi.fn().mockReturnValue([{ user_id: 2 }]) } as Partial<TodoService>);
-      expect(new TodoController(svc).categoryAssignees(user, '5')).toEqual({ assignees: [{ user_id: 2 }] });
+    it('GET returns assignees', async () => {
+      const svc = makeService({
+        getCategoryAssignees: vi.fn().mockResolvedValue([{ user_id: 2 }]),
+      } as Partial<TodoService>);
+      expect(await new TodoController(svc).categoryAssignees(user, '5')).toEqual({ assignees: [{ user_id: 2 }] });
     });
 
-    it('PUT updates, decodes the category and broadcasts', () => {
-      const updateCategoryAssignees = vi.fn().mockReturnValue([{ user_id: 2 }]);
+    it('PUT updates, decodes the category and broadcasts', async () => {
+      const updateCategoryAssignees = vi.fn().mockResolvedValue([{ user_id: 2 }]);
       const broadcast = vi.fn();
       const svc = makeService({ updateCategoryAssignees, broadcast } as Partial<TodoService>);
-      new TodoController(svc).updateCategoryAssignees(user, '5', 'To%20Buy', { user_ids: [2] }, 'sock');
+      await new TodoController(svc).updateCategoryAssignees(user, '5', 'To%20Buy', { user_ids: [2] }, 'sock');
       expect(updateCategoryAssignees).toHaveBeenCalledWith('5', 'To Buy', [2]);
-      expect(broadcast).toHaveBeenCalledWith('5', 'todo:assignees', { category: 'To Buy', assignees: [{ user_id: 2 }] }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith(
+        '5',
+        'todo:assignees',
+        { category: 'To Buy', assignees: [{ user_id: 2 }] },
+        'sock',
+      );
     });
   });
 });

@@ -11,6 +11,7 @@ const todo: TranslationStrings = {
   'todo.uncategorized': 'Nessuna lista',
   'todo.namePlaceholder': 'Nome attività',
   'todo.descriptionPlaceholder': 'Descrizione (facoltativa)',
+  'todo.editDescription': 'Clicca per modificare, i link si aprono direttamente',
   'todo.unassigned': 'Non assegnato',
   'todo.noCategory': 'Nessuna lista',
   'todo.hasDescription': 'Ha descrizione',

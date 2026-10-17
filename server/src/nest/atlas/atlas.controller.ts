@@ -1,3 +1,8 @@
+import type { User } from '../../types';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { AtlasMarkRegionDto, AtlasCreateBucketItemDto, AtlasUpdateBucketItemDto } from './atlas.dto';
+import { AtlasService, BucketItemExistsError } from './atlas.service';
 import {
   Body,
   Controller,
@@ -13,13 +18,9 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import type { AtlasLocateResponse, RegionGeo } from '@trek/shared';
-import type { User } from '../../types';
-import { AtlasService, BucketItemExistsError } from './atlas.service';
-import { AtlasMarkRegionDto, AtlasCreateBucketItemDto, AtlasUpdateBucketItemDto } from './atlas.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+
+import type { Response } from 'express';
 
 /**
  * /api/addons/atlas — visited countries/regions, region GeoJSON, bucket list.
@@ -43,13 +44,13 @@ export class AtlasController {
   constructor(private readonly atlas: AtlasService) {}
 
   @Get('stats')
-  stats(@CurrentUser() user: User) {
+  async stats(@CurrentUser() user: User) {
     return this.atlas.stats(user.id);
   }
 
   @Get('regions')
   @Header('Cache-Control', 'no-cache, no-store')
-  regions(@CurrentUser() user: User) {
+  async regions(@CurrentUser() user: User) {
     return this.atlas.visitedRegions(user.id);
   }
 
@@ -106,55 +107,68 @@ export class AtlasController {
   }
 
   @Get('country/:code')
-  countryPlaces(@CurrentUser() user: User, @Param('code') code: string) {
+  async countryPlaces(@CurrentUser() user: User, @Param('code') code: string) {
     return this.atlas.countryPlaces(user.id, code.toUpperCase());
   }
 
   @Post('country/:code/mark')
   @HttpCode(200)
-  markCountry(@CurrentUser() user: User, @Param('code') code: string): { success: boolean } {
-    this.atlas.markCountry(user.id, code.toUpperCase());
+  async markCountry(@CurrentUser() user: User, @Param('code') code: string): Promise<{ success: boolean }> {
+    await this.atlas.markCountry(user.id, code.toUpperCase());
     return { success: true };
   }
 
   @Delete('country/:code/mark')
-  unmarkCountry(@CurrentUser() user: User, @Param('code') code: string): { success: boolean } {
-    this.atlas.unmarkCountry(user.id, code.toUpperCase());
+  async unmarkCountry(@CurrentUser() user: User, @Param('code') code: string): Promise<{ success: boolean }> {
+    await this.atlas.unmarkCountry(user.id, code.toUpperCase());
     return { success: true };
   }
 
   @Post('region/:code/mark')
   @HttpCode(200)
-  markRegion(
+  async markRegion(
     @CurrentUser() user: User,
     @Param('code') code: string,
     @Body() body: AtlasMarkRegionDto,
-  ): { success: boolean } {
-    this.atlas.markRegion(user.id, code.toUpperCase(), body.name, body.country_code.toUpperCase());
+  ): Promise<{ success: boolean }> {
+    await this.atlas.markRegion(user.id, code.toUpperCase(), body.name, body.country_code.toUpperCase());
     return { success: true };
   }
 
   @Delete('region/:code/mark')
-  unmarkRegion(@CurrentUser() user: User, @Param('code') code: string): { success: boolean } {
-    this.atlas.unmarkRegion(user.id, code.toUpperCase());
+  async unmarkRegion(@CurrentUser() user: User, @Param('code') code: string): Promise<{ success: boolean }> {
+    await this.atlas.unmarkRegion(user.id, code.toUpperCase());
     return { success: true };
   }
 
   @Get('bucket-list')
-  bucketList(@CurrentUser() user: User) {
-    return { items: this.atlas.bucketList(user.id) };
+  async bucketList(@CurrentUser() user: User) {
+    return { items: await this.atlas.bucketList(user.id) };
   }
 
   @Post('bucket-list')
-  createBucketItem(@CurrentUser() user: User, @Body() body: AtlasCreateBucketItemDto): { item: unknown } {
+  async createBucketItem(
+    @CurrentUser() user: User,
+    @Body() body: AtlasCreateBucketItemDto,
+  ): Promise<{ item: unknown }> {
     // The schema's min(1) admits whitespace-only names — this trim guard keeps
     // the legacy 400 for those (missing/empty names 400 in the pipe envelope).
     if (!body.name?.trim()) {
       throw new HttpException({ error: 'Name is required' }, 400);
     }
-    const { name, lat, lng, country_code, notes, target_date } = body;
+    const { name, lat, lng, country_code, notes, target_date, region_code } = body;
     try {
-      return { item: this.atlas.createBucketItem(user.id, { name, lat, lng, country_code, notes, target_date }) };
+      return {
+        item: await this.atlas.createBucketItem(user.id, {
+          name,
+          lat,
+          lng,
+          country_code,
+          notes,
+          target_date,
+          region_code,
+        }),
+      };
     } catch (err) {
       // #1898: the same wish twice is a conflict, not a server error. Bespoke
       // { error } body like the neighbouring 400/404s.
@@ -166,15 +180,15 @@ export class AtlasController {
   }
 
   @Put('bucket-list/:id')
-  updateBucketItem(
+  async updateBucketItem(
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() body: AtlasUpdateBucketItemDto,
-  ): { item: unknown } {
+  ): Promise<{ item: unknown }> {
     const { name, notes, lat, lng, country_code, target_date } = body;
     let item: unknown;
     try {
-      item = this.atlas.updateBucketItem(user.id, id, { name, notes, lat, lng, country_code, target_date });
+      item = await this.atlas.updateBucketItem(user.id, id, { name, notes, lat, lng, country_code, target_date });
     } catch (err) {
       // #1898: editing a wish onto an existing one conflicts the same way a
       // duplicate create does.
@@ -190,8 +204,8 @@ export class AtlasController {
   }
 
   @Delete('bucket-list/:id')
-  deleteBucketItem(@CurrentUser() user: User, @Param('id') id: string): { success: boolean } {
-    if (!this.atlas.deleteBucketItem(user.id, id)) {
+  async deleteBucketItem(@CurrentUser() user: User, @Param('id') id: string): Promise<{ success: boolean }> {
+    if (!(await this.atlas.deleteBucketItem(user.id, id))) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
     return { success: true };

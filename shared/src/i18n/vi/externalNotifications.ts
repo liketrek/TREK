@@ -37,8 +37,8 @@ const en: NotificationLocale = {
       body: `${p.actor} đã mời bạn chia sẻ một bộ sưu tập. Mở TREK để chấp nhận hoặc từ chối.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} đã chia sẻ hình ảnh`,
-      body: `${p.actor} đã chi sẻ ${p.count} ảnh trong "${p.trip}".`,
+      title: `Đã chia sẻ ${p.count} ảnh`,
+      body: `${p.actor} đã chia sẻ ${p.count} ảnh trong "${p.trip}".`,
     }),
     collab_message: (p) => ({
       title: `Tin nhắn mới trong "${p.trip}"`,
@@ -56,7 +56,9 @@ const en: NotificationLocale = {
       title: 'Lỗi bản sao lưu trữ',
       body:
         `Ghi vào bản sao '${p.backend}' thất bại: ${p.op} của ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` ${p.suppressed} lỗi khác đã bị bỏ qua kể từ thông báo trước đó.` : ''),
+        (p.suppressed !== '0'
+          ? ` Kể từ lần thông báo trước, có thêm ${p.suppressed} lỗi nhưng không được thông báo riêng.`
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Đã xóa phiên Synology',

@@ -76,10 +76,10 @@ describe('EntryCard', () => {
 
   it('FE-JRN-CARD-004: opens the photo-card menu and triggers edit', async () => {
     const user = userEvent.setup()
-    const { container, onEdit } = mountCard(buildEntry({ photos: [buildPhoto(100)] }))
+    const { onEdit } = mountCard(buildEntry({ photos: [buildPhoto(100)] }))
 
-    // The photo itself is a button now, so pick the menu trigger by its own styling.
-    await user.click(container.querySelector('button[class*="bg-black/40"]') as HTMLElement)
+    // The photo itself is a button too, so the menu trigger is picked by its name.
+    await user.click(screen.getByRole('button', { name: 'More options' }))
     await user.click(screen.getByRole('button', { name: 'Edit' }))
 
     expect(onEdit).toHaveBeenCalledTimes(1)
@@ -96,15 +96,14 @@ describe('EntryCard', () => {
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
 
-  it('FE-JRN-CARD-006: closes the menu again when the backdrop is clicked', async () => {
+  it('FE-JRN-CARD-006: closes the menu again on a click outside it', async () => {
     const user = userEvent.setup()
     const { container } = mountCard(buildEntry())
 
     await user.click(container.querySelectorAll('button')[0])
-    const backdrop = document.querySelector('.fixed.inset-0.z-\\[99\\]') as HTMLElement
-    expect(backdrop).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
 
-    await user.click(backdrop)
+    await user.click(document.body)
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
   })
 
@@ -209,6 +208,15 @@ describe('EntryCard', () => {
     mountCard(buildEntry({ photos: [buildPhoto(100)] }))
 
     expect(screen.queryByText('Off route')).not.toBeInTheDocument()
+  })
+
+  it('FE-JRN-CARD-020: marks a draft on the header and on the hero (#696)', () => {
+    const { unmount } = mountCard(buildEntry({ is_draft: true }))
+    expect(screen.getByText('Draft')).toBeInTheDocument()
+    unmount()
+
+    mountCard(buildEntry({ is_draft: true, photos: [buildPhoto(100)] }))
+    expect(screen.getByText('Draft')).toBeInTheDocument()
   })
 })
 

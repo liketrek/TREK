@@ -343,7 +343,7 @@ describe('offlineDb — clearTripData', () => {
     expect(await offlineDb.areaPlaces.where('tripId').equals(2).count()).toBe(1);
   });
 
-  it('preserves unsynced (pending/conflict) writes but drops dead failed ones (#1135)', async () => {
+  it('preserves unsynced, conflicting and parked failed writes (#1135)', async () => {
     await upsertTrip(makeTrip(1));
     await offlineDb.mutationQueue.bulkPut([
       { id: 'p1', tripId: 1, method: 'PUT', url: '/trips/1/places/10', body: { name: 'X' }, createdAt: 1, status: 'pending', attempts: 0, lastError: null, resource: 'places', entityId: 10 },
@@ -353,10 +353,11 @@ describe('offlineDb — clearTripData', () => {
 
     await clearTripData(1);
 
-    // The trip's cached read data is gone, but the unsynced work survives.
+    // The trip's cached read data is gone, but the unsynced work survives. A
+    // parked change waits for the user's Try again or Discard.
     expect(await offlineDb.mutationQueue.get('p1')).toBeDefined();
     expect(await offlineDb.mutationQueue.get('c1')).toBeDefined();
-    expect(await offlineDb.mutationQueue.get('f1')).toBeUndefined();
+    expect(await offlineDb.mutationQueue.get('f1')).toBeDefined();
   });
 });
 

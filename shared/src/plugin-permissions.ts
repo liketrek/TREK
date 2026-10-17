@@ -1,5 +1,8 @@
 // GENERATED — do not edit by hand.
 // Source: server/src/nest/plugins/protocol/envelope.ts + server/src/plugin-event-sink.ts
+//         + server/src/nest/plugins/protocol/manifest-rules.ts
+//         + server/src/nest/plugins/protocol/output-contract.ts + server/src/addons.ts
+//         + shared/src/plugins/plugin-poi-facts.ts
 // Regenerate: node --import tsx server/scripts/gen-plugin-facts.ts
 
 /** Widened on purpose so client callers can .includes() with a plain string. */
@@ -48,6 +51,7 @@ export const PLUGIN_PERMISSIONS: readonly string[] = [
   'hook:calendar-source',
   'hook:place-detail-provider',
   'hook:search-provider',
+  'hook:poi-category-provider',
   'hook:trip-warning-provider',
   'hook:table-contributor',
   'hook:map-marker-provider',
@@ -76,6 +80,7 @@ export const PLUGIN_HOOK_PERMISSION: Readonly<Record<string, string>> = {
   calendarSource: 'hook:calendar-source',
   placeDetailProvider: 'hook:place-detail-provider',
   searchProvider: 'hook:search-provider',
+  poiCategoryProvider: 'hook:poi-category-provider',
   warningProvider: 'hook:trip-warning-provider',
   tableContributor: 'hook:table-contributor',
   mapMarkerProvider: 'hook:map-marker-provider',

@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { contentTypeFor } from '../../../../src/nest/storage/content-type';
+
+import { describe, it, expect } from 'vitest';
 
 describe('contentTypeFor', () => {
   it('CTYPE-001 maps common extensions, case-insensitively, and falls back to octet-stream', () => {

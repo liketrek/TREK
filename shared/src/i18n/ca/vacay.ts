@@ -84,6 +84,7 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': "Trasllada automàticament els dies restants a l'any següent",
   'vacay.carriedOverPrevPeriod': 'del període anterior',
   'vacay.compUsedCount': '{count} comp.',
+  'vacay.compUsedCount.one': '{count} comp.',
   'vacay.yearType': 'Any de vacances',
   'vacay.yearTypeHint': 'Quan comença el teu any de vacances — dret, ús i saldo arrossegat hi van lligats',
   'vacay.yearTypeCalendar': 'Natural',

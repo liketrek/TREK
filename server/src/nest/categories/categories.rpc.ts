@@ -1,4 +1,4 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import { CategoriesService } from './categories.service';
 
 /**
@@ -11,7 +11,7 @@ export class CategoriesRpc {
   constructor(private readonly categories: CategoriesService) {}
 
   @PluginMethod('categories.list', { permission: 'db:read:categories' })
-  list(): unknown[] {
-    return this.categories.list() as unknown[];
+  async list(): Promise<unknown[]> {
+    return (await this.categories.list()) as unknown[];
   }
 }

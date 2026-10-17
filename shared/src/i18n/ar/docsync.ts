@@ -68,7 +68,12 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': 'محذوف في TREK',
   'docsync.state.scope_drift': 'نُقل خارج المجلد',
 
-  'docsync.conflict.resolve': "حلّ {count}",
+  'docsync.conflict.resolve': 'حلّ {count} تعارض',
+  'docsync.conflict.resolve.zero': 'حلّ {count} تعارض',
+  'docsync.conflict.resolve.one': 'حلّ تعارض واحد',
+  'docsync.conflict.resolve.two': 'حلّ تعارضين',
+  'docsync.conflict.resolve.few': 'حلّ {count} تعارضات',
+  'docsync.conflict.resolve.many': 'حلّ {count} تعارضًا',
 
   'docsync.conflict.title': 'تغيّرت النسختان',
   'docsync.conflict.keepTrek': 'الإبقاء على نسخة TREK',
@@ -169,7 +174,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'لم يتم النقل.',
 
   'docsync.error.unknown_provider': 'هذا المزوّد غير متاح على هذا الخادم.',
-  'docsync.error.provider_disabled': 'متوقفة مؤقتاً: أوقف مسؤول الخادم هذا المزوّد. ستُستأنف المزامنة عند إعادة تشغيله.',
+  'docsync.error.provider_disabled':
+    'متوقفة مؤقتاً: أوقف مسؤول الخادم هذا المزوّد. ستُستأنف المزامنة عند إعادة تشغيله.',
   'docsync.binding.reconnect': 'إعادة الاتصال',
 };
 

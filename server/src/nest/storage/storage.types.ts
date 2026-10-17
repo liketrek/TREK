@@ -1,3 +1,8 @@
+import {
+  STORAGE_CATEGORIES as CONFIGURABLE_CATEGORIES,
+  type StorageCategory as ConfigurableCategory,
+} from '@trek/shared';
+
 import type { Readable } from 'node:stream';
 
 /**
@@ -14,7 +19,6 @@ import type { Readable } from 'node:stream';
 // Relocated to shared (the wire schema needs it; a second copy is forbidden).
 // Re-exported so every existing `./storage.types` import keeps working.
 export { STORAGE_CATEGORIES, type StorageCategory } from '@trek/shared';
-import { STORAGE_CATEGORIES as CONFIGURABLE_CATEGORIES, type StorageCategory as ConfigurableCategory } from '@trek/shared';
 
 /**
  * Categories the byte-paths serve. `photos` is the legacy shared photo
@@ -120,7 +124,7 @@ export interface StorageDriver {
 export function describeError(err: unknown): string {
   const parts: string[] = [];
   const seen = new Set<unknown>();
-  for (let cur: unknown = err; cur != null && !seen.has(cur); ) {
+  for (let cur: unknown = err; cur != null && !seen.has(cur);) {
     seen.add(cur);
     const message = cur instanceof Error ? cur.message : String(cur);
     const code = (cur as { code?: unknown }).code;

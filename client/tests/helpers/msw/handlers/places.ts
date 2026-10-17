@@ -1,30 +1,48 @@
-import { http, HttpResponse } from 'msw';
+import { placeCreateRequestSchema, placeSchema, placeUpdateRequestSchema } from '@trek/shared';
+import { HttpResponse } from 'msw';
+import { z } from 'zod';
 import { buildPlace } from '../../factories';
+import { contractHandler } from '../contract';
+
+const placeResponse = z.object({ place: placeSchema });
 
 export const placesHandlers = [
-  http.get('/api/trips/:id/places', ({ params }) => {
-    const tripId = Number(params.id);
-    return HttpResponse.json({ places: [buildPlace({ trip_id: tripId }), buildPlace({ trip_id: tripId })] });
-  }),
+  contractHandler(
+    'get',
+    '/api/trips/:id/places',
+    { response: z.object({ places: z.array(placeSchema) }) },
+    ({ params }) => {
+      const tripId = Number(params.id);
+      return { places: [buildPlace({ trip_id: tripId }), buildPlace({ trip_id: tripId })] };
+    }
+  ),
 
-  http.post('/api/trips/:id/places', async ({ params, request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    const place = buildPlace({ trip_id: Number(params.id), ...body });
-    return HttpResponse.json({ place });
-  }),
+  contractHandler(
+    'post',
+    '/api/trips/:id/places',
+    { request: placeCreateRequestSchema, response: placeResponse },
+    ({ params, body }) => ({
+      place: buildPlace({ trip_id: Number(params.id), ...body }),
+    })
+  ),
 
-  http.put('/api/trips/:id/places/:placeId', async ({ params, request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    const place = buildPlace({ id: Number(params.placeId), trip_id: Number(params.id), ...body });
-    return HttpResponse.json({ place });
-  }),
+  contractHandler(
+    'put',
+    '/api/trips/:id/places/:placeId',
+    { request: placeUpdateRequestSchema, response: placeResponse },
+    ({ params, body }) => ({
+      place: buildPlace({ id: Number(params.placeId), trip_id: Number(params.id), ...body }),
+    })
+  ),
 
-  http.post('/api/trips/:id/places/:placeId/image', ({ params }) => {
-    const place = buildPlace({ id: Number(params.placeId), trip_id: Number(params.id), image_url: '/uploads/places/mock.jpg' });
-    return HttpResponse.json({ place });
-  }),
+  // A multipart upload: no JSON body to hold to a schema, only the answer.
+  contractHandler('post', '/api/trips/:id/places/:placeId/image', { response: placeResponse }, ({ params }) => ({
+    place: buildPlace({
+      id: Number(params.placeId),
+      trip_id: Number(params.id),
+      image_url: '/uploads/places/mock.jpg',
+    }),
+  })),
 
-  http.delete('/api/trips/:id/places/:placeId', () => {
-    return HttpResponse.json({ success: true });
-  }),
+  contractHandler('delete', '/api/trips/:id/places/:placeId', {}, () => HttpResponse.json({ success: true })),
 ];

@@ -6,13 +6,14 @@
  * trip they may not read (nothing that distinguishes it from one that does not
  * exist).
  */
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { Request } from 'express';
-import { PUBLIC_API_INCLUDES, PUBLIC_API_SCOPES, type PublicApiGrant } from '@trek/shared';
+import type { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { PublicApiController } from '../../../src/nest/public-api/public-api.controller';
 import type { PublicApiService } from '../../../src/nest/public-api/public-api.service';
-import type { RateLimitService } from '../../../src/nest/common/rate-limit.service';
+import { HttpException } from '@nestjs/common';
+import { PUBLIC_API_INCLUDES, PUBLIC_API_SCOPES, type PublicApiGrant } from '@trek/shared';
+
+import type { Request } from 'express';
+import { describe, it, expect, vi } from 'vitest';
 
 const TRIP = {
   id: 12,
@@ -36,7 +37,7 @@ const ITEM = {
 
 /** The limiter always allows unless a test says otherwise. */
 function makeController(svc: Partial<PublicApiService>, allow = true) {
-  const rl = { check: vi.fn().mockReturnValue(allow) } as unknown as RateLimitService;
+  const rl = { check: vi.fn().mockResolvedValue(allow) } as unknown as RateLimitService;
   return new PublicApiController(svc as PublicApiService, rl);
 }
 
@@ -50,9 +51,9 @@ const req = (userId = 7) => ({ user: { id: userId }, apiToken: FULL_GRANT }) as 
 /** A request the guard left no user on — the shape the controller must refuse. */
 const reqWithoutUser = () => ({ apiToken: FULL_GRANT }) as Request;
 
-function thrown(fn: () => unknown): { status: number; body: unknown } {
+async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number; body: unknown }> {
   try {
-    fn();
+    await fn();
   } catch (err) {
     expect(err).toBeInstanceOf(HttpException);
     const e = err as HttpException;
@@ -63,43 +64,45 @@ function thrown(fn: () => unknown): { status: number; body: unknown } {
 
 describe('PublicApiController', () => {
   describe('GET /api/v1/bucket-list', () => {
-    it('returns the caller’s wishlist and passes the id from the guard, never the query', () => {
+    it('returns the caller’s wishlist and passes the id from the guard, never the query', async () => {
       const listBucketList = vi.fn().mockReturnValue([ITEM]);
-      expect(makeController({ listBucketList }).listBucketList(req(7))).toEqual({ items: [ITEM] });
+      expect(await makeController({ listBucketList }).listBucketList(req(7))).toEqual({ items: [ITEM] });
       expect(listBucketList).toHaveBeenCalledWith(7);
     });
 
-    it('401s when the guard left no user behind', () => {
+    it('401s when the guard left no user behind', async () => {
       const listBucketList = vi.fn();
-      expect(thrown(() => makeController({ listBucketList }).listBucketList(reqWithoutUser()))).toEqual({
+      expect(await thrownAsync(() => makeController({ listBucketList }).listBucketList(reqWithoutUser()))).toEqual({
         status: 401,
         body: { error: 'API token required', code: 'API_TOKEN_REQUIRED' },
       });
       expect(listBucketList).not.toHaveBeenCalled();
     });
 
-    it('counts against the same rate budget as everything else', () => {
+    it('counts against the same rate budget as everything else', async () => {
       const listBucketList = vi.fn();
-      expect(thrown(() => makeController({ listBucketList }, false).listBucketList(req(7))).status).toBe(429);
+      expect((await thrownAsync(() => makeController({ listBucketList }, false).listBucketList(req(7)))).status).toBe(
+        429,
+      );
       expect(listBucketList).not.toHaveBeenCalled();
     });
   });
 
   describe('GET /api/v1/trips', () => {
-    it('returns the accessible trips for the token owner', () => {
+    it('returns the accessible trips for the token owner', async () => {
       const listTrips = vi.fn().mockReturnValue([TRIP]);
-      expect(makeController({ listTrips }).listTrips(req(7))).toEqual({ trips: [TRIP] });
+      expect(await makeController({ listTrips }).listTrips(req(7))).toEqual({ trips: [TRIP] });
       expect(listTrips).toHaveBeenCalledWith(7);
     });
 
-    it('returns an empty list rather than 404 when the user has no trips', () => {
+    it('returns an empty list rather than 404 when the user has no trips', async () => {
       const listTrips = vi.fn().mockReturnValue([]);
-      expect(makeController({ listTrips }).listTrips(req(7))).toEqual({ trips: [] });
+      expect(await makeController({ listTrips }).listTrips(req(7))).toEqual({ trips: [] });
     });
 
-    it('401s if the guard was somehow bypassed and no user is attached', () => {
+    it('401s if the guard was somehow bypassed and no user is attached', async () => {
       const listTrips = vi.fn();
-      expect(thrown(() => makeController({ listTrips }).listTrips(reqWithoutUser()))).toEqual({
+      expect(await thrownAsync(() => makeController({ listTrips }).listTrips(reqWithoutUser()))).toEqual({
         status: 401,
         body: { error: 'API token required', code: 'API_TOKEN_REQUIRED' },
       });
@@ -108,22 +111,22 @@ describe('PublicApiController', () => {
   });
 
   describe('GET /api/v1/trips/:id', () => {
-    it('passes the parsed id and user through, and defaults include to every section', () => {
+    it('passes the parsed id and user through, and defaults include to every section', async () => {
       const getTrip = vi.fn().mockReturnValue(TRIP);
-      const res = makeController({ getTrip }).getTrip(req(7), '12', undefined);
+      const res = await makeController({ getTrip }).getTrip(req(7), '12', undefined);
       expect(res).toEqual(TRIP);
       expect(getTrip).toHaveBeenCalledWith(12, 7, [...PUBLIC_API_INCLUDES], expect.arrayContaining(['days']));
     });
 
-    it('treats an empty include the same as an absent one', () => {
+    it('treats an empty include the same as an absent one', async () => {
       const getTrip = vi.fn().mockReturnValue(TRIP);
-      makeController({ getTrip }).getTrip(req(7), '12', '   ');
+      await makeController({ getTrip }).getTrip(req(7), '12', '   ');
       expect(getTrip).toHaveBeenCalledWith(12, 7, [...PUBLIC_API_INCLUDES], expect.arrayContaining(['days']));
     });
 
-    it('narrows to the requested sections and tolerates spacing', () => {
+    it('narrows to the requested sections and tolerates spacing', async () => {
       const getTrip = vi.fn().mockReturnValue(TRIP);
-      makeController({ getTrip }).getTrip(req(7), '12', 'days, notes');
+      await makeController({ getTrip }).getTrip(req(7), '12', 'days, notes');
       expect(getTrip).toHaveBeenCalledWith(12, 7, ['days', 'notes'], expect.arrayContaining(['days']));
     });
 
@@ -132,9 +135,9 @@ describe('PublicApiController', () => {
      * trip that was never created. Anything else turns the endpoint into a way to
      * count another user's trips.
      */
-    it('404s for a trip the caller may not read, with no hint that it exists', () => {
+    it('404s for a trip the caller may not read, with no hint that it exists', async () => {
       const getTrip = vi.fn().mockReturnValue(null);
-      expect(thrown(() => makeController({ getTrip }).getTrip(req(7), '999', undefined))).toEqual({
+      expect(await thrownAsync(() => makeController({ getTrip }).getTrip(req(7), '999', undefined))).toEqual({
         status: 404,
         body: { error: 'Trip not found' },
       });
@@ -148,11 +151,11 @@ describe('PublicApiController', () => {
       ['a float', '1.5'],
       ['an empty id', ''],
       ['whitespace', ' 12 '],
-      ['a sql fragment', "1 OR 1=1"],
+      ['a sql fragment', '1 OR 1=1'],
       ['an id past the safe integer range', '9007199254740993'],
-    ])('400s on %s without touching the service', (_label, raw) => {
+    ])('400s on %s without touching the service', async (_label, raw) => {
       const getTrip = vi.fn();
-      expect(thrown(() => makeController({ getTrip }).getTrip(req(7), raw, undefined)).status).toBe(400);
+      expect((await thrownAsync(() => makeController({ getTrip }).getTrip(req(7), raw, undefined))).status).toBe(400);
       expect(getTrip).not.toHaveBeenCalled();
     });
 
@@ -160,25 +163,27 @@ describe('PublicApiController', () => {
       ['an unknown section', 'days,everything'],
       ['a typo', 'dayz'],
       ['only commas', ',,,'],
-    ])('400s on %s rather than silently dropping it', (_label, include) => {
+    ])('400s on %s rather than silently dropping it', async (_label, include) => {
       const getTrip = vi.fn();
-      const res = thrown(() => makeController({ getTrip }).getTrip(req(7), '12', include));
+      const res = await thrownAsync(() => makeController({ getTrip }).getTrip(req(7), '12', include));
       expect(res.status).toBe(400);
       expect(getTrip).not.toHaveBeenCalled();
     });
   });
 
   describe('rate limiting', () => {
-    it('429s the list once the budget is spent, without reaching the service', () => {
+    it('429s the list once the budget is spent, without reaching the service', async () => {
       const listTrips = vi.fn();
-      const res = thrown(() => makeController({ listTrips }, false).listTrips(req(7)));
+      const res = await thrownAsync(() => makeController({ listTrips }, false).listTrips(req(7)));
       expect(res).toEqual({ status: 429, body: { error: 'Too many requests. Please slow down.' } });
       expect(listTrips).not.toHaveBeenCalled();
     });
 
-    it('429s the detail route the same way', () => {
+    it('429s the detail route the same way', async () => {
       const getTrip = vi.fn();
-      expect(thrown(() => makeController({ getTrip }, false).getTrip(req(7), '12', undefined)).status).toBe(429);
+      expect(
+        (await thrownAsync(() => makeController({ getTrip }, false).getTrip(req(7), '12', undefined))).status,
+      ).toBe(429);
       expect(getTrip).not.toHaveBeenCalled();
     });
   });

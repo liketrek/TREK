@@ -32,5 +32,7 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} tüm yöneticilere test bildirimi gönderdi.',
   'notifications.test.tripTitle': '{actor} seyahatinizde bir şey paylaştı',
   'notifications.test.tripText': '"{trip}" seyahati için test bildirimi.',
+  'notifications.countLabel': 'bildirim',
+  'notifications.countLabel.one': 'bildirim',
 };
 export default notifications;

@@ -118,7 +118,7 @@ Both come with the sentence *What you wrote in TREK is untouched*, and that is a
 The Dawarich button on the trip map switches the recorded route on and off. On the desktop it sits in the bottom right corner of the map, on a phone among the map controls. It stays available in road trip mode, where the route you actually drove is the thing you most want beside the planned one.
 
 - The route is drawn dashed, one colour per day, underneath the planned route so the plan stays readable. Days are cut at local midnight, not at midnight UTC, so an evening walk stays on the evening it happened.
-- On or off is remembered per trip for the browser session.
+- On or off is remembered per trip on your account, so it is the same in every browser and on every device.
 - While it is on, TREK fetches the route for the trip's dates and refreshes it every two minutes, so a trip in progress catches up without a reload.
 - Collapsing a day in the day plan, or in the road trip sidebar, takes that day's route off the map together with its places.
 - The button's label says why a map has no line: *Loading the recorded route…*, *Nothing was recorded on these dates*, *The recorded route could not be loaded*, or *The recorded route needs a connection*.

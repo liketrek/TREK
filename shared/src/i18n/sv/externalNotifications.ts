@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const en: NotificationLocale = {
   email: {
@@ -37,8 +38,11 @@ const en: NotificationLocale = {
       body: `${p.actor} bjöd in dig att dela en samling. Öppna TREK för att acceptera eller avvisa.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} foton delade`,
-      body: `${p.actor} delade ${p.count} foto(n) i "${p.trip}".`,
+      title: pluralForm(p.count, 'sv', { one: `${p.count} foto delat`, other: `${p.count} foton delade` }),
+      body: pluralForm(p.count, 'sv', {
+        one: `${p.actor} delade ${p.count} foto i "${p.trip}".`,
+        other: `${p.actor} delade ${p.count} foton i "${p.trip}".`,
+      }),
     }),
     collab_message: (p) => ({
       title: `Nytt meddelande i "${p.trip}"`,
@@ -56,7 +60,12 @@ const en: NotificationLocale = {
       title: 'Fel i lagringsreplik',
       body:
         `Skrivning till replik '${p.backend}' misslyckades: ${p.op} för ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` ${p.suppressed} ytterligare fel har undertryckts sedan senaste aviseringen.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'sv', {
+              one: ' Ytterligare ett fel har undertryckts sedan senaste aviseringen.',
+              other: ` Ytterligare ${p.suppressed} fel har undertryckts sedan senaste aviseringen.`,
+            })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Synology session rensad',

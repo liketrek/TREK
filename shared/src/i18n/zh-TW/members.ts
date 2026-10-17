@@ -7,7 +7,6 @@ const members: TranslationStrings = {
   'members.invite': '邀請',
   'members.allHaveAccess': '所有使用者均已擁有訪問許可權。',
   'members.access': '訪問許可權',
-  'members.person': '人',
   'members.persons': '人',
   'members.you': '你',
   'members.owner': '所有者',
@@ -32,6 +31,7 @@ const members: TranslationStrings = {
   'members.guestAddError': '新增訪客失敗',
   'members.guestRenameError': '重新命名訪客失敗',
   'members.guestRemoved': '已移除訪客',
-  'members.confirmRemoveGuest': '移除此訪客？其指派和費用分攤也將被移除。',
+  'members.confirmRemoveGuest': '移除此訪客？其指派將被移除，其在每筆費用中的分攤將轉給其他參與者。',
+  'members.guestHasPayments': '此訪客支付過費用或涉及已記錄的付款。請先變更付款人或刪除該付款。',
 };
 export default members;

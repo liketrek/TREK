@@ -1,6 +1,6 @@
 // FE-JRN-PUBWIRE-001 to FE-JRN-PUBWIRE-023
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '../../tests/helpers/render';
+import { render, screen, fireEvent, within } from '../../tests/helpers/render';
 import { useSettingsStore } from '../store/settingsStore';
 import { groupByDate, type PublicEntry, type PublicGalleryPhoto } from './journeyPublic/journeyPublicModel';
 import JourneyPublicPage from './JourneyPublicPage';
@@ -112,7 +112,7 @@ beforeEach(() => {
 describe('JourneyPublicPage wiring', () => {
   it('FE-JRN-PUBWIRE-001: shows a spinner while the share is being fetched', () => {
     setup({ loading: true });
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[aria-busy="true"]')).toBeInTheDocument();
   });
 
   it('FE-JRN-PUBWIRE-002: an unknown or revoked token shows the not-found screen', () => {
@@ -124,15 +124,16 @@ describe('JourneyPublicPage wiring', () => {
     setup();
     expect(screen.getByRole('heading', { name: 'Japan 2026' })).toBeInTheDocument();
     expect(screen.getByText('Tokyo & Kyoto')).toBeInTheDocument();
-    expect(screen.getByText(/2 Entries/)).toBeInTheDocument();
-    expect(screen.getByText(/4 Photos/)).toBeInTheDocument();
-    expect(screen.getByText(/3 Places/)).toBeInTheDocument();
+    const hero = within(screen.getByTestId('shared-hero'));
+    expect(hero.getByText('Entries').previousSibling?.textContent).toBe('2');
+    expect(hero.getByText('Photos').previousSibling?.textContent).toBe('4');
+    expect(hero.getByText('Places').previousSibling?.textContent).toBe('3');
     expect(screen.getByTestId('public-map')).toBeInTheDocument();
   });
 
   it('FE-JRN-PUBWIRE-004: the cover image is layered into the hero when present', () => {
     setup({ journey: { title: 'Japan 2026', cover_image: 'covers/j.jpg' } });
-    expect(document.querySelector('[style*="/uploads/covers/j.jpg"]')).toBeInTheDocument();
+    expect(screen.getByTestId('shared-hero').querySelector('img[src="/uploads/covers/j.jpg"]')).toBeInTheDocument();
   });
 
   it('FE-JRN-PUBWIRE-005: hovering an entry in two-column mode highlights its marker', () => {

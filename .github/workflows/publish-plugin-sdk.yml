@@ -15,17 +15,18 @@ permissions:
 jobs:
   publish:
     if: github.repository == 'liketrek/TREK'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: plugin-sdk
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          # 22 matches the TREK server runtime and has node:sqlite, which the
-          # dev-server tests exercise.
-          node-version: 22
+          # The Node the TREK image runs the plugins on. It has the node:sqlite
+          # the dev-server tests exercise.
+          node-version-file: .nvmrc
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
       - run: npm publish

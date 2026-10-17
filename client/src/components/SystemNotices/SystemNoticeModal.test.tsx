@@ -1199,10 +1199,13 @@ describe('ModalRenderer', () => {
     await flushGraceDelay();
 
     const { sheet, strip } = sheetParts();
+    // The slots run right to left, so the strip sits shifted the other way to
+    // show the current one; the left-to-right shift left the sheet empty.
+    expect(strip.style.transform).toBe('translateX(33.333%)');
     await act(async () => {
       swipeHorizontally(sheet, 120, 250);
     });
-    expect(strip.style.transform).toBe('translateX(-66.666%)');
+    expect(strip.style.transform).toBe('translateX(66.666%)');
 
     await act(async () => {
       fireEvent.transitionEnd(strip);

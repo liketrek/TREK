@@ -1,6 +1,4 @@
-import { test, clearNotices } from './shot'
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
+import { test, clearNotices, seed } from './shot'
 
 /**
  * Trip-planner tabs and dialogs.
@@ -11,9 +9,6 @@ import path from 'node:path'
  * current wiki ended up with screenshots the text contradicts.
  */
 
-const seed = JSON.parse(
-  readFileSync(path.join(process.cwd(), 'e2e', '.tmp', 'seed.json'), 'utf8'),
-) as { tripId: number }
 
 test.beforeEach(async ({ page }) => {
   await page.goto(`/trips/${seed.tripId}`)
@@ -21,7 +16,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 async function openTab(page: import('@playwright/test').Page, label: string) {
-  await page.getByRole('button', { name: label, exact: true }).first().click()
+  await page.getByRole('button', { name: new RegExp(`^${label}`) }).first().click()
   await page.waitForTimeout(700)
 }
 
@@ -33,6 +28,16 @@ test('costs panel', async ({ page, shot }) => {
 test('lists — packing', async ({ page, shot }) => {
   await openTab(page, 'Lists')
   await shot.page_('PackingList')
+})
+
+test('lists: to-do with a task open', async ({ page, shot }) => {
+  await openTab(page, 'Lists')
+  await page.getByRole('button', { name: /^To-Do/ }).first().click()
+  await page.waitForTimeout(600)
+  await page.getByText('Activate JR Pass', { exact: true }).first().click()
+  await page.waitForTimeout(700)
+  await shot.page_('Todos')
+  await page.getByRole('button', { name: /^Packing List/ }).first().click()
 })
 
 test('transports', async ({ page, shot }) => {

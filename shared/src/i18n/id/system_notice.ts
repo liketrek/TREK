@@ -56,15 +56,19 @@ const system_notice: TranslationStrings = {
     'Pembaruan 3.0.14 mendeteksi satu atau lebih konflik nama pengguna atau email yang disebabkan oleh spasi di awal atau akhir nilai yang tersimpan. Akun yang terpengaruh telah diganti nama secara otomatis. Periksa log server untuk baris yang dimulai dengan **[migration] WHITESPACE COLLISION** guna mengidentifikasi akun mana yang perlu ditinjau.',
   'system_notice.release_notes.eyebrow': 'Pembaruan terpasang',
   'system_notice.release_notes.headline': 'Empat hal yang kini dilakukan TREK sendiri.',
-  'system_notice.release_notes.intro': 'API tempat sendiri, perjalanan darat yang direncanakan dari awal sampai akhir, riwayat lokasi di tangan Anda, dan dokumen Anda tersinkron.',
+  'system_notice.release_notes.intro':
+    'API tempat sendiri, perjalanan darat yang direncanakan dari awal sampai akhir, riwayat lokasi di tangan Anda, dan dokumen Anda tersinkron.',
   'system_notice.release_notes.features_label': 'Sorotan utama',
   'system_notice.release_notes.features_aside': 'Masih banyak lagi',
   'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': 'Perencana perjalanan open source pertama dengan API tempat sendiri. 73,6 juta tempat, tanpa kunci, tanpa kuota.',
+  'system_notice.release_notes.feature_places_body':
+    'Perencana perjalanan open source pertama dengan API tempat sendiri. 73,6 juta tempat, tanpa kunci, tanpa kuota.',
   'system_notice.release_notes.feature_roadtrip_title': 'Addon Perjalanan Darat',
-  'system_notice.release_notes.feature_roadtrip_body': 'Merencanakan perjalanan sendiri: rute, jarak, jam, dan perhentian. Nonaktif sampai admin mengaktifkannya.',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Merencanakan perjalanan sendiri: rute, jarak, jam, dan perhentian. Nonaktif sampai admin mengaktifkannya.',
   'system_notice.release_notes.feature_dawarich_title': 'Integrasi Dawarich',
-  'system_notice.release_notes.feature_dawarich_body': 'Alternatif self-hosted untuk Google Timeline, kini bisa dibaca langsung di TREK. TREK hanya membaca, tidak lebih.',
+  'system_notice.release_notes.feature_dawarich_body':
+    'Alternatif self-hosted untuk Google Timeline, kini bisa dibaca langsung di TREK. TREK hanya membaca, tidak lebih.',
   'system_notice.release_notes.footnote': 'Ditambah deretan panjang perubahan kecil di bagian TREK lainnya.',
   'system_notice.release_notes.notes_label': 'Catatan rilis',
   'system_notice.release_notes.note_eyebrow': 'Catatan dari maintainer',
@@ -85,6 +89,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Dukung di Ko-fi',
   'system_notice.release_notes.feature_docsync_title': 'Sinkronisasi Dokumen',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud, dan Synology Drive. Dokumen perjalanan mengalir dua arah dengan penyimpanan yang sudah Anda jalankan.',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx, Papra, Nextcloud, OpenCloud, dan Synology Drive. Dokumen perjalanan mengalir dua arah dengan penyimpanan yang sudah Anda jalankan.',
 };
 export default system_notice;

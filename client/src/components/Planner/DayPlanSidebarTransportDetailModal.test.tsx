@@ -1,5 +1,5 @@
-// FE-PLANNER-DPTRANSPORT-001 to FE-PLANNER-DPTRANSPORT-019
-import { render, screen, fireEvent } from '../../../tests/helpers/render'
+// FE-PLANNER-DPTRANSPORT-001 to FE-PLANNER-DPTRANSPORT-021
+import { render, screen, fireEvent, within } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -9,7 +9,8 @@ import { DayPlanSidebarTransportDetailModal } from './DayPlanSidebarTransportDet
 import type { Reservation } from '../../types'
 
 // `t` arrives as a prop here, so echoing the key (plus its params) keeps the
-// assertions independent of the translation catalogue.
+// assertions independent of the translation catalogue. The shared pieces the
+// dialog is built from (the head band, the itinerary) read the English one.
 const t = (key: string, params?: Record<string, unknown>) =>
   params ? `${key}|${Object.values(params).join('|')}` : key
 
@@ -56,8 +57,17 @@ describe('DayPlanSidebarTransportDetailModal', () => {
 
   it('FE-PLANNER-DPTRANSPORT-002: shows the title, date and time range in the header', () => {
     render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight() })} />)
-    expect(screen.getByText('BER → CDG')).toBeInTheDocument()
-    expect(screen.getByText(/Jun 15.*08:30 – 10:05/)).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog', { name: 'BER → CDG' })
+    expect(within(dialog).getByRole('heading', { name: 'BER → CDG' })).toBeInTheDocument()
+    // The day and the time range share one pill, the range in its quieter part.
+    const time = screen.getByText('08:30 → 10:05')
+    expect(time.parentElement).toHaveTextContent(/Jun 15/)
+  })
+
+  it('FE-PLANNER-DPTRANSPORT-002b: a booking with a time but no date still shows the time', () => {
+    const res = { ...flight(), reservation_time: '09:15', reservation_end_time: null } as Reservation
+    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
+    expect(screen.getByText('09:15')).toBeInTheDocument()
   })
 
   it('FE-PLANNER-DPTRANSPORT-003: a confirmed booking shows the confirmed badge', () => {
@@ -74,6 +84,11 @@ describe('DayPlanSidebarTransportDetailModal', () => {
 
   it('FE-PLANNER-DPTRANSPORT-005: flight metadata renders airline, number, route and seat', () => {
     render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight() })} />)
+    // Every value carries its own label.
+    for (const label of ['reservations.meta.airline', 'reservations.meta.flightNumber', 'reservations.meta.from',
+      'reservations.meta.to', 'reservations.meta.seat', 'reservations.confirmationCode', 'reservations.locationAddress']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
     expect(screen.getByText('Air France')).toBeInTheDocument()
     expect(screen.getByText('AF1235')).toBeInTheDocument()
     expect(screen.getByText('BER')).toBeInTheDocument()
@@ -105,23 +120,25 @@ describe('DayPlanSidebarTransportDetailModal', () => {
     seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true } })
     render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight() })} />)
     const code = screen.getByText('XY7Z9Q')
-    expect(code).toHaveStyle({ filter: 'blur(5px)' })
+    expect(code).toHaveClass('blur-[4px]')
     // The location is not sensitive, so it stays readable.
-    expect(screen.getByText('Terminal 1')).toHaveStyle({ filter: 'none' })
+    expect(screen.getByText('Terminal 1')).not.toHaveClass('blur-[4px]')
+    expect(screen.getByText('Terminal 1').closest('button')).toBeNull()
   })
 
   it('FE-PLANNER-DPTRANSPORT-009: hovering and clicking a blurred code reveals and re-hides it', () => {
     seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: true } })
     render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight() })} />)
-    const code = screen.getByText('XY7Z9Q')
-    fireEvent.mouseEnter(code)
-    expect(code.style.filter).toBe('none')
-    fireEvent.mouseLeave(code)
-    expect(code.style.filter).toBe('blur(5px)')
+    const code = screen.getByRole('button', { name: 'XY7Z9Q' })
+    // The pointer lifts the blur while it rests on the code.
+    expect(code).toHaveClass('hover:blur-none')
+    expect(code).toHaveAttribute('aria-pressed', 'false')
     fireEvent.click(code)
-    expect(code.style.filter).toBe('none')
+    expect(code).toHaveAttribute('aria-pressed', 'true')
+    expect(code).not.toHaveClass('blur-[4px]')
     fireEvent.click(code)
-    expect(code.style.filter).toBe('blur(5px)')
+    expect(code).toHaveAttribute('aria-pressed', 'false')
+    expect(code).toHaveClass('blur-[4px]')
   })
 
   it('FE-PLANNER-DPTRANSPORT-010: an unblurred field ignores hover and click', () => {
@@ -129,7 +146,8 @@ describe('DayPlanSidebarTransportDetailModal', () => {
     const code = screen.getByText('XY7Z9Q')
     fireEvent.mouseEnter(code)
     fireEvent.click(code)
-    expect(code.style.filter).toBe('none')
+    expect(code).not.toHaveClass('blur-[4px]')
+    expect(screen.queryByRole('button', { name: 'XY7Z9Q' })).not.toBeInTheDocument()
   })
 
   it('FE-PLANNER-DPTRANSPORT-011: a transit journey renders its summary and itinerary legs', () => {
@@ -150,13 +168,22 @@ describe('DayPlanSidebarTransportDetailModal', () => {
       },
     } as unknown as Partial<Reservation>)
     render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
+    // The summary: each fact a tile with its own label.
     expect(screen.getByText('transit.min|30')).toBeInTheDocument()
-    expect(screen.getByText('transit.transfers|1')).toBeInTheDocument()
+    expect(screen.getByText('transit.durationLabel')).toBeInTheDocument()
+    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText('transit.transfersLabel')).toBeInTheDocument()
+    expect(screen.getByText('transit.min|4')).toBeInTheDocument()
+    expect(screen.getByText('transit.walkLabel')).toBeInTheDocument()
+    // The legs: the shared itinerary list, its facts as separate badges.
     expect(screen.getByText('transit.itinerary')).toBeInTheDocument()
-    expect(screen.getByText('transit.walkTo|Alexanderplatz')).toBeInTheDocument()
+    expect(screen.getByText('Walk to Alexanderplatz')).toBeInTheDocument()
     expect(screen.getByText('U2')).toBeInTheDocument()
     expect(screen.getByText('Zoo')).toBeInTheDocument()
-    expect(screen.getByText(/08:36 – 09:00 · transit\.min\|24 · transit\.stops\|6 · → Ruhleben/)).toBeInTheDocument()
+    for (const badge of ['08:36 → 09:00', '24 min', '6 stops', 'Ruhleben']) {
+      expect(screen.getByText(badge)).toBeInTheDocument()
+    }
+    expect(document.body.textContent).not.toContain('·')
   })
 
   it('FE-PLANNER-DPTRANSPORT-012: a direct, long, walk-free journey renders hours and the direct label', () => {
@@ -170,12 +197,31 @@ describe('DayPlanSidebarTransportDetailModal', () => {
       },
     } as unknown as Partial<Reservation>)
     render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
-    expect(screen.getByText('2 h 0 min')).toBeInTheDocument()
+    // Hours come through the catalogue, not a hard-coded "h".
+    expect(screen.getByText('dawarich.duration.hours|2')).toBeInTheDocument()
     expect(screen.getByText('transit.direct')).toBeInTheDocument()
-    // Under a minute of walking is not worth a chip.
-    expect(screen.queryByText('transit.min|1')).not.toBeInTheDocument()
+    // Under a minute of walking is not worth a tile.
+    expect(screen.queryByText('transit.walkLabel')).not.toBeInTheDocument()
     // No line name on this leg, so the badge falls back to the mode.
     expect(screen.getByText('BUS')).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DPTRANSPORT-012b: hours with minutes left over name both', () => {
+    const res = buildReservation({
+      id: 46, type: 'transit', title: 'Longer haul', status: 'confirmed',
+      metadata: { transit: { duration: 5400, legs: [{ mode: 'RAIL', duration: 5400, from: { name: 'A' }, to: { name: 'B' } }] } },
+    } as unknown as Partial<Reservation>)
+    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
+    expect(screen.getByText('dawarich.duration.hoursMinutes|1|30')).toBeInTheDocument()
+    // Without a stored count the transfers come from the legs: one ride is direct.
+    expect(screen.getByText('transit.direct')).toBeInTheDocument()
+  })
+
+  it('FE-PLANNER-DPTRANSPORT-012c: metadata that is not JSON reads as none instead of throwing', () => {
+    const res = buildReservation({ id: 47, type: 'flight', title: 'Broken', metadata: '{not json' } as Partial<Reservation>)
+    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
+    expect(screen.getByRole('dialog', { name: 'Broken' })).toBeInTheDocument()
+    expect(screen.queryByText('reservations.meta.airline')).not.toBeInTheDocument()
   })
 
   it('FE-PLANNER-DPTRANSPORT-013: notes render as markdown', () => {
@@ -207,12 +253,8 @@ describe('DayPlanSidebarTransportDetailModal', () => {
     const setTransportDetail = vi.fn()
     const onNavigateToFiles = vi.fn()
     render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight(), setTransportDetail, onNavigateToFiles })} />)
-    const row = screen.getByText('boarding.pdf').parentElement!
-    fireEvent.mouseEnter(row)
-    expect(row.style.background).toBe('var(--bg-hover)')
-    fireEvent.mouseLeave(row)
-    expect(row.style.background).toBe('var(--bg-tertiary)')
-    await user.click(row)
+    expect(screen.getByText('files.title')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'boarding.pdf' }))
     expect(setTransportDetail).toHaveBeenCalledWith(null)
     expect(onNavigateToFiles).toHaveBeenCalledTimes(1)
   })
@@ -251,7 +293,7 @@ describe('DayPlanSidebarTransportDetailModal', () => {
     render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
 
     expect(screen.getByText('BER → CDG')).toBeInTheDocument()
-    expect(screen.getByText('ABC123')).toHaveStyle({ filter: 'blur(5px)' })
+    expect(screen.getByText('ABC123')).toHaveClass('blur-[4px]')
     // The booking's own reference keeps its own field, a code-less segment adds none.
     expect(screen.getByText('XY7Z9Q')).toBeInTheDocument()
     expect(screen.queryByText('CDG → JFK')).not.toBeInTheDocument()
@@ -261,10 +303,30 @@ describe('DayPlanSidebarTransportDetailModal', () => {
     const user = userEvent.setup()
     const setTransportDetail = vi.fn()
     render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight(), setTransportDetail })} />)
-    const card = screen.getByText('BER → CDG').closest('div.bg-surface-card')!
+    const card = screen.getByRole('dialog')
     await user.click(card)
     expect(setTransportDetail).not.toHaveBeenCalled()
     await user.click(card.parentElement!)
+    expect(setTransportDetail).toHaveBeenCalledWith(null)
+  })
+
+  it('FE-PLANNER-DPTRANSPORT-020: a press that starts in the card and ends on the backdrop keeps it open', () => {
+    const setTransportDetail = vi.fn()
+    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight(), setTransportDetail })} />)
+    const card = screen.getByRole('dialog')
+    fireEvent.mouseDown(card)
+    fireEvent.click(card.parentElement!)
+    expect(setTransportDetail).not.toHaveBeenCalled()
+  })
+
+  it('FE-PLANNER-DPTRANSPORT-021: Escape and the head band close button close it', async () => {
+    const user = userEvent.setup()
+    const setTransportDetail = vi.fn()
+    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: flight(), setTransportDetail })} />)
+    await user.keyboard('{Escape}')
+    expect(setTransportDetail).toHaveBeenCalledWith(null)
+    setTransportDetail.mockClear()
+    await user.click(screen.getByRole('button', { name: 'Close' }))
     expect(setTransportDetail).toHaveBeenCalledWith(null)
   })
 })

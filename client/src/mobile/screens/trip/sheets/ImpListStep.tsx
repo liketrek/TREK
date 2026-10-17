@@ -1,12 +1,8 @@
-import { useState } from 'react'
-import { placesApi } from '../../../../api/client'
-import { useAuthStore } from '../../../../store/authStore'
 import MChip from '../../../components/MChip'
 import MToggle from '../../../components/MToggle'
 import { FIELD_CLS, FormSheetFooter } from './PlSheetChrome'
 import type { TripPlanner } from '../MTripShell'
-
-type ListProvider = 'google' | 'naver'
+import { useListImport } from '../../../../components/Planner/useListImport'
 
 interface ImpListStepProps {
   planner: TripPlanner
@@ -23,52 +19,9 @@ interface ImpListStepProps {
  */
 export default function ImpListStep({ planner, onBack, onDone }: ImpListStepProps) {
   const { t, toast, tripId, tripActions, pushUndo } = planner
-  const canEnrich = useAuthStore(s => s.hasMapsKey)
-
-  const [provider, setProvider] = useState<ListProvider>('google')
-  const [url, setUrl] = useState('')
-  const [enrich, setEnrich] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  const handleImport = async () => {
-    const trimmed = url.trim()
-    if (!trimmed || loading) return
-    setLoading(true)
-    try {
-      const result =
-        provider === 'google'
-          ? await placesApi.importGoogleList(tripId, trimmed, enrich && canEnrich)
-          : await placesApi.importNaverList(tripId, trimmed, enrich && canEnrich)
-      await tripActions.loadTrip(tripId)
-      if (result.count === 0 && result.skipped > 0) {
-        toast.warning(t('places.importAllSkipped'))
-      } else {
-        toast.success(
-          t(provider === 'google' ? 'places.googleListImported' : 'places.naverListImported', {
-            count: result.count,
-            list: result.listName,
-          }),
-        )
-      }
-      if (result.places?.length > 0) {
-        const importedIds: number[] = result.places.map((p: { id: number }) => p.id)
-        pushUndo(t(provider === 'google' ? 'undo.importGoogleList' : 'undo.importNaverList'), async () => {
-          try {
-            await placesApi.bulkDelete(tripId, importedIds)
-          } catch {
-            // best effort — the trip reload below reflects whatever happened
-          }
-          await tripActions.loadTrip(tripId)
-        })
-      }
-      onDone()
-    } catch (err: unknown) {
-      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-      toast.error(message || t(provider === 'google' ? 'places.googleListError' : 'places.naverListError'))
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { provider, setProvider, url, setUrl, enrich, setEnrich, loading, canEnrich, handleImport } = useListImport({
+    tripId, t, toast, loadTrip: tripActions.loadTrip, pushUndo, onDone,
+  })
 
   return (
     <>
@@ -94,7 +47,7 @@ export default function ImpListStep({ planner, onBack, onDone }: ImpListStepProp
           onKeyDown={e => {
             if (e.key === 'Enter') {
               e.preventDefault()
-              handleImport()
+              void handleImport()
             }
           }}
           placeholder={provider === 'google' ? 'https://maps.app.goo.gl/…' : 'https://naver.me/…'}

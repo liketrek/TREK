@@ -411,7 +411,7 @@ describe('CollabChat', () => {
     await screen.findByText('Reply to me');
     // Hover action buttons are always in DOM but hidden via pointer-events: none
     // Use fireEvent to bypass CSS pointer-events restrictions
-    const replyBtn = screen.getByTitle('Reply');
+    const replyBtn = screen.getByRole('button', { name: 'Reply' });
     fireEvent.click(replyBtn);
     // Reply preview banner renders <strong>{username}</strong> — unique to the banner
     await waitFor(() => {
@@ -436,7 +436,7 @@ describe('CollabChat', () => {
     render(<CollabChat {...defaultProps} />);
     await screen.findByText('Cancel reply test');
     // Click reply button to show preview (bypassing pointer-events: none)
-    fireEvent.click(screen.getByTitle('Reply'));
+    fireEvent.click(screen.getByRole('button', { name: 'Reply' }));
     // Wait for reply preview <strong> to appear
     await waitFor(() => {
       const aliceEls = screen.queryAllByText('alice');
@@ -621,7 +621,7 @@ describe('CollabChat', () => {
     render(<CollabChat {...defaultProps} />);
     await screen.findByText('Delete me');
     // Delete button is in a hover-actions div with pointer-events: none — use fireEvent
-    const deleteBtn = screen.getByTitle('Delete');
+    const deleteBtn = screen.getByRole('button', { name: 'Delete' });
     fireEvent.click(deleteBtn);
     // handleDelete uses a 400ms setTimeout before calling the API
     await waitFor(

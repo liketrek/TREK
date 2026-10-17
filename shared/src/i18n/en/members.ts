@@ -7,8 +7,8 @@ const members: TranslationStrings = {
   'members.invite': 'Invite',
   'members.allHaveAccess': 'All users already have access.',
   'members.access': 'Access',
-  'members.person': 'person',
-  'members.persons': 'persons',
+  'members.persons': 'people',
+  'members.persons.one': 'person',
   'members.you': 'you',
   'members.owner': 'Owner',
   'members.leaveTrip': 'Leave trip',
@@ -33,6 +33,9 @@ const members: TranslationStrings = {
   'members.guestAddError': 'Failed to add guest',
   'members.guestRenameError': 'Failed to rename guest',
   'members.guestRemoved': 'Guest removed',
-  'members.confirmRemoveGuest': 'Remove this guest? Their assignments and cost shares will be removed too.',
+  'members.confirmRemoveGuest':
+    'Remove this guest? Their assignments are removed and their share of each expense goes to the others in its split.',
+  'members.guestHasPayments':
+    'This guest paid for an expense or is part of a recorded payment. Change the payer or delete the payment first.',
 };
 export default members;

@@ -114,4 +114,24 @@ describe('ContextMenu', () => {
     expect(menu.style.left).toBe('192px')
     expect(menu.style.top).toBe('172px')
   })
+
+  it('FE-W4CTX-011: Escape, a scroll and a resize close it', () => {
+    const onClose = vi.fn()
+    render(<ContextMenu menu={{ x: 0, y: 0, items: [{ label: 'Open' }] }} onClose={onClose} />)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    fireEvent.scroll(window)
+    fireEvent(window, new Event('resize'))
+    expect(onClose).toHaveBeenCalledTimes(3)
+  })
+
+  it('FE-W4CTX-012: focus starts on the first usable item and the arrow keys move it, wrapping', () => {
+    render(<ContextMenu menu={{ x: 0, y: 0, items: [{ label: 'Off', disabled: true }, { label: 'Open' }, { label: 'Rename' }] }} onClose={() => {}} />)
+    expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Open' }), { key: 'ArrowDown' })
+    expect(screen.getByRole('button', { name: 'Rename' })).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Rename' }), { key: 'ArrowDown' })
+    expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Open' }), { key: 'ArrowUp' })
+    expect(screen.getByRole('button', { name: 'Rename' })).toHaveFocus()
+  })
 })

@@ -14,8 +14,9 @@
  * The rate cache is deliberately MODULE-scoped, so it persists across tests in
  * this file — every case uses its own base currency to stay isolated.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const TTL_MS = 6 * 60 * 60 * 1000; // mirrors the service's 6h TTL
 
@@ -54,13 +55,15 @@ describe('ExchangeRatesService.getRates', () => {
   });
 
   it('FX-SVC-003: seeds base = 1, indexes by quote and skips malformed entries', async () => {
-    fetchMock.mockResolvedValueOnce(okResponse([
-      { quote: 'USD', rate: 1.08 },
-      { quote: 'GBP', rate: 0.85 },
-      { quote: 42, rate: 1 }, // non-string quote → skipped
-      { quote: 'JPY' }, // missing rate → skipped
-      null, // null entry → skipped
-    ]));
+    fetchMock.mockResolvedValueOnce(
+      okResponse([
+        { quote: 'USD', rate: 1.08 },
+        { quote: 'GBP', rate: 0.85 },
+        { quote: 42, rate: 1 }, // non-string quote → skipped
+        { quote: 'JPY' }, // missing rate → skipped
+        null, // null entry → skipped
+      ]),
+    );
     const rates = await svc.getRates('CHF');
     expect(rates).toEqual({ CHF: 1, USD: 1.08, GBP: 0.85 });
   });
@@ -113,7 +116,11 @@ describe('ExchangeRatesService.getRates', () => {
 
   it('FX-SVC-011: coalesces concurrent fetches for the same base into one request', async () => {
     let release!: (v: unknown) => void;
-    fetchMock.mockReturnValueOnce(new Promise((resolve) => { release = resolve; }));
+    fetchMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
     const a = svc.getRates('ISK');
     const b = svc.getRates('ISK');
     release(okResponse([{ quote: 'USD', rate: 1.08 }]));

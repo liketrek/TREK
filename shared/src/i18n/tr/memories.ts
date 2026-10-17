@@ -15,7 +15,8 @@ const memories: TranslationStrings = {
   'memories.sharing': 'Paylaşma',
   'memories.reviewTitle': 'Fotoğraflarınızı gözden geçirin',
   'memories.reviewHint': 'Paylaşımdan hariç tutmak için fotoğraflara tıklayın.',
-  'memories.shareCount': '{count} Fotoğraf paylaş',
+  'memories.shareCount': '{count} fotoğrafı paylaş',
+  'memories.shareCount.one': '{count} fotoğrafı paylaş',
   'memories.providerUrl': "Sunucu URL'si",
   'memories.providerApiKey': 'API Anahtarı',
   'memories.providerUsername': 'Kullanıcı adı',
@@ -47,7 +48,8 @@ const memories: TranslationStrings = {
   'memories.selectPhotosMultiple': 'Fotoğraf Seç',
   'memories.selectHint': 'Seçmek için fotoğraflara dokunun.',
   'memories.selected': 'seçildi',
-  'memories.addSelected': '{count} Fotoğraf ekle',
+  'memories.addSelected': '{count} fotoğrafı ekle',
+  'memories.addSelected.one': '{count} fotoğrafı ekle',
   'memories.alreadyAdded': 'Eklendi',
   'memories.private': 'Gizli',
   'memories.stopSharing': 'Paylaşımı durdur',
@@ -59,6 +61,8 @@ const memories: TranslationStrings = {
   'memories.confirmShareTitle': 'Seyahat üyeleriyle paylaşılsın mı?',
   'memories.confirmShareHint':
     '{count} fotoğraf bu seyahatin tüm üyelerine görünür olacak. Daha sonra tek tek gizli yapabilirsiniz.',
+  'memories.confirmShareHint.one':
+    '{count} fotoğraf bu seyahatin tüm üyelerine görünür olacak. Daha sonra gizli yapabilirsiniz.',
   'memories.confirmShareButton': 'Fotoğrafları paylaş',
   'memories.error.loadAlbums': 'Albümler yüklenemedi',
   'memories.error.linkAlbum': 'Albüm bağlanamadı',

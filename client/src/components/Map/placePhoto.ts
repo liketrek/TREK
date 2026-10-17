@@ -1,4 +1,5 @@
 import { escapeHtml } from '@trek/shared'
+import { getCached } from '../../services/photoService'
 
 const PHOTO_PROXY_PREFIX = '/api/maps/place-photo/'
 
@@ -47,6 +48,30 @@ export function photoCacheKey(place: PhotoSource): string {
  */
 export function photoSourcesKey(places: Array<PhotoSource & { id: number }>): string {
   return places.map(p => `${p.id}:${isCustomPlaceImage(p.image_url) ? 'own' : photoCacheKey(p)}`).join('|')
+}
+
+/**
+ * The picture a place wears on the map: a custom uploaded image wins over the
+ * auto-fetched thumb, which wins over whatever image_url says. The marker and the
+ * hover card both ask this, so they never show two different pictures.
+ */
+export function placePhotoUrl(place: PhotoSource, thumbs: Record<string, string>): string | null {
+  if (isCustomPlaceImage(place.image_url)) return place.image_url!
+  const key = photoCacheKey(place)
+  return (key && thumbs[key]) || place.image_url || null
+}
+
+/**
+ * The same picture at full size, for the hover card. The marker's thumb is a 48px
+ * circle cut for a round pin, which blurs and keeps its round cut-out when it is
+ * shown any larger, so the card asks the photo cache for the picture it came from.
+ */
+export function placePhotoFull(place: PhotoSource): string | null {
+  if (isCustomPlaceImage(place.image_url)) return place.image_url!
+  const key = photoCacheKey(place)
+  const full = key ? getCached(key)?.photoUrl : null
+  if (full) return full
+  return place.image_url?.startsWith(PHOTO_PROXY_PREFIX) ? place.image_url : null
 }
 
 /**

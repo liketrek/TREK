@@ -6,19 +6,79 @@
  * case, which would leak into the ADMIN-SVC-* suite. The notification path runs
  * for real against the temp db's notifications table.
  */
-import { runMigrations } from '../../../src/db/migrations';
-import { createTables } from '../../../src/db/schema';
+import { db as testDb } from '../../../src/db/database';
+import { Addons } from '../../../src/db/entities/Addons.entity';
+import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
+import { DocumentProviders } from '../../../src/db/entities/DocumentProviders.entity';
+import { Notifications } from '../../../src/db/entities/Notifications.entity';
+import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
+import { PushSubscriptions } from '../../../src/db/entities/PushSubscriptions.entity';
+import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
+import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
 import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpers';
+import { AdminService } from '../../../src/nest/admin/admin.service';
+import { DataPathsService } from '../../../src/nest/app-config/data-paths.service';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
+import { AuthService } from '../../../src/nest/auth/auth.service';
+import { PasskeyService } from '../../../src/nest/auth/passkey.service';
+import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
+import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import type { DatabaseBackupStrategy } from '../../../src/nest/database/database-backup.interface';
+import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
+import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { PackingService } from '../../../src/nest/packing/packing.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { SettingsService } from '../../../src/nest/settings/settings.service';
+import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
+import { budgetRepoArgs } from '../../helpers/budget-repos';
+import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
 import { createAdmin } from '../../helpers/factories';
+import { countRows, findRow, findRows } from '../../helpers/factories/rows';
+import { readAppSetting, setAppSetting } from '../../helpers/factories/settings';
+import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
+import {
+  createTestJourneysRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyContributorsRepo,
+} from '../../helpers/journey-repos';
+import { createTestJourneyShareTokensRepo } from '../../helpers/journey-share-repos';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
+import { createTestPushSubscriptionsRepo } from '../../helpers/notifications-repos';
+import { createTestSessionsService } from '../../helpers/sessions';
+import {
+  createTestShareTokensRepo,
+  createTestPluginsRepo,
+  createTestPluginUserErasureQueueRepo,
+} from '../../helpers/share-repos';
+import { createTestAddonsService } from '../../helpers/test-addons';
 import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestUsersRepo,
+  createTestWebauthnCredentialsRepo,
+  createTestWebauthnChallengesRepo,
+  createTestInviteTokensRepo,
+  createTestMcpTokensRepo,
+  createTestOauthTokensRepo,
+  createTestPasswordResetTokensRepo,
+  createTestTripsRepo,
+  createTestTripMembersRepo,
+  createTestSettingsRepo,
+  createTestPlacesRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../helpers/db-mock');
+  const db = createSnapshotTestDb();
   const mock = {
     db,
     closeDb: () => {},
@@ -27,60 +87,114 @@ const { testDb, dbMock } = vi.hoisted(() => {
     canAccessTrip: () => null,
     isOwner: () => false,
   };
-  return { testDb: db, dbMock: mock };
+  return mock;
 });
 
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
-vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
 // Mock MCP to avoid session side-effects
 vi.mock('../../../src/mcp', () => ({ revokeUserSessions: vi.fn(), invalidateMcpSessions: vi.fn() }));
-vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), revokeUserSessionsForClient: vi.fn() }));
+vi.mock('../../../src/mcp/sessionManager', () => ({
+  revokeUserSessions: vi.fn(),
+  revokeUserSessionsForClient: vi.fn(),
+}));
 
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { AddonsService } from '../../../src/nest/addons/addons.service';
-import { SettingsService } from '../../../src/nest/settings/settings.service';
-import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
-import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
-import { AuthService } from '../../../src/nest/auth/auth.service';
-import { PasskeyService } from '../../../src/nest/auth/passkey.service';
-import { PackingService } from '../../../src/nest/packing/packing.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
-import { AdminService } from '../../../src/nest/admin/admin.service';
-import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
-import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
-
-const dbs = new DatabaseService(testDb);
 const realtime = new RealtimeService();
-const permissions = new PermissionsService(dbs);
-const webauthn = new WebauthnConfigService(dbs);
-const userCleanup = new UserCleanupService(dbs, new BudgetService(dbs, permissions, new ExchangeRatesService(), realtime));
+
+let webauthn: WebauthnConfigService;
+
 // Positional and previously wrong: an AtlasService sat in the membership slot
 // and the mailer was missing entirely, so `auth` was built with its last four
 // collaborators shifted by one. Nothing failed, because the version-check path
 // below never reaches them.
-const auth = new AuthService(dbs, permissions, new TripMembershipService(dbs), webauthn, userCleanup, new MailerService(dbs), new EphemeralTokenService(), new AllowedFileTypesService(dbs));
-const svc = new AdminService(
-  dbs,
-  new AddonsService(dbs),
-  new PasskeyService(dbs, auth, webauthn),
-  auth,
-  permissions,
-  makeNotificationsService(dbs, realtime),
-  userCleanup,
-  realtime,
-);
+
+let permissions: PermissionsService;
+let userCleanup: UserCleanupService;
+let auth: AuthService;
+let svc: AdminService;
+// The demo baseline route's database port; nothing here reaches it.
+const databaseBackupStub = {} as unknown as DatabaseBackupStrategy;
+beforeAll(async () => {
+  webauthn = new WebauthnConfigService(await createTestAppSettingsRepo(testDb));
+  permissions = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
+  userCleanup = new UserCleanupService(
+    new MaintenanceRepository((await sharedTestOrm(testDb)).em),
+    new BudgetService(
+      permissions,
+      new ExchangeRatesService(),
+      realtime,
+      await createTestUnitOfWork(testDb),
+      ...(await budgetRepoArgs(testDb)),
+    ),
+    await createTestUnitOfWork(testDb),
+    await createTestUsersRepo(testDb),
+    await createTestTripMembersRepo(testDb),
+    await createTestBudgetItemsRepo(testDb),
+    await createTestBudgetSettlementsRepo(testDb),
+    await createTestJourneyShareTokensRepo(testDb),
+    await createTestJourneysRepo(testDb),
+    await createTestJourneyEntriesRepo(testDb),
+    await createTestJourneyContributorsRepo(testDb),
+    await createTestShareTokensRepo(testDb),
+    await createTestPluginsRepo(testDb),
+    await createTestPluginUserErasureQueueRepo(testDb),
+  );
+  auth = new AuthService(
+    permissions,
+    new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)),
+    webauthn,
+    userCleanup,
+    new MailerService(
+      await createTestUsersRepo(testDb),
+      await createTestSettingsRepo(testDb),
+      await createTestAppSettingsRepo(testDb),
+    ),
+    new EphemeralTokenService(),
+    new AllowedFileTypesService(await createTestAppSettingsRepo(testDb)),
+    await createTestUnitOfWork(testDb),
+    await createTestAppSettingsRepo(testDb),
+    await createTestUsersRepo(testDb),
+    await createTestInviteTokensRepo(testDb),
+    await createTestMcpTokensRepo(testDb),
+    await createTestOauthTokensRepo(testDb),
+    await createTestWebauthnCredentialsRepo(testDb),
+    await createTestPasswordResetTokensRepo(testDb),
+    await createTestPushSubscriptionsRepo(testDb),
+    await createTestSessionsService(testDb),
+  );
+  const t = await sharedTestOrm(testDb);
+  svc = new AdminService(
+    await createTestUsersRepo(testDb),
+    t.repo(AuditLog),
+    await createTestAppSettingsRepo(testDb),
+    t.repo(Addons),
+    t.repo(PhotoProviders),
+    t.repo(PhotoProviderFields),
+    t.repo(DocumentProviders),
+    await createTestMcpTokensRepo(testDb),
+    await createTestOauthTokensRepo(testDb),
+    await createTestTripsRepo(testDb),
+    await createTestPlacesRepo(testDb),
+    t.repo(TripFiles),
+    t.repo(PushSubscriptions),
+    await createTestAddonsService(testDb),
+    new PasskeyService(
+      auth,
+      webauthn,
+      await createTestUnitOfWork(testDb),
+      await createTestWebauthnCredentialsRepo(testDb),
+      await createTestWebauthnChallengesRepo(testDb),
+      await createTestUsersRepo(testDb),
+    ),
+    auth,
+    permissions,
+    await makeNotificationsService(testDb, realtime),
+    userCleanup,
+    realtime,
+    await createTestUnitOfWork(testDb),
+    databaseBackupStub,
+    new DataPathsService(),
+    await createTestSessionsService(testDb),
+  );
+});
 const checkAndNotifyVersion = () => svc.checkAndNotifyVersion();
 
 // Helper: mock the GitHub releases/latest endpoint
@@ -90,7 +204,8 @@ function mockGitHubLatest(tagName: string, ok = true): void {
     vi.fn().mockResolvedValue({
       ok,
       // fetchGithub reads text() and parses it itself (size cap), so stub both.
-      text: async () => JSON.stringify({ tag_name: tagName, html_url: `https://github.com/liketrek/TREK/releases/tag/${tagName}` }),
+      text: async () =>
+        JSON.stringify({ tag_name: tagName, html_url: `https://github.com/liketrek/TREK/releases/tag/${tagName}` }),
       json: async () => ({ tag_name: tagName, html_url: `https://github.com/liketrek/TREK/releases/tag/${tagName}` }),
     }),
   );
@@ -100,22 +215,13 @@ function mockGitHubFetchFailure(): void {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
 }
 
-function getLastNotifiedVersion(): string | undefined {
-  return (
-    testDb.prepare('SELECT value FROM app_settings WHERE key = ?').get('last_notified_version') as
-      | { value: string }
-      | undefined
-  )?.value;
+async function getLastNotifiedVersion(): Promise<string | undefined> {
+  return (await readAppSetting(await sharedTestOrm(testDb), 'last_notified_version')) ?? undefined;
 }
 
-function getNotificationCount(): number {
-  return (testDb.prepare('SELECT COUNT(*) as c FROM notifications').get() as { c: number }).c;
+async function getNotificationCount(): Promise<number> {
+  return countRows(await sharedTestOrm(testDb), Notifications);
 }
-
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
-});
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -141,8 +247,8 @@ describe('checkAndNotifyVersion', () => {
 
     await checkAndNotifyVersion();
 
-    expect(getNotificationCount()).toBe(0);
-    expect(getLastNotifiedVersion()).toBeUndefined();
+    expect(await getNotificationCount()).toBe(0);
+    expect(await getLastNotifiedVersion()).toBeUndefined();
   });
 
   it('VNOTIF-002 — creates a navigate notification for all admins when update available', async () => {
@@ -152,11 +258,7 @@ describe('checkAndNotifyVersion', () => {
 
     await checkAndNotifyVersion();
 
-    const notifications = testDb.prepare('SELECT * FROM notifications ORDER BY id').all() as Array<{
-      recipient_id: number;
-      type: string;
-      scope: string;
-    }>;
+    const notifications = await findRows(await sharedTestOrm(testDb), Notifications, {}, { id: 'asc' });
     expect(notifications.length).toBe(2);
     const recipientIds = notifications.map((n) => n.recipient_id);
     expect(recipientIds).toContain(admin1.id);
@@ -171,7 +273,7 @@ describe('checkAndNotifyVersion', () => {
 
     await checkAndNotifyVersion();
 
-    expect(getLastNotifiedVersion()).toBe('99.1.0');
+    expect(await getLastNotifiedVersion()).toBe('99.1.0');
   });
 
   it('VNOTIF-004 — does NOT create duplicate notification if last_notified_version matches', async () => {
@@ -180,26 +282,24 @@ describe('checkAndNotifyVersion', () => {
 
     // First call notifies
     await checkAndNotifyVersion();
-    const countAfterFirst = getNotificationCount();
+    const countAfterFirst = await getNotificationCount();
     expect(countAfterFirst).toBe(1);
 
     // Second call with same version — should not create another
     await checkAndNotifyVersion();
-    expect(getNotificationCount()).toBe(countAfterFirst);
+    expect(await getNotificationCount()).toBe(countAfterFirst);
   });
 
   it('VNOTIF-005 — creates new notification when last_notified_version is an older version', async () => {
     createAdmin(testDb);
     // Simulate having been notified about an older version
-    testDb
-      .prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
-      .run('last_notified_version', '98.0.0');
+    await setAppSetting(await sharedTestOrm(testDb), 'last_notified_version', '98.0.0');
     mockGitHubLatest('v99.3.0');
 
     await checkAndNotifyVersion();
 
-    expect(getNotificationCount()).toBe(1);
-    expect(getLastNotifiedVersion()).toBe('99.3.0');
+    expect(await getNotificationCount()).toBe(1);
+    expect(await getLastNotifiedVersion()).toBe('99.3.0');
   });
 
   it('VNOTIF-006 — notification has correct type, scope, and navigate_target', async () => {
@@ -208,14 +308,7 @@ describe('checkAndNotifyVersion', () => {
 
     await checkAndNotifyVersion();
 
-    const notif = testDb.prepare('SELECT * FROM notifications LIMIT 1').get() as {
-      type: string;
-      scope: string;
-      navigate_target: string;
-      title_key: string;
-      text_key: string;
-      navigate_text_key: string;
-    };
+    const notif = (await findRow(await sharedTestOrm(testDb), Notifications, {}))!;
     expect(notif.type).toBe('navigate');
     expect(notif.scope).toBe('admin');
     expect(notif.navigate_target).toBe('/admin');
@@ -230,7 +323,7 @@ describe('checkAndNotifyVersion', () => {
 
     // Should not throw
     await expect(checkAndNotifyVersion()).resolves.toBeUndefined();
-    expect(getNotificationCount()).toBe(0);
-    expect(getLastNotifiedVersion()).toBeUndefined();
+    expect(await getNotificationCount()).toBe(0);
+    expect(await getLastNotifiedVersion()).toBeUndefined();
   });
 });

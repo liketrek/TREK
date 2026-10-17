@@ -7,6 +7,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addToDayQuestion': 'Aggiungere a un giorno?',
   'mobileTrip.addTransportShort': 'Trasporto',
   'mobileTrip.allDays': 'Tutti i giorni',
+  'mobileTrip.today': 'Oggi',
+  'mobileTrip.jumpToToday': 'Vai a oggi',
   'mobileTrip.assignedDays': 'Giorni assegnati',
   'mobileTrip.assignmentNotes': 'Note specifiche del giorno',
   'mobileTrip.bookingsEmpty': 'Ancora nessuna prenotazione',
@@ -35,14 +37,18 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.onMap': 'Sulla mappa',
   'mobileTrip.profileDriving': 'In auto',
   'mobileTrip.profileWalking': 'A piedi',
+  'mobileTrip.profileCycling': 'In bici',
   'mobileTrip.renameDay': 'Rinomina giorno',
   'mobileTrip.resBadge': 'Prenotazione',
   'mobileTrip.showOnMap': 'Mostra sulla mappa',
   'mobileTrip.statDocuments': '{count} file',
+  'mobileTrip.statDocuments.one': '{count} file',
   'mobileTrip.statPeople': '{count} persone',
+  'mobileTrip.statPeople.one': '{count} persona',
   'mobileTrip.stay': 'Soggiorno',
   'mobileTrip.tapAgainToDelete': 'Tocca di nuovo per eliminare',
-  'mobileTrip.todoOpenCount': '{count} aperti',
+  'mobileTrip.todoOpenCount': '{count} aperte',
+  'mobileTrip.todoOpenCount.one': '{count} aperta',
   'mobileTrip.travel': 'Viaggio',
   'mobileTrip.upNext': 'Prossimo',
   'mobileTrip.viewDetails': 'Vedi dettagli',
@@ -58,7 +64,9 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtStayScope':
     'La durata della sosta appartiene al luogo, quindi vale in ogni giorno in cui questa tappa è prevista.',
   'mobileTrip.rtStayLess': '{count} minuti in meno',
+  'mobileTrip.rtStayLess.one': '{count} minuto in meno',
   'mobileTrip.rtStayMore': '{count} minuti in più',
+  'mobileTrip.rtStayMore.one': '{count} minuto in più',
   'mobileTrip.rtNightDesktopOnly':
     'Prenotare un pernottamento in questo luogo si fa nel pianificatore da computer. Qui puoi solo scartarlo.',
   'mobileTrip.rtReach': 'Fin dove',
@@ -67,10 +75,10 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtFromStart': 'Dall’inizio della tappa',
   'mobileTrip.rtNoneAhead': 'Niente sulla strada davanti a te. Prova con tutta la tappa.',
   'mobileTrip.rtNoneOnStage': 'Niente del genere lungo questa tappa.',
-  'mobileTrip.rtTruncated.one':
-    '1 tratto aveva più di quanto stia in una risposta. Scegli meno tipi per vedere il resto.',
   'mobileTrip.rtTruncated.other':
-    '{count} tratti avevano più di quanto stia in una risposta. Scegli meno tipi per vedere il resto.',
+    'Su {count} tratti ce n’erano più di quanti ne stiano in una risposta. Scegli meno tipi per vedere il resto.',
+  'mobileTrip.rtTruncated.one':
+    'Su {count} tratto ce n’erano più di quanti ne stiano in una risposta. Scegli meno tipi per vedere il resto.',
   'mobileTrip.rtNoDay': 'Nessun giorno selezionato',
   'mobileTrip.rtNoDayHint': 'La mappa mostra l’intero viaggio. Tocca un giorno qui sopra per vederne il percorso.',
 };

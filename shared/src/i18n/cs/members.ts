@@ -7,8 +7,9 @@ const members: TranslationStrings = {
   'members.invite': 'Pozvat',
   'members.allHaveAccess': 'Všichni uživatelé již mají přístup.',
   'members.access': 'Přístup',
-  'members.person': 'osoba',
   'members.persons': 'osob',
+  'members.persons.one': 'osoba',
+  'members.persons.few': 'osoby',
   'members.you': 'vy',
   'members.owner': 'Vlastník',
   'members.leaveTrip': 'Opustit cestu',
@@ -32,6 +33,9 @@ const members: TranslationStrings = {
   'members.guestAddError': 'Nepodařilo se přidat hosta',
   'members.guestRenameError': 'Nepodařilo se přejmenovat hosta',
   'members.guestRemoved': 'Host odebrán',
-  'members.confirmRemoveGuest': 'Odebrat tohoto hosta? Jeho přiřazení a podíly na nákladech budou také odebrány.',
+  'members.confirmRemoveGuest':
+    'Odebrat tohoto hosta? Jeho přiřazení budou odebrána a jeho podíl na každém výdaji se rozdělí mezi ostatní účastníky.',
+  'members.guestHasPayments':
+    'Tento host zaplatil výdaj nebo je součástí zaznamenané platby. Nejprve změňte plátce nebo platbu smažte.',
 };
 export default members;

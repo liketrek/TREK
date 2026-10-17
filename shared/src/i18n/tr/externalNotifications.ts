@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const tr: NotificationLocale = {
   email: {
@@ -37,8 +38,14 @@ const tr: NotificationLocale = {
       body: `${p.actor} sizi bir koleksiyonu paylaşmaya davet etti. Kabul etmek veya reddetmek için TREK’i açın.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} fotoğraf paylaşıldı`,
-      body: `${p.actor}, "${p.trip}" içinde ${p.count} fotoğraf paylaştı.`,
+      title: pluralForm(p.count, 'tr', {
+        one: `${p.count} fotoğraf paylaşıldı`,
+        other: `${p.count} fotoğraf paylaşıldı`,
+      }),
+      body: pluralForm(p.count, 'tr', {
+        one: `${p.actor}, "${p.trip}" içinde ${p.count} fotoğraf paylaştı.`,
+        other: `${p.actor}, "${p.trip}" içinde ${p.count} fotoğraf paylaştı.`,
+      }),
     }),
     collab_message: (p) => ({
       title: `"${p.trip}" içinde yeni mesaj`,
@@ -56,7 +63,12 @@ const tr: NotificationLocale = {
       title: 'Depolama kopyası hatası',
       body:
         `'${p.backend}' kopyasına yazma başarısız oldu: ${p.op} (${p.key}) — ${p.error}.` +
-        (p.suppressed !== '0' ? ` Son bildirimden bu yana ${p.suppressed} hata daha bastırıldı.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'tr', {
+              one: ` Son bildirimden bu yana ${p.suppressed} hata daha bastırıldı.`,
+              other: ` Son bildirimden bu yana ${p.suppressed} hata daha bastırıldı.`,
+            })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Synology oturumu temizlendi',

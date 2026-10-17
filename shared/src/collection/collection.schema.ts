@@ -1,4 +1,9 @@
-import { placeCategorySchema, placeImageUrlSchema, placeRatingVoteSchema, placeWebsiteSchema } from '../place/place.schema';
+import {
+  placeCategorySchema,
+  placeImageUrlSchema,
+  placeRatingVoteSchema,
+  placeWebsiteSchema,
+} from '../place/place.schema';
 import { tagSchema } from '../tag/tag.schema';
 
 import { z } from 'zod';
@@ -343,15 +348,17 @@ export type CollectionSaveResult = z.infer<typeof collectionSaveResultSchema>;
 /** Library-wide "is this place already saved anywhere I can see?" lookup (inspector indicator). */
 export const collectionMembershipSchema = z.object({
   saved: z.boolean(),
-  lists: z.array(z.object({
-    collection_id: z.number(),
-    name: z.string(),
-    place_id: z.number(),
-    /** Per-list status, so the picker can show and change it without a second round trip (#1469). */
-    status: collectionStatusSchema,
-    /** False for a list the viewer may read but not edit — its status pill stays read-only. */
-    can_edit: z.boolean().default(true),
-  })),
+  lists: z.array(
+    z.object({
+      collection_id: z.number(),
+      name: z.string(),
+      place_id: z.number(),
+      /** Per-list status, so the picker can show and change it without a second round trip (#1469). */
+      status: collectionStatusSchema,
+      /** False for a list the viewer may read but not edit — its status pill stays read-only. */
+      can_edit: z.boolean().default(true),
+    }),
+  ),
 });
 export type CollectionMembership = z.infer<typeof collectionMembershipSchema>;
 

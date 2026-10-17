@@ -1,14 +1,18 @@
-import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
-  errorResult, ok,
-} from '../../nest-mcp';
-import { z } from 'zod';
-import type { AirtrailFlight } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
+import {
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { AirtrailService } from './airtrail.service';
+import type { AirtrailFlight } from '@trek/shared';
+
+import { z } from 'zod';
 
 /** Same gate as the controller's @RequireAddon(ADDON_IDS.AIRTRAIL): no addon, no tool. */
 const airtrailAddonOn = addonGate(ADDON_IDS.AIRTRAIL);
@@ -68,12 +72,20 @@ export class AirtrailMcp {
 
   @Tool({
     name: 'list_airtrail_flights',
-    description: 'List the flights in the caller\'s connected AirTrail account, which are the ones available to import into a trip. Each entry carries the id that import_airtrail_flights takes, plus route, times, airline and flight number, so call this first and pass the ids you picked to that tool. Use it for flights that have already been flown or booked and recorded in AirTrail; a flight that exists nowhere yet is created with create_transport instead. Narrow it with from/to to the trip window rather than pulling a whole flight history.',
+    description:
+      "List the flights in the caller's connected AirTrail account, which are the ones available to import into a trip. Each entry carries the id that import_airtrail_flights takes, plus route, times, airline and flight number, so call this first and pass the ids you picked to that tool. Use it for flights that have already been flown or booked and recorded in AirTrail; a flight that exists nowhere yet is created with create_transport instead. Narrow it with from/to to the trip window rather than pulling a whole flight history.",
     inputSchema: {
       from: isoDate.optional().describe('Only flights departing on or after this date'),
       to: isoDate.optional().describe('Only flights departing on or before this date'),
-      limit: z.number().int().min(1).max(MAX_FLIGHT_LIMIT).optional()
-        .describe(`Maximum flights to return, oldest departure first (default ${DEFAULT_FLIGHT_LIMIT}, max ${MAX_FLIGHT_LIMIT})`),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_FLIGHT_LIMIT)
+        .optional()
+        .describe(
+          `Maximum flights to return, oldest departure first (default ${DEFAULT_FLIGHT_LIMIT}, max ${MAX_FLIGHT_LIMIT})`,
+        ),
     },
     // Reads a remote AirTrail instance, not TREK's own database.
     annotations: TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
@@ -83,10 +95,7 @@ export class AirtrailMcp {
     access: { group: 'reservations', mode: 'read' },
     when: airtrailAddonOn,
   })
-  async listAirtrailFlights(
-    { from, to, limit }: { from?: string; to?: string; limit?: number },
-    ctx: McpContext,
-  ) {
+  async listAirtrailFlights({ from, to, limit }: { from?: string; to?: string; limit?: number }, ctx: McpContext) {
     let flights: AirtrailFlight[];
     try {
       flights = await this.airtrail.getFlightsForPicker(ctx.userId);
@@ -98,13 +107,15 @@ export class AirtrailMcp {
 
     // A flight with no date at all cannot be proven outside the window, and
     // dropping it would lose it silently, so it stays in and sorts last.
-    const matched = flights.filter(flight => {
-      const date = flightDate(flight);
-      if (!date) return true;
-      if (from && date < from) return false;
-      if (to && date > to) return false;
-      return true;
-    }).sort(byDeparture);
+    const matched = flights
+      .filter((flight) => {
+        const date = flightDate(flight);
+        if (!date) return true;
+        if (from && date < from) return false;
+        if (to && date > to) return false;
+        return true;
+      })
+      .sort(byDeparture);
 
     const cap = limit ?? DEFAULT_FLIGHT_LIMIT;
     const page = matched.slice(0, cap);

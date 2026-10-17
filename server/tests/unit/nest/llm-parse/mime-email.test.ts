@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-
 import { parseEmail } from '../../../../src/nest/llm-parse/mime-email';
+
+import { describe, it, expect } from 'vitest';
 
 /** Mail is CRLF-delimited on the wire — build the fixtures the same way. */
 const mail = (...lines: string[]) => Buffer.from(lines.join('\r\n'), 'latin1');

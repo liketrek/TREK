@@ -17,8 +17,10 @@ beforeEach(() => {
   // 2026-07-01..07-10) so the dashboard's past/upcoming/spotlight split is stable
   // regardless of the wall clock — otherwise these tests break once the date
   // rolls past the hardcoded fixture window. shouldAdvanceTime keeps userEvent
-  // and async waitFor working under fake timers.
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+  // and async waitFor working under fake timers. Only the clock is faked: the
+  // IndexedDB stand-in schedules its requests on timers, and a fake one left
+  // pending when a test ends stalls every later write to the offline cache.
+  vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-07-05T12:00:00Z'));
   resetAllStores();
   // Seed auth with authenticated user
@@ -1056,4 +1058,48 @@ describe('DashboardPage', () => {
       expect(card.querySelector('[aria-label="Archive"]')).toBeNull();
     });
   });
+
+  describe('FE-PAGE-DASH-2190: trip search', () => {
+    it('finds trips across filters by title and date, and by a place on them, then clears', async () => {
+      const oldTrip = buildTrip({ id: 77, title: 'Old Rome Trip', start_date: '2024-05-01', end_date: '2024-05-07', is_archived: 1 });
+      const philly = buildTrip({ id: 78, title: 'East Coast', start_date: '2026-09-01', end_date: '2026-09-07' });
+      server.use(
+        http.get('/api/trips', ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [oldTrip] });
+          return HttpResponse.json({ trips: [buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' }), philly] });
+        }),
+        http.get('/api/trips/search', ({ request }) => {
+          const q = new URL(request.url).searchParams.get('q');
+          return HttpResponse.json({ matches: q === 'diner' ? [{ trip_id: 78, places: ["Dante's Diner"] }] : [] });
+        }),
+      );
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+      await waitFor(() => expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument());
+
+      const box = screen.getByRole('searchbox', { name: 'Search all trips by title, date or place' });
+      await user.type(box, 'rome');
+      // The archived trip shows up without switching the filter.
+      expect(await screen.findByText('Old Rome Trip')).toBeInTheDocument();
+
+      await user.clear(box);
+      await user.type(box, 'may 2024');
+      expect(await screen.findByText('Old Rome Trip')).toBeInTheDocument();
+
+      await user.clear(box);
+      await user.type(box, 'diner');
+      expect(await screen.findByText("Dante's Diner")).toBeInTheDocument();
+      expect(screen.getByText('East Coast')).toBeInTheDocument();
+
+      await user.clear(box);
+      await user.type(box, 'zzzz');
+      expect(await screen.findByText('No trip matches “zzzz”')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Clear search' }));
+      expect(box).toHaveValue('');
+      expect(screen.queryByText('Old Rome Trip')).not.toBeInTheDocument();
+    });
+  });
 });
+

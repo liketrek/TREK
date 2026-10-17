@@ -32,6 +32,13 @@ export interface ShutdownDeps {
   logInfo: (message: string) => void;
   logError: (message: string) => void;
   exit: (code: number) => void;
+  /**
+   * Flip readiness to "not ready" before anything else, so the probe sends
+   * traffic elsewhere for the whole drain rather than one probe period later.
+   */
+  markDraining?: () => void;
+  /** The code a completed shutdown exits with: 0 for a signal, 1 after a fatal error. */
+  exitCode?: number;
   /** How long a socket may take the polite way out before it is destroyed. */
   drainMs?: number;
   /** Last-resort exit, deliberately below Docker's 10s stop grace. */
@@ -91,9 +98,18 @@ export const FORCED_EXIT_MS = 5_000;
  */
 export async function runShutdown(signal: string, deps: ShutdownDeps): Promise<void> {
   const {
-    server, closeNestApp, getWsClients, closeMcpSessions, closeDb,
-    logInfo, logError, exit,
-    drainMs = SOCKET_DRAIN_MS, forcedMs = FORCED_EXIT_MS,
+    server,
+    closeNestApp,
+    getWsClients,
+    closeMcpSessions,
+    closeDb,
+    logInfo,
+    logError,
+    exit,
+    markDraining,
+    exitCode = 0,
+    drainMs = SOCKET_DRAIN_MS,
+    forcedMs = FORCED_EXIT_MS,
   } = deps;
 
   logInfo(`${signal} received — shutting down gracefully...`);
@@ -107,6 +123,8 @@ export async function runShutdown(signal: string, deps: ShutdownDeps): Promise<v
       logError(`${what} failed during shutdown: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
+
+  if (markDraining) guard('markDraining', markDraining);
 
   let finished = false;
   /** The single exit path, so the DB is closed exactly once and never skipped. */
@@ -169,5 +187,42 @@ export async function runShutdown(signal: string, deps: ShutdownDeps): Promise<v
   }
   clearTimeout(drain);
   clearTimeout(forced);
-  finish(0, 'Shutdown complete');
+  finish(exitCode, 'Shutdown complete');
+}
+
+/** What the last-resort handlers need, handed in like the shutdown itself. */
+export interface FatalDeps {
+  logError: (message: string) => void;
+  /** Start the orderly shutdown with this reason and exit code. */
+  shutdown: (reason: string, exitCode: number) => void;
+  exit: (code: number) => void;
+}
+
+/**
+ * The handler behind `process.on('unhandledRejection')` and
+ * `process.on('uncaughtException')`.
+ *
+ * Node would crash on either anyway, with the stack on stderr only. This
+ * writes it to the app log first, then runs the same orderly shutdown a
+ * SIGTERM gets (sockets released, database closed, bounded by the forced
+ * exit) and leaves with exit code 1, so the orchestrator restarts the
+ * process. A second fatal error while that shutdown runs stops the process
+ * at once: whatever is failing is failing the shutdown too.
+ */
+export function createFatalHandler(deps: FatalDeps): (kind: string, error: unknown) => void {
+  let fired = false;
+  return (kind, error) => {
+    const detail = error instanceof Error ? (error.stack ?? error.message) : String(error);
+    try {
+      deps.logError(`${kind}: ${detail}`);
+    } catch {
+      // Logging is best effort here: the exit below must happen regardless.
+    }
+    if (fired) {
+      deps.exit(1);
+      return;
+    }
+    fired = true;
+    deps.shutdown(kind, 1);
+  };
 }

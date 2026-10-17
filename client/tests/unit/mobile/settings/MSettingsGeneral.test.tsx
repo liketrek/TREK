@@ -218,3 +218,16 @@ describe('MSettingsGeneral', () => {
     expect(updateSetting).toHaveBeenCalledWith('map_always_show_routes', false);
   });
 });
+
+describe('MSettingsGeneral week start (#2029)', () => {
+  it('FE-MOB-SET-017: the week-start segments show Monday when unset and save the day tapped', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'en', week_start: undefined }), updateSetting });
+    render(<MSettingsGeneral />);
+
+    expect(screen.getByRole('button', { name: 'Monday' })).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByRole('button', { name: 'Saturday' }));
+    expect(updateSetting).toHaveBeenCalledWith('week_start', 'saturday');
+  });
+});

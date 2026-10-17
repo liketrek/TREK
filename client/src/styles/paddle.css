@@ -1,0 +1,27 @@
+/* ============================================================================
+   Paddle tours on the maps (PAD-03, PAD-05B): the obstacle colours and the
+   carried stretches. Global, since the 2D, GL and 3D maps and the planner's
+   cards and route band all read the tokens. The colours sort objects by what
+   they are, never into safe or unsafe.
+   ========================================================================== */
+
+/* Obstacles in slate, access rules in indigo, places to get in and out in
+   teal, a carried stretch in earth brown; each marker a disc in the map's own
+   white, which keeps it readable over a satellite tile. */
+:root {
+  --map-paddle-obstacle: #334155;
+  --map-paddle-access: #4338ca;
+  --map-paddle-landing: #0f766e;
+  --map-portage: #9a6233;
+  --map-paddle-disc: #ffffff;
+  --map-paddle-shadow: rgba(15, 23, 42, 0.35);
+}
+
+.dark {
+  --map-paddle-obstacle: #cbd5e1;
+  --map-paddle-access: #a5b4fc;
+  --map-paddle-landing: #5eead4;
+  --map-portage: #d6a06e;
+  --map-paddle-disc: #1e293b;
+  --map-paddle-shadow: rgba(0, 0, 0, 0.55);
+}

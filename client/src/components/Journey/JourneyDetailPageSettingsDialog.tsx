@@ -1,17 +1,35 @@
-import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router'
-import { X, ImagePlus, Plus, Trash2, UserPlus, Archive, ArchiveRestore, Undo2 } from 'lucide-react'
-import { useJourneyStore } from '../../store/journeyStore'
+import { useId, useState, useRef, type ReactNode } from 'react'
+import { X, ImagePlus, Trash2, Archive, ArchiveRestore, Undo2, Settings, Crown } from 'lucide-react'
 import { useTranslation } from '../../i18n'
-import { journeyApi } from '../../api/client'
-import { useToast } from '../shared/Toast'
 import ConfirmDialog from '../shared/ConfirmDialog'
+import { Tooltip } from '../shared/Tooltip'
+import { DeleteButton, DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
+import { AddRowButton, EditorField, INPUT, Segmented } from '../shared/dialogParts'
 import JourneyShareSection from './JourneyShareSection'
-import type { JourneyDetail } from '../../store/journeyStore'
+import { useJourneySettings } from './useJourneySettings'
+import type { JourneyContributor, JourneyDetail } from '../../store/journeyStore'
 import { pickGradient } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { AddTripDialog } from './JourneyDetailPageAddTripDialog'
-import { normalizeImageFile } from '../../utils/convertHeic'
 import ToggleSwitch from '../Settings/ToggleSwitch'
+import { TripMemberAvatar } from '../Trips/TripMemberAvatar'
+import { avatarSrc } from '../../utils/avatarSrc'
+
+// The share dialogs' roster, so a journey's people read like a trip's.
+const ROWS = 'flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5'
+const ROW = 'flex min-h-[48px] items-center gap-3 rounded-[10px] px-2.5 py-1.5'
+const BADGE = 'inline-flex flex-none items-center gap-1 rounded-full px-2 py-[2px] font-semibold'
+
+/** A round icon button of a row, named by its tooltip; faint until the pointer is on it. */
+function RowAction({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <Tooltip label={label}>
+      <button type="button" onClick={onClick} aria-label={label}
+        className="grid h-8 w-8 flex-none place-items-center rounded-[9px] text-content-faint hover:bg-surface-card hover:text-danger">
+        {children}
+      </button>
+    </Tooltip>
+  )
+}
 
 export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefresh, onRestoreSuggestions }: {
   journey: JourneyDetail
@@ -23,377 +41,265 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
   onRestoreSuggestions?: () => Promise<void> | void
 }) {
   const { t } = useTranslation()
-  const [title, setTitle] = useState(journey.title)
-  const [subtitle, setSubtitle] = useState(journey.subtitle || '')
-  const [saving, setSaving] = useState(false)
+  const labelId = useId()
+  const {
+    title, setTitle, subtitle, setSubtitle, saving, isDirty, archiving, unlinkTarget, setUnlinkTarget,
+    showDeleteConfirm, setShowDeleteConfirm, savingTracks, savingField, savingPhotoLocation, savingStatus, statusChoice,
+    handleSave, handleCoverUpload, handleArchiveToggle, handleTracksToggle, handleFieldToggle, handlePhotoLocationToggle,
+    handleStatusChange, handleDelete, handleRemoveContributor, confirmUnlink,
+  } = useJourneySettings({ journey, onSaved, onRefresh, onContentChanged: onSaved })
   const [showAddTrip, setShowAddTrip] = useState(false)
-  const [unlinkTarget, setUnlinkTarget] = useState<{ trip_id: number; title: string } | null>(null)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
 
-  const isDirty = title !== journey.title || subtitle !== (journey.subtitle || '')
   const handleClose = () => { if (isDirty) setShowDiscardConfirm(true); else onClose() }
   const coverRef = useRef<HTMLInputElement>(null)
-  const toast = useToast()
-  const navigate = useNavigate()
-  const { updateJourney, deleteJourney } = useJourneyStore()
 
-  const handleSave = async () => {
-    setSaving(true)
-    try {
-      await updateJourney(journey.id, { title, subtitle: subtitle || null })
-      onSaved()
-    } catch {
-      toast.error(t('journey.settings.saveFailed'))
-    } finally {
-      setSaving(false)
-    }
-  }
+  const archived = journey.status === 'archived'
+  const archiveLabel = archived ? t('journey.settings.reopenJourney') : t('journey.settings.endJourney')
+  const roleLabel = (role: JourneyContributor['role']) => (role === 'owner' ? t('members.owner') : t(`journey.invite.${role}`))
 
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const formData = new FormData()
-    formData.append('cover', await normalizeImageFile(file))
-    try {
-      await journeyApi.uploadCover(journey.id, formData)
-      toast.success(t('journey.settings.coverUpdated'))
-      onSaved()
-    } catch {
-      toast.error(t('journey.settings.coverFailed'))
-    }
-  }
+  const header = (
+    <DialogHeader
+      tile={<DialogTile><Settings size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+      tint={NEUTRAL_TINT}
+      labelId={labelId}
+      onClose={handleClose}
+      eyebrow={t('journey.settings.title')}
+      titleInput={{
+        value: title,
+        onChange: setTitle,
+        label: t('journey.settings.name'),
+        placeholder: t('journey.frontpage.namePlaceholder'),
+        onKeyDown: e => { if (e.key === 'Enter' && title.trim() && !saving) void handleSave() },
+      }}
+    />
+  )
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [archiving, setArchiving] = useState(false)
-
-  const handleArchiveToggle = async () => {
-    setArchiving(true)
-    try {
-      const newStatus = journey.status === 'archived' ? 'active' : 'archived'
-      await updateJourney(journey.id, { status: newStatus })
-      toast.success(newStatus === 'archived' ? t('journey.settings.archived') : t('journey.settings.reopened'))
-      onSaved()
-    } catch {
-      toast.error(t('journey.settings.saveFailed'))
-    } finally {
-      setArchiving(false)
-    }
-  }
-
-  // Saved on the spot rather than on Save, like the archive switch above it:
-  // it is a view setting, and the point of it is seeing the map change (#2194).
-  const [savingTracks, setSavingTracks] = useState(false)
-  const handleTracksToggle = async () => {
-    setSavingTracks(true)
-    try {
-      await updateJourney(journey.id, { show_trip_tracks: !journey.show_trip_tracks })
-      // onRefresh, not onSaved: onSaved closes the dialog, which would destroy the
-      // switch the moment it is flipped AND skip handleClose's unsaved-changes
-      // guard, silently dropping a title the owner had typed but not saved yet.
-      onRefresh()
-    } catch {
-      toast.error(t('journey.settings.saveFailed'))
-    } finally {
-      setSavingTracks(false)
-    }
-  }
-
-  /**
-   * Turn one of the optional entry fields off for this journey.
-   *
-   * Saved on the spot for the same reason the tracks switch is, and through
-   * `onRefresh` rather than `onSaved` so flipping a switch does not close the
-   * dialog out from under a half-typed title.
-   *
-   * Nothing is erased: an entry that already carries a mood keeps it in the
-   * database, the form simply stops asking. Switching back on brings it into
-   * view again.
-   */
-  const [savingField, setSavingField] = useState<string | null>(null)
-  const handleFieldToggle = async (field: 'show_verdict' | 'show_mood' | 'show_weather') => {
-    setSavingField(field)
-    try {
-      await updateJourney(journey.id, { [field]: journey[field] === 0 })
-      onRefresh()
-    } catch {
-      toast.error(t('journey.settings.saveFailed'))
-    } finally {
-      setSavingField(null)
-    }
-  }
-
-  const handleDelete = async () => {
-    try {
-      await deleteJourney(journey.id)
-      navigate('/journey')
-    } catch {
-      toast.error(t('journey.settings.failedToDelete'))
-    }
-  }
+  const footer = (
+    <DialogFooter>
+      <DeleteButton label={t('journey.settings.delete')} onClick={() => setShowDeleteConfirm(true)} />
+      <Tooltip label={t('journey.settings.endDescription')} placement="top">
+        <DialogButton
+          onClick={handleArchiveToggle}
+          disabled={archiving}
+          icon={archived ? <ArchiveRestore size={14} strokeWidth={2.2} /> : <Archive size={14} strokeWidth={2.2} />}
+        >
+          {archiveLabel}
+        </DialogButton>
+      </Tooltip>
+      <FooterSpacer />
+      <DialogButton onClick={handleClose}>{t('common.cancel')}</DialogButton>
+      <DialogButton variant="primary" onClick={handleSave} disabled={saving || !title.trim()}>
+        {saving ? t('common.saving') : t('common.save')}
+      </DialogButton>
+    </DialogFooter>
+  )
 
   return (
-    <div role="presentation" className="fixed inset-0 z-[200] flex items-end md:items-center justify-center md:p-5 overscroll-none bg-[rgba(9,9,11,0.75)]" onClick={handleClose} onTouchMove={e => { if (e.target === e.currentTarget) e.preventDefault() }}>
-      <div role="presentation" className="bg-white dark:bg-zinc-900 rounded-t-2xl md:rounded-[24px] shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[980px] w-full max-h-[85vh] md:max-h-[90vh] flex flex-col overflow-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} onClick={e => e.stopPropagation()}>
+    <>
+      <DialogShell
+        onClose={handleClose}
+        labelledBy={labelId}
+        width="wide"
+        // The share section below grows once its link exists, so the upper edge stays put.
+        align="top"
+        // While a question or the link-trip dialog is up, Escape and the backdrop belong to it.
+        blocked={showAddTrip || !!unlinkTarget || showDeleteConfirm || showDiscardConfirm}
+        header={header}
+        footer={footer}
+      >
+        <div className="grid grid-cols-2 items-start gap-6 max-md:grid-cols-1">
+          <div className="flex flex-col gap-5">
+            <DialogSection label={t('journey.settings.coverImage')}>
+              <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+              <button
+                type="button"
+                onClick={() => coverRef.current?.click()}
+                className="relative flex h-28 w-full items-center justify-center overflow-hidden rounded-[14px] border border-edge-faint bg-surface-secondary transition-colors hover:border-content-faint"
+              >
+                {journey.cover_image && <img src={`/uploads/${journey.cover_image}`} className="absolute inset-0 h-full w-full object-cover" alt="" />}
+                {/* A chip rather than bare text, so it reads the same on any photo. */}
+                <span className="relative inline-flex items-center gap-1.5 rounded-full bg-surface-card px-3 py-1.5 font-semibold text-content shadow-sm" style={fs(12.5, 'body')}>
+                  <ImagePlus size={15} /> {journey.cover_image ? t('journey.settings.changeCover') : t('journey.settings.addCover')}
+                </span>
+              </button>
+            </DialogSection>
 
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
-          <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.settings.title')}</h2>
-          <button type="button" onClick={handleClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 items-start">
-          {/* Left column */}
-          <div className="flex flex-col gap-5 rounded-2xl p-4" style={{ background: 'var(--vg-surf2)', border: '1px solid var(--vg-line)' }}>
-          {/*Cover Image */}
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.settings.coverImage')}</label>
-            <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
-            <button type="button"
-              onClick={() => coverRef.current?.click()}
-              className="w-full h-28 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 flex items-center justify-center gap-2 text-[12px] text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 overflow-hidden relative"
-            >
-              {journey.cover_image ? (
-                <>
-                  <img src={`/uploads/${journey.cover_image}`} className="absolute inset-0 w-full h-full object-cover opacity-50" alt="" />
-                  <span className="relative z-10 flex items-center gap-1.5"><ImagePlus size={14} /> {t('journey.settings.changeCover')}</span>
-                </>
-              ) : (
-                <span className="flex items-center gap-1.5"><ImagePlus size={14} /> {t('journey.settings.addCover')}</span>
-              )}
-            </button>
-          </div>
-
-          {/* Title */}
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.settings.name')}</label>
-            <input
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              className="w-full px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400"
-            />
-          </div>
-
-          {/* Subtitle */}
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.settings.subtitle')}</label>
-            <input
-              value={subtitle}
-              onChange={e => setSubtitle(e.target.value)}
-              placeholder={t('journey.settings.subtitlePlaceholder')}
-              className="w-full px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-zinc-400"
-            />
-          </div>
-
-          {/* Trip GPX tracks on the journey map (#2194) */}
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.settings.tracks')}</label>
-            <div className={`w-full flex items-center gap-3 px-3.5 py-2.5 border border-edge rounded-xl bg-surface-card text-left${savingTracks ? ' opacity-60' : ''}`}>
-              <span className="flex-1 min-w-0">
-                <span className="block text-[14px] text-content-primary">{t('journey.settings.showTripTracks')}</span>
-                <span className="block text-[11px] text-content-faint">{t('journey.settings.showTripTracksHint')}</span>
-              </span>
-              <ToggleSwitch
-                on={!!journey.show_trip_tracks}
-                onToggle={() => { if (!savingTracks) handleTracksToggle() }}
-                label={t('journey.settings.showTripTracks')}
+            <EditorField label={t('journey.settings.subtitle')} htmlFor={`${labelId}-subtitle`}>
+              <input
+                id={`${labelId}-subtitle`}
+                value={subtitle}
+                onChange={e => setSubtitle(e.target.value)}
+                placeholder={t('journey.settings.subtitlePlaceholder')}
+                className={INPUT}
               />
-            </div>
-          </div>
+            </EditorField>
 
-          {/* The three fields a journey may put away (discussion #2299) */}
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.settings.entryFields')}</label>
-            <p className="text-[11px] leading-snug text-zinc-500 mb-2">{t('journey.settings.entryFieldsHint')}</p>
-            <div className="flex flex-col gap-1.5">
-              {([
-                ['show_verdict', t('journey.settings.showVerdict')],
-                ['show_mood', t('journey.settings.showMood')],
-                ['show_weather', t('journey.settings.showWeather')],
-              ] as const).map(([field, label]) => {
-                const on = journey[field] !== 0
-                return (
-                  <div
-                    key={field}
-                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 border border-edge rounded-xl bg-surface-card text-left${savingField !== null ? ' opacity-60' : ''}`}
-                  >
-                    <span className="flex-1 min-w-0 text-[14px] text-content-primary">{label}</span>
+            {/* The journey's state, by hand or from the trips (#762) */}
+            <DialogSection label={t('journey.settings.status')}>
+              <div className={savingStatus ? 'opacity-60' : undefined}>
+                <Segmented<'auto' | 'draft' | 'live' | 'completed'>
+                  label={t('journey.settings.status')}
+                  value={statusChoice}
+                  onChange={next => { void handleStatusChange(next) }}
+                  fill
+                  options={[
+                    { value: 'auto', label: t('journey.settings.statusAuto') },
+                    { value: 'draft', label: t('journey.status.draft') },
+                    { value: 'live', label: t('journey.frontpage.live') },
+                    { value: 'completed', label: t('journey.status.completed') },
+                  ]}
+                />
+              </div>
+              <p className="m-0 mt-2 leading-normal text-content-faint" style={fs(11.5)}>
+                {t(statusChoice === 'auto' ? 'journey.settings.statusAutoHint' : 'journey.settings.statusManualHint')}
+              </p>
+            </DialogSection>
+
+            {/* Trip GPX tracks on the journey map (#2194) */}
+            <DialogSection label={t('journey.settings.tracks')}>
+              <div className={ROWS}>
+                <div className={`${ROW}${savingTracks ? ' opacity-60' : ''}`}>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-content" style={fs(13, 'body')}>{t('journey.settings.showTripTracks')}</span>
+                    <span className="block text-content-faint" style={fs(11.5)}>{t('journey.settings.showTripTracksHint')}</span>
+                  </span>
+                  <ToggleSwitch
+                    on={!!journey.show_trip_tracks}
+                    onToggle={() => { if (!savingTracks) void handleTracksToggle() }}
+                    label={t('journey.settings.showTripTracks')}
+                  />
+                </div>
+              </div>
+            </DialogSection>
+
+            {/* Places from photos (#1003): the GPS a picture carries puts its entry on the map */}
+            <DialogSection label={t('journey.settings.photosSection')}>
+              <div className={ROWS}>
+                <div className={`${ROW}${savingPhotoLocation ? ' opacity-60' : ''}`}>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-content" style={fs(13, 'body')}>{t('journey.settings.photoLocation')}</span>
+                    <span className="block text-content-faint" style={fs(11.5)}>{t('journey.settings.photoLocationHint')}</span>
+                  </span>
+                  <ToggleSwitch
+                    on={!!journey.photo_location}
+                    onToggle={() => { if (!savingPhotoLocation) void handlePhotoLocationToggle() }}
+                    label={t('journey.settings.photoLocation')}
+                  />
+                </div>
+              </div>
+            </DialogSection>
+
+            {/* The three fields a journey may put away (discussion #2299) */}
+            <DialogSection label={t('journey.settings.entryFields')}>
+              <p className="m-0 mb-2.5 leading-normal text-content-faint" style={fs(11.5)}>{t('journey.settings.entryFieldsHint')}</p>
+              <div className={ROWS}>
+                {([
+                  ['show_verdict', t('journey.settings.showVerdict')],
+                  ['show_mood', t('journey.settings.showMood')],
+                  ['show_weather', t('journey.settings.showWeather')],
+                ] as const).map(([field, label]) => (
+                  <div key={field} className={`${ROW}${savingField !== null ? ' opacity-60' : ''}`}>
+                    <span className="min-w-0 flex-1 text-content" style={fs(13, 'body')}>{label}</span>
                     <ToggleSwitch
-                      on={on}
-                      onToggle={() => { if (savingField === null) handleFieldToggle(field) }}
+                      on={journey[field] !== 0}
+                      onToggle={() => { if (savingField === null) void handleFieldToggle(field) }}
                       label={label}
                     />
                   </div>
-                )
-              })}
-            </div>
-          </div>
+                ))}
+              </div>
+            </DialogSection>
 
-          {/* The way back from dismissing suggestions one at a time. Only ever shown
-              when there is something to bring back, so it is not a permanent row
-              about a feature most journeys never touch. */}
-          {onRestoreSuggestions && (journey.dismissed_count ?? 0) > 0 && (
-            <button
-              type="button"
-              onClick={() => { void onRestoreSuggestions() }}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
-            >
-              <Undo2 size={15} className="text-zinc-400 flex-shrink-0" />
-              <span className="flex-1 min-w-0">
-                <span className="block text-[14px] text-zinc-900 dark:text-white">{t('journey.suggestions.restore')}</span>
-                <span className="block text-[11px] text-zinc-500">
-                  {t('journey.suggestions.restoreCount', { count: String(journey.dismissed_count) })}
+            {/* The way back from dismissing suggestions one at a time. Only ever shown
+                when there is something to bring back, so it is not a permanent row
+                about a feature most journeys never touch. */}
+            {onRestoreSuggestions && (journey.dismissed_count ?? 0) > 0 && (
+              <button
+                type="button"
+                onClick={() => { void onRestoreSuggestions() }}
+                className="flex w-full items-center gap-3 rounded-[14px] border border-edge-faint bg-surface-secondary px-3.5 py-2.5 text-start transition-colors hover:bg-surface-card"
+              >
+                <Undo2 size={15} className="flex-none text-content-faint" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-content" style={fs(13, 'body')}>{t('journey.suggestions.restore')}</span>
+                  <span className="block text-content-faint" style={fs(11.5)}>
+                    {t('journey.suggestions.restoreCount', { count: journey.dismissed_count ?? 0 })}
+                  </span>
                 </span>
-              </span>
-            </button>
-          )}
-
-          </div>
-
-          {/* Right column */}
-          <div className="flex flex-col gap-5 rounded-2xl p-4" style={{ background: 'var(--vg-surf2)', border: '1px solid var(--vg-line)' }}>
-          {/*Synced Trips */}
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.detail.syncedTrips')}</label>
-            <div className="flex flex-col gap-1.5">
-              {journey.trips.map((trip: any) => (
-                <div key={trip.trip_id} className="flex items-center gap-2.5 p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800">
-                  <div className="w-8 h-8 rounded-md flex-shrink-0" style={{ background: pickGradient(trip.trip_id) }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-medium text-zinc-900 dark:text-white">{trip.title}</div>
-                    <div className="text-[10px] text-zinc-500">{trip.place_count || 0} {t('journey.synced.places')}</div>
-                  </div>
-                  <button type="button"
-                    onClick={() => setUnlinkTarget({ trip_id: trip.trip_id, title: trip.title })}
-                    className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500/20 dark:bg-red-500/15 dark:hover:bg-red-500/25 transition-colors"
-                    title="Unlink trip"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-              {journey.trips.length === 0 && <p className="text-[11px] text-zinc-400">{t('journey.trips.noTripsLinkedSettings')}</p>}
-              <button type="button"
-                onClick={() => setShowAddTrip(true)}
-                className="w-full mt-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600 text-[12px] font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 dark:hover:border-zinc-500 dark:hover:text-zinc-300 transition-colors"
-              >
-                <Plus size={14} /> {t('journey.trips.addTrip')}
               </button>
-            </div>
+            )}
           </div>
 
-          {/* Contributors */}
-          <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.detail.contributors')}</label>
-            <div className="flex flex-col gap-2">
-              {journey.contributors.map((c: any) => (
-                <div key={c.user_id} className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center text-[11px] font-semibold">
-                    {(c.username || '?')[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 text-[12px] font-medium text-zinc-900 dark:text-white">{c.username}</div>
-                  <span className="shrink-0 rounded-full font-semibold uppercase" style={{ fontSize: 8.5, letterSpacing: '0.05em', padding: '2px 7px', ...(c.role === 'owner' ? { background: 'var(--vg-ink)', color: 'var(--vg-bg)' } : { background: 'color-mix(in srgb, var(--vg-ink3) 14%, transparent)', color: 'var(--vg-ink2)' }) }}>{c.role}</span>
-                  {c.role !== 'owner' && (
-                    <button type="button"
-                      onClick={async () => {
-                        if (!window.confirm(t('journey.contributors.removeConfirm', { username: c.username }))) return
-                        try {
-                          await journeyApi.removeContributor(journey.id, c.user_id)
-                          toast.success(t('journey.contributors.removed'))
-                          onRefresh()
-                        } catch {
-                          toast.error(t('journey.contributors.removeFailed'))
-                        }
-                      }}
-                      aria-label={t('journey.contributors.remove')}
-                      title={t('journey.contributors.remove')}
-                      className="w-7 h-7 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors"
-                    >
-                      <X size={13} />
-                    </button>
-                  )}
+          <div className="flex flex-col gap-5">
+            <DialogSection label={t('journey.detail.syncedTrips')}>
+              {journey.trips.length > 0 ? (
+                <div className={`${ROWS} mb-2.5`}>
+                  {journey.trips.map(trip => (
+                    <div key={trip.trip_id} className={ROW}>
+                      <span className="h-8 w-8 flex-none rounded-[9px]" style={{ background: pickGradient(trip.trip_id) }} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-semibold text-content" style={fs(13, 'body')}>{trip.title}</div>
+                        <div className="text-content-faint" style={fs(11.5)}>{trip.place_count || 0} {t('journey.synced.places', { count: trip.place_count || 0 })}</div>
+                      </div>
+                      <RowAction label={t('journey.trips.unlinkTrip')} onClick={() => setUnlinkTarget({ trip_id: trip.trip_id, title: trip.title })}>
+                        <Trash2 size={14} />
+                      </RowAction>
+                    </div>
+                  ))}
                 </div>
-              ))}
-              <button type="button"
-                onClick={onOpenInvite}
-                className="w-full mt-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600 text-[12px] font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 dark:hover:border-zinc-500 dark:hover:text-zinc-300 transition-colors"
-              >
-                <UserPlus size={14} /> {t('journey.contributors.invite')}
-              </button>
-            </div>
+              ) : (
+                <p className="m-0 mb-2.5 text-content-faint" style={fs(11.5)}>{t('journey.trips.noTripsLinkedSettings')}</p>
+              )}
+              <AddRowButton onClick={() => setShowAddTrip(true)}>{t('journey.trips.addTrip')}</AddRowButton>
+            </DialogSection>
+
+            <DialogSection label={t('journey.detail.contributors')}>
+              <div className={`${ROWS} mb-2.5`}>
+                {journey.contributors.map(c => (
+                  <div key={c.user_id} className={ROW}>
+                    <TripMemberAvatar username={c.username} avatarUrl={avatarSrc(c.avatar)} size={28} />
+                    <span className="min-w-0 flex-1 truncate font-semibold text-content" style={fs(13, 'body')}>{c.username}</span>
+                    {c.role === 'owner' ? (
+                      <span className={`${BADGE} bg-warning-soft text-warning`} style={fs(10.5)}>
+                        <Crown size={10} strokeWidth={2.4} />{roleLabel(c.role)}
+                      </span>
+                    ) : (
+                      <span className={`${BADGE} bg-surface-tertiary text-content-muted`} style={fs(10.5)}>{roleLabel(c.role)}</span>
+                    )}
+                    {c.role !== 'owner' && (
+                      <RowAction label={t('journey.contributors.remove')} onClick={() => { void handleRemoveContributor(c) }}>
+                        <X size={14} />
+                      </RowAction>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <AddRowButton onClick={onOpenInvite}>{t('journey.contributors.invite')}</AddRowButton>
+            </DialogSection>
           </div>
-
-          </div>
-          </div>
-
-          <div className="h-3" />
-
-          {/* Public Share */}
-          <JourneyShareSection journeyId={journey.id} />
-
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center gap-1.5 px-4 md:px-6 py-4 pb-6 md:pb-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
-          <button type="button"
-            onClick={() => setShowDeleteConfirm(true)}
-            aria-label={t('journey.settings.delete')}
-            title={t('journey.settings.delete')}
-            className="flex items-center justify-center gap-1.5 h-9 min-w-9 px-3 md:px-3.5 text-[12px] font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
-          >
-            <Trash2 size={14} />
-            <span className="hidden md:inline">{t('journey.settings.delete')}</span>
-          </button>
-          <button type="button"
-            onClick={handleArchiveToggle}
-            disabled={archiving}
-            aria-label={journey.status === 'archived' ? t('journey.settings.reopenJourney') : t('journey.settings.endJourney')}
-            title={t('journey.settings.endDescription')}
-            className="flex items-center justify-center gap-1.5 h-9 min-w-9 px-3 md:px-3.5 text-[12px] font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-full mr-auto disabled:opacity-40 transition-colors"
-          >
-            {journey.status === 'archived' ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-            <span className="hidden md:inline">{journey.status === 'archived' ? t('journey.settings.reopenJourney') : t('journey.settings.endJourney')}</span>
-          </button>
-          <button type="button" onClick={handleClose} className="h-10 px-4 rounded-full border border-zinc-200 dark:border-zinc-600 text-[13px] font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">{t('common.cancel')}</button>
-          <button type="button" onClick={handleSave} disabled={saving || !title.trim()} className="h-10 px-5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 transition-colors">
-            {saving ? t('common.saving') : t('common.save')}
-          </button>
-        </div>
-      </div>
+        <JourneyShareSection journeyId={journey.id} />
+      </DialogShell>
 
-      {/* Unlink Trip confirm */}
       <ConfirmDialog
         isOpen={!!unlinkTarget}
         onClose={() => setUnlinkTarget(null)}
-        onConfirm={async () => {
-          if (!unlinkTarget) return
-          try {
-            await journeyApi.removeTrip(journey.id, unlinkTarget.trip_id)
-            toast.success(t('journey.trips.tripUnlinked'))
-            setUnlinkTarget(null)
-            onSaved()
-          } catch {
-            toast.error(t('journey.trips.unlinkFailed'))
-          }
-        }}
+        onConfirm={confirmUnlink}
         title={t('journey.trips.unlinkTrip')}
         message={t('journey.trips.unlinkMessage', { title: unlinkTarget?.title })}
         confirmLabel={t('journey.trips.unlink')}
         danger
       />
 
-      {/* Add Trip — sits inside the backdrop, so its clicks have to be kept
-          from bubbling into the close/discard handler underneath */}
       {showAddTrip && (
-        <div role="presentation" onClick={e => e.stopPropagation()}>
-          <AddTripDialog
-            journeyId={journey.id}
-            existingTripIds={journey.trips.map((t: any) => t.trip_id)}
-            onClose={() => setShowAddTrip(false)}
-            onAdded={() => { setShowAddTrip(false); onSaved() }}
-          />
-        </div>
+        <AddTripDialog
+          journeyId={journey.id}
+          existingTripIds={journey.trips.map(trip => trip.trip_id)}
+          onClose={() => setShowAddTrip(false)}
+          onAdded={() => { setShowAddTrip(false); onSaved() }}
+        />
       )}
 
       <ConfirmDialog
@@ -415,6 +321,6 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
         confirmLabel={t('common.discard')}
         danger
       />
-    </div>
+    </>
   )
 }

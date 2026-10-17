@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { journeyWeatherCategory } from '../../../../src/mobile/screens/journey/mobileJourneyMeta';
+import { journeyWeatherCategory } from '../../../../src/components/Journey/journeyWeather';
 
 describe('journeyWeatherCategory', () => {
   it.each([

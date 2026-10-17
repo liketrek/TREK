@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common';
 import { RateLimitService } from './rate-limit.service';
+import { InMemoryRateLimitStore, RateLimitStore } from './rate-limit.store';
+import { Module } from '@nestjs/common';
 
 /**
  * One module owning the limiter, imported by every consumer.
@@ -13,9 +14,12 @@ import { RateLimitService } from './rate-limit.service';
  * Deliberately not `@Global()`: the e2e suites build a container around a single
  * domain module, where a global that AppModule never pulled in simply isn't there.
  * An explicit import also states the dependency where it is actually used.
+ *
+ * The counters sit behind the RateLimitStore port: in memory today, and a
+ * store shared between processes would be provided here instead.
  */
 @Module({
-  providers: [RateLimitService],
+  providers: [RateLimitService, { provide: RateLimitStore, useClass: InMemoryRateLimitStore }],
   exports: [RateLimitService],
 })
 export class RateLimitModule {}

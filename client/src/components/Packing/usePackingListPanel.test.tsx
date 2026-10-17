@@ -495,6 +495,20 @@ describe('usePackingList — bags', () => {
     expect(result.current.showAddBag).toBe(false)
   })
 
+  it('FE-W5HOOK-059: a create that answers without a bag still clears the form', async () => {
+    server.use(http.post('/api/trips/1/packing/bags', () => HttpResponse.json({})))
+    const { result } = renderPanel()
+    await settled()
+
+    act(() => { result.current.setNewBagName('Duffel'); result.current.setShowAddBag(true) })
+    await act(async () => { await result.current.handleCreateBag() })
+
+    expect(result.current.bags).toEqual([undefined])
+    expect(result.current.newBagName).toBe('')
+    expect(result.current.showAddBag).toBe(false)
+    expect(toastSpy).not.toHaveBeenCalled()
+  })
+
   it('FE-W5HOOK-031: a failing bag create surfaces a save error', async () => {
     server.use(http.post('/api/trips/1/packing/bags', () => new HttpResponse(null, { status: 500 })))
     const { result } = renderPanel()
@@ -621,7 +635,7 @@ describe('usePackingList — templates, import and signals', () => {
     await act(async () => { await result.current.handleApplyTemplate(2) })
 
     expect(useTripStore.getState().packingItems).toContainEqual(fresh)
-    expect(toastSpy).toHaveBeenCalledWith('1 items added from template', 'success', undefined)
+    expect(toastSpy).toHaveBeenCalledWith('1 item added from template', 'success', undefined)
     expect(result.current.showTemplateDropdown).toBe(false)
     expect(result.current.applyingTemplate).toBe(false)
   })
@@ -700,7 +714,7 @@ describe('usePackingList — templates, import and signals', () => {
     await act(async () => { await result.current.handleBulkImport() })
 
     expect(useTripStore.getState().packingItems).toContainEqual(imported)
-    expect(toastSpy).toHaveBeenCalledWith('1 items imported', 'success', undefined)
+    expect(toastSpy).toHaveBeenCalledWith('1 item imported', 'success', undefined)
     expect(result.current.importText).toBe('')
     expect(result.current.showImportModal).toBe(false)
   })
@@ -784,17 +798,14 @@ describe('usePackingList — templates, import and signals', () => {
     expect(result.current.showSaveTemplate).toBe(true)
   })
 
-  it('FE-W5HOOK-054: a raised clear-checked signal runs the bulk delete', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
-    const items = [buildPackingItem({ id: 81, checked: 1 })]
-    let deleted = false
-    server.use(http.delete('/api/trips/1/packing/81', () => { deleted = true; return HttpResponse.json({ success: true }) }))
-    const { rerender } = renderPanel({ items, clearCheckedSignal: 0 })
+  it('FE-W5HOOK-054: a raised add-list signal opens the list name field', async () => {
+    const { result, rerender } = renderPanel({ items: [], addCategorySignal: 0 })
     await settled()
+    expect(result.current.addingCategory).toBe(false)
 
-    await act(async () => { rerender({ tripId: 1, items, clearCheckedSignal: 1 }) })
+    rerender({ tripId: 1, items: [], addCategorySignal: 1 })
 
-    await waitFor(() => expect(deleted).toBe(true))
+    expect(result.current.addingCategory).toBe(true)
   })
 
   it('FE-W5HOOK-055: a mousedown outside the template dropdown closes it', async () => {

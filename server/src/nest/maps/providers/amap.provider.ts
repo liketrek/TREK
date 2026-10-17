@@ -28,11 +28,9 @@
  * unattributable image is worse than no image, so an Amap place gets its picture
  * the same way a place found on OpenStreetMap does.
  */
-import { createHash } from 'node:crypto';
-import { fromAmapLocation, gcj02ToWgs84, normalizePlaceWebsite, toAmapLocation } from '@trek/shared';
 import { readEnv } from '../../../app-config';
-import { safeFetchFollow } from '../../../utils/ssrfGuard';
 import { discardBody, exceedsDeclaredLength, readCappedJson } from '../../../utils/cappedFetch';
+import { safeFetchFollow } from '../../../utils/ssrfGuard';
 import { UA, parseOpeningHours } from '../maps.helpers';
 import type {
   PlacesProvider,
@@ -42,6 +40,9 @@ import type {
   SearchBias,
   ViewportBias,
 } from './places-provider';
+import { fromAmapLocation, gcj02ToWgs84, normalizePlaceWebsite, toAmapLocation } from '@trek/shared';
+
+import { createHash } from 'node:crypto';
 
 /** The upstream every Web Service call is written against. */
 const AMAP_UPSTREAM = 'https://restapi.amap.com';
@@ -208,7 +209,16 @@ function amapNumber(value: unknown): number | null {
 }
 
 /** 周一 … 周日, and the same after 星期, as the OSM two-letter day. 日 and 天 are both Sunday. */
-const AMAP_WEEKDAY: Record<string, string> = { 一: 'Mo', 二: 'Tu', 三: 'We', 四: 'Th', 五: 'Fr', 六: 'Sa', 日: 'Su', 天: 'Su' };
+const AMAP_WEEKDAY: Record<string, string> = {
+  一: 'Mo',
+  二: 'Tu',
+  三: 'We',
+  四: 'Th',
+  五: 'Fr',
+  六: 'Sa',
+  日: 'Su',
+  天: 'Su',
+};
 
 /**
  * A segment parseOpeningHours reads in full: its day grammar, one space, then
@@ -360,7 +370,9 @@ export class AmapPlacesProvider implements PlacesProvider {
   }
 
   private fail(label: string, status: number, message: string): never {
-    console.error(`[Maps] amap/${label} failed with ${status} userId=${this.credential.userId} keySource=${this.credential.source}`);
+    console.error(
+      `[Maps] amap/${label} failed with ${status} userId=${this.credential.userId} keySource=${this.credential.source}`,
+    );
     const err = new Error(message) as Error & { status: number };
     err.status = status;
     throw err;
@@ -408,7 +420,10 @@ export class AmapPlacesProvider implements PlacesProvider {
       phone: amapText(business.tel ?? poi.tel) || null,
       // Amap's type is a slash-separated taxonomy ("餐饮服务;中餐厅;川菜"); split so
       // it reads like the string array every other provider returns.
-      types: amapText(poi.type).split(/[;|]/).map((t) => t.trim()).filter(Boolean),
+      types: amapText(poi.type)
+        .split(/[;|]/)
+        .map((t) => t.trim())
+        .filter(Boolean),
       opening_hours: hours ? hours.weekdayDescriptions : null,
       open_now: hours ? hours.openNow : null,
       opening_periods: hours ? hours.periods : null,
@@ -481,15 +496,13 @@ export class AmapPlacesProvider implements PlacesProvider {
       params.location = toAmapLocation(lat, lng);
     }
 
-    const data = await this.call<AmapEnvelope & { tips?: AmapTip[] }>(
-      '/v3/assistant/inputtips',
-      params,
-      'inputtips',
-    );
+    const data = await this.call<AmapEnvelope & { tips?: AmapTip[] }>('/v3/assistant/inputtips', params, 'inputtips');
 
     // A tip without an id cannot be looked up afterwards, and inputtips does
     // return those (a district name, a road).
-    const served = asArray(data.tips).filter((tip) => amapText(tip.id)).slice(0, 5);
+    const served = asArray(data.tips)
+      .filter((tip) => amapText(tip.id))
+      .slice(0, 5);
     this.tips.remember(served);
 
     return served.map((tip) => ({
@@ -546,7 +559,11 @@ export class AmapPlacesProvider implements PlacesProvider {
    * minute of wall clock. Amap has no such rule, so an install on Amap gets its
    * imports back at network speed.
    */
-  async reverse(lat: number, lng: number, lang?: string): Promise<{ name: string | null; address: string | null } | null> {
+  async reverse(
+    lat: number,
+    lng: number,
+    lang?: string,
+  ): Promise<{ name: string | null; address: string | null } | null> {
     const data = await this.call<
       AmapEnvelope & {
         regeocode?: {
@@ -600,7 +617,9 @@ export class AmapPlacesProvider implements PlacesProvider {
  *
  * Returned coordinates are WGS-84; the link carries GCJ-02.
  */
-export function parseAmapUrl(rawUrl: string): { lat: number; lng: number; name: string | null; poiId: string | null } | null {
+export function parseAmapUrl(
+  rawUrl: string,
+): { lat: number; lng: number; name: string | null; poiId: string | null } | null {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);

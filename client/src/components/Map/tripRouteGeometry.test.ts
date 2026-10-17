@@ -232,4 +232,26 @@ describe('tripRouteGeometry', () => {
     const byRoad = planTripRoute({ ...moving, reservations: [] }, 'driving')
     expect(byRoad.map(d => d.day.id)).toEqual([2])
   })
+
+  it('FE-MAP-TRG-013: a road picked in the road trip bends the overview and still counts as one leg (#2580)', async () => {
+    // A lodging row hides in the plan but counts in the stored list, so the via behind
+    // the first stop of day 1 is filed at 1.
+    const hotel = buildAssignment({ day_id: 1, order_index: -1, accommodation_id: 3, place: buildPlace({ lat: 48.8, lng: 2.3 }) })
+    const storedAssignments = { ...ASSIGNMENTS, '1': [hotel, ...ASSIGNMENTS['1']] }
+    const viasByDay = { 1: [{ id: 1, day_id: 1, after_order_index: 1, sequence: 0, lat: 48.95, lng: 2.6, created_at: '' }] }
+    vi.mocked(calculateRouteWithLegs).mockImplementation(async (points) => ({
+      coordinates: points.map(p => [p.lat, p.lng] as [number, number]),
+      distance: 0, duration: 0,
+      legs: points.slice(1).map(() => leg(10000)),
+    }))
+
+    const plan = planTripRoute({ ...input, storedAssignments, viasByDay }, 'driving')
+    expect(plan[0].runs[0][0].waypoints.map(p => p.lat)).toEqual([48.86, 48.95, 48.90])
+    expect(plan[1].runs[0][0].waypoints.map(p => p.lat)).toEqual([45.76, 45.80])
+
+    const summary = await routeTrip({ ...input, storedAssignments, viasByDay }, { profile: 'driving', tripId: 7, unit: 'metric' })
+    expect(summary.days[0].segments).toHaveLength(1)
+    expect(summary.days[0].distance).toBe(20000)
+    expect(summary.days[1].distance).toBe(10000)
+  })
 })

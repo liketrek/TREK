@@ -11,10 +11,11 @@ permissions:
 jobs:
   close-stale:
     if: github.repository == 'liketrek/TREK'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - name: Close stale wrong-base-branch PRs
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const { data: pulls } = await github.rest.pulls.list({

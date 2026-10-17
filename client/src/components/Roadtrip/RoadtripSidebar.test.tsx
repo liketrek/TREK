@@ -135,20 +135,30 @@ describe('RoadtripSidebar', () => {
     expect(total('Stops')).toBe('5')
   })
 
-  it('FE-ROADTRIP-SIDEBAR-083: pulled narrow, the rail stops counting stops, in its head and on every day', () => {
+  it('FE-ROADTRIP-SIDEBAR-083: pulled narrow, the head stops counting stops, and a day gives its count up once its own row runs out of room', () => {
     const wide = wrap(<RoadtripSidebar routes={routes({ totalDistance: 250000, totalDuration: 9000, totalStops: 5 })} />)
     expect(screen.getByText('2 stops')).toBeInTheDocument()
     wide.unmount()
 
     railWidth.value = 300
-    wrap(<RoadtripSidebar routes={routes({ totalDistance: 250000, totalDuration: 9000, totalStops: 5 })} />)
+    const narrow = wrap(<RoadtripSidebar routes={routes({ totalDistance: 250000, totalDuration: 9000, totalStops: 5 })} />)
     expect(total('Distance')).toBe('250 km')
     expect(total('Driving time')).toBe('2 h 30 min')
     const head = screen.getByText('Distance').closest('header')!
-    // The figure goes with its hairline, so the two left share the width.
+    // The tile goes, so the two left share the width.
     expect(within(head).queryByText('Stops')).toBeNull()
-    expect(head.querySelectorAll('span.w-px')).toHaveLength(1)
-    expect(screen.queryByText('2 stops')).toBeNull()
+    expect(head.firstElementChild!.children).toHaveLength(2)
+    // The day measures its own pill row, and at this width its count still fits.
+    expect(screen.getByText('2 stops')).toBeInTheDocument()
+    narrow.unmount()
+
+    // Narrower still, the count keeps only its figure and the drive only its distance.
+    railWidth.value = 150
+    wrap(<RoadtripSidebar routes={routes({ totalDistance: 250000, totalDuration: 9000, totalStops: 5 })} />)
+    const dayHead = screen.getByRole('heading', { name: 'Day 1' }).closest('header')!
+    expect(within(dayHead).queryByText('2 stops')).toBeNull()
+    expect(within(dayHead).getByLabelText('2 stops')).toHaveTextContent(/^2$/)
+    expect(within(dayHead).getByText('100 km')).toBeInTheDocument()
   })
 
   it('FE-ROADTRIP-SIDEBAR-002: chains the stops with the drive between them', () => {
@@ -643,7 +653,10 @@ describe('RoadtripSidebar', () => {
     // whose mode nobody drew an icon for.
     const ride = wrap(<RoadtripSidebar routes={routes({ days: [day({ legs: [leg({ mode: 'ferry' })] })] })} />)
     expect(ride.container.querySelector('svg.lucide-sailboat')).toBeInTheDocument()
-    expect(ride.container.querySelector('svg.lucide-car-front')).toBeNull()
+    // The day head sums the drive under a car of its own; the band itself draws none.
+    const head = screen.getByRole('heading', { level: 3 }).parentElement
+    const cars = [...ride.container.querySelectorAll('svg.lucide-car-front')]
+    expect(cars.filter(svg => !head?.contains(svg))).toHaveLength(0)
   })
 
   it('FE-ROADTRIP-SIDEBAR-017: a late finding without a figure still reports itself', () => {
@@ -669,14 +682,14 @@ describe('RoadtripSidebar', () => {
     expect(onFollowTrack).toHaveBeenCalledWith(1)
     // The rail draws no vias, so the tint is the only place a drive shaped by hand
     // differs from one the router picked on its own.
-    expect(badge.className).toContain('bg-accent-subtle')
+    expect(badge).toHaveClass('bg-accent')
 
     rerender(
       <TranslationProvider>
         <RoadtripSidebar routes={routes({ days: [day({ stops })] })} onFollowTrack={onFollowTrack} />
       </TranslationProvider>,
     )
-    expect(screen.getByRole('button', { name: 'Track' }).className).not.toContain('bg-accent-subtle')
+    expect(screen.getByRole('button', { name: 'Track' })).not.toHaveClass('bg-accent')
   })
 
   it('FE-ROADTRIP-SIDEBAR-019: a viewer is offered no track badge at all', () => {
@@ -1160,21 +1173,19 @@ describe('RoadtripSidebar with a ride (#2428)', () => {
     })
   }
 
-  it('FE-ROADTRIP-SIDEBAR-049: a same-day ride is one block: the booking and its minutes, both codes with their timetable, the places and the check-in, and no number', () => {
+  it('FE-ROADTRIP-SIDEBAR-049: a same-day ride is one card: the booking, both timetable clocks, the codes as one route pill and the check-in, and no number', () => {
     wrap(<RoadtripSidebar routes={routes({ days: [flightDay()], totalStops: 2 })} />)
     expect(screen.getByText('LH 2020')).toBeInTheDocument()
-    expect(screen.getByText('1 h 10 min')).toBeInTheDocument()
-    expect(screen.queryByText('LH 2020 · 1 h 10 min')).toBeNull()
-    // Each code, each timetable clock and each place once.
+    // The minutes the ride takes are left to the booking.
+    expect(screen.queryByText('1 h 10 min')).toBeNull()
+    // Each code once, in the route pill, and both timetable clocks once, in the arrival column.
     expect(screen.getAllByText('HAM')).toHaveLength(1)
     expect(screen.getAllByText('MUC')).toHaveLength(1)
-    expect(screen.getAllByText('13:20')).toHaveLength(1)
-    expect(screen.getAllByText('14:30')).toHaveLength(1)
-    expect(screen.getByText('Hamburg Airport')).toBeInTheDocument()
-    expect(screen.getByText('Munich Airport')).toBeInTheDocument()
-    // What the clocks are is said to a screen reader, not printed a second time.
-    expect(screen.getByText('Departure 13:20')).toHaveClass('sr-only')
-    expect(screen.getByText('Arrival 14:30')).toHaveClass('sr-only')
+    expect(screen.getByText('HAM').parentElement).toContainElement(screen.getByText('MUC'))
+    expect(screen.getAllByText('13:20 \u2013 14:30')).toHaveLength(1)
+    // The places stand behind the route pill as its tooltip, not as lines of their own.
+    expect(screen.queryByText('Hamburg Airport')).toBeNull()
+    expect(screen.queryByText('Munich Airport')).toBeNull()
     // The check-in, labelled, where an unlabelled 12:20 used to stand in the arrival column.
     expect(screen.getByText('Check-in')).toBeInTheDocument()
     expect(screen.getByText('12:20')).toBeInTheDocument()
@@ -1184,13 +1195,13 @@ describe('RoadtripSidebar with a ride (#2428)', () => {
     expect(screen.getByText('2 stops')).toBeInTheDocument()
   })
 
-  it('FE-ROADTRIP-SIDEBAR-050: the ride block opens the booking; the road out of the arrival offers no other ways', () => {
+  it('FE-ROADTRIP-SIDEBAR-050: the ride card opens the booking; the road out of the arrival offers no other ways', () => {
     const onOpenBooking = vi.fn()
     const onAskAlternatives = vi.fn()
     wrap(<RoadtripSidebar routes={routes({ days: [flightDay()], totalStops: 2 })} onOpenBooking={onOpenBooking} onAskAlternatives={onAskAlternatives} />)
     // One control for the whole ride, not one per terminal and one for the band.
     expect(screen.getAllByRole('button', { name: /Open booking$/ })).toHaveLength(1)
-    fireEvent.click(screen.getByText('Hamburg Airport'))
+    fireEvent.click(screen.getByText('HAM'))
     fireEvent.click(screen.getByText('LH 2020'))
     expect(onOpenBooking).toHaveBeenCalledTimes(2)
     expect(onOpenBooking).toHaveBeenCalledWith(70)
@@ -1329,7 +1340,8 @@ describe('RoadtripSidebar with a hire car and the day\'s bookings (#2428)', () =
     const drop = screen.getByText('Sixt Airport').closest('button')!
     expect(within(drop).getByText('Return')).toBeInTheDocument()
     expect(within(drop).getAllByText('11:30')).toHaveLength(1)
-    expect(within(drop).getByText('HAM')).toBeInTheDocument()
+    // The desk word takes the pill a terminal's code would, so the code is not said beside it.
+    expect(within(drop).queryByText('HAM')).toBeNull()
     // A desk has no check-in.
     expect(screen.queryByText('Check-in')).toBeNull()
     expect(screen.queryByText('3')).not.toBeInTheDocument()
@@ -1350,7 +1362,7 @@ describe('RoadtripSidebar with a hire car and the day\'s bookings (#2428)', () =
     expect(within(rows[0] as HTMLElement).getByText('Tank runs out here')).toBeInTheDocument()
   })
 
-  it('FE-ROADTRIP-SIDEBAR-053: a table pinned to a stop, or booked at its place on its day, hangs under the stop as a chip that opens it; one for no stop is listed under the day', () => {
+  it('FE-ROADTRIP-SIDEBAR-053: a table pinned to a stop, or booked at its place on its day, sits on the stop as a pill that opens it; one for no stop is listed under the day', () => {
     const stops = [stop({ assignmentId: 1, name: 'Hamburg' }), stop({ assignmentId: 2, name: 'Lübeck' })]
     const reservations = [
       booking({ id: 11, title: 'Tisch Bullerei', reservation_time: '2026-10-05T19:30', assignment_id: 1 }),
@@ -1361,21 +1373,22 @@ describe('RoadtripSidebar with a hire car and the day\'s bookings (#2428)', () =
     ]
     const onOpenBooking = vi.fn()
     wrap(<RoadtripSidebar routes={routes({ days: [day({ stops })], totalStops: 2 })} reservations={reservations} onOpenBooking={onOpenBooking} canEditBookings />)
-    expect(screen.getByText('Tisch Bullerei')).toBeInTheDocument()
-    expect(screen.getByText('19:30')).toBeInTheDocument()
-    expect(screen.getByText('Café Niederegger')).toBeInTheDocument()
+    // Each booking is a pill on its stop's own badge row, named by its title and status.
+    const table = within(screen.getByText('Hamburg').closest('li') as HTMLElement).getByRole('button', { name: 'Tisch Bullerei, Confirmed' })
+    expect(table).toHaveTextContent('19:30')
+    expect(within(screen.getByText('Lübeck').closest('li') as HTMLElement).getByRole('button', { name: 'Café Niederegger, Confirmed' })).toBeInTheDocument()
     expect(screen.getByText('Also booked this day')).toBeInTheDocument()
-    expect(screen.getByText('Elbphilharmonie')).toBeInTheDocument()
-    // Another day's booking is not this day's, and the night is the stay, not a chip.
-    expect(screen.queryByText('Tomorrow')).not.toBeInTheDocument()
-    expect(screen.queryByText('Hotel Hafen')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByText('Tisch Bullerei'))
+    expect(screen.getByRole('button', { name: 'Elbphilharmonie, Confirmed' })).toBeInTheDocument()
+    // Another day's booking is not this day's, and the night is the stay, not a pill.
+    expect(screen.queryByRole('button', { name: /^Tomorrow/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Hotel Hafen/ })).not.toBeInTheDocument()
+    fireEvent.click(table)
     expect(onOpenBooking).toHaveBeenCalledWith(11)
-    // The chips are the stop's, not stops: the count stays at two.
+    // The pills are the stop's, not stops: the count stays at two.
     expect(screen.getByText('2 stops')).toBeInTheDocument()
   })
 
-  it('FE-ROADTRIP-SIDEBAR-058: for a reader who may not edit bookings, a table is a plain chip while a taxi still opens its detail view', () => {
+  it('FE-ROADTRIP-SIDEBAR-058: for a reader who may not edit bookings, a table is a plain pill while a taxi still opens its detail view', () => {
     const stops = [stop({ assignmentId: 1, name: 'Hamburg' }), stop({ assignmentId: 2, name: 'Lübeck' })]
     const reservations = [
       booking({ id: 11, title: 'Tisch Bullerei', reservation_time: '2026-10-05T19:30', assignment_id: 1 }),
@@ -1384,11 +1397,12 @@ describe('RoadtripSidebar with a hire car and the day\'s bookings (#2428)', () =
     const onOpenBooking = vi.fn()
     wrap(<RoadtripSidebar routes={routes({ days: [day({ stops })], totalStops: 2 })} reservations={reservations} onOpenBooking={onOpenBooking} />)
     // The table is there to read, not a button that does nothing; the taxi is a button.
-    expect(screen.getByText('Tisch Bullerei').closest('button')).toBeNull()
-    expect(screen.getByText('Taxi zum Hafen').closest('button')).not.toBeNull()
-    fireEvent.click(screen.getByText('Tisch Bullerei'))
+    expect(screen.queryByRole('button', { name: /Tisch Bullerei/ })).toBeNull()
+    const taxi = screen.getByRole('button', { name: 'Taxi zum Hafen, Confirmed' })
+    expect(taxi).toHaveTextContent('18:30')
+    fireEvent.click(screen.getByText('19:30'))
     expect(onOpenBooking).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByText('Taxi zum Hafen'))
+    fireEvent.click(taxi)
     expect(onOpenBooking).toHaveBeenCalledWith(12)
   })
 })
@@ -1739,78 +1753,78 @@ describe('RoadtripSidebar with a flight the drive gets to late (#2460)', () => {
       },
     })
   }
-  const block = () => screen.getByText('LH 2078 HAM-MUC (ohne Endpunkte)').closest('button')!.children[1] as HTMLElement
+  const TITLE = 'LH 2078 HAM-MUC (ohne Endpunkte)'
+  /** The ride is one card, and the card is the button that opens its booking. */
+  const card = () => screen.getByText(TITLE).closest('button')!
 
-  it('FE-ROADTRIP-SIDEBAR-075: a missed flight says so on its check-in and on the day, with no delta against a clock nobody sees', () => {
+  it('FE-ROADTRIP-SIDEBAR-075: a flight the drive cannot catch takes no check-in pill and no missed pill, and the card keeps its title as typed and each code once', () => {
     wrap(<RoadtripSidebar routes={routes({ days: [flightDay(579)], totalStops: 2 })} onOpenBooking={vi.fn()} />)
-    // The title as typed, the duration beside the check-in, each code once and the places without it.
-    const title = screen.getByText('LH 2078 HAM-MUC (ohne Endpunkte)')
+    const title = screen.getByText(TITLE)
     expect(title.className).not.toContain('uppercase')
-    expect(within(block()).getByText('Missed').closest('.flex-wrap')).toHaveTextContent('2 h 5 min')
-    expect(title.parentElement).not.toHaveTextContent('2 h 5 min')
+    expect(within(card()).getByText('15:15 \u2013 17:20')).toBeInTheDocument()
     expect(screen.getAllByText('HAM')).toHaveLength(1)
-    expect(screen.getByText('Hamburg')).toBeInTheDocument()
-    expect(screen.getByText('Munich')).toBeInTheDocument()
+    expect(screen.getAllByText('MUC')).toHaveLength(1)
     expect(screen.queryByText(/\(HAM\)/)).toBeNull()
-    // The check-in carries the finding; the separate late pill is gone.
-    expect(within(block()).getByText('Missed')).toBeInTheDocument()
-    expect(within(block()).getByText('there at 23:54')).toBeInTheDocument()
+    // Neither the check-in nor a finding about it, and no delta against a clock nobody sees.
+    expect(screen.queryByText('Check-in')).toBeNull()
+    expect(screen.queryByText('Missed')).toBeNull()
+    expect(screen.queryByText('there at 23:54')).toBeNull()
     expect(screen.queryByText('+9 h 39 min')).toBeNull()
-    expect(block().className).toContain('border-warning')
+    expect(screen.queryByText('2 h 5 min')).toBeNull()
     const header = screen.getByText('Day 3').closest('header')!
-    expect(within(header).getByText('Flight missed')).toBeInTheDocument()
+    expect(within(header).queryByText('Flight missed')).toBeNull()
   })
 
-  it('FE-ROADTRIP-SIDEBAR-076: a folded day still says its flight is missed', () => {
+  it('FE-ROADTRIP-SIDEBAR-076: a folded day keeps its head and its drive, with no missed pill', () => {
     wrap(<RoadtripSidebar routes={routes({ days: [flightDay(579)], totalStops: 2 })} collapsedDayIds={new Set([3])} onToggleDay={vi.fn()} />)
     const header = screen.getByText('Day 3').closest('header')!
-    expect(within(header).getByText('Flight missed')).toBeInTheDocument()
+    expect(header).toHaveAttribute('aria-expanded', 'false')
+    expect(within(header).getByText(/km in/)).toBeInTheDocument()
+    expect(within(header).queryByText('Flight missed')).toBeNull()
   })
 
-  it('FE-ROADTRIP-SIDEBAR-077: late for the check-in but in time for the flight says by how much, and leaves the day alone', () => {
+  it('FE-ROADTRIP-SIDEBAR-077: late for the check-in but in time for the flight leaves both the card and the day without a pill', () => {
     wrap(<RoadtripSidebar routes={routes({ days: [flightDay(25)], totalStops: 2 })} />)
-    expect(within(block()).getByText('Check-in')).toBeInTheDocument()
-    expect(within(block()).getByText('25 min late')).toBeInTheDocument()
-    expect(block().className).not.toContain('border-warning')
+    expect(within(card()).queryByText('Check-in')).toBeNull()
+    expect(within(card()).queryByText('25 min late')).toBeNull()
     expect(screen.queryByText('Flight missed')).toBeNull()
   })
 
-  it('FE-ROADTRIP-SIDEBAR-078: a train is boarded, and a missed one is named as a train', () => {
+  it('FE-ROADTRIP-SIDEBAR-078: a train in time is boarded, and a missed one says nothing on the card', () => {
     const onTime = wrap(<RoadtripSidebar routes={routes({ days: [flightDay(null, 'train')], totalStops: 2 })} />)
     expect(screen.getByText('Boarding')).toBeInTheDocument()
     expect(screen.getByText('14:15')).toBeInTheDocument()
     onTime.unmount()
 
     wrap(<RoadtripSidebar routes={routes({ days: [flightDay(579, 'train')], totalStops: 2 })} />)
-    expect(within(screen.getByText('Day 3').closest('header')!).getByText('Train missed')).toBeInTheDocument()
+    expect(screen.queryByText('Boarding')).toBeNull()
+    expect(within(screen.getByText('Day 3').closest('header')!).queryByText('Train missed')).toBeNull()
   })
 
-  it('FE-ROADTRIP-SIDEBAR-079: the badge explains itself in a sentence, and a booking clock names what it is, not a time you set', () => {
+  it('FE-ROADTRIP-SIDEBAR-079: the check-in explains itself in a sentence, and the booking clocks name what they are, not a time you set', () => {
     vi.useFakeTimers()
     try {
-      wrap(<RoadtripSidebar routes={routes({ days: [flightDay(579)], totalStops: 2 })} />)
+      wrap(<RoadtripSidebar routes={routes({ days: [flightDay(null)], totalStops: 2 })} />)
       const hover = (el: HTMLElement) => {
         fireEvent.mouseEnter(el)
         act(() => { vi.advanceTimersByTime(300) })
       }
-      hover(screen.getByText('there at 23:54').parentElement!)
-      expect(screen.getByRole('tooltip')).toHaveTextContent(
-        'The drive reaches Hamburg at 23:54. LH 2078 HAM-MUC (ohne Endpunkte) departs at 15:15, check-in closes at 14:15.',
-      )
-      fireEvent.mouseLeave(screen.getByText('there at 23:54').parentElement!)
+      hover(screen.getByText('14:15').parentElement!)
+      expect(screen.getByRole('tooltip')).toHaveTextContent(`${TITLE} departs at 15:15, check-in closes at 14:15.`)
+      fireEvent.mouseLeave(screen.getByText('14:15').parentElement!)
 
-      hover(screen.getByText('15:15').parentElement!)
-      expect(screen.getByRole('tooltip')).toHaveTextContent('Departure 15:15')
+      hover(screen.getByText('15:15 \u2013 17:20'))
+      expect(screen.getByRole('tooltip')).toHaveTextContent('Departure 15:15, Arrival 17:20')
       expect(screen.queryByText('Time you set')).toBeNull()
     } finally {
       vi.useRealTimers()
     }
   })
 
-  it('FE-ROADTRIP-SIDEBAR-080: a screen reader hears the ride, its clocks and that it is missed, then what pressing it does', () => {
+  it('FE-ROADTRIP-SIDEBAR-080: a screen reader hears the ride, its clocks and its route, then what pressing it does', () => {
     wrap(<RoadtripSidebar routes={routes({ days: [flightDay(579)], totalStops: 2 })} onOpenBooking={vi.fn()} />)
-    const button = screen.getByText('LH 2078 HAM-MUC (ohne Endpunkte)').closest('button')!
+    const button = card()
     expect(button).not.toHaveAttribute('aria-label')
-    expect(button).toHaveAccessibleName(expect.stringMatching(/Departure 15:15\s*Arrival 17:20.*Missed\s*there at 23:54\s*2 h 5 min\s*Open booking$/))
+    expect(button).toHaveAccessibleName(expect.stringMatching(/^LH 2078 HAM-MUC \(ohne Endpunkte\)\s*15:15\s*\u2013\s*17:20\s*HAM\s*MUC\s*Open booking$/))
   })
 })

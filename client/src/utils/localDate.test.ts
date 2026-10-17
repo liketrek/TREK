@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { localIsoDate } from './localDate'
+import { isLocalToday, localIsoDate, localMinutes } from './localDate'
 
 /**
  * "Today" must be the user's local calendar date. `toISOString()` is the UTC
@@ -24,5 +24,45 @@ describe('localIsoDate', () => {
 
   it('defaults to now', () => {
     expect(localIsoDate()).toBe(localIsoDate(new Date()))
+  })
+})
+
+describe('localMinutes', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('counts the minutes since local midnight', () => {
+    expect(localMinutes(new Date(2026, 7, 25, 0, 0))).toBe(0)
+    expect(localMinutes(new Date(2026, 7, 25, 13, 45, 59))).toBe(825)
+    expect(localMinutes(new Date(2026, 7, 25, 23, 59))).toBe(1439)
+  })
+
+  it('defaults to now', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 7, 25, 0, 30))
+    expect(localMinutes()).toBe(30)
+  })
+})
+
+describe('isLocalToday', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 7, 25, 0, 30)) // local 2026-08-25 00:30
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('matches the local calendar date, with or without a time part', () => {
+    expect(isLocalToday('2026-08-25')).toBe(true)
+    expect(isLocalToday('2026-08-25T00:00:00.000Z')).toBe(true)
+  })
+
+  it('is false for another date or no date at all', () => {
+    expect(isLocalToday('2026-08-24')).toBe(false)
+    expect(isLocalToday('')).toBe(false)
+    expect(isLocalToday(null)).toBe(false)
+    expect(isLocalToday(undefined)).toBe(false)
   })
 })

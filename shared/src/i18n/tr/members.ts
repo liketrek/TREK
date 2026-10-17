@@ -7,8 +7,8 @@ const members: TranslationStrings = {
   'members.invite': 'Davet et',
   'members.allHaveAccess': 'Tüm kullanıcıların zaten erişimi var.',
   'members.access': 'Erişim',
-  'members.person': 'kişi',
   'members.persons': 'kişi',
+  'members.persons.one': 'kişi',
   'members.you': 'siz',
   'members.owner': 'Sahip',
   'members.leaveTrip': 'Seyahatten ayrıl',
@@ -33,6 +33,9 @@ const members: TranslationStrings = {
   'members.guestAddError': 'Misafir eklenemedi',
   'members.guestRenameError': 'Misafir yeniden adlandırılamadı',
   'members.guestRemoved': 'Misafir kaldırıldı',
-  'members.confirmRemoveGuest': 'Bu misafir kaldırılsın mı? Atamaları ve masraf payları da kaldırılacak.',
+  'members.confirmRemoveGuest':
+    'Bu misafir kaldırılsın mı? Atamaları kaldırılacak ve her masraftaki payı diğer katılımcılar arasında paylaştırılacak.',
+  'members.guestHasPayments':
+    'Bu misafir bir masrafı ödedi veya kayıtlı bir ödemenin tarafı. Önce ödeyeni değiştirin veya ödemeyi silin.',
 };
 export default members;

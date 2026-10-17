@@ -104,6 +104,7 @@ function makePlanner(overrides: Record<string, unknown> = {}) {
       addFile: vi.fn().mockResolvedValue(undefined),
       ratePlace: vi.fn().mockResolvedValue(undefined),
     },
+    isTourPlace: vi.fn<TripPlanner['isTourPlace']>(() => false),
     can: vi.fn(() => true),
     reservations: [] as unknown[],
     TRANSPORT_TYPES: new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other']),

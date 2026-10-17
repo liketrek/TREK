@@ -5,52 +5,72 @@
  * automated ingest can park a booking for review without publishing it. Every
  * row that exists before the ALTER has to come out 'live', or the migration
  * would empty a calendar subscription that works today.
+ *
+ * Ported off the legacy runner (Task 0 triage: PORT) onto the real
+ * `Migration20200101031900_reservations_an_automated_ingest_parked_for_review`:
+ * migrate to the step immediately before it, seed rows with raw SQL, apply
+ * just that one migration, assert. The replay case runs the migration class
+ * directly a second time (bypassing the Migrator's own "already applied, skip"
+ * bookkeeping) to prove the `addColumnIfMissing` guard is what the legacy
+ * test's schema_version rewind was really exercising.
  */
-import { describe, it, expect } from 'vitest';
-import Database from 'better-sqlite3';
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
+import { Migration20200101031900_reservations_an_automated_ingest_parked_for_review as TargetMigration } from '../../../src/db/migrations/Migration20200101031900_reservations_an_automated_ingest_parked_for_review';
+import {
+  createMigrationOrm,
+  migrateTo,
+  pendingNames,
+  rawExec,
+  rawQuery,
+  runMigrationDirect,
+} from '../../helpers/migration-step';
+import type { MikroORM } from '@mikro-orm/sqlite';
 
-function dbWithReservations(): Database.Database {
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA busy_timeout = 5000');
-  db.exec('PRAGMA foreign_keys = ON');
-  createTables(db);
-  db.prepare("INSERT INTO users (id, username, email, password_hash) VALUES (1, 'u', 'u@example.test', 'x')").run();
-  db.prepare("INSERT INTO trips (id, user_id, title) VALUES (1, 1, 'T')").run();
-  db.prepare("INSERT INTO reservations (id, trip_id, title, type) VALUES (1, 1, 'Old Flight', 'flight')").run();
-  return db;
+import { describe, it, expect } from 'vitest';
+
+const TARGET = 'Migration20200101031900_reservations_an_automated_ingest_parked_for_review';
+
+async function ormWithSeededReservation(): Promise<MikroORM> {
+  const orm = await createMigrationOrm();
+  const names = await pendingNames(orm);
+  const idx = names.indexOf(TARGET);
+  expect(idx).toBeGreaterThan(0);
+  await migrateTo(orm, names[idx - 1]);
+  await rawExec(orm, "INSERT INTO users (id, username, email, password_hash) VALUES (1, 'u', 'u@example.test', 'x')");
+  await rawExec(orm, "INSERT INTO trips (id, user_id, title) VALUES (1, 1, 'T')");
+  await rawExec(orm, "INSERT INTO reservations (id, trip_id, title, type) VALUES (1, 1, 'Old Flight', 'flight')");
+  return orm;
 }
 
 describe('reservations ingest_state migration', () => {
-  it('MIGRATE-INGEST-001: every pre-existing row comes out live', () => {
-    const db = dbWithReservations();
+  it('MIGRATE-INGEST-001: every pre-existing row comes out live', async () => {
+    const orm = await ormWithSeededReservation();
     try {
-      runMigrations(db);
-      const row = db.prepare('SELECT ingest_state FROM reservations WHERE id = 1').get() as { ingest_state: string };
-      expect(row.ingest_state).toBe('live');
+      await migrateTo(orm, TARGET);
+      const rows = await rawQuery<{ ingest_state: string }>(orm, 'SELECT ingest_state FROM reservations WHERE id = 1');
+      expect(rows[0].ingest_state).toBe('live');
     } finally {
-      db.close();
+      await orm.close(true);
     }
-  });
+  }, 30000);
 
-  it('MIGRATE-INGEST-002: running the migration twice is a no-op', () => {
-    const db = dbWithReservations();
+  it('MIGRATE-INGEST-002: running the migration twice is a no-op', async () => {
+    const orm = await ormWithSeededReservation();
     try {
-      runMigrations(db);
-      // Rewind the version so the step replays against a table that already has
-      // the column. Without the pragma_table_info guard the ALTER throws and
-      // runMigrations exits the process.
-      const version = (db.prepare('SELECT version FROM schema_version').get() as { version: number }).version;
-      db.prepare('UPDATE schema_version SET version = ?').run(version - 1);
-      runMigrations(db);
+      await migrateTo(orm, TARGET);
+      // Run the migration class directly a second time against a table that
+      // already has the column. Without the pragma_table_info guard the ALTER
+      // throws.
+      await runMigrationDirect(orm, TargetMigration);
 
-      const cols = db.prepare("SELECT name FROM pragma_table_info('reservations') WHERE name = 'ingest_state'").all();
+      const cols = await rawQuery(
+        orm,
+        "SELECT name FROM pragma_table_info('reservations') WHERE name = 'ingest_state'",
+      );
       expect(cols).toHaveLength(1);
-      expect((db.prepare('SELECT version FROM schema_version').get() as { version: number }).version).toBe(version);
+      const rows = await rawQuery<{ ingest_state: string }>(orm, 'SELECT ingest_state FROM reservations WHERE id = 1');
+      expect(rows[0].ingest_state).toBe('live');
     } finally {
-      db.close();
+      await orm.close(true);
     }
-  });
+  }, 30000);
 });

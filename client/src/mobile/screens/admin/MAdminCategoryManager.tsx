@@ -1,102 +1,17 @@
-import { useState, useEffect, useRef } from 'react'
 import { Plus, Edit2, Trash2, Pipette } from 'lucide-react'
-import { categoriesApi } from '../../../api/client'
-import { useToast } from '../../../components/shared/Toast'
+import { ICON_NAMES, PRESET_COLORS, useCategoryAdmin } from '../../../components/Admin/useCategoryAdmin'
 import { CATEGORY_ICON_MAP, ICON_LABELS, getCategoryIcon } from '../../../components/shared/categoryIcons'
 import { useTranslation } from '../../../i18n'
-import { getApiErrorMessage } from '../../../types'
 import MConfirmSheet from '../settings/MConfirmSheet'
 import { MAdminButton, MAdminCard, MAdminCardHead } from './MAdminUi'
 
-const PRESET_COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316',
-  '#f59e0b', '#10b981', '#06b6d4', '#3b82f6', '#84cc16',
-  '#6b7280', '#1f2937',
-]
-
-const ICON_NAMES = Object.keys(CATEGORY_ICON_MAP)
-
 export default function MAdminCategoryManager() {
-  const [categories, setCategories] = useState([])
-  const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ name: '', color: '#6366f1', icon: 'MapPin' })
-  const [isSaving, setIsSaving] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [deleteId, setDeleteId] = useState(null)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const colorInputRef = useRef(null)
-  const toast = useToast()
+  const {
+    categories, showForm, editingId, form, setForm, isSaving, isLoading, deleteId, setDeleteId, isDeleting,
+    colorInputRef, handleStartEdit, handleStartCreate, handleCancel, handleSave, handleDelete, isPresetColor,
+  } = useCategoryAdmin({ trackDelete: true })
   const { t } = useTranslation()
 
-  useEffect(() => { loadCategories() }, [])
-
-  const loadCategories = async () => {
-    setIsLoading(true)
-    try {
-      const data = await categoriesApi.list()
-      setCategories(data.categories || [])
-    } catch (err: unknown) {
-      toast.error(t('categories.toast.loadError'))
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleStartEdit = (cat) => {
-    setEditingId(cat.id)
-    setForm({ name: cat.name, color: cat.color || '#6366f1', icon: cat.icon || 'MapPin' })
-    setShowForm(false)
-  }
-
-  const handleStartCreate = () => {
-    setEditingId(null)
-    setForm({ name: '', color: '#6366f1', icon: 'MapPin' })
-    setShowForm(true)
-  }
-
-  const handleCancel = () => {
-    setShowForm(false)
-    setEditingId(null)
-  }
-
-  const handleSave = async () => {
-    setIsSaving(true)
-    try {
-      if (editingId) {
-        const result = await categoriesApi.update(editingId, form)
-        setCategories(prev => prev.map(c => c.id === editingId ? result.category : c))
-        setEditingId(null)
-        toast.success(t('categories.toast.updated'))
-      } else {
-        const result = await categoriesApi.create(form)
-        setCategories(prev => [...prev, result.category])
-        setShowForm(false)
-        toast.success(t('categories.toast.created'))
-      }
-      setForm({ name: '', color: '#6366f1', icon: 'MapPin' })
-    } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('categories.toast.saveError')))
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleDelete = async (id) => {
-    setIsDeleting(true)
-    try {
-      await categoriesApi.delete(id)
-      setCategories(prev => prev.filter(c => c.id !== id))
-      toast.success(t('categories.toast.deleted'))
-      setDeleteId(null)
-    } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('categories.toast.deleteError')))
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  const isPresetColor = PRESET_COLORS.includes(form.color)
   const PreviewIcon = getCategoryIcon(form.icon)
 
   const categoryForm = (

@@ -1,13 +1,13 @@
 // vi.unmock must run before the module is imported (tests/setup.ts mocks it globally)
 vi.unmock('./websocket')
 
-// FE-WSCORE-001 to FE-WSCORE-014
+// FE-WSCORE-001 to FE-WSCORE-016
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../tests/helpers/msw/server'
 import {
   connect, disconnect, joinTrip, leaveTrip, getActiveTrips,
-  setRefetchCallback, setPreReconnectHook,
+  setRefetchCallback, setPreReconnectHook, reconnectNow,
 } from './websocket'
 
 class MockWebSocket {
@@ -265,3 +265,34 @@ describe('websocket > connection lifecycle', () => {
     expect(MockWebSocket.instances).toHaveLength(2)
   })
 })
+
+describe('websocket > logout and reconnect', () => {
+  it('FE-WSCORE-015: a logout while the token is on its way opens no socket afterwards', async () => {
+    server.use(http.post('/api/auth/ws-token', async () => {
+      await new Promise((r) => setTimeout(r, 50))
+      return HttpResponse.json({ token: 'previous-user' })
+    }))
+    connect()
+    disconnect()
+    await vi.advanceTimersByTimeAsync(100)
+    expect(MockWebSocket.instances).toHaveLength(0)
+  })
+
+  it('FE-WSCORE-016: reconnectNow skips the backoff, and does nothing while logged out or connected', async () => {
+    reconnectNow()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(MockWebSocket.instances).toHaveLength(0)
+
+    const first = await openSocket()
+    reconnectNow()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(MockWebSocket.instances).toHaveLength(1)
+
+    first.readyState = MockWebSocket.CLOSED
+    first.onclose?.()
+    reconnectNow()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(MockWebSocket.instances).toHaveLength(2)
+  })
+})
+

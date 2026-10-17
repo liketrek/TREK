@@ -1,8 +1,9 @@
-// FE-COMP-MAPLAYER-001 to FE-COMP-MAPLAYER-006
+// FE-COMP-MAPLAYER-001 to FE-COMP-MAPLAYER-017
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '../../../tests/helpers/render'
-import { MapLayerSwitcher, MAP_ROUND_CONTROL_SIZE } from './MapLayerSwitcher'
+import { MapLayerSwitcher, TourMapLayerSwitcher, MAP_ROUND_CONTROL_SIZE } from './MapLayerSwitcher'
+import type { FerrataMapLayer } from '../Ferratas/useFerrataMapLayer'
 
 describe('MapLayerSwitcher', () => {
   it('FE-COMP-MAPLAYER-001: on the default layer, offers the switch to satellite', () => {
@@ -42,7 +43,23 @@ describe('MapLayerSwitcher', () => {
     expect(button.style.background).toBe('transparent')
   })
 
-  it('FE-COMP-MAPLAYER-006: the shell is as wide as the size its neighbours are placed off', () => {
+  it('FE-COMP-MAPLAYER-006: offers all three Tours-only base layers', () => {
+    render(<TourMapLayerSwitcher active="default" onChange={() => {}} />)
+
+    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Topo' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Satellite' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('FE-COMP-MAPLAYER-007: reports a per-view Topo selection', () => {
+    const onChange = vi.fn()
+    render(<TourMapLayerSwitcher active="default" onChange={onChange} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Topo' }))
+    expect(onChange).toHaveBeenCalledWith('topo')
+  })
+
+  it('FE-COMP-MAPLAYER-008: the shell is as wide as the size its neighbours are placed off', () => {
     render(<MapLayerSwitcher active="default" onToggle={() => {}} />)
     const button = screen.getByRole('button')
     const shell = button.parentElement as HTMLElement
@@ -53,5 +70,136 @@ describe('MapLayerSwitcher', () => {
     expect(button.style.width).toBe('34px')
     expect(button.style.height).toBe('34px')
     expect(parseFloat(button.style.width) + 2 * parseFloat(shell.style.padding)).toBe(MAP_ROUND_CONTROL_SIZE)
+  })
+})
+
+describe('TourMapLayerSwitcher 3D switch', () => {
+  it('FE-COMP-MAPLAYER-009: offers no 3D switch on a map that has no terrain mode', () => {
+    render(<TourMapLayerSwitcher active="default" onChange={() => {}} />)
+    expect(screen.queryByRole('button', { name: '3D' })).toBeNull()
+  })
+
+  it('FE-COMP-MAPLAYER-010: toggles the terrain mode and shows whether it is on', () => {
+    const onToggleTerrain = vi.fn()
+    const { rerender } = render(<TourMapLayerSwitcher active="topo" onChange={() => {}} onToggleTerrain={onToggleTerrain} />)
+    const off = screen.getByRole('button', { name: '3D' })
+    expect(off).toHaveAttribute('aria-pressed', 'false')
+    expect(off).toHaveClass('text-content-muted')
+    expect(off.style.background).toBe('transparent')
+    fireEvent.click(off)
+    expect(onToggleTerrain).toHaveBeenCalledTimes(1)
+
+    rerender(<TourMapLayerSwitcher active="topo" onChange={() => {}} onToggleTerrain={onToggleTerrain} terrainActive />)
+    const on = screen.getByRole('button', { name: '3D' })
+    expect(on).toHaveAttribute('aria-pressed', 'true')
+    expect(on).toHaveClass('bg-accent', 'text-accent-text')
+    expect(on.style.background).toBe('')
+    // The base layer stays selectable beside it.
+    expect(screen.getByRole('button', { name: 'Topo' })).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+const ferrataLayer = (overrides: Partial<FerrataMapLayer> = {}): FerrataMapLayer => ({
+  active: false,
+  onToggle: vi.fn(),
+  status: 'idle',
+  count: 0,
+  groups: [],
+  selectedId: null,
+  onSelect: vi.fn(),
+  ...overrides,
+})
+
+describe('TourMapLayerSwitcher via ferrata switch', () => {
+  it('FE-COMP-MAPLAYER-011: offers no via ferrata switch without a layer', () => {
+    const { container } = render(<TourMapLayerSwitcher active="default" onChange={() => {}} />)
+    expect(screen.queryByRole('button', { name: 'Via ferratas' })).toBeNull()
+    expect(container.firstElementChild).toHaveAttribute('role', 'group')
+  })
+
+  it('FE-COMP-MAPLAYER-012: the switch toggles the layer, pressed and in the accent while it is on', () => {
+    const layer = ferrataLayer()
+    const { rerender } = render(<TourMapLayerSwitcher active="topo" onChange={() => {}} ferrataLayer={layer} />)
+    const off = screen.getByRole('button', { name: 'Via ferratas' })
+    expect(off).toHaveAttribute('aria-pressed', 'false')
+    expect(off).toHaveClass('text-content-muted')
+    fireEvent.click(off)
+    expect(layer.onToggle).toHaveBeenCalledTimes(1)
+
+    rerender(<TourMapLayerSwitcher active="topo" onChange={() => {}} ferrataLayer={ferrataLayer({ active: true, status: 'loading' })} />)
+    const on = screen.getByRole('button', { name: 'Via ferratas' })
+    expect(on).toHaveAttribute('aria-pressed', 'true')
+    expect(on).toHaveClass('bg-accent', 'text-accent-text')
+  })
+
+  it('FE-COMP-MAPLAYER-013: the count rides in the switch as a badge, nothing beside the pill, and none while off', () => {
+    const { container, rerender } = render(<TourMapLayerSwitcher active="default" onChange={() => {}} ferrataLayer={ferrataLayer({ count: 4 })} />)
+    expect(screen.queryByTestId('ferrata-count-badge')).toBeNull()
+    expect(container.firstElementChild).toHaveAttribute('role', 'group')
+
+    rerender(<TourMapLayerSwitcher active="default" onChange={() => {}} ferrataLayer={ferrataLayer({ active: true, status: 'ready', count: 4 })} />)
+    const badge = screen.getByTestId('ferrata-count-badge')
+    expect(badge).toHaveTextContent('4')
+    expect(badge).toHaveAttribute('data-tone', 'default')
+    expect(screen.getByRole('button', { name: 'Via ferratas' })).toContainElement(badge)
+    expect(screen.getByRole('status')).toHaveTextContent('4 via ferrata routes')
+    expect(screen.queryByTestId('ferrata-status-pill')).toBeNull()
+  })
+
+  it('FE-COMP-MAPLAYER-014: a tiny spinner in the badge while tiles load', () => {
+    render(<TourMapLayerSwitcher active="default" onChange={() => {}} ferrataLayer={ferrataLayer({ active: true, status: 'loading', count: 2 })} />)
+    const badge = screen.getByTestId('ferrata-count-badge')
+    expect(badge).toContainElement(screen.getByTestId('ferrata-count-spinner'))
+    expect(badge).not.toHaveTextContent('2')
+    expect(screen.getByRole('status')).toHaveTextContent('Loading via ferratas…')
+  })
+
+  it('FE-COMP-MAPLAYER-015: offline, the mirrors down or the view too wide: a warning tone, the reason in the tooltip', async () => {
+    const { rerender } = render(<TourMapLayerSwitcher active="default" onChange={() => {}} ferrataLayer={ferrataLayer({ active: true, status: 'offline', count: 1 })} />)
+    expect(screen.getByTestId('ferrata-count-badge')).toHaveAttribute('data-tone', 'warning')
+    expect(screen.getByTestId('ferrata-count-badge')).toHaveClass('bg-warning-soft', 'text-warning')
+    expect(screen.getByRole('status')).toHaveTextContent('Via ferratas need a connection')
+
+    rerender(<TourMapLayerSwitcher active="default" onChange={() => {}} ferrataLayer={ferrataLayer({ active: true, status: 'tooLarge' })} />)
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Via ferratas' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Zoom in to load via ferratas')
+
+    rerender(<TourMapLayerSwitcher active="default" onChange={() => {}} ferrataLayer={ferrataLayer({ active: true, status: 'error' })} />)
+    expect(screen.getByTestId('ferrata-count-badge')).toHaveAttribute('data-tone', 'warning')
+    expect(screen.getByRole('status')).toHaveTextContent('Overpass unreachable')
+  })
+
+  it('FE-COMP-MAPLAYER-016: sits beside the 3D switch behind one divider', () => {
+    render(
+      <TourMapLayerSwitcher active="default" onChange={() => {}} onToggleTerrain={() => {}}
+        ferrataLayer={ferrataLayer({ active: true, status: 'ready', count: 2 })} />
+    )
+    const group = screen.getByRole('group')
+    expect(group.querySelectorAll('span.bg-edge')).toHaveLength(1)
+    const buttons = Array.from(group.querySelectorAll('button')).map((button) => button.getAttribute('aria-label') ?? button.textContent)
+    expect(buttons.slice(-2)).toEqual(['Via ferratas', '3D'])
+  })
+  it('FE-COMP-MAPLAYER-017: the "set points" switch leads the tools on its icon, pressed in the accent while on', async () => {
+    const onToggle = vi.fn()
+    const { rerender } = render(
+      <TourMapLayerSwitcher active="default" onChange={() => {}} onToggleTerrain={() => {}}
+        ferrataLayer={ferrataLayer()} placeTool={{ active: true, onToggle }} />
+    )
+    const group = screen.getByRole('group')
+    expect(group.querySelectorAll('span.bg-edge')).toHaveLength(1)
+    const buttons = Array.from(group.querySelectorAll('button')).map((button) => button.getAttribute('aria-label') ?? button.textContent)
+    expect(buttons.slice(-3)).toEqual(['Set points', 'Via ferratas', '3D'])
+    const tool = screen.getByRole('button', { name: 'Set points' })
+    expect(tool).toHaveAttribute('aria-pressed', 'true')
+    expect(tool).toHaveClass('bg-accent', 'text-accent-text')
+    expect(tool).not.toHaveTextContent('Set points')
+    fireEvent.click(tool)
+    expect(onToggle).toHaveBeenCalledTimes(1)
+    fireEvent.mouseEnter(tool)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Set points')
+
+    rerender(<TourMapLayerSwitcher active="default" onChange={() => {}} placeTool={{ active: false, onToggle }} />)
+    expect(screen.getByRole('button', { name: 'Set points' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Set points' })).toHaveClass('text-content-muted')
   })
 })

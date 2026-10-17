@@ -5,13 +5,14 @@
  * through is easy; one that also lets a session JWT, an OAuth bearer or a random
  * string through is a credential-confusion bug, and those are the tests below.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { ExecutionContext } from '@nestjs/common';
-import { PUBLIC_API_SCOPES } from '@trek/shared';
 import { ApiTokenGuard } from '../../../src/nest/public-api/api-token.guard';
 import type { TokenService } from '../../../src/nest/tokens/token.service';
 import type { User } from '../../../src/types';
+import { HttpException } from '@nestjs/common';
+import type { ExecutionContext } from '@nestjs/common';
+import { PUBLIC_API_SCOPES } from '@trek/shared';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const USER: User = { id: 7, username: 'ada', email: 'ada@example.com', role: 'user' } as User;
 
@@ -37,9 +38,9 @@ function makeGuard(verify: (raw: string) => User | null) {
 }
 
 /** Run the guard, expecting a refusal; return its { status, body }. */
-function refused(fn: () => boolean): { status: number; body: unknown } {
+async function refused(fn: () => Promise<boolean>): Promise<{ status: number; body: unknown }> {
   try {
-    fn();
+    await fn();
   } catch (err) {
     expect(err).toBeInstanceOf(HttpException);
     const e = err as HttpException;
@@ -49,51 +50,51 @@ function refused(fn: () => boolean): { status: number; body: unknown } {
 }
 
 describe('ApiTokenGuard', () => {
-  it('accepts a trek_ token via Authorization: Bearer and resolves the user', () => {
+  it('accepts a trek_ token via Authorization: Bearer and resolves the user', async () => {
     const verify = vi.fn().mockReturnValue(USER);
     const ctx = contextWith({ authorization: 'Bearer trek_abc123' });
-    expect(makeGuard(verify).canActivate(ctx)).toBe(true);
+    expect(await makeGuard(verify).canActivate(ctx)).toBe(true);
     expect(verify).toHaveBeenCalledWith('trek_abc123');
     expect(ctx.req.user).toBe(USER);
   });
 
-  it('accepts the same token via X-API-Key', () => {
+  it('accepts the same token via X-API-Key', async () => {
     const verify = vi.fn().mockReturnValue(USER);
     const ctx = contextWith({ 'x-api-key': 'trek_abc123' });
-    expect(makeGuard(verify).canActivate(ctx)).toBe(true);
+    expect(await makeGuard(verify).canActivate(ctx)).toBe(true);
     expect(verify).toHaveBeenCalledWith('trek_abc123');
   });
 
-  it('trims surrounding whitespace before looking a token up', () => {
+  it('trims surrounding whitespace before looking a token up', async () => {
     const verify = vi.fn().mockReturnValue(USER);
-    makeGuard(verify).canActivate(contextWith({ 'x-api-key': '  trek_abc123  ' }));
+    await makeGuard(verify).canActivate(contextWith({ 'x-api-key': '  trek_abc123  ' }));
     expect(verify).toHaveBeenCalledWith('trek_abc123');
   });
 
-  it('401s without any credential', () => {
+  it('401s without any credential', async () => {
     const verify = vi.fn();
-    expect(refused(() => makeGuard(verify).canActivate(contextWith({})))).toEqual({
+    expect(await refused(() => makeGuard(verify).canActivate(contextWith({})))).toEqual({
       status: 401,
       body: { error: 'API token required', code: 'API_TOKEN_REQUIRED' },
     });
     expect(verify).not.toHaveBeenCalled();
   });
 
-  it('never reaches for the MCP verifier, so the two credentials cannot swap', () => {
+  it('never reaches for the MCP verifier, so the two credentials cannot swap', async () => {
     const verifyApiTokenWithGrant = vi
       .fn()
       .mockReturnValue({ user: USER, grant: { mode: 'all', scopes: [...PUBLIC_API_SCOPES] } });
     const verifyMcpToken = vi.fn();
     const guard = new ApiTokenGuard({ verifyApiTokenWithGrant, verifyMcpToken } as unknown as TokenService);
-    guard.canActivate(contextWith({ authorization: 'Bearer trek_abc123' }));
+    await guard.canActivate(contextWith({ authorization: 'Bearer trek_abc123' }));
     expect(verifyApiTokenWithGrant).toHaveBeenCalledTimes(1);
     expect(verifyMcpToken).not.toHaveBeenCalled();
   });
 
-  it('401s on a token the store does not know, without saying which part was wrong', () => {
+  it('401s on a token the store does not know, without saying which part was wrong', async () => {
     const verify = vi.fn().mockReturnValue(null);
     expect(
-      refused(() => makeGuard(verify).canActivate(contextWith({ authorization: 'Bearer trek_nope' }))),
+      await refused(() => makeGuard(verify).canActivate(contextWith({ authorization: 'Bearer trek_nope' }))),
     ).toEqual({
       status: 401,
       body: { error: 'Invalid API token', code: 'API_TOKEN_INVALID' },
@@ -112,19 +113,19 @@ describe('ApiTokenGuard', () => {
     ['a non-Bearer scheme', { authorization: 'Basic dHJlazpwdw==' }],
     ['a trek_ token in the wrong scheme', { authorization: 'Token trek_abc123' }],
     ['an X-API-Key that is not a trek_ token', { 'x-api-key': 'eyJhbGciOiJIUzI1NiJ9.p.s' }],
-  ])('refuses %s without ever hitting the token store', (_label, headers) => {
+  ])('refuses %s without ever hitting the token store', async (_label, headers) => {
     const verify = vi.fn();
-    expect(refused(() => makeGuard(verify).canActivate(contextWith(headers)))).toEqual({
+    expect(await refused(() => makeGuard(verify).canActivate(contextWith(headers)))).toEqual({
       status: 401,
       body: { error: 'API token required', code: 'API_TOKEN_REQUIRED' },
     });
     expect(verify).not.toHaveBeenCalled();
   });
 
-  it('ignores an array-valued Authorization header rather than coercing it', () => {
+  it('ignores an array-valued Authorization header rather than coercing it', async () => {
     const verify = vi.fn();
     const ctx = contextWith({ authorization: ['Bearer trek_abc'] as unknown as string });
-    expect(refused(() => makeGuard(verify).canActivate(ctx)).status).toBe(401);
+    expect((await refused(() => makeGuard(verify).canActivate(ctx))).status).toBe(401);
     expect(verify).not.toHaveBeenCalled();
   });
 });

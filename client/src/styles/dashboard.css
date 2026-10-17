@@ -298,7 +298,7 @@
    pointer-events none — it must never block the pass or hero interactions. */
 .trek-dash .hero-pass-wrap { position: relative; }
 .trek-dash .hero-pass-overlay {
-  position: absolute; left: 16px; right: 16px; bottom: 100%; height: 110px;
+  position: absolute; inset-inline: 16px; bottom: 100%; height: 110px;
   pointer-events: none; z-index: 3; overflow: hidden;
 }
 .trek-dash .hero-overlay-frame {
@@ -310,7 +310,7 @@
   justify-content: center; align-items: center; text-align: center; gap: 6px; flex: 1; min-width: 0;
 }
 .trek-dash .pass-cell + .pass-cell::before {
-  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 1px;
+  content: ""; position: absolute; inset-inline-start: 0; top: 8px; bottom: 8px; width: 1px;
   background-image: linear-gradient(to bottom, oklch(0.78 0.008 70) 50%, transparent 50%);
   background-size: 1px 5px;
 }
@@ -336,15 +336,15 @@
 .trek-dash .buddy-avatar {
   width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
   font-size: 13px; font-weight: 700; color: white;
-  border: 2px solid oklch(0.985 0.008 75 / .95); margin-left: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border: 2px solid oklch(0.985 0.008 75 / .95); margin-inline-start: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
-.trek-dash .buddy-avatar:first-child { margin-left: 0; }
+.trek-dash .buddy-avatar:first-child { margin-inline-start: 0; }
 .trek-dash .buddy-more,
 .trek-dash .place-more {
   width: 36px; height: 36px; border-radius: 50%;
   background: oklch(0.92 0.008 70); border: 2px solid oklch(0.985 0.008 75 / .95);
   display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--ink);
-  margin-left: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  margin-inline-start: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 .dark .trek-dash .buddy-avatar,
 .dark .trek-dash .place-thumb,
@@ -354,14 +354,14 @@
 .dark .trek-dash .place-more { background: oklch(0.32 0 0); }
 .trek-dash .place-thumb {
   width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
-  border: 2px solid oklch(0.985 0.008 75 / .95); box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-left: -8px;
+  border: 2px solid oklch(0.985 0.008 75 / .95); box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-inline-start: -8px;
 }
-.trek-dash .place-thumb:first-child { margin-left: 0; }
+.trek-dash .place-thumb:first-child { margin-inline-start: 0; }
 .trek-dash .places-preview .place-av {
-  border-radius: 50%; line-height: 0; margin-left: -8px;
+  border-radius: 50%; line-height: 0; margin-inline-start: -8px;
   border: 2px solid oklch(0.985 0.008 75 / .95); box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
-.trek-dash .places-preview .place-av:first-child { margin-left: 0; }
+.trek-dash .places-preview .place-av:first-child { margin-inline-start: 0; }
 .dark .trek-dash .places-preview .place-av { border-color: oklch(0.25 0 0 / .95); }
 
 .trek-dash .pass-cell.countdown { gap: 6px; }
@@ -402,17 +402,17 @@
 .trek-dash .flag {
   width: 24px; height: 24px; border-radius: 50%; overflow: hidden;
   background: oklch(0.4 0.06 60); border: 2px solid oklch(0.28 0.04 50);
-  margin-left: -8px; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: #fff;
+  margin-inline-start: -8px; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: #fff;
 }
 .trek-dash .flag img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.trek-dash .flag:first-child { margin-left: 0; }
+.trek-dash .flag:first-child { margin-inline-start: 0; }
 .trek-dash .flag.more { background: oklch(1 0 0 / .15); color: #fff; font-size: 10px; border: 2px solid oklch(0.28 0.04 50); }
 /* Behind the text, not over it (#1787). The sparkline is positioned and comes
    after the label/value/delta in the DOM, so without a stacking order of its own
    it painted on top of them — and on a narrow status card (the atlas row is
    1.5fr 1fr 1fr 1fr next to a 400px sidebar) the 80px graphic covers more than
    half the line. Decoration, so it also stops swallowing pointer events. */
-.trek-dash .spark { position: absolute; right: 18px; bottom: 18px; opacity: .55; z-index: 0; pointer-events: none; }
+.trek-dash .spark { position: absolute; inset-inline-end: 18px; bottom: 18px; opacity: .55; z-index: 0; pointer-events: none; }
 .trek-dash .atlas-card .label,
 .trek-dash .atlas-card .value,
 .trek-dash .atlas-card .delta { position: relative; z-index: 1; }
@@ -429,12 +429,30 @@
 .dark .trek-dash .seg { background: var(--bg-2); }
 .trek-dash .seg button { padding: 7px 14px; font-size: 13px; border-radius: 8px; color: var(--ink-2); font-weight: 500; transition: background .12s, color .12s; }
 .trek-dash .seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--sh-xs); }
+/* While a search spans every trip the filter does not apply: quieted, still usable. */
+.trek-dash .seg.is-muted { opacity: .5; }
+.trek-dash .seg.is-muted button.on { box-shadow: none; }
+
+/* trip search (#2190): the segment's height and ground, widening on focus */
+.trek-dash .dash-search { display: flex; align-items: center; gap: 7px; height: 38px; width: 190px; padding: 0 8px 0 11px; border-radius: 11px; background: oklch(0.94 0.008 70); color: var(--ink-3); transition: width .2s ease, background .12s, box-shadow .12s; }
+.dark .trek-dash .dash-search { background: var(--bg-2); }
+.trek-dash .dash-search:focus-within,
+.trek-dash .dash-search.on { width: 260px; background: var(--surface); box-shadow: var(--sh-xs), 0 0 0 1px var(--line); color: var(--ink-2); }
+.trek-dash .dash-search input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; font: inherit; font-size: 13px; color: var(--ink); }
+.trek-dash .dash-search input::placeholder { color: var(--ink-3); }
+.trek-dash .dash-search input::-webkit-search-cancel-button { display: none; }
+.trek-dash .dash-search-clear { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: var(--ink-3); flex: none; }
+.trek-dash .dash-search-clear:hover { background: var(--bg-2); color: var(--ink); }
+.trek-dash .trip-match { display: flex; align-items: center; justify-content: center; gap: 5px; margin: -6px 0 12px; font-size: 12px; color: var(--ink-2); min-width: 0; }
+.trek-dash .trip-match span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trek-dash .trip-match svg { flex: none; color: var(--ink-3); }
+.trek-dash .trips.list-view .trip-match { margin: 0; justify-content: flex-start; max-width: 220px; }
 
 /* ----------------- trips grid ----------------- */
 .trek-dash .trips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 56px; transition: all 0.3s ease; }
 .trek-dash .trips.list-view { grid-template-columns: 1fr; gap: 12px; }
 .trek-dash .trips.list-view .trip-card { display: grid; grid-template-columns: 520px 1fr; gap: 0; height: auto; }
-.trek-dash .trips.list-view .trip-cover { border-radius: var(--r-lg) 0 0 var(--r-lg); height: 100px; aspect-ratio: unset; }
+.trek-dash .trips.list-view .trip-cover { border-radius: 0; border-start-start-radius: var(--r-lg); border-end-start-radius: var(--r-lg); height: 100px; aspect-ratio: unset; }
 /* The row's cover is 100px and the title hangs from its bottom edge, so every
    line it gains grows upwards: at 26px a second one starts above the status
    badge at top 16px and runs through the pill. The row has 484px of text to
@@ -445,7 +463,7 @@
    floating alone at the far left. */
 .trek-dash .trips.list-view .trip-dates { margin-bottom: 0; gap: 6px; }
 .trek-dash .trips.list-view .trip-dates .date-num { font-size: 15px; font-weight: 600; color: var(--ink); }
-.trek-dash .trips.list-view .trip-meta { display: flex; gap: 28px; padding: 0 0 0 28px; border: none; border-left: 1px solid var(--line); }
+.trek-dash .trips.list-view .trip-meta { display: flex; gap: 28px; padding: 0; padding-inline-start: 28px; border: none; border-inline-start: 1px solid var(--line); }
 .trek-dash .trip-card {
   position: relative; border-radius: var(--r-xl); overflow: hidden; background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -466,7 +484,7 @@
 /* Shares the dark scrim of .trip-action-btn so both overlays on the cover read
    as one set, and the label survives a bright photo behind it. */
 .trek-dash .trip-status {
-  position: absolute; top: 16px; left: 16px; z-index: 1;
+  position: absolute; top: 16px; inset-inline-start: 16px; z-index: 1;
   display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px 6px 9px;
   border-radius: 999px; font-size: 11.5px; font-weight: 500; letter-spacing: 0.02em;
   background: oklch(0.22 0.01 260 / .58); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
@@ -482,7 +500,7 @@
    rename buttons — invisible at rest, and on a light cover the white-on-white
    fill hid them even while hovering. They stay on the card now, and the fill is
    a dark scrim so the white icons carry against any photo. */
-.trek-dash .trip-actions { position: absolute; top: 14px; right: 14px; z-index: 1; display: flex; gap: 6px; opacity: .92; transition: opacity .2s; }
+.trek-dash .trip-actions { position: absolute; top: 14px; inset-inline-end: 14px; z-index: 1; display: flex; gap: 6px; opacity: .92; transition: opacity .2s; }
 .trek-dash .trip-card:hover .trip-actions { opacity: 1; }
 .trek-dash .trip-action-btn {
   width: 38px; height: 38px; border-radius: 50%;
@@ -493,7 +511,7 @@
 }
 .trek-dash .trip-action-btn:hover { background: oklch(0.22 0.01 260 / .82); transform: scale(1.06); }
 .trek-dash .trip-action-btn svg { width: 17px; height: 17px; }
-.trek-dash .trip-cover-content { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 1; color: #fff; }
+.trek-dash .trip-cover-content { position: absolute; inset-inline: 18px; bottom: 16px; z-index: 1; color: #fff; }
 .trek-dash .trip-name {
   font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.12; margin: 0;
   text-shadow: 0 1px 7px oklch(0 0 0 / .3), 0 1px 2px oklch(0 0 0 / .38);
@@ -642,7 +660,7 @@
 .trek-dash .col-badges { display: flex; flex-direction: column; gap: 9px; }
 .trek-dash .col-badge {
   position: relative; display: block; width: 100%; height: 56px; border-radius: 14px; overflow: hidden;
-  cursor: pointer; text-align: left; box-shadow: var(--sh-sm); transition: transform .15s cubic-bezier(.2,.7,.2,1), box-shadow .2s;
+  cursor: pointer; text-align: start; box-shadow: var(--sh-sm); transition: transform .15s cubic-bezier(.2,.7,.2,1), box-shadow .2s;
 }
 .trek-dash .col-badge:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
 .trek-dash .col-badge-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background-size: cover; background-position: center; }
@@ -661,7 +679,7 @@
 
 /* ----------------- responsive ----------------- */
 @media (max-width: 1280px) {
-  .trek-dash .page { padding-left: 32px; padding-right: 32px; grid-template-columns: 1fr; }
+  .trek-dash .page { padding-inline: 32px; grid-template-columns: 1fr; }
   .trek-dash .page-sidebar { position: static; flex-direction: row; flex-wrap: wrap; }
   .trek-dash .page-sidebar .tool { flex: 1 1 300px; }
   .trek-dash .hero-title { font-size: 72px; }
@@ -697,9 +715,9 @@
   }
   .trek-dash .pass-card .pass-cell {
     padding: 14px 12px; gap: 8px; flex: none;
-    border-right: 1px dashed var(--line-2); border-bottom: 1px dashed var(--line-2);
+    border-inline-end: 1px dashed var(--line-2); border-bottom: 1px dashed var(--line-2);
   }
-  .trek-dash .pass-card .pass-cell:nth-child(2n) { border-right: 0; }
+  .trek-dash .pass-card .pass-cell:nth-child(2n) { border-inline-end: 0; }
   .trek-dash .pass-card .pass-cell:nth-last-child(-n+2) { border-bottom: 0; }
   .trek-dash .pass-card .pass-cell + .pass-cell::before { display: none; }
   .trek-dash .pass-card .date-num { font-size: 22px; }
@@ -711,12 +729,12 @@
   .trek-dash .pass-card .place-av,
   .trek-dash .pass-card .place-more {
     width: 28px; height: 28px; border-radius: 50%; flex: none;
-    border: 2px solid var(--surface); margin-left: -8px;
+    border: 2px solid var(--surface); margin-inline-start: -8px;
     box-shadow: 0 1px 3px oklch(0 0 0 / .12);
     font-size: 10px; font-weight: 700; line-height: 0;
   }
   .trek-dash .pass-card .buddy-avatar:first-child,
-  .trek-dash .pass-card .place-av:first-child { margin-left: 0; }
+  .trek-dash .pass-card .place-av:first-child { margin-inline-start: 0; }
 
   /* Atlas → single row of stat cards. Passport (countries) and distance are
      hidden on mobile; only Trips total + Days traveled remain. */
@@ -750,7 +768,7 @@
      The counts stay grid-view-only on mobile. */
   .trek-dash .trips.list-view .trip-card { grid-template-columns: 1fr; min-height: 0; }
   .trek-dash .trips.list-view .trip-cover { height: 110px; aspect-ratio: unset; border-radius: 0; }
-  .trek-dash .trips.list-view .trip-cover-content { left: 16px; right: 16px; bottom: 11px; }
+  .trek-dash .trips.list-view .trip-cover-content { inset-inline: 16px; bottom: 11px; }
   /* Taller banner (110px), smaller type and the title 11px off the bottom: two
      lines end below the badge here, so the phone row keeps them. */
   .trek-dash .trips.list-view .trip-name { font-size: 18px; -webkit-line-clamp: 2; }
@@ -766,7 +784,7 @@
 
 /* Floating action button — Neuer Trip */
 .trek-dash .fab-new-trip {
-  position: fixed; right: 28px; bottom: 28px; z-index: 150;
+  position: fixed; inset-inline-end: 28px; bottom: 28px; z-index: 150;
   display: inline-flex; align-items: center; gap: 9px;
   height: 56px; padding: 0 24px; border: none; border-radius: 999px;
   cursor: pointer; background: #111827; color: #fff;

@@ -7,8 +7,8 @@ const members: TranslationStrings = {
   'members.invite': 'Convidar',
   'members.allHaveAccess': 'Todos os usuários já têm acesso.',
   'members.access': 'Acesso',
-  'members.person': 'pessoa',
   'members.persons': 'pessoas',
+  'members.persons.one': 'pessoa',
   'members.you': 'você',
   'members.owner': 'Proprietário',
   'members.leaveTrip': 'Sair da viagem',
@@ -32,6 +32,9 @@ const members: TranslationStrings = {
   'members.guestAddError': 'Falha ao adicionar convidado',
   'members.guestRenameError': 'Falha ao renomear convidado',
   'members.guestRemoved': 'Convidado removido',
-  'members.confirmRemoveGuest': 'Remover este convidado? As atribuições e os custos dele também serão removidos.',
+  'members.confirmRemoveGuest':
+    'Remover este convidado? As atribuições dele serão removidas e a parte dele em cada despesa será dividida entre os demais participantes.',
+  'members.guestHasPayments':
+    'Este convidado pagou uma despesa ou faz parte de um pagamento registrado. Altere o pagador ou exclua o pagamento primeiro.',
 };
 export default members;

@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Chọn mẫu...',
   'settings.mapDefaultHint': 'Để trống cho OpenStreetMap (mặc định)',
   'settings.routingBase': 'Máy chủ định tuyến riêng',
-  'settings.routingBaseHint': 'Máy chủ OSRM của riêng bạn. Để trống sẽ dùng máy chủ công cộng, cho phép khoảng một yêu cầu mỗi giây — đủ cho một ngày, chật cho chuyến đi dài. Có hiệu lực sau khi khởi động lại máy chủ.',
+  'settings.routingBaseHint':
+    'Máy chủ OSRM của riêng bạn. Để trống sẽ dùng máy chủ công cộng, cho phép khoảng một yêu cầu mỗi giây — đủ cho một ngày, chật cho chuyến đi dài. Có hiệu lực sau khi khởi động lại máy chủ.',
   'settings.valhallaBase': 'Máy chủ Valhalla riêng',
   'settings.valhallaBaseHint':
     'Theo mặc định, TREK dùng Valhalla công cộng của FOSSGIS để tránh đường thu phí, đường cao tốc và phà. Nhập URL Valhalla riêng tại đây để dùng thay thế. Nếu chỉ cấu hình máy chủ định tuyến riêng, Valhalla công cộng sẽ không được dùng. Sau khi nhập URL riêng, hãy khởi động lại máy chủ và tải lại trang.',
@@ -78,6 +79,12 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Đơn vị nhiệt độ',
   'settings.distance': 'Đơn vị khoảng cách',
   'settings.timeFormat': 'Định dạng thời gian',
+  'settings.weekStart': 'Tuần bắt đầu vào',
+  'settings.weekStartHint': 'Ngày đầu tuần trong mọi bộ chọn ngày. Vacay có cài đặt riêng.',
+  'settings.preferredNavApp': 'Mở địa điểm bằng',
+  'settings.preferredNavAppAsk': 'Hỏi mỗi lần',
+  'settings.preferredNavAppHint':
+    'Khi đã chọn ứng dụng, nút chỉ đường sẽ mở ngay ứng dụng đó thay vì đưa ra mọi ứng dụng bản đồ.',
   'settings.bookingLabels': 'Nhãn lộ trình đặt chỗ',
   'settings.bookingLabelsHint': 'Hiển thị tên ga/sân bay trên bản đồ. Khi tắt, chỉ có biểu tượng được hiển thị.',
   'settings.mapPoiPill': 'Khám phá các địa điểm trên bản đồ',
@@ -110,6 +117,7 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': 'Trong ứng dụng',
   'settings.notificationPreferences.notConfigured': 'Chưa được thiết lập — hãy cấu hình trong cài đặt của plugin',
+  'settings.notificationPreferences.lockedByAdmin': 'Quản trị viên đã tắt cho mọi người',
   'settings.plugins.actions': 'Hành động',
   'settings.plugins.actions.confirm': 'Chạy hành động này?',
   'settings.notificationPreferences.sendTest': 'Gửi thử',
@@ -119,6 +127,19 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.pluginConfigured':
     'Đã cấu hình. Quản lý thông tin đăng nhập ở trang cài đặt của plugin.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Thông báo đẩy',
+  'settings.webPush.title': 'Thông báo đẩy trên thiết bị này',
+  'settings.webPush.hint':
+    'Hiển thị thông báo của TREK trên thiết bị này ngay cả khi TREK đang đóng. Những sự kiện nào được gửi đến tuân theo cột Thông báo đẩy.',
+  'settings.webPush.enable': 'Bật cho thiết bị này',
+  'settings.webPush.disable': 'Tắt cho thiết bị này',
+  'settings.webPush.enabled': 'Đã bật cho thiết bị này',
+  'settings.webPush.unsupported': 'Trình duyệt này không thể nhận thông báo đẩy.',
+  'settings.webPush.insecure': 'Thông báo đẩy cần mở TREK qua HTTPS.',
+  'settings.webPush.iosInstall': 'Trên iPhone và iPad, hãy thêm TREK vào Màn hình chính trước rồi mở từ đó.',
+  'settings.webPush.denied':
+    'Thông báo của TREK đang bị chặn trong trình duyệt này. Hãy cho phép trong cài đặt trình duyệt rồi thử lại.',
+  'settings.webPush.failed': 'Không thể bật thông báo đẩy cho thiết bị này.',
   'settings.notificationPreferences.noChannels':
     'Không có kênh thông báo nào được cấu hình. Yêu cầu quản trị viên thiết lập thông báo qua email hoặc webhook.',
   'settings.webhookUrl.label': 'Webhook URL',
@@ -274,6 +295,14 @@ const settings: TranslationStrings = {
   'settings.passwordTooShort': 'Mật khẩu phải có ít nhất 8 ký tự',
   'settings.passwordMismatch': 'Mật khẩu không khớp',
   'settings.passwordWeak': 'Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt',
+  'settings.passwordCommon': 'Mật khẩu này quá phổ biến. Vui lòng chọn mật khẩu riêng.',
+  'settings.passwordRepetitive': 'Mật khẩu lặp lại quá nhiều',
+  'settings.passwordRules': 'Yêu cầu mật khẩu',
+  'settings.passwordRule.length': 'Ít nhất 8 ký tự',
+  'settings.passwordRule.upper': 'Một chữ in hoa',
+  'settings.passwordRule.lower': 'Một chữ thường',
+  'settings.passwordRule.digit': 'Một chữ số',
+  'settings.passwordRule.special': 'Một ký tự đặc biệt',
   'settings.passwordChanged': 'Đã thay đổi mật khẩu thành công',
   'settings.mustChangePassword':
     'Bạn phải thay đổi mật khẩu trước khi có thể tiếp tục. Vui lòng đặt mật khẩu mới bên dưới.',
@@ -328,6 +357,10 @@ const settings: TranslationStrings = {
   'settings.currencyHint':
     'Số tiền trong Chi phí chỉ được quy đổi sang loại tiền tệ này để hiển thị — số tiền gốc không thay đổi.',
   'settings.currencyTrip': 'Tiền tệ của chuyến đi',
+  'settings.placeLanguage': 'Tên địa điểm',
+  'settings.placeLanguageApp': 'Giống ứng dụng',
+  'settings.placeLanguageHint':
+    'Ngôn ngữ dùng cho tìm kiếm địa điểm, gợi ý và địa chỉ. Nếu địa điểm không có tên bằng ngôn ngữ đó, tên địa phương sẽ được hiển thị.',
   'settings.passkey.title': 'Mật mã',
   'settings.passkey.description':
     'Đăng nhập nhanh hơn và chống lừa đảo bằng mật mã — vân tay, khuôn mặt, PIN hoặc khóa phần cứng của bạn. Mật khẩu của bạn vẫn là bản sao lưu.',
@@ -368,7 +401,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.toast.saved': 'AirTrail đã lưu kết nối',
   'settings.airtrail.toast.saveError': 'Không thể lưu kết nối',
   'settings.airtrail.test.button': 'Kiểm tra kết nối',
-  'settings.airtrail.test.success': 'Đã kết nối — đã tìm thấy {count} chuyến bay',
+  'settings.airtrail.test.success': 'Đã kết nối. Tìm thấy {count} chuyến bay',
   'settings.airtrail.test.failed': 'Kết nối không thành công',
   'settings.aiParsing.title': 'Phân tích bằng AI',
   'settings.aiParsing.hint':
@@ -384,9 +417,8 @@ const settings: TranslationStrings = {
   'settings.aiParsing.baseUrlHint': 'Nơi mô hình chạy — máy chủ Ollama cục bộ hoặc endpoint tương thích với OpenAI.',
   'settings.aiParsing.apiKey': 'Khóa API',
   'settings.aiParsing.apiKeyHint': 'Được lưu trữ mã hóa. Để trống để giữ khóa hiện tại.',
-  'settings.aiParsing.multimodal': 'Gửi tài liệu dưới dạng hình ảnh',
-  'settings.aiParsing.multimodalHint':
-    'Dành cho các mô hình hỗ trợ thị giác — gửi PDF gốc thay vì văn bản đã trích xuất.',
+  'settings.aiParsing.multimodal': 'Mô hình đọc được hình ảnh',
+  'settings.aiParsing.multimodalHint': 'Bật cho mô hình đọc được hình ảnh để có thể nhập hoặc quét ảnh.',
   'settings.aiParsing.toast.saved': 'Đã lưu cài đặt AI',
   'settings.aiParsing.toast.saveError': 'Không thể lưu cài đặt AI',
   'settings.tabs.appearance': 'Giao diện',
@@ -470,6 +502,12 @@ const settings: TranslationStrings = {
   'settings.general.languageRegion': 'Ngôn ngữ & khu vực',
   'settings.general.travelMap': 'Du lịch & bản đồ',
   'settings.general.startup': 'Khởi động',
+  'settings.dayDateFirst': 'Hiện ngày tháng trước trong tiêu đề ngày',
+  'settings.compactUnplanned': 'Điểm đánh dấu gọn cho địa điểm chưa lên kế hoạch',
+  'settings.compactUnplannedHint':
+    'Các địa điểm chưa được xếp vào ngày nào sẽ hiện thành điểm đánh dấu nhỏ không có ảnh, để các điểm dừng đã lên kế hoạch nổi bật hơn.',
+  'settings.dayDateFirstHint':
+    'Mở đầu mỗi ngày bằng ngày trên lịch và hiện "Ngày 1" hoặc tiêu đề riêng của ngày bên cạnh.',
   'settings.startPage': 'Trang khởi động',
   'settings.startPageDashboard': 'Bảng điều khiển',
   'settings.startPageActiveTrip': 'Chuyến đi đang diễn ra',
@@ -512,13 +550,18 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'Không có kết nối. Hãy kết nối để lưu chuyến đi ngoại tuyến.',
   'settings.offline.notice.signedOut': 'Phiên của bạn đã kết thúc. Hãy đăng nhập lại để đồng bộ.',
   'settings.offline.notice.failed': 'Không thể hoàn tất việc tải xuống. Hãy kiểm tra kết nối và thử lại.',
-  'settings.offline.notice.loadFailed': 'Không đọc được bộ nhớ ngoại tuyến của thiết bị này. Xóa bộ nhớ đệm thường khắc phục được.',
+  'settings.offline.notice.loadFailed':
+    'Không đọc được bộ nhớ ngoại tuyến của thiết bị này. Xóa bộ nhớ đệm thường khắc phục được.',
   'settings.offline.clear': 'Xóa bộ nhớ đệm',
   'settings.offline.clearConfirm':
     'Xóa tất cả dữ liệu chuyến đi ngoại tuyến? Bạn có thể đồng bộ lại bất cứ lúc nào khi trực tuyến.',
   'settings.offline.stats.trips': 'Chuyến đi trong bộ nhớ đệm',
   'settings.offline.stats.pending': 'Thay đổi đang chờ',
   'settings.offline.stats.failed': 'Thay đổi không thành công',
+  'settings.offline.failed.hint':
+    'Những thay đổi này chưa bao giờ đến được máy chủ. Hãy thử lại, hoặc bỏ chúng để giữ phiên bản trên máy chủ.',
+  'settings.offline.failed.retry': 'Thử lại',
+  'settings.offline.failed.discard': 'Bỏ',
   'settings.offline.stats.conflicts': 'Xung đột',
   'settings.offline.empty': 'Chưa có chuyến đi nào trong bộ nhớ đệm. Kết nối internet để đồng bộ hóa.',
   'settings.offline.loading': 'Đang tải…',
@@ -571,7 +614,8 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Danh sách mong muốn',
   'settings.apiScopes.stats': 'Tổng hợp',
   'settings.apiKeys.title': 'Khóa API',
-  'settings.apiKeys.description': 'Khóa cho API công khai, để phần mềm khác có thể đọc các chuyến đi của bạn. Chỉ đọc: khóa không thể thay đổi hay xóa bất cứ thứ gì.',
+  'settings.apiKeys.description':
+    'Khóa cho API công khai, để phần mềm khác có thể đọc các chuyến đi của bạn. Chỉ đọc: khóa không thể thay đổi hay xóa bất cứ thứ gì.',
   'settings.apiKeys.create': 'Tạo khóa',
   'settings.apiKeys.empty': 'Chưa có khóa nào. Tạo một khóa để kết nối phần mềm khác.',
   'settings.apiKeys.createdAt': 'đã tạo',
@@ -586,7 +630,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.endpoint': 'Điểm cuối',
   'settings.apiKeys.neverUsed': 'chưa từng dùng',
   'settings.apiKeys.loadFailed': 'Không thể tải các khóa của bạn. Hãy tải lại trang để thử lại.',
-  'settings.apiKeys.limitReached': 'Bạn đã có {max} khóa, mức tối đa cho một tài khoản. Hãy xóa một khóa không còn dùng để tạo khóa mới.',
+  'settings.apiKeys.limitReached':
+    'Bạn đã có {count} khóa, mức tối đa cho một tài khoản. Hãy xóa một khóa không còn dùng để tạo khóa mới.',
   'settings.apiKeys.copyFailed': 'Không thể sao chép. Hãy chọn đoạn văn bản và sao chép thủ công.',
   'settings.apiKeys.modal.createTitle': 'Tạo khóa API',
   'settings.apiKeys.modal.name': 'Tên',
@@ -595,7 +640,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Đang tạo...',
   'settings.apiKeys.modal.create': 'Tạo',
   'settings.apiKeys.modal.createdTitle': 'Đã tạo khóa API',
-  'settings.apiKeys.modal.createdWarning': 'Hãy sao chép khóa ngay. Khóa chỉ hiện một lần và không thể lấy lại sau này.',
+  'settings.apiKeys.modal.createdWarning':
+    'Hãy sao chép khóa ngay. Khóa chỉ hiện một lần và không thể lấy lại sau này.',
   'settings.apiKeys.modal.done': 'Xong',
 };
 

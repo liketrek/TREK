@@ -231,7 +231,7 @@ The dialog lists what a person has to decide about under **Needs a look**, with 
 
 **Into TREK**, a document from the store goes through the same checks as an upload in the file manager:
 
-- **The size limit** of 50 MB per file. A larger document is listed as *Too large*.
+- **The upload limit**, 50 MB per file unless the server sets another with `FILE_UPLOAD_LIMIT_MB`. A larger document is listed as *Too large*.
 - **The blocked types**, which are always refused (HTML, SVG, XML, scripts and executables; the full list is in [Documents-and-Files](Documents-and-Files)).
 - **The allowed types** an admin sets under **Admin → Settings → Allowed File Types**. A file without an extension is refused too.
 

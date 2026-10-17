@@ -1,6 +1,6 @@
-import { PluginController, PluginMethod, PluginOpenMethod } from '../rpc-kit/decorators';
-import { asArgs, asTxOps, str } from '../rpc-params';
-import type { PluginRpcContext } from '../rpc-kit/types';
+import { PluginController, PluginMethod, PluginOpenMethod } from '../../../../nest-rpc/rpc-kit/decorators';
+import type { PluginRpcContext } from '../../../../nest-rpc/rpc-kit/types';
+import { asArgs, asTxOps, str } from '../../../../nest-rpc/rpc-params';
 import { PluginUserSettingsService } from '../../plugin-user-settings.service';
 
 /**
@@ -48,8 +48,8 @@ export class DbRpc {
 
   /** Same deal: the router checks the emitter's `emits` allowlist. */
   @PluginOpenMethod('events.emit')
-  emitEvent(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    ctx.plugins.emit(str(params.event, 'event'), params.payload);
+  async emitEvent(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
+    await ctx.plugins.emit(str(params.event, 'event'), params.payload);
     return { ok: true };
   }
 
@@ -60,8 +60,8 @@ export class DbRpc {
    * plugin falls back to ctx.config.
    */
   @PluginOpenMethod('settings.get')
-  getSetting(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async getSetting(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     if (ctx.actingUserId === undefined) return { value: undefined };
-    return { value: this.settings.readOne(ctx.pluginId, ctx.actingUserId, str(params.key, 'key')) };
+    return { value: await this.settings.readOne(ctx.pluginId, ctx.actingUserId, str(params.key, 'key')) };
   }
 }

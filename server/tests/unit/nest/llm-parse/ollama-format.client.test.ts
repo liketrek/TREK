@@ -1,3 +1,5 @@
+import { toNativeBase, extractEnforced } from '../../../../src/nest/llm-parse/router/ollama-format.client';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The client goes through safeFetchLlm (SSRF guard: blocks the cloud-metadata
@@ -6,8 +8,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // recorded-call assertions are unchanged.
 const { safeFetchLlmMock } = vi.hoisted(() => ({ safeFetchLlmMock: vi.fn() }));
 vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetchLlm: safeFetchLlmMock }));
-
-import { toNativeBase, extractEnforced } from '../../../../src/nest/llm-parse/router/ollama-format.client';
 
 function mockFetch(impl: (url: string, init: RequestInit) => Promise<Response> | Response) {
   safeFetchLlmMock.mockImplementation(impl as unknown as typeof fetch);
@@ -50,6 +50,15 @@ describe('extractEnforced', () => {
     expect(body.stream).toBe(false);
     expect(body.options.temperature).toBe(0);
     expect((init as RequestInit).headers).not.toHaveProperty('authorization');
+  });
+
+  it('attaches images to the user turn only when given', async () => {
+    const fetchFn = mockFetch(() => jsonResponse({ message: { content: '{}' } }));
+    await extractEnforced({ ...INPUT, images: ['aW1n'] });
+    await extractEnforced(INPUT);
+    const userTurn = (i: number) => JSON.parse((fetchFn.mock.calls[i][1] as RequestInit).body as string).messages[1];
+    expect(userTurn(0).images).toEqual(['aW1n']);
+    expect(userTurn(1)).not.toHaveProperty('images');
   });
 
   it('sends a bearer header only when an apiKey is given', async () => {

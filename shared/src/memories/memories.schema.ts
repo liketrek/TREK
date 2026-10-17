@@ -75,6 +75,20 @@ export const immichSearchSchema = z.looseObject({
   utc_offset_minutes: utcOffsetMinutes,
 });
 
+/**
+ * How far the journey photo picker pages a date-bounded search (#1587): its
+ * first page and at most this many after it, so it never asks for a page past
+ * PROVIDER_SELECT_ALL_MAX_PAGES + 1. At the picker's 200 a page that is 50,200
+ * photos.
+ *
+ * An absolute page rather than a count per run: whether "Select all" loads the
+ * pages or they are scrolled into view, and however often it is pressed, page
+ * 251 is the last. Shared because both ends size against it: the picker stops
+ * there, and the Immich search keeps its absolute scan ceiling deep enough that
+ * this last page is still answered in full.
+ */
+export const PROVIDER_SELECT_ALL_MAX_PAGES = 250;
+
 // ── Synology ──────────────────────────────────────────────────────────────
 
 export const synologySettingsSchema = z.looseObject({

@@ -127,15 +127,22 @@ export interface ExternalChannel {
   readonly bypassesActiveToggleForAdminEvents?: boolean;
   /** Delivers the one admin-scoped global copy (not per-recipient). */
   readonly supportsAdminGlobal?: boolean;
+  /**
+   * The user's matrix marks this channel inactive (no column, no settings card)
+   * while isInstanceConfigured() says no. Web Push sets it: without a usable key
+   * pair a browser could not even subscribe. Email does not, and keeps its
+   * column while SMTP is not set up, as it always has.
+   */
+  readonly hiddenWhileInstanceUnconfigured?: boolean;
 
   supportsEvent(event: NotifEventType): boolean;
   /**
    * Instance-level readiness, independent of any one recipient (email: is SMTP set
    * up at all?). Absent means "always ready".
    */
-  isInstanceConfigured?(): boolean;
+  isInstanceConfigured?(): boolean | Promise<boolean>;
   /** Does this recipient have credentials for this channel? */
-  isConfiguredFor(userId: number): boolean;
+  isConfiguredFor(userId: number): boolean | Promise<boolean>;
   sendToUser(userId: number, msg: ChannelMessage): Promise<unknown>;
   sendGlobal?(msg: ChannelMessage): Promise<unknown>;
   test?(userId: number, override?: Record<string, unknown>): Promise<{ success: boolean; error?: string }>;

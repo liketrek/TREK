@@ -10,8 +10,9 @@ import { server } from '../../helpers/msw/server';
 import { http, HttpResponse } from 'msw';
 import { tripSyncManager } from '../../../src/sync/tripSyncManager';
 import { setAuthed } from '../../../src/sync/authGate';
-import { setTripPinned, _resetOfflinePrefs } from '../../../src/sync/offlinePrefs';
+import { setTripPinned, setTripOfflineEnabled, _resetOfflinePrefs } from '../../../src/sync/offlinePrefs';
 import { offlineDb, clearAll, upsertTrip } from '../../../src/db/offlineDb';
+import { useAddonStore } from '../../../src/store/addonStore';
 import {
   buildTrip,
   buildDay,
@@ -294,6 +295,55 @@ describe('tripSyncManager.syncAll — bundle upsert', () => {
   });
 });
 
+describe('tripSyncManager.syncAll — tours', () => {
+  const tour = {
+    place_id: 900, name: 'Ridge walk', tour_type: 'hike', distance: 8, elevation_gain: 600, elevation_loss: 600,
+    duration: 180, difficulty: null, wanderer_ref: null, match_confidence: 1, max_hiking_difficulty: 2,
+    planned: false, caution: false, has_waypoints: true,
+  };
+
+  function serve(tripId: number, tours: () => Response) {
+    let asked = 0;
+    server.use(
+      http.get('/api/trips', () => HttpResponse.json({ trips: [buildTrip({ id: tripId, end_date: dateOffset(5) })] })),
+      http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json(makeBundle(tripId))),
+      http.get(`/api/trips/${tripId}/tours`, () => { asked++; return tours(); }),
+    );
+    return () => asked;
+  }
+
+  afterEach(() => useAddonStore.setState({ addons: [] }));
+
+  it("caches the trip's tours while the addon is on", async () => {
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true }] as never });
+    serve(310, () => HttpResponse.json({ tours: [tour] }));
+
+    await tripSyncManager.syncAll();
+
+    expect(await offlineDb.tours.get(900)).toMatchObject({ trip_id: 310, name: 'Ridge walk' });
+  });
+
+  it('does not ask while the addon is off', async () => {
+    const asked = serve(311, () => HttpResponse.json({ tours: [tour] }));
+
+    await tripSyncManager.syncAll();
+
+    expect(asked()).toBe(0);
+    expect(await offlineDb.tours.count()).toBe(0);
+  });
+
+  it('a failed tours request leaves the rest of the trip stored', async () => {
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true }] as never });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    serve(312, () => HttpResponse.json({ error: 'boom' }, { status: 500 }));
+
+    await tripSyncManager.syncAll();
+
+    expect(await offlineDb.places.where('trip_id').equals(312).count()).toBe(1);
+    expect(await offlineDb.syncMeta.get(312)).toBeDefined();
+  });
+});
+
 // ── file blob caching ──────────────────────────────────────────────────────────
 
 describe('tripSyncManager — file blob caching', () => {
@@ -437,3 +487,156 @@ describe('tripSyncManager.syncAll — logout while syncing', () => {
 });
 
 vi.mock('../../../src/repo/roadtripPreferencesRepo', () => ({ roadtripPreferencesRepo: { read: vi.fn(async () => ({})) } }))
+
+describe('tripSyncManager.syncAll: deletions made elsewhere', () => {
+  it('drops cached rows the server no longer has, and keeps the ones created offline', async () => {
+    const tripId = 400;
+    const bundle = makeBundle(tripId);
+    await upsertTrip(bundle.trip);
+    // Deleted by a collaborator while this device was offline.
+    await offlineDb.places.put(buildPlace({ trip_id: tripId, id: 7001 }));
+    // Created offline, not synced yet: a negative temp id.
+    await offlineDb.places.put(buildPlace({ trip_id: tripId, id: -55 }));
+    // Another trip's place is none of this sync's business.
+    await offlineDb.places.put(buildPlace({ trip_id: 999, id: 7002 }));
+
+    server.use(
+      http.get('/api/trips', () => HttpResponse.json({ trips: [buildTrip({ id: tripId, end_date: dateOffset(5) })] })),
+      http.get(`/api/trips/${tripId}/bundle`, () => HttpResponse.json(bundle)),
+    );
+    await tripSyncManager.syncAll();
+
+    const ids = (await offlineDb.places.toArray()).map(p => p.id).sort((a, b) => a - b);
+    expect(ids).toEqual([-55, bundle.places[0].id, 7002].sort((a, b) => a - b));
+  });
+
+  it('clears a cached trip the server no longer lists (deleted, or this user was removed)', async () => {
+    const gone = makeBundle(500);
+    await upsertTrip(gone.trip);
+    await offlineDb.places.put(buildPlace({ trip_id: 500, id: 8001 }));
+
+    server.use(http.get('/api/trips', () => HttpResponse.json({ trips: [] })));
+    await tripSyncManager.syncAll();
+
+    expect(await offlineDb.trips.get(500)).toBeUndefined();
+    expect(await offlineDb.places.where('trip_id').equals(500).count()).toBe(0);
+  });
+
+  it('keeps an archived trip: the plain list leaves it out, the archived list does not', async () => {
+    const active = buildTrip({ id: 600, end_date: dateOffset(5) });
+    const archived = buildTrip({ id: 601, end_date: dateOffset(-400), is_archived: 1 });
+    await upsertTrip(archived);
+    setTripPinned(601, true);
+    await offlineDb.places.put(buildPlace({ trip_id: 601, id: 8101 }));
+    await offlineDb.mutationQueue.put({
+      id: 'parked-601', tripId: 601, method: 'PUT', url: '/trips/601/places/8101', body: { name: 'X' },
+      createdAt: 1, status: 'failed', attempts: 8, lastError: 'boom', resource: 'places', entityId: 8101,
+    });
+
+    server.use(
+      http.get('/api/trips', ({ request }) => HttpResponse.json({
+        trips: new URL(request.url).searchParams.get('archived') === '1' ? [archived] : [active],
+      })),
+      http.get('/api/trips/600/bundle', () => HttpResponse.json({ ...makeBundle(600), trip: active })),
+    );
+    await tripSyncManager.syncAll();
+
+    expect(await offlineDb.trips.get(601)).toBeDefined();
+    expect(await offlineDb.places.get(8101)).toBeDefined();
+    expect(await offlineDb.mutationQueue.get('parked-601')).toBeDefined();
+  });
+
+  /** The server lists `active` as the user's trips and `archived` behind ?archived=1. */
+  function listTrips(active: ReturnType<typeof buildTrip>[], archived: ReturnType<typeof buildTrip>[]) {
+    return http.get('/api/trips', ({ request }) => HttpResponse.json({
+      trips: new URL(request.url).searchParams.get('archived') === '1' ? archived : active,
+    }));
+  }
+
+  it('evicts an archived trip that ended more than 7 days ago, and keeps its parked changes', async () => {
+    const archived = buildTrip({ id: 605, end_date: dateOffset(-30), is_archived: 1 });
+    await upsertTrip(archived);
+    await offlineDb.places.put(buildPlace({ trip_id: 605, id: 8105 }));
+    await offlineDb.mutationQueue.put({
+      id: 'parked-605', tripId: 605, method: 'PUT', url: '/trips/605/places/8105', body: { name: 'X' },
+      createdAt: 1, status: 'failed', attempts: 8, lastError: 'boom', resource: 'places', entityId: 8105,
+    });
+
+    server.use(listTrips([], [archived]));
+    await tripSyncManager.syncAll();
+
+    expect(await offlineDb.trips.get(605)).toBeUndefined();
+    expect(await offlineDb.places.get(8105)).toBeUndefined();
+    expect(await offlineDb.mutationQueue.get('parked-605')).toBeDefined();
+  });
+
+  it('evicts an archived trip the user switched off, however recent', async () => {
+    const archived = buildTrip({ id: 606, end_date: dateOffset(5), is_archived: 1 });
+    await upsertTrip(archived);
+    setTripOfflineEnabled(606, false);
+
+    server.use(listTrips([], [archived]));
+    await tripSyncManager.syncAll();
+
+    expect(await offlineDb.trips.get(606)).toBeUndefined();
+  });
+
+  it('keeps an archived trip that is still within the date rule, without syncing it', async () => {
+    const archived = buildTrip({ id: 607, end_date: dateOffset(5), is_archived: 1 });
+    await upsertTrip(archived);
+    let bundles = 0;
+
+    server.use(
+      listTrips([], [archived]),
+      http.get('/api/trips/607/bundle', () => { bundles++; return HttpResponse.json({ ...makeBundle(607), trip: archived }); }),
+    );
+    await tripSyncManager.syncAll();
+
+    expect(await offlineDb.trips.get(607)).toBeDefined();
+    expect(bundles).toBe(0);
+  });
+
+  it('treats nothing as gone when the archived list cannot be read', async () => {
+    const archived = buildTrip({ id: 602, end_date: dateOffset(5) });
+    await upsertTrip(archived);
+
+    server.use(
+      http.get('/api/trips', ({ request }) => new URL(request.url).searchParams.get('archived') === '1'
+        ? HttpResponse.json({ error: 'boom' }, { status: 500 })
+        : HttpResponse.json({ trips: [] })),
+    );
+    await tripSyncManager.syncAll();
+
+    expect(await offlineDb.trips.get(602)).toBeDefined();
+  });
+
+  it('keeps the parked and queued changes of a trip that is really gone, for the user to discard', async () => {
+    await upsertTrip(buildTrip({ id: 603, end_date: dateOffset(5) }));
+    await offlineDb.mutationQueue.bulkPut([
+      { id: 'parked-603', tripId: 603, method: 'PUT', url: '/trips/603/places/1', body: {}, createdAt: 1, status: 'failed', attempts: 8, lastError: 'boom', resource: 'places', entityId: 1 },
+      { id: 'conflict-603', tripId: 603, method: 'PUT', url: '/trips/603/places/2', body: {}, createdAt: 2, status: 'conflict', attempts: 1, lastError: 'conflict', resource: 'places', entityId: 2 },
+      { id: 'pending-603', tripId: 603, method: 'PUT', url: '/trips/603/places/3', body: {}, createdAt: 3, status: 'pending', attempts: 0, lastError: null, resource: 'places', entityId: 3 },
+    ]);
+
+    server.use(http.get('/api/trips', () => HttpResponse.json({ trips: [] })));
+    await tripSyncManager.syncAll();
+
+    expect(await offlineDb.trips.get(603)).toBeUndefined();
+    expect((await offlineDb.mutationQueue.toArray()).map(m => m.id).sort()).toEqual(['conflict-603', 'parked-603', 'pending-603']);
+  });
+
+  it('a stale or switched-off trip keeps its parked changes too', async () => {
+    const stale = buildTrip({ id: 604, end_date: dateOffset(-30) });
+    await upsertTrip(stale);
+    await offlineDb.mutationQueue.put({
+      id: 'parked-604', tripId: 604, method: 'PUT', url: '/trips/604/places/1', body: {}, createdAt: 1,
+      status: 'failed', attempts: 8, lastError: 'boom', resource: 'places', entityId: 1,
+    });
+
+    server.use(http.get('/api/trips', () => HttpResponse.json({ trips: [stale] })));
+    await tripSyncManager.syncAll();
+
+    expect(await offlineDb.trips.get(604)).toBeUndefined();
+    expect(await offlineDb.mutationQueue.get('parked-604')).toBeDefined();
+  });
+});

@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Rückgängig: {action}',
   'undo.assignPlace': 'Ort einem Tag zugewiesen',
   'undo.removeAssignment': 'Ort von Tag entfernt',
+  'undo.clearDay': 'Tag geleert',
   'undo.reorder': 'Orte neu sortiert',
   'undo.optimize': 'Route optimiert',
   'undo.deletePlace': 'Ort gelöscht',

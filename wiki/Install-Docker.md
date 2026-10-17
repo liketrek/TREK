@@ -40,9 +40,12 @@ See [Environment-Variables](Environment-Variables) for the full list.
 |---|--------------------------|---|
 | `latest` | `mauriceboe/trek:latest` | Always the newest release across all major versions |
 | Major version | `mauriceboe/trek:4`      | Latest release pinned to that major version |
+| Minor version | `mauriceboe/trek:5.0`    | Latest patch of that minor version; never moves to the next minor. Published from 5.0.0 on: 4.x releases have no minor tag, so pin those by major or full version |
 | Full version | `mauriceboe/trek:4.0.0`  | Exact release; never changes |
 
-Replace `mauriceboe/trek:latest` in the run command with your chosen tag to pin to a major version or exact release.
+Replace `mauriceboe/trek:latest` in the run command with your chosen tag to pin to a major version, a minor version or an exact release. Test builds of the next version are tagged `latest-pre`; see [Updating](Updating#image-tags).
+
+Every image carries the standard `org.opencontainers.image.*` labels (title, version, source, documentation, licence), so an update tool such as Renovate links an image update to its release notes. `docker inspect mauriceboe/trek:latest --format '{{json .Config.Labels}}'` shows them.
 
 ## Volume Reference
 

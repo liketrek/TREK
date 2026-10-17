@@ -2,46 +2,37 @@
  * Unit tests for MCP extra assignment/reservation tools:
  * move_assignment, get_assignment_participants, set_assignment_participants, reorder_reservations.
  */
+import { db as testDb } from '../../../src/db/database';
+import { AssignmentParticipants } from '../../../src/db/entities/AssignmentParticipants.entity';
+import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createDayAssignment,
+  createReservation,
+} from '../../helpers/factories';
+import { findRow, insertRow } from '../../helpers/factories/rows';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
 
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
+let orm: TestOrm;
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment, createReservation } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
+beforeAll(async () => {
+  orm = await createTestOrm(testDb);
 });
 
 beforeEach(() => {
@@ -50,13 +41,18 @@ beforeEach(() => {
   delete process.env.DEMO_MODE;
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await orm.close();
   testDb.close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -75,7 +71,13 @@ describe('Tool: move_assignment', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'move_assignment',
-        arguments: { tripId: trip.id, assignmentId: assignment.id, newDayId: day2.id, oldDayId: day1.id, orderIndex: 0 },
+        arguments: {
+          tripId: trip.id,
+          assignmentId: assignment.id,
+          newDayId: day2.id,
+          oldDayId: day1.id,
+          orderIndex: 0,
+        },
       });
       const data = parseToolResult(result) as any;
       expect(data.assignment).toBeDefined();
@@ -85,7 +87,7 @@ describe('Tool: move_assignment', () => {
         expect.objectContaining({ oldDayId: day1.id, newDayId: day2.id }),
       );
       // Verify the assignment was moved
-      const updated = testDb.prepare('SELECT day_id FROM day_assignments WHERE id = ?').get(assignment.id) as any;
+      const updated = (await findRow(orm, DayAssignments, { id: assignment.id }))!;
       expect(updated.day_id).toBe(day2.id);
     });
   });
@@ -146,7 +148,10 @@ describe('Tool: get_assignment_participants', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, other.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'get_assignment_participants', arguments: { tripId: trip.id, assignmentId: 1 } });
+      const result = await h.client.callTool({
+        name: 'get_assignment_participants',
+        arguments: { tripId: trip.id, assignmentId: 1 },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -181,7 +186,7 @@ describe('Tool: set_assignment_participants', () => {
     const place = createPlace(testDb, trip.id);
     const assignment = createDayAssignment(testDb, day.id, place.id);
     // First set
-    testDb.prepare('INSERT INTO assignment_participants (assignment_id, user_id) VALUES (?, ?)').run(assignment.id, user.id);
+    await insertRow(orm, AssignmentParticipants, { assignment: assignment.id, user: user.id });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_assignment_participants',

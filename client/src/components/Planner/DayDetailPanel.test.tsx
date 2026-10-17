@@ -1,4 +1,4 @@
-// FE-PLANNER-DAYDETAIL-001 to FE-PLANNER-DAYDETAIL-085
+// FE-PLANNER-DAYDETAIL-001 to FE-PLANNER-DAYDETAIL-101
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -43,6 +43,12 @@ beforeEach(() => {
     settings: { time_format: '24h', temperature_unit: 'celsius', blur_booking_codes: false },
   });
 });
+
+/** The stay picker filters by category through a pill that opens its list; this picks one entry of it. */
+async function pickStayCategory(user: ReturnType<typeof userEvent.setup> | typeof userEvent, name: string) {
+  await user.click(screen.getByRole('button', { name: /^Category:/ }))
+  await user.click(within(screen.getByRole('group', { name: 'Category' })).getByRole('button', { name }))
+}
 
 describe('DayDetailPanel', () => {
 
@@ -123,12 +129,12 @@ describe('DayDetailPanel', () => {
 
   it('FE-PLANNER-DAYDETAIL-007: close button calls onClose', async () => {
     const onClose = vi.fn();
-    render(<DayDetailPanel {...defaultProps} onClose={onClose} />);
-    // The header X button — the one outside the hotel picker
-    const closeButtons = screen.getAllByRole('button');
-    // Second button is the header X close (first is collapse toggle)
-    await userEvent.click(closeButtons[1]);
+    const onToggleCollapse = vi.fn();
+    render(<DayDetailPanel {...defaultProps} onClose={onClose} onToggleCollapse={onToggleCollapse} />);
+    // The round X on the head band, named by its tooltip; it does not fold the card on the way.
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalled();
+    expect(onToggleCollapse).not.toHaveBeenCalled();
   });
 
   // ── Weather ──────────────────────────────────────────────────────────────────
@@ -137,7 +143,7 @@ describe('DayDetailPanel', () => {
     render(<DayDetailPanel {...defaultProps} lat={null} lng={null} />);
     await waitFor(() => expect(screen.queryByText(/No weather/i)).toBeNull());
     // No loading spinner either
-    expect(document.querySelector('[style*="border-top-color"]')).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('FE-PLANNER-DAYDETAIL-009: weather loading state shown briefly', async () => {
@@ -145,11 +151,31 @@ describe('DayDetailPanel', () => {
       http.get('/api/weather/detailed', () => new Promise(() => {})), // never resolves
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
-    // Spinner div has border + borderTopColor
-    await waitFor(() => {
-      const spinner = document.querySelector('[style*="border-radius: 50%"]');
-      expect(spinner).toBeInTheDocument();
-    });
+    // The spinner announces itself as a loading status
+    const spinner = await screen.findByRole('status', { name: 'Loading...' });
+    expect(spinner.querySelector('.animate-spin')).not.toBeNull();
+  });
+
+  it('FE-PLANNER-DAYDETAIL-101: a late forecast for the previous day never replaces the one for the current day', async () => {
+    const { delay } = await import('msw');
+    server.use(
+      http.get('/api/weather/detailed', async ({ request }) => {
+        const date = new URL(request.url).searchParams.get('date');
+        if (date === '2025-06-15') {
+          await delay(400);
+          return HttpResponse.json({ main: 'Rain', temp: 11, temp_min: 9, temp_max: 13, description: 'rain' });
+        }
+        return HttpResponse.json({ main: 'Clear', temp: 27, temp_min: 20, temp_max: 30, description: 'sunny' });
+      }),
+    );
+    const next = buildDay({ id: 2, trip_id: 1, date: '2025-06-16', title: 'Day two' });
+    const { rerender } = render(<DayDetailPanel {...defaultProps} days={[day, next]} lat={48.8566} lng={2.3522} />);
+    rerender(<DayDetailPanel {...defaultProps} day={next} days={[day, next]} lat={48.8566} lng={2.3522} />);
+
+    expect(await screen.findByText(/27°C/)).toBeInTheDocument();
+    await act(async () => { await new Promise((r) => setTimeout(r, 600)); });
+    expect(screen.queryByText(/11°C/)).toBeNull();
+    expect(screen.getByText(/27°C/)).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-010: weather data renders temperature in Celsius', async () => {
@@ -360,13 +386,13 @@ describe('DayDetailPanel', () => {
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Grand Hotel');
     // The pencil beside the stay opens the picker in edit mode.
-    await userEvent.click(document.querySelector('.lucide-pencil')!.closest('button')!);
-    const picker = await waitFor(() => document.body.querySelector('[style*="z-index: 99999"]') as HTMLElement);
+    await userEvent.click(screen.getByRole('button', { name: 'Edit accommodation' }));
+    const picker = await screen.findByRole('dialog');
     await userEvent.click(within(picker).getByText('Save'));
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Stay overlaps', 'error', undefined));
     // The picker stays put so the entered values are not lost.
-    expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-022: accommodation edit/remove buttons hidden when canEditDays=false', async () => {
@@ -407,7 +433,7 @@ describe('DayDetailPanel', () => {
     await userEvent.click(addButton);
     // Hotel picker portal renders into document.body
     await waitFor(() => {
-      expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
   });
 
@@ -439,7 +465,7 @@ describe('DayDetailPanel', () => {
     // Find the element containing the confirmation number
     await waitFor(() => {
       const el = screen.getByText(/#SECRET/);
-      expect(el).toHaveStyle({ filter: 'blur(4px)' });
+      expect(isBlurred(el)).toBe(true);
     });
   });
 
@@ -499,13 +525,13 @@ describe('DayDetailPanel', () => {
     await userEvent.click(addButton);
     // Picker opened
     await waitFor(() => {
-      expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
     // Click cancel button inside picker
     const cancelButton = screen.getByText(/Cancel/i);
     await userEvent.click(cancelButton);
     await waitFor(() => {
-      expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeNull();
+      expect(screen.queryByRole('dialog')).toBeNull();
     });
   });
 
@@ -558,7 +584,7 @@ describe('DayDetailPanel', () => {
     const addButton = await screen.findByText(/Add accommodation/i);
     await userEvent.click(addButton);
     await waitFor(() => {
-      const portal = document.body.querySelector('[style*="z-index: 99999"]');
+      const portal = screen.queryByRole('dialog');
       expect(portal).toBeInTheDocument();
     });
   });
@@ -577,14 +603,11 @@ describe('DayDetailPanel', () => {
     seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Edit Hotel');
-    // All buttons: header collapse (0), header close (1), pencil (2), X/remove (3)
-    const allButtons = screen.getAllByRole('button');
-    // Pencil is third button (index 2)
-    const pencilButton = allButtons[2];
-    await userEvent.click(pencilButton);
+    // The pencil on the stay's card, named by its tooltip
+    await userEvent.click(screen.getByRole('button', { name: 'Edit accommodation' }));
     // Edit picker should open with "Edit accommodation" title
     await waitFor(() => {
-      const portal = document.body.querySelector('[style*="z-index: 99999"]');
+      const portal = screen.queryByRole('dialog');
       expect(portal?.textContent).toMatch(/Edit accommodation/i);
     });
   });
@@ -596,7 +619,7 @@ describe('DayDetailPanel', () => {
     const addButton = await screen.findByText(/Add accommodation/i);
     await userEvent.click(addButton);
     await waitFor(() => {
-      const portal = document.body.querySelector('[style*="z-index: 99999"]');
+      const portal = screen.queryByRole('dialog');
       expect(portal?.textContent).toMatch(/Day in Paris|Day 2|Day 3/i);
     });
   });
@@ -607,7 +630,7 @@ describe('DayDetailPanel', () => {
     render(<DayDetailPanel {...defaultProps} days={[day, day2, day3]} />);
     await userEvent.click(await screen.findByText(/Add accommodation/i));
     await waitFor(() => {
-      const portal = document.body.querySelector('[style*="z-index: 99999"]');
+      const portal = screen.queryByRole('dialog');
       // Closed selects render only their chosen label: check-in on the opened
       // day, check-out on the following one — nobody stays a few hours.
       expect(portal?.textContent).toContain('Day in Paris');
@@ -620,8 +643,9 @@ describe('DayDetailPanel', () => {
     render(<DayDetailPanel {...defaultProps} days={[day]} />);
     await userEvent.click(await screen.findByText(/Add accommodation/i));
     await waitFor(() => {
-      const portal = document.body.querySelector('[style*="z-index: 99999"]');
-      expect(portal?.textContent?.match(/Day in Paris/g)).toHaveLength(2);
+      const portal = screen.queryByRole('dialog');
+      // Both day selects, and the range pill in the head band.
+      expect(portal?.textContent?.match(/Day in Paris/g)).toHaveLength(3);
     });
   });
 
@@ -711,10 +735,8 @@ describe('DayDetailPanel', () => {
     render(<DayDetailPanel {...defaultProps} places={[place]} categories={[cat]} />);
     const addButton = await screen.findByText(/Add accommodation/i);
     await userEvent.click(addButton);
-    await waitFor(() => {
-      const portal = document.body.querySelector('[style*="z-index: 99999"]');
-      expect(portal?.textContent).toMatch(/Hotels/);
-    });
+    await userEvent.click(await screen.findByRole('button', { name: /^Category:/ }));
+    expect(within(screen.getByRole('group', { name: 'Category' })).getByRole('button', { name: 'Hotels' })).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-039: add another accommodation button visible when accommodations exist', async () => {
@@ -762,7 +784,7 @@ describe('DayDetailPanel', () => {
     await userEvent.click(saveButton);
     // Picker should close after save
     await waitFor(() => {
-      expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeNull();
+      expect(screen.queryByRole('dialog')).toBeNull();
     });
   });
 
@@ -785,10 +807,8 @@ describe('DayDetailPanel', () => {
     seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Hotel To Remove');
-    // Buttons: collapse (0), close header (1), pencil (2), X/remove (3)
-    const allButtons = screen.getAllByRole('button');
-    const removeButton = allButtons[3];
-    await userEvent.click(removeButton);
+    // The X on the stay's card, named by its tooltip
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
     await waitFor(() => {
       expect(deleteWasCalled).toBe(true);
     });
@@ -875,12 +895,11 @@ describe('DayDetailPanel', () => {
     const place = buildPlace({ id: 5, name: 'Edit Me Hotel' });
     render(<DayDetailPanel {...defaultProps} places={[place]} />);
     await screen.findByText('Edit Me Hotel');
-    // Click the pencil/edit button (index 2, after collapse and close buttons)
-    const allButtons = screen.getAllByRole('button');
-    await userEvent.click(allButtons[2]);
+    // Click the pencil on the stay's card
+    await userEvent.click(screen.getByRole('button', { name: 'Edit accommodation' }));
     // Picker opens in edit mode
     await waitFor(() => {
-      expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
     // Click Save in the edit picker
     const saveButton = screen.getByText(/Save/i);
@@ -914,26 +933,28 @@ describe('DayDetailPanel', () => {
     render(<DayDetailPanel {...defaultProps} reservations={[linkedReservation]} />);
     await screen.findByText('Blurred Hotel');
     const codeEl = await screen.findByText(/#REVEAL123/);
-    // Initially blurred
-    expect(codeEl).toHaveStyle({ filter: 'blur(4px)' });
-    // Fire mouse events to cover the event handler code paths
+    // Initially blurred; hovering lifts it through a class, a click reveals it for good
+    expect(isBlurred(codeEl)).toBe(true);
+    expect(codeEl.className).toContain('hover:blur-none');
     await userEvent.hover(codeEl);
     await userEvent.unhover(codeEl);
     await userEvent.click(codeEl);
+    expect(isBlurred(codeEl)).toBe(false);
   });
 
   // ── Collapse behavior ─────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-DAYDETAIL-048: collapse button has title "Collapse" when expanded', () => {
+  it('FE-PLANNER-DAYDETAIL-048: collapse button is named "Collapse" when expanded', () => {
     render(<DayDetailPanel {...defaultProps} collapsed={false} />);
-    const collapseBtn = screen.getByTitle('Collapse');
-    expect(collapseBtn).toBeInTheDocument();
+    const collapseBtn = screen.getByRole('button', { name: 'Collapse' });
+    expect(collapseBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(collapseBtn.getAttribute('title')).toBeNull();
   });
 
-  it('FE-PLANNER-DAYDETAIL-049: collapse button has title "Expand" when collapsed', () => {
+  it('FE-PLANNER-DAYDETAIL-049: collapse button is named "Expand" when collapsed', () => {
     render(<DayDetailPanel {...defaultProps} collapsed={true} />);
-    const expandBtn = screen.getByTitle('Expand');
-    expect(expandBtn).toBeInTheDocument();
+    const expandBtn = screen.getByRole('button', { name: 'Expand' });
+    expect(expandBtn).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('FE-PLANNER-DAYDETAIL-050: content area is hidden when collapsed=true', async () => {
@@ -949,25 +970,29 @@ describe('DayDetailPanel', () => {
     );
     render(<DayDetailPanel {...defaultProps} collapsed={true} />);
     await waitFor(() => {
-      const content = document.querySelector('[style*="overflow-y: auto"]');
+      const content = screen.getByTestId('day-detail-scroll');
       expect(content).toHaveStyle({ display: 'none' });
     });
+    // Still mounted, so the stay loaded while folded is there on unfolding.
+    expect(await screen.findByText('Visible Hotel')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-051: content area is visible when collapsed=false', async () => {
     render(<DayDetailPanel {...defaultProps} collapsed={false} />);
     await waitFor(() => {
-      const content = document.querySelector('[style*="overflow-y: auto"]');
-      expect(content).toHaveStyle({ display: 'block' });
+      const content = screen.getByTestId('day-detail-scroll');
+      expect(content).not.toHaveStyle({ display: 'none' });
+      expect(content.className).toContain('overflow-y-auto');
     });
   });
 
   it('FE-PLANNER-DAYDETAIL-052: clicking the collapse button calls onToggleCollapse', async () => {
     const onToggleCollapse = vi.fn();
     render(<DayDetailPanel {...defaultProps} collapsed={false} onToggleCollapse={onToggleCollapse} />);
-    const collapseBtn = screen.getByTitle('Collapse');
+    const collapseBtn = screen.getByRole('button', { name: 'Collapse' });
     await userEvent.click(collapseBtn);
-    expect(onToggleCollapse).toHaveBeenCalled();
+    // Once: the button keeps its click from reaching the head band as well.
+    expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });
 
   it('FE-PLANNER-DAYDETAIL-053: clicking the header row calls onToggleCollapse', async () => {
@@ -1198,9 +1223,8 @@ describe('DayDetailPanel', () => {
     render(<DayDetailPanel {...defaultProps} day={days[0]} days={days} />);
     await screen.findByText('Span Hotel');
 
-    // Pencil = 3rd button (index 2): collapse, close, pencil, remove
-    const allButtons = screen.getAllByRole('button');
-    await userEvent.click(allButtons[2]);
+    // The pencil on the stay's card
+    await userEvent.click(screen.getByRole('button', { name: 'Edit accommodation' }));
 
     // Extend end picker to Day 16 (id=7)
     await userEvent.click(getDayPickerTriggers()[1]);
@@ -1291,16 +1315,16 @@ describe('DayDetailPanel', () => {
 
   // ── Header buttons ──────────────────────────────────────────────────────────
 
-  it('FE-PLANNER-DAYDETAIL-069: the collapse and close buttons reset their hover background on leave', async () => {
+  it('FE-PLANNER-DAYDETAIL-069: the collapse and close buttons show their names as tooltips', async () => {
     render(<DayDetailPanel {...defaultProps} />);
-    const buttons = screen.getAllByRole('button');
-    const collapse = buttons.find(b => b.getAttribute('title') === 'Collapse')!;
-    const close = buttons[buttons.indexOf(collapse) + 1];
-    for (const btn of [collapse, close]) {
-      act(() => { btn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-      expect(btn.style.background).toBe('var(--bg-hover)');
-      act(() => { btn.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
-      expect(btn.style.background).toBe('var(--bg-secondary)');
+    for (const name of ['Collapse', 'Close']) {
+      const btn = screen.getByRole('button', { name });
+      // Hover looks are token classes, not inline styles swapped by handlers.
+      expect(btn.getAttribute('style')).toBeNull();
+      fireEvent.mouseEnter(btn);
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(name);
+      fireEvent.mouseLeave(btn);
+      await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
     }
   });
 
@@ -1364,7 +1388,7 @@ describe('DayDetailPanel', () => {
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('First Hotel');
     await userEvent.click(await screen.findByText(/Add accommodation/i));
-    await waitFor(() => expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
   });
 
   // ── Hotel picker ────────────────────────────────────────────────────────────
@@ -1373,16 +1397,22 @@ describe('DayDetailPanel', () => {
     render(<DayDetailPanel {...defaultProps} />);
     const open = async () => {
       await userEvent.click(await screen.findByText(/Add accommodation/i));
-      return await waitFor(() => document.body.querySelector('[style*="z-index: 99999"]') as HTMLElement);
+      return await screen.findByRole('dialog');
     };
     let overlay = await open();
-    // The X sits in the picker header, right after the title.
-    await userEvent.click(within(overlay).getByText(/Add accommodation/i).parentElement!.querySelector('button')!);
-    await waitFor(() => expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeNull());
+    // The X sits in the picker's head band.
+    await userEvent.click(within(overlay).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
     overlay = await open();
-    await userEvent.click(overlay);
-    await waitFor(() => expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeNull());
+    // The dimmed backdrop around the dialog closes it too.
+    await userEvent.click(overlay.parentElement as HTMLElement);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    // And so does Escape.
+    await open();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('FE-PLANNER-DAYDETAIL-075: check-in, check-in-until, check-out and confirmation feed the saved accommodation', async () => {
@@ -1401,7 +1431,7 @@ describe('DayDetailPanel', () => {
     await userEvent.click(await screen.findByText(/Add accommodation/i));
     await userEvent.click(await screen.findByRole('button', { name: /Pension Anna/i }));
 
-    const overlay = document.body.querySelector('[style*="z-index: 99999"]') as HTMLElement;
+    const overlay = screen.getByRole('dialog');
     const timeInputs = within(overlay).getAllByPlaceholderText(/^(14:00|22:00|11:00)$/);
     await userEvent.type(timeInputs[0], '15:00');
     await userEvent.type(timeInputs[1], '20:00');
@@ -1413,7 +1443,7 @@ describe('DayDetailPanel', () => {
     expect(body).toMatchObject({ place_id: 70, check_in: '15:00', check_in_end: '20:00', check_out: '10:00', confirmation: 'ZZ-9' });
   });
 
-  it('FE-PLANNER-DAYDETAIL-076: the category filter narrows the picker list and "All days" clears it', async () => {
+  it('FE-PLANNER-DAYDETAIL-076: the category filter narrows the picker list and "All Categories" clears it', async () => {
     const categories = [
       { id: 1, name: 'Hotels', color: '#8b5cf6' },
       { id: 2, name: 'Sights', color: '#ef4444' },
@@ -1424,30 +1454,31 @@ describe('DayDetailPanel', () => {
     ];
     render(<DayDetailPanel {...defaultProps} places={places} categories={categories} />);
     await userEvent.click(await screen.findByText(/Add accommodation/i));
-    const overlay = document.body.querySelector('[style*="z-index: 99999"]') as HTMLElement;
+    const overlay = screen.getByRole('dialog');
 
-    await userEvent.click(within(overlay).getByRole('button', { name: 'Hotels' }));
+    await pickStayCategory(userEvent, 'Hotels');
     expect(within(overlay).getByText('Hotel Adlon')).toBeInTheDocument();
     expect(within(overlay).queryByText('Brandenburg Gate')).not.toBeInTheDocument();
 
-    // A category with no places falls back to the empty hint.
-    await userEvent.click(within(overlay).getByRole('button', { name: 'Sights' }));
+    await pickStayCategory(userEvent, 'Sights');
     expect(within(overlay).queryByText('Hotel Adlon')).not.toBeInTheDocument();
 
-    await userEvent.click(within(overlay).getAllByRole('button', { name: /^All$/ })[1]);
+    await pickStayCategory(userEvent, 'All Categories');
     expect(within(overlay).getByText('Hotel Adlon')).toBeInTheDocument();
     expect(within(overlay).getByText('Brandenburg Gate')).toBeInTheDocument();
   });
 
-  it('FE-PLANNER-DAYDETAIL-077: hovering an unselected place row highlights it and clears again', async () => {
+  it('FE-PLANNER-DAYDETAIL-077: an unselected place row highlights on hover only, the picked one stays marked', async () => {
     const places = [buildPlace({ id: 90, name: 'Hostel One' })];
     render(<DayDetailPanel {...defaultProps} places={places} />);
     await userEvent.click(await screen.findByText(/Add accommodation/i));
     const row = (await screen.findByText('Hostel One')).closest('button') as HTMLButtonElement;
-    act(() => { row.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    expect(row.style.background).toBe('var(--bg-hover)');
-    act(() => { row.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
-    expect(row.style.background).toBe('none');
+    expect(row).toHaveAttribute('aria-pressed', 'false');
+    expect(row.className).toContain('hover:bg-surface-card');
+    expect(row.className).not.toContain('ring-accent');
+    await userEvent.click(row);
+    expect(row).toHaveAttribute('aria-pressed', 'true');
+    expect(row.className).toContain('ring-accent');
   });
 
   it('FE-PLANNER-DAYDETAIL-078: the picker reports when the trip has no places to pick from', async () => {
@@ -1506,7 +1537,7 @@ describe('DayDetailPanel remaining branches', () => {
       />,
     );
 
-    const row = (await screen.findByText('Open Ticket')).closest('div[style*="border-radius: 8px"]') as HTMLElement;
+    const row = (await screen.findByText('Open Ticket')).closest('li') as HTMLElement;
     expect(row.textContent).toBe('Open Ticket');
   });
 
@@ -1524,7 +1555,7 @@ describe('DayDetailPanel remaining branches', () => {
       />,
     );
 
-    const row = (await screen.findByText('Deep Dive')).closest('div[style*="border-radius: 8px"]') as HTMLElement;
+    const row = (await screen.findByText('Deep Dive')).closest('li') as HTMLElement;
     expect(row.querySelector('svg')?.getAttribute('class')).toMatch(/file-text/);
     expect(row).toHaveTextContent('Opera House');
     // hotels are shown in the accommodation block, other days are not shown at all
@@ -1558,17 +1589,17 @@ describe('DayDetailPanel remaining branches', () => {
     );
 
     const code = await screen.findByText('#XY99');
-    expect(code.style.filter).toBe('blur(4px)');
-
-    fireEvent.mouseEnter(code);
-    expect(code.style.filter).toBe('none');
-    fireEvent.mouseLeave(code);
-    expect(code.style.filter).toBe('blur(4px)');
+    expect(isBlurred(code)).toBe(true);
+    // The pointer lifts the blur through a hover class, as in the bookings list.
+    expect(code.className).toContain('hover:blur-none');
 
     fireEvent.click(code);
-    expect(code.style.filter).toBe('none');
+    expect(isBlurred(code)).toBe(false);
+    expect(code).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(code);
-    expect(code.style.filter).toBe('blur(4px)');
+    expect(isBlurred(code)).toBe(true);
+    // Enter and Space reach it too: it is a real button.
+    expect(code.tagName).toBe('BUTTON');
   });
 
   it('FE-W5DDP-006: saving the edit picker updates the accommodation and reloads the list', async () => {
@@ -1616,12 +1647,11 @@ describe('DayDetailPanel remaining branches', () => {
     await user.click(await screen.findByText(/Add accommodation/i));
 
     expect(screen.getByRole('button', { name: /Chez Nous/ })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Museums' }));
+    await pickStayCategory(user, 'Museums');
     expect(screen.queryByRole('button', { name: /Chez Nous/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Maison Blanche/ })).toBeInTheDocument();
 
-    const filterRow = screen.getByRole('button', { name: 'Museums' }).parentElement as HTMLElement;
-    await user.click(within(filterRow).getByRole('button', { name: /^All$/ }));
+    await pickStayCategory(user, 'All Categories');
     expect(screen.getByRole('button', { name: /Chez Nous/ })).toBeInTheDocument();
   });
 
@@ -1635,7 +1665,7 @@ describe('DayDetailPanel remaining branches', () => {
     await user.click(await screen.findByText(/Add accommodation/i));
 
     // open the "from" select — the option rows carry the badges
-    const range = screen.getByText('Apply to days').parentElement as HTMLElement;
+    const range = screen.getByText('Apply to days').closest('section') as HTMLElement;
     await user.click(within(range).getAllByRole('button')[0]);
 
     expect(screen.getAllByText('Jun 15').length).toBeGreaterThanOrEqual(1);
@@ -1698,13 +1728,13 @@ describe('DayDetailPanel remaining branches', () => {
     const onToggleCollapse = vi.fn();
     const { rerender } = render(<DayDetailPanel {...defaultProps} collapsed={false} onToggleCollapse={onToggleCollapse} />);
 
-    await user.click(screen.getByTitle('Collapse'));
+    await user.click(screen.getByRole('button', { name: 'Collapse' }));
     expect(onToggleCollapse).toHaveBeenCalled();
 
     rerender(<DayDetailPanel {...defaultProps} collapsed onToggleCollapse={onToggleCollapse} />);
     const header = screen.getByText('Day in Paris').closest('div') as HTMLElement;
     expect(header).toHaveTextContent(/Sunday, June 15/);
-    expect(screen.getByTitle('Expand')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand' })).toBeInTheDocument();
   });
 });
 
@@ -1728,13 +1758,14 @@ describe('DayDetailPanel remaining branches, part two', () => {
     );
 
     const code = await screen.findByText('#XY99');
-    expect(code.style.filter).toBe('none');
-    expect(code.style.cursor).toBe('default');
+    expect(isBlurred(code)).toBe(false);
+    // With nothing to reveal the code is plain text, not a control.
+    expect(code.closest('button')).toBeNull();
 
     fireEvent.mouseEnter(code);
     fireEvent.click(code);
     fireEvent.mouseLeave(code);
-    expect(code.style.filter).toBe('none');
+    expect(isBlurred(code)).toBe(false);
     expect(screen.getByText('Pending')).toBeInTheDocument();
   });
 
@@ -1772,7 +1803,7 @@ describe('DayDetailPanel remaining branches, part two', () => {
     render(<DayDetailPanel {...defaultProps} day={d1} days={[d1, d2]} places={[buildPlace({ id: 10, name: 'Maison Blanche' })]} />);
     await user.click(await screen.findByText(/Add accommodation/i));
 
-    const range = screen.getByText('Apply to days').parentElement as HTMLElement;
+    const range = screen.getByText('Apply to days').closest('section') as HTMLElement;
     const [fromSelect, toSelect] = within(range).getAllByRole('button');
 
     await user.click(fromSelect);
@@ -1802,15 +1833,17 @@ describe('DayDetailPanel remaining branches, part two', () => {
 
     const picked = screen.getByRole('button', { name: /Maison Blanche/ });
     await user.click(picked);
-    expect(picked.style.background).toBe('var(--bg-hover)');
+    expect(picked).toHaveAttribute('aria-pressed', 'true');
 
     fireEvent.mouseEnter(picked);
     fireEvent.mouseLeave(picked);
-    expect(picked.style.background).toBe('var(--bg-hover)');
+    expect(picked).toHaveAttribute('aria-pressed', 'true');
+    expect(picked.className).toContain('ring-accent');
+    expect(screen.getByRole('button', { name: /Chez Nous/ })).toHaveAttribute('aria-pressed', 'false');
     expect(document.querySelector('img[src="/uploads/places/mb.jpg"]')).not.toBeNull();
   });
 
-  it('FE-W5DDP-019: a category without a colour falls back to the default filter highlight', async () => {
+  it('FE-W5DDP-019: a category without a colour gets a neutral dot and can still be picked', async () => {
     const user = userEvent.setup();
     render(
       <DayDetailPanel
@@ -1821,9 +1854,13 @@ describe('DayDetailPanel remaining branches, part two', () => {
     );
     await user.click(await screen.findByText(/Add accommodation/i));
 
-    const chip = screen.getByRole('button', { name: 'Uncoloured' });
-    await user.click(chip);
-    expect(chip.style.background).toBe('var(--text-primary)');
+    await user.click(screen.getByRole('button', { name: /^Category:/ }));
+    const option = within(screen.getByRole('group', { name: 'Category' })).getByRole('button', { name: 'Uncoloured' });
+    // Its dot falls back to a neutral token instead of a colour it does not have.
+    expect((option.querySelector('span span') as HTMLElement).style.background).toBe('var(--text-faint)');
+    await user.click(option);
+    // The pill now names the category in force.
+    expect(screen.getByRole('button', { name: /^Category:/ })).toHaveTextContent('Uncoloured');
   });
 
   it('FE-W5DDP-022: a plugin column for this day is appended above the reservations', async () => {
@@ -1902,8 +1939,9 @@ describe('DayDetailPanel time format', () => {
     );
     render(<DayDetailPanel {...defaultProps} />);
 
+    // The arrival day shows only the check-in; the check-out belongs to the last day (#2393).
     expect(await screen.findByText('15:00')).toBeInTheDocument();
-    expect(screen.getByText('11:00')).toBeInTheDocument();
+    expect(screen.queryByText('11:00')).not.toBeInTheDocument();
   });
 });
 
@@ -1929,10 +1967,10 @@ describe('DayDetailPanel blur booking codes (#2457)', () => {
   );
   const openHotelEditor = async () => {
     await screen.findByText('Code Hotel');
-    // header collapse (0), header close (1), pencil (2), remove (3), as in DAYDETAIL-032
-    await userEvent.click(screen.getAllByRole('button')[2]);
+    // the pencil on the stay's card, as in DAYDETAIL-032
+    await userEvent.click(screen.getByRole('button', { name: 'Edit accommodation' }));
     await waitFor(() => {
-      expect(document.body.querySelector('[style*="z-index: 99999"]')?.textContent).toMatch(/Edit accommodation/i);
+      expect(screen.getByRole('dialog').textContent).toMatch(/Edit accommodation/i);
     });
   };
 
@@ -1981,5 +2019,260 @@ describe('DayDetailPanel blur booking codes (#2457)', () => {
     await userEvent.click(screen.getByText(/Save/i));
     await waitFor(() => expect(body).not.toBeNull());
     expect(body!.confirmation).toBe('HOTEL-SECRET');
+  });
+});
+
+// ── Redesign fixes: the right stay is removed, failed writes speak up ──────────
+
+describe('DayDetailPanel accommodation writes', () => {
+  const stay = (id: number, name: string, overrides: Record<string, unknown> = {}) => ({
+    id, place_id: 100 + id, place_name: name, place_address: 'Paris',
+    start_day_id: 1, end_day_id: 1, check_in: null, check_out: null, confirmation: null,
+    ...overrides,
+  });
+
+  it('FE-PLANNER-DAYDETAIL-086: with two hotels on the day, the X of the second deletes the second', async () => {
+    // The X used to select its stay and then call a remove that still held the
+    // stay selected before, so on a day with two hotels it deleted the first.
+    const deleted: string[] = [];
+    server.use(
+      http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [stay(1, 'First Hotel'), stay(2, 'Second Hotel')] })),
+      http.delete('/api/trips/1/accommodations/:id', ({ params }) => {
+        deleted.push(String(params.id));
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    const onAccommodationChange = vi.fn();
+    render(<DayDetailPanel {...defaultProps} onAccommodationChange={onAccommodationChange} />);
+    const second = (await screen.findByText('Second Hotel')).closest('article') as HTMLElement;
+    await userEvent.click(within(second).getByRole('button', { name: 'Remove' }));
+
+    await waitFor(() => expect(deleted).toEqual(['2']));
+    await waitFor(() => expect(screen.queryByText('Second Hotel')).not.toBeInTheDocument());
+    expect(screen.getByText('First Hotel')).toBeInTheDocument();
+    expect(onAccommodationChange).toHaveBeenCalledTimes(1);
+
+    // The first one is still the one its own X and pencil act on.
+    const first = screen.getByText('First Hotel').closest('article') as HTMLElement;
+    await userEvent.click(within(first).getByRole('button', { name: 'Remove' }));
+    await waitFor(() => expect(deleted).toEqual(['2', '1']));
+  });
+
+  it('FE-PLANNER-DAYDETAIL-087: a failing new stay keeps the picker open and says why', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    server.use(
+      http.post('/api/trips/1/accommodations', () => HttpResponse.json({ error: 'Place is not in this trip' }, { status: 400 })),
+    );
+    render(<DayDetailPanel {...defaultProps} places={[buildPlace({ id: 10, name: 'Maison Blanche' })]} />);
+    await userEvent.click(await screen.findByText(/Add accommodation/i));
+    await userEvent.click(screen.getByRole('button', { name: /Maison Blanche/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Place is not in this trip', 'error', undefined));
+    // Still open, still holding the picked place.
+    expect(screen.getByRole('dialog', { name: 'Add accommodation' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Maison Blanche/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('FE-PLANNER-DAYDETAIL-088: a failing removal keeps the stay and says so', async () => {
+    const addToast = vi.fn();
+    window.__addToast = addToast;
+    server.use(
+      http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [stay(1, 'Sticky Hotel')] })),
+      http.delete('/api/trips/1/accommodations/1', () => HttpResponse.json({ error: 'Locked by a booking' }, { status: 409 })),
+    );
+    render(<DayDetailPanel {...defaultProps} />);
+    await userEvent.click(within((await screen.findByText('Sticky Hotel')).closest('article') as HTMLElement).getByRole('button', { name: 'Remove' }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Locked by a booking', 'error', undefined));
+    expect(screen.getByText('Sticky Hotel')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-DAYDETAIL-093: a stay requested from the day\'s "+" opens the editor once', async () => {
+    const onStayPickerOpened = vi.fn();
+    render(<DayDetailPanel {...defaultProps} openStayPicker onStayPickerOpened={onStayPickerOpened} />);
+    expect(await screen.findByRole('dialog', { name: 'Add accommodation' })).toBeInTheDocument();
+    expect(onStayPickerOpened).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-PLANNER-DAYDETAIL-094: without edit rights the request is handed back and nothing opens', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 999, role: 'user' }), isAuthenticated: true });
+    seedStore(usePermissionsStore, { permissions: { day_edit: 'admin' } });
+    const onStayPickerOpened = vi.fn();
+    render(<DayDetailPanel {...defaultProps} openStayPicker onStayPickerOpened={onStayPickerOpened} />);
+    await waitFor(() => expect(onStayPickerOpened).toHaveBeenCalled());
+    expect(screen.queryByRole('dialog', { name: 'Add accommodation' })).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-DAYDETAIL-089: the stay picker is a named dialog', async () => {
+    render(<DayDetailPanel {...defaultProps} />);
+    await userEvent.click(await screen.findByText(/Add accommodation/i));
+    const dialog = screen.getByRole('dialog', { name: 'Add accommodation' });
+    // Every field of the editor has its own label.
+    for (const label of ['Apply to days', 'Start', 'End', 'Check-in', 'Until', 'Check-out', 'Confirmation']) {
+      expect(within(dialog).getByText(label)).toBeInTheDocument();
+    }
+    // The list's label, and the title that asks for a pick until there is one.
+    expect(within(dialog).getAllByText('Select accommodation')).toHaveLength(2);
+    expect(within(dialog).getByLabelText('Confirmation')).toHaveAttribute('placeholder', 'ABC-12345');
+  });
+});
+
+describe('DayDetailPanel weather and reservation rows', () => {
+  it('FE-PLANNER-DAYDETAIL-090: the weather chips carry their labels, the hourly strip is labelled and tints rainy hours', async () => {
+    server.use(
+      http.get('/api/weather/detailed', () =>
+        HttpResponse.json({
+          main: 'Rain', temp: 15, temp_min: 12, temp_max: 18, description: 'rainy', type: 'forecast',
+          precipitation_probability_max: 80, precipitation_sum: 5.2, wind_max: 30, sunrise: '06:30', sunset: '20:15',
+          hourly: [
+            { hour: 8, main: 'Rain', temp: 14, precipitation_probability: 70 },
+            { hour: 9, main: 'Rain', temp: 14, precipitation_probability: 70 },
+            { hour: 10, main: 'Clouds', temp: 16, precipitation_probability: 20 },
+          ],
+        }),
+      ),
+    );
+    render(<DayDetailPanel {...defaultProps} lat={48.85} lng={2.35} weatherPlaceName="Louvre" />);
+    expect(await screen.findByText('Forecast for Louvre')).toBeInTheDocument();
+    // Screen readers hear the label with each value …
+    for (const label of ['Rain probability', 'Precipitation', 'Wind', 'Sunrise', 'Sunset']) {
+      expect(screen.getByText(`${label}:`)).toHaveClass('sr-only');
+    }
+    // … and the pointer gets it as a tooltip.
+    fireEvent.mouseEnter(screen.getByText('80%'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Rain probability');
+    fireEvent.mouseLeave(screen.getByText('80%'));
+
+    expect(screen.getByText('Hourly Forecast')).toBeInTheDocument();
+    expect((screen.getByText('08').parentElement as HTMLElement).className).toContain('bg-info-soft');
+    expect((screen.getByText('10').parentElement as HTMLElement).className).not.toContain('bg-info-soft');
+    // every second hour only
+    expect(screen.queryByText('09')).toBeNull();
+    expect(screen.getByText('12° / 18°')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-DAYDETAIL-091: a reservation row names its status and shows its type icon', async () => {
+    render(
+      <DayDetailPanel
+        {...defaultProps}
+        reservations={[
+          buildReservation({ id: 9, type: 'restaurant', title: 'Dinner', day_id: 1, status: 'confirmed' }),
+          buildReservation({ id: 10, type: 'event', title: 'Show', day_id: 1, status: 'pending' }),
+        ]}
+      />,
+    );
+    const dinner = (await screen.findByText('Dinner')).closest('li') as HTMLElement;
+    expect(within(dinner).getByRole('img', { name: 'Confirmed' })).toBeInTheDocument();
+    expect(dinner.querySelector('svg')?.getAttribute('class')).toMatch(/utensils/);
+    const show = screen.getByText('Show').closest('li') as HTMLElement;
+    expect(within(show).getByRole('img', { name: 'Pending' })).toBeInTheDocument();
+    expect(screen.getByText('Reservations')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-DAYDETAIL-092: the stay card marks the check-out day in the danger tone', async () => {
+    const lastDay = buildDay({ id: 3, trip_id: 1, date: '2025-06-17', title: 'Leaving Day' });
+    server.use(
+      http.get('/api/trips/1/accommodations', () =>
+        HttpResponse.json({
+          accommodations: [{
+            id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
+          }],
+        }),
+      ),
+    );
+    render(<DayDetailPanel {...defaultProps} day={lastDay} days={[day, lastDay]} />);
+    const card = (await screen.findByText('Grand Hotel')).closest('article') as HTMLElement;
+    const pill = within(card).getAllByText('Check-out').find(el => el.className.includes('rounded-full')) as HTMLElement;
+    expect(pill.className).toContain('text-danger');
+    expect(pill.querySelector('.lucide-log-out')).not.toBeNull();
+  });
+});
+
+// The desktop plan passes onOpenBooking, so a booking in the day's card opens its
+// detail; the narrow layout does not, and the rows stay a read-only summary.
+describe('DayDetailPanel opening a booking', () => {
+  const stay = {
+    id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+    start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
+  };
+
+  it('FE-PLANNER-DAYDETAIL-095: with a detail to show, a booking of the day opens it', async () => {
+    const onOpenBooking = vi.fn();
+    const show = buildReservation({ id: 9, type: 'event', title: 'Night Show', day_id: 1, reservation_time: '20:00', status: 'confirmed' });
+    render(<DayDetailPanel {...defaultProps} reservations={[show]} onOpenBooking={onOpenBooking} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Night Show/ }));
+
+    expect(onOpenBooking).toHaveBeenCalledWith(show);
+  });
+
+  it("FE-PLANNER-DAYDETAIL-096: without one, the day's bookings stay a read-only list", async () => {
+    const show = buildReservation({ id: 9, type: 'event', title: 'Night Show', day_id: 1, reservation_time: '20:00', status: 'confirmed' });
+    render(<DayDetailPanel {...defaultProps} reservations={[show]} />);
+
+    expect(await screen.findByText('Night Show')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Night Show/ })).toBeNull();
+  });
+
+  it("FE-PLANNER-DAYDETAIL-097: a stay's booking is one button that opens it, with its blurred code no second button inside", async () => {
+    seedStore(useSettingsStore, { settings: { time_format: '24h', temperature_unit: 'celsius', blur_booking_codes: true } });
+    server.use(http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [stay] })));
+    const onOpenBooking = vi.fn();
+    const booking = buildReservation({ id: 40, type: 'hotel', title: 'Grand Hotel Booking', accommodation_id: 1, status: 'confirmed', confirmation_number: 'XY99' });
+    render(<DayDetailPanel {...defaultProps} reservations={[booking]} onOpenBooking={onOpenBooking} />);
+
+    const box = await screen.findByRole('button', { name: /Grand Hotel Booking/ });
+    // The code is read in the booking it opens, so it is neither a button nor part of this one's name.
+    expect(within(box).queryByRole('button')).toBeNull();
+    expect(box).not.toHaveAccessibleName(/XY99/);
+
+    await userEvent.click(box);
+    expect(onOpenBooking).toHaveBeenCalledTimes(1);
+    expect(onOpenBooking).toHaveBeenCalledWith(booking);
+  });
+
+  it("FE-PLANNER-DAYDETAIL-098: without one, a stay's booking is no button and its blurred code reveals itself", async () => {
+    seedStore(useSettingsStore, { settings: { time_format: '24h', temperature_unit: 'celsius', blur_booking_codes: true } });
+    server.use(http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [stay] })));
+    const booking = buildReservation({ id: 40, type: 'hotel', title: 'Grand Hotel Booking', accommodation_id: 1, status: 'confirmed', confirmation_number: 'XY99' });
+    render(<DayDetailPanel {...defaultProps} reservations={[booking]} />);
+
+    expect(await screen.findByText('Grand Hotel Booking')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Grand Hotel Booking/ })).toBeNull();
+    expect(screen.getByRole('button', { name: '#XY99' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('FE-PLANNER-DAYDETAIL-099: the arrival day shows only the check-in time and the middle night shows neither', async () => {
+    const middleDay = buildDay({ id: 2, trip_id: 1, date: '2025-06-16', title: 'Middle Day' });
+    server.use(
+      http.get('/api/trips/1/accommodations', () =>
+        HttpResponse.json({
+          accommodations: [{
+            id: 1, place_id: 5, place_name: 'Grand Hotel', place_address: 'Paris',
+            start_day_id: 1, end_day_id: 3, check_in: '14:00', check_out: '11:00', confirmation: null,
+          }],
+        })
+      ),
+    );
+    const { unmount } = render(<DayDetailPanel {...defaultProps} />);
+    await screen.findByText('14:00');
+    expect(screen.queryByText('11:00')).toBeNull();
+    unmount();
+    render(<DayDetailPanel {...defaultProps} day={middleDay} days={[day, middleDay]} />);
+    await screen.findByText('Grand Hotel');
+    expect(screen.queryByText('14:00')).toBeNull();
+    expect(screen.queryByText('11:00')).toBeNull();
+  });
+
+  it('FE-PLANNER-DAYDETAIL-100: date-first headings lead with the date and name the day second', async () => {
+    seedStore(useSettingsStore, {
+      settings: { time_format: '24h', temperature_unit: 'celsius', day_date_first: true },
+    });
+    render(<DayDetailPanel {...defaultProps} />);
+    const title = await screen.findByText(/June 15/);
+    expect(title.className).toContain('font-bold');
   });
 });

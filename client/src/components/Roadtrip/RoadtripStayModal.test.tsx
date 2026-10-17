@@ -217,7 +217,10 @@ describe('RoadtripStayModal for a stop left at a set time', () => {
 
   it('FE-STAYMODAL-019: closing changes nothing', () => {
     const { onClose, onSave } = open(leaving)
-    fireEvent.click(screen.getByRole('button', { name: /^close$/i }))
+    // The footer's Close; the header's X answers to the same name and closes the same way.
+    const closeButtons = screen.getAllByRole('button', { name: /^close$/i })
+    expect(closeButtons).toHaveLength(2)
+    fireEvent.click(closeButtons[1])
     expect(onClose).toHaveBeenCalled()
     expect(onSave).not.toHaveBeenCalled()
     expect(setAssignmentTimes).not.toHaveBeenCalled()

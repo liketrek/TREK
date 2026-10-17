@@ -1,4 +1,4 @@
-// FE-MOB-COLSCR-001 to FE-MOB-COLSCR-031
+// FE-MOB-COLSCR-001 to FE-MOB-COLSCR-033
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '../../../helpers/render'
@@ -159,6 +159,8 @@ function makeHook(over: Record<string, unknown> = {}): Record<string, unknown> {
     mappable: [place(10, 'Elbphilharmonie', { lat: 53.5, lng: 10 })],
     members: [],
     incomingInvites: [],
+    orderedInvites: [],
+    routeInvite: null,
     counts: { all: 1, idea: 1, want: 0, visited: 0 },
     view: 'list',
     statusFilter: 'all',
@@ -186,6 +188,7 @@ function makeHook(over: Record<string, unknown> = {}): Record<string, unknown> {
     copyIds: null, openCopyForSelectedPlace: vi.fn(), openCopyForSelection: vi.fn(), closeCopy: vi.fn(), handleCopyToTrip: vi.fn(),
     handleSelectList: vi.fn(), handleDeleteList: vi.fn(),
     handleStatusChange: vi.fn(), handleRatePlace: vi.fn(), handleDeleteSelected: vi.fn(),
+    handleAcceptInvite: vi.fn(), handleDeclineInvite: vi.fn(),
     allVisibleSelected: false, handleSelectAll: vi.fn(),
     listPickerMode: null, setListPickerMode: vi.fn(), handleMoveToList: vi.fn(), handleDuplicateToList: vi.fn(),
     ...over,
@@ -435,6 +438,16 @@ describe('MCollections', () => {
     expect(screen.getByRole('button', { name: /collections.duplicateToList/ })).toBeInTheDocument()
   })
 
+  it('FE-MOB-COLSCR-017b: an editor keeps copy and duplicate but cannot move places out of the list', () => {
+    mocks.coll = makeHook({ selectMode: true, selectedIds: [10], canEdit: true, canDelete: false, isOwner: false })
+    render(<MCollections />)
+
+    expect(screen.queryByRole('button', { name: /collections.moveToList/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /common.delete/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /collections.duplicateToList/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /collections.copyToTrip/ })).toBeInTheDocument()
+  })
+
   it('FE-MOB-COLSCR-018: the list view renders rows, the loading state and both empty states', () => {
     render(<MCollections />)
     expect(screen.getByText('Elbphilharmonie')).toBeInTheDocument()
@@ -646,5 +659,36 @@ describe('MCollections', () => {
     render(<MCollections />)
 
     expect(screen.getByText('add-target:null::1')).toBeInTheDocument()
+  })
+})
+
+// #2645: the phone had no way to answer a list invite, and the notification's
+// link landed on "Start your first collection".
+describe('MCollections: invites (#2645)', () => {
+  const invite = { collection_id: 14, name: 'Lisbon', from: { id: 4, username: 'Lena' } }
+
+  it('FE-MOB-COLSCR-032: with no lists of their own, the invite can be accepted or declined', () => {
+    mocks.coll = makeHook({
+      collections: [], ownedLists: [], activeCollection: null, activeId: null, canShare: false,
+      incomingInvites: [invite], orderedInvites: [invite], routeInvite: invite,
+    })
+    render(<MCollections />)
+
+    expect(screen.getByText('Lisbon')).toBeInTheDocument()
+    expect(screen.getByText(/Lena/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /collections.invites.accept/ }))
+    expect(fn('handleAcceptInvite')).toHaveBeenCalledWith(14)
+    fireEvent.click(screen.getByRole('button', { name: 'collections.invites.decline' }))
+    expect(fn('handleDeclineInvite')).toHaveBeenCalledWith(14)
+  })
+
+  it('FE-MOB-COLSCR-033: invites sit above the lists too, in the order the hook gives', () => {
+    const other = { collection_id: 3, name: 'Rome', from: { id: 5, username: 'Tom' } }
+    mocks.coll = makeHook({ incomingInvites: [other, invite], orderedInvites: [invite, other] })
+    render(<MCollections />)
+
+    const names = screen.getAllByText(/^(Lisbon|Rome)$/).map(el => el.textContent)
+    expect(names).toEqual(['Lisbon', 'Rome'])
+    expect(screen.getByPlaceholderText('collections.search')).toBeInTheDocument()
   })
 })

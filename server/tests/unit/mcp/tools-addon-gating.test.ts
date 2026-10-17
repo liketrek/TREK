@@ -1,50 +1,23 @@
 /**
  * Unit tests for MCP addon gating and scope enforcement in tools.
  */
+import { ADDON_IDS } from '../../../src/addons';
+import { db as testDb } from '../../../src/db/database';
+import { createUser, createTrip } from '../../helpers/factories';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { setAddonEnabled } from '../../helpers/test-db';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
 
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
-
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { setAddonEnabled } from '../../helpers/test-db';
-import { ADDON_IDS } from '../../../src/addons';
-
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
-});
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -61,13 +34,13 @@ afterAll(() => {
   testDb.close();
 });
 
-async function withHarness(
-  userId: number,
-  fn: (h: McpHarness) => Promise<void>,
-  scopes?: string[] | null
-) {
-  const h = await createMcpHarness({ userId, withResources: false, scopes: scopes ?? null });
-  try { await fn(h); } finally { await h.cleanup(); }
+async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes?: string[] | null) {
+  const h = await createMcpHarness({ realtime, userId, withResources: false, scopes: scopes ?? null });
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +125,10 @@ describe('Budget tools — addon gating', () => {
     setAddonEnabled(testDb, ADDON_IDS.BUDGET, false);
 
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_budget_item', arguments: { tripId: 1, name: 'Test', total_price: 100 } });
+      const result = await h.client.callTool({
+        name: 'create_budget_item',
+        arguments: { tripId: 1, name: 'Test', total_price: 100 },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -169,7 +145,10 @@ describe('Packing tools — addon gating', () => {
     setAddonEnabled(testDb, ADDON_IDS.PACKING, false);
 
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_packing_item', arguments: { tripId: 1, name: 'Sunscreen' } });
+      const result = await h.client.callTool({
+        name: 'create_packing_item',
+        arguments: { tripId: 1, name: 'Sunscreen' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -186,7 +165,10 @@ describe('Collab tools — addon gating', () => {
     setAddonEnabled(testDb, ADDON_IDS.COLLAB, false);
 
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_collab_note', arguments: { tripId: 1, title: 'Test Note' } });
+      const result = await h.client.callTool({
+        name: 'create_collab_note',
+        arguments: { tripId: 1, title: 'Test Note' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -228,51 +210,74 @@ describe('Scope enforcement in tools', () => {
   it('with scopes trips:read, create_trip is not registered (write not in scopes)', async () => {
     const { user } = createUser(testDb);
 
-    await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_trip', arguments: { title: 'Should Fail' } });
-      expect(result.isError).toBe(true);
-    }, ['trips:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const result = await h.client.callTool({ name: 'create_trip', arguments: { title: 'Should Fail' } });
+        expect(result.isError).toBe(true);
+      },
+      ['trips:read'],
+    );
   });
 
   it('with scopes trips:write, create_trip is registered and works', async () => {
     const { user } = createUser(testDb);
 
-    await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_trip', arguments: { title: 'My Trip' } });
-      expect(result.isError).toBeFalsy();
-      const data = parseToolResult(result) as any;
-      expect(data.trip.title).toBe('My Trip');
-    }, ['trips:write']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const result = await h.client.callTool({ name: 'create_trip', arguments: { title: 'My Trip' } });
+        expect(result.isError).toBeFalsy();
+        const data = parseToolResult(result) as any;
+        expect(data.trip.title).toBe('My Trip');
+      },
+      ['trips:write'],
+    );
   });
 
   it('with scopes null (full access), create_trip is registered', async () => {
     const { user } = createUser(testDb);
 
-    await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_trip', arguments: { title: 'Full Access Trip' } });
-      expect(result.isError).toBeFalsy();
-    }, null);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const result = await h.client.callTool({ name: 'create_trip', arguments: { title: 'Full Access Trip' } });
+        expect(result.isError).toBeFalsy();
+      },
+      null,
+    );
   });
 
   it('with scopes trips:read, create_budget_item is not registered (budget:write not in scopes)', async () => {
     const { user } = createUser(testDb);
 
-    await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'create_budget_item', arguments: { tripId: 1, name: 'Hotel', total_price: 200 } });
-      expect(result.isError).toBe(true);
-    }, ['trips:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const result = await h.client.callTool({
+          name: 'create_budget_item',
+          arguments: { tripId: 1, name: 'Hotel', total_price: 200 },
+        });
+        expect(result.isError).toBe(true);
+      },
+      ['trips:read'],
+    );
   });
 
   it('with scopes budget:write and trips:read, create_budget_item is registered (budget addon enabled)', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Budget Trip' });
 
-    await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({
-        name: 'create_budget_item',
-        arguments: { tripId: trip.id, name: 'Hotel', total_price: 200 },
-      });
-      expect(result.isError).toBeFalsy();
-    }, ['budget:write', 'trips:read']);
+    await withHarness(
+      user.id,
+      async (h) => {
+        const result = await h.client.callTool({
+          name: 'create_budget_item',
+          arguments: { tripId: trip.id, name: 'Hotel', total_price: 200 },
+        });
+        expect(result.isError).toBeFalsy();
+      },
+      ['budget:write', 'trips:read'],
+    );
   });
 });

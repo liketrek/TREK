@@ -479,3 +479,29 @@ describe('MCollPlaceSheet', () => {
     expect(text).toHaveClass('truncate')
   })
 })
+
+describe('MCollPlaceSheet navigation (#2091)', () => {
+  it('FE-MOB-CPLSH-042: a located place offers the navigation apps from the sheet', async () => {
+    setup({ place: place({ lat: 35.67, lng: 139.72 }) })
+
+    const nav = screen.getByRole('button', { name: /^Navigation$/ })
+    fireEvent.click(nav)
+
+    expect(await screen.findByText('Google Maps')).toBeInTheDocument()
+    expect(screen.getByText('Waze')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-CPLSH-043: a place with an address but no pin still navigates, by search', async () => {
+    setup({ place: place({ lat: null, lng: null }) })
+
+    fireEvent.click(screen.getByRole('button', { name: /^Navigation$/ }))
+    expect(await screen.findByText('Google Maps')).toBeInTheDocument()
+    // Waze needs a position, so it is not offered for a place without one.
+    expect(screen.queryByText('Waze')).toBeNull()
+  })
+
+  it('FE-MOB-CPLSH-044: a place with nowhere to navigate to shows no button', () => {
+    setup({ place: place({ lat: null, lng: null, address: null, name: '' }) })
+    expect(screen.queryByRole('button', { name: /Navigation|Google Maps/ })).toBeNull()
+  })
+})

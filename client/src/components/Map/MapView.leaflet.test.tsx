@@ -16,9 +16,18 @@ import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest
 import { render, waitFor, act } from '../../../tests/helpers/render'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { buildPlace } from '../../../tests/helpers/factories'
+import { AMAP_ROAD } from '../../constants/mapDefaults'
+import { useSettingsStore } from '../../store/settingsStore'
 
 vi.mock('../../hooks/useGeolocation', () => ({
   useGeolocation: () => ({ position: null, mode: 'off', error: null, errorCode: null, cycleMode: vi.fn(), setMode: vi.fn() }),
+}))
+
+// What the via ferrata layer draws is FerrataLayerLeaflet's own suite; here only what the
+// renderer hands it. jsdom has no SVG renderer for Leaflet to draw real lines into.
+vi.mock('../Ferratas/FerrataLayerLeaflet', () => ({
+  FerrataMapLayerLeaflet: ({ layer }: { layer?: { active: boolean; groups: readonly unknown[] } }) =>
+    layer?.active ? <div data-testid="ferrata-leaflet-layer" data-count={layer.groups.length} /> : null,
 }))
 
 vi.mock('../../services/photoService', () => ({
@@ -32,6 +41,8 @@ vi.mock('../../services/photoService', () => ({
 import L from 'leaflet'
 import { MapView } from './MapView'
 import { ContextMenu } from '../shared/ContextMenu'
+import type { Ferrata } from '@trek/shared'
+import { groupFerratas } from '../Ferratas/ferrataGroups'
 
 // Every map this file builds, newest last, for the tests that reach past the component.
 const maps: L.Map[] = []
@@ -92,6 +103,27 @@ function clickOn(el: Element) {
   })
 }
 
+/** The Leaflet marker that renders `el`; throws when the map has none. */
+function markerOf(map: L.Map, el: Element): L.Marker {
+  let found: L.Marker | null = null
+  map.eachLayer(layer => {
+    if (layer instanceof L.Marker && layer.getElement() === el) found = layer
+  })
+  if (!found) throw new Error('no marker renders this element')
+  return found
+}
+
+function pointer(type: string, x: number, y: number): Event {
+  const event = new Event(type, { bubbles: true, cancelable: true })
+  Object.defineProperties(event, {
+    button: { value: 0 },
+    clientX: { value: x },
+    clientY: { value: y },
+    pointerId: { value: 1 },
+  })
+  return event
+}
+
 // Two stops a few hundred metres apart in Nara: separate pins at this zoom, not a cluster.
 const places = [
   { ...buildPlace({ id: 1, name: 'Todai-ji', lat: 34.689, lng: 135.8398 }), category_name: null, category_color: null, category_icon: null },
@@ -112,6 +144,188 @@ async function renderMap() {
 }
 
 describe('MapView on a real Leaflet map', () => {
+  it('RC-08: previews waypoint drags locally and commits only at pointer up without panning', async () => {
+    const waypoint = { id: 'via-1', lat: 34.689, lng: 135.8398, role: 'via' as const }
+    const waypoints = [waypoint]
+    const onMove = vi.fn(() => true)
+    const onSelect = vi.fn()
+    const onMapClick = vi.fn()
+    const view = render(
+      <MapView
+        places={[]}
+        center={[waypoint.lat, waypoint.lng]}
+        zoom={15}
+        tileUrl={RASTER}
+        plannerWaypoints={waypoints}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+        focusKey="tour:1"
+        focusPoints={[[waypoint.lat, waypoint.lng]]}
+        routeProfileFocus={null}
+      />
+    )
+    const map = maps[maps.length - 1]
+    await waitFor(() => expect(view.container.querySelector('.tour-planner-waypoint-marker')).not.toBeNull())
+    const pin = view.container.querySelector('.tour-planner-waypoint-marker') as HTMLElement
+    const marker = markerOf(map, pin)
+    const start = map.latLngToContainerPoint([waypoint.lat, waypoint.lng])
+    const end = start.add([30, 20])
+    const expected = map.containerPointToLatLng(end)
+    const center = map.getCenter()
+
+    act(() => {
+      pin.dispatchEvent(pointer('pointerdown', start.x, start.y))
+      pin.dispatchEvent(mouse('mousedown', start.x, start.y))
+      pin.dispatchEvent(pointer('pointermove', end.x, end.y))
+    })
+    expect(marker.getLatLng().lat).toBeCloseTo(expected.lat, 6)
+    expect(marker.getLatLng().lng).toBeCloseTo(expected.lng, 6)
+    expect(onMove).not.toHaveBeenCalled()
+    expect(waypoints[0]).toEqual(waypoint)
+
+    view.rerender(
+      <MapView
+        places={[]}
+        center={[waypoint.lat, waypoint.lng]}
+        zoom={15}
+        tileUrl={RASTER}
+        plannerWaypoints={waypoints}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+        focusKey="tour:1"
+        focusPoints={[[waypoint.lat, waypoint.lng]]}
+        routeProfileFocus={{ distanceMeters: 100, elevationMeters: 0, lat: 34.69, lng: 135.84, sampleIndex: 0 }}
+      />
+    )
+    expect(marker.getLatLng().lat).toBeCloseTo(expected.lat, 6)
+    expect(marker.getLatLng().lng).toBeCloseTo(expected.lng, 6)
+
+    act(() => {
+      pin.dispatchEvent(pointer('pointerup', end.x, end.y))
+      pin.dispatchEvent(mouse('mouseup', end.x, end.y))
+      pin.dispatchEvent(mouse('click', end.x, end.y))
+    })
+    expect(onMove).toHaveBeenCalledOnce()
+    expect(onMove).toHaveBeenCalledWith(waypoint.id, expected.lat, expected.lng)
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(onMapClick).not.toHaveBeenCalled()
+    expect(map.getCenter().lat).toBeCloseTo(center.lat, 6)
+    expect(map.getCenter().lng).toBeCloseTo(center.lng, 6)
+
+    view.rerender(
+      <MapView
+        places={[]}
+        center={[waypoint.lat, waypoint.lng]}
+        zoom={15}
+        tileUrl={RASTER}
+        plannerWaypoints={[{ ...waypoint, lat: expected.lat, lng: expected.lng }]}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+        focusKey="tour:1"
+        focusPoints={[[expected.lat, expected.lng]]}
+        routeProfileFocus={{ distanceMeters: 100, elevationMeters: 0, lat: 34.69, lng: 135.84, sampleIndex: 0 }}
+      />
+    )
+    expect(map.getCenter().lat).toBeCloseTo(center.lat, 6)
+    expect(map.getCenter().lng).toBeCloseTo(center.lng, 6)
+  })
+
+  it('RC-08: cancellation restores the marker and a plain click still selects without affecting map-add', async () => {
+    const waypoint = { id: 'start', lat: 34.689, lng: 135.8398, role: 'start' as const }
+    const onMove = vi.fn(() => true)
+    const onSelect = vi.fn()
+    const onMapClick = vi.fn()
+    const view = render(
+      <MapView
+        places={[]}
+        center={[waypoint.lat, waypoint.lng]}
+        zoom={15}
+        tileUrl={RASTER}
+        plannerWaypoints={[waypoint]}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+      />
+    )
+    const map = maps[maps.length - 1]
+    await waitFor(() => expect(view.container.querySelector('.tour-planner-waypoint-marker')).not.toBeNull())
+    const pin = view.container.querySelector('.tour-planner-waypoint-marker') as HTMLElement
+    const marker = markerOf(map, pin)
+    const start = map.latLngToContainerPoint([waypoint.lat, waypoint.lng])
+    const end = start.add([30, 20])
+
+    act(() => {
+      pin.dispatchEvent(pointer('pointerdown', start.x, start.y))
+      pin.dispatchEvent(pointer('pointermove', end.x, end.y))
+      pin.dispatchEvent(pointer('pointercancel', end.x, end.y))
+    })
+    expect(marker.getLatLng().lat).toBeCloseTo(waypoint.lat, 6)
+    expect(marker.getLatLng().lng).toBeCloseTo(waypoint.lng, 6)
+    expect(onMove).not.toHaveBeenCalled()
+
+    clickOn(pin)
+    expect(onSelect).toHaveBeenCalledOnce()
+    expect(onSelect).toHaveBeenCalledWith(waypoint.id)
+    expect(onMapClick).not.toHaveBeenCalled()
+    act(() => { map.fire('click', { latlng: L.latLng(34.7, 135.85) }) })
+    expect(onMapClick).toHaveBeenCalledOnce()
+  })
+
+  it('uses WGS-84 for Tours-local Topo over global Amap and preserves a Beijing click through layer switches', async () => {
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, map_base_layer: 'default' } })
+    const beijing = { ...buildPlace({ id: 201, name: 'Beijing', lat: 39.9042, lng: 116.4074 }), category_name: null, category_color: null, category_icon: null }
+    const onMapClick = vi.fn()
+    const route: [number, number][][] = [[[39.9042, 116.4074], [39.9052, 116.4084]]]
+    const waypoints = [{ id: 'beijing', lat: 39.9042, lng: 116.4074, role: 'start' as const }]
+    const renderLayer = (viewBaseLayer: 'default' | 'topo' | 'satellite') => (
+      <MapView
+        places={[beijing]}
+        center={[39.9042, 116.4074]}
+        zoom={15}
+        tileUrl={AMAP_ROAD}
+        viewBaseLayer={viewBaseLayer}
+        onViewBaseLayerChange={vi.fn()}
+        route={route}
+        plannerWaypoints={waypoints}
+        onMapClick={onMapClick}
+      />
+    )
+    const view = render(renderLayer('default'))
+    await waitFor(() => expect(view.container.querySelector('.leaflet-container')).toBeInTheDocument())
+    let map = maps[maps.length - 1]
+    expect(map.options.crs).toBeTruthy()
+    expect(map.options.crs?.code).toBe('TREK:GCJ02')
+
+    const retainedCenter = L.latLng(39.91, 116.41)
+    act(() => map.setView(retainedCenter, 13))
+    view.rerender(renderLayer('topo'))
+    await waitFor(() => expect(maps[maps.length - 1]).not.toBe(map))
+    map = maps[maps.length - 1]
+    expect(map.options.crs).toBe(L.CRS.EPSG3857)
+    expect(map.getCenter().lat).toBeCloseTo(retainedCenter.lat, 5)
+    expect(map.getCenter().lng).toBeCloseTo(retainedCenter.lng, 5)
+
+    const expectedClick = L.latLng(39.9042, 116.4074)
+    const pixel = map.latLngToContainerPoint(expectedClick)
+    const roundTrip = map.containerPointToLatLng(pixel)
+    const pixelTolerance = map.distance(expectedClick, map.containerPointToLatLng(pixel.add([1, 1])))
+    map.fire('click', { latlng: roundTrip })
+    expect(onMapClick).toHaveBeenCalledOnce()
+    expect(map.distance(onMapClick.mock.calls[0][0].latlng, expectedClick)).toBeLessThanOrEqual(pixelTolerance)
+
+    view.rerender(renderLayer('satellite'))
+    await waitFor(() => expect(maps[maps.length - 1]).not.toBe(map))
+    map = maps[maps.length - 1]
+    expect(map.options.crs?.code).toBe('TREK:GCJ02')
+    expect(map.getCenter().lat).toBeCloseTo(retainedCenter.lat, 5)
+    expect(map.getCenter().lng).toBeCloseTo(retainedCenter.lng, 5)
+    expect(waypoints).toEqual([{ id: 'beijing', lat: 39.9042, lng: 116.4074, role: 'start' }])
+    expect(route).toEqual([[[39.9042, 116.4074], [39.9052, 116.4084]]])
+  })
+
   it('FE-MAPCLICK-001: a pin opens its place on a map nobody has dragged yet', async () => {
     const { pins, onMarkerClick, onMapClick } = await renderMap()
     clickOn(pins[0])
@@ -242,5 +456,31 @@ describe('MapView on a real Leaflet map', () => {
     expect(map.dragging.enabled()).toBe(true)
     panMap(container)
     expect(map.getCenter()).not.toEqual(before)
+  })
+
+  it('RC-10: the tour layer pill offers the via ferrata switch, and the layer is drawn only while it is on', async () => {
+    const ferrata: Ferrata = { id: 'way/42', name: 'Via delle Trincee', grade: { raw: '4', level: 4, plus: null }, routeName: null,
+      geometry: [[46.52, 11.8], [46.53, 11.81]], osmUrl: 'https://www.openstreetmap.org/way/42' }
+    const layer = {
+      active: false, onToggle: vi.fn(), status: 'idle' as const, count: 0, groups: groupFerratas([ferrata]),
+      selectedId: null, onSelect: vi.fn(),
+    }
+    const view = render(
+      <MapView places={[]} center={[46.52, 11.8]} zoom={13} tileUrl={RASTER}
+        viewBaseLayer="topo" onViewBaseLayerChange={vi.fn()} ferrataLayer={layer} />,
+    )
+    const toggle = await view.findByRole('button', { name: 'Via ferratas' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(view.queryByTestId('ferrata-leaflet-layer')).toBeNull()
+    act(() => toggle.click())
+    expect(layer.onToggle).toHaveBeenCalledOnce()
+
+    view.rerender(
+      <MapView places={[]} center={[46.52, 11.8]} zoom={13} tileUrl={RASTER}
+        viewBaseLayer="topo" onViewBaseLayerChange={vi.fn()} ferrataLayer={{ ...layer, active: true, status: 'ready', count: 1 }} />,
+    )
+    await waitFor(() => expect(view.getByTestId('ferrata-leaflet-layer')).toHaveAttribute('data-count', '1'))
+    expect(view.getByRole('button', { name: 'Via ferratas' })).toHaveAttribute('aria-pressed', 'true')
+    expect(view.getByTestId('ferrata-count-badge')).toHaveTextContent('1')
   })
 })

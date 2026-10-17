@@ -43,7 +43,7 @@ export function parsedItemToDraft(item: BookingImportPreviewItem): BookingReview
 }
 
 /** Transport types route to the TransportModal; everything else to the ReservationModal. */
-const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'])
+const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other'])
 /** The types the booking form can express — its own chip list. */
 const BOOKING_TYPES = new Set(['hotel', 'restaurant', 'event', 'tour', 'activity', 'parking', 'other'])
 

@@ -1,10 +1,10 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import { useRef, useEffect } from 'react'
 import { Plus } from 'lucide-react'
 import JourneyMap from './JourneyMap'
 import JourneyEntryCover from './JourneyEntryCover'
 import JourneyDayScrubber from './JourneyDayScrubber'
-import { dayColorOf, journeyDays } from './journeyCard'
-import type { JourneyMapHandle } from './JourneyMap'
+import { dayColorOf } from './journeyCard'
+import { useJourneyCarouselSync } from './useJourneyCarouselSync'
 import type { JourneyEntry } from '../../store/journeyStore'
 import type { JourneyTrack } from '@trek/shared'
 
@@ -53,103 +53,16 @@ export default function MobileMapTimeline({
   showWeather = true,
   initialEntryId,
 }: Props) {
-  const mapRef = useRef<JourneyMapHandle>(null)
-  const carouselRef = useRef<HTMLDivElement>(null)
-  const [activeIndex, setActiveIndex] = useState(0)
-
-  const scrubberDays = useMemo(() => journeyDays(entries), [entries])
-  const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map())
-  // Sync map focus when carousel scrolls (with guard for uninitialized map)
-  const syncMapToCarousel = useCallback((index: number) => {
-    const entry = entries[index]
-    if (!entry) return
-
-    const mapEntry = mapEntries.find(m => String(m.id) === String(entry.id))
-    if (mapEntry) {
-      try { mapRef.current?.focusMarker(String(mapEntry.id)) } catch {}
-    } else {
-      try { mapRef.current?.highlightMarker(null) } catch {}
-    }
-  }, [entries, mapEntries])
+  const {
+    mapRef, carouselRef, cardRefs, activeIndex, setActiveIndex, scrubberDays,
+    syncMapToCard: syncMapToCarousel, handleMarkerClick, handleCardTap, jumpToDay,
+  } = useJourneyCarouselSync({ entries, mapEntries, onOpenEntry: onEntryClick })
   // The delayed initial focus reads both through refs so it always works off
   // the current map entries, not the ones from the render that armed the timer.
   const syncMapToCarouselRef = useRef(syncMapToCarousel)
   syncMapToCarouselRef.current = syncMapToCarousel
   const activeIndexRef = useRef(activeIndex)
   activeIndexRef.current = activeIndex
-
-  // Pick the card that's currently closest to the carousel horizontal center.
-  // More stable than IntersectionObserver thresholds when the active card can
-  // drift toward the viewport edge with proximity snapping.
-  const pickNearestCard = useCallback(() => {
-    const el = carouselRef.current
-    if (!el) return
-    const containerCenter = el.getBoundingClientRect().left + el.clientWidth / 2
-    let bestIdx = 0
-    let bestDist = Infinity
-    cardRefs.current.forEach((node, idx) => {
-      const r = node.getBoundingClientRect()
-      const cardCenter = r.left + r.width / 2
-      const d = Math.abs(cardCenter - containerCenter)
-      if (d < bestDist) { bestDist = d; bestIdx = idx }
-    })
-    setActiveIndex(prev => {
-      if (prev !== bestIdx) syncMapToCarousel(bestIdx)
-      return bestIdx
-    })
-  }, [syncMapToCarousel])
-
-  // Defer all state updates until scrolling settles — updating activeIndex
-  // mid-swipe resizes cards (240→320px), causing layout reflow every frame.
-  useEffect(() => {
-    const el = carouselRef.current
-    if (!el || entries.length === 0) return
-    let settleTimer: number | null = null
-    const onScroll = () => {
-      if (settleTimer != null) window.clearTimeout(settleTimer)
-      settleTimer = window.setTimeout(pickNearestCard, 150)
-    }
-    el.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      el.removeEventListener('scroll', onScroll)
-      if (settleTimer != null) window.clearTimeout(settleTimer)
-    }
-  }, [entries.length, pickNearestCard])
-
-  // Scroll a given card into the horizontal center of the carousel
-  const scrollCardIntoCenter = useCallback((idx: number) => {
-    const card = cardRefs.current.get(idx)
-    card?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
-  }, [])
-
-  // Scroll carousel to entry when map marker is clicked
-  const handleMarkerClick = useCallback((id: string) => {
-    const idx = entries.findIndex((e: any) => String(e.id) === id)
-    if (idx === -1) return
-    setActiveIndex(idx)
-    scrollCardIntoCenter(idx)
-  }, [entries, scrollCardIntoCenter])
-
-  // Tap on a card: if it's already active, open the edit view; otherwise
-  // activate + center it first (don't jump straight into the editor).
-  const handleCardTap = useCallback((entry: any, idx: number) => {
-    if (idx === activeIndex) {
-      onEntryClick(entry)
-    } else {
-      setActiveIndex(idx)
-      scrollCardIntoCenter(idx)
-    }
-  }, [activeIndex, onEntryClick, scrollCardIntoCenter])
-
-  // The day bar lands on the first entry of that day, which is where a reader
-  // who asked for "day nine" means.
-  const jumpToDay = useCallback((date: string) => {
-    const idx = entries.findIndex((e: any) => e.entry_date === date)
-    if (idx === -1) return
-    setActiveIndex(idx)
-    syncMapToCarousel(idx)
-    scrollCardIntoCenter(idx)
-  }, [entries, scrollCardIntoCenter, syncMapToCarousel])
 
   // Initial map focus — delay to let Leaflet initialize and fitBounds. Also
   // re-runs when the markers arrive later than the entries, otherwise the
@@ -180,7 +93,7 @@ export default function MobileMapTimeline({
   if (entries.length === 0) {
     return (
       <div
-        className="fixed left-0 right-0 z-10"
+        className="fixed inset-x-0 z-10"
         style={{ top: 'var(--nav-h, 0px)', bottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <JourneyMap
@@ -196,7 +109,7 @@ export default function MobileMapTimeline({
           cartoApiKey={cartoApiKey}
         />
         {!readOnly && onAddEntry && (
-          <div className="fixed right-4 z-30" style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 16px)' }}>
+          <div className="fixed end-4 z-30" style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 16px)' }}>
             <button type="button"
               onClick={onAddEntry}
               className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
@@ -211,7 +124,7 @@ export default function MobileMapTimeline({
 
   return (
     <div
-      className="fixed left-0 right-0 z-10"
+      className="fixed inset-x-0 z-10"
       style={{ top: 'var(--nav-h, 0px)', bottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {/* Full-screen map */}
@@ -232,7 +145,7 @@ export default function MobileMapTimeline({
 
       {/* Day bar + card carousel, as one block at the bottom of the map */}
       <div
-        className="fixed left-0 right-0 z-40"
+        className="fixed inset-x-0 z-40"
         style={{ touchAction: 'pan-x', bottom: carouselBottom }}
       >
         <JourneyDayScrubber
@@ -274,7 +187,7 @@ export default function MobileMapTimeline({
       {/* FAB: add entry — bottom right, above the timeline carousel */}
       {!readOnly && onAddEntry && (
         <div
-          className="fixed right-4 z-30"
+          className="fixed end-4 z-30"
           style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 226px)' }}
         >
           <button type="button"

@@ -3,12 +3,13 @@
  * happy-path extraction for tar.gz + zip, and that symlinks, traversal and
  * oversized archives are refused.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { safeJoin, extractArchive, ExtractError } from '../../../src/nest/plugins/install/safe-extract';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { safeJoin, extractArchive, ExtractError } from '../../../src/nest/plugins/install/safe-extract';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // ── tiny archive builders ────────────────────────────────────────────────────
 function tarHeader(name: string, size: number, typeflag = '0', linkname = '', rawSize?: string): Buffer {
@@ -31,11 +32,15 @@ function tarHeader(name: string, size: number, typeflag = '0', linkname = '', ra
   h.write(sum.toString(8).padStart(6, '0') + '\0 ', 148);
   return h;
 }
-function makeTarGz(entries: Array<{ name: string; data?: string; type?: string; link?: string; rawSize?: string }>): Buffer {
+function makeTarGz(
+  entries: Array<{ name: string; data?: string; type?: string; link?: string; rawSize?: string }>,
+): Buffer {
   const parts: Buffer[] = [];
   for (const e of entries) {
     const body = Buffer.from(e.data ?? '');
-    parts.push(tarHeader(e.name, e.type === '5' || e.type === '2' ? 0 : body.length, e.type ?? '0', e.link ?? '', e.rawSize));
+    parts.push(
+      tarHeader(e.name, e.type === '5' || e.type === '2' ? 0 : body.length, e.type ?? '0', e.link ?? '', e.rawSize),
+    );
     if (e.rawSize === undefined && e.type !== '5' && e.type !== '2') {
       parts.push(body);
       const pad = (512 - (body.length % 512)) % 512;
@@ -76,19 +81,24 @@ function makeZip(name: string, data: string, method = 0): Buffer {
 }
 
 let dest: string;
-beforeEach(() => { dest = fs.mkdtempSync(path.join(os.tmpdir(), 'xtract-')); });
-afterEach(() => { fs.rmSync(dest, { recursive: true, force: true }); });
+beforeEach(() => {
+  dest = fs.mkdtempSync(path.join(os.tmpdir(), 'xtract-'));
+});
+afterEach(() => {
+  fs.rmSync(dest, { recursive: true, force: true });
+});
 
 describe('safeJoin', () => {
   it('allows a normal nested path', () => {
     expect(safeJoin(dest, 'server/index.js')).toBe(path.resolve(dest, 'server/index.js'));
   });
-  it.each([['../escape', /traversal/], ['/etc/passwd', /absolute/], ['a/../../b', /traversal/]])(
-    'rejects %s',
-    (name, re) => {
-      expect(() => safeJoin(dest, name)).toThrow(re as RegExp);
-    },
-  );
+  it.each([
+    ['../escape', /traversal/],
+    ['/etc/passwd', /absolute/],
+    ['a/../../b', /traversal/],
+  ])('rejects %s', (name, re) => {
+    expect(() => safeJoin(dest, name)).toThrow(re as RegExp);
+  });
 });
 
 describe('extractArchive', () => {

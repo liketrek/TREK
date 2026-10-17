@@ -1,6 +1,8 @@
+import { readEnv } from '../../app-config';
+import { resolveDataPaths } from '../../app-config/data-paths';
+
 import fs from 'node:fs';
 import path from 'node:path';
-import { readEnv } from '../../app-config';
 
 /**
  * Filesystem layout for the plugin system (#plugins). Code and data are two
@@ -12,7 +14,7 @@ import { readEnv } from '../../app-config';
  * so a Docker deployment can point them at dedicated volumes.
  */
 
-const DATA_ROOT = path.resolve(__dirname, '../../../data');
+const DATA_ROOT = resolveDataPaths().dataDir;
 
 // Read lazily so a deployment (or a test) can point these at dedicated volumes
 // via env without import-order surprises.
@@ -153,7 +155,9 @@ export function pluginPermissionArgs(pluginId: string): string[] {
     // off by accident.
     if (!warnedPermissionsOff) {
       warnedPermissionsOff = true;
-      console.warn('[plugins] TREK_PLUGIN_PERMISSIONS=off — the OS permission jail is DISABLED; installed plugins run with full Node access to this process. Only use this on a machine you fully trust.');
+      console.warn(
+        '[plugins] TREK_PLUGIN_PERMISSIONS=off — the OS permission jail is DISABLED; installed plugins run with full Node access to this process. Only use this on a machine you fully trust.',
+      );
     }
     return [];
   }

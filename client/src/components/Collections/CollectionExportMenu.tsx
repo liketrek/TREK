@@ -148,7 +148,7 @@ export default function CollectionExportMenu({ onExport, exporting, t }: Collect
               role="menuitem"
               tabIndex={-1}
               onClick={() => pick(option.format)}
-              className="w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-colors hover:bg-surface-hover focus:bg-surface-hover focus:outline-none"
+              className="w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-start transition-colors hover:bg-surface-hover focus:bg-surface-hover focus:outline-none"
             >
               <option.icon size={16} className="mt-0.5 shrink-0 text-content-faint" aria-hidden />
               <span className="flex-1 min-w-0">

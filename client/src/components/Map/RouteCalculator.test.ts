@@ -17,6 +17,7 @@ import {
   routeEngineFor,
   sameRoad,
   furthestFrom,
+  osrmLegSegment,
 } from './RouteCalculator'
 
 // Every route now goes to the FOSSGIS per-profile hosts. The car-only project-osrm.org
@@ -1244,5 +1245,30 @@ describe('a trip that avoids something', () => {
 
     expect(routes).toHaveLength(2)
     expect(routes[1]).toMatchObject({ avoids: 'motorway', engine: 'valhalla', hasFerry: true })
+  })
+})
+
+describe('osrmLegSegment', () => {
+  const waypoints = [{ lat: 48, lng: 2 }, { lat: 50, lng: 4 }, { lat: 52, lng: 6 }]
+
+  it('spans waypoint i to i + 1 with the label at the midpoint', () => {
+    const seg = osrmLegSegment({ distance: 1500, duration: 600 }, 1, waypoints)
+    expect(seg.from).toEqual([50, 4])
+    expect(seg.to).toEqual([52, 6])
+    expect(seg.mid).toEqual([51, 5])
+    expect(seg.distance).toBe(1500)
+    expect(seg.duration).toBe(600)
+  })
+
+  it('formats driving as measured and walking at 5 km/h', () => {
+    const seg = osrmLegSegment({ distance: 5000, duration: 600 }, 0, waypoints)
+    expect(seg.drivingText).toBe('10 min')
+    expect(seg.walkingText).toBe('1 h 0 min')
+    expect(seg.durationText).toBeUndefined()
+  })
+
+  it('writes short metric distances in metres', () => {
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, distance_unit: 'metric' } })
+    expect(osrmLegSegment({ distance: 420.4, duration: 60 }, 0, waypoints).distanceText).toBe('420 m')
   })
 })

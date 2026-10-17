@@ -48,7 +48,7 @@ export function useOAuthAuthorize() {
 
   useEffect(() => {
     if (authLoading) return
-    validateRequest()
+    void validateRequest()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated])
 

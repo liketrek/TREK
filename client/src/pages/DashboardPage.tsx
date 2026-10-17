@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { useTranslation } from '../i18n'
 import Navbar from '../components/Layout/Navbar'
 import DemoBanner from '../components/Layout/DemoBanner'
@@ -10,25 +10,28 @@ import PlaceAvatar from '../components/shared/PlaceAvatar'
 import EmptyState from '../components/shared/EmptyState'
 import { Skeleton, SpotlightSkeleton, TripCardSkeleton } from '../components/shared/Skeleton'
 import MobileTopBar from '../components/Layout/MobileTopBar'
+import HelpAnchor from '../components/Help/HelpAnchor'
 import { useDashboard } from './dashboard/useDashboard'
 import {
   type DashboardTrip, type HeroBundle, type TravelStats, type UpcomingReservation,
-  MS_PER_DAY, daysUntil, getTripStatus, upcomingKey,
+  MOMENT_LABEL, MS_PER_DAY, daysUntil, fullDate, getTripStatus, upcomingKey,
 } from './dashboard/dashboardModel'
 import {
   Plus, Edit2, Trash2, Archive, ArchiveRestore, Copy, ArrowRight, MapPin,
   Plane, Hotel, Utensils, Clock, RefreshCw, ArrowRightLeft, Calendar,
-  LayoutGrid, List, Ticket, X, CalendarPlus, ParkingSquare, LogIn, LogOut,
+  LayoutGrid, List, Ticket, X, CalendarPlus, ParkingSquare, LogIn, LogOut, Search,
 } from 'lucide-react'
 import { IcsSubscribeModal } from '../components/Planner/IcsSubscribeModal'
 import CollectionsWidget from '../components/Dashboard/CollectionsWidget'
+import { useCurrencyConverter } from '../components/Dashboard/useCurrencyConverter'
+import { useDashboardPlugins } from '../components/Dashboard/useDashboardPlugins'
+import { shortZone, useDashboardTimezones } from '../components/Dashboard/useDashboardTimezones'
 import PluginWidgets from '../components/Plugins/PluginWidgets'
 import PluginFrame from '../components/Plugins/PluginFrame'
-import { TripCardBadges, useTripCardBadges } from '../components/Plugins/TripCardBadges'
+import { TripCardBadges } from '../components/Plugins/TripCardBadges'
 import type { TripCardBadge } from '../api/client'
 import { usePluginStore } from '../store/pluginStore'
 import { formatTime, splitReservationDateTime } from '../utils/formatters'
-import { CURRENCIES } from '../components/Budget/BudgetPanel.constants'
 import { convertDistance, getDistanceUnitLabel } from '../utils/units'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAddonStore } from '../store/addonStore'
@@ -62,18 +65,6 @@ function splitDate(dateStr: string | null | undefined, locale: string): { d: str
   }
 }
 
-// Localized date for the cards. The year is included only when it isn't the
-// current year, and order/punctuation follow the locale (EN "Sep 10, 2026",
-// DE "10. Sep 2026" — vs a plain "Sep 10" this year), never a hard-coded layout.
-function fullDate(dateStr: string | null | undefined, locale: string): string | null {
-  if (!dateStr) return null
-  const date = new Date(dateStr + 'T00:00:00Z')
-  if (Number.isNaN(date.getTime())) return null
-  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', timeZone: 'UTC' }
-  if (date.getUTCFullYear() !== new Date().getUTCFullYear()) opts.year = 'numeric'
-  return date.toLocaleDateString(locale, opts)
-}
-
 function buddyColor(seed: number): string {
   const pairs = [
     ['#6366f1', '#8b5cf6'], ['#10b981', '#059669'], ['#f59e0b', '#d97706'],
@@ -99,8 +90,6 @@ const RES_ICON: Record<string, React.ReactElement> = {
 const RES_TYPE_CLASS: Record<string, string> = {
   flight: 'flight', hotel: 'hotel', restaurant: 'food', checkin: 'hotel', checkout: 'hotel',
 }
-/** The label a stay's moment carries in place of a location. */
-const MOMENT_LABEL: Record<string, string> = { checkin: 'day.checkIn', checkout: 'day.checkOut' }
 
 export default function DashboardPage(): React.ReactElement {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
@@ -119,7 +108,7 @@ function DashboardPageDesktop(): React.ReactElement {
     showForm, setShowForm, editingTrip, setEditingTrip,
     deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
-    allSubOpen, setAllSubOpen,
+    allSubOpen, setAllSubOpen, search,
   } = useDashboard()
 
   // Dashboard widget visibility (from the appearance config). Phones never reach this
@@ -136,13 +125,10 @@ function DashboardPageDesktop(): React.ReactElement {
   // Desktop has a master toggle for the whole right column; off → centered layout.
   // Only true dashboard widgets belong here — hero mounts on the boarding pass, and
   // place-detail/day-detail widgets live inside the planner panels, not the sidebar.
-  const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot !== 'hero' && p.slot !== 'place-detail' && p.slot !== 'day-detail' && p.slot !== 'reservation-detail')
-  const sidebarVisible = dashCfg.desktop.sidebar && (showCurrency || showCollections || showTimezones || showUpcoming || widgetPlugins.length > 0)
-
   // Plugin-contributed badges on the trip cards (tripCardProvider hook). One fetch for
   // all visible cards; only runs when at least one plugin is active. Fail-safe.
-  const anyPluginActive = usePluginStore(s => s.plugins).length > 0
-  const badgesFor = useTripCardBadges(gridTrips.map(t => t.id), anyPluginActive)
+  const { widgetPlugins, badgesFor } = useDashboardPlugins(gridTrips.map(t => t.id))
+  const sidebarVisible = dashCfg.desktop.sidebar && (showCurrency || showCollections || showTimezones || showUpcoming || widgetPlugins.length > 0)
 
   return (
     <>
@@ -150,6 +136,7 @@ function DashboardPageDesktop(): React.ReactElement {
           styling instead of inheriting the dashboard scope's font and the
           `.trek-dash button` reset (which shifted the bell icon + menu items). */}
       <Navbar />
+      <HelpAnchor id="dashboard" />
       <div className="trek-dash trek-dash-shell">
       {demoMode && <DemoBanner />}
       <div className="trek-dash-scroll">
@@ -189,7 +176,24 @@ function DashboardPageDesktop(): React.ReactElement {
               <div className="sec-head">
                 <h3 className="sec-title">{t('dashboard.title')}</h3>
                 <div className="sec-tools">
-                  <div className="seg">
+                  {/* Trip search (#2190): every trip, by title, date or a place on it */}
+                  <label className={`dash-search${search.active ? ' on' : ''}`}>
+                    <Search size={15} strokeWidth={2.2} aria-hidden />
+                    <input
+                      type="search"
+                      value={search.query}
+                      onChange={e => search.setQuery(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Escape') search.setQuery('') }}
+                      placeholder={t('dashboard.search.placeholder')}
+                      aria-label={t('dashboard.search.label')}
+                    />
+                    {search.active && (
+                      <button type="button" className="dash-search-clear" onClick={() => search.setQuery('')} aria-label={t('dashboard.search.clear')}>
+                        <X size={13} strokeWidth={2.4} />
+                      </button>
+                    )}
+                  </label>
+                  <div className={`seg${search.active ? ' is-muted' : ''}`}>
                     <button type="button" className={tripFilter === 'planned' ? 'on' : ''} onClick={() => setTripFilter('planned')}>{t('dashboard.filter.planned')}</button>
                     <button type="button" className={tripFilter === 'archive' ? 'on' : ''} onClick={() => setTripFilter('archive')}>{t('dashboard.archived')}</button>
                     <button type="button" className={tripFilter === 'completed' ? 'on' : ''} onClick={() => setTripFilter('completed')}>{t('dashboard.mobile.completed')}</button>
@@ -220,7 +224,13 @@ function DashboardPageDesktop(): React.ReactElement {
               {/* "No trips yet" only when there really are none — a user whose trips are
                   all finished has a hero, and telling them to create their first trip is
                   simply wrong (#1706). Same condition the mobile dashboard already uses. */}
-              {gridTrips.length === 0 && !spotlight && tripFilter === 'planned' && !isLoading && !loadError && (
+              {search.active && gridTrips.length === 0 && (
+                <div className="trips-empty">
+                  <EmptyState scene="dashboard" title={t('dashboard.search.empty', { query: search.query.trim() })} />
+                </div>
+              )}
+
+              {!search.active && gridTrips.length === 0 && !spotlight && tripFilter === 'planned' && !isLoading && !loadError && (
                 <div className="trips-empty">
                   <EmptyState scene="dashboard" title={t('dashboard.emptyTitle')} />
                 </div>
@@ -233,6 +243,7 @@ function DashboardPageDesktop(): React.ReactElement {
                     trip={trip}
                     locale={locale}
                     badges={badgesFor(trip.id)}
+                    matchedPlaces={search.active ? search.placeHits.get(trip.id) : undefined}
                     onOpen={() => navigate(`/trips/${trip.id}`)}
                     onEdit={() => { setEditingTrip(trip); setShowForm(true) }}
                     onCopy={() => setCopyTrip(trip)}
@@ -247,7 +258,7 @@ function DashboardPageDesktop(): React.ReactElement {
                     <TripCardSkeleton />
                   </>
                 )}
-                {tripFilter === 'planned' && !isLoading && (
+                {tripFilter === 'planned' && !search.active && !isLoading && (
                   <button type="button" className="add-trip-card" onClick={() => { setEditingTrip(null); setShowForm(true) }}>
                     <div>
                       <div className="circ"><Plus size={20} /></div>
@@ -341,11 +352,11 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
     const daysLeft = Math.max(0, Math.round((endMid.getTime() - todayMid.getTime()) / MS_PER_DAY))
     countdownTop = t('dashboard.status.ongoing')
     countdownNumber = String(daysLeft)
-    countdownLabel = daysLeft === 0 ? t('dashboard.hero.lastDay') : daysLeft === 1 ? t('dashboard.hero.dayLeft') : t('dashboard.hero.daysLeft')
+    countdownLabel = daysLeft === 0 ? t('dashboard.hero.lastDay') : t('dashboard.hero.daysLeft', { count: daysLeft })
   } else if (until !== null && until >= 0) {
     countdownTop = t('dashboard.hero.startsIn')
     countdownNumber = String(until)
-    countdownLabel = until === 1 ? t('dashboard.hero.dayUnitOne') : t('dashboard.hero.dayUnitMany')
+    countdownLabel = t('dashboard.hero.dayUnit', { count: until })
   }
 
   const members = bundle?.members || []
@@ -372,7 +383,7 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
           {members.length > 4 && <div className="buddy-more">+{members.length - 4}</div>}
           {members.length === 0 && <div className="buddy-avatar" style={{ background: buddyColor(0) }}>{initials(trip.owner_username)}</div>}
         </div>
-        <div className="date-month">{buddyCount === 1 ? t('dashboard.hero.travelerOne', { count: buddyCount }) : t('dashboard.hero.travelerMany', { count: buddyCount })}</div>
+        <div className="date-month">{t('dashboard.hero.travelers', { count: buddyCount })}</div>
       </div>
 
       <div className="pass-cell dates-combined">
@@ -397,7 +408,7 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
       </div>
 
       <div className="pass-cell places">
-        <div className="pass-label">{t('dashboard.places')}</div>
+        <div className="pass-label">{t('dashboard.pass.places')}</div>
         <div className="places-preview">
           {places.slice(0, 3).map(p => (
             <div key={p.id} className="place-av">
@@ -407,7 +418,7 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
           {places.length === 0 && <div className="place-more"><MapPin size={15} /></div>}
           {places.length > 3 && <div className="place-more">+{places.length - 3}</div>}
         </div>
-        <div className="date-month">{placeCount === 1 ? t('dashboard.hero.destinationOne', { count: placeCount }) : t('dashboard.hero.destinationMany', { count: placeCount })}</div>
+        <div className="date-month">{t('dashboard.hero.destinations', { count: placeCount })}</div>
       </div>
     </>
   )
@@ -573,8 +584,10 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
 }
 
 // ── Trip card ────────────────────────────────────────────────────────────────
-function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onDelete }: {
+function TripCard({ trip, locale, badges, matchedPlaces, onOpen, onEdit, onCopy, onArchive, onDelete }: {
   trip: DashboardTrip; locale: string; badges?: TripCardBadge[]; onOpen: () => void
+  /** The places that made this trip a search result (#2190). */
+  matchedPlaces?: string[]
   onEdit: () => void; onCopy: () => void; onArchive: () => void; onDelete: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
@@ -629,10 +642,16 @@ function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onD
             </>
           ) : <span>{t('dashboard.hero.noDates')}</span>}
         </div>
+        {matchedPlaces && matchedPlaces.length > 0 && (
+          <div className="trip-match" title={matchedPlaces.join(', ')}>
+            <MapPin size={12} strokeWidth={2.2} aria-hidden />
+            <span>{matchedPlaces.join(' · ')}</span>
+          </div>
+        )}
         <div className="trip-meta" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          <div><span className="n mono">{trip.day_count ?? 0}</span><span className="k">{t('dashboard.days')}</span></div>
-          <div><span className="n mono">{trip.place_count ?? 0}</span><span className="k">{t('dashboard.places')}</span></div>
-          <div><span className="n mono">{trip.shared_count ?? 0}</span><span className="k">{trip.shared_count === 1 ? t('dashboard.card.buddyOne') : t('dashboard.members')}</span></div>
+          <div><span className="n mono">{trip.day_count ?? 0}</span><span className="k">{t('dashboard.days', { count: trip.day_count ?? 0 })}</span></div>
+          <div><span className="n mono">{trip.place_count ?? 0}</span><span className="k">{t('dashboard.places', { count: trip.place_count ?? 0 })}</span></div>
+          <div><span className="n mono">{trip.shared_count ?? 0}</span><span className="k">{t('dashboard.card.buddies', { count: trip.shared_count ?? 0 })}</span></div>
         </div>
         <TripCardBadges items={badges ?? []} />
       </div>
@@ -643,53 +662,8 @@ function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onD
 // ── Currency tool (self-contained, mirrors the design's fx widget) ───────────
 function CurrencyTool(): React.ReactElement {
   const { t } = useTranslation()
-  const isLoaded = useSettingsStore(s => s.isLoaded)
-  const updateSetting = useSettingsStore(s => s.updateSetting)
-  const from = useSettingsStore(s => s.settings.dashboard_fx_from) || 'EUR'
-  const to = useSettingsStore(s => s.settings.dashboard_fx_to) || 'USD'
-  const setFrom = (v: string) => { updateSetting('dashboard_fx_from', v).catch(() => {}) }
-  const setTo = (v: string) => { updateSetting('dashboard_fx_to', v).catch(() => {}) }
-  const [amount, setAmount] = useState('100')
-  const [rates, setRates] = useState<Record<string, number> | null>(null)
-
-  const fetchRate = React.useCallback(() => {
-    fetch(`https://api.frankfurter.dev/v2/rates?base=${from}`)
-      .then(r => r.json())
-      .then((d: Array<{ quote: string; rate: number }>) => {
-        if (!Array.isArray(d)) { setRates(null); return }
-        // Frankfurter omits the base's own self-rate; seed it so `from` stays selectable.
-        const map: Record<string, number> = { [from]: 1 }
-        for (const r of d) map[r.quote] = r.rate
-        setRates(map)
-      })
-      .catch(() => setRates(null))
-  }, [from])
-
-  useEffect(() => { fetchRate() }, [fetchRate])
-  // One-time migration of the pre-3.1.3 localStorage values into the user's settings,
-  // so a (docker) upgrade no longer resets the widget (#1311).
-  useEffect(() => {
-    if (!isLoaded) return
-    const lf = localStorage.getItem('trek_fx_from')
-    const lt = localStorage.getItem('trek_fx_to')
-    if (!lf && !lt) return
-    const writes: Promise<void>[] = []
-    if (lf) writes.push(updateSetting('dashboard_fx_from', lf))
-    if (lt) writes.push(updateSetting('dashboard_fx_to', lt))
-    // Only drop the localStorage source once the server has durably stored the values, so a
-    // failed write during a (docker) upgrade can't destroy the only copy (#1311). Retry next load.
-    Promise.all(writes).then(() => {
-      localStorage.removeItem('trek_fx_from')
-      localStorage.removeItem('trek_fx_to')
-    }).catch(() => { /* keep localStorage; retry on next load */ })
-  }, [isLoaded, updateSetting])
-
-  const currencies = rates ? Object.keys(rates).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) : CURRENCIES
+  const { from, to, setFrom, setTo, amount, setAmount, currencies, rate, converted, swap, fetchRates: fetchRate } = useCurrencyConverter()
   const ccyOptions = currencies.map(c => ({ value: c, label: c }))
-  const rate = rates?.[to] ?? null
-  const converted = rate != null ? (Number.parseFloat(amount.replace(',', '.')) || 0) * rate : null
-
-  const swap = () => { setFrom(to); setTo(from) }
 
   return (
     <div className="tool">
@@ -718,73 +692,13 @@ function CurrencyTool(): React.ReactElement {
 }
 
 // ── Timezone tool ────────────────────────────────────────────────────────────
-const DEFAULT_ZONES = ['Europe/London', 'Asia/Tokyo']
-
-// Fallback for the rare browser without Intl.supportedValuesOf.
-const FALLBACK_ZONES = [
-  'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Madrid', 'Europe/Moscow',
-  'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Sao_Paulo',
-  'Asia/Dubai', 'Asia/Kolkata', 'Asia/Bangkok', 'Asia/Shanghai', 'Asia/Tokyo', 'Asia/Singapore',
-  'Australia/Sydney', 'Pacific/Auckland', 'UTC',
-]
-
-function shortZone(tz: string): string {
-  const city = tz.split('/').pop() || tz
-  return city.replace(/_/g, ' ')
-}
-
 function TimezoneTool({ locale }: { locale: string }): React.ReactElement {
   const { t } = useTranslation()
-  const home = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const [now, setNow] = useState(() => new Date())
-  const isLoaded = useSettingsStore(s => s.isLoaded)
-  const updateSetting = useSettingsStore(s => s.updateSetting)
-  const stored = useSettingsStore(s => s.settings.dashboard_timezones)
-  // Unset (never chosen) falls back to home + defaults; an explicit list is honoured.
-  const zones = stored ?? [home, ...DEFAULT_ZONES]
-  const setZones = (next: string[]) => { updateSetting('dashboard_timezones', next).catch(() => {}) }
-  const [adding, setAdding] = useState(false)
-
-  // A minute's resolution is plenty for clocks and keeps re-renders cheap.
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30000)
-    return () => clearInterval(id)
-  }, [])
-
-  // One-time migration of the pre-3.1.3 localStorage value into the user's settings,
-  // so a (docker) upgrade no longer resets the widget (#1311).
-  useEffect(() => {
-    if (!isLoaded) return
-    const raw = localStorage.getItem('trek_dashboard_tz')
-    if (!raw) return
-    let parsed: unknown
-    // A malformed/non-array value can never be written, so drop it now to avoid retrying forever.
-    try { parsed = JSON.parse(raw) } catch { localStorage.removeItem('trek_dashboard_tz'); return }
-    if (!Array.isArray(parsed)) { localStorage.removeItem('trek_dashboard_tz'); return }
-    // Only drop the localStorage source once the server has durably stored the value, so a failed
-    // write during a (docker) upgrade can't destroy the only copy (#1311). Retry next load.
-    updateSetting('dashboard_timezones', parsed)
-      .then(() => { localStorage.removeItem('trek_dashboard_tz') })
-      .catch(() => { /* keep localStorage; retry on next load */ })
-  }, [isLoaded, updateSetting])
-
-  const allZones = React.useMemo<string[]>(() => {
-    const supported = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf
-    try { return supported ? supported('timeZone') : FALLBACK_ZONES } catch { return FALLBACK_ZONES }
-  }, [])
+  const { zones, adding, setAdding, allZones, addZone, removeZone, timeIn, offsetLabel } = useDashboardTimezones(locale)
 
   const tzOptions = allZones
     .filter(z => !zones.includes(z))
     .map(z => ({ value: z, label: z.replace(/_/g, ' '), searchLabel: z }))
-
-  const addZone = (tz: string) => { if (tz && !zones.includes(tz)) setZones([...zones, tz]); setAdding(false) }
-  const removeZone = (tz: string) => setZones(zones.filter(z => z !== tz))
-
-  const timeIn = (tz: string) => now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz })
-  const offsetLabel = (tz: string) => {
-    const part = new Intl.DateTimeFormat(locale, { timeZone: tz, timeZoneName: 'short' }).formatToParts(now).find(p => p.type === 'timeZoneName')
-    return part?.value || ''
-  }
 
   return (
     <div className="tool">

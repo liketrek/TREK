@@ -1,5 +1,6 @@
 import path from 'node:path'
 import type { APIRequestContext } from '@playwright/test'
+import { at, day, ordinal, short } from '../dates'
 
 /**
  * Demo data for the documentation screenshots.
@@ -15,15 +16,16 @@ import type { APIRequestContext } from '@playwright/test'
  *    settle-up) — the reader would see nothing new.
  *  - Two extra members exist so splits, avatars and sharing tiers render with
  *    real names instead of a lonely single-user state.
- *  - Dates sit ~2 months out so "upcoming" surfaces (What's Next, reservations)
- *    have something to show.
+ *  - Dates are relative to the run day (e2e/dates.ts): the trip ends today, so
+ *    the running surfaces (boarding pass, What's Next, forecast, reminders) have
+ *    something to show whenever the seed runs.
  */
 
 const TRIP = {
   title: 'Autumn in Japan',
   description: 'Two weeks chasing momiji season from Tokyo down to Kyoto.',
-  start_date: '2026-09-12',
-  end_date: '2026-09-21',
+  start_date: day(-9),
+  end_date: day(0),
   currency: 'JPY',
   reminder_days: 3,
 }
@@ -64,15 +66,15 @@ const PLACES = [
 
 const EXPENSES = [
   { name: 'Flights FRA → HND', category: 'transport', total_price: 890, currency: 'EUR',
-    expense_date: '2026-09-12', note: 'Booked with miles, taxes only.' },
+    expense_date: day(-9), note: 'Booked with miles, taxes only.' },
   { name: 'Ryokan in Hakone', category: 'accommodation', total_price: 48000, currency: 'JPY',
-    expense_date: '2026-09-15', note: '2 nights, kaiseki dinner included.' },
+    expense_date: day(-6), note: '2 nights, kaiseki dinner included.' },
   { name: 'JR Pass (14 days)', category: 'transport', total_price: 80000, currency: 'JPY',
-    expense_date: '2026-09-12', note: 'Green car, activated on arrival.' },
+    expense_date: day(-9), note: 'Green car, activated on arrival.' },
   { name: 'teamLab Planets tickets', category: 'activities', total_price: 11400, currency: 'JPY',
-    expense_date: '2026-09-13' },
+    expense_date: day(-8) },
   { name: 'Dinner at Nishiki', category: 'food', total_price: 7200, currency: 'JPY',
-    expense_date: '2026-09-17' },
+    expense_date: day(-4) },
 ]
 
 const PACKING = [
@@ -81,10 +83,15 @@ const PACKING = [
   { category: 'Electronics', items: ['Type-A adapter', 'Power bank', 'Camera'] },
 ]
 
+/** Chat lines the collab guides look for by their text. */
+export const SEED_CHAT = {
+  teamlab: `Booked the teamLab slot for the ${ordinal(-8)}, 14:00. Tickets are in the Files tab.`,
+}
+
 const TODOS = [
-  { name: 'Book teamLab Planets slot', category: 'Before departure', due_date: '2026-08-15', priority: 2 },
-  { name: 'Activate JR Pass', category: 'On arrival', due_date: '2026-09-12', priority: 1 },
-  { name: 'Reserve ryokan dinner', category: 'Before departure', due_date: '2026-08-20' },
+  { name: 'Book teamLab Planets slot', category: 'Before departure', due_date: day(-37), priority: 2 },
+  { name: 'Activate JR Pass', category: 'On arrival', due_date: day(-9), priority: 1 },
+  { name: 'Reserve ryokan dinner', category: 'Before departure', due_date: day(-32) },
 ]
 
 export interface SeedResult {
@@ -212,8 +219,8 @@ export async function seedDemoData(
   await call(api, 'post', `/api/trips/${tripId}/reservations`, {
     title: 'LH716 FRA → HND',
     type: 'flight',
-    reservation_time: '2026-09-12T13:05:00',
-    reservation_end_time: '2026-09-13T08:25:00',
+    reservation_time: at(-9, '13:05'),
+    reservation_end_time: at(-8, '08:25'),
     confirmation_number: 'X7K2QP',
     status: 'confirmed',
     location: 'Frankfurt Airport',
@@ -222,10 +229,10 @@ export async function seedDemoData(
     endpoints: [
       { role: 'from', sequence: 0, name: 'Frankfurt Airport', code: 'FRA',
         lat: 50.0379, lng: 8.5622, timezone: 'Europe/Berlin',
-        local_date: '2026-09-12', local_time: '13:05' },
+        local_date: day(-9), local_time: '13:05' },
       { role: 'to', sequence: 1, name: 'Tokyo Haneda', code: 'HND',
         lat: 35.5494, lng: 139.7798, timezone: 'Asia/Tokyo',
-        local_date: '2026-09-13', local_time: '08:25' },
+        local_date: day(-8), local_time: '08:25' },
     ],
   }).catch(() => {})
 
@@ -293,7 +300,7 @@ export async function seedDemoData(
   const pollRes = await api.post(`${collab}/polls`, {
     data: {
       question: 'Which day should we keep free for Nara?',
-      options: ['Wed, Sep 16', 'Thu, Sep 17', 'Sat, Sep 19'],
+      options: [short(-5), short(-4), short(-2)],
       multiple: false,
     },
   })
@@ -308,13 +315,13 @@ export async function seedDemoData(
   }).catch(() => {})
 
   const conversation: Array<[string, string]> = [
-    ['admin', 'Flights are booked — we land at Haneda 08:25 on the 13th.'],
+    ['admin', `Flights are booked, we land at Haneda 08:25 on the ${ordinal(-8)}.`],
     ['mira', 'Nice. Should we go straight to the hotel or drop bags and head out?'],
     ['jonas', 'Drop bags. I want to be at Senso-ji before the crowds.'],
     ['admin', "Agreed. I've put it on day 1 with a note to go before 08:00."],
-    ['mira', 'Booked the teamLab slot for the 13th, 14:00. Tickets are in the Files tab.'],
+    ['mira', SEED_CHAT.teamlab],
     ['jonas', 'Do we need to reserve the ryokan dinner separately?'],
-    ['admin', "It's included — kaiseki, 18:30. Added it to the to-dos so we don't forget to confirm."],
+    ['admin', "It's included: kaiseki, 18:30. Added it to the to-dos so we don't forget to confirm."],
   ]
   for (const [who, text] of conversation) {
     const ctx = who === 'admin' ? api : as(who)

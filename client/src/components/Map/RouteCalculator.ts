@@ -470,20 +470,29 @@ export async function calculateSegments(
   if (data.code !== 'Ok' || !data.routes?.[0]) throw new Error('No route found')
 
   const legs = data.routes[0].legs
-  return legs.map((leg: { distance: number; duration: number }, i: number): RouteSegment => {
-    const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
-    const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
-    const mid: [number, number] = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
-    const walkingDuration = leg.distance / (5000 / 3600)
-    return {
-      mid, from, to,
-      distance: leg.distance,
-      duration: leg.duration,
-      walkingText: formatDuration(walkingDuration),
-      drivingText: formatDuration(leg.duration),
-      distanceText: formatRouteDistance(leg.distance),
-    }
-  })
+  return legs.map((leg: OsrmLeg, i: number): RouteSegment => osrmLegSegment(leg, i, waypoints))
+}
+
+interface OsrmLeg { distance: number; duration: number }
+
+/**
+ * The connector data for OSRM leg i, which runs from waypoint i to waypoint i + 1:
+ * both ends, the midpoint the label sits on, and the walking time at 5 km/h next to
+ * the driving time OSRM measured.
+ */
+export function osrmLegSegment(leg: OsrmLeg, i: number, waypoints: Waypoint[]): RouteSegment {
+  const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
+  const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
+  const mid: [number, number] = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
+  const walkingDuration = leg.distance / (5000 / 3600)
+  return {
+    mid, from, to,
+    distance: leg.distance,
+    duration: leg.duration,
+    walkingText: formatDuration(walkingDuration),
+    drivingText: formatDuration(leg.duration),
+    distanceText: formatRouteDistance(leg.distance),
+  }
 }
 
 /**
@@ -617,22 +626,12 @@ async function osrmWithLegs(
   const coordinates: [number, number][] = route.geometry.coordinates.map(
     ([lng, lat]: [number, number]) => [lat, lng]
   )
+  // The day plan's connectors also show the leg's own duration line.
   const legs: RouteSegment[] = (route.legs || []).map(
-    (leg: { distance: number; duration: number }, i: number): RouteSegment => {
-      const from: [number, number] = [waypoints[i].lat, waypoints[i].lng]
-      const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
-      const mid: [number, number] = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
-      const walkingDuration = leg.distance / (5000 / 3600)
-      return {
-        mid, from, to,
-        distance: leg.distance,
-        duration: leg.duration,
-        walkingText: formatDuration(walkingDuration),
-        drivingText: formatDuration(leg.duration),
-        distanceText: formatRouteDistance(leg.distance),
-        durationText: formatDuration(leg.duration),
-      }
-    }
+    (leg: OsrmLeg, i: number): RouteSegment => ({
+      ...osrmLegSegment(leg, i, waypoints),
+      durationText: formatDuration(leg.duration),
+    })
   )
 
   const snapped = readSnapped(data, waypoints)

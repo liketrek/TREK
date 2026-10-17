@@ -12,7 +12,7 @@ export default function MGlassBar({ floating = true, className = '', children }:
   return (
     <div
       className={`flex items-center gap-[11px] rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-[14px] py-2 backdrop-blur-[26px] backdrop-saturate-[1.7] shadow-[0_14px_34px_-16px_rgba(0,0,0,.22)] ${
-        floating ? 'fixed left-4 right-4 top-[var(--m-safe-top,12px)] z-30' : ''
+        floating ? 'fixed inset-x-4 top-[var(--m-safe-top,12px)] z-30' : ''
       } ${className}`}
     >
       {children}

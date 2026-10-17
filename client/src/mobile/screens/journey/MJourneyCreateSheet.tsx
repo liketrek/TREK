@@ -74,7 +74,7 @@ export default function MJourneyCreateSheet({
               key={trip.id}
               type="button"
               onClick={() => onToggleTrip(trip.id)}
-              className={`mb-[9px] flex w-full items-center gap-3 rounded-2xl bg-m-sheetop p-[10px] text-left transition-[border-color,box-shadow] duration-200 ${
+              className={`mb-[9px] flex w-full items-center gap-3 rounded-2xl bg-m-sheetop p-[10px] text-start transition-[border-color,box-shadow] duration-200 ${
                 selected
                   ? 'border-[1.5px] border-[color:var(--m-act)] shadow-[0_10px_26px_-16px_rgba(0,0,0,.55)]'
                   : 'border border-[color:var(--m-rowbr)] shadow-[0_8px_22px_-18px_rgba(0,0,0,.5)]'
@@ -123,7 +123,7 @@ export default function MJourneyCreateSheet({
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
+          className="ms-auto rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-4 py-[9px] text-[0.78125rem] font-semibold"
         >
           {t('common.cancel')}
         </button>

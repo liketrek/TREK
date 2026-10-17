@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Eyebrow } from './PlSheetChrome'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
+import { timeCollisions } from '../../../../components/Planner/PlaceFormModal.helpers'
 import type { Assignment } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 
@@ -33,23 +34,11 @@ export default function PlTimeFields({
   // The plan tab reads the day as Days does, and there End stays a plain label.
   const endIsLeave = planner.activeTab === 'roadtrip'
 
-  const collisions = useMemo(() => {
-    if (!startTime || startTime.length < 5) return []
-    const current = dayAssignments.find(a => a.id === assignmentId)
-    if (!current) return []
-    const myEnd = endTime && endTime.length >= 5 ? endTime : null
-    return dayAssignments.filter(a => {
-      if (a.id === assignmentId || a.day_id !== current.day_id) return false
-      const otherStart = a.place?.place_time
-      const otherEnd = a.place?.end_time
-      if (!otherStart) return false
-      const s1 = startTime
-      const e1 = myEnd || startTime
-      const s2 = otherStart
-      const e2 = otherEnd || otherStart
-      return s1 < (e2 || '23:59') && s2 < (e1 || '23:59') && s1 !== e2 && s2 !== e1
-    })
-  }, [assignmentId, dayAssignments, startTime, endTime])
+  // The other visits of the same day whose times overlap this one's, as the desktop form warns.
+  const collisions = useMemo(
+    () => timeCollisions(assignmentId, dayAssignments, startTime, endTime),
+    [assignmentId, dayAssignments, startTime, endTime],
+  )
 
   return (
     <div className="mt-3">

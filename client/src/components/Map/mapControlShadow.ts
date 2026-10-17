@@ -8,3 +8,11 @@
  * exactly that reason — the others were the ones that needed to match it.
  */
 export const MAP_CONTROL_SHADOW = '0 2px 10px rgba(0,0,0,0.25)'
+
+/** The frosted glass of the map's floating cards (a ferrata's, a paddle obstacle's), so they read as its controls. */
+export const MAP_CARD_GLASS = {
+  background: 'var(--sidebar-bg)',
+  backdropFilter: 'blur(20px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+  boxShadow: MAP_CONTROL_SHADOW,
+}

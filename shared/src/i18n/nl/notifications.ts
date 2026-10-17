@@ -29,6 +29,8 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} heeft een testmelding naar alle admins gestuurd.',
   'notifications.test.tripTitle': '{actor} heeft gepost in uw reis',
   'notifications.test.tripText': 'Testmelding voor reis "{trip}".',
+  'notifications.countLabel': 'meldingen',
+  'notifications.countLabel.one': 'melding',
   'notifications.versionAvailable.title': 'Update beschikbaar',
   'notifications.versionAvailable.text': 'TREK {version} is nu beschikbaar.',
   'notifications.versionAvailable.button': 'Details bekijken',

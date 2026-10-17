@@ -1,19 +1,27 @@
-import { PluginController, PluginMethod } from '../rpc-kit/decorators';
-import { PluginGuards } from '../plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../rpc-errors';
-import { asPayload, num, str } from '../rpc-params';
-import type { PluginRpcContext } from '../rpc-kit/types';
-import { budgetFor } from '../plugin-host-state';
-import { DatabaseService } from '../../../database/database.service';
-import { RealtimeService } from '../../../realtime/realtime.service';
-import { NotificationsService } from '../../../notifications/notifications.service';
-import { LlmConfigResolver } from '../../../llm-parse/llm-config.resolver';
-import { createLlmClient } from '../../../llm-parse/llm-client.factory';
+import { PluginCapabilityAudit } from '../../../../db/entities/PluginCapabilityAudit.entity';
+import { PluginScheduledTasks } from '../../../../db/entities/PluginScheduledTasks.entity';
+import { Trips } from '../../../../db/entities/Trips.entity';
+import { Users } from '../../../../db/entities/Users.entity';
+import type { PluginCapabilityAuditRepository } from '../../../../db/repositories/PluginCapabilityAudit.repository';
+import type { PluginScheduledTasksRepository } from '../../../../db/repositories/PluginScheduledTasks.repository';
+import type { TripsRepository } from '../../../../db/repositories/Trips.repository';
+import type { UsersRepository } from '../../../../db/repositories/Users.repository';
+import { PluginGuards } from '../../../../nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../../../nest-rpc/rpc-errors';
+import { PluginController, PluginMethod } from '../../../../nest-rpc/rpc-kit/decorators';
+import type { PluginRpcContext } from '../../../../nest-rpc/rpc-kit/types';
+import { asPayload, num, str } from '../../../../nest-rpc/rpc-params';
 import { UnreadableLlmResponse } from '../../../llm-parse/clients/openai-compatible.client';
+import { createLlmClient } from '../../../llm-parse/llm-client.factory';
 import type { ResolvedLlmConfig } from '../../../llm-parse/llm-config';
+import { LlmConfigResolver } from '../../../llm-parse/llm-config.resolver';
 import type { LlmExtractionInput } from '../../../llm-parse/llm-provider.interface';
+import { NotificationsService } from '../../../notifications/notifications.service';
+import { RealtimeService } from '../../../realtime/realtime.service';
 import { PluginOAuthService } from '../../oauth/plugin-oauth.service';
 import { stripEmoji } from '../../text-sanitize';
+import { budgetFor } from '../plugin-host-state';
+import { InjectRepository } from '@mikro-orm/nestjs';
 
 /** Caps on the persistent scheduler, bounding the abuse surface. */
 const SCHED_MAX = 100; // entries per plugin
@@ -36,33 +44,46 @@ const AI_TEXT_MAX = 20_000;
 @PluginController()
 export class HostSurfaceRpc {
   constructor(
-    private readonly db: DatabaseService,
+    // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is gone:
+    // this reuses the `trips: TripsRepository` param below (findAccessible).
     private readonly realtime: RealtimeService,
     private readonly notifications: NotificationsService,
     private readonly llmConfig: LlmConfigResolver,
     private readonly oauth: PluginOAuthService,
     private readonly guards: PluginGuards,
+    @InjectRepository(PluginCapabilityAudit) private readonly audit: PluginCapabilityAuditRepository,
+    // HR1 (Plan 3j Task 5) — the plugin-visible user row.
+    @InjectRepository(Users) private readonly users: UsersRepository,
+    // HR9 (Plan 3j Task 5) — the bilateral "do these two users share a trip" gate.
+    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    // HR5–HR8 (Plan 3j Task 5) — a plugin's own scheduler.set/scheduler.cancel RPCs.
+    @InjectRepository(PluginScheduledTasks) private readonly scheduledTasks: PluginScheduledTasksRepository,
   ) {}
 
   @PluginMethod('users.getById', { permission: 'db:read:users' })
-  getUser(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async getUser(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     // Scoped to people the acting user can actually see (themselves, or someone they
     // share a trip with), so a plugin cannot enumerate every account by looping ids.
     const id = num(params.id, 'id');
     if (ctx.actingUserId === undefined) throw new ForbiddenResource('user reads require an authenticated user context');
-    if (id !== ctx.actingUserId && !this.sharesATrip(ctx.actingUserId, id)) {
+    if (id !== ctx.actingUserId && !(await this.sharesATrip(ctx.actingUserId, id))) {
       throw new ForbiddenResource(`no access to user ${id}`);
     }
-    return this.db.prepare('SELECT id, username, display_name, avatar FROM users WHERE id = ?').get(id);
+    // `?? undefined`: `findPublicIdentity` returns `null` on a miss (this
+    // repository's own convention); the legacy `better-sqlite3` `.get()`
+    // returned `undefined` — preserved so a missing row still serializes
+    // the same way over the wire to the plugin.
+    return (await this.users.findPublicIdentity(id)) ?? undefined;
   }
 
   @PluginMethod('ws.broadcastToTrip', { permission: 'ws:broadcast:trip' })
-  broadcastToTrip(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async broadcastToTrip(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     // The TARGET is gated like a read: only a trip room the acting user belongs to.
     // Namespacing the event type alone does not cross the membership boundary.
     const tripId = num(params.tripId, 'tripId');
     if (ctx.actingUserId === undefined) throw new ForbiddenResource('broadcasts require an authenticated user context');
-    if (!this.db.canAccessTrip(tripId, ctx.actingUserId)) throw new ForbiddenResource(`no access to trip ${tripId}`);
+    if (!(await this.trips.findAccessible(tripId, ctx.actingUserId)))
+      throw new ForbiddenResource(`no access to trip ${tripId}`);
     // The host forces the plugin:{id}:{event} namespace, so a plugin cannot forge a
     // core event.
     this.realtime.broadcast(tripId, `plugin:${ctx.pluginId}:${str(params.event, 'event')}`, asPayload(params.data));
@@ -101,11 +122,11 @@ export class HostSurfaceRpc {
     if (scope !== 'user' && scope !== 'trip') throw new BadParams("scope must be 'user' or 'trip'");
     const targetId = num(input.targetId, 'targetId');
     if (scope === 'user' && targetId !== actor) throw new ForbiddenResource('a plugin may only notify the acting user');
-    if (scope === 'trip' && !this.db.canAccessTrip(targetId, actor)) {
+    if (scope === 'trip' && !(await this.trips.findAccessible(targetId, actor))) {
       throw new ForbiddenResource('the acting user is not a member of that trip');
     }
     const link = this.safeLink(input.link);
-    if (!budgetFor(ctx.pluginId, this.db.connection).take('notify', Date.now())) {
+    if (!(await budgetFor(ctx.pluginId, this.audit)).take('notify', Date.now())) {
       throw new BadParams('daily notification budget exhausted (resets at UTC midnight)');
     }
     await this.notifications.send({
@@ -122,14 +143,16 @@ export class HostSurfaceRpc {
   @PluginMethod('ai.complete', { permission: 'ai:invoke' })
   async aiComplete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const actor = this.guards.requireActor(ctx, 'AI');
-    const config = this.requireLlm(actor);
+    const config = await this.requireLlm(actor);
     const prompt = typeof params.prompt === 'string' ? params.prompt : '';
     if (prompt.trim() === '') throw new BadParams('prompt is required');
     if (prompt.length > AI_TEXT_MAX) throw new BadParams(`prompt exceeds the ${AI_TEXT_MAX}-char cap`);
-    this.takeAiBudget(ctx);
+    await this.takeAiBudget(ctx);
     const system = typeof params.system === 'string' ? params.system.slice(0, 4000) : undefined;
     const results = await this.runModel(config, {
-      prompt: system || 'You are a helpful assistant. Reply with a JSON object of the form {"text": "..."} whose "text" field holds your answer.',
+      prompt:
+        system ||
+        'You are a helpful assistant. Reply with a JSON object of the form {"text": "..."} whose "text" field holds your answer.',
       jsonSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
       model: config.model,
       baseUrl: config.baseUrl,
@@ -143,14 +166,14 @@ export class HostSurfaceRpc {
   @PluginMethod('ai.extract', { permission: 'ai:invoke' })
   async aiExtract(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const actor = this.guards.requireActor(ctx, 'AI');
-    const config = this.requireLlm(actor);
+    const config = await this.requireLlm(actor);
     const text = typeof params.text === 'string' ? params.text : '';
     if (text.trim() === '') throw new BadParams('text is required');
     if (text.length > AI_TEXT_MAX) throw new BadParams(`text exceeds the ${AI_TEXT_MAX}-char cap`);
     if (typeof params.jsonSchema !== 'object' || params.jsonSchema === null) {
       throw new BadParams('jsonSchema (an object) is required');
     }
-    this.takeAiBudget(ctx);
+    await this.takeAiBudget(ctx);
     const hint = typeof params.prompt === 'string' ? params.prompt.slice(0, 4000) : '';
     const results = await this.runModel(config, {
       prompt: hint || 'Extract structured data from the text into the given JSON schema.',
@@ -173,57 +196,45 @@ export class HostSurfaceRpc {
   }
 
   @PluginMethod('scheduler.set', { permission: 'jobs:run' })
-  schedulerSet(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async schedulerSet(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const name = str(params.name, 'name');
     const dueAt = num(params.dueAt, 'dueAt');
     const everyMs = params.everyMs != null ? num(params.everyMs, 'everyMs') : undefined;
-    if (!name || name.length > SCHED_NAME_MAX) throw new BadParams(`scheduler name is required (max ${SCHED_NAME_MAX} chars)`);
-    if (!Number.isFinite(dueAt) || dueAt > Date.now() + SCHED_DUE_WINDOW) throw new BadParams('scheduler dueAt out of range');
+    if (!name || name.length > SCHED_NAME_MAX)
+      throw new BadParams(`scheduler name is required (max ${SCHED_NAME_MAX} chars)`);
+    if (!Number.isFinite(dueAt) || dueAt > Date.now() + SCHED_DUE_WINDOW)
+      throw new BadParams('scheduler dueAt out of range');
     if (everyMs !== undefined && (!Number.isFinite(everyMs) || everyMs < SCHED_EVERY_MIN)) {
       throw new BadParams(`recurring interval must be >= ${SCHED_EVERY_MIN} ms`);
     }
     const json = JSON.stringify(params.payload ?? null);
-    if (json.length > SCHED_PAYLOAD_MAX) throw new BadParams(`scheduler payload too large (max ${SCHED_PAYLOAD_MAX} bytes)`);
-    const existing = this.db
-      .prepare('SELECT id FROM plugin_scheduled_tasks WHERE plugin_id = ? AND name = ?')
-      .get(ctx.pluginId, name) as { id: number } | undefined;
-    if (!existing) {
-      const n = (this.db.prepare('SELECT COUNT(*) AS c FROM plugin_scheduled_tasks WHERE plugin_id = ?').get(ctx.pluginId) as { c: number }).c;
-      if (n >= SCHED_MAX) throw new BadParams(`too many scheduled tasks (max ${SCHED_MAX})`);
-    }
+    if (json.length > SCHED_PAYLOAD_MAX)
+      throw new BadParams(`scheduler payload too large (max ${SCHED_PAYLOAD_MAX} bytes)`);
+    // HR5/HR6/HR7 — Plan 3j Task 7 fix (must-land 3): one atomic call, not
+    // three separately-awaited ones (task-7-review.md's concurrent-cap-bypass).
     // Upsert by (plugin, name): re-scheduling the same name replaces it.
-    this.db
-      .prepare(`INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at, payload, every_ms) VALUES (?, ?, ?, ?, ?)
-           ON CONFLICT (plugin_id, name) DO UPDATE SET due_at = excluded.due_at, payload = excluded.payload, every_ms = excluded.every_ms`)
-      .run(ctx.pluginId, name, Math.max(dueAt, Date.now()), json, everyMs ?? null);
+    const written = await this.scheduledTasks.upsertTaskCapped(
+      { plugin_id: ctx.pluginId, name, due_at: Math.max(dueAt, Date.now()), payload: json, every_ms: everyMs ?? null },
+      SCHED_MAX,
+    );
+    if (!written) throw new BadParams(`too many scheduled tasks (max ${SCHED_MAX})`);
     return { scheduled: true };
   }
 
   @PluginMethod('scheduler.cancel', { permission: 'jobs:run' })
-  schedulerCancel(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    const r = this.db
-      .prepare('DELETE FROM plugin_scheduled_tasks WHERE plugin_id = ? AND name = ?')
-      .run(ctx.pluginId, str(params.name, 'name'));
-    return { cancelled: r.changes > 0 };
+  async schedulerCancel(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
+    const cancelled = await this.scheduledTasks.deleteByPluginAndName(ctx.pluginId, str(params.name, 'name')); // HR8 — Plan 3j
+    return { cancelled };
   }
 
   /** Two users share a trip when both are owner-or-member of the same one. */
-  private sharesATrip(actingUserId: number, targetUserId: number): boolean {
-    return !!this.db
-      .prepare(
-        `SELECT 1 FROM trips t
-               LEFT JOIN trip_members m1 ON m1.trip_id = t.id AND m1.user_id = ?
-               LEFT JOIN trip_members m2 ON m2.trip_id = t.id AND m2.user_id = ?
-              WHERE (t.user_id = ? OR m1.user_id IS NOT NULL)
-                AND (t.user_id = ? OR m2.user_id IS NOT NULL)
-              LIMIT 1`,
-      )
-      .get(actingUserId, targetUserId, actingUserId, targetUserId);
+  private async sharesATrip(actingUserId: number, targetUserId: number): Promise<boolean> {
+    return await this.trips.sharesTripWith(actingUserId, targetUserId); // HR9 — Plan 3j
   }
 
-  private requireLlm(userId: number) {
-    const config = this.llmConfig.resolve(userId);
-    if (!config) throw new BadParams('no AI provider is configured for this user');
+  private async requireLlm(userId: number) {
+    const config = await this.llmConfig.resolve(userId);
+    if (!(await config)) throw new BadParams('no AI provider is configured for this user');
     return config;
   }
 
@@ -245,8 +256,8 @@ export class HostSurfaceRpc {
     }
   }
 
-  private takeAiBudget(ctx: PluginRpcContext): void {
-    if (!budgetFor(ctx.pluginId, this.db.connection).take('ai', Date.now())) {
+  private async takeAiBudget(ctx: PluginRpcContext): Promise<void> {
+    if (!(await budgetFor(ctx.pluginId, this.audit)).take('ai', Date.now())) {
       throw new BadParams('daily AI budget exhausted (resets at UTC midnight)');
     }
   }

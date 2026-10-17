@@ -1,8 +1,7 @@
-import { useState } from 'react'
 import { Ban, Check, Plus } from 'lucide-react'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
+import { useNewCategory } from '../../../../components/Planner/usePlaceForm'
 import { FIELD_CLS } from './PlSheetChrome'
-import type { Category } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 
 interface PlCategoryPickerProps {
@@ -22,24 +21,9 @@ const PILL_BASE =
  */
 export default function PlCategoryPicker({ planner, value, onChange }: PlCategoryPickerProps) {
   const { t, toast, categories, tripActions } = planner
-  const [creating, setCreating] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  const handleCreate = async () => {
-    if (!newName.trim() || saving) return
-    setSaving(true)
-    try {
-      const created: Category = await tripActions.addCategory({ name: newName.trim(), color: '#6366f1', icon: 'MapPin' })
-      onChange(String(created.id))
-      setNewName('')
-      setCreating(false)
-    } catch {
-      toast.error(t('places.categoryCreateError'))
-    } finally {
-      setSaving(false)
-    }
-  }
+  const {
+    open: creating, setOpen: setCreating, name: newName, setName: setNewName, saving, submit: handleCreate,
+  } = useNewCategory({ variant: 'sheet', create: tripActions.addCategory, onCreated: onChange, t, toast })
 
   return (
     <div className="flex flex-wrap gap-[6px]">
@@ -84,7 +68,7 @@ export default function PlCategoryPicker({ planner, value, onChange }: PlCategor
             onKeyDown={e => {
               if (e.key === 'Enter') {
                 e.preventDefault()
-                handleCreate()
+                void handleCreate()
               }
             }}
             placeholder={t('places.categoryNamePlaceholder')}

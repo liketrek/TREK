@@ -11,8 +11,9 @@
  * to configure and no quota to exhaust, so the failure modes are the network
  * and the service being down, both of which fall back to what TREK did before.
  */
-import { normalizePlaceWebsite } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
+import { toApiLang } from './maps.helpers';
+import { normalizePlaceWebsite } from '@trek/shared';
 
 /** The public instance. An operator may point at their own copy instead. */
 export const DEFAULT_TREK_PLACES_URL = 'https://places.liketrek.com';
@@ -219,6 +220,26 @@ async function getJson<T>(
   }
 }
 
+/**
+ * The reader's language in the form the service takes, or nothing.
+ *
+ * Optional on every call that returns places: without it the service answers
+ * exactly as it did before it knew languages. With it, localities come back in
+ * the reader's language where OpenStreetMap has one, and the OSM layer's rows
+ * are named in it too (#2592). TREK's own codes go through toApiLang first
+ * (`br` is Brazilian Portuguese here and Breton there). Anything that is still
+ * not a language tag is left off rather than sent: the service refuses it with
+ * a 422, and a refused keystroke would drop to the fallback for nothing.
+ * Regional Chinese (`zh-TW`) is passed as it is; the service maps it onto the
+ * script OpenStreetMap keys by.
+ */
+const SERVICE_LANG = /^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8}){0,2}$/;
+export function serviceLang(lang: string | undefined): string | undefined {
+  if (!lang?.trim()) return undefined;
+  const tag = toApiLang(lang);
+  return tag.length <= 20 && SERVICE_LANG.test(tag) ? tag : undefined;
+}
+
 async function readCapped(res: Response, max: number): Promise<string> {
   const reader = res.body?.getReader();
   if (!reader) return res.text();
@@ -249,7 +270,9 @@ async function readCapped(res: Response, max: number): Promise<string> {
  *
  * It has no address block. OpenStreetMap does not carry one per node, and
  * inventing an empty one here would let a caller read `address.locality` and
- * quietly get nothing.
+ * quietly get nothing. What it does carry, when the search was made with a
+ * language, is `locality`: the settlement the place is in, named in that
+ * language. Without a language the field is absent, as it always was.
  */
 export interface TrekOsmPlace {
   /** Always `osm:<type>/<id>`, e.g. `osm:node/9712313`. */
@@ -262,13 +285,13 @@ export interface TrekOsmPlace {
   lng: number;
   category: string | null;
   source: 'openstreetmap';
+  locality?: string | null;
   distance_km?: number;
 }
 
 export type TrekSearchHit = TrekPlace | TrekOsmPlace;
 
-export const isOsmHit = (hit: TrekSearchHit): hit is TrekOsmPlace =>
-  hit.source === 'openstreetmap';
+export const isOsmHit = (hit: TrekSearchHit): hit is TrekOsmPlace => hit.source === 'openstreetmap';
 
 /**
  * Turn the layer's id into the form the rest of this service already speaks.
@@ -282,9 +305,20 @@ export function osmPlaceId(hit: TrekOsmPlace): string {
   return `${hit.osm_type}:${hit.osm_id}`;
 }
 
+/**
+ * The layer's `locality` as a name or null. It is the one field of that row
+ * TREK prints as it came, so a number, an object or a blank from a broken
+ * upstream must not reach the suggestion line.
+ */
+function withLocality(hit: TrekSearchHit): TrekSearchHit {
+  if (!isOsmHit(hit) || hit.locality === undefined) return hit;
+  const locality = typeof hit.locality === 'string' ? hit.locality.trim() : '';
+  return { ...hit, locality: locality || null };
+}
+
 export async function trekPlacesSearch(
   query: string,
-  opts: { lat?: number; lng?: number; limit?: number; sources?: string } = {},
+  opts: { lat?: number; lng?: number; limit?: number; sources?: string; lang?: string } = {},
 ): Promise<TrekSearchHit[]> {
   const body = await getJson<{ results?: TrekSearchHit[] }>('/v1/search', {
     q: query,
@@ -296,8 +330,9 @@ export async function trekPlacesSearch(
     // wants: the explicit search path already asks Nominatim in parallel, and
     // adding the layer there would return the same OpenStreetMap places twice.
     sources: opts.sources,
+    lang: serviceLang(opts.lang),
   });
-  return Array.isArray(body.results) ? body.results : [];
+  return Array.isArray(body.results) ? body.results.map(withLocality) : [];
 }
 
 /** The index-only rows of a mixed result, for callers that need Overture fields. */
@@ -347,7 +382,7 @@ export interface TrekNearbyPlace extends TrekPlace {
 export async function trekPlacesNearby(
   lat: number,
   lng: number,
-  opts: { radius?: number; limit?: number; category?: string } = {},
+  opts: { radius?: number; limit?: number; category?: string; lang?: string } = {},
 ): Promise<TrekNearbyPlace[]> {
   const body = await getJson<{ results: TrekNearbyPlace[] }>('/v1/nearby', {
     lat,
@@ -355,6 +390,7 @@ export async function trekPlacesNearby(
     radius: Math.round(opts.radius ?? 1500),
     limit: opts.limit ?? 50,
     category: opts.category,
+    lang: serviceLang(opts.lang),
   });
   return Array.isArray(body.results) ? body.results : [];
 }
@@ -373,6 +409,9 @@ export interface TrekPlacesArea {
  * are its call, not ours, and a `truncated` answer is passed through honestly
  * rather than smoothed over. A client that believed it had the whole area would
  * search offline and quietly miss places.
+ *
+ * No language here, on purpose: the offline package is stored once per trip and
+ * read in whatever language the app is in later, and its contract carries none.
  */
 export async function trekPlacesArea(
   bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number },
@@ -393,9 +432,11 @@ export async function trekPlacesArea(
   };
 }
 
-export async function trekPlacesById(gers: string): Promise<TrekPlace | null> {
+export async function trekPlacesById(gers: string, opts: { lang?: string } = {}): Promise<TrekPlace | null> {
   try {
-    const body = await getJson<{ place: TrekPlace }>(`/v1/place/${encodeURIComponent(gers)}`, {});
+    const body = await getJson<{ place: TrekPlace }>(`/v1/place/${encodeURIComponent(gers)}`, {
+      lang: serviceLang(opts.lang),
+    });
     return body.place ?? null;
   } catch (err) {
     if ((err as { status?: number }).status === 404) return null;
@@ -413,9 +454,7 @@ export async function trekPlacesById(gers: string): Promise<TrekPlace | null> {
  * for an OSM reference by code that parses it.
  */
 export function toPlaceRecord(p: TrekPlace): Record<string, unknown> {
-  const address = [p.address?.freeform, p.address?.postcode, p.address?.locality]
-    .filter(Boolean)
-    .join(', ');
+  const address = [p.address?.freeform, p.address?.postcode, p.address?.locality].filter(Boolean).join(', ');
   return {
     google_place_id: null,
     google_ftid: null,

@@ -1,5 +1,5 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { str } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import { str } from '../../nest-rpc/rpc-params';
 import { ExchangeRatesService } from './exchange-rates.service';
 
 /**

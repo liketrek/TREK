@@ -1,7 +1,8 @@
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, errorResult, ok, type McpContext } from '../../nest-mcp';
-import { z } from 'zod';
-import { POI_CATEGORY_KEYS, MAX_POI_CATEGORIES } from './maps.helpers';
+import { POI_BBOX_TOOL_INPUT, POI_CATEGORY_KEYS, MAX_POI_CATEGORIES } from './maps.helpers';
 import { MapsService } from './maps.service';
+
+import { z } from 'zod';
 
 /**
  * Geo MCP tools, moved 1:1 from the legacy registrar in
@@ -17,12 +18,25 @@ export class MapsMcp {
 
   @Tool({
     name: 'get_place_details',
-    description: 'Fetch detailed information about a place by its Google Place ID. The plain lookup returns name, address, coordinates, rating, opening hours, phone and website, and always answers with an empty review list. Set expand only when visitor reviews or the editorial summary are what was actually asked for: that field mask bills as a Google Enterprise SKU and costs the instance owner several times a plain lookup.',
+    description:
+      'Fetch detailed information about a place by its Google Place ID. The plain lookup returns name, address, coordinates, rating, opening hours, phone and website, and always answers with an empty review list. Set expand only when visitor reviews or the editorial summary are what was actually asked for: that field mask bills as a Google Enterprise SKU and costs the instance owner several times a plain lookup.',
     inputSchema: {
       placeId: z.string().describe('Google Place ID'),
       lang: z.string().optional().default('en'),
-      expand: z.boolean().optional().default(false).describe('Also fetch up to five visitor reviews and the editorial summary. Billed as an Enterprise SKU, so leave it off unless the answer needs them'),
-      refresh: z.boolean().optional().default(false).describe('Bypass the cached expanded payload and re-fetch from the provider. Only does anything together with expand, and pays the expanded price again'),
+      expand: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          'Also fetch up to five visitor reviews and the editorial summary. Billed as an Enterprise SKU, so leave it off unless the answer needs them',
+        ),
+      refresh: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          'Bypass the cached expanded payload and re-fetch from the provider. Only does anything together with expand, and pays the expanded price again',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'geo', mode: 'read' },
@@ -36,7 +50,7 @@ export class MapsMcp {
     // assistant reaching the provider anyway would bill them from the one
     // surface the switch does not cover. REST answers { place: null, disabled }
     // rather than an error, so this does too, with a line the model can act on.
-    if (this.maps.detailsDisabled()) {
+    if (await this.maps.detailsDisabled()) {
       return ok({
         details: null,
         disabled: true,
@@ -82,6 +96,32 @@ export class MapsMcp {
     return ok(result);
   }
 
+  /** The MCP side of POST /api/maps/nearby (#976), with the same caps. */
+  @Tool({
+    name: 'search_nearby_places',
+    description:
+      'List named places of any kind around a coordinate, nearest first, each with its distance in metres (`distance_m`). No category and no name needed: use it for "what is at this spot", e.g. where a photo was taken. Answers from the TREK place index first, from Google Places only when the instance has a key and the index found nothing, and from OpenStreetMap otherwise; `source` says which. Prefer search_pois for one kind of place across a whole area, and search_place when the user named the place.',
+    inputSchema: {
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+      radius: z.number().int().min(50).max(5000).optional().describe('Search radius in metres, 500 when left out'),
+      limit: z.number().int().min(1).max(20).optional().describe('How many places, 20 when left out'),
+      lang: z.string().max(35).optional().describe('Language for the place names, e.g. "de" or "ja"'),
+    },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'geo', mode: 'read' },
+  })
+  async searchNearbyPlaces(
+    { lat, lng, radius, limit, lang }: { lat: number; lng: number; radius?: number; limit?: number; lang?: string },
+    ctx: McpContext,
+  ) {
+    try {
+      return ok(await this.maps.nearbyPlaces(ctx.userId, lat, lng, { radius, limit, lang }));
+    } catch {
+      return errorResult('Nearby search failed.');
+    }
+  }
+
   /**
    * The MCP side of GET /api/maps/pois, the "explore" pill on the trip map. Not
    * part of the 1:1 move above: the route had no tool at all, which left the
@@ -89,25 +129,32 @@ export class MapsMcp {
    */
   @Tool({
     name: 'search_pois',
-    description: 'List points of interest of one category inside a map rectangle, with address, opening hours, website, phone and cuisine wherever the source carries them. Answers from the TREK place index where it can and from OpenStreetMap otherwise; each result names which one it came from in its `source` field. A charging station also reports its sockets: which plug families it has, how many of each and at what power, plus how many vehicles fit and whether it charges a fee. OSM states a socket type on roughly a third of them and a power on fewer, so treat a missing figure as unknown rather than as absent. This is the discovery tool: use it to answer "what is around here" for a neighbourhood or a whole city district. Prefer search_place when the user already named the place they mean. Never calls Google, so it costs nothing and works on an instance with no Places key.',
+    description:
+      'List points of interest of one category inside a map rectangle, with address, opening hours, website, phone and cuisine wherever the source carries them. Answers from the TREK place index where it can and from OpenStreetMap otherwise; each result names which one it came from in its `source` field. A charging station also reports its sockets: which plug families it has, how many of each and at what power, plus how many vehicles fit and whether it charges a fee. OSM states a socket type on roughly a third of them and a power on fewer, so treat a missing figure as unknown rather than as absent. This is the discovery tool: use it to answer "what is around here" for a neighbourhood or a whole city district. Prefer search_place when the user already named the place they mean. Never calls Google, so it costs nothing and works on an instance with no Places key.',
     inputSchema: {
-      category: z.union([
-        z.enum(POI_CATEGORY_KEYS),
-        z.array(z.enum(POI_CATEGORY_KEYS)).min(1).max(MAX_POI_CATEGORIES),
-      ]).describe('Which kind of place to look for. Pass several to cover them in one query rather than one request per kind'),
-      bbox: z.strictObject({
-        south: z.number().min(-90).max(90).describe('Southern edge, latitude'),
-        west: z.number().min(-180).max(180).describe('Western edge, longitude'),
-        north: z.number().min(-90).max(90).describe('Northern edge, latitude'),
-        east: z.number().min(-180).max(180).describe('Eastern edge, longitude'),
-      }).describe('The rectangle to search. Anything wider than 0.5 degrees is narrowed to a centred window so the query stays fast; the answer reports that as `clamped`'),
-      lang: z.string().max(35).optional().describe('Language for the POI names, e.g. "de" or "ja". Falls back to the OSM international name and then the local one'),
+      category: z
+        .union([z.enum(POI_CATEGORY_KEYS), z.array(z.enum(POI_CATEGORY_KEYS)).min(1).max(MAX_POI_CATEGORIES)])
+        .describe(
+          'Which kind of place to look for. Pass several to cover them in one query rather than one request per kind',
+        ),
+      bbox: POI_BBOX_TOOL_INPUT,
+      lang: z
+        .string()
+        .max(35)
+        .optional()
+        .describe(
+          'Language for the POI names, e.g. "de" or "ja". Falls back to the OSM international name and then the local one',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'geo', mode: 'read' },
   })
   async searchPois(
-    { category, bbox, lang }: {
+    {
+      category,
+      bbox,
+      lang,
+    }: {
       category: string | string[];
       bbox: { south: number; west: number; north: number; east: number };
       lang?: string;

@@ -4,13 +4,7 @@ import { stageOf, upNextStop } from '../../../../components/Roadtrip/roadtripRow
 import { useNetworkMode } from '../../../../hooks/useNetworkMode'
 import type { CorridorPoi } from '../../../../components/Roadtrip/useCorridorPois'
 import type { MTripShellApi, TripPlanner } from '../MTripShell'
-import { localIsoDate } from '../../../../utils/localDate'
-
-/** Minutes since midnight, local time: the same reading the stage screen takes. */
-const nowMinutes = (): number => {
-  const d = new Date()
-  return d.getHours() * 60 + d.getMinutes()
-}
+import { isLocalToday, localMinutes } from '../../../../utils/localDate'
 
 export interface MRtCorridorController {
   /** What is being looked for. Several at once: they ride one query per box. */
@@ -94,8 +88,8 @@ export function useMRtCorridor(planner: TripPlanner, shell: MTripShellApi): MRtC
     const date = planner.days.find(d => d.id === planner.selectedDayId)?.date
     // Local, for the reason useMRoadtrip gives: the clock this is compared against is the
     // wall clock, and UTC disagrees with it for the first hours of every night.
-    const isToday = !!date && date.slice(0, 10) === localIsoDate()
-    const next = upNextStop(stage, nowMinutes(), isToday)
+    const isToday = isLocalToday(date)
+    const next = upNextStop(stage, localMinutes(), isToday)
     if (!next) return -1
     return stage.stops.findIndex(s => s.assignmentId === next.row.stop.assignmentId)
   }, [stage, planner.days, planner.selectedDayId])

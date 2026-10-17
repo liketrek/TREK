@@ -1,9 +1,10 @@
 import { create } from 'zustand'
 import { settingsApi } from '../api/client'
 import type { Settings } from '../types'
-import { DEFAULT_APPEARANCE } from '@trek/shared'
+import { DEFAULT_APPEARANCE, DEFAULT_WEEK_START } from '@trek/shared'
 import { getApiErrorMessage } from '../types'
 import { SUPPORTED_LANGUAGE_CODES } from '../i18n/supportedLanguages'
+import { detectBrowserLanguage } from '../i18n/detectBrowserLanguage'
 import { normalizeTileUrl, stripTileApiKey } from '../utils/tileUrl'
 import { clearTileCache } from '../sync/tilePrefetcher'
 import { rememberStartDestination, DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB } from '../utils/startDestination'
@@ -77,13 +78,14 @@ export const DEFAULT_SETTINGS: Settings = {
   // Empty = no personal display currency, so Costs falls back to the trip's own.
   default_currency: '',
   // Explicit in-app choice first, then the mirror of the account's server-side
-  // language (written by loadSettings below), then English. Without the mirror
-  // an offline cold start boots in English: the account's language lives on the
-  // server, and the fetch that would apply it cannot happen.
-  language: localStorage.getItem('app_language') || localStorage.getItem(SERVER_LANGUAGE_KEY) || 'en',
+  // language (written by loadSettings below), then the browser's, then English.
+  // Without the mirror an offline cold start would boot in English: the account's
+  // language lives on the server, and the fetch that would apply it cannot happen.
+  language: localStorage.getItem('app_language') || localStorage.getItem(SERVER_LANGUAGE_KEY) || detectBrowserLanguage() || 'en',
   temperature_unit: 'celsius',
   distance_unit: 'metric',
   time_format: '24h',
+  week_start: DEFAULT_WEEK_START,
   show_place_description: false,
   optimize_from_accommodation: true,
   map_provider: 'leaflet',
@@ -152,6 +154,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         // choice, and the login page's detection chain must keep running for
         // users who never made one.
         rememberServerLanguage(incoming)
+        // An account without a language of its own, and no choice made in this
+        // browser: the browser's language, as wiki/Languages.md has it. That step
+        // used to run on the login page only, so a session opened straight onto a
+        // trip stayed English. For this session only, nothing is saved.
+        const detected = !incoming.language && !hasStoredLanguage() ? detectBrowserLanguage() : null
+        if (detected) get().setLanguageTransient(detected)
       } catch (err: unknown) {
         // Leave isLoaded false so a transient failure — offline at launch, or a
         // (docker) server cold-start racing the first request — is retried on

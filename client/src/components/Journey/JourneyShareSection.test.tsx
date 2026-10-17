@@ -100,6 +100,9 @@ describe('JourneyShareSection', () => {
     expect(timeline.className).toContain('bg-zinc-900')
     expect(screen.getByRole('button', { name: 'Map' }).className).toContain('bg-zinc-900')
     expect(screen.getByRole('button', { name: 'Gallery' }).className).not.toContain('bg-zinc-900')
+    // The state is said, not only shown (#2604).
+    expect(timeline).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Gallery' })).toHaveAttribute('aria-pressed', 'false')
     expect(screen.getByText(`${window.location.origin}/public/journey/tok-abc`)).toBeInTheDocument()
   })
 

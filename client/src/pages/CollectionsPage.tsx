@@ -1,8 +1,9 @@
 import React from 'react'
 import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckCheck, X, Trash2, Copy, CopyPlus, FolderInput, Plus, Tags, DownloadCloud } from 'lucide-react'
 import Navbar from '../components/Layout/Navbar'
-import Modal from '../components/shared/Modal'
+import ConfirmDialog from '../components/shared/ConfirmDialog'
 import ListsRail from '../components/Collections/ListsRail'
+import CollectionInviteCard from '../components/Collections/CollectionInviteCard'
 import ListEditorModal from '../components/Collections/ListEditorModal'
 import CollectionHero from '../components/Collections/CollectionHero'
 import CollectionList from '../components/Collections/CollectionList'
@@ -20,12 +21,18 @@ import BulkAssignLabelModal from '../components/Collections/BulkAssignLabelModal
 import { useCollections } from './collections/useCollections'
 import EmptyState from '../components/shared/EmptyState'
 import '../styles/dashboard.css'
+import HelpAnchor from '../components/Help/HelpAnchor'
 import '../styles/collections.css'
 
 export default function CollectionsPage(): React.ReactElement {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
   // chunk of its own instead of a dead limb in this one.
-  return <CollectionsPageDesktop />
+  return (
+    <>
+      <HelpAnchor id="collections" />
+      <CollectionsPageDesktop />
+    </>
+  )
 }
 
 function CollectionsPageDesktop(): React.ReactElement {
@@ -44,6 +51,10 @@ function CollectionsPageDesktop(): React.ReactElement {
   // Labels are per-collection, so only on a real (non "All saved") list.
   const isRealList = !c.isAllSaved && typeof c.activeId === 'number'
   const canManageLabels = isRealList && c.canEdit
+  // Invites also sit at the top of the body: with no lists of one's own the
+  // body is all there is (and the rail is hidden below 1080px), and the invite
+  // notification links to a list that is still an invite (#2645).
+  const bodyInvites = noLists ? c.orderedInvites : (c.routeInvite ? [c.routeInvite] : [])
 
   // Selecting a place from the list toggles it, so clicking the row again clears
   // it, as does the map background. A marker click always shows the place: a second
@@ -200,6 +211,17 @@ function CollectionsPageDesktop(): React.ReactElement {
           <aside className="col-rail" style={{ minHeight: c.heroHeight || undefined }}>{rail}</aside>
 
           <div className="col-body">
+            {bodyInvites.length > 0 && (
+              <section className="col-invites-main" aria-label={t('collections.invites.title')}>
+                <div className="col-rail-label">
+                  {t('collections.invites.title')}
+                  <span className="badge">{bodyInvites.length}</span>
+                </div>
+                {bodyInvites.map(inv => (
+                  <CollectionInviteCard key={inv.collection_id} invite={inv} onAccept={c.handleAcceptInvite} onDecline={c.handleDeclineInvite} t={t} />
+                ))}
+              </section>
+            )}
             {noLists ? (
               <div className="flex flex-col items-center">
                 <EmptyState scene="collections" title={t('collections.empty.firstTitle')} className="pb-4" />
@@ -271,7 +293,7 @@ function CollectionsPageDesktop(): React.ReactElement {
                         <Tags size={14} /> {t('collections.labels.assign')}
                       </button>
                     )}
-                    {c.canEdit && (
+                    {c.canDelete && (
                       <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
                         <FolderInput size={14} /> {t('collections.moveToList')}
                       </button>
@@ -440,24 +462,15 @@ function CollectionsPageDesktop(): React.ReactElement {
       )}
 
       {/* Delete-list confirm */}
-      <Modal
+      <ConfirmDialog
         isOpen={c.confirmDeleteList != null}
         onClose={() => c.setConfirmDeleteList(null)}
+        onConfirm={c.handleDeleteList}
         title={t('collections.deleteList')}
-        size="sm"
-        footer={
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => c.setConfirmDeleteList(null)} className="px-3 py-1.5 rounded-lg border border-edge text-content-secondary text-[13px] hover:bg-surface-hover">
-              {t('common.cancel')}
-            </button>
-            <button type="button" onClick={c.handleDeleteList} className="px-3 py-1.5 rounded-lg bg-danger text-white text-[13px] font-semibold hover:opacity-90">
-              {t('common.delete')}
-            </button>
-          </div>
-        }
-      >
-        <p className="text-[13px] text-content-secondary">{t('collections.deleteListConfirm')}</p>
-      </Modal>
+        message={t('collections.deleteListConfirm')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+      />
     </>
   )
 }

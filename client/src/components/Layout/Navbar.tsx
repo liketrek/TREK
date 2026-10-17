@@ -6,11 +6,13 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { usePluginStore } from '../../store/pluginStore'
 import { useTranslation } from '../../i18n'
-import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, BookOpen, Bookmark } from 'lucide-react'
+import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, ChevronLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, BookOpen, Bookmark } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
+import HelpButton from '../Help/HelpButton'
 import { resolvePluginIcon } from '../shared/PluginIcon'
 import { visibleManagedNavItems } from '../../managed'
+import { useCollapseOnOverflow } from '../../hooks/useCollapseOnOverflow'
 
 const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe, Compass, Bookmark }
 
@@ -94,6 +96,16 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
     return translated !== key ? translated : addon.name
   }
 
+  const tabs = [{ id: '__trips', path: '/dashboard', label: t('nav.myTrips'), Icon: Briefcase },
+    ...globalAddons.map(a => ({ id: a.id, path: `/${a.id}`, label: getAddonName(a), Icon: ADDON_ICONS[a.icon] || CalendarDays })),
+    ...pagePlugins.map(p => ({ id: `plugin:${p.id}`, path: `/plugins/${p.id}`, label: p.name, Icon: resolvePluginIcon(p.icon) })),
+    // Empty in this repository — see client/src/managed.
+    ...visibleManagedNavItems(user?.role === 'admin').map(m => ({ id: `managed:${m.id}`, path: m.path, label: m.label, Icon: m.Icon }))
+  ]
+  // Labels go when they no longer fit beside the logo and the actions; the
+  // title and aria-label on each tab keep it named.
+  const { ref: pillRef, collapsed: pillCollapsed } = useCollapseOnOverflow<HTMLDivElement>(tabs.map(tab => tab.label).join('|'))
+
   return (
     <nav style={{
       background: dark
@@ -109,12 +121,16 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       paddingTop: 'env(safe-area-inset-top, 0px)',
       height: 'var(--nav-h)',
       transition: 'background 240ms cubic-bezier(0.23,1,0.32,1), backdrop-filter 240ms cubic-bezier(0.23,1,0.32,1), box-shadow 240ms cubic-bezier(0.23,1,0.32,1)',
-    }} className="hidden md:flex items-center px-4 gap-4 fixed top-0 left-0 right-0 z-[200]">
+    }} className="hidden md:flex items-center px-4 gap-4 fixed top-0 inset-x-0 z-[200]">
       {/* Left side. flex-1 basis-0, matching the action cluster on the right, so
           the tab pill between them sits in the middle of the bar rather than
-          being centred on top of both (#1983). */}
-      <div className="flex items-center gap-3 min-w-0 flex-1 basis-0">
-        {showBack && (
+          being centred on top of both (#1983). Both columns keep at least their
+          content width (min-w-max): a column squeezed below it spilled over the
+          pill, so the pill is the one that gives way, first by dropping its
+          labels and then by scrolling. On a trip page there is no pill, and the
+          trip title truncates instead. */}
+      <div className={`flex items-center gap-3 flex-1 basis-0 ${tripTitle ? 'min-w-0' : 'min-w-max'}`}>
+        {showBack && !tripTitle && (
           <button type="button" onClick={onBack}
             className="trek-back-btn p-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm flex-shrink-0 text-content-muted"
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
@@ -129,14 +145,34 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           <img src={dark ? '/logo-light.svg' : '/logo-dark.svg'} alt="TREK" className="hidden sm:block" style={{ height: 28 }} />
         </Link>
 
-        {tripTitle && (
-          <>
-            <span className="hidden sm:inline text-content-faint">/</span>
-            <span className="hidden sm:inline text-sm font-medium truncate max-w-48 text-content-muted">
-              {tripTitle}
-            </span>
-          </>
+        {/* Prerelease badge. Beside the logo it names the build, and it stays out
+            of the action cluster on the right, which has no room to spare once
+            plugins add tabs to the pill. */}
+        {isPrerelease && appVersion && (
+          <span
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0 bg-[rgba(245,158,11,0.15)] text-[#d97706] border border-[rgba(245,158,11,0.3)]"
+          >
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[#f59e0b]" />
+            {appVersion}
+          </span>
         )}
+
+        {/* In a trip the way back lives in the trip's own pill: arrow and name in one. */}
+        {tripTitle && (showBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label={`${t('common.back')}: ${tripTitle}`}
+            className="trek-back-btn inline-flex min-w-0 max-w-64 items-center gap-1 rounded-full bg-surface-card py-1 ps-1.5 pe-3 text-content shadow-sm ring-1 ring-inset ring-edge-faint transition-colors hover:bg-surface-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            <ChevronLeft className="trek-back-icon h-4 w-4 flex-none text-content-muted" aria-hidden="true" />
+            <span className="truncate text-caption font-semibold">{tripTitle}</span>
+          </button>
+        ) : (
+          <span className="hidden sm:inline-flex min-w-0 max-w-56 items-center rounded-full bg-surface-card px-2.5 py-1 shadow-sm ring-1 ring-inset ring-edge-faint">
+            <span className="truncate text-caption font-semibold text-content">{tripTitle}</span>
+          </span>
+        ))}
       </div>
 
       {/* Centred liquid-glass tab menu (design handoff).
@@ -156,6 +192,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           than push the actions off the bar. */}
       {(globalAddons.length > 0 || pagePlugins.length > 0) && !tripTitle && (
         <div
+          ref={pillRef}
           className="trek-nav-pill min-w-0"
           style={{
             display: 'flex', gap: 4, padding: 4, borderRadius: 14, flexShrink: 1,
@@ -165,17 +202,12 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
             border: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}`,
           }}
         >
-          {[{ id: '__trips', path: '/dashboard', label: t('nav.myTrips'), Icon: Briefcase },
-            ...globalAddons.map(a => ({ id: a.id, path: `/${a.id}`, label: getAddonName(a), Icon: ADDON_ICONS[a.icon] || CalendarDays })),
-            ...pagePlugins.map(p => ({ id: `plugin:${p.id}`, path: `/plugins/${p.id}`, label: p.name, Icon: resolvePluginIcon(p.icon) })),
-            // Empty in this repository — see client/src/managed.
-            ...visibleManagedNavItems(user?.role === 'admin').map(m => ({ id: `managed:${m.id}`, path: m.path, label: m.label, Icon: m.Icon }))
-          ].map(tab => {
+          {tabs.map(tab => {
             const isActive = location.pathname === tab.path
             return (
               <Link key={tab.id} to={tab.path}
                 title={tab.label} aria-label={tab.label}
-                className="flex items-center gap-1.5 transition-colors"
+                className="flex items-center gap-1.5 whitespace-nowrap transition-colors"
                 style={{
                   padding: '5px 16px', borderRadius: 9, fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 500,
                   color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -185,7 +217,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-primary)' }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-muted)' }}>
                 <tab.Icon className="w-4 h-4" />
-                <span className="hidden lg:inline">{tab.label}</span>
+                <span className={pillCollapsed ? 'hidden' : 'hidden lg:inline'}>{tab.label}</span>
               </Link>
             )
           })}
@@ -211,7 +243,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           is centred on the bar (#1983). Was a bare flex-1 spacer followed by
           loose siblings, which centred nothing and left the pill to fend for
           itself on top of them. */}
-      <div className="flex items-center gap-4 flex-1 basis-0 min-w-0 justify-end">
+      <div className="flex items-center gap-4 flex-1 basis-0 min-w-max justify-end">
 
       {/* Share button */}
       {onShare && (
@@ -224,15 +256,8 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
         </button>
       )}
 
-      {/* Prerelease badge */}
-      {isPrerelease && appVersion && (
-        <span
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0 bg-[rgba(245,158,11,0.15)] text-[#d97706] border border-[rgba(245,158,11,0.3)]"
-        >
-          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[#f59e0b]" />
-          {appVersion}
-        </span>
-      )}
+      {/* Contextual help for the current screen — same footprint as the theme toggle beside it */}
+      {user && <HelpButton />}
 
       {/* Dark mode toggle (light ↔ dark, overrides auto) — hidden on mobile */}
       <button type="button" onClick={toggleDarkMode} title={dark ? t('nav.lightMode') : t('nav.darkMode')}
@@ -264,7 +289,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                 {user.username?.charAt(0).toUpperCase()}
               </div>
             )}
-            <span className="text-sm hidden sm:inline max-w-24 truncate text-content-secondary">
+            <span className="text-sm hidden sm:inline max-w-40 truncate text-content-secondary">
               {user.username}
             </span>
             <ChevronDown className="w-4 h-4 text-content-faint" />
@@ -273,7 +298,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           {userMenuOpen && createPortal(
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} role="presentation" onClick={() => setUserMenuOpen(false)} />
-              <div className="trek-menu-enter w-52 rounded-xl shadow-xl border overflow-hidden bg-surface-card border-edge" style={{ position: 'fixed', top: 'var(--nav-h)', right: 8, zIndex: 9999 }}>
+              <div className="trek-menu-enter w-52 rounded-xl shadow-xl border overflow-hidden bg-surface-card border-edge" style={{ position: 'fixed', top: 'var(--nav-h)', insetInlineEnd: 8, zIndex: 9999 }}>
                 <div className="px-4 py-3 border-b border-edge-secondary">
                   <p className="text-sm font-medium text-content">{user.username}</p>
                   <p className="text-xs truncate text-content-muted">{user.email}</p>

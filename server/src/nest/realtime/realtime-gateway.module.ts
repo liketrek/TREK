@@ -1,7 +1,12 @@
-import { Module } from '@nestjs/common';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
+import { EphemeralTokenModule } from '../auth-core/ephemeral-token.module';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { RealtimeGateway } from './realtime.gateway';
-import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
-import { JourneyDomainModule } from '../journey/journey-domain.module';
+import { processRooms, RoomRegistry, roomsSlot } from './ws-state';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module, type OnModuleDestroy } from '@nestjs/common';
 
 /**
  * The transport, kept out of RealtimeModule on purpose.
@@ -18,9 +23,24 @@ import { JourneyDomainModule } from '../journey/journey-domain.module';
  * TrekWsAdapter already registered.
  */
 @Module({
-  // JourneyDomainModule for the book rooms: who may open a journey is asked
-  // of the same service the REST routes ask.
-  imports: [EphemeralTokenModule, JourneyDomainModule],
-  providers: [RealtimeGateway],
+  // The book rooms ask JOURNEY_ACCESS, bound globally by JourneyAccessModule
+  // to the same service the REST routes ask. Users/AppSettings: Plan 4 Task
+  // 1 — the handshake's password-version and require_mfa reads, moved off
+  // DatabaseService onto UsersRepository/AppSettingsRepository. Trips: Plan 4
+  // Task 2 — handleJoin's own canAccessTrip delegate, now TripsRepository
+  // directly.
+  imports: [TripMembershipModule, EphemeralTokenModule, MikroOrmModule.forFeature([Users, AppSettings, Trips])],
+  // The room registry is the process-wide in-memory one; the constructor
+  // below hands whichever one the container resolved to the broadcast
+  // functions, so the gateway and the broadcasts never use two registries.
+  providers: [RealtimeGateway, { provide: RoomRegistry, useValue: processRooms }],
 })
-export class RealtimeGatewayModule {}
+export class RealtimeGatewayModule implements OnModuleDestroy {
+  constructor(private readonly rooms: RoomRegistry) {
+    roomsSlot.install(rooms);
+  }
+
+  onModuleDestroy(): void {
+    roomsSlot.release(this.rooms);
+  }
+}

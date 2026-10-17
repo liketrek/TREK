@@ -4,8 +4,8 @@
  * Search, autocomplete and details ask the TREK index and OpenStreetMap first;
  * neither needs a credential, and together they answer on every install.
  * Behind them sits one keyed provider, the one an admin configures and that
- * bills somebody: Google, which MapsService still calls inline, or Amap,
- * which comes through this interface. The `places_provider` row in
+ * bills somebody: Google (google-places.provider.ts) or Amap
+ * (amap.provider.ts), both through this interface. The `places_provider` row in
  * app_settings says which of the two holds that slot, and `auto` keeps
  * whatever the install already used.
  *
@@ -34,12 +34,7 @@ export type PlacesProviderId = 'google' | 'amap';
  */
 export type PlacesProviderChoice = 'auto' | PlacesProviderId | 'openstreetmap';
 
-export const PLACES_PROVIDER_CHOICES: readonly PlacesProviderChoice[] = [
-  'auto',
-  'google',
-  'amap',
-  'openstreetmap',
-];
+export const PLACES_PROVIDER_CHOICES: readonly PlacesProviderChoice[] = ['auto', 'google', 'amap', 'openstreetmap'];
 
 export function isPlacesProviderChoice(value: unknown): value is PlacesProviderChoice {
   return typeof value === 'string' && (PLACES_PROVIDER_CHOICES as readonly string[]).includes(value);

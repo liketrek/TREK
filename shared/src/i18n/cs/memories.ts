@@ -16,6 +16,8 @@ const memories: TranslationStrings = {
   'memories.reviewTitle': 'Zkontrolujte své fotky',
   'memories.reviewHint': 'Klikněte na fotky pro vyloučení ze sdílení.',
   'memories.shareCount': 'Sdílet {count} fotek',
+  'memories.shareCount.one': 'Sdílet {count} fotku',
+  'memories.shareCount.few': 'Sdílet {count} fotky',
   'memories.providerUrl': 'URL serveru',
   'memories.providerApiKey': 'API klíč',
   'memories.providerUsername': 'Uživatelské jméno',
@@ -48,6 +50,8 @@ const memories: TranslationStrings = {
   'memories.selectHint': 'Klepněte na fotky pro jejich výběr.',
   'memories.selected': 'vybráno',
   'memories.addSelected': 'Přidat {count} fotek',
+  'memories.addSelected.one': 'Přidat {count} fotku',
+  'memories.addSelected.few': 'Přidat {count} fotky',
   'memories.alreadyAdded': 'Přidáno',
   'memories.private': 'Soukromé',
   'memories.stopSharing': 'Zastavit sdílení',
@@ -59,6 +63,10 @@ const memories: TranslationStrings = {
   'memories.confirmShareTitle': 'Sdílet se členy cesty?',
   'memories.confirmShareHint':
     '{count} fotek bude viditelných pro všechny členy této cesty. Jednotlivé fotky můžete později nastavit jako soukromé.',
+  'memories.confirmShareHint.one':
+    '{count} fotka bude viditelná pro všechny členy této cesty. Později ji můžete nastavit jako soukromou.',
+  'memories.confirmShareHint.few':
+    '{count} fotky budou viditelné pro všechny členy této cesty. Jednotlivé fotky můžete později nastavit jako soukromé.',
   'memories.confirmShareButton': 'Sdílet fotky',
   'memories.error.loadAlbums': 'Načtení alb se nezdařilo',
   'memories.error.linkAlbum': 'Propojení alba se nezdařilo',

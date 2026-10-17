@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} hiện có sẵn',
   'notif.replica_failure.title': 'Lỗi bản sao lưu trữ',
   'notif.replica_failure.text': "Ghi vào bản sao '{backend}' thất bại: {op} của {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Ghi vào bản sao '{backend}' thất bại: {op} của {key} — {error}. {suppressed} lỗi khác đã bị bỏ qua kể từ thông báo trước đó.",
+  'notif.replica_failure.textSuppressed':
+    "Ghi vào bản sao '{backend}' thất bại: {op} của {key} — {error}. {suppressed} lỗi khác đã bị bỏ qua kể từ thông báo trước đó.",
   'notif.action.view_trip': 'Xem chuyến đi',
   'notif.action.view_collab': 'Xem tin nhắn',
   'notif.action.view_packing': 'Xem đóng gói',

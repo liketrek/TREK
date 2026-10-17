@@ -13,7 +13,7 @@ Requires `packing:read` or `packing:write` scope. The Packing addon is listed as
 | Tool | Description |
 |---|---|
 | `create_packing_item` | Add an item to the packing checklist with optional category. |
-| `update_packing_item` | Rename an item or change its category. |
+| `update_packing_item` | Rename an item, change its category, or count how many of it are already packed. |
 | `set_packing_item_sharing` | Move an item between the three sharing tiers: `common` puts it in the pool the whole trip packs from, `personal` keeps it to its owner, `shared` covers the trip members in `recipient_ids`. Only the item's owner may change this. |
 | `toggle_packing_item` | Check or uncheck a packing item. |
 | `delete_packing_item` | Remove a packing item. |
@@ -58,9 +58,9 @@ Requires `atlas:read` or `atlas:write` scope.
 | `list_visited_regions` | List all manually visited sub-country regions for the current user. |
 | `locate_atlas_region` | Resolve a coordinate to the country and region codes the Atlas map can highlight, which is where the pair `mark_region_visited` expects comes from. A point outside every bundled polygon answers with `null` fields rather than an error. For a postal address use `reverse_geocode` instead. |
 | `mark_region_visited` | Mark a sub-country region as visited (e.g. `"US-CA"`). |
-| `unmark_region_visited` | Remove a region from the visited list. |
+| `unmark_region_visited` | Remove a region from the visited list. Removing the last region of a country also removes the country, unless it was marked visited itself. |
 | `get_country_atlas_places` | Get places saved in the user's atlas for a specific country. |
-| `create_bucket_list_item` | Add a destination to your personal bucket list with optional coordinates, country code and target date. The same destination for the same target date is rejected as a duplicate. |
+| `create_bucket_list_item` | Add a destination to your personal bucket list with optional coordinates, country code, target date and `region_code` (a state or province, hatched on the Atlas map). The same destination for the same target date is rejected as a duplicate. |
 | `update_bucket_list_item` | Update a bucket list item (name, notes, coordinates, target date). |
 | `delete_bucket_list_item` | Remove an item from your bucket list. |
 
@@ -107,7 +107,7 @@ Requires `collections:read` or `collections:write` scope.
 | `reorder_collections` | Reorder the user's collections — pass every collection id in the desired order. |
 | `save_place_to_collection` | Save a place into a collection from a raw payload. Returns a duplicate marker instead of saving when a similar place already exists, unless `force` is true. |
 | `save_trip_places_to_collection` | Copy one or more existing trip places into a collection. Duplicates are skipped unless `force` is true. |
-| `update_collection_place` | Update a saved place's name, address, coordinates, description, notes, status, category, links, tags, labels, image, or move it to another collection. |
+| `update_collection_place` | Update a saved place's name, address, coordinates, description, notes, status, category, links, tags, labels, image, or move it to another collection (moving out of a list needs the owner or admin role there). |
 | `set_collection_place_status` | Set a saved place's status: `idea`, `want`, or `visited`. |
 | `set_collection_place_status_from_trip` | Set a status on every saved copy of the given trip places, in every list they are on, for marking places visited after a day out. Ids are trip place ids. Lists you may only read are skipped. Returns how many saved places changed and how many of the trip places were found in at least one list. |
 | `rate_collection_place` | Set or clear the current user's 1-5 star rating on a saved place. Every member rates independently; pass `null` to remove the vote. |
@@ -185,16 +185,17 @@ Requires `journey:read` or `journey:write` scope.
 | `get_journey` | Get a full snapshot of a journey — metadata, entries, contributors, and linked trips. |
 | `get_journey_stats` | What a journey adds up to: distance travelled in metres, calendar days spanned, countries in visit order, the furthest point reached, and entry, photo and place counts. Entries switched off with `stats_excluded` count towards none of those and are listed under `excluded`. Pass `include_route` for the route itself, up to 400 stops with coordinates. |
 | `create_journey` | Create a new journey with title, optional subtitle, and an initial list of trip IDs. |
-| `update_journey` | Update a journey's title, subtitle, cover or status, and whether its entries offer a pros/cons list, a mood and a weather note (`show_verdict`, `show_mood`, `show_weather`). Owner only. |
+| `update_journey` | Update a journey's title, subtitle, cover or status, and whether its entries offer a pros/cons list, a mood and a weather note (`show_verdict`, `show_mood`, `show_weather`). `status_override` sets the shown status by hand (`draft`, `live` or `completed`), `null` goes back to following the trip dates. `photo_location` lets an entry without a place take the position of its first geotagged photo. Owner only. |
 | `restore_journey_suggestions` | Bring back every trip-derived suggestion that was dismissed from a journey. Answers with how many came back. |
 | `delete_journey` | Delete a journey. |
 | `add_journey_trip` | Link an existing trip to a journey. |
 | `remove_journey_trip` | Remove a trip from a journey. |
 | `list_journey_entries` | List all entries in a journey (date, text, mood, linked trip). |
-| `create_journey_entry` | Add an entry with date (required), optional title, story text, time of day, location name, mood, and sort order. |
-| `update_journey_entry` | Edit a journey entry's title, story, date, time of day, place, coordinates, weather, tags, mood, pros/cons list or visibility. `stats_excluded: true` keeps the entry but takes it off the route and out of `get_journey_stats`; `dismissed: true` waves a trip-derived suggestion away without deleting it, so the trip sync does not offer it again. |
+| `create_journey_entry` | Add an entry with date (required), optional title, story text, time of day, location name, mood, and sort order. `is_draft: true` creates it as a draft that the journey share link leaves out. |
+| `update_journey_entry` | Edit a journey entry's title, story, date, time of day, place, coordinates, weather, tags, mood, pros/cons list or visibility. `stats_excluded: true` keeps the entry but takes it off the route and out of `get_journey_stats`; `dismissed: true` waves a trip-derived suggestion away without deleting it, so the trip sync does not offer it again. `is_draft` turns the entry into a draft or publishes it. |
 | `delete_journey_entry` | Remove an entry from a journey. |
 | `reorder_journey_entries` | Reorder entries by providing the new ordered list of entry IDs. |
+| `reorder_journey_entry_photos` | Put the photos of one entry in a new order by passing every photo id of the entry once. The first photo is the entry's cover. |
 | `list_journey_contributors` | List the contributors of a journey (owner and editors/viewers). |
 | `add_journey_contributor` | Invite a user to a journey with `editor` or `viewer` role. |
 | `update_journey_contributor_role` | Change a contributor's role between `editor` and `viewer`. |
@@ -229,6 +230,16 @@ Each tool asks for the scope of what it writes, so the scopes differ per tool. T
 | `get_trip_document_sync` | Show whether the trip's documents are synced with a document store (Paperless-ngx, Papra, Nextcloud, OpenCloud or a Synology NAS), which tag, folder or space they are bound to, when the last run happened and how it went, and how many documents are synced, waiting, in conflict or missing in the store. |
 | `list_trip_document_sync_issues` | List the documents that need a person: conflicts, documents refused for their type or size, transfers that failed, and documents gone from the store. Returns `configured: false` for a trip that is not bound, and an empty list when everything is in step. |
 | `sync_trip_documents` | Run every binding of the trip now instead of waiting for the next scheduled check, and report how many documents came in, went out and are in conflict. Pass `full: true` to compare both sides in full. A binding whose owner left the trip, or whose store an admin switched off, is reported and not run. Safe to call repeatedly: a run already in progress is not started twice. |
+
+### Tours _(Tours addon required)_
+
+Read only: the saved tours of a trip, as the Tours list and the tour detail show them. Tours someone is still drawing in the planner are not saved yet and do not show here.
+
+| Tool | Description | Scope |
+|---|---|---|
+| `list_tours` | The saved tours of a trip: name, type (`hike`, or `kayak` for a paddle tour), origin (`trek` for planned in TREK, `gpx` for a GPX import, `wanderer` for a wanderer snapshot), distance, ascent and descent (unknown for a paddle tour drawn in the planner), the stored routing limit of a hike on the SAC scale, the boat, water and chosen speed of a paddle tour, the check bench of a paddle tour (`paddle_check`: how far the OpenStreetMap obstacle data covers its route and how many obstacles are open, to check again or decided; a planning status, never a safety or legal clearance), and the days of the trip each tour is on | `trips:read` |
+| `get_tour_plan` | One tour: its facts, its ordered control points, its provenance (where it came from, when, and whether it was changed in TREK since) and its days. A control point can carry a fixed leg to the next one: a via ferrata (`ferrata`) or a stretch drawn by hand (`free`), which no router planned or checked. A paddle tour also carries its obstacle checklist (`obstacle_check`): the obstacles of the OpenStreetMap data along its route, what the travellers decided about each, and their own portages and locks. The full track geometry is not included | `trips:read` |
+| `find_tours_for_day` | The tours put on one day of a trip, with the same facts as `list_tours` | `trips:read` |
 
 ### Road trip _(Road trip addon required)_
 

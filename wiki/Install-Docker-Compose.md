@@ -62,6 +62,8 @@ The commented `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` lines are interpolated a
 
 Every other variable — `APP_URL`, the OIDC block, `FORCE_HTTPS`, `TRUST_PROXY`, `ADMIN_EMAIL`/`ADMIN_PASSWORD`, the MCP limits — ships as a commented literal. Uncomment the line in `docker-compose.yml` and put the value there; setting it in `.env` alone has no effect.
 
+A few variables are not in the compose file at all, among them `FILE_UPLOAD_LIMIT_MB` (the upload limit for files, 50 MB by default) and `RESTORE_FROM_BACKUP` (a backup ZIP to restore on the very first start, see [Backups](Backups#restoring-on-a-new-install-before-setup)). Add a line for them to the `environment:` block yourself.
+
 `APP_URL` is usually not needed. TREK resolves its public base URL as `APP_URL` → first `ALLOWED_ORIGINS` entry → `http://localhost:<PORT>`, so the `ALLOWED_ORIGINS` value above already gives OIDC redirect URIs, passkey origin checks and the links in email notifications the correct origin. Uncomment `APP_URL` only when the public base URL has to differ from the first allowed origin.
 
 For a full description of every variable, see [Environment-Variables](Environment-Variables).

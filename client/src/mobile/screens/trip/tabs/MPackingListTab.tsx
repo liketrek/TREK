@@ -1,36 +1,35 @@
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useMemo, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
-  Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping,
-  Download, LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, RotateCcw, Save as SaveIcon, Trash2, UserPlus, UserRound,
+  Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping, Minus,
+  Download, FileSpreadsheet, FileText, LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, Printer, RotateCcw, Save as SaveIcon,
+  Trash2, UserPlus, UserRound,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { useAuthStore } from '../../../../store/authStore'
 import { useAddonStore } from '../../../../store/addonStore'
-import { useTripStore } from '../../../../store/tripStore'
-import { packingApi } from '../../../../api/client'
-import { useNetworkMode } from '../../../../hooks/useNetworkMode'
-import { useBagTotalsPing } from '../../../../components/Packing/useBagTotalsPing'
-import type { PackingUpdateBagRequest } from '@trek/shared'
 import type { PackingBag, PackingItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import { FIELD_CLS } from '../sheets/PlSheetChrome'
 import { TabScroller } from './tabChrome'
-import { katColor } from '../../../../components/Packing/packingListPanel.helpers'
-import { BAG_COLORS, PACKING_PLACEHOLDER_NAME } from '../../../../components/Packing/packingListPanel.constants'
+import { katColor, packedOf } from '../../../../components/Packing/packingListPanel.helpers'
 import {
-  formatWeight, groupPackingItems, isLastCustomItemInCategory, isPackingPlaceholder,
+  formatWeight, groupPackingItems, isPackingPlaceholder,
   packingCategoryOrder, packingProgress, packingViewItems,
   type PackingCategoryGroup, type PackingStatusFilter, type PackingView,
-} from './listsModel'
+} from '../../../../components/Packing/packingListModel'
+import { usePackingBags } from '../../../../components/Packing/usePackingBags'
+import { usePackingTemplates } from '../../../../components/Packing/usePackingTemplates'
+import { usePackingCategoryAssignees, type CategoryAssignee } from '../../../../components/Packing/usePackingCategoryAssignees'
+import { usePackingItemActions } from '../../../../components/Packing/usePackingItemActions'
 import MBagsSheet from './MBagsSheet'
 import MPackItemSheet from './MPackItemSheet'
 import MPackingImportSheet from './MPackingImportSheet'
+import PackingPrintPreview from '../../../../components/Packing/PackingPrintPreview'
+import { usePackingExport } from '../../../../components/Packing/usePackingExport'
 
 type ActionView = 'menu' | 'apply' | 'save'
-interface CategoryAssignee { user_id: number; username: string }
-interface PackingTemplate { id: number; name: string; item_count: number }
 
 /**
  * Packing sub-tab (spec 03 §4.1-4.4): progress card, action menu (remove
@@ -49,54 +48,29 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   const tripMembers = planner.tripMembers
 
   const [view, setView] = useState<PackingView>('common')
+  const packingExport = usePackingExport(tripId, view)
+  // Exporting changes nothing, so the menu is there for anyone with a list to take along.
+  const hasActions = canEdit || packingExport.hasItems
   const [statusFilter, setStatusFilter] = useState<PackingStatusFilter>('all')
   const [editMode, setEditMode] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
   const [actionView, setActionView] = useState<ActionView>('menu')
-  const [saveTemplateName, setSaveTemplateName] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-  const [addingCategory, setAddingCategory] = useState(false)
-  const [newCategoryName, setNewCategoryName] = useState('')
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [showBagsSheet, setShowBagsSheet] = useState(false)
   const [showImportSheet, setShowImportSheet] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<{ name: string; items: PackingItem[] } | null>(null)
 
-  const [bags, setBags] = useState<PackingBag[]>([])
-  /** Server-summed weight of everything in no bag (#2191); null until first load. */
-  const [unassignedWeightGrams, setUnassignedWeightGrams] = useState<number | null>(null)
-  const [templates, setTemplates] = useState<PackingTemplate[]>([])
-  const [categoryAssignees, setCategoryAssignees] = useState<Record<string, CategoryAssignee[]>>({})
-
-  const reloadBags = useCallback(async () => {
-    if (!bagTrackingEnabled) return
-    try {
-      const r = await packingApi.listBags(tripId)
-      setBags(r.bags || [])
-      setUnassignedWeightGrams(r.unassigned_weight_grams ?? null)
-    } catch {
-      // Offline or a failed read: the sheet falls back to the local sum.
-    }
-  }, [tripId, bagTrackingEnabled])
-
-  useEffect(() => { void reloadBags() }, [reloadBags])
-
-  // Bag weights are server-summed across every member (#2191), so an item this
-  // viewer cannot see still moves them; the server pings the room content-free.
-  useBagTotalsPing(bagTrackingEnabled, reloadBags)
-
-  // Bags have no offline cache, so their totals go stale the moment the device
-  // does; offline the sheet sums what it can see instead (#2191).
-  const { offline } = useNetworkMode()
-
-  useEffect(() => {
-    packingApi.listTemplates(tripId).then(r => setTemplates(r.templates || [])).catch(() => {})
-  }, [tripId])
-
-  useEffect(() => {
-    packingApi.getCategoryAssignees(tripId).then(r => setCategoryAssignees(r.assignees || {})).catch(() => {})
-  }, [tripId])
+  const closeActions = () => {
+    setActionsOpen(false)
+    setActionView('menu')
+  }
+  const { bags, unassignedWeightGrams, serverWeightsFresh, createBag, updateBag, deleteBag, setBagMembers } =
+    usePackingBags({ tripId, bagTrackingEnabled, t, toast })
+  const { templates, applyTemplate, saveTemplateName, setSaveTemplateName, saveAsTemplate } =
+    usePackingTemplates({ tripId, view, t, toast, onApplied: closeActions, onSaved: closeActions })
+  const { categoryAssignees, setAssignees: setCategoryAssigneesFor } = usePackingCategoryAssignees({ tripId, t, toast })
 
   const defaultCategory = t('packing.defaultCategory')
   const viewItems = useMemo(() => packingViewItems(items, view), [items, view])
@@ -105,55 +79,15 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   const progress = packingProgress(viewItems)
   const checkedCount = viewItems.filter(i => i.checked).length
 
+  const {
+    addingCategory, setAddingCategory, newCategoryName, setNewCategoryName, addItemToCategory, deleteItem,
+    renameCategoryReporting: renameCategory, deleteCategoryItems, clearChecked, addNewCategory,
+  } = usePackingItemActions({
+    tripId, items, view, currentUserId, categories: categoryOrder, defaultCategory,
+    actions: tripActions, t, toast, placeholderFrom: 'items',
+  })
+
   const toggleCategory = (cat: string) => setCollapsed(c => ({ ...c, [cat]: !c[cat] }))
-
-  const addItemToCategory = async (category: string, name: string) => {
-    try {
-      const placeholder = items.find(i => i.category === category && isPackingPlaceholder(i))
-      if (placeholder) {
-        await tripActions.updatePackingItem(tripId, placeholder.id, { name })
-      } else {
-        await tripActions.addPackingItem(
-          tripId,
-          { name, category, visibility: view === 'personal' ? 'personal' : 'common' } as Parameters<typeof tripActions.addPackingItem>[1],
-        )
-      }
-    } catch {
-      toast.error(t('packing.toast.addError'))
-    }
-  }
-
-  const deleteItem = async (item: PackingItem) => {
-    try {
-      if (isLastCustomItemInCategory(item, items)) {
-        if (item.checked) await tripActions.togglePackingItem(tripId, item.id, false)
-        await tripActions.updatePackingItem(tripId, item.id, {
-          name: PACKING_PLACEHOLDER_NAME, weight_grams: null, bag_id: null, quantity: 1,
-        })
-      } else {
-        await tripActions.deletePackingItem(tripId, item.id)
-      }
-    } catch {
-      toast.error(t('packing.toast.deleteError'))
-    }
-  }
-
-  const renameCategory = async (oldName: string, newName: string) => {
-    const toUpdate = items.filter(i => (i.category || defaultCategory) === oldName)
-    try {
-      for (const item of toUpdate) await tripActions.updatePackingItem(tripId, item.id, { category: newName })
-    } catch {
-      toast.error(t('packing.toast.renameError'))
-    }
-  }
-
-  const deleteCategoryItems = async (catItems: PackingItem[]) => {
-    let failed = false
-    for (const item of catItems) {
-      try { await tripActions.deletePackingItem(tripId, item.id) } catch { failed = true }
-    }
-    if (failed) toast.error(t('packing.toast.deleteError'))
-  }
 
   const checkAllInCategory = async (catItems: PackingItem[]) => {
     try {
@@ -167,103 +101,6 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
       for (const item of catItems) if (item.checked) await tripActions.togglePackingItem(tripId, item.id, false)
     } catch {
       toast.error(t('packing.toast.saveError'))
-    }
-  }
-
-  const addNewCategory = async () => {
-    const trimmed = newCategoryName.trim()
-    if (!trimmed) return
-    let catName = trimmed
-    while (categoryOrder.includes(catName)) catName += '​'
-    try {
-      await tripActions.addPackingItem(
-        tripId,
-        { name: PACKING_PLACEHOLDER_NAME, category: catName, visibility: view === 'personal' ? 'personal' : 'common' } as Parameters<typeof tripActions.addPackingItem>[1],
-      )
-      setNewCategoryName('')
-      setAddingCategory(false)
-    } catch {
-      toast.error(t('packing.toast.addError'))
-    }
-  }
-
-  const clearChecked = async () => {
-    let failed = false
-    for (const item of items.filter(i => i.checked)) {
-      try { await tripActions.deletePackingItem(tripId, item.id) } catch { failed = true }
-    }
-    if (failed) toast.error(t('packing.toast.deleteError'))
-  }
-
-  const createBag = async (name: string): Promise<PackingBag | undefined> => {
-    try {
-      const data = await packingApi.createBag(tripId, { name, color: BAG_COLORS[bags.length % BAG_COLORS.length] })
-      setBags(prev => [...prev, data.bag])
-      return data.bag
-    } catch {
-      toast.error(t('packing.toast.saveError'))
-      return undefined
-    }
-  }
-  const updateBag = async (bagId: number, data: PackingUpdateBagRequest) => {
-    try {
-      const result = await packingApi.updateBag(tripId, bagId, data)
-      setBags(prev => prev.map(b => (b.id === bagId ? { ...b, ...result.bag } : b)))
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }
-  const deleteBag = async (bagId: number) => {
-    try {
-      await packingApi.deleteBag(tripId, bagId)
-      setBags(prev => prev.filter(b => b.id !== bagId))
-    } catch {
-      toast.error(t('packing.toast.deleteError'))
-    }
-  }
-  const setBagMembers = async (bagId: number, userIds: number[]) => {
-    try {
-      const result = await packingApi.setBagMembers(tripId, bagId, userIds)
-      setBags(prev => prev.map(b => (b.id === bagId ? { ...b, members: result.members } : b)))
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }
-
-  const setCategoryAssigneesFor = async (category: string, userIds: number[]) => {
-    try {
-      const data = await packingApi.setCategoryAssignees(tripId, category, userIds)
-      setCategoryAssignees(prev => ({ ...prev, [category]: data.assignees || [] }))
-    } catch {
-      toast.error(t('packing.toast.saveError'))
-    }
-  }
-
-  const applyTemplate = async (templateId: number) => {
-    try {
-      // Land the items in the list the user is looking at — without the
-      // visibility the API defaults to 'common' and they vanish from My list.
-      const data = await packingApi.applyTemplate(tripId, templateId, view)
-      useTripStore.setState(s => ({ packingItems: [...s.packingItems, ...(data.items || [])] }))
-      toast.success(t('packing.templateApplied', { count: data.count }))
-      setActionsOpen(false)
-      setActionView('menu')
-    } catch {
-      toast.error(t('packing.templateError'))
-    }
-  }
-
-  const saveAsTemplate = async () => {
-    if (!saveTemplateName.trim()) return
-    try {
-      await packingApi.saveAsTemplate(tripId, saveTemplateName.trim())
-      toast.success(t('packing.templateSaved'))
-      setSaveTemplateName('')
-      setActionsOpen(false)
-      setActionView('menu')
-      packingApi.listTemplates(tripId).then(r => setTemplates(r.templates || [])).catch(() => {})
-    } catch {
-      toast.error(t('common.error'))
     }
   }
 
@@ -282,7 +119,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         <div className="flex items-baseline gap-[7px]">
           <span className="font-geist text-[1rem] font-extrabold tabular-nums text-m-ink">{progress.checked}/{progress.total}</span>
           <span className="font-geist text-[0.625rem] font-bold text-m-faint">{progress.pct}%</span>
-          <div className="ml-auto flex items-center gap-[6px]">
+          <div className="ms-auto flex items-center gap-[6px]">
             {bagTrackingEnabled && (
               <button
                 type="button"
@@ -306,7 +143,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
                 {editMode ? t('packing.editDone') : t('common.edit')}
               </button>
             )}
-            {canEdit && (
+            {hasActions && (
               <button
                 type="button"
                 onClick={() => setActionsOpen(v => !v)}
@@ -325,11 +162,11 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
       </div>
 
       {/* ── Action menu (spec §4.2) ── */}
-      {actionsOpen && canEdit && (
+      {actionsOpen && hasActions && (
         <div className="mt-[6px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
           {actionView === 'menu' && (
             <>
-              {checkedCount > 0 && (
+              {canEdit && checkedCount > 0 && (
                 <ActionRow
                   icon={Trash2}
                   label={t('packing.clearChecked', { count: checkedCount })}
@@ -337,13 +174,22 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
                   onClick={() => { setActionsOpen(false); setConfirmClear(true) }}
                 />
               )}
-              {templates.length > 0 && (
+              {canEdit && templates.length > 0 && (
                 <ActionRow icon={LayoutTemplate} label={t('packing.applyTemplate')} onClick={() => setActionView('apply')} />
               )}
-              {isAdmin && items.length > 0 && (
+              {canEdit && isAdmin && items.length > 0 && (
                 <ActionRow icon={SaveIcon} label={t('packing.saveAsTemplate')} onClick={() => setActionView('save')} />
               )}
-              <ActionRow icon={Download} label={t('packing.import')} onClick={() => { setActionsOpen(false); setShowImportSheet(true) }} />
+              {canEdit && (
+                <ActionRow icon={Download} label={t('packing.import')} onClick={() => { setActionsOpen(false); setShowImportSheet(true) }} />
+              )}
+              {packingExport.hasItems && (
+                <>
+                  <ActionRow icon={Printer} label={t('packing.exportPrint')} onClick={() => { setActionsOpen(false); void packingExport.openPrint() }} />
+                  <ActionRow icon={FileText} label={t('packing.exportMarkdown')} onClick={() => { setActionsOpen(false); packingExport.exportMarkdown() }} />
+                  <ActionRow icon={FileSpreadsheet} label={t('packing.exportCsv')} onClick={() => { setActionsOpen(false); void packingExport.exportCsv() }} />
+                </>
+              )}
             </>
           )}
           {actionView === 'apply' && (
@@ -353,12 +199,12 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
                   key={tmpl.id}
                   type="button"
                   onClick={() => applyTemplate(tmpl.id)}
-                  className="flex w-full items-center gap-[9px] rounded-[10px] px-[10px] py-[9px] text-left"
+                  className="flex w-full items-center gap-[9px] rounded-[10px] px-[10px] py-[9px] text-start"
                 >
                   <Package size={14} strokeWidth={2} className="flex-none text-m-muted" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[0.78125rem] font-semibold text-m-ink">{tmpl.name}</span>
-                    <span className="block font-geist text-[0.625rem] text-m-faint">{tmpl.item_count} {t('admin.packingTemplates.items')}</span>
+                    <span className="block font-geist text-[0.625rem] text-m-faint">{tmpl.item_count} {t('admin.packingTemplates.items', { count: tmpl.item_count })}</span>
                   </span>
                 </button>
               ))}
@@ -371,7 +217,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
                 autoFocus
                 value={saveTemplateName}
                 onChange={e => setSaveTemplateName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') saveAsTemplate() }}
+                onKeyDown={e => { if (e.key === 'Enter') void saveAsTemplate() }}
                 placeholder={t('packing.templateName')}
                 className={`${FIELD_CLS} flex-1`}
               />
@@ -401,7 +247,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
               value={newCategoryName}
               onChange={e => setNewCategoryName(e.target.value)}
               onKeyDown={e => {
-                if (e.key === 'Enter') addNewCategory()
+                if (e.key === 'Enter') void addNewCategory()
                 if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName('') }
               }}
               placeholder={t('packing.newCategoryPlaceholder')}
@@ -491,7 +337,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         bags={bags}
         items={items}
         unassignedWeightGrams={unassignedWeightGrams}
-        serverWeightsFresh={!offline}
+        serverWeightsFresh={serverWeightsFresh}
         tripMembers={tripMembers}
         canEdit={canEdit}
         currentUserId={currentUserId}
@@ -512,6 +358,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
       />
 
       <MPackingImportSheet planner={planner} open={showImportSheet} onClose={() => setShowImportSheet(false)} />
+      <PackingPrintPreview html={packingExport.printHtml} title={packingExport.printTitle} onClose={packingExport.closePrint} />
 
       <MConfirmSheet
         open={confirmClear}
@@ -521,7 +368,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         confirmLabel={t('common.delete')}
         cancelLabel={t('common.cancel')}
         danger
-        onConfirm={() => { setConfirmClear(false); clearChecked() }}
+        onConfirm={() => { setConfirmClear(false); void clearChecked() }}
       />
 
       <MConfirmSheet
@@ -537,7 +384,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         onConfirm={() => {
           const target = deleteCategoryTarget
           setDeleteCategoryTarget(null)
-          if (target) deleteCategoryItems(target.items)
+          if (target) void deleteCategoryItems(target.items)
         }}
       />
     </TabScroller>
@@ -554,7 +401,7 @@ function ActionRow({ icon: Icon, label, onClick, danger = false }: {
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[11px] text-left text-[0.78125rem] font-semibold last:border-b-0 ${
+      className={`flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[11px] text-start text-[0.78125rem] font-semibold last:border-b-0 ${
         danger ? 'text-[color:var(--m-st-danger)]' : 'text-m-ink'
       }`}
     >
@@ -629,7 +476,7 @@ function PackingCategoryCard({
         onClick={onToggle}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
         aria-expanded={open}
-        className="flex w-full items-center gap-[8px] bg-[color:var(--m-ic)] px-[13px] py-[9px] text-left"
+        className="flex w-full items-center gap-[8px] bg-[color:var(--m-ic)] px-[13px] py-[9px] text-start"
       >
         <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: dot }} />
         {renaming ? (
@@ -811,6 +658,10 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
   const ownerAvatarUrl = ownerMember?.avatar_url ?? (item.owner_id === me?.id ? me?.avatar_url ?? null : null)
 
   const toggle = () => tripActions.togglePackingItem(tripId, item.id, !item.checked)
+  // Multi-piece items count their pieces into the bag (#2296).
+  const quantity = item.quantity || 1
+  const packed = packedOf(item)
+  const partlyPacked = !item.checked && packed > 0
 
   const assignBag = async (bagId: number | null) => {
     setBagPickerOpen(false)
@@ -834,7 +685,7 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           aria-label={item.name}
           aria-pressed={!!item.checked}
           className={`flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] border-[1.5px] ${
-            item.checked ? 'border-m-act bg-m-act text-m-actfg' : 'border-[color:var(--m-rowbr)] text-transparent'
+            item.checked ? 'border-m-act bg-m-act text-m-actfg' : partlyPacked ? 'border-m-act text-transparent' : 'border-[color:var(--m-rowbr)] text-transparent'
           }`}
         >
           <Check size={12} strokeWidth={3} />
@@ -877,11 +728,27 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           </span>
         )}
 
-        {(item.quantity || 1) > 1 && (
-          <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.625rem] font-bold tabular-nums text-m-muted">
-            {item.quantity}×
+        {quantity > 1 && (canEdit && !isPlaceholder ? (
+          <span
+            role="group"
+            aria-label={t('packing.packedCount', { packed, total: quantity })}
+            className={`flex flex-none items-center rounded-full font-geist text-[0.625rem] font-bold tabular-nums ${partlyPacked ? 'bg-[color:color-mix(in_srgb,var(--m-act)_14%,transparent)] text-m-ink' : 'bg-[color:var(--m-ic)] text-m-muted'}`}
+          >
+            <button type="button" aria-label={t('packing.packedLess')} disabled={packed <= 0} onClick={() => tripActions.setPackedCount(tripId, item.id, packed - 1)}
+              className="flex h-[22px] w-[22px] items-center justify-center disabled:opacity-30">
+              <Minus size={11} strokeWidth={2.6} />
+            </button>
+            <span className="min-w-[26px] text-center">{packed}/{quantity}</span>
+            <button type="button" aria-label={t('packing.packedMore')} disabled={packed >= quantity} onClick={() => tripActions.setPackedCount(tripId, item.id, packed + 1)}
+              className="flex h-[22px] w-[22px] items-center justify-center disabled:opacity-30">
+              <Plus size={11} strokeWidth={2.6} />
+            </button>
           </span>
-        )}
+        ) : (
+          <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.625rem] font-bold tabular-nums text-m-muted">
+            {partlyPacked ? `${packed}/${quantity}` : `${quantity}×`}
+          </span>
+        ))}
 
         {/* A weight nobody entered is not worth a column: "— g" on every row
             cost as much width as a real value (#1525). */}
@@ -920,11 +787,11 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
       </div>
 
       {menuOpen && editMode && canEdit && (
-        <div className="mb-[6px] ml-[28px] overflow-hidden rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
+        <div className="mb-[6px] ms-[28px] overflow-hidden rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
           <button
             type="button"
             onClick={() => { setMenuOpen(false); onEdit() }}
-            className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-left text-[0.75rem] font-medium text-m-ink"
+            className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-start text-[0.75rem] font-medium text-m-ink"
           >
             <Pencil size={12} strokeWidth={2} />
             {t('common.edit')}
@@ -932,7 +799,7 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           <button
             type="button"
             onClick={() => { setMenuOpen(false); onDelete() }}
-            className="flex w-full items-center gap-[9px] px-3 py-2 text-left text-[0.75rem] font-medium text-[color:var(--m-st-danger)]"
+            className="flex w-full items-center gap-[9px] px-3 py-2 text-start text-[0.75rem] font-medium text-[color:var(--m-st-danger)]"
           >
             <Trash2 size={12} strokeWidth={2} />
             {t('common.delete')}
@@ -941,13 +808,13 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
       )}
 
       {bagPickerOpen && bagTrackingEnabled && (
-        <div className="mb-[6px] ml-[28px] overflow-hidden rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
-          <button type="button" onClick={() => assignBag(null)} className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-left text-[0.75rem] font-medium text-m-muted">
+        <div className="mb-[6px] ms-[28px] overflow-hidden rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
+          <button type="button" onClick={() => assignBag(null)} className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-start text-[0.75rem] font-medium text-m-muted">
             <span className="h-[9px] w-[9px] flex-none rounded-full border border-dashed border-[color:var(--m-faint)]" />
             {t('packing.noBag')}
           </button>
           {bags.map(b => (
-            <button key={b.id} type="button" onClick={() => assignBag(b.id)} className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-left text-[0.75rem] font-medium text-m-ink">
+            <button key={b.id} type="button" onClick={() => assignBag(b.id)} className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-start text-[0.75rem] font-medium text-m-ink">
               <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: b.color }} />
               {b.name}
             </button>
@@ -959,7 +826,7 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
                 autoFocus
                 value={newBagName}
                 onChange={e => setNewBagName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') submitNewBag(); if (e.key === 'Escape') { setCreatingBag(false); setNewBagName('') } }}
+                onKeyDown={e => { if (e.key === 'Enter') void submitNewBag(); if (e.key === 'Escape') { setCreatingBag(false); setNewBagName('') } }}
                 placeholder={t('packing.bagName')}
                 className={`${FIELD_CLS} flex-1 py-[6px] text-[0.75rem]`}
               />
@@ -968,7 +835,7 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
               </button>
             </div>
           ) : (
-            <button type="button" onClick={() => setCreatingBag(true)} className="flex w-full items-center gap-[7px] px-3 py-2 text-left font-geist text-[0.6875rem] font-semibold text-m-muted">
+            <button type="button" onClick={() => setCreatingBag(true)} className="flex w-full items-center gap-[7px] px-3 py-2 text-start font-geist text-[0.6875rem] font-semibold text-m-muted">
               <Plus size={11} strokeWidth={2.2} />
               {t('packing.addBag')}
             </button>

@@ -10,12 +10,12 @@ import NoteFormatToolbar from './NoteFormatToolbar'
  * through a real textarea rather than asserting on a callback in isolation —
  * the selection handling is the part that breaks, and it only exists in the DOM.
  */
-function Harness({ initial = '', onValue }: { initial?: string; onValue?: (v: string) => void }) {
+function Harness({ initial = '', onValue, customTooltips }: { initial?: string; onValue?: (v: string) => void; customTooltips?: boolean }) {
   const ref = useRef<HTMLTextAreaElement | null>(null)
   const [value, setValue] = useState(initial)
   return (
     <>
-      <NoteFormatToolbar textareaRef={ref} onChange={v => { setValue(v); onValue?.(v) }} />
+      <NoteFormatToolbar textareaRef={ref} onChange={v => { setValue(v); onValue?.(v) }} customTooltips={customTooltips} />
       <textarea ref={ref} aria-label="body" value={value} onChange={e => setValue(e.target.value)} />
     </>
   )
@@ -109,5 +109,26 @@ describe('NoteFormatToolbar', () => {
     await user.click(screen.getByRole('button', { name: /bold/i }))
 
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('FE-NOTEBAR-008: keeps the native tooltip by default', () => {
+    render(<Harness />)
+
+    expect(screen.getByRole('button', { name: /bold/i })).toHaveAttribute('title', 'Bold')
+  })
+
+  it('FE-NOTEBAR-009: with customTooltips the name shows in the shared tooltip, and the button still keeps the focus off itself', async () => {
+    const user = userEvent.setup()
+    render(<Harness initial="text" customTooltips />)
+    const bold = screen.getByRole('button', { name: /bold/i })
+    expect(bold).not.toHaveAttribute('title')
+
+    await user.hover(bold)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Bold')
+
+    select(0, 4)
+    await user.click(bold)
+    expect(field().value).toBe('**text**')
+    await waitFor(() => expect(document.activeElement).toBe(field()))
   })
 })

@@ -6,16 +6,18 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Vincular archivo',
   'files.linkEmpty': 'Aún no hay lugares ni reservas para vincular',
   'files.menu': 'Más opciones',
-  'files.uploadErrorSize': 'El archivo es demasiado grande (máx. 50 MB)',
+  'files.uploadErrorSize': 'El archivo es demasiado grande (máx. {max} MB)',
   'files.title': 'Archivos',
   'files.pageTitle': 'Archivos y documentos',
   'files.subtitle': '{count} archivos para {trip}',
+  'files.subtitle.one': '{count} archivo para {trip}',
   'files.download': 'Descargar',
   'files.openError': 'No se pudo abrir el archivo',
   'files.downloadPdf': 'Descargar PDF',
   'files.count': '{count} archivos',
-  'files.countSingular': '1 archivo',
+  'files.count.one': '{count} archivo',
   'files.uploaded': '{count} archivos subidos',
+  'files.uploaded.one': '{count} archivo subido',
   'files.uploadError': 'La subida falló',
   'files.uploadErrorType': 'Este tipo de archivo no es compatible',
   'files.dropzone': 'Arrastra aquí los archivos',
@@ -62,5 +64,11 @@ const files: TranslationStrings = {
   'files.toast.restoreError': 'Error al restaurar',
   'files.confirm.permanentDelete': 'Eliminar este archivo permanentemente? No se puede deshacer.',
   'files.confirm.emptyTrash': 'Eliminar todos los archivos de la papelera? No se puede deshacer.',
+  'files.uploadNeedsConnection':
+    'Para subir hace falta conexión. Vuelve a intentarlo cuando TREK esté de nuevo en línea.',
+  'files.linkNeedsConnection':
+    'Para quitar este vínculo hace falta conexión. Vuelve a intentarlo cuando TREK esté de nuevo en línea.',
+  'files.placeFilesNeedConnection':
+    'Los archivos necesitan conexión para subirse. Quita los nuevos para guardar el lugar sin conexión, o guarda cuando vuelvas a estar en línea.',
 };
 export default files;

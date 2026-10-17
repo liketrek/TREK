@@ -1,14 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { type LucideIcon, CalendarOff, AlertCircle, Building2, Unlink, ArrowRightLeft, Globe, Loader2, Plus, Trash2, CalendarDays, CalendarRange, GraduationCap } from 'lucide-react'
 import { useVacayStore } from '../../store/vacayStore'
-import { getIntlLanguage, useTranslation } from '../../i18n'
-import { useToast } from '../shared/Toast'
+import { useTranslation } from '../../i18n'
 import CustomSelect from '../shared/CustomSelect'
-import apiClient from '../../api/client'
-import { fetchRegionOptions, fetchSchoolHolidayRegionOptions } from './holidayRegions'
 import { useSchoolHolidayCountries } from './useSchoolHolidayCountries'
-import { windowMonths } from '../../vacay/yearWindow'
-import type { VacayHolidayCalendar, VacayYearSettings } from '../../types'
+import type { VacayHolidayCalendar } from '../../types'
+import {
+  canAddHolidayCalendar, monthDayCap, parseHolidayRegion, useLeaveYear, useRegionOptions, useVacaySettings,
+} from './useVacaySettings'
 
 interface VacaySettingsProps {
   onClose: () => void
@@ -16,35 +15,22 @@ interface VacaySettingsProps {
 
 export default function VacaySettings({ onClose }: VacaySettingsProps) {
   const { t } = useTranslation()
-  const toast = useToast()
-  const { plan, updatePlan, addHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar, isFused, dissolve, users } = useVacayStore()
-  const [countries, setCountries] = useState<{ value: string; label: string }[]>([])
+  const { plan, updatePlan, addHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar, isFused, users } = useVacayStore()
   const [showAddForm, setShowAddForm] = useState(false)
   const [showAddSchoolForm, setShowAddSchoolForm] = useState(false)
 
   const { language } = useTranslation()
 
-  // Load available countries with localized names
-  useEffect(() => {
-    apiClient.get('/addons/vacay/holidays/countries').then(r => {
-      let displayNames
-      try { displayNames = new Intl.DisplayNames([getIntlLanguage(language)], { type: 'region' }) } catch { /* */ }
-      const list = r.data.map(c => ({
-        value: c.countryCode,
-        label: displayNames ? (displayNames.of(c.countryCode) || c.name) : c.name,
-      }))
-      list.sort((a, b) => a.label.localeCompare(b.label))
-      setCountries(list)
-    }).catch(() => {})
-  }, [language])
+  // Available countries with localized names, the calendars by type, weekend days, dissolving
+  const {
+    countries, publicHolidayCalendars, schoolHolidayCalendars, weekendDays, toggleWeekendDay, dissolveFusion,
+  } = useVacaySettings({ language, loadCountries: true })
 
   const { countries: schoolHolidayCountries, error: schoolCountryError } = useSchoolHolidayCountries()
 
   if (!plan) return null
 
   const toggle = (key: string) => updatePlan({ [key]: !plan[key] })
-  const publicHolidayCalendars = (plan.holiday_calendars ?? []).filter(cal => (cal.type ?? 'public_holiday') === 'public_holiday')
-  const schoolHolidayCalendars = (plan.holiday_calendars ?? []).filter(cal => cal.type === 'school_holiday')
 
   return (
     <div className="space-y-4">
@@ -62,7 +48,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
 
       {/* Weekend days selector */}
       {plan.block_weekends !== false && (
-        <div data-testid="weekend-days" style={{ paddingLeft: 36 }}>
+        <div data-testid="weekend-days" style={{ paddingInlineStart: 36 }}>
           <p className="text-xs font-medium mb-2 text-content-muted">{t('vacay.weekendDays')}</p>
           <div className="flex flex-wrap gap-1.5">
             {[
@@ -74,13 +60,9 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
               { day: 6, label: t('vacay.sat') },
               { day: 0, label: t('vacay.sun') },
             ].map(({ day, label }) => {
-              const current: number[] = plan.weekend_days ? String(plan.weekend_days).split(',').map(Number) : [0, 6]
-              const active = current.includes(day)
+              const active = weekendDays.includes(day)
               return (
-                <button type="button" key={day} onClick={() => {
-                  const next = active ? current.filter(d => d !== day) : [...current, day]
-                  updatePlan({ weekend_days: next.join(',') })
-                }}
+                <button type="button" key={day} onClick={() => toggleWeekendDay(day)}
                   style={{
                     padding: '4px 10px', borderRadius: 8, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer',
                     fontFamily: 'inherit', border: '1px solid', transition: 'all 0.12s',
@@ -105,7 +87,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
             <p className="text-xs mt-0.5 text-content-faint">{t('vacay.weekStartHint')}</p>
           </div>
         </div>
-        <div style={{ paddingLeft: 36, marginTop: 8 }} className="flex gap-1.5">
+        <div style={{ paddingInlineStart: 36, marginTop: 8 }} className="flex gap-1.5">
           {[
             { value: 1, label: t('vacay.mon') },
             { value: 0, label: t('vacay.sun') },
@@ -152,7 +134,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
           onChange={() => toggle('company_holidays_enabled')}
         />
         {plan.company_holidays_enabled && (
-          <div className="ml-7 mt-2">
+          <div className="ms-7 mt-2">
             <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md" style={{ background: 'var(--vg-surf)', border: '1px solid var(--vg-line)' }}>
               <AlertCircle size={12} style={{ color: 'var(--vg-ink3)' }} />
               <span className="text-[10px]" style={{ color: 'var(--vg-ink3)' }}>{t('vacay.companyHolidaysNoDeduct')}</span>
@@ -171,7 +153,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
           onChange={() => toggle('holidays_enabled')}
         />
         {plan.holidays_enabled && (
-          <div className="ml-7 mt-2 space-y-2">
+          <div className="ms-7 mt-2 space-y-2">
             {publicHolidayCalendars.length === 0 && (
               <p className="text-xs text-content-faint">{t('vacay.noCalendars')}</p>
             )}
@@ -219,7 +201,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
         />
         {schoolCountryError && <p role="alert" className="text-caption text-danger">{schoolCountryError}</p>}
         {plan.school_holidays_enabled && (
-          <div className="ml-7 mt-2 space-y-2">
+          <div className="ms-7 mt-2 space-y-2">
             {schoolHolidayCalendars.length === 0 && (
               <p className="text-xs text-content-faint">{t('vacay.noSchoolCalendars')}</p>
             )}
@@ -281,11 +263,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
             </div>
             <div className="px-4 py-3 border-t border-t-[rgba(239,68,68,0.1)]">
               <button type="button"
-                onClick={async () => {
-                  await dissolve()
-                  toast.success(t('vacay.dissolved'))
-                  onClose()
-                }}
+                onClick={() => dissolveFusion(onClose)}
                 className="w-full px-3 py-2 text-xs font-medium bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
               >
                 {t('vacay.dissolveAction')}
@@ -307,8 +285,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
  */
 function YearTypePicker() {
   const { t, locale } = useTranslation()
-  const { yearSettings, updateYearSettings, selectedYear } = useVacayStore()
-  const type = yearSettings.year_type
+  const { yearSettings, type, selectedYear, save, windowLabel } = useLeaveYear(locale)
 
   const monthNames = useMemo(() => {
     const fmt = new Intl.DateTimeFormat(locale, { month: 'long' })
@@ -316,21 +293,7 @@ function YearTypePicker() {
   }, [locale])
 
   // February caps at 28 so a window start never lands on a date some years lack.
-  const maxDay = daysInMonth(yearSettings.year_start_month)
-
-  const save = (patch: Partial<VacayYearSettings>) => {
-    const next = { ...yearSettings, ...patch }
-    updateYearSettings({
-      year_type: next.year_type,
-      year_start_month: next.year_start_month,
-      year_start_day: Math.min(next.year_start_day, daysInMonth(next.year_start_month)),
-      hire_date: next.hire_date,
-    })
-  }
-
-  const months = windowMonths(selectedYear, yearSettings)
-  const shortMonth = new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' })
-  const windowLabel = `${shortMonth.format(new Date(months[0].year, months[0].month, 1))} – ${shortMonth.format(new Date(months[11].year, months[11].month, 1))}`
+  const maxDay = monthDayCap(yearSettings.year_start_month)
 
   return (
     <div>
@@ -341,7 +304,7 @@ function YearTypePicker() {
           <p className="text-xs mt-0.5 text-content-faint">{t('vacay.yearTypeHint')}</p>
         </div>
       </div>
-      <div style={{ paddingLeft: 36, marginTop: 8 }} className="flex flex-wrap gap-1.5">
+      <div style={{ paddingInlineStart: 36, marginTop: 8 }} className="flex flex-wrap gap-1.5">
         {([
           { value: 'calendar', label: t('vacay.yearTypeCalendar') },
           { value: 'fiscal', label: t('vacay.yearTypeFiscal') },
@@ -361,7 +324,7 @@ function YearTypePicker() {
       </div>
 
       {type === 'fiscal' && (
-        <div style={{ paddingLeft: 36, marginTop: 8 }} className="flex items-center gap-2">
+        <div style={{ paddingInlineStart: 36, marginTop: 8 }} className="flex items-center gap-2">
           <div className="flex-1 min-w-0">
             <CustomSelect
               value={String(yearSettings.year_start_month)}
@@ -382,7 +345,7 @@ function YearTypePicker() {
       )}
 
       {type === 'anniversary' && (
-        <div style={{ paddingLeft: 36, marginTop: 8 }}>
+        <div style={{ paddingInlineStart: 36, marginTop: 8 }}>
           <input
             type="date"
             value={yearSettings.hire_date || ''}
@@ -396,17 +359,11 @@ function YearTypePicker() {
         </div>
       )}
 
-      <p className="text-[11px] mt-2 text-content-faint" style={{ paddingLeft: 36 }}>
+      <p className="text-[11px] mt-2 text-content-faint" style={{ paddingInlineStart: 36 }}>
         {t('vacay.yearWindow', { year: selectedYear, window: windowLabel })}
       </p>
     </div>
   )
-}
-
-/** Days a month can always offer — February caps at 28 so no window start is skipped in a common year. */
-function daysInMonth(month: number): number {
-  if (month === 2) return 28
-  return [4, 6, 9, 11].includes(month) ? 30 : 31
 }
 
 interface SettingToggleProps {
@@ -436,30 +393,6 @@ function SettingToggle({ icon: Icon, label, hint, value, onChange }: SettingTogg
   )
 }
 
-/**
- * Region options for a holiday-calendar country.
- *
- * The loaded list is tagged with the country it belongs to, so switching country
- * drops the previous list in the same render instead of leaving it selectable while
- * the next request is still running (#1813: picking a German region for the
- * Netherlands was possible that way). `loadingRegions` tells "not answered yet"
- * apart from "this country has no regions"; on the list alone both are empty.
- */
-function useRegionOptions(country: string, calendarType: 'public_holiday' | 'school_holiday') {
-  const [loaded, setLoaded] = useState<{ country: string; options: { value: string; label: string }[]; failed?: boolean }>({ country: '', options: [] })
-
-  useEffect(() => {
-    if (!country) return
-    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
-    let stale = false
-    load(country).then(options => { if (!stale) setLoaded({ country, options }) }).catch(() => { if (!stale) setLoaded({ country, options: [], failed: true }) })
-    return () => { stale = true }
-  }, [calendarType, country])
-
-  const ready = loaded.country === country
-  return { regions: ready ? loaded.options : [], regionError: ready && loaded.failed, loadingRegions: Boolean(country) && !ready }
-}
-
 // ── Existing calendar row (inline edit) ──────────────────────────────────────
 function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
   cal: VacayHolidayCalendar
@@ -473,9 +406,7 @@ function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
   const [localColor, setLocalColor] = useState(cal.color)
   const [localLabel, setLocalLabel] = useState(cal.label || '')
 
-  const [baseRegion] = cal.region.split('|')
-  const selectedCountry = baseRegion.split('-')[0]
-  const selectedRegion = cal.region.includes('|group:') || baseRegion.includes('-') ? cal.region : ''
+  const { country: selectedCountry, region: selectedRegion } = parseHolidayRegion(cal.region)
   const { regions, regionError } = useRegionOptions(selectedCountry, calendarType)
 
   useEffect(() => { setLocalColor(cal.color) }, [cal.color])
@@ -493,7 +424,7 @@ function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
           title={t('vacay.calendarColor')}
         />
         {showColorPicker && (
-          <div style={{ position: 'absolute', top: 34, left: 0, zIndex: 50, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, width: 120 }}>
+          <div style={{ position: 'absolute', top: 34, insetInlineStart: 0, zIndex: 50, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, width: 120 }}>
             {PRESET_COLORS.map(c => (
               <button type="button" key={c} onClick={() => { setLocalColor(c); setShowColorPicker(false); if (c !== cal.color) onUpdate({ color: c }) }}
                 style={{ width: 24, height: 24, borderRadius: 6, background: c, border: localColor === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer' }} />
@@ -555,15 +486,14 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
   const [color, setColor] = useState(defaultColor)
   const [label, setLabel] = useState('')
 
-  const [baseRegion] = region.split('|')
-  const selectedCountry = baseRegion.split('-')[0] || ''
-  const selectedRegion = region.includes('|group:') || baseRegion.includes('-') ? region : ''
-  const { regions, loadingRegions, regionError } = useRegionOptions(selectedCountry, calendarType)
+  const { country: selectedCountry, region: selectedRegion } = parseHolidayRegion(region)
+  const regionOptions = useRegionOptions(selectedCountry, calendarType)
+  const { regions, loadingRegions, regionError } = regionOptions
 
   // Adding is blocked while the region list is on its way: an empty list would
   // otherwise pass as "this country needs no region" and create a calendar that
   // draws nothing (#1813). The button shows a spinner so the wait is visible.
-  const canAdd = Boolean(selectedCountry) && !loadingRegions && !regionError && (regions.length === 0 || regions.some(option => option.value === region))
+  const canAdd = canAddHolidayCalendar(selectedCountry, region, regionOptions)
 
   const PRESET_COLORS = ['#fecaca', '#fed7aa', '#fde68a', '#bbf7d0', '#a5f3fc', '#c7d2fe', '#e9d5ff', '#fda4af', '#6366f1', '#ef4444', '#22c55e', '#3b82f6']
   const [showColorPicker, setShowColorPicker] = useState(false)
@@ -577,7 +507,7 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
           title={t('vacay.calendarColor')}
         />
         {showColorPicker && (
-          <div style={{ position: 'absolute', top: 34, left: 0, zIndex: 50, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, width: 120 }}>
+          <div style={{ position: 'absolute', top: 34, insetInlineStart: 0, zIndex: 50, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, width: 120 }}>
             {PRESET_COLORS.map(c => (
               <button type="button" key={c} onClick={() => { setColor(c); setShowColorPicker(false) }}
                 style={{ width: 24, height: 24, borderRadius: 6, background: c, border: color === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer' }} />

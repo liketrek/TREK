@@ -42,7 +42,7 @@ export function useJourney() {
   // The bottom-nav "+" opens the new-journey modal via ?create=1.
   useEffect(() => {
     if (searchParams.get('create') === '1') {
-      openCreateModal()
+      void openCreateModal()
       setSearchParams(p => { p.delete('create'); return p }, { replace: true })
     }
   }, [searchParams])
@@ -58,7 +58,7 @@ export function useJourney() {
     if (searchQuery.trim() || journeys.length === 0) return null
     const live = journeys.find(j => {
       const j2 = j as any
-      return computeJourneyLifecycle(j.status, j2.trip_date_min, j2.trip_date_max) === 'live'
+      return computeJourneyLifecycle(j.status, j2.trip_date_min, j2.trip_date_max, j.status_override) === 'live'
     })
     return live ?? journeys[0]
   }, [journeys, searchQuery])
@@ -68,7 +68,7 @@ export function useJourney() {
   const activeJourneyIsLive = useMemo(() => {
     if (!activeJourney) return false
     const j2 = activeJourney as any
-    return computeJourneyLifecycle(activeJourney.status, j2.trip_date_min, j2.trip_date_max) === 'live'
+    return computeJourneyLifecycle(activeJourney.status, j2.trip_date_min, j2.trip_date_max, activeJourney.status_override) === 'live'
   }, [activeJourney])
 
   const filteredJourneys = useMemo(() => {

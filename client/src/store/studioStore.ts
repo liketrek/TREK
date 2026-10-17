@@ -1,5 +1,8 @@
 import { create } from 'zustand'
-import type { BookDocument, BookElement, BookFrame, BookSpread } from '@trek/shared'
+import type { BookDocument, BookElement, BookFrame, BookLayout, BookSpread } from '@trek/shared'
+import { MAX_BOOK_LAYOUTS, MAX_SPREAD_ELEMENTS } from '@trek/shared'
+import { pastedElements, type StudioClipboard } from '../components/Studio/studioClipboard'
+import { applySavedLayout, layoutFromSpread } from '../components/Studio/savedLayouts'
 
 /**
  * The book being edited.
@@ -25,6 +28,8 @@ interface StudioState {
   future: BookDocument[]
   /** The document as it was when the current gesture started. */
   gestureBase: BookDocument | null
+  /** Elements copied for pasting onto any page of the book (#2316). Kept across page switches. */
+  clipboard: StudioClipboard | null
 
   load: (doc: BookDocument) => void
   setActiveSpread: (i: number) => void
@@ -51,6 +56,16 @@ interface StudioState {
   removeElements: (spreadIndex: number, ids: string[]) => void
   duplicate: (spreadIndex: number, ids: string[]) => void
   raise: (spreadIndex: number, id: string, to: 'front' | 'back' | 'up' | 'down') => void
+  /** Copy elements of a spread to the clipboard (#2316). */
+  copy: (spreadIndex: number, ids: string[]) => void
+  /** Put the clipboard onto a spread, as one undo step, and select what arrived. */
+  paste: (spreadIndex: number) => void
+
+  /** Keep a spread's arrangement as one of the book's layouts (#2316). Returns false when the book is full. */
+  saveLayout: (spreadIndex: number, name: string) => boolean
+  removeLayout: (id: string) => void
+  /** Lay a spread out on a saved layout, keeping its pictures and words. */
+  applyLayout: (spreadIndex: number, id: string) => void
 
   /** Insert an empty spread after `index`, and select it. */
   addSpread: (index: number) => void
@@ -119,6 +134,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   past: [],
   future: [],
   gestureBase: null,
+  clipboard: null,
 
   load: doc => set({ doc, selection: [], activeSpread: 0, past: [], future: [], gestureBase: null }),
   setActiveSpread: i => set({ activeSpread: i, selection: [] }),
@@ -219,6 +235,45 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       els.splice(at, 0, el)
       return { ...sp, elements: els }
     })),
+
+  copy: (spreadIndex, ids) => {
+    const sp = get().doc?.spreads[spreadIndex]
+    if (!sp) return
+    const elements = sp.elements.filter(e => ids.includes(e.id))
+    if (elements.length) set({ clipboard: { fromSpreadId: sp.id, elements } })
+  },
+
+  paste: spreadIndex => {
+    const { clipboard, doc } = get()
+    const target = doc?.spreads[spreadIndex]
+    if (!clipboard || !doc || !target) return
+    // The spread's own cap: a paste that would push it past what the contract
+    // accepts takes what fits rather than making the book unsaveable.
+    const room = Math.max(0, MAX_SPREAD_ELEMENTS - target.elements.length)
+    const copies = pastedElements(clipboard, target, doc.page).slice(0, room)
+    if (!copies.length) return
+    get().commit(d => replaceSpread(d, spreadIndex, sp => ({ ...sp, elements: [...sp.elements, ...copies] })))
+    set({ selection: copies.map(e => e.id) })
+  },
+
+  saveLayout: (spreadIndex, name) => {
+    const doc = get().doc
+    const sp = doc?.spreads[spreadIndex]
+    if (!doc || !sp || !sp.elements.length) return false
+    if ((doc.layouts ?? []).length >= MAX_BOOK_LAYOUTS) return false
+    const layout: BookLayout = layoutFromSpread(sp, doc.page, name)
+    get().commit(d => ({ ...d, layouts: [...(d.layouts ?? []), layout] }))
+    return true
+  },
+
+  removeLayout: id => get().commit(d => ({ ...d, layouts: (d.layouts ?? []).filter(l => l.id !== id) })),
+
+  applyLayout: (spreadIndex, id) => {
+    const layout = get().doc?.layouts?.find(l => l.id === id)
+    if (!layout) return
+    get().commit(d => replaceSpread(d, spreadIndex, sp => applySavedLayout(sp, layout, d.page)))
+    set({ selection: [] })
+  },
 
   /*
    * ── Spread management ────────────────────────────────────────────────

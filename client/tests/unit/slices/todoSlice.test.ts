@@ -148,3 +148,35 @@ describe('todoSlice', () => {
     });
   });
 });
+
+describe('todoSlice offline (#2601)', () => {
+  const setOnline = (v: boolean) =>
+    Object.defineProperty(navigator, 'onLine', { value: v, writable: true, configurable: true });
+
+  it('FE-TODO-008: offline a task is added, ticked, edited, reordered and deleted without an error', async () => {
+    const { clearAll, offlineDb } = await import('../../../src/db/offlineDb');
+    await clearAll();
+    const synced = buildTodoItem({ id: 10, trip_id: 1, sort_order: 0 });
+    await offlineDb.todoItems.put(synced);
+    seedStore(useTripStore, { todoItems: [synced] });
+    setOnline(false);
+    try {
+      const added = await useTripStore.getState().addTodoItem(1, { name: 'Offline task' });
+      expect(added.id).toBeLessThan(0);
+      expect(useTripStore.getState().todoItems.map(i => i.name)).toEqual([synced.name, 'Offline task']);
+
+      await useTripStore.getState().toggleTodoItem(1, added.id, true);
+      await useTripStore.getState().updateTodoItem(1, added.id, { name: 'Offline task, renamed' });
+      expect(useTripStore.getState().todoItems[1]).toMatchObject({ name: 'Offline task, renamed', checked: 1 });
+
+      await useTripStore.getState().reorderTodoItems(1, [added.id, 10]);
+      expect(useTripStore.getState().todoItems.map(i => i.id)).toEqual([added.id, 10]);
+
+      await useTripStore.getState().deleteTodoItem(1, added.id);
+      expect(useTripStore.getState().todoItems.map(i => i.id)).toEqual([10]);
+      expect((await offlineDb.mutationQueue.orderBy('createdAt').toArray()).map(m => m.method)).toEqual(['POST', 'PUT', 'PUT', 'PUT', 'DELETE']);
+    } finally {
+      setOnline(true);
+    }
+  });
+});

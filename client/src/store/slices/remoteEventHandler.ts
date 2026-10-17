@@ -6,6 +6,8 @@ import { offlineDb } from '../../db/offlineDb'
 import { useAuthStore } from '../authStore'
 import { mergeAssignmentPlace } from './placesSlice'
 import { withoutDay } from './daysSlice'
+import { orderBudgetByCategories } from './budgetOrder'
+import { keepDayPositions, withTransportPositions } from '../../utils/mergedOrder'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -66,12 +68,21 @@ const putCanonicalBudgetItem: DexieWriter = async (payload, state) => {
   const item = state.budgetItems.find(i => i.id === (payload.itemId as number))
   if (item) await offlineDb.budgetItems.put(item)
 }
-const putReservation: DexieWriter = async payload => {
+const putReservation: DexieWriter = async (payload, state) => {
   // The same empty ping the appliers above handle; without this the write
   // throws and only the swallowed catch keeps it quiet.
   if (!payload.reservation) return
-  await offlineDb.reservations.put(payload.reservation as Reservation)
+  // The applied row, which kept its day slots when the payload had none.
+  const id = (payload.reservation as Reservation).id
+  await offlineDb.reservations.put(state.reservations.find(r => r.id === id) ?? payload.reservation as Reservation)
 }
+/** The moves of a `reservation:positions` event, the ones without a position left out. */
+function positionsOf(payload: Record<string, unknown>): { id: number; day_plan_position: number }[] {
+  if (!Array.isArray(payload.positions)) return []
+  return (payload.positions as { id?: unknown; day_plan_position?: unknown }[])
+    .filter((p): p is { id: number; day_plan_position: number } => typeof p?.id === 'number' && typeof p.day_plan_position === 'number')
+}
+
 const putTripFile: DexieWriter = async payload => {
   await offlineDb.tripFiles.put(payload.file as TripFile)
 }
@@ -149,6 +160,10 @@ export const DEXIE_WRITERS: Partial<Record<TrekWsTripEventName, DexieWriter>> = 
   'reservation:deleted': async payload => {
     await offlineDb.reservations.delete(payload.reservationId as number)
   },
+  'reservation:positions': async (payload, state) => {
+    const ids = new Set(positionsOf(payload).map(p => p.id))
+    await offlineDb.reservations.bulkPut(state.reservations.filter(r => ids.has(r.id)))
+  },
 
   // ── Trip ─────────────────────────────────────────────────────────────────
   'trip:updated': async payload => {
@@ -173,7 +188,7 @@ function writeToDexie(
   payload: Record<string, unknown>,
   state: TripStoreState,
 ): void {
-  ;(async () => {
+  ;void (async () => {
     try {
       await DEXIE_WRITERS[type as TrekWsTripEventName]?.(payload, state)
     } catch {
@@ -439,22 +454,7 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
       return { budgetItems: [...reordered, ...remaining].map((item, idx) => ({ ...item, sort_order: idx })) }
     }
     if (payload.orderedCategories) {
-      const orderedCategories = payload.orderedCategories as string[]
-      const grouped = new Map<string, BudgetItem[]>()
-      for (const item of state.budgetItems) {
-        const cat = item.category || 'Other'
-        if (!grouped.has(cat)) grouped.set(cat, [])
-        grouped.get(cat)!.push(item)
-      }
-      const reordered: BudgetItem[] = []
-      for (const cat of orderedCategories) {
-        const items = grouped.get(cat)
-        if (items) reordered.push(...items)
-      }
-      for (const [cat, items] of grouped) {
-        if (!orderedCategories.includes(cat)) reordered.push(...items)
-      }
-      return { budgetItems: reordered }
+      return { budgetItems: orderBudgetByCategories(state.budgetItems, payload.orderedCategories as string[]) }
     }
     return {}
   },
@@ -482,7 +482,22 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
   'reservation:updated': (payload, state) => {
     const reservation = payload.reservation as Reservation | undefined
     if (!reservation) return {}
-    return { reservations: state.reservations.map(r => r.id === reservation.id ? reservation : r) }
+    return { reservations: state.reservations.map(r => r.id === reservation.id ? keepDayPositions(reservation, r) : r) }
+  },
+  // A collaborator moved bookings on a day. Applied the way the mover's own list
+  // wrote them, so their stops and bookings keep one order here too (#2631). REST
+  // names the day `day_id`, the MCP tool `dayId`; without one the move is global.
+  'reservation:positions': (payload, state) => {
+    const positions = positionsOf(payload)
+    if (positions.length === 0) return {}
+    const dayId = (payload.day_id ?? payload.dayId) as number | null | undefined
+    if (dayId != null) return { reservations: withTransportPositions(state.reservations, positions, dayId) }
+    return {
+      reservations: state.reservations.map(r => {
+        const p = positions.find(x => x.id === r.id)
+        return p ? { ...r, day_plan_position: p.day_plan_position } : r
+      }),
+    }
   },
   'reservation:travelers-updated': (payload, state) => ({
     reservations: state.reservations.map(r => r.id === (payload.reservationId as number)
@@ -513,6 +528,9 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
     return {}
   },
 }
+
+/** The deletes that can take a booked night along with them. */
+const STAY_TAKING_EVENTS = new Set<string>(['day:deleted', 'place:deleted', 'accommodation:deleted'])
 
 /**
  * Applies a remote WebSocket event to the local Zustand store, keeping state in sync across collaborators.
@@ -556,12 +574,13 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
     if (tripId) get().loadReservations(tripId)
   }
 
-  // A deleted day cancels a stay that checked in or out on it, and the stays
-  // live in page-local planner state rather than this store. This rides the
-  // planner's existing accommodations:refresh event on purpose, the legacy
-  // window bus the place image and trip date handlers here use as well.
-  // Retiring it means moving the stays into a store slice, a change of its own.
-  if (type === 'day:deleted') window.dispatchEvent(new CustomEvent('accommodations:refresh'))
+  // A deleted day cancels a stay that checked in or out on it, a deleted place
+  // the stay booked at it, and the stays live in page-local planner state rather
+  // than this store. This rides the planner's existing accommodations:refresh
+  // event on purpose, the legacy window bus the place image and trip date
+  // handlers here use as well. Retiring it means moving the stays into a store
+  // slice, a change of its own.
+  if (STAY_TAKING_EVENTS.has(type)) window.dispatchEvent(new CustomEvent('accommodations:refresh'))
 
   // A reorder/insert re-pins dates and re-stamps booking times server-side, so
   // pull the authoritative days + reservations for collaborators.

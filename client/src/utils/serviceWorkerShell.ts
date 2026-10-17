@@ -47,8 +47,10 @@ export function reloadHitsSameWorker(): boolean {
  * precaches from scratch instead of reusing an entry of the broken cache.
  *
  * Map tiles, GL styles and cached uploads live in caches of their own and stay.
- * Only call this while the server answers: offline, the precache is the only way
- * the app can start at all.
+ * A Web Push subscription does not: it belongs to the registration and ends with
+ * it, so the settings card shows push as off on this device until it is switched
+ * on again. Only call this while the server answers: offline, the precache is
+ * the only way the app can start at all.
  *
  * public/shell-guard.js does the same for a shell whose entry cannot load, before
  * any of this code runs. Keep the two in step.

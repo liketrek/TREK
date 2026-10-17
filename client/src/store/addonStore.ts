@@ -25,6 +25,8 @@ interface Addon {
 interface AddonState {
   addons: Addon[]
   bagTracking: boolean
+  /** Tours is on and the admin allows wanderer under it. */
+  toursWanderer: boolean
   loaded: boolean
   loadAddons: () => Promise<void>
   isEnabled: (id: string) => boolean
@@ -33,12 +35,16 @@ interface AddonState {
 export const useAddonStore = create<AddonState>((set, get) => ({
   addons: [],
   bagTracking: false,
+  toursWanderer: false,
   loaded: false,
 
   loadAddons: async () => {
     try {
       const data = await addonsApi.enabled()
-      set({ addons: data.addons || [], bagTracking: !!data.bagTracking, loaded: true })
+      set({ addons: data.addons || [], bagTracking: !!data.bagTracking,
+        toursWanderer: !!data.toursWanderer,
+        loaded: true,
+      })
     } catch {
       set({ loaded: true })
     }

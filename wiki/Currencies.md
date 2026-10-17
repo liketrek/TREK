@@ -4,9 +4,9 @@ TREK has **three** currency settings, and they answer three different questions.
 
 | Setting | Where | Question it answers | Affects |
 |---|---|---|---|
-| **Trip currency** | Trip → Edit trip | *What is this trip's money?* | Stored data — the base every balance is calculated in |
-| **Expense currency** | Costs → expense modal | *What currency did I actually pay in?* | Stored data — that one expense |
-| **Display currency** | Settings → General | *What currency do I want to read?* | Presentation only — never the stored data |
+| **Trip currency** | Trip → Edit trip | *What is this trip's money?* | Stored data: the base every balance is calculated in |
+| **Expense currency** | Costs → expense modal | *What currency did I actually pay in?* | Stored data: that one expense |
+| **Display currency** | Settings → General → Language & region | *What currency do I want to read?* | Presentation only, never the stored data |
 
 The short version: **the trip currency is the accounting base, the expense currency is the receipt, and the display currency is your reading glasses.**
 
@@ -24,13 +24,13 @@ Pick the currency of the place you are travelling to (or the one you will actual
 
 ### Changing the trip currency
 
-Changing it is **not** a relabelling — it is a re-basing, and TREK does the work for you so that no money moves:
+Changing it is **not** a relabelling: it is a re-basing, and TREK does the work for you so that no money moves:
 
 - Expenses that had no currency of their own (they simply inherited the trip's) are **pinned to the old currency** first. A 9 000 ₽ expense on a trip switching from RUB to EUR stays *9 000 ₽*; it does not silently become 9 000 €.
 - Every frozen exchange rate is **re-anchored** to the new base, because a frozen rate is stored relative to the trip currency (see below).
 - **Place prices** are pinned the same way. A place price also inherits the trip's currency unless you gave it one of its own, so a €15 museum on a trip switching to JPY is stamped EUR rather than starting to read as ¥15.
 
-The numbers you typed are never rewritten. Each expense keeps its original amount, in its original currency, and its real-world value survives the switch — only the base the balances are expressed in changes.
+The numbers you typed are never rewritten. Each expense keeps its original amount, in its original currency, and its real-world value survives the switch. Only the base the balances are expressed in changes.
 
 ## Expense currency
 
@@ -40,7 +40,9 @@ When an expense's currency differs from the trip currency, TREK looks up the liv
 
 > **Why freeze it?** Because a debt settled today shouldn't reopen tomorrow. If balances were recomputed at live rates, a settled-up trip would drift back into a few cents of debt every time the FX market moved. The rate you booked at is the rate you owe at.
 
-Rates come from [Frankfurter](https://frankfurter.dev) (European Central Bank data, no API key needed). **165 currencies** are supported. If the rate lookup fails (the instance is offline, or the upstream is down), the expense is stored without a frozen rate and falls back to live conversion when it is next read — TREK never invents a rate.
+Rates come from [Frankfurter](https://frankfurter.dev) (European Central Bank data, no API key needed). **165 currencies** are supported. If the server cannot look the rate up (the instance is offline, or the upstream is down), your browser lends the rate it already holds when you save, and the server freezes that one. When no rate is known at all, the expense is stored without a frozen rate, and TREK never invents one: until a rate is pinned, the expense is **left out** of the balances, the settle-up suggestions, the final budgets and the totals instead of being counted 1:1 in the trip currency. As soon as someone who may edit costs opens the Costs tab, TREK pins the missing rates for those rows, and they count from then on.
+
+> **AI / MCP:** `get_settlement_summary` lists such rows under `unconverted`, and `freeze_budget_rates` pins the server's current rate on them. See [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
 
 ### Settle-up payments
 
@@ -48,7 +50,7 @@ A payment recorded in **Settle Up** also carries its own currency, for the same 
 
 ## Display currency
 
-**Settings → General → Currency** is a **per-user, presentation-only** preference. It converts what you *read* in the Costs tab — totals, the category chart, balances, the settle-up amounts — into a single currency, so a trip with dollars, yen and roubles in it still adds up to one number you understand.
+**Settings → General → Language & region → Display currency** is a **per-user, presentation-only** preference. It converts what you *read* in the Costs tab (totals, the category chart, balances, the settle-up amounts) into a single currency, so a trip with dollars, yen and roubles in it still adds up to one number you understand.
 
 It never changes what is stored. Two people looking at the same trip can read it in different currencies and both see correct, consistent balances.
 
@@ -61,9 +63,11 @@ It has two modes:
 
 Leave it on **Trip currency** unless you specifically want everything in your home currency regardless of where you are going.
 
-An administrator can set an instance-wide default (Admin → User Defaults), and it interacts with **Trip currency**: picking **Trip currency** stores an *empty* value, and an empty value on a defaultable setting counts as "not set", so the admin's currency is applied again (#1634). While an instance-wide default currency is configured, there is no way back to per-trip currencies from the Settings page — the admin has to clear it.
+An administrator can set an instance-wide default (Admin → User Defaults), and it interacts with **Trip currency**: picking **Trip currency** stores an *empty* value, and an empty value on a defaultable setting counts as "not set", so the admin's currency is applied again (#1634). While an instance-wide default currency is configured, there is no way back to per-trip currencies from the Settings page; the admin has to clear it.
 
-> Display conversion uses **live** rates, not the frozen ones — it is a view, and a view should reflect today. This is why a converted total can shift slightly day to day while the underlying balances stay rock steady.
+> Display conversion uses **live** rates, not the frozen ones: it is a view, and a view should reflect today. This is why a converted total can shift slightly day to day while the underlying balances stay rock steady.
+
+An expense you enter in your display currency reads back exactly as you typed it on the day you enter it, on its row, in the totals and in the final budget, and paying the amount settle-up offers for it leaves both balances at zero. When the rate has moved since, the row shows the value the totals count, with what was entered and the trip-currency amount it was booked at underneath (`$801.76 → 685,26 €`).
 
 ## How they fit together
 
@@ -80,15 +84,15 @@ An expense flows through all three:
                                           live here     a display currency
 ```
 
-Balances are always netted in the **trip currency** and converted to your display currency **once, at the end** — never per-expense. That ordering is deliberate: netting in a moving display currency would let rounding drift shuffle a settled trip into phantom one-cent debts.
+Balances are always netted in the **trip currency** and converted to your display currency **once, at the end**, never per expense. That ordering is deliberate: netting in a moving display currency would let rounding drift shuffle a settled trip into phantom one-cent debts.
 
 ## The public share link
 
-A public share page has no logged-in viewer, so it cannot use "your" display currency. It uses **the sharer's display currency, falling back to the trip's own currency** — i.e. a guest sees the trip the way the person who shared it sees it. If the sharer left their display currency on **Trip currency**, guests read the trip in the trip's currency.
+A public share page has no logged-in viewer, so it cannot use "your" display currency. It uses **the sharer's display currency, falling back to the trip's own currency**, so a guest sees the trip the way the person who shared it sees it. If the sharer left their display currency on **Trip currency**, guests read the trip in the trip's currency.
 
 ## Relationship with the Costs addon
 
-The **trip currency lives on the trip itself**, not in the Costs addon — it is set in the trip dialog and remains set even if Costs is disabled. Expense currencies, frozen rates and settle-up all belong to **Costs** (addon id `budget`), which an admin can toggle in [Admin-Addons](Admin-Addons). Turning Costs off hides the money features; it does not clear the trip's currency.
+The **trip currency lives on the trip itself**, not in the Costs addon. It is set in the trip dialog and remains set even if Costs is disabled. Expense currencies, frozen rates and settle-up all belong to **Costs** (addon id `budget`), which an admin can toggle in [Admin-Addons](Admin-Addons). Turning Costs off hides the money features; it does not clear the trip's currency.
 
 Changing the trip currency requires `trip_edit`. Adding or editing expenses (and their currencies) requires `budget_edit`. See [Admin-Permissions](Admin-Permissions).
 
@@ -100,8 +104,11 @@ Fixed in v3.4.0 (#1543). The settlement was reading the trip currency incorrectl
 **"The totals move slightly from day to day."**
 Expected, if your display currency differs from the trip currency: the *display* conversion uses live rates. The underlying balances and debts do not move.
 
+**"A foreign expense does not count in the balances or the total."**
+No exchange rate was known for its currency when it was saved, so TREK leaves it out rather than guess. Open the Costs tab as a member who may edit costs while the instance can reach the rate service; the missing rate is pinned and the expense counts again.
+
 **"An expense shows an odd converted value."**
-Its rate was frozen when it was entered, and the market has moved since. That is by design — see the note above.
+Its rate was frozen when it was entered, and the market has moved since. That is by design; see the note above.
 
 ## See also
 

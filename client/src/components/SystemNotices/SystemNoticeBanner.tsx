@@ -74,7 +74,7 @@ function CTALink({
       <a
         href={cta.href}
         onClick={e => { e.preventDefault(); handleClick(); }}
-        className="underline hover:no-underline font-medium ml-3 shrink-0"
+        className="underline hover:no-underline font-medium ms-3 shrink-0"
       >
         {label}
       </a>
@@ -84,7 +84,7 @@ function CTALink({
   return (
     <button type="button"
       onClick={handleClick}
-      className="underline hover:no-underline font-medium ml-3 shrink-0"
+      className="underline hover:no-underline font-medium ms-3 shrink-0"
     >
       {label}
     </button>
@@ -115,7 +115,7 @@ function BannerItem({ notice, onDismiss }: BannerItemProps) {
       <div className="flex-1 min-w-0">
         <span className="font-semibold">{title}</span>
         {body !== title && (
-          <span className="ml-2 opacity-80">{body}</span>
+          <span className="ms-2 opacity-80">{body}</span>
         )}
         {ctaLabel && notice.cta && (
           <CTALink notice={notice} cta={notice.cta} label={ctaLabel} onDismiss={onDismiss} />
@@ -124,7 +124,7 @@ function BannerItem({ notice, onDismiss }: BannerItemProps) {
       {notice.dismissible && (
         <button type="button"
           onClick={onDismiss}
-          className="shrink-0 p-2 -mr-2 rounded hover:bg-black/5 dark:hover:bg-white/10 transition"
+          className="shrink-0 p-2 -me-2 rounded hover:bg-black/5 dark:hover:bg-white/10 transition"
           aria-label={`Dismiss: ${title}`}
         >
           <X size={20} />
@@ -195,7 +195,7 @@ export function BannerRenderer({ notices }: BannerRendererProps) {
   return (
     <div
       ref={containerRef}
-      className="fixed left-0 right-0 z-40"
+      className="fixed inset-x-0 z-40"
       style={{ top: 'var(--nav-h, 0px)' }}
     >
       {visible.map((notice, i) => (

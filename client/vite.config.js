@@ -5,11 +5,12 @@ import { visualizer } from 'rollup-plugin-visualizer';
 import { rtlTextAlias, plyrSpriteAlias } from './rtlTextAlias.js';
 import { readFileSync } from 'node:fs';
 
-// The version this bundle is built as, baked in at build time. The release image
-// bumps every package.json before it builds, so this matches the server's
-// APP_VERSION there; a source checkout matches the server's own package.json.
+// The version this bundle is built as, baked in at build time. The Docker build
+// passes APP_VERSION, which the prerelease images need because they do not bump
+// package.json; a source checkout matches the server's own package.json.
 // The server hands the release notice only to a bundle built for its version.
-const UI_VERSION = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
+const BUILD_VERSION = process.env.APP_VERSION && process.env.APP_VERSION !== 'dev' ? process.env.APP_VERSION : null;
+const UI_VERSION = BUILD_VERSION ?? JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
 
 // `npm run build:analyze` writes dist/stats.html — a treemap of what actually ended
 // up in each chunk. The plain build only reports chunk sizes, which tells you a chunk
@@ -51,6 +52,13 @@ export default defineConfig(({ mode }) => ({
         navigateFallback: undefined,
       },
       workbox: {
+        // The Web Push handlers (push, notificationclick, pushsubscriptionchange).
+        // Workbox writes importScripts('sw-push.js') at the top of the generated
+        // worker, in dev too. The file lives in public/: were it missing,
+        // importScripts would get no script (the server answers a missing build
+        // file with a 404) and the new worker would fail to install, which
+        // tests/unit/pwa/swPush.test.ts guards against.
+        importScripts: ['sw-push.js'],
         // Anything above this is dropped from the precache manifest. The build does
         // not fail over it, it only prints "won't be precached", so the ceiling has
         // to sit close to the real bundle or an accidental heavyweight goes
@@ -131,6 +139,17 @@ export default defineConfig(({ mode }) => ({
             options: {
               cacheName: 'map-tiles',
               expiration: { maxEntries: 12288, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Tours-only OpenTopoMap raster tiles. Same bounded cache as the
+            // other Leaflet sources; opaque tile responses are valid here.
+            urlPattern: /^https:\/\/(?:[a-c]\.)?tile\.opentopomap\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'map-tiles',
+              expiration: { maxEntries: 1000, maxAgeSeconds: 60 * 60 * 24 * 30 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },

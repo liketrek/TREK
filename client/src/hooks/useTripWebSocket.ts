@@ -2,8 +2,9 @@ import { useEffect } from 'react'
 import { useTripStore } from '../store/tripStore'
 import { joinTrip, leaveTrip, addListener, removeListener } from '../api/websocket'
 import type { WebSocketEvent } from '../types'
+import type { ToursInvalidation } from './useTourPlaceIds'
 
-export function useTripWebSocket(tripId: number | string | undefined) {
+export function useTripWebSocket(tripId: number | string | undefined, onToursChanged?: (change?: ToursInvalidation) => void) {
   const tripStore = useTripStore()
 
   useEffect(() => {
@@ -17,13 +18,30 @@ export function useTripWebSocket(tripId: number | string | undefined) {
       }
     }
     addListener(collabFileSync)
+    const toursInvalidation = (event: WebSocketEvent) => {
+      if (String(event?.tripId ?? '') !== String(tripId)) return
+      if (event?.type === 'tours:changed') {
+        const placeIds = Array.isArray(event.placeIds)
+          ? event.placeIds.map(Number).filter(Number.isSafeInteger)
+          : []
+        onToursChanged?.(placeIds.length ? { placeIds } : undefined)
+      } else if (event?.type === 'place:deleted') {
+        const placeId = Number(event.placeId)
+        onToursChanged?.(Number.isSafeInteger(placeId) ? { removedPlaceIds: [placeId] } : undefined)
+      } else if (event?.type === 'assignment:created' || event?.type === 'assignment:deleted'
+        || event?.type === 'day:deleted') {
+        onToursChanged?.()
+      }
+    }
+    addListener(toursInvalidation)
     const localFileSync = () => tripStore.loadFiles?.(tripId)
     window.addEventListener('collab-files-changed', localFileSync)
     return () => {
       leaveTrip(tripId)
       removeListener(handler)
       removeListener(collabFileSync)
+      removeListener(toursInvalidation)
       window.removeEventListener('collab-files-changed', localFileSync)
     }
-  }, [tripId])
+  }, [tripId, onToursChanged])
 }

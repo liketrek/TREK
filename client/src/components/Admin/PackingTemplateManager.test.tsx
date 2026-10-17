@@ -24,9 +24,9 @@ function rowButtons(name: string, selector: string): HTMLElement[] {
   return within(row).getAllByRole('button');
 }
 
-const templateButtons = (name: string) => rowButtons(name, '.px-5.py-3');
-const categoryButtons = (name: string) => rowButtons(name, '.bg-slate-50');
-const itemButtons = (name: string) => rowButtons(name, '.group');
+const templateButtons = (name: string) => rowButtons(name, '[data-row="template"]');
+const categoryButtons = (name: string) => rowButtons(name, '[data-row="category"]');
+const itemButtons = (name: string) => rowButtons(name, '[data-row="item"]');
 
 /** Expands the single fixture template and waits for its content. */
 async function expandBeachTrip(user: ReturnType<typeof userEvent.setup>, firstChild: string) {
@@ -171,23 +171,8 @@ describe('PackingTemplateManager', () => {
     await screen.findByText('Beach Trip');
     expect(screen.getByText('City Break')).toBeInTheDocument();
 
-    // Find all Trash2 (delete) buttons — there are 2 (one per template)
-    const deleteButtons = screen.getAllByRole('button').filter(b =>
-      b.className.includes('hover:bg-red-50') || b.querySelector('svg')
-    );
-    // Click the delete button for "Beach Trip" (first template row's trash button)
-    // The buttons layout in each row: [chevron, edit, delete]
-    // We find rows first
-    const beachTripRow = screen.getByText('Beach Trip').closest('div');
-    const trashBtn = beachTripRow!.parentElement!.querySelector('button.hover\\:bg-red-50') as HTMLElement | null;
-    if (trashBtn) {
-      await user.click(trashBtn);
-    } else {
-      // Fallback: find all red-hover buttons and click first
-      const allBtns = screen.getAllByRole('button');
-      const redBtns = allBtns.filter(b => b.className.includes('hover:bg-red-50'));
-      await user.click(redBtns[0]);
-    }
+    // Template rows carry [chevron, name, edit, delete]
+    await user.click(templateButtons('Beach Trip')[3]);
     await waitFor(() => expect(deleteCalled).toBe(true));
     await waitFor(() => expect(screen.queryByText('Beach Trip')).not.toBeInTheDocument());
     expect(screen.getByText('City Break')).toBeInTheDocument();
@@ -209,18 +194,7 @@ describe('PackingTemplateManager', () => {
     render(<PackingTemplateManager />);
     await screen.findByText('Beach Trip');
 
-    // Find the Edit2 button on the template row
-    const beachTripText = screen.getByText('Beach Trip');
-    const row = beachTripText.closest('div')!.parentElement!;
-    const editBtn = row.querySelector('button.hover\\:bg-slate-100') as HTMLElement | null;
-    if (editBtn) {
-      await user.click(editBtn);
-    } else {
-      // Fallback: find all slate-100-hover buttons
-      const allBtns = screen.getAllByRole('button');
-      const editBtns = allBtns.filter(b => b.className.includes('hover:bg-slate-100'));
-      await user.click(editBtns[0]);
-    }
+    await user.click(templateButtons('Beach Trip')[2]);
 
     const input = screen.getByDisplayValue('Beach Trip');
     await user.clear(input);
@@ -301,13 +275,8 @@ describe('PackingTemplateManager', () => {
     await user.click(screen.getByText('Beach Trip'));
     await screen.findByText('Clothing');
 
-    // Find the Edit2 button in the Clothing category header
-    const clothingHeader = screen.getByText('Clothing').closest('div')!;
-    const editBtns = Array.from(clothingHeader.querySelectorAll('button')).filter(
-      b => b.className.includes('hover:text-slate-700')
-    );
-    // Second button (after Plus) is Edit2
-    await user.click(editBtns[1]);
+    // Category headers carry [add item, edit, delete]
+    await user.click(categoryButtons('Clothing')[1]);
 
     const catInput = screen.getByDisplayValue('Clothing');
     await user.clear(catInput);
@@ -334,10 +303,7 @@ describe('PackingTemplateManager', () => {
     await screen.findByText('Clothing');
     expect(screen.getByText('T-shirt')).toBeInTheDocument();
 
-    // Find the Trash2 button in the Clothing category header
-    const clothingHeader = screen.getByText('Clothing').closest('div')!;
-    const trashBtn = clothingHeader.querySelector('button.hover\\:text-red-500') as HTMLElement;
-    await user.click(trashBtn);
+    await user.click(categoryButtons('Clothing')[2]);
 
     await waitFor(() => {
       expect(screen.queryByText('Clothing')).not.toBeInTheDocument();
@@ -363,18 +329,8 @@ describe('PackingTemplateManager', () => {
     await user.click(screen.getByText('Beach Trip'));
     await screen.findByText('T-shirt');
 
-    // Find the Edit2 button in the T-shirt item row (opacity-0 group-hover buttons)
-    const itemRow = screen.getByText('T-shirt').closest('div')!;
-    const editBtn = Array.from(itemRow.querySelectorAll('button')).find(
-      b => b.className.includes('opacity-0')
-    ) as HTMLElement | undefined;
-    if (editBtn) {
-      await user.click(editBtn);
-    } else {
-      // Directly click the first button in the item row
-      const btns = itemRow.querySelectorAll('button');
-      await user.click(btns[0] as HTMLElement);
-    }
+    // Item rows carry [edit, delete]
+    await user.click(itemButtons('T-shirt')[0]);
 
     const input = screen.getByDisplayValue('T-shirt');
     await user.clear(input);
@@ -401,14 +357,7 @@ describe('PackingTemplateManager', () => {
     await screen.findByText('T-shirt');
     expect(screen.getByText('Shorts')).toBeInTheDocument();
 
-    // Find the Trash2 button in the T-shirt row
-    const itemRow = screen.getByText('T-shirt').closest('div')!;
-    const trashBtns = Array.from(itemRow.querySelectorAll('button')).filter(
-      b => b.className.includes('opacity-0')
-    );
-    // Second opacity-0 button is the delete (trash) button
-    const trashBtn = trashBtns[1] || trashBtns[0];
-    await user.click(trashBtn as HTMLElement);
+    await user.click(itemButtons('T-shirt')[1]);
 
     await waitFor(() => expect(screen.queryByText('T-shirt')).not.toBeInTheDocument());
     expect(screen.getByText('Shorts')).toBeInTheDocument();
@@ -489,16 +438,7 @@ describe('PackingTemplateManager', () => {
     render(<PackingTemplateManager />);
     await screen.findByText('Beach Trip');
 
-    const beachTripText = screen.getByText('Beach Trip');
-    const row = beachTripText.closest('div')!.parentElement!;
-    const editBtn = row.querySelector('button.hover\\:bg-slate-100') as HTMLElement | null;
-    if (editBtn) {
-      await user.click(editBtn);
-    } else {
-      const allBtns = screen.getAllByRole('button');
-      const editBtns = allBtns.filter(b => b.className.includes('hover:bg-slate-100'));
-      await user.click(editBtns[0]);
-    }
+    await user.click(templateButtons('Beach Trip')[2]);
 
     const input = screen.getByDisplayValue('Beach Trip');
     await user.type(input, '{Escape}');

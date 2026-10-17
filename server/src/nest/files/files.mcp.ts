@@ -1,17 +1,34 @@
-import { z } from 'zod';
-import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  demoDenied, errorResult, ok,
-} from '../../nest-mcp';
-import { fileLinkRequestSchema, fileUpdateRequestSchema } from '@trek/shared';
-import type { FileLinkRequest, FileUpdateRequest } from '@trek/shared';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { AuthService } from '../auth/auth.service';
+import {
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { contentTypeFor } from '../storage/content-type';
+import { AllowedFileTypesService } from './allowed-file-types.service';
+import { MAX_FILE_SIZE, isUploadTypeAllowed } from './files.constants';
 import { FilesService, FileContentError, FILE_CONTENT_MAX } from './files.service';
+import { idSchema, fileLinkRequestSchema, fileUpdateRequestSchema } from '@trek/shared';
+import type { FileLinkRequest, FileUpdateRequest } from '@trek/shared';
+
+import { z } from 'zod';
 
 const CONTENT_MAX_MB = Math.round(FILE_CONTENT_MAX / (1024 * 1024));
+
+/**
+ * The upload tool's cap: the same 10 MB a read hands back, or the operator's
+ * upload limit when that is lower. The bytes travel base64 inside one JSON-RPC
+ * message, so the multipart route's 500 MB video allowance has no place here.
+ */
+const UPLOAD_MAX = Math.min(FILE_CONTENT_MAX, MAX_FILE_SIZE);
+const UPLOAD_MAX_MB = Math.max(1, Math.floor(UPLOAD_MAX / (1024 * 1024)));
+const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
 
 /**
  * Bytes worth handing over as text. Everything else goes back base64: a model
@@ -42,39 +59,41 @@ function contentRefusal(err: FileContentError): string {
  * two listing tools carry no file_* right because the routes they mirror carry
  * none either; trip access is the whole gate there.
  *
- * There is no upload tool on purpose. MCP has no file transport, and an upload
- * faked through base64 would be a second, unpoliced ingestion path beside the
- * multipart route with its extension filter and per-type size caps.
+ * upload_trip_file (#1566) takes the bytes base64-encoded, since MCP has no file
+ * transport. It is policed like the multipart route: the same extension rules
+ * through isUploadTypeAllowed, the file_upload right, the demo block and the
+ * same-trip check on what it attaches to, plus a tighter size cap.
  */
 @McpController()
 export class FilesMcp {
   constructor(
     private readonly files: FilesService,
-    private readonly auth: AuthService,
     private readonly guards: McpToolGuardsService,
+    private readonly allowedTypes: AllowedFileTypesService,
   ) {}
 
   @Tool({
     name: 'list_trip_files',
-    description: 'List the documents on a trip: name, type, size, who uploaded it, what it is attached to, whether it is starred, and when it was moved to the trash. This is the way to find a file ID; to read what is inside one, follow up with read_trip_file. Set trash to true to list the trip\'s deleted files instead of its live ones.',
+    description:
+      "List the documents on a trip: name, type, size, who uploaded it, what it is attached to, whether it is starred, and when it was moved to the trash. This is the way to find a file ID; to read what is inside one, follow up with read_trip_file. Set trash to true to list the trip's deleted files instead of its live ones.",
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       trash: z.boolean().optional().default(false).describe('List the trash instead of the live files'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'files', mode: 'read' },
   })
   async listTripFiles({ tripId, trash }: { tripId: number; trash?: boolean }, ctx: McpContext) {
-    if (!this.files.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    return ok({ files: this.files.listFiles(tripId, trash === true) });
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    return ok({ files: await this.files.listFiles(tripId, trash === true) });
   }
 
   @Tool({
     name: 'read_trip_file',
     description: `Read what is inside one uploaded document, e.g. a booking confirmation or a ticket. Text files come back as readable text, anything else base64-encoded, with "encoding" saying which. Files over ${CONTENT_MAX_MB} MB are refused outright, so point the user at the file in TREK rather than retrying. Reading contents is a separate permission from listing files, so this can be refused on a trip where list_trip_files works.`,
     inputSchema: {
-      tripId: z.number().int().positive(),
-      fileId: z.number().int().positive().describe('File ID from list_trip_files'),
+      tripId: idSchema,
+      fileId: idSchema.describe('File ID from list_trip_files'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     // Not files:read. Listing what a trip carries and reading the bytes of a
@@ -83,7 +102,7 @@ export class FilesMcp {
     access: { group: 'files', mode: 'content' },
   })
   async readTripFile({ tripId, fileId }: { tripId: number; fileId: number }, ctx: McpContext) {
-    if (!this.files.verifyTripAccess(tripId, ctx.userId)) return noAccess();
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     try {
       const { name, mimetype, bytes } = await this.files.readContent(tripId, fileId);
       const asText = isTextual(mimetype);
@@ -104,15 +123,90 @@ export class FilesMcp {
   }
 
   @Tool({
-    name: 'update_trip_file',
-    description: 'Set a file\'s description and attach it to a booking or a place. Fields left out keep their current value, null detaches. place_id and reservation_id are the file\'s primary attachment, the one the file manager shows next to it. To attach one document to several bookings or places at once, use link_trip_file instead.',
+    name: 'upload_trip_file',
+    description: `Add a document to a trip, e.g. a booking confirmation PDF or a ticket, and optionally attach it to a booking or a place in the same call. Pass the bytes base64-encoded in content, up to ${UPLOAD_MAX_MB} MB decoded. The file name has to carry an extension the trip's file manager accepts; the type is derived from it. Returns the new file, whose ID works with read_trip_file and link_trip_file.`,
     inputSchema: {
-      tripId: z.number().int().positive(),
-      fileId: z.number().int().positive(),
-      description: fileUpdateRequestSchema.shape.description.describe('Free-text description, or an empty string to clear it'),
-      place_id: fileUpdateRequestSchema.shape.place_id.describe('Place on the same trip to attach the file to, or null to detach it'),
-      reservation_id: fileUpdateRequestSchema.shape.reservation_id.describe('Booking on the same trip to attach the file to, or null to detach it'),
-      budget_item_id: fileUpdateRequestSchema.shape.budget_item_id.describe('Expense on the same trip to attach the file to (a receipt), or null to detach it'),
+      tripId: idSchema,
+      filename: z
+        .string()
+        .trim()
+        .min(1)
+        .max(255)
+        .describe('File name including its extension, e.g. "hotel-confirmation.pdf"'),
+      content: z
+        .string()
+        .min(1)
+        .max(Math.ceil(UPLOAD_MAX / 3) * 4)
+        .describe('The file bytes, base64-encoded'),
+      description: z.string().max(1000).optional().describe('Free-text description'),
+      reservation_id: idSchema.optional().describe('Booking on the same trip to attach the file to'),
+      place_id: idSchema.optional().describe('Place on the same trip to attach the file to'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'files', mode: 'write' },
+  })
+  async uploadTripFile(
+    {
+      tripId,
+      filename,
+      content,
+      description,
+      reservation_id,
+      place_id,
+    }: {
+      tripId: number;
+      filename: string;
+      content: string;
+      description?: string;
+      reservation_id?: number;
+      place_id?: number;
+    },
+    ctx: McpContext,
+  ) {
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('file_upload', tripId, ctx.userId))) return permissionDenied();
+    // A path someone pasted in is not a name; keep only the last segment.
+    const originalname = filename.split(/[\\/]/).pop()!.trim();
+    const mimetype = contentTypeFor(originalname);
+    if (!originalname || !isUploadTypeAllowed(originalname, mimetype, await this.allowedTypes.get())) {
+      return errorResult('This file type is not allowed on this TREK instance.');
+    }
+    const clean = content.replace(/\s+/g, '');
+    if (!BASE64.test(clean)) return errorResult('content is not valid base64.');
+    const bytes = Buffer.from(clean, 'base64');
+    if (bytes.length === 0) return errorResult('The file is empty.');
+    if (bytes.length > UPLOAD_MAX)
+      return errorResult(`File is too large (over ${UPLOAD_MAX_MB} MB). Ask the user to upload it in TREK instead.`);
+    const foreign = await this.files.findForeignLinkTarget(tripId, { reservation_id, place_id });
+    if (foreign) return errorResult(`Linked item does not belong to this trip (${foreign}).`);
+    const file = await this.files.createFileFromBytes(tripId, { originalname, mimetype, bytes }, ctx.userId, {
+      reservation_id: reservation_id ?? null,
+      place_id: place_id ?? null,
+      description: description ?? null,
+    });
+    this.guards.safeBroadcast(tripId, 'file:created', { file });
+    return ok({ file });
+  }
+
+  @Tool({
+    name: 'update_trip_file',
+    description:
+      "Set a file's description and attach it to a booking or a place. Fields left out keep their current value, null detaches. place_id and reservation_id are the file's primary attachment, the one the file manager shows next to it. To attach one document to several bookings or places at once, use link_trip_file instead.",
+    inputSchema: {
+      tripId: idSchema,
+      fileId: idSchema,
+      description: fileUpdateRequestSchema.shape.description.describe(
+        'Free-text description, or an empty string to clear it',
+      ),
+      place_id: fileUpdateRequestSchema.shape.place_id.describe(
+        'Place on the same trip to attach the file to, or null to detach it',
+      ),
+      reservation_id: fileUpdateRequestSchema.shape.reservation_id.describe(
+        'Booking on the same trip to attach the file to, or null to detach it',
+      ),
+      budget_item_id: fileUpdateRequestSchema.shape.budget_item_id.describe(
+        'Expense on the same trip to attach the file to (a receipt), or null to detach it',
+      ),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'files', mode: 'write' },
@@ -121,15 +215,14 @@ export class FilesMcp {
     { tripId, fileId, ...fields }: { tripId: number; fileId: number } & FileUpdateRequest,
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.files.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('file_edit', tripId, ctx.userId)) return permissionDenied();
-    const current = this.files.getFileById(fileId, tripId);
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('file_edit', tripId, ctx.userId))) return permissionDenied();
+    const current = await this.files.getFileById(fileId, tripId);
     if (!current) return errorResult('File not found.');
     // Same enforcement as the REST route's assertLinkTargets, through the same
     // service method: a foreign reservation id would otherwise come back with its
     // title attached the next time this file is listed.
-    const foreign = this.files.findForeignLinkTarget(tripId, {
+    const foreign = await this.files.findForeignLinkTarget(tripId, {
       reservation_id: fields.reservation_id,
       place_id: fields.place_id,
       budget_item_id: fields.budget_item_id,
@@ -138,19 +231,22 @@ export class FilesMcp {
     // The rest spread carries only the keys the caller actually sent, which is what
     // updateFile's presence sentinels need: naming the fields here would hand it an
     // undefined description on a link-only call and wipe the description.
-    const file = this.files.updateFile(fileId, current, fields);
+    const file = await this.files.updateFile(fileId, current, fields);
     this.guards.safeBroadcast(tripId, 'file:updated', { file });
     return ok({ file });
   }
 
   @Tool({
     name: 'link_trip_file',
-    description: 'Attach a file to one more booking, place or day assignment on the same trip, keeping every attachment it already has. Prefer update_trip_file when the document belongs to a single booking or place; use this one for a document that covers several, such as one group ticket or one rental agreement. Returns every link the file now carries.',
+    description:
+      'Attach a file to one more booking, place or day assignment on the same trip, keeping every attachment it already has. Prefer update_trip_file when the document belongs to a single booking or place; use this one for a document that covers several, such as one group ticket or one rental agreement. Returns every link the file now carries.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      fileId: z.number().int().positive(),
+      tripId: idSchema,
+      fileId: idSchema,
       reservation_id: fileLinkRequestSchema.shape.reservation_id.describe('Booking on the same trip'),
-      assignment_id: fileLinkRequestSchema.shape.assignment_id.describe('Day assignment (a place scheduled on a specific day) on the same trip'),
+      assignment_id: fileLinkRequestSchema.shape.assignment_id.describe(
+        'Day assignment (a place scheduled on a specific day) on the same trip',
+      ),
       place_id: fileLinkRequestSchema.shape.place_id.describe('Place on the same trip'),
       budget_item_id: fileLinkRequestSchema.shape.budget_item_id.describe('Expense on the same trip, for a receipt'),
     },
@@ -161,29 +257,29 @@ export class FilesMcp {
     { tripId, fileId, ...targets }: { tripId: number; fileId: number } & FileLinkRequest,
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.files.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('file_edit', tripId, ctx.userId)) return permissionDenied();
-    if (!this.files.getFileById(fileId, tripId)) return errorResult('File not found.');
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('file_edit', tripId, ctx.userId))) return permissionDenied();
+    if (!(await this.files.getFileById(fileId, tripId))) return errorResult('File not found.');
     // The REST body allows all three to be absent and stores a link row pointing at
     // nothing. A tool caller that gets here with no target made a mistake, and saying
     // so is more useful than a success that attached the file to nothing.
     if (!targets.reservation_id && !targets.assignment_id && !targets.place_id && !targets.budget_item_id) {
       return errorResult('Pass at least one of reservation_id, assignment_id, place_id or budget_item_id.');
     }
-    const foreign = this.files.findForeignLinkTarget(tripId, targets);
+    const foreign = await this.files.findForeignLinkTarget(tripId, targets);
     if (foreign) return errorResult(`Linked item does not belong to this trip (${foreign}).`);
-    const links = this.files.createFileLink(fileId, targets);
+    const links = await this.files.createFileLink(fileId, targets);
     return ok({ success: true, links });
   }
 
   @Tool({
     name: 'unlink_trip_file',
-    description: 'Remove one attachment between a file and a booking, place or day assignment. The file itself stays on the trip and its other attachments are untouched. Take linkId from list_trip_file_links, it is not the booking or place ID.',
+    description:
+      'Remove one attachment between a file and a booking, place or day assignment. The file itself stays on the trip and its other attachments are untouched. Take linkId from list_trip_file_links, it is not the booking or place ID.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      fileId: z.number().int().positive(),
-      linkId: z.number().int().positive().describe('Link ID from list_trip_file_links'),
+      tripId: idSchema,
+      fileId: idSchema,
+      linkId: idSchema.describe('Link ID from list_trip_file_links'),
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'files', mode: 'write' },
@@ -192,30 +288,30 @@ export class FilesMcp {
     { tripId, fileId, linkId }: { tripId: number; fileId: number; linkId: number },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.files.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('file_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('file_edit', tripId, ctx.userId))) return permissionDenied();
     // deleteFileLink scopes by (linkId, fileId) only, so the file has to be resolved
     // against :tripId first, exactly as the REST route does it. Otherwise a member of
     // any trip could drop a link row belonging to a foreign trip's file.
-    if (!this.files.getFileById(fileId, tripId)) return errorResult('File not found.');
-    this.files.deleteFileLink(linkId, fileId);
+    if (!(await this.files.getFileById(fileId, tripId))) return errorResult('File not found.');
+    await this.files.deleteFileLink(linkId, fileId);
     return ok({ success: true });
   }
 
   @Tool({
     name: 'list_trip_file_links',
-    description: 'List everything one file is attached to: bookings (with their title), places and day assignments, each with the linkId that unlink_trip_file needs. list_trip_files already reports the linked booking and place IDs, so reach for this one when you need the link IDs themselves.',
+    description:
+      'List everything one file is attached to: bookings (with their title), places and day assignments, each with the linkId that unlink_trip_file needs. list_trip_files already reports the linked booking and place IDs, so reach for this one when you need the link IDs themselves.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      fileId: z.number().int().positive(),
+      tripId: idSchema,
+      fileId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'files', mode: 'read' },
   })
   async listTripFileLinks({ tripId, fileId }: { tripId: number; fileId: number }, ctx: McpContext) {
-    if (!this.files.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.files.getFileById(fileId, tripId)) return errorResult('File not found.');
-    return ok({ links: this.files.getFileLinks(fileId) });
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.files.getFileById(fileId, tripId))) return errorResult('File not found.');
+    return ok({ links: await this.files.getFileLinks(fileId) });
   }
 }

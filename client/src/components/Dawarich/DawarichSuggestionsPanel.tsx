@@ -146,7 +146,7 @@ export default function DawarichSuggestionsPanel({
         type="button"
         onClick={() => setCollapsed(value => !value)}
         aria-expanded={!collapsed}
-        className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left ${
+        className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-start ${
           phone ? 'active:bg-[color:var(--m-inner)]' : 'hover:bg-surface-hover'
         }`}
       >
@@ -229,7 +229,7 @@ export default function DawarichSuggestionsPanel({
               <button
                 type="button"
                 onClick={() => setShowHandled(value => !value)}
-                className={`w-full px-3.5 py-2 text-left ${
+                className={`w-full px-3.5 py-2 text-start ${
                   phone ? 'text-m-muted active:bg-[color:var(--m-inner)]' : 'text-content-muted hover:bg-surface-hover'
                 }`}
                 style={TYPE.meta}

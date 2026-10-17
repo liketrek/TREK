@@ -6,7 +6,6 @@ import { errorResult } from '../../nest-mcp';
 // the impure guards (hasTripPermission/isAdminUser/safeBroadcast) moved onto
 // the injectable McpToolGuardsService (src/nest/mcp-shared/).
 export {
-  demoDenied,
   errorResult,
   ok,
   TOOL_ANNOTATIONS_DELETE,

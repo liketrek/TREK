@@ -6,7 +6,7 @@ import crypto, { createHash, randomBytes } from 'crypto';
 // Constants
 // ---------------------------------------------------------------------------
 
-export const ACCESS_TOKEN_TTL_S = 60 * 60;                  // 1 hour
+export const ACCESS_TOKEN_TTL_S = 60 * 60; // 1 hour
 export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days rolling
 
 /**
@@ -23,14 +23,6 @@ export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days rolling
  * outside the window.
  */
 export const REFRESH_ROTATION_GRACE_MS = 30 * 1000;
-
-/** SQLite writes CURRENT_TIMESTAMP as UTC without a zone; JS would read it as local. */
-export function parseSqliteUtc(ts: string | null | undefined): Date | null {
-  if (!ts) return null;
-  const iso = ts.endsWith('Z') ? ts : ts.replace(' ', 'T') + 'Z';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
 
 // PKCE format (RFC 7636)
 export const CODE_CHALLENGE_RE = /^[A-Za-z0-9_-]{43}$/;
@@ -62,10 +54,30 @@ export const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
  * redirect register a private-use scheme or an https App Link instead.
  */
 const DANGEROUS_REDIRECT_SCHEMES = new Set([
-  'javascript:', 'data:', 'vbscript:', 'file:', 'blob:', 'about:', 'chrome:', 'chrome-extension:',
-  'view-source:', 'filesystem:', 'resource:', 'jar:', 'moz-extension:', 'safari-extension:',
-  'chrome-search:', 'chrome-untrusted:', 'ms-browser-extension:', 'ms-msdt:', 'android-app:',
-  'intent:', 'search-ms:', 'shell:', 'microsoft-edge:', 'itms-services:',
+  'javascript:',
+  'data:',
+  'vbscript:',
+  'file:',
+  'blob:',
+  'about:',
+  'chrome:',
+  'chrome-extension:',
+  'view-source:',
+  'filesystem:',
+  'resource:',
+  'jar:',
+  'moz-extension:',
+  'safari-extension:',
+  'chrome-search:',
+  'chrome-untrusted:',
+  'ms-browser-extension:',
+  'ms-msdt:',
+  'android-app:',
+  'intent:',
+  'search-ms:',
+  'shell:',
+  'microsoft-edge:',
+  'itms-services:',
 ]);
 
 /**
@@ -77,9 +89,7 @@ const DANGEROUS_REDIRECT_SCHEMES = new Set([
 const DANGEROUS_SCHEME_PREFIX = 'ms-';
 
 /** Transports that are not browser navigations, so never a redirect target. */
-const NON_REDIRECT_SCHEMES = new Set([
-  'ws:', 'wss:', 'ftp:', 'ftps:', 'mailto:', 'tel:', 'sms:', 'urn:',
-]);
+const NON_REDIRECT_SCHEMES = new Set(['ws:', 'wss:', 'ftp:', 'ftps:', 'mailto:', 'tel:', 'sms:', 'urn:']);
 
 export type RedirectUriVerdict = 'ok' | 'malformed' | 'dangerous' | 'not_allowed';
 
@@ -96,7 +106,11 @@ export type RedirectUriVerdict = 'ok' | 'malformed' | 'dangerous' | 'not_allowed
  */
 export function classifyRedirectUri(uri: string): RedirectUriVerdict {
   let url: URL;
-  try { url = new URL(uri); } catch { return 'malformed'; }
+  try {
+    url = new URL(uri);
+  } catch {
+    return 'malformed';
+  }
 
   const protocol = url.protocol;
   if (DANGEROUS_REDIRECT_SCHEMES.has(protocol) || protocol.startsWith(DANGEROUS_SCHEME_PREFIX)) return 'dangerous';
@@ -130,7 +144,9 @@ export function redirectUriMatches(allowed: string, requested: string): boolean 
   try {
     a = new URL(allowed);
     r = new URL(requested);
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 
   if (a.protocol !== 'http:' || r.protocol !== 'http:') return false;
   if (!LOOPBACK_HOSTS.has(a.hostname) || !LOOPBACK_HOSTS.has(r.hostname)) return false;
@@ -138,44 +154,14 @@ export function redirectUriMatches(allowed: string, requested: string): boolean 
   // userinfo and fragment are compared too: the URL parser would otherwise drop
   // them silently and let 'http://attacker@127.0.0.1:1/cb#x' match a bare
   // 'http://127.0.0.1:8080/cb'.
-  return a.hostname === r.hostname
-    && a.pathname === r.pathname
-    && a.search === r.search
-    && a.hash === r.hash
-    && a.username === r.username
-    && a.password === r.password;
-}
-
-// ---------------------------------------------------------------------------
-// DB row types
-// ---------------------------------------------------------------------------
-
-export interface OAuthClientRow {
-  id: string;
-  user_id: number;
-  name: string;
-  client_id: string;
-  client_secret_hash: string;
-  redirect_uris: string;   // JSON array
-  allowed_scopes: string;  // JSON array
-  created_at: string;
-  is_public: number;       // 0 | 1 (SQLite boolean)
-  created_via: string;     // 'settings_ui' | 'browser-registration'
-  allows_client_credentials: number; // 0 | 1
-}
-
-export interface OAuthTokenRow {
-  id: number;
-  client_id: string;
-  user_id: number;
-  access_token_hash: string;
-  refresh_token_hash: string;
-  scopes: string;           // JSON array
-  audience: string | null;
-  access_token_expires_at: string;
-  refresh_token_expires_at: string;
-  revoked_at: string | null;
-  parent_token_id: number | null;
+  return (
+    a.hostname === r.hostname &&
+    a.pathname === r.pathname &&
+    a.search === r.search &&
+    a.hash === r.hash &&
+    a.username === r.username &&
+    a.password === r.password
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -191,7 +177,9 @@ export function timingSafeEqualHex(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   try {
     return crypto.timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 export function generateAccessToken(): string {

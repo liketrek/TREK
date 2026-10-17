@@ -1,4 +1,4 @@
-// FE-COMP-DISPLAY-001 to FE-COMP-DISPLAY-052
+// FE-COMP-DISPLAY-001 to FE-COMP-DISPLAY-055
 import { render, screen, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -9,6 +9,11 @@ import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildSettings } from '../../../tests/helpers/factories';
 import DisplaySettingsTab from './DisplaySettingsTab';
 import { ToastContainer } from '../shared/Toast';
+
+/** The switch of a yes-or-no row, named by the row's label. */
+function toggleFor(label: RegExp): HTMLElement {
+  return screen.getByRole('button', { name: label });
+}
 
 beforeEach(() => {
   resetAllStores();
@@ -64,11 +69,8 @@ describe('DisplaySettingsTab', () => {
   it('FE-COMP-DISPLAY-016: active language button is visually highlighted', () => {
     seedStore(useSettingsStore, { settings: buildSettings({ language: 'en' }) });
     render(<DisplaySettingsTab />);
-    // Multiple elements contain "English" (desktop grid button + mobile dropdown trigger).
-    // The desktop grid button is the one with the active border style.
-    const englishMatches = screen.getAllByText('English').map(el => el.closest('button')!).filter(Boolean);
-    const activeBtn = englishMatches.find(btn => (btn.style.border || '').includes('var(--text-primary)'));
-    expect(activeBtn).toBeDefined();
+    // "English" is on the chip and on the compact trigger; only the chip is a pressed choice.
+    expect(screen.getByRole('button', { name: 'English', pressed: true })).toBeInTheDocument();
   });
 
   it('FE-COMP-DISPLAY-017: shows Temperature section label', () => {
@@ -80,7 +82,7 @@ describe('DisplaySettingsTab', () => {
     seedStore(useSettingsStore, { settings: buildSettings({ temperature_unit: 'celsius' }) });
     render(<DisplaySettingsTab />);
     const celsiusBtn = screen.getByText('°C Celsius').closest('button')!;
-    expect(celsiusBtn.style.border).toContain('var(--text-primary)');
+    expect(celsiusBtn).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('FE-COMP-DISPLAY-019: clicking fahrenheit button calls updateSetting with fahrenheit', async () => {
@@ -96,7 +98,7 @@ describe('DisplaySettingsTab', () => {
     seedStore(useSettingsStore, { settings: { temperature_unit: 'celsius' } });
     render(<DisplaySettingsTab />);
     const metricBtn = screen.getByText('km Metric').closest('button')!;
-    expect(metricBtn.style.border).toContain('var(--text-primary)');
+    expect(metricBtn).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('FE-COMP-DISPLAY-029: clicking imperial distance calls updateSetting with imperial', async () => {
@@ -124,38 +126,33 @@ describe('DisplaySettingsTab', () => {
     expect(screen.getByText(/blur booking codes/i)).toBeInTheDocument();
   });
 
-  it('FE-COMP-DISPLAY-025: blur booking codes On button is active when blur_booking_codes is true', () => {
+  it('FE-COMP-DISPLAY-025: blur booking codes switch is on when blur_booking_codes is true', () => {
     seedStore(useSettingsStore, { settings: buildSettings({ blur_booking_codes: true }) });
     render(<DisplaySettingsTab />);
-    const block = screen.getByText(/blur booking codes/i).closest('div')!;
-    const blurOnBtn = within(block).getByText(/^On$/i).closest('button')!;
-    expect(blurOnBtn.style.border).toContain('var(--text-primary)');
+    expect(toggleFor(/blur booking codes/i)).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('FE-COMP-DISPLAY-030: shows Always show booking routes next to Booking route labels', () => {
     render(<DisplaySettingsTab />);
-    const bookingLabels = screen.getByText(/booking route labels/i);
-    const alwaysShow = screen.getByText(/always show booking routes/i);
-    expect(alwaysShow).toBeInTheDocument();
-    // Adjacent siblings within the Travel & Map section: alwaysShow's block
-    // immediately follows bookingLabels' block.
-    expect(bookingLabels.closest('div')!.nextElementSibling).toBe(alwaysShow.closest('div'));
+    expect(screen.getByText(/always show booking routes/i)).toBeInTheDocument();
+    // Adjacent rows within the Travel & Map section: the always-show switch
+    // immediately follows the booking-labels switch.
+    const switches = Array.from(document.querySelectorAll('button[aria-label]'));
+    const labels = switches.indexOf(toggleFor(/booking route labels/i));
+    expect(switches.indexOf(toggleFor(/always show booking routes/i))).toBe(labels + 1);
   });
 
-  it('FE-COMP-DISPLAY-031: always-show-routes Off button is active by default (unset)', () => {
+  it('FE-COMP-DISPLAY-031: always-show-routes switch is off by default (unset)', () => {
     render(<DisplaySettingsTab />);
-    const block = screen.getByText(/always show booking routes/i).closest('div')!;
-    const offBtn = within(block).getByText(/^Off$/i).closest('button')!;
-    expect(offBtn.style.border).toContain('var(--text-primary)');
+    expect(toggleFor(/always show booking routes/i)).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('FE-COMP-DISPLAY-032: clicking On for always-show-routes calls updateSetting with map_always_show_routes true', async () => {
+  it('FE-COMP-DISPLAY-032: switching always-show-routes on calls updateSetting with map_always_show_routes true', async () => {
     const user = userEvent.setup();
     const updateSetting = vi.fn().mockResolvedValue(undefined);
     seedStore(useSettingsStore, { settings: buildSettings(), updateSetting });
     render(<DisplaySettingsTab />);
-    const block = screen.getByText(/always show booking routes/i).closest('div')!;
-    await user.click(within(block).getByText(/^On$/i));
+    await user.click(toggleFor(/always show booking routes/i));
     expect(updateSetting).toHaveBeenCalledWith('map_always_show_routes', true);
   });
 
@@ -175,7 +172,7 @@ describe('DisplaySettingsTab', () => {
     render(<DisplaySettingsTab />);
     await user.click(screen.getByText('°F Fahrenheit'));
     const fahrenheitBtn = screen.getByText('°F Fahrenheit').closest('button')!;
-    expect(fahrenheitBtn.style.border).toContain('var(--text-primary)');
+    expect(fahrenheitBtn).toHaveAttribute('aria-pressed', 'true');
   });
 });
 
@@ -187,12 +184,29 @@ function seedFailing(message = 'Server error') {
   return updateSetting;
 }
 
-/** The block of buttons belonging to one labelled setting. */
-function optionBlock(label: RegExp): HTMLElement {
-  return screen.getByText(label).closest('div') as HTMLElement;
+/** The row of one labelled setting: climbs from its label until the row's control is inside. */
+function optionBlock(label: RegExp | string): HTMLElement {
+  let el: HTMLElement | null = screen.getByText(label);
+  while (el && !el.querySelector('button')) el = el.parentElement;
+  return el as HTMLElement;
 }
 
 describe('DisplaySettingsTab – Display currency', () => {
+  it('FE-COMP-DISPLAY-055: place names follow the app until another language is picked for them (#1799)', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'de' }), updateSetting });
+    render(<DisplaySettingsTab />);
+
+    await user.click(screen.getByRole('button', { name: 'Same as the app' }));
+    // The language grid shows the same name, so the option is the last one on screen.
+    const options = await screen.findAllByText('English');
+    await user.click(options[options.length - 1]);
+
+    expect(updateSetting).toHaveBeenCalledWith('place_language', 'en');
+    expect(updateSetting).not.toHaveBeenCalledWith('language', expect.anything());
+  });
+
   it('FE-COMP-DISPLAY-033: picking "Trip currency" clears the personal display currency', async () => {
     const user = userEvent.setup();
     const updateSetting = vi.fn().mockResolvedValue(undefined);
@@ -221,7 +235,7 @@ describe('DisplaySettingsTab – Display currency', () => {
 // ── Compact language dropdown (035–039) ───────────────────────────────────────
 
 function mobileLangWrap(): HTMLElement {
-  return screen.getByText('Language').closest('div')!.querySelector('.sm\\:hidden') as HTMLElement;
+  return optionBlock('Language').querySelector('.sm\\:hidden') as HTMLElement;
 }
 
 describe('DisplaySettingsTab – Compact language picker', () => {
@@ -308,7 +322,7 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
     seedStore(useSettingsStore, { settings: buildSettings({ map_booking_labels: true }), updateSetting });
     render(<DisplaySettingsTab />);
 
-    await user.click(within(optionBlock(/booking route labels/i)).getByText(/^Off$/));
+    await user.click(toggleFor(/booking route labels/i));
 
     expect(updateSetting).toHaveBeenCalledWith('map_booking_labels', false);
   });
@@ -318,7 +332,7 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
     seedFailing('Labels locked');
     render(<><ToastContainer /><DisplaySettingsTab /></>);
 
-    await user.click(within(optionBlock(/booking route labels/i)).getByText(/^On$/));
+    await user.click(toggleFor(/booking route labels/i));
 
     expect(await screen.findByText('Labels locked')).toBeInTheDocument();
   });
@@ -328,7 +342,7 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
     seedFailing('Routes locked');
     render(<><ToastContainer /><DisplaySettingsTab /></>);
 
-    await user.click(within(optionBlock(/always show booking routes/i)).getByText(/^On$/));
+    await user.click(toggleFor(/always show booking routes/i));
 
     expect(await screen.findByText('Routes locked')).toBeInTheDocument();
   });
@@ -338,10 +352,8 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
     const updateSetting = vi.fn().mockResolvedValue(undefined);
     seedStore(useSettingsStore, { settings: buildSettings(), updateSetting });
     render(<DisplaySettingsTab />);
-    const block = optionBlock(/explore places on the map/i);
-
-    expect(within(block).getByText(/^On$/).closest('button')!.style.border).toContain('var(--text-primary)');
-    await user.click(within(block).getByText(/^Off$/));
+    expect(toggleFor(/explore places on the map/i)).toHaveAttribute('aria-pressed', 'true');
+    await user.click(toggleFor(/explore places on the map/i));
 
     expect(updateSetting).toHaveBeenCalledWith('map_poi_pill_enabled', false);
   });
@@ -351,7 +363,7 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
     seedFailing('POI locked');
     render(<><ToastContainer /><DisplaySettingsTab /></>);
 
-    await user.click(within(optionBlock(/explore places on the map/i)).getByText(/^Off$/));
+    await user.click(toggleFor(/explore places on the map/i));
 
     expect(await screen.findByText('POI locked')).toBeInTheDocument();
   });
@@ -362,7 +374,7 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
     seedStore(useSettingsStore, { settings: buildSettings({ blur_booking_codes: false }), updateSetting });
     render(<DisplaySettingsTab />);
 
-    await user.click(within(optionBlock(/blur booking codes/i)).getByText(/^On$/));
+    await user.click(toggleFor(/blur booking codes/i));
 
     expect(updateSetting).toHaveBeenCalledWith('blur_booking_codes', true);
   });
@@ -372,10 +384,8 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
     const updateSetting = vi.fn().mockResolvedValue(undefined);
     seedStore(useSettingsStore, { settings: buildSettings(), updateSetting });
     render(<DisplaySettingsTab />);
-    const block = optionBlock(/optimize route from accommodation/i);
-
-    expect(within(block).getByText(/^On$/).closest('button')!.style.border).toContain('var(--text-primary)');
-    await user.click(within(block).getByText(/^Off$/));
+    expect(toggleFor(/optimize route from accommodation/i)).toHaveAttribute('aria-pressed', 'true');
+    await user.click(toggleFor(/optimize route from accommodation/i));
 
     expect(updateSetting).toHaveBeenCalledWith('optimize_from_accommodation', false);
   });
@@ -385,10 +395,10 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
     seedFailing('Nope');
     render(<><ToastContainer /><DisplaySettingsTab /></>);
 
-    await user.click(within(optionBlock(/blur booking codes/i)).getByText(/^On$/));
+    await user.click(toggleFor(/blur booking codes/i));
     await screen.findByText('Nope');
 
-    await user.click(within(optionBlock(/optimize route from accommodation/i)).getByText(/^Off$/));
+    await user.click(toggleFor(/optimize route from accommodation/i));
     await user.click(screen.getByText('mi Imperial'));
     await user.click(screen.getByRole('button', { name: /24h/ }));
 
@@ -402,7 +412,7 @@ describe('DisplaySettingsTab – startup destination', () => {
     render(<DisplaySettingsTab />);
     const block = optionBlock(/^Start page$/);
 
-    expect(within(block).getByText('Dashboard').closest('button')!.style.border).toContain('var(--text-primary)');
+    expect(within(block).getByText('Dashboard').closest('button')).toHaveAttribute('aria-pressed', 'true');
     // Nothing to pick a tab for while TREK opens on the dashboard.
     expect(screen.queryByText('Start tab')).not.toBeInTheDocument();
   });
@@ -442,5 +452,34 @@ describe('DisplaySettingsTab – startup destination', () => {
     await user.click(within(optionBlock(/^Start page$/)).getByText('Active trip'));
 
     expect(await screen.findByText('Start locked')).toBeInTheDocument();
+  });
+});
+
+// ── Week start (053, 054) ─────────────────────────────────────────────────────
+
+describe('DisplaySettingsTab week start (#2029)', () => {
+  it('FE-COMP-DISPLAY-053: shows Monday when unset and saves the day picked', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings({ week_start: undefined }), updateSetting });
+    render(<DisplaySettingsTab />);
+
+    expect(screen.getByText('Week starts on')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Monday/ }));
+    await user.click(await screen.findByText('Sunday'));
+
+    expect(updateSetting).toHaveBeenCalledWith('week_start', 'sunday');
+  });
+
+  it('FE-COMP-DISPLAY-054: a rejected change surfaces the error', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockRejectedValue(new Error('Save failed'));
+    seedStore(useSettingsStore, { settings: buildSettings({ week_start: 'sunday' }), updateSetting });
+    render(<><ToastContainer /><DisplaySettingsTab /></>);
+
+    await user.click(screen.getByRole('button', { name: /Sunday/ }));
+    await user.click(await screen.findByText('Saturday'));
+
+    expect(await screen.findByText('Save failed')).toBeInTheDocument();
   });
 });

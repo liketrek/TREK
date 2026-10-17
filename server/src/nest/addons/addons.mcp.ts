@@ -30,8 +30,8 @@ export class AddonsMcp {
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
   })
-  listAddons(_args: Record<string, never>, _ctx: McpContext) {
-    const { addons, collabFeatures, bagTracking } = this.addons.list();
+  async listAddons(_args: Record<string, never>, _ctx: McpContext) {
+    const { addons, collabFeatures, bagTracking } = await this.addons.list();
     // icon, config and fields are admin-panel chrome: an icon name and the
     // photo-provider settings form say nothing about what a tool can do.
     return ok({

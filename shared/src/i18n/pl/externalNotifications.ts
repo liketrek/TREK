@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const pl: NotificationLocale = {
   email: {
@@ -37,8 +38,18 @@ const pl: NotificationLocale = {
       body: `${p.actor} zaprosił Cię do udostępnienia kolekcji. Otwórz TREK, aby zaakceptować lub odrzucić.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} zdjęć udostępnionych`,
-      body: `${p.actor} udostępnił ${p.count} zdjęcie/zdjęcia w "${p.trip}".`,
+      title: pluralForm(p.count, 'pl', {
+        one: `Udostępniono ${p.count} zdjęcie`,
+        few: `Udostępniono ${p.count} zdjęcia`,
+        many: `Udostępniono ${p.count} zdjęć`,
+        other: `Udostępniono ${p.count} zdjęcia`,
+      }),
+      body: pluralForm(p.count, 'pl', {
+        one: `${p.actor} udostępnił ${p.count} zdjęcie w "${p.trip}".`,
+        few: `${p.actor} udostępnił ${p.count} zdjęcia w "${p.trip}".`,
+        many: `${p.actor} udostępnił ${p.count} zdjęć w "${p.trip}".`,
+        other: `${p.actor} udostępnił ${p.count} zdjęcia w "${p.trip}".`,
+      }),
     }),
     collab_message: (p) => ({
       title: `Nowa wiadomość w "${p.trip}"`,
@@ -56,7 +67,14 @@ const pl: NotificationLocale = {
       title: 'Awaria repliki magazynu',
       body:
         `Zapis do repliki '${p.backend}' nie powiódł się: ${p.op} dla ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` Od ostatniego powiadomienia ukryto ${p.suppressed} kolejnych błędów.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'pl', {
+              one: ` Od ostatniego powiadomienia ukryto ${p.suppressed} kolejny błąd.`,
+              few: ` Od ostatniego powiadomienia ukryto ${p.suppressed} kolejne błędy.`,
+              many: ` Od ostatniego powiadomienia ukryto ${p.suppressed} kolejnych błędów.`,
+              other: ` Od ostatniego powiadomienia ukryto ${p.suppressed} kolejnego błędu.`,
+            })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Sesja Synology wyczyszczona',

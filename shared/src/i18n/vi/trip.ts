@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'Sắp đến nơi rồi...',
   'trip.mobilePlan': 'Kế hoạch',
   'trip.mobilePlaces': 'Địa điểm',
+  'trip.panelWidth': 'Độ rộng bảng',
   'trip.toast.placeUpdated': 'Đã cập nhật địa điểm',
   'trip.toast.tripUpdated': 'Đã cập nhật chuyến đi',
   'trip.toast.placeAdded': 'Đã thêm địa điểm',

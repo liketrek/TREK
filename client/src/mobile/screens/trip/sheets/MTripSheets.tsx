@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import TransitJourneyModal from '../../../../components/Planner/TransitJourneyModal'
 import BookingImportModal from '../../../../components/Planner/BookingImportModal'
 import AirTrailImportModal from '../../../../components/Planner/AirTrailImportModal'
 import TripFormModal from '../../../../components/Trips/TripFormModal'
 import TripMembersModal from '../../../../components/Trips/TripMembersModal'
-import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
-import { useAuthStore } from '../../../../store/authStore'
-import { useSettingsStore } from '../../../../store/settingsStore'
-import { useTripStore } from '../../../../store/tripStore'
+import TourDetailDialog from '../../../../components/Tours/TourDetailDialog'
+import { useBookingExpenseEditor } from '../../../../pages/tripPlanner/useBookingExpenseEditor'
+import { applyTripCoverUpdate } from '../../../../pages/tripPlanner/tripCover'
+import { latestReservation } from '../../../../pages/tripPlanner/transportEditorOpeners'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import MDayImpactList from '../../../components/MDayImpactList'
 import MDaySheet from './MDaySheet'
@@ -24,15 +25,70 @@ import MNoteSheet, { type MNoteSheetPayload } from './MNoteSheet'
 import MImportSheet from './MImportSheet'
 import MExportSheet from './MExportSheet'
 import MMehrSheet from './MMehrSheet'
+import MPlacesFilterSheet from '../places/MPlacesFilterSheet'
 import MRtStopSheet from '../roadtrip/MRtStopSheet'
 import MRtStaySheet from '../roadtrip/MRtStaySheet'
 import MRtKindSheet from '../roadtrip/MRtKindSheet'
 import MRtInfoSheet from '../roadtrip/MRtInfoSheet'
 import MRtCorridorSheet from '../roadtrip/MRtCorridorSheet'
 import MRtDraftSheet from '../roadtrip/MRtDraftSheet'
-import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
-import type { BudgetItem } from '../../../../types'
 import type { MTripSheetsProps } from '../MTripShell'
+import { lockBodyScroll } from '../../../../utils/bodyScrollLock'
+import { focusDialog, trapTab } from '../../../../components/shared/dialogFocus'
+
+/** The one global mobile tour-detail owner, independent of which surface selected it. */
+export function MSelectedTourDetail({ planner }: Pick<MTripSheetsProps, 'planner'>) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const selectedTourId = planner.selectedTour?.place_id ?? null
+  const selectedPlaceId = planner.selectedPlace?.id ?? null
+  useEffect(() => {
+    if (selectedTourId == null || selectedPlaceId == null) return
+    const previous = document.activeElement as HTMLElement | null
+    const release = lockBodyScroll()
+    const panel = panelRef.current
+    if (panel) focusDialog(panel)
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      const openPanels = document.querySelectorAll('[data-m-sheet="open"]')
+      if (openPanels.length && openPanels[openPanels.length - 1] !== panel) return
+      event.preventDefault()
+      planner.setSelectedPlaceId(null)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      release()
+      if (previous?.isConnected) previous.focus()
+    }
+  }, [planner.setSelectedPlaceId, selectedPlaceId, selectedTourId])
+
+  if (!planner.selectedTour || !planner.selectedPlace) return null
+
+  return createPortal(
+    <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 'var(--bottom-nav-h)' }} role="presentation" onClick={() => planner.setSelectedPlaceId(null)}>
+      <div ref={panelRef} style={{ width: '100%', maxHeight: '85vh' }} role="dialog" aria-modal="true" aria-label={planner.selectedPlace.name}
+        data-m-sheet="open"
+        tabIndex={-1} onClick={event => event.stopPropagation()} onKeyDown={event => trapTab(event, panelRef.current!)}>
+        <TourDetailDialog
+          tour={planner.selectedTour}
+          place={planner.selectedPlace}
+          days={planner.days}
+          selectedDayId={planner.selectedDayId}
+          selectedAssignmentId={planner.selectedAssignmentId}
+          assignments={planner.assignments}
+          files={planner.files}
+          readOnly
+          canEdit={false}
+          canAssign={planner.can('day_edit', planner.trip)}
+          onClose={() => planner.setSelectedPlaceId(null)}
+          onAssignToDay={planner.handleAssignToDay}
+          onRemoveAssignment={planner.handleRemoveAssignment}
+        />
+      </div>
+    </div>,
+    document.body,
+  )
+}
 
 /**
  * Sheet host of the mobile trip screen — always mounted below the shell. Two
@@ -50,20 +106,15 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
 
   // Booking-linked expense editor (save-then-open from the booking modals) —
   // same page-level wiring as the desktop planner.
-  const meId = useAuthStore(s => s.user?.id ?? -1)
-  const displayCurrency = useSettingsStore(s => s.settings.default_currency)
-  const loadBudgetItems = useTripStore(s => s.loadBudgetItems)
-  const [bookingExpense, setBookingExpense] = useState<{ editing: BudgetItem | null; prefill?: ExpensePrefill } | null>(null)
-  const openBookingExpense = (req: BookingExpenseRequest) => {
-    if (req.editItem) setBookingExpense({ editing: req.editItem })
-    else if (req.prefill) setBookingExpense({ editing: null, prefill: req.prefill })
-  }
-  const costsBase = (displayCurrency || trip?.currency || 'EUR').toUpperCase()
+  const { meId, costsBase, openBookingExpense, expenseEditor, onExpenseSaved } = useBookingExpenseEditor({
+    tripId, tripCurrency: trip?.currency, receiptExpense: planner.receiptExpense, clearReceiptExpense: planner.clearReceiptExpense,
+  })
 
   return (
     <>
       {/* ── Mobile sheets (shell.sheet routing + the place selection) ── */}
       <MPlaceSheet planner={planner} shell={shell} />
+      <MSelectedTourDetail planner={planner} />
       <MDaySheet planner={planner} shell={shell} />
       <MDaysSheet planner={planner} shell={shell} />
       <MAccommodationSheet planner={planner} shell={shell} />
@@ -89,6 +140,13 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         onClose={shell.closeSheet}
       />
       <MImportSheet planner={planner} open={sheet?.id === 'import'} onClose={shell.closeSheet} />
+      <MPlacesFilterSheet
+        open={sheet?.id === 'placesFilter'}
+        onClose={shell.closeSheet}
+        places={planner.places}
+        categories={planner.categories}
+        toursEnabled={planner.toursEnabled}
+      />
 
       {/* ── Planner-flag editors (also serve ?create= and the import review) ── */}
       <MPlaceEditSheet planner={planner} onOpenExpense={openBookingExpense} />
@@ -111,47 +169,26 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
             await planner.handleDeleteReservation(planner.transitJourney!.id)
             planner.setTransitJourney(null)
           }}
-          onChangeRoute={() => {
-            // Re-enter the transit search seeded with this journey's route; the
-            // existing reservation is replaced on save.
-            const journey = planner.transitJourney!
-            const eps = journey.endpoints || []
-            const from = eps.find(e => e.role === 'from')
-            const to = eps.find(e => e.role === 'to')
-            planner.setTransitPrefill({
-              from: from ? { name: from.name, lat: from.lat, lng: from.lng } : null,
-              to: to ? { name: to.name, lat: to.lat, lng: to.lng } : null,
-            })
-            planner.setEditingTransport(journey)
-            planner.setTransportModalDayId(journey.day_id ?? null)
-            planner.setTransportModalAutomated(true)
-            planner.setTransitJourney(null)
-            planner.setShowTransportModal(true)
-          }}
-          onEditDetails={() => {
-            // Hand off to the full transport editor for the booking fields —
-            // same target as the transports tab's pencil (#2148).
-            const journey = planner.reservations.find(r => r.id === planner.transitJourney!.id) ?? planner.transitJourney!
-            planner.setEditingTransport(journey)
-            planner.setTransportModalDayId(journey.day_id ?? null)
-            planner.setTransportModalAutomated(false)
-            planner.setTransitPrefill(null)
-            planner.setTransitJourney(null)
-            planner.setShowTransportModal(true)
-          }}
+          // Re-enter the transit search seeded with this journey's route; the
+          // existing reservation is replaced on save.
+          onChangeRoute={() => planner.changeTransitRoute(planner.transitJourney!)}
+          // Hand off to the full transport editor for the booking fields, the same
+          // target as the transports tab's pencil (#2148). The store copy may be newer.
+          onEditDetails={() => planner.openTransportEditor(latestReservation(planner.reservations, planner.transitJourney!))}
         />
       )}
 
-      {bookingExpense && (
+      {expenseEditor && (
         <MCostSheet
+          key={expenseEditor.key}
           tripId={tripId}
           base={costsBase}
           people={planner.tripMembers}
           me={meId}
-          editing={bookingExpense.editing}
-          prefill={bookingExpense.prefill}
-          onClose={() => setBookingExpense(null)}
-          onSaved={() => { setBookingExpense(null); loadBudgetItems(tripId) }}
+          editing={expenseEditor.editing}
+          prefill={expenseEditor.prefill}
+          onClose={expenseEditor.close}
+          onSaved={onExpenseSaved}
         />
       )}
 
@@ -167,9 +204,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
           toast.success(t('trip.toast.tripUpdated'))
         }}
         trip={trip}
-        onCoverUpdate={(_, coverUrl) => useTripStore.setState(state => ({
-          trip: state.trip ? { ...state.trip, cover_image: coverUrl } : state.trip,
-        }))}
+        onCoverUpdate={applyTripCoverUpdate}
       />
       <TripMembersModal
         isOpen={sheet?.id === 'members'}
@@ -188,19 +223,37 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         open={planner.deletePlaceId != null && !planner.showPlaceForm}
         onClose={() => planner.setDeletePlaceId(null)}
         title={t('common.delete')}
-        message={planner.deletePlaceNote ? (
+        message={planner.deletePlaceId != null && planner.isTourPlace(planner.deletePlaceId) ? (
+          <>
+            <span className="block">{t('tours.delete.confirmBody')}</span>
+            {planner.deletePlaceNote && <span className="mt-1 block">{planner.deletePlaceNote}</span>}
+          </>
+        ) : planner.deletePlaceNote ? (
           <>
             <span className="block">{t('trip.confirm.deletePlace')}</span>
             <span className="mt-1 block">{planner.deletePlaceNote}</span>
           </>
         ) : t('trip.confirm.deletePlace')}
-        confirmLabel={t('common.delete')}
+        confirmLabel={planner.deletePlaceId != null && planner.isTourPlace(planner.deletePlaceId)
+          ? t('tours.delete.confirmAction') : t('common.delete')}
         cancelLabel={t('common.cancel')}
         danger
         onConfirm={() => {
           void planner.confirmDeletePlace()
           planner.setDeletePlaceId(null)
         }}
+      />
+
+      {/* Clear-day confirm behind the day sheet's "Clear day" (#2470). */}
+      <MConfirmSheet
+        open={planner.clearDayId != null}
+        onClose={planner.cancelClearDay}
+        title={planner.clearDayTitle}
+        message={t('dayplan.clearDayBody')}
+        confirmLabel={t('dayplan.clearDay')}
+        cancelLabel={t('common.cancel')}
+        danger
+        onConfirm={() => { void planner.confirmClearDay() }}
       />
 
       {/* Delete-day confirm behind the days sheet's delete buttons. Mounted

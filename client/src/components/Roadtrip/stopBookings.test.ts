@@ -17,6 +17,15 @@ const day = {
 }
 
 describe('dayBookings (#2428)', () => {
+  it('FE-STOPBOOKINGS-007: a booking pinned to a stop on another day is left to that stop, not listed loose here (#2604)', () => {
+    const order = (dayId: number) => dayId
+    const stopDays = new Map([[11, 1], [77, 3]])
+    const dinner = booking({ id: 9, title: 'Dinner', day_id: 1, assignment_id: 77 })
+    expect(dayBookings(day, [dinner], order, stopDays).loose).toEqual([])
+    // Without the trip's stops it stays where it was.
+    expect(dayBookings(day, [dinner], order).loose.map(r => r.title)).toEqual(['Dinner'])
+  })
+
   it('FE-STOPBOOKINGS-001: a booking hangs under the stop it is pinned to, or under the stop at its place on its day, in clock order', () => {
     const { atStop, loose } = dayBookings(day, [
       booking({ id: 3, title: 'Late', reservation_time: '2026-10-05T20:00', assignment_id: 11 }),

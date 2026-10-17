@@ -65,17 +65,17 @@ describe('MFileMenuSheet', () => {
     const input = screen.getByPlaceholderText('files.notePlaceholder')
     fireEvent.change(input, { target: { value: '  Seat 22C  ' } })
     fireEvent.blur(input)
-    expect(filesApi.update).toHaveBeenCalledWith(1, 7, { description: 'Seat 22C' })
+    await waitFor(() => expect(filesApi.update).toHaveBeenCalledWith(1, 7, { description: 'Seat 22C' }))
     await waitFor(() => expect(planner.tripActions.loadFiles).toHaveBeenCalledWith(1))
   })
 
-  it('FE-MOB-FMENU-005: Enter commits the note by blurring the field', () => {
+  it('FE-MOB-FMENU-005: Enter commits the note by blurring the field', async () => {
     renderSheet()
     const input = screen.getByPlaceholderText('files.notePlaceholder')
     input.focus()
     fireEvent.change(input, { target: { value: 'Gate B' } })
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect(filesApi.update).toHaveBeenCalledWith(1, 7, { description: 'Gate B' })
+    await waitFor(() => expect(filesApi.update).toHaveBeenCalledWith(1, 7, { description: 'Gate B' }))
   })
 
   it('FE-MOB-FMENU-006: an unchanged note is not sent', () => {

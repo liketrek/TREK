@@ -1,3 +1,28 @@
+import { ADDON_IDS } from '../../addons';
+import type { User } from '../../types';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { withRequestContext } from '../database/request-context';
+import { TripAccessGuard } from '../permissions/trip-access.guard';
+import { RealtimeService } from '../realtime/realtime.service';
+import { DocSyncConfigService, type LinkRow } from './doc-sync-config.service';
+import { PROVIDER_DISABLED } from './doc-sync.constants';
+import {
+  DocsyncConnectionDto,
+  DocsyncConnectionTestDto,
+  DocsyncLinkDto,
+  DocsyncLinkUpdateDto,
+  DocsyncResolveConflictDto,
+  DocsyncScopeCreateDto,
+  DocsyncSyncNowDto,
+} from './doc-sync.dto';
+import { sameOrigin } from './doc-sync.helpers';
+import { DocSyncService } from './doc-sync.service';
+import { docFailed } from './document-provider';
+import { DocumentProviderRegistry } from './document-provider.registry';
+import { MikroORM } from '@mikro-orm/core';
 import {
   Body,
   Controller,
@@ -14,31 +39,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+
 import type { Request } from 'express';
-import type { User } from '../../types';
-import { ADDON_IDS } from '../../addons';
-import { AddonGuard } from '../addons/addon.guard';
-import { RequireAddon } from '../addons/require-addon.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { TripAccessGuard } from '../permissions/trip-access.guard';
-import { DatabaseService } from '../database/database.service';
-import { RealtimeService } from '../realtime/realtime.service';
-import { docFailed } from './document-provider';
-import { DocSyncConfigService, type LinkRow } from './doc-sync-config.service';
-import { DocSyncService } from './doc-sync.service';
-import { DocumentProviderRegistry } from './document-provider.registry';
-import { PROVIDER_DISABLED } from './doc-sync.constants';
-import { sameOrigin } from './doc-sync.helpers';
-import {
-  DocsyncConnectionDto,
-  DocsyncConnectionTestDto,
-  DocsyncLinkDto,
-  DocsyncLinkUpdateDto,
-  DocsyncResolveConflictDto,
-  DocsyncScopeCreateDto,
-  DocsyncSyncNowDto,
-} from './doc-sync.dto';
 
 /**
  * `/api/trips/:tripId/docsync`: a trip's document provider binding.
@@ -70,8 +72,8 @@ export class DocSyncController {
     private readonly config: DocSyncConfigService,
     private readonly sync: DocSyncService,
     private readonly registry: DocumentProviderRegistry,
-    private readonly db: DatabaseService,
     private readonly realtime: RealtimeService,
+    private readonly orm: MikroORM,
   ) {}
 
   /**
@@ -97,31 +99,27 @@ export class DocSyncController {
    *
    * The 403 still says "owner": an admin never sees it, and to everybody who
    * does, the owner is the person to ask.
+   *
+   * R2 (Plan 3h Task 5): the trip-owner lookup itself (DSCTRL1, raw SQL
+   * directly in this controller — the architecture deviation the whole
+   * program's gather flagged) now lives on `DocSyncConfigService
+   * .assertCanManage`; this stays a thin delegation so every one of this
+   * controller's existing call sites (string `tripId`) is unchanged.
    */
-  private assertCanManage(tripId: string, user: User): void {
-    if (user.role === 'admin') return;
-    const trip = this.db.get<{ user_id: number }>('SELECT user_id FROM trips WHERE id = ?', tripId);
-    if (!trip) throw new HttpException('Trip not found', 404);
-    if (Number(trip.user_id) !== Number(user.id)) {
-      throw new HttpException('Only the trip owner can change document sync', 403);
-    }
+  private async assertCanManage(tripId: string, user: User): Promise<void> {
+    await this.config.assertCanManage(Number(tripId), user);
   }
 
   // ── Providers and status ───────────────────────────────────────────────────
 
-  /** Which providers this instance has switched on, with their form fields. */
+  /**
+   * Which providers this instance has switched on, with their form fields.
+   * R2: the raw catalog read (DSCTRL2) and its `available`/`fields`
+   * composition now live on `DocSyncConfigService.providersCatalog`.
+   */
   @Get('providers')
-  providers() {
-    const rows = this.db.connection
-      .prepare('SELECT id, name, description, icon FROM document_providers WHERE enabled = 1 ORDER BY sort_order')
-      .all() as Array<{ id: string; name: string; description: string | null; icon: string }>;
-    return rows.map((p) => ({
-      ...p,
-      // A provider row with no registered adapter would render a form that
-      // cannot work, so it is reported rather than hidden.
-      available: !!this.registry.get(p.id),
-      fields: this.config.providerFields(p.id).map((f) => ({ ...f, secret: f.secret === 1, required: f.required === 1 })),
-    }));
+  async providers() {
+    return this.config.providersCatalog();
   }
 
   @Get('status')
@@ -132,8 +130,9 @@ export class DocSyncController {
   // ── Connections ────────────────────────────────────────────────────────────
 
   @Get('connections')
-  listConnections(@Param('tripId') tripId: string) {
-    return this.config.listConnections(Number(tripId)).map((c) => this.config.publicConnection(c));
+  async listConnections(@Param('tripId') tripId: string) {
+    const rows = await this.config.listConnections(Number(tripId));
+    return await Promise.all(rows.map((c) => this.config.publicConnection(c)));
   }
 
   @Put('connections')
@@ -143,8 +142,8 @@ export class DocSyncController {
     @CurrentUser() user: User,
     @Body() body: DocsyncConnectionDto,
   ) {
-    this.assertCanManage(tripId, user);
-    if (!this.config.enabledProviderIds().includes(body.providerId)) {
+    await this.assertCanManage(tripId, user);
+    if (!(await this.config.enabledProviderIds()).includes(body.providerId)) {
       throw new HttpException(`Provider: "${body.providerId}" is not enabled, contact server administrator`, 400);
     }
     const res = await this.config.upsertConnection(Number(tripId), Number(user.id), body);
@@ -164,7 +163,7 @@ export class DocSyncController {
     @CurrentUser() user: User,
     @Body() body: DocsyncConnectionTestDto,
   ) {
-    this.assertCanManage(tripId, user);
+    await this.assertCanManage(tripId, user);
     const provider = this.registry.get(body.providerId);
     if (!provider) return { connected: false, error: 'unknown_provider' };
 
@@ -173,9 +172,7 @@ export class DocSyncController {
 
     // Probing with the values on screen, merged over whatever is stored, so a
     // user testing an unchanged connection does not have to retype the secret.
-    const existing = this.config
-      .listConnections(Number(tripId))
-      .find((c) => c.provider_id === body.providerId);
+    const existing = (await this.config.listConnections(Number(tripId))).find((c) => c.provider_id === body.providerId);
     // Only for the address the credential was stored against. Merging it into a
     // probe of an arbitrary baseUrl turns this route into a way to have TREK
     // post a stored API token at a server of the caller's choosing, which is
@@ -183,7 +180,7 @@ export class DocSyncController {
     // reach for. Same host, same scheme, same port, or the caller types it in.
     const sameTarget = !!existing && sameOrigin(existing.base_url, urlCheck.data.url);
     const stored = sameTarget && existing ? this.config.toRef(existing) : null;
-    const fields = this.config.providerFields(body.providerId);
+    const fields = await this.config.providerFields(body.providerId);
     const secrets: Record<string, string> = { ...(stored?.secrets ?? {}) };
     const settings: Record<string, string> = { ...(stored?.settings ?? {}) };
     for (const f of fields) {
@@ -203,7 +200,7 @@ export class DocSyncController {
       allowInsecureTls: body.allowInsecureTls,
     });
     if (docFailed(res)) return { connected: false, error: res.error.code, detail: res.error.detail };
-    if (existing) this.config.recordProbe(existing.id, 'ok', null, res.data.capabilities);
+    if (existing) await this.config.recordProbe(existing.id, 'ok', null, res.data.capabilities);
     return { connected: true, account: res.data.account, capabilities: res.data.capabilities };
   }
 
@@ -214,15 +211,15 @@ export class DocSyncController {
     @Param('connectionId') connectionId: string,
     @CurrentUser() user: User,
   ) {
-    this.assertCanManage(tripId, user);
-    const conn = this.config.getConnection(Number(connectionId));
+    await this.assertCanManage(tripId, user);
+    const conn = await this.config.getConnection(Number(connectionId));
     if (!conn || conn.trip_id !== Number(tripId)) throw new HttpException('Connection not found', 404);
     // Its bindings go with it (ON DELETE CASCADE), so read them first. Every
     // subscription TREK registered for one of them is taken down while the
     // credential is still here to do it with, as unbinding one does: left
     // standing, a Paperless workflow or a Nextcloud listener keeps posting to
     // a token that answers nothing, for good.
-    const unbound = this.config.listLinks(conn.trip_id).filter((l) => l.connection_id === conn.id);
+    const unbound = (await this.config.listLinks(conn.trip_id)).filter((l) => l.connection_id === conn.id);
     const provider = this.registry.get(conn.provider_id);
     if (provider?.unregisterWebhook) {
       const ref = this.config.toRef(conn);
@@ -230,7 +227,7 @@ export class DocSyncController {
         if (link.webhook_subscription_id) await provider.unregisterWebhook(ref, link.webhook_subscription_id);
       }
     }
-    this.config.deleteConnection(conn.id);
+    await this.config.deleteConnection(conn.id);
     for (const link of unbound) this.announceBinding(link);
     return { success: true };
   }
@@ -245,8 +242,8 @@ export class DocSyncController {
     @CurrentUser() user: User,
     @Query('q') q?: string,
   ) {
-    this.assertCanManage(tripId, user);
-    const conn = this.config.getConnection(Number(connectionId));
+    await this.assertCanManage(tripId, user);
+    const conn = await this.config.getConnection(Number(connectionId));
     if (!conn || conn.trip_id !== Number(tripId)) throw new HttpException('Connection not found', 404);
     const provider = this.registry.get(conn.provider_id);
     if (!provider) throw new HttpException('Provider not available', 400);
@@ -262,8 +259,8 @@ export class DocSyncController {
     @CurrentUser() user: User,
     @Body() body: DocsyncScopeCreateDto,
   ) {
-    this.assertCanManage(tripId, user);
-    const conn = this.config.getConnection(Number(connectionId));
+    await this.assertCanManage(tripId, user);
+    const conn = await this.config.getConnection(Number(connectionId));
     if (!conn || conn.trip_id !== Number(tripId)) throw new HttpException('Connection not found', 404);
     const provider = this.registry.get(conn.provider_id);
     if (!provider) throw new HttpException('Provider not available', 400);
@@ -275,9 +272,10 @@ export class DocSyncController {
   // ── Bindings ───────────────────────────────────────────────────────────────
 
   @Get('links')
-  listLinks(@Param('tripId') tripId: string, @Req() req: Request) {
+  async listLinks(@Param('tripId') tripId: string, @Req() req: Request) {
     const base = publicOrigin(req);
-    return this.config.listLinks(Number(tripId)).map((l) => this.config.publicLink(l, base));
+    const rows = await this.config.listLinks(Number(tripId));
+    return await Promise.all(rows.map((l) => this.config.publicLink(l, base)));
   }
 
   @Post('links')
@@ -288,8 +286,8 @@ export class DocSyncController {
     @Body() body: DocsyncLinkDto,
     @Req() req: Request,
   ) {
-    this.assertCanManage(tripId, user);
-    const res = this.config.createLink(Number(tripId), Number(user.id), body);
+    await this.assertCanManage(tripId, user);
+    const res = await this.config.createLink(Number(tripId), Number(user.id), body);
     if (docFailed(res)) throw new HttpException(res.error.detail || res.error.code, 400);
     this.announceBinding(res.data);
 
@@ -297,7 +295,7 @@ export class DocSyncController {
     // not a failure of the binding (polling still carries it), so it is logged
     // rather than thrown at the user; the first run that follows would write
     // over anything put into the link state.
-    const conn = this.config.getConnection(res.data.connection_id);
+    const conn = await this.config.getConnection(res.data.connection_id);
     const provider = conn ? this.registry.get(conn.provider_id) : undefined;
     if (conn && provider?.registerWebhook) {
       const base = publicOrigin(req);
@@ -313,52 +311,63 @@ export class DocSyncController {
             `link ${res.data.id}: ${conn.provider_id} refused the webhook subscription (${hook.error.code}${hook.error.detail ? `: ${hook.error.detail}` : ''}), polling carries it`,
           );
         } else {
-          this.db.connection
-            .prepare('UPDATE trip_document_links SET webhook_subscription_id = ? WHERE id = ?')
-            .run(hook.data.subscriptionId, res.data.id);
+          await this.config.setWebhookSubscriptionId(res.data.id, hook.data.subscriptionId);
         }
       }
     }
 
     // A first run right away, so the user sees something happen instead of
     // waiting out a poll interval and wondering whether it worked.
-    void this.sync.syncLink(res.data, { full: true });
-    return this.config.publicLink(this.config.getLink(res.data.id) ?? res.data, publicOrigin(req));
+    //
+    // L1 (Plan 3h Task 7 review) — a third R9-class detached chain the
+    // inventory missed: `syncLink` runs ~36 ORM/Kysely statements, detached
+    // after this response goes out, on the request's own EntityManager fork.
+    // Wrapped in its own `withRequestContext` fork for the same reason the
+    // webhook nudge timer (`DocSyncWebhookController#schedule`) and the
+    // import-job runner (`ImportJobsService#start`) are: insurance against
+    // the request-scoped fork being gone by the time this runs, per 3f's own
+    // measurement that `AsyncLocalStorage` survives a detached chain intact
+    // in this codebase today, not a fix for an observed failure. A failure
+    // here is not a failure of the binding (the next poll carries it), so it
+    // is logged rather than thrown — same posture as the webhook
+    // subscription failure just above.
+    void withRequestContext(this.orm, () => this.sync.syncLink(res.data, { full: true })).catch((err: unknown) => {
+      this.logger.error(
+        `link ${res.data.id}: the first run after creation failed (${err instanceof Error ? err.message : String(err)}), the next poll carries it`,
+      );
+    });
+    return await this.config.publicLink((await this.config.getLink(res.data.id)) ?? res.data, publicOrigin(req));
   }
 
   @Patch('links/:linkId')
   @HttpCode(200)
-  updateLink(
+  async updateLink(
     @Param('tripId') tripId: string,
     @Param('linkId') linkId: string,
     @CurrentUser() user: User,
     @Body() body: DocsyncLinkUpdateDto,
     @Req() req: Request,
   ) {
-    this.assertCanManage(tripId, user);
-    const link = this.config.getLink(Number(linkId));
+    await this.assertCanManage(tripId, user);
+    const link = await this.config.getLink(Number(linkId));
     if (!link || link.trip_id !== Number(tripId)) throw new HttpException('Link not found', 404);
-    const updated = this.config.updateLink(link.id, body);
-    return this.config.publicLink(updated ?? link, publicOrigin(req));
+    const updated = await this.config.updateLink(link.id, body);
+    return await this.config.publicLink(updated ?? link, publicOrigin(req));
   }
 
   @Delete('links/:linkId')
   @HttpCode(200)
-  async deleteLink(
-    @Param('tripId') tripId: string,
-    @Param('linkId') linkId: string,
-    @CurrentUser() user: User,
-  ) {
-    this.assertCanManage(tripId, user);
-    const link = this.config.getLink(Number(linkId));
+  async deleteLink(@Param('tripId') tripId: string, @Param('linkId') linkId: string, @CurrentUser() user: User) {
+    await this.assertCanManage(tripId, user);
+    const link = await this.config.getLink(Number(linkId));
     if (!link || link.trip_id !== Number(tripId)) throw new HttpException('Link not found', 404);
 
-    const conn = this.config.getConnection(link.connection_id);
+    const conn = await this.config.getConnection(link.connection_id);
     const provider = conn ? this.registry.get(conn.provider_id) : undefined;
     if (conn && provider?.unregisterWebhook && link.webhook_subscription_id) {
       await provider.unregisterWebhook(this.config.toRef(conn), link.webhook_subscription_id);
     }
-    this.config.deleteLink(link.id);
+    await this.config.deleteLink(link.id);
     this.announceBinding(link);
     // Unbinding keeps both copies. Nothing is deleted anywhere.
     return { success: true, documentsKept: true };
@@ -366,51 +375,38 @@ export class DocSyncController {
 
   @Post('links/:linkId/sync')
   @HttpCode(200)
-  async syncNow(
-    @Param('tripId') tripId: string,
-    @Param('linkId') linkId: string,
-    @Body() body: DocsyncSyncNowDto,
-  ) {
-    const link = this.config.getLink(Number(linkId));
+  async syncNow(@Param('tripId') tripId: string, @Param('linkId') linkId: string, @Body() body: DocsyncSyncNowDto) {
+    const link = await this.config.getLink(Number(linkId));
     if (!link || link.trip_id !== Number(tripId)) throw new HttpException('Link not found', 404);
     // An orphaned binding stays orphaned: its credential belongs to somebody who
     // is no longer on this trip. The run itself would stand down as well; this
     // says why, instead of answering with an empty run.
-    if (this.config.isOrphaned(link)) {
+    if (await this.config.isOrphaned(link)) {
       throw new HttpException({ error: 'This binding lost its owner and has to be reconnected' }, 409);
     }
     // Refused before the shelved rows are touched, so a binding an admin
     // switched off stays exactly as it was and resumes where it stopped. A code
     // rather than a sentence: the client says it in the reader's language.
-    if (this.sync.isSwitchedOff(link)) {
+    if (await this.sync.isSwitchedOff(link)) {
       throw new HttpException({ error: PROVIDER_DISABLED }, 409);
     }
     // A person asking for a run is also asking for the rows that gave up to be
     // tried once more; the scheduler gets no such reprieve.
-    this.sync.retryShelvedItems(link.id);
+    await this.sync.retryShelvedItems(link.id);
     return this.sync.syncLink(link, { full: body.full });
   }
 
   // ── Documents and conflicts ────────────────────────────────────────────────
 
+  /**
+   * R2: DSCTRL4/DSCTRL5's two near-duplicate listing statements now live on
+   * `DocSyncService.itemsForTrip`, kept as two distinct repository methods
+   * (state-filtered vs unfiltered) — never unified with `issues()`'s own
+   * `LIMIT 200` fixed-state-list read.
+   */
   @Get('items')
-  items(@Param('tripId') tripId: string, @Query('state') state?: string) {
-    const rows = state
-      ? this.db.connection
-          .prepare(
-            `SELECT i.*, f.original_name AS file_name FROM document_sync_items i
-               LEFT JOIN trip_files f ON f.id = i.file_id
-              WHERE i.trip_id = ? AND i.state = ? ORDER BY i.id DESC LIMIT 500`,
-          )
-          .all(Number(tripId), state)
-      : this.db.connection
-          .prepare(
-            `SELECT i.*, f.original_name AS file_name FROM document_sync_items i
-               LEFT JOIN trip_files f ON f.id = i.file_id
-              WHERE i.trip_id = ? ORDER BY i.id DESC LIMIT 500`,
-          )
-          .all(Number(tripId));
-    return rows;
+  async items(@Param('tripId') tripId: string, @Query('state') state?: string) {
+    return this.sync.itemsForTrip(Number(tripId), state);
   }
 
   @Post('items/:itemId/resolve')
@@ -421,7 +417,7 @@ export class DocSyncController {
     @CurrentUser() user: User,
     @Body() body: DocsyncResolveConflictDto,
   ) {
-    this.assertCanManage(tripId, user);
+    await this.assertCanManage(tripId, user);
     const ok = await this.sync.resolveConflict(Number(itemId), body.keep, Number(tripId));
     if (!ok) throw new HttpException('Item is not in conflict', 400);
     return { success: true };

@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const it: NotificationLocale = {
   email: {
@@ -37,7 +38,7 @@ const it: NotificationLocale = {
       body: `${p.actor} ti ha invitato a condividere una raccolta. Apri TREK per accettare o rifiutare.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} foto condivise`,
+      title: pluralForm(p.count, 'it', { one: `${p.count} foto condivisa`, other: `${p.count} foto condivise` }),
       body: `${p.actor} ha condiviso ${p.count} foto in "${p.trip}".`,
     }),
     collab_message: (p) => ({
@@ -56,7 +57,12 @@ const it: NotificationLocale = {
       title: "Errore di replica dell'archiviazione",
       body:
         `Scrittura sulla replica non riuscita su '${p.backend}': ${p.op} di ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` Altri ${p.suppressed} errori sono stati soppressi dall'ultima notifica.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'it', {
+              one: " Dall'ultima notifica è stato soppresso un altro errore.",
+              other: ` Dall'ultima notifica sono stati soppressi altri ${p.suppressed} errori.`,
+            })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Sessione Synology rimossa',

@@ -7,8 +7,8 @@ const members: TranslationStrings = {
   'members.invite': 'Bjud in',
   'members.allHaveAccess': 'Alla användare har redan åtkomst.',
   'members.access': 'Åtkomst',
-  'members.person': 'person',
   'members.persons': 'personer',
+  'members.persons.one': 'person',
   'members.you': 'du',
   'members.owner': 'Ägare',
   'members.leaveTrip': 'Lämna resan',
@@ -33,6 +33,9 @@ const members: TranslationStrings = {
   'members.guestAddError': 'Det gick inte att lägga till gästen',
   'members.guestRenameError': 'Det gick inte att byta namn på gästen',
   'members.guestRemoved': 'Gäst borttagen',
-  'members.confirmRemoveGuest': 'Ta bort den här gästen? Deras tilldelningar och kostnadsandelar tas också bort.',
+  'members.confirmRemoveGuest':
+    'Ta bort den här gästen? Deras tilldelningar tas bort och deras andel av varje utgift fördelas på de andra deltagarna.',
+  'members.guestHasPayments':
+    'Den här gästen har betalat en utgift eller ingår i en registrerad betalning. Byt betalare eller ta bort betalningen först.',
 };
 export default members;

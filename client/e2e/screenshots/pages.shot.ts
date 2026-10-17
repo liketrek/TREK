@@ -1,6 +1,4 @@
-import { test, clearNotices } from './shot'
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
+import { test, clearNotices, seed } from './shot'
 
 /**
  * Top-level navigable surfaces. One capture per route; anything that needs a
@@ -11,9 +9,6 @@ import path from 'node:path'
  * for which wiki page consumes which file.
  */
 
-const seed = JSON.parse(
-  readFileSync(path.join(process.cwd(), 'e2e', '.tmp', 'seed.json'), 'utf8'),
-) as { tripId: number; collectionId?: number; journeyId?: number }
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/dashboard')
@@ -28,6 +23,14 @@ test('dashboard', async ({ page, shot }) => {
 
 test('trip planner', async ({ page, shot }) => {
   await page.goto(`/trips/${seed.tripId}`)
+  await clearNotices(page)
+  // The seeded trip is running, so the plan opens on today, which is empty; the
+  // picture shows the first days, where the plan has places, a note and a flight.
+  // On the day's number: the middle of the header is the booked night's pill.
+  await page.locator('.dp-day-header').first().click({ position: { x: 22, y: 20 } })
+  await page.waitForTimeout(1500)
+  await page.locator('.dp-day-header').first().evaluate(el => el.closest('.overflow-y-auto')?.scrollTo({ top: 0 }))
+  await page.waitForTimeout(600)
   await shot.page_('TripPlanner')
 })
 
@@ -62,6 +65,9 @@ test('in-app help', async ({ page, shot }) => {
 })
 
 test('files', async ({ page, shot }) => {
-  await page.goto(`/trips/${seed.tripId}/files`)
+  await page.goto(`/trips/${seed.tripId}`)
+  await clearNotices(page)
+  await page.getByRole('button', { name: /^Files/ }).first().click()
+  await page.waitForTimeout(1200)
   await shot.page_('Files')
 })

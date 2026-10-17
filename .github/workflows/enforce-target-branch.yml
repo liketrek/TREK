@@ -7,7 +7,8 @@ on:
 jobs:
   check-target:
     if: github.repository == 'liketrek/TREK'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       pull-requests: write
       issues: write
@@ -15,7 +16,7 @@ jobs:
 
     steps:
       - name: Flag or clear wrong base branch
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const base = context.payload.pull_request.base.ref;
@@ -68,12 +69,12 @@ jobs:
               return;
             }
 
-            // Dependabot cannot be pointed at dev. `target-branch` in dependabot.yml
-            // applies to version updates only; security updates always open against
-            // the default branch, and security updates are all this repository gets
-            // (there is no dependabot.yml). Labelling them meant close-stale-wrong-branch
-            // shut them 24 hours later, which is how 13 of them died. Retarget instead:
-            // a bot cannot click "Edit" the way the comment below asks a human to.
+            // Dependabot's security updates cannot be pointed at dev. `target-branch`
+            // in .github/dependabot.yml applies to version updates only; security
+            // updates always open against the default branch. Labelling them meant
+            // close-stale-wrong-branch shut them 24 hours later, which is how 13 of
+            // them died. Retarget instead: a bot cannot click "Edit" the way the
+            // comment below asks a human to.
             if (context.payload.pull_request.user.login === 'dependabot[bot]') {
               try {
                 await github.rest.pulls.update({

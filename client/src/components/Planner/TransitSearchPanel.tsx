@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import tzlookup from 'tz-lookup'
 import { ArrowLeftRight, ArrowRight, Bus, CableCar, ChevronDown, ChevronUp, Clock, Footprints, MapPin, Sailboat, Search, TramFront, TrainFront, TrainFrontTunnel } from 'lucide-react'
 import CustomTimePicker from '../shared/CustomTimePicker'
@@ -7,8 +8,12 @@ import { transitApi } from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
-import type { Day, Place, Accommodation } from '../../types'
+import { getDayBookendHotels } from '../../utils/dayOrder'
+import type { Day, Place, Accommodation, Reservation } from '../../types'
+import { useTripStore } from '../../store/tripStore'
+import { isCarrierTransport } from '../../utils/dayMerge'
 import type { TransitProvider } from '@trek/shared'
+import { useIsPhone } from '../../mobile/useIsPhone'
 
 /**
  * Public transit route search (#1065), backed by Transitous (MOTIS) through the
@@ -101,7 +106,105 @@ function fmtDuration(seconds: number, t: (k: string, p?: Record<string, string |
   return m > 0 ? `${h} h ${m} min` : `${h} h`
 }
 
+// ── quick picks ──────────────────────────────────────────────────────────────
+
+const MAX_QUICK_PICKS = 8
+
+function stayPick(a: Accommodation): PickedPlace | null {
+  return a.place_lat != null && a.place_lng != null && a.place_name ? { name: a.place_name, lat: a.place_lat, lng: a.place_lng } : null
+}
+
+/**
+ * The airports, stations and ports the day's flights, trains, buses and ferries leave
+ * from or arrive at (#1506): the way to the hotel after landing starts at one of them.
+ * An endpoint belongs to the day by its own local date, or, without one, by the leg's
+ * day: departures on the booking's first day, arrivals on its last.
+ */
+export function dayBookingStops(day: Pick<Day, 'id' | 'date'>, reservations: Reservation[]): PickedPlace[] {
+  const stops: PickedPlace[] = []
+  for (const r of reservations) {
+    if (!isCarrierTransport(r)) continue
+    const endDay = r.end_day_id ?? r.day_id
+    for (const ep of r.endpoints ?? []) {
+      if (ep.lat == null || ep.lng == null || !ep.name) continue
+      const onDay = ep.local_date
+        ? !!day.date && ep.local_date.slice(0, 10) === day.date.slice(0, 10)
+        : (ep.role === 'from' && r.day_id === day.id) || (ep.role === 'to' && endDay === day.id)
+      if (onDay) stops.push({ name: ep.name, lat: ep.lat, lng: ep.lng })
+    }
+  }
+  return stops
+}
+
+/**
+ * What the from/to fields offer before anything is typed. The stay the day
+ * starts in and the one it ends in come first and are never cut, since most
+ * connections of a day begin or end there (#2538); the day's airports and
+ * stations follow and are not cut either (#1506); then the day's own located
+ * places and the trip's other stays, up to MAX_QUICK_PICKS.
+ */
+export function buildQuickPicks(day: Day, days: Day[], places: Place[], accommodations: Accommodation[], bookingStops: PickedPlace[] = []): PickedPlace[] {
+  const { morning, evening } = getDayBookendHotels(day, days, accommodations)
+  const dayStays = [morning, evening].filter((a): a is Accommodation => a != null)
+
+  const seen = new Set<string>()
+  const unique = (p: PickedPlace | null): p is PickedPlace => {
+    if (!p) return false
+    const k = `${p.name}:${p.lat}`
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  }
+
+  const stays = dayStays.map(stayPick).filter(unique)
+  const stations = bookingStops.filter(unique)
+  const rest = [
+    ...places.map(p => (p.lat != null && p.lng != null ? { name: p.name, lat: p.lat, lng: p.lng } : null)),
+    ...accommodations.filter(a => !dayStays.includes(a)).map(stayPick),
+  ].filter(unique)
+  return [...stays, ...stations, ...rest.slice(0, MAX_QUICK_PICKS)]
+}
+
 // ── from/to stop picker ──────────────────────────────────────────────────────
+
+const LIST_GAP = 4
+const LIST_MAX = 240
+const VIEW_EDGE = 12
+
+/**
+ * Where the suggestion list sits on screen: under the field, or above it when the
+ * window has no room below. Measured again on scroll and resize while it is open.
+ */
+function useFloatingList(anchorRef: React.RefObject<HTMLElement | null>, open: boolean) {
+  const [pos, setPos] = useState<{ left: number; width: number; top: number; bottom: number; above: boolean; maxHeight: number } | null>(null)
+  useEffect(() => {
+    if (!open) { setPos(null); return }
+    const place = () => {
+      const el = anchorRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const below = window.innerHeight - r.bottom - VIEW_EDGE
+      const aboveRoom = r.top - VIEW_EDGE
+      const above = below < 160 && aboveRoom > below
+      setPos({
+        left: r.left,
+        width: r.width,
+        top: r.bottom + LIST_GAP,
+        bottom: window.innerHeight - r.top + LIST_GAP,
+        above,
+        maxHeight: Math.max(120, Math.min(LIST_MAX, (above ? aboveRoom : below) - LIST_GAP)),
+      })
+    }
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open, anchorRef])
+  return pos
+}
 
 function StopPicker({ label, value, onPick, quickPicks, near, placeholder }: {
   label: string
@@ -117,9 +220,15 @@ function StopPicker({ label, value, onPick, quickPicks, near, placeholder }: {
   const [open, setOpen] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const fieldRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const listPos = useFloatingList(fieldRef, open)
 
   useEffect(() => {
-    const close = (e: MouseEvent) => { if (!rootRef.current?.contains(e.target as Node)) setOpen(false) }
+    const close = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (!rootRef.current?.contains(target) && !listRef.current?.contains(target)) setOpen(false)
+    }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
   }, [])
@@ -143,44 +252,49 @@ function StopPicker({ label, value, onPick, quickPicks, near, placeholder }: {
   return (
     <div ref={rootRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
       <label className="block text-[11px] font-semibold text-content-faint mb-[5px] uppercase tracking-[0.03em]">{label}</label>
-      <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 7, borderRadius: 10, padding: '0 10px', height: 38 }}>
+      <div ref={fieldRef} className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 7, borderRadius: 10, padding: '0 10px', height: 38 }}>
         <MapPin size={14} className="text-content-faint" style={{ flexShrink: 0 }} />
         <input
           value={display}
           onChange={e => search(e.target.value)}
+          // Opens its list on focus, so a dialog must not focus it by itself (#1302).
+          data-no-autofocus
           onFocus={() => setOpen(true)}
           placeholder={placeholder}
           className="text-content"
           style={{ border: 0, background: 'none', outline: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', width: '100%', fontFamily: 'inherit' }}
         />
       </div>
-      {open && (results.length > 0 || (!value && text.trim().length < 2 && quickPicks.length > 0)) && (
-        <div className="bg-surface-card border border-edge" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.14)', zIndex: 30, overflow: 'hidden', maxHeight: 240, overflowY: 'auto' }}>
+      {open && listPos && (results.length > 0 || (!value && text.trim().length < 2 && quickPicks.length > 0)) && createPortal(
+        // On the page rather than inside the dialog, so a dialog that scrolls or clips
+        // its content cannot cut the list off before anything is typed.
+        <div ref={listRef} className="bg-surface-card border border-edge z-[var(--z-toast)]" style={{ position: 'fixed', left: listPos.left, width: listPos.width, ...(listPos.above ? { bottom: listPos.bottom } : { top: listPos.top }), borderRadius: 10, boxShadow: 'var(--shadow-dropdown)', overflow: 'hidden', maxHeight: listPos.maxHeight, overflowY: 'auto' }}>
           {results.length > 0
             ? results.map((r, i) => (
               <button type="button" key={i} onClick={() => { onPick({ name: r.name, lat: r.lat, lng: r.lng }); setText(''); setResults([]); setOpen(false) }}
                 className="text-content"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'start', padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                 <MapPin size={13} className="text-content-faint" style={{ flexShrink: 0 }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {r.name}
-                  {r.area && <span className="text-content-faint"> · {r.area}</span>}
+                  {r.area && <span className="ms-1.5 text-content-faint">{r.area}</span>}
                 </span>
               </button>
             ))
             : quickPicks.map((p, i) => (
               <button type="button" key={i} onClick={() => { onPick(p); setText(''); setOpen(false) }}
                 className="text-content"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'start', padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                 <MapPin size={13} className="text-content-faint" style={{ flexShrink: 0 }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
               </button>
             ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
@@ -215,13 +329,13 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
   const walkMins = Math.round(it.walkSeconds / 60)
   return (
     <div className="bg-surface-card border border-edge" style={{ borderRadius: 14, overflow: 'hidden' }}>
-      <button type="button" onClick={onToggle} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 14px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+      <button type="button" onClick={onToggle} style={{ display: 'block', width: '100%', textAlign: 'start', padding: '12px 14px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
           <span className="text-content" style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.01em' }}>
             {fmtTimeInTz(it.startTime, tzFrom, is12h)} – {fmtTimeInTz(it.endTime, tzTo, is12h)}
           </span>
           <span className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{fmtDuration(it.duration, t)}</span>
-          <span className="text-content-faint" style={{ marginLeft: 'auto', fontSize: 'calc(12px * var(--fs-scale-body, 1))', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          <span className="text-content-faint" style={{ marginInlineStart: 'auto', fontSize: 'calc(12px * var(--fs-scale-body, 1))', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
             <span>{it.transfers === 0 ? t('transit.direct') : t('transit.transfers', { count: it.transfers })}</span>
             {walkMins > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Footprints size={12} />{t('transit.min', { count: walkMins })}</span>}
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -263,7 +377,7 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
               const color = leg.mode === 'WALK' ? 'var(--border-primary)' : (leg.lineColor || 'var(--text-muted)')
               return (
                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '44px 18px 1fr', gap: 8, alignItems: 'stretch' }}>
-                  <div className="text-content-muted" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, paddingTop: 2, textAlign: 'right' }}>
+                  <div className="text-content-muted" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, paddingTop: 2, textAlign: 'end' }}>
                     {fmtTimeInTz(leg.from.time ?? leg.from.scheduledTime, tzAt(leg.from.lat, leg.from.lng), is12h)}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -299,7 +413,7 @@ function ItineraryCard({ it, tzFrom, tzTo, is12h, expanded, onToggle, onAdd, add
             })}
             {/* arrival row */}
             <div style={{ display: 'grid', gridTemplateColumns: '44px 18px 1fr', gap: 8, alignItems: 'center' }}>
-              <div className="text-content-muted" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, textAlign: 'right' }}>
+              <div className="text-content-muted" style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, textAlign: 'end' }}>
                 {fmtTimeInTz(it.endTime, tzTo, is12h)}
               </div>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -352,7 +466,7 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
   const { t, language } = useTranslation()
   const toast = useToast()
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const isMobile = useIsPhone()
 
   const [from, setFrom] = useState<PickedPlace | null>(initialFrom)
   const [to, setTo] = useState<PickedPlace | null>(initialTo)
@@ -366,21 +480,11 @@ export default function TransitSearchPanel({ day, days, places, accommodations =
   const [addingIdx, setAddingIdx] = useState<number | null>(null)
   const [provider, setProvider] = useState<TransitProvider | null>(null)
 
-  // Quick picks: the day's located places, plus the trip's located accommodations.
-  const quickPicks = useMemo<PickedPlace[]>(() => {
-    const picks: PickedPlace[] = []
-    for (const p of places) {
-      if (p.lat != null && p.lng != null) picks.push({ name: p.name, lat: p.lat, lng: p.lng })
-    }
-    for (const a of accommodations) {
-      const lat = (a as { place_lat?: number | null }).place_lat
-      const lng = (a as { place_lng?: number | null }).place_lng
-      const name = (a as { place_name?: string | null }).place_name
-      if (lat != null && lng != null && name) picks.push({ name, lat, lng })
-    }
-    const seen = new Set<string>()
-    return picks.filter(p => { const k = `${p.name}:${p.lat}`; if (seen.has(k)) return false; seen.add(k); return true }).slice(0, 8)
-  }, [places, accommodations])
+  const reservations = useTripStore(s => s.reservations)
+  const quickPicks = useMemo(
+    () => buildQuickPicks(day, days, places, accommodations, dayBookingStops(day, reservations)),
+    [day, days, places, accommodations, reservations],
+  )
 
   const near = quickPicks.length > 0 ? `${quickPicks[0].lat},${quickPicks[0].lng}` : null
 

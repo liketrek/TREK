@@ -74,7 +74,7 @@ describe('MAdminUsersSection', () => {
   it('FE-MOB-AUSERS-001: lists users with role badges, the "you" marker and the count', () => {
     renderSection({ users: [ME, ALICE], currentUser: ME });
 
-    expect(screen.getByText('2 users')).toBeInTheDocument();
+    expect(screen.getByText('2 Users')).toBeInTheDocument();
     expect(screen.getByText('admin')).toBeInTheDocument();
     expect(screen.getByText('alice@example.com')).toBeInTheDocument();
     expect(screen.getByText('Administrator')).toBeInTheDocument();
