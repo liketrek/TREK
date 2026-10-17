@@ -3,6 +3,7 @@ import { OPENTOPOMAP_TILE_URL, SATELLITE_TILE_URL } from '../../../constants/map
 import type { DistanceIndexedProfileSample } from '../../../utils/routeGeometry';
 import { OPENFREEMAP_DEFAULT_STYLE } from '../../Map/glProviders';
 import type { TourBaseLayer } from '../../Map/MapLayerSwitcher';
+import { plannerPinShape, type PlannerPinPoint } from '../../Map/plannerPinShape';
 import type { TileTemplate } from './terrainPrefetch';
 import { gradeBand, gradeSegments } from './tourTerrainModel';
 
@@ -198,11 +199,16 @@ export function riderElement(trackColor: string): HTMLElement {
 }
 
 /** A numbered control point, the same pin the flat planner map draws. */
-export function waypointPinElement(index: number, selected: boolean, editable: boolean): HTMLButtonElement {
-  const size = selected ? 30 : 26;
+export function waypointPinElement(
+  point: PlannerPinPoint,
+  index: number,
+  selected: boolean,
+  editable: boolean
+): HTMLButtonElement {
+  const { size, text } = plannerPinShape(point, index, selected);
   const el = document.createElement('button');
   el.type = 'button';
-  el.textContent = String(index + 1);
+  el.textContent = text;
   el.setAttribute('aria-label', `Waypoint ${index + 1}`);
   el.style.cssText = `display:flex;width:${size}px;height:${size}px;align-items:center;justify-content:center;border-radius:9999px;background:${PIN_BLUE};color:white;border:${selected ? 3 : 2}px solid white;box-shadow:0 2px 7px rgba(0,0,0,.4);font:700 11px system-ui;cursor:${editable ? 'grab' : 'pointer'};padding:0`;
   return el;

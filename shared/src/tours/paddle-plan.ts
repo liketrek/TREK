@@ -90,8 +90,16 @@ function bypassedBy(stretches: readonly PaddleStretch[], atM: number): boolean {
   return stretches.some((s) => s.kind === 'portage' && atM >= s.fromM - 0.5 && atM <= s.toM + 0.5);
 }
 
-/** The stretches and locks of a planned tour, measured along the legs between its control points. */
-export function paddleLayoutOfPoints(points: readonly PaddlePlanPoint[]): PaddleLayout {
+/**
+ * The stretches and locks of a planned tour, measured along the legs between
+ * its control points. `legLengths` gives a leg's length where the planner
+ * knows it better than the points do (a leg routed on the water, PAD-11);
+ * without it a leg is as long as its line, or the straight distance.
+ */
+export function paddleLayoutOfPoints(
+  points: readonly PaddlePlanPoint[],
+  legLengths?: ReadonlyArray<number | null | undefined>,
+): PaddleLayout {
   const stretches: PaddleStretch[] = [];
   const at: number[] = [];
   let distance = 0;
@@ -100,7 +108,9 @@ export function paddleLayoutOfPoints(points: readonly PaddlePlanPoint[]): Paddle
     const next = points[index + 1];
     if (!next) return;
     const leg = point.fixed_leg;
-    const length = leg ? lineLengthM(leg.geometry) : haversineMetres(point.lat, point.lng, next.lat, next.lng);
+    const length =
+      legLengths?.[index] ??
+      (leg ? lineLengthM(leg.geometry) : haversineMetres(point.lat, point.lng, next.lat, next.lng));
     const kind = isPortage(leg) ? 'portage' : 'water';
     const last = stretches[stretches.length - 1];
     if (last && last.kind === kind) last.toM = distance + length;

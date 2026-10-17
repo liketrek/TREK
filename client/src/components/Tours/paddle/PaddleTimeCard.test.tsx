@@ -7,8 +7,9 @@ import { resetAllStores, seedStore } from '../../../../tests/helpers/store';
 import { hikePlannerDefaults } from '../../../../tests/helpers/tourPlannerStub';
 import { useSettingsStore } from '../../../store/settingsStore';
 import { paddleEstimateOf, paddlePlanPoints } from '../planner/paddlePlanOf';
+import type { TourPlannerWaypoint } from '../planner/tourPlannerWaypoints';
 import { portageLegBetween } from '../planner/tourRouteActions';
-import type { TourPlannerController, TourPlannerWaypoint } from '../planner/useTourPlanner';
+import type { TourPlannerController } from '../planner/useTourPlanner';
 import { PaddleEstimateBody, PaddleTimeCard, type SpeedControl } from './PaddleTimeCard';
 
 /** What the card writes for a time it cannot give: an en dash. */

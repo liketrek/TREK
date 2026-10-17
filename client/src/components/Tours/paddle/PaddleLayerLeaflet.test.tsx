@@ -33,6 +33,8 @@ const PAINT: PaddlePaint = {
   access: '#4338ca',
   landing: '#0f766e',
   portage: '#9a6233',
+  rapids: '#d97706',
+  gap: '#dc2626',
   disc: '#ffffff',
   shadow: 'rgba(15, 23, 42, 0.35)',
 };

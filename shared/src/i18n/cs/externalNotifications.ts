@@ -73,6 +73,10 @@ const cs: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Vyžádán vodácký region',
+      body: `${p.actor} plánuje vodáckou trasu v regionu ${p.region}. Načti nebo zamítni jeho vodní data v administraci v části Doplňky.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Relace Synology byla zrušena',
       body: 'Váš účet nebo URL Synology se změnil. Byli jste odhlášeni ze Synology Photos.',

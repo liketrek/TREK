@@ -15,6 +15,8 @@ export interface TourWaypointRow {
   fixed_leg?: TourFixedLeg | null;
   /** A lock at this point of a paddle tour; absent where there is none. */
   lock?: PaddleLock | null;
+  /** P2A-03: a shaping point, steering the route only; absent for a stop. */
+  shaping?: boolean;
 }
 
 /** The row as stored, the fixed leg still JSON text. */
@@ -25,13 +27,19 @@ interface StoredWaypoint {
   sequence: number;
   fixed_leg: string | null;
   lock: string | null;
+  shaping: number;
 }
 
-/** A stored row as callers read it: the fixed leg and the lock decoded, each left out entirely where there is none. */
-function readWaypoint({ fixed_leg, lock, ...point }: StoredWaypoint): TourWaypointRow {
+/** A stored row as callers read it: the fixed leg, the lock and the shaping flag, each left out entirely where there is none. */
+function readWaypoint({ fixed_leg, lock, shaping, ...point }: StoredWaypoint): TourWaypointRow {
   const leg = decodeJson(TOUR_WAYPOINT_FIXED_LEG, fixed_leg, 'tour waypoint');
   const stop = decodeJson(TOUR_WAYPOINT_LOCK, lock, 'tour waypoint');
-  return { ...point, ...(leg ? { fixed_leg: leg } : {}), ...(stop ? { lock: stop } : {}) };
+  return {
+    ...point,
+    ...(leg ? { fixed_leg: leg } : {}),
+    ...(stop ? { lock: stop } : {}),
+    ...(shaping ? { shaping: true } : {}),
+  };
 }
 
 /** {@link TourWaypointRow} plus the tour it belongs to, as the trip copy reads it. */
@@ -54,11 +62,11 @@ export class TourWaypointsRepository extends TrekRepository<TourWaypoints> {
     return this.kysely<TourWaypointsKyselyDB>();
   }
 
-  /** TW1 — `SELECT lat, lng, role, sequence, fixed_leg, lock FROM tour_waypoints WHERE place_id = ? ORDER BY sequence`. */
+  /** TW1 — `SELECT lat, lng, role, sequence, fixed_leg, lock, shaping FROM tour_waypoints WHERE place_id = ? ORDER BY sequence`. */
   async listForPlace(place_id: number): Promise<TourWaypointRow[]> {
     const rows = await this.db()
       .selectFrom('tour_waypoints')
-      .select(['lat', 'lng', 'role', 'sequence', 'fixed_leg', 'lock'])
+      .select(['lat', 'lng', 'role', 'sequence', 'fixed_leg', 'lock', 'shaping'])
       .where('place_id', '=', place_id)
       .orderBy('sequence', 'asc')
       .execute();
@@ -70,7 +78,7 @@ export class TourWaypointsRepository extends TrekRepository<TourWaypoints> {
     const rows = await this.db()
       .selectFrom('tour_waypoints as tw')
       .innerJoin('places as p', 'p.id', 'tw.place_id')
-      .select(['tw.place_id', 'tw.lat', 'tw.lng', 'tw.role', 'tw.sequence', 'tw.fixed_leg', 'tw.lock'])
+      .select(['tw.place_id', 'tw.lat', 'tw.lng', 'tw.role', 'tw.sequence', 'tw.fixed_leg', 'tw.lock', 'tw.shaping'])
       .where('p.trip_id', '=', trip_id)
       .orderBy('tw.place_id', 'asc')
       .orderBy('tw.sequence', 'asc')
@@ -79,7 +87,7 @@ export class TourWaypointsRepository extends TrekRepository<TourWaypoints> {
   }
 
   /**
-   * TW3 — `INSERT INTO tour_waypoints (place_id, lat, lng, role, sequence, fixed_leg, lock)
+   * TW3 — `INSERT INTO tour_waypoints (place_id, lat, lng, role, sequence, fixed_leg, lock, shaping)
    * VALUES (...)` for each point. The caller owns the transaction: a create
    * writes the tour first, an edit clears the old points first.
    */
@@ -94,6 +102,7 @@ export class TourWaypointsRepository extends TrekRepository<TourWaypoints> {
         sequence: w.sequence,
         fixed_leg: w.fixed_leg ? encodeJson(TOUR_WAYPOINT_FIXED_LEG, w.fixed_leg) : null,
         lock: w.lock ? encodeJson(TOUR_WAYPOINT_LOCK, w.lock) : null,
+        shaping: w.shaping ? 1 : 0,
       })),
     );
   }

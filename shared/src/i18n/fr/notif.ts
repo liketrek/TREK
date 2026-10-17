@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Échec de l'écriture sur la réplique '{backend}' : {op} de {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Échec de l'écriture sur la réplique '{backend}' : {op} de {key} — {error}. {suppressed} erreurs supplémentaires ont été supprimées depuis la dernière notification.",
+  'notif.paddle_region_requested.title': 'Région de pagaie demandée',
+  'notif.paddle_region_requested.text': '{actor} planifie une sortie en canoë dans {region}',
   'notif.action.view_trip': 'Voir le voyage',
   'notif.action.view_collab': 'Voir les messages',
   'notif.action.view_packing': 'Voir les bagages',

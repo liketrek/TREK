@@ -34,6 +34,7 @@ import {
   plannedTourDurationMinutesSchema,
   tourWebsiteSchema,
   type PaddleBoatType,
+  type PaddleLakeStyle,
   type PaddleWaterContext,
   type TourCreateRequest,
   type TourCreateResponse,
@@ -103,6 +104,7 @@ export class ToursService {
       water_context: r.water_context as PaddleWaterContext | null,
       paddle_speed_kmh: r.paddle_speed_kmh,
       portage_speed_kmh: r.portage_speed_kmh,
+      paddle_lake_style: r.paddle_lake_style as PaddleLakeStyle | null,
       track_marks: decodeJson(TOUR_TRACK_MARKS, r.track_marks, 'tour'),
       has_recorded_track: Boolean(r.has_recorded_track),
       planned: Boolean(r.planned),
@@ -135,6 +137,7 @@ export class ToursService {
       water_context: input.water_context ?? null,
       paddle_speed_kmh: input.paddle_speed_kmh ?? null,
       portage_speed_kmh: input.portage_speed_kmh ?? null,
+      paddle_lake_style: input.paddle_lake_style ?? null,
     };
   }
 
@@ -365,6 +368,7 @@ export class ToursService {
         water_context: row.water_context as PaddleWaterContext | null,
         paddle_speed_kmh: row.paddle_speed_kmh,
         portage_speed_kmh: row.portage_speed_kmh,
+        paddle_lake_style: row.paddle_lake_style as PaddleLakeStyle | null,
       });
       await this.waypointsRepo.deleteForPlace(pid);
       await this.toursRepo.clearRecordedTrack(pid);
@@ -427,6 +431,7 @@ export class ToursService {
         water_context: source.water_context as PaddleWaterContext | null,
         paddle_speed_kmh: source.paddle_speed_kmh,
         portage_speed_kmh: source.portage_speed_kmh,
+        paddle_lake_style: source.paddle_lake_style as PaddleLakeStyle | null,
         track_marks: source.track_marks,
         wanderer_ref: source.wanderer_ref,
         difficulty: source.difficulty,
@@ -579,6 +584,7 @@ export class ToursService {
             derived_from_place_id: null,
             origin: 'gpx',
             portage_speed_kmh: null,
+            paddle_lake_style: null,
             track_marks: null,
             has_recorded_track: 0,
             planned: 0,

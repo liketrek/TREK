@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "'{backend}' kopyasına yazma başarısız oldu: {op} ({key}) — {error}",
   'notif.replica_failure.textSuppressed':
     "'{backend}' kopyasına yazma başarısız oldu: {op} ({key}) — {error}. Son bildirimden bu yana {suppressed} hata daha bastırıldı.",
+  'notif.paddle_region_requested.title': 'Kürek bölgesi istendi',
+  'notif.paddle_region_requested.text': '{actor}, {region} bölgesinde kürek turu planlıyor',
   'notif.action.view_trip': 'Seyahati Görüntüle',
   'notif.action.view_collab': 'Mesajları Görüntüle',
   'notif.action.view_packing': 'Paket listesini görüntüle',

@@ -67,6 +67,10 @@ const es: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Región de kayak pedida',
+      body: `${p.actor} está planificando una ruta en kayak en ${p.region}. Carga o rechaza sus datos de agua en la administración, en Complementos.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Sesión de Synology cerrada',
       body: 'Tu cuenta o URL de Synology ha cambiado. Has cerrado sesión en Synology Photos.',

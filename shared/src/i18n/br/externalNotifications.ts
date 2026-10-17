@@ -70,6 +70,10 @@ const br: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Região de remo pedida',
+      body: `${p.actor} está planejando um passeio de remo em ${p.region}. Carregue ou recuse os dados de água na administração, em Complementos.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Sessão Synology encerrada',
       body: 'Sua conta ou URL do Synology foi alterada. Você foi desconectado do Synology Photos.',

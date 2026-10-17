@@ -8,6 +8,7 @@ import { CLUSTER_OPTIONS, createClusterIcon, revealInCluster, type ClusterGroupL
 import RoadtripViaMarkers from './RoadtripViaMarkers'
 import PlannerWaypointMarker from './PlannerWaypointMarker'
 import HazardLayers from './HazardLayers'
+import { RouteHitBand } from './RouteHitBand'
 import { formatViaDwell } from './routeViaDwell'
 import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors'
 import { serviceMarkerHtml, serviceMarkerOuter } from '../Roadtrip/serviceMarker'
@@ -1158,8 +1159,7 @@ export const MapView = memo(function MapView({
       </MarkerClusterGroup>
 
       {/* Apple-Maps style: darker-blue casing under a bright-blue core, rounded.
-          The casing carries the click when the route can be reshaped: it is the wider of
-          the two, so it is the one a pointer actually lands on. */}
+          When the route can be reshaped an invisible band wider than both takes the click. */}
       {route && route.length > 0 && route.flatMap((seg, i) => seg.length < 2 ? [] : routeWalking?.[i] ? [
         // Walked, so dashed and without the casing: the drive is the solid line (#2532).
         <Polyline
@@ -1173,15 +1173,7 @@ export const MapView = memo(function MapView({
           key={`${i}-casing`}
           positions={seg}
           pathOptions={{ color: routeColors?.[i]?.casing ?? '#0a5cc2', weight: 8, opacity: 1, lineCap: 'round', lineJoin: 'round' }}
-          interactive={!!onRouteClick}
-          eventHandlers={onRouteClick ? {
-            click: (e: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => {
-              // Stops the map's own click, which would otherwise open the add-place menu
-              // underneath the new via.
-              e.originalEvent.stopPropagation()
-              onRouteClick(e.latlng.lat, e.latlng.lng)
-            },
-          } : undefined}
+          interactive={false}
         />,
         <Polyline
           key={`${i}-core`}
@@ -1189,6 +1181,7 @@ export const MapView = memo(function MapView({
           pathOptions={{ color: routeColors?.[i]?.line ?? '#0a84ff', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }}
           interactive={false}
         />,
+        ...(onRouteClick ? [<RouteHitBand key={`${i}-hit`} positions={seg} onRouteClick={onRouteClick} />] : []),
       ])}
 
       {/* The last bit to a place the road does not reach.

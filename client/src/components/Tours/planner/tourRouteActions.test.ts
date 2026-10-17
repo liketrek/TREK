@@ -108,10 +108,25 @@ describe('free legs (P2A-04)', () => {
     expect(aligned.map((point) => point.fixedLeg)).toEqual([undefined, undefined, undefined]);
   });
 
-  it('draws every leg by hand for a paddle tour', () => {
+  it('routes a paddle tour on the water: a via ferrata goes back to the router, a leg drawn by hand follows its points', () => {
     const aligned = alignFreeLegs([A, { ...B, fixedLeg: FERRATA }, C], true);
-    expect(aligned.map((point) => point.fixedLeg?.kind)).toEqual(['free', 'free', undefined]);
-    expect(aligned[1].fixedLeg).toEqual(freeLegBetween(B, C));
+    expect(aligned.map((point) => point.fixedLeg?.kind)).toEqual([undefined, undefined, undefined]);
+    const drawn = alignFreeLegs([{ ...A, fixedLeg: freeLegBetween(A, C) }, B, C], true);
+    expect(drawn[0].fixedLeg).toEqual(freeLegBetween(A, B));
+  });
+
+  it('keeps the shape of a drawn paddle leg while its ends still meet their points, and redraws it once one moves', () => {
+    const shaped = {
+      kind: 'free' as const,
+      geometry: [
+        [A.lat, A.lng],
+        [A.lat + 0.001, A.lng + 0.002],
+        [B.lat, B.lng],
+      ] as [number, number][],
+    };
+    expect(alignFreeLegs([{ ...A, fixedLeg: shaped }, B], true)[0].fixedLeg).toEqual(shaped);
+    const moved = { ...B, lat: B.lat + 0.01 };
+    expect(alignFreeLegs([{ ...A, fixedLeg: shaped }, moved, C], true)[0].fixedLeg).toEqual(freeLegBetween(A, moved));
   });
 });
 
@@ -122,7 +137,31 @@ describe('portages and locks (PAD-03, PAD-07)', () => {
     const carried = togglePortageLeg(alignFreeLegs([A, B, C], true), 'a');
     expect(carried[0].fixedLeg).toEqual(portageLegBetween(A, B));
     expect(togglePortageLeg(carried, 'a')[0].fixedLeg).toEqual(freeLegBetween(A, B));
-    expect(togglePortageLeg(carried, 'c')).toEqual(carried);
+  });
+
+  it('asks for a portage at the last point and draws it to the point set next', () => {
+    const asked = togglePortageLeg(alignFreeLegs([A, B], true), 'b');
+    expect(asked[1]).toMatchObject({ carryNext: true });
+    // Redrawn with no point after it, the ask waits.
+    expect(alignFreeLegs(asked, true)[1]).toMatchObject({ carryNext: true });
+    const placed = alignFreeLegs([...asked, C], true);
+    expect(placed[1].fixedLeg).toEqual(portageLegBetween(B, C));
+    expect(placed[1]).not.toHaveProperty('carryNext');
+    // A second press takes the ask back, and a hike forgets it.
+    expect(togglePortageLeg(asked, 'b')[1]).not.toHaveProperty('carryNext');
+    expect(alignFreeLegs([...asked, C])[1]).not.toHaveProperty('carryNext');
+  });
+
+  it('keeps a portage that follows a way while its ends stay, and draws it straight once one moves', () => {
+    const geometry: [number, number][] = [
+      [A.lat, A.lng],
+      [47.004, 11.006],
+      [B.lat, B.lng],
+    ];
+    const points: RoutePoint[] = [{ ...A, fixedLeg: { ...portageLegBetween(A, B), geometry } }, B, C];
+    expect(alignFreeLegs(points, true)[0].fixedLeg).toEqual(points[0].fixedLeg);
+    const moved = alignFreeLegs([points[0], { ...B, lat: 47.012 }, C], true);
+    expect(moved[0].fixedLeg).toEqual(portageLegBetween(A, { lat: 47.012, lng: B.lng }));
   });
 
   it('keeps a portage and its time when a paddle tour is redrawn, and moves the time to the leg that leads it', () => {

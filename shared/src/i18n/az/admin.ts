@@ -910,6 +910,43 @@ const admin: TranslationStrings = {
     'Məlumatlar © OpenStreetMap iştirakçıları (ODbL), regional çıxarışlar Geofabrik-dən. Hər ayın 3-də yenidən oxunur.',
   'admin.paddleRegions.toast.added': 'Region əlavə edildi. TREK onu arxa planda oxuyur.',
   'admin.paddleRegions.toast.removed': 'Region silindi',
+  'admin.paddleRegions.phase.build': 'Su şəbəkəsi qurulur',
+  'admin.paddleRegions.network.km': '{km} km su',
+  'admin.paddleRegions.network.lakes': '{count} göl',
+  'admin.paddleRegions.network.lakes.one': '{count} göl',
+  'admin.paddleRegions.network.portages': '{count} xəritələnmiş daşıma yeri',
+  'admin.paddleRegions.network.portages.one': '{count} xəritələnmiş daşıma yeri',
+  'admin.paddleRegions.network.inferred': '{count} ehtimal olunan daşıma',
+  'admin.paddleRegions.network.inferred.one': '{count} ehtimal olunan daşıma',
+  'admin.paddleRegions.network.locks': '{count} şlüz',
+  'admin.paddleRegions.network.locks.one': '{count} şlüz',
+  'admin.paddleRegions.network.gaps': '{count} birləşdirilmiş boşluq',
+  'admin.paddleRegions.network.gaps.one': '{count} birləşdirilmiş boşluq',
+  'admin.paddleRegions.network.missing': 'Su şəbəkəsi yoxdur',
+  'admin.paddleRegions.network.missingHint': 'Avarçəkmə marşrutunun izlədiyi şəbəkəni qurmaq üçün regionu yenidən oxu.',
+  'admin.paddleRegions.auto.title': 'Regionları avtomatik yüklə',
+  'admin.paddleRegions.auto.mode.auto': 'Avtomatik',
+  'admin.paddleRegions.auto.mode.ask': 'Sorğu ilə',
+  'admin.paddleRegions.auto.mode.off': 'Söndür',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'Kimsə hələ su məlumatı olmayan yerdə avarçəkmə turu planlaşdırırsa, TREK ən kiçik uyğun regionu dərhal yükləyir, ölçü həddinə qədər və gündə yalnız bir neçəsini. Daha böyükləri burada sorğu kimi gözləyir. Geofabrik-ə yalnız regionun adı gedir, yer heç vaxt.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Hər yeni region admin icazə verənə qədər burada gözləyir. Admin özü planlaşdıranda dərhal yüklənir.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREK özbaşına heç nə yükləmir və heç nə soruşmur. Regionları burada əl ilə əlavə et.',
+  'admin.paddleRegions.auto.maxSize': 'Avtomatik yüklənən ən böyük region',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Daha böyük regionlar burada sorğu kimi gözləyir. Regionun oxunması bir neçə dəqiqə çəkir və bu zaman yaddaş tələb edir.',
+  'admin.paddleRegions.requests.title': 'Sorğulanıb',
+  'admin.paddleRegions.requests.reason.ask': 'Sorğu ilə',
+  'admin.paddleRegions.requests.reason.too_large': 'Çox böyük',
+  'admin.paddleRegions.requests.reason.limit': 'Gündəlik hədd',
+  'admin.paddleRegions.requests.declined': 'Rədd edildi',
+  'admin.paddleRegions.requests.by': '{user} tərəfindən',
+  'admin.paddleRegions.requests.approve': 'Yüklə',
+  'admin.paddleRegions.requests.decline': 'Rədd et',
+  'admin.paddleRegions.origin.auto': 'Avtomatik',
+  'admin.paddleRegions.origin.autoHint': 'TREK bu regionu orada planlaşdırılan avarçəkmə turu üçün özü yüklədi.',
 };
 
 export default admin;

@@ -126,4 +126,16 @@ describe('TourWaypointsRepository', () => {
     t.clear();
     expect((await repo.listForPlace(place.id))[0]).toEqual({ lat: 47, lng: 11, role: 'start', sequence: 0 });
   });
+
+  it('TWREPO-007: a shaping point is stored as such and read back; a stop carries no flag (P2A-03)', async () => {
+    const { place } = tourInTrip();
+    await repo.insertForPlace(place.id, [
+      { lat: 47, lng: 11, role: 'start', sequence: 0 },
+      { lat: 47.05, lng: 11.05, role: 'via', sequence: 1, shaping: true },
+      { lat: 47.1, lng: 11.1, role: 'end', sequence: 2 },
+    ]);
+    const points = await repo.listForPlace(place.id);
+    expect(points[1]).toEqual({ lat: 47.05, lng: 11.05, role: 'via', sequence: 1, shaping: true });
+    expect(points[0]).not.toHaveProperty('shaping');
+  });
 });

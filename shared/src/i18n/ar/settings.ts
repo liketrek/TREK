@@ -104,6 +104,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'إشعارات Webhook',
   'settings.notifyVersionAvailable': 'إصدار جديد متاح',
   'settings.notifyReplicaFailure': 'فشل النسخة المتماثلة للتخزين',
+  'settings.notifyPaddleRegionRequested': 'طلب منطقة تجديف',
   'settings.notificationPreferences.noChannels':
     'لم يتم تكوين قنوات إشعارات. اطلب من المسؤول إعداد إشعارات البريد الإلكتروني أو webhook.',
   'settings.webhookUrl.label': 'رابط Webhook',

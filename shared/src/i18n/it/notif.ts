@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Scrittura sulla replica non riuscita su '{backend}': {op} di {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Scrittura sulla replica non riuscita su '{backend}': {op} di {key} — {error}. Altri {suppressed} errori sono stati soppressi dall'ultima notifica.",
+  'notif.paddle_region_requested.title': 'Regione canoa richiesta',
+  'notif.paddle_region_requested.text': '{actor} sta pianificando un giro in canoa in {region}',
   'notif.action.view_trip': 'Vedi viaggio',
   'notif.action.view_collab': 'Vedi messaggi',
   'notif.action.view_packing': 'Vedi bagagli',

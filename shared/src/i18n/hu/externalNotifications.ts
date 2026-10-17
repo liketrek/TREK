@@ -67,6 +67,10 @@ const hu: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Evezős régiót kértek',
+      body: `${p.actor} evezős túrát tervez itt: ${p.region}. Töltsd be vagy utasítsd el a vízadatait az adminfelületen a Bővítmények alatt.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synology munkamenet törölve',
       body: 'A Synology fiókja vagy URL-je megváltozott. Kijelentkeztek a Synology Photos-ból.',

@@ -33,6 +33,7 @@ export class Tours {
   paddle_speed_kmh?: number | null;
   portage_speed_kmh?: number | null;
   track_marks?: string | null;
+  paddle_lake_style?: TToursPaddleLakeStyle | null;
   tourTypeRef!: Ref<TourTypes>;
   tour_obstacle_reviews_collection = new Collection<TourObstacleReviews>(this);
   tour_sources: Ref<TourSources> | null = null;
@@ -62,6 +63,13 @@ export const ToursWaterContext = {
 } as const;
 
 export type TToursWaterContext = (typeof ToursWaterContext)[keyof typeof ToursWaterContext];
+
+export const ToursPaddleLakeStyle = {
+  DIRECT: 'direct',
+  SHORE: 'shore',
+} as const;
+
+export type TToursPaddleLakeStyle = (typeof ToursPaddleLakeStyle)[keyof typeof ToursPaddleLakeStyle];
 
 export const ToursSchema = defineEntity({
   class: Tours,
@@ -98,6 +106,7 @@ export const ToursSchema = defineEntity({
     paddle_speed_kmh: p.double().nullable(),
     portage_speed_kmh: p.double().nullable(),
     track_marks: p.text().nullable(),
+    paddle_lake_style: p.enum(() => ToursPaddleLakeStyle).nullable(),
     tourTypeRef: () => p.manyToOne(TourTypes).ref().joinColumn('tour_type').hidden().index('idx_tours_tour_type'),
     tour_obstacle_reviews_collection: () => p.oneToMany(TourObstacleReviews).mappedBy('place').hidden(),
     tour_sources: () => p.oneToOne(TourSources).ref().mappedBy('place').hidden(),

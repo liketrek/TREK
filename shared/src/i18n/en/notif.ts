@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Replica write failed on '{backend}': {op} of {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Replica write failed on '{backend}': {op} of {key} — {error}. {suppressed} more failures were suppressed since the last notification.",
+  'notif.paddle_region_requested.title': 'Paddle region requested',
+  'notif.paddle_region_requested.text': '{actor} is planning a paddle tour in {region}',
   'notif.action.view_trip': 'View Trip',
   'notif.action.view_collab': 'View Messages',
   'notif.action.view_packing': 'View Packing',

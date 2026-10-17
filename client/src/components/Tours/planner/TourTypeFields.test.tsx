@@ -75,3 +75,33 @@ describe('TourTypeFields (PAD-01)', () => {
     expect(screen.getByText(/enter a speed|speed of your own/i)).toBeInTheDocument();
   });
 });
+
+describe('TourTypeFields lake style (PAD-11)', () => {
+  it('asks how to cross lakes on lake water or a route over a lake, straight over by default, and hands a change on', () => {
+    const river = planner({}, { waterContext: 'river' });
+    const { rerender } = render(<TourTypeFields planner={river} locked={false} />);
+    expect(screen.queryByTestId('tour-planner-lake-style')).not.toBeInTheDocument();
+
+    const lake = planner({}, { waterContext: 'lake' });
+    rerender(<TourTypeFields planner={lake} locked={false} />);
+    expect(screen.getByRole('button', { name: 'Straight over' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('The shortest line across open water.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Near the shore' }));
+    expect(lake.paddle.setLakeStyle).toHaveBeenCalledWith('shore');
+
+    const lakeLeg = {
+      status: 'ok',
+      geometry: [
+        [53.4, 12.7],
+        [53.5, 12.7],
+      ],
+      segments: [{ kind: 'lake', from: 0, to: 1, name: null, source: null, osm_ref: null, grade: null }],
+      distance_m: 11000,
+      snapped_m: { from: 0, to: 0 },
+    };
+    const crossing = planner({ paddleRoute: { legs: [lakeLeg] } }, { waterContext: 'river', lakeStyle: 'shore' });
+    rerender(<TourTypeFields planner={crossing} locked={false} />);
+    expect(screen.getByRole('button', { name: 'Near the shore' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Stays near the bank, for windy days: longer, but land is never far.')).toBeInTheDocument();
+  });
+});

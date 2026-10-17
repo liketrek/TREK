@@ -607,6 +607,7 @@ const settings: TranslationStrings = {
   'settings.notifySynologySessionCleared': 'ล้างเซสชัน Synology แล้ว',
   'settings.notifyPluginNotification': 'การแจ้งเตือนจากปลั๊กอิน',
   'settings.notifyReplicaFailure': 'การทำสำเนาที่เก็บข้อมูลล้มเหลว',
+  'settings.notifyPaddleRegionRequested': 'มีคำขอภูมิภาคพายเรือ',
   'settings.apiScopes.title': 'สิ่งที่คีย์นี้อ่านได้',
   'settings.apiScopes.hint':
     'เปิดทุกอย่างไว้สำหรับคีย์ที่ควรเห็นข้อมูลทั้งหมด สิ่งที่คุณปิดจะถูกปฏิเสธสำหรับคีย์นี้ ไม่ใช่เพียงไม่แสดงในคำตอบ',

@@ -294,8 +294,6 @@ const tours: TranslationStrings = {
   'tours.paddle.speedInvalid': 'Vul een tempo van 0,5 tot 20 km/h in.',
   'tours.paddle.chooseBoat': 'Kies boot en water om deze peddeltocht op te slaan.',
   'tours.paddle.chooseBoatImport': 'Kies boot en water om als peddeltocht te importeren.',
-  'tours.paddle.drawnByHand':
-    'Een peddeltocht teken je met de hand: TREK verbindt je punten met rechte lijnen. Er wordt niets gerouteerd en niets zegt dat het water bevaarbaar is.',
   'tours.paddle.timeEstimated': 'Peddeltijd (geschat)',
   'tours.paddle.timeEstimatedShort': 'Peddelen',
   'tours.paddle.timeEstimatedInfoLabel': 'Zo wordt de peddeltijd geschat',
@@ -338,6 +336,16 @@ const tours: TranslationStrings = {
   'tours.paddle.portage': 'Overdragen',
   'tours.paddle.portageOn': 'Boot vanaf hier dragen',
   'tours.paddle.portageOff': 'Dit stuk weer peddelen',
+  'tours.paddle.portagePending': 'Vanaf hier overdragen',
+  'tours.paddle.portagePendingHint': 'Zet nu het punt waar je weer te water gaat. Tot daar wordt de boot gedragen.',
+  'tours.paddle.portagePendingOff': 'Toch niet overdragen',
+  'tours.paddle.portageWay': 'Verloop',
+  'tours.paddle.portageWay.follow': 'Het pad volgen',
+  'tours.paddle.portageWay.straight': 'Rechte lijn',
+  'tours.paddle.portageWay.noWay': 'Geen pad zonder grote omweg, de lijn blijft recht.',
+  'tours.paddle.portageWay.searching': 'Pad wordt gezocht',
+  'tours.paddle.placeHere.putIn': 'Hier te water gaan',
+  'tours.paddle.placeHere.egress': 'Hier uit het water gaan',
   'tours.paddle.portageInfo':
     'Hier wordt de boot gedragen. Het stuk telt als land, met tijd voor uitstappen, uitladen en weer te water laten.',
   'tours.paddle.portageExtra': 'Uit en in',
@@ -533,5 +541,65 @@ const tours: TranslationStrings = {
   'tours.paddle.safety.short': 'Peddelen is niet zonder risico. Controleer zelf het water, de regels en het weer.',
   'tours.paddle.safety.text':
     'Peddelen is niet zonder risico. Kaarten, routevoorstellen en aanwijzingen kunnen onvolledig of verouderd zijn. Controleer voor de tocht de actuele plaatselijke omstandigheden, de regels voor het bevaren van het water en het weer. Neem passende veiligheidsmaatregelen. TREK ondersteunt je planning en vervangt je eigen controle en verantwoorde beslissing niet.',
+  'tours.planner.shapingPoint': 'Vormpunt',
+  'tours.planner.shapingHint': 'Stuurt de route zonder een stop te zijn. Sleep het naar waar de route moet lopen.',
+  'tours.planner.makeStop': 'Maak er een stop van',
+  'tours.planner.makeShaping': 'Maak er een vormpunt van',
+  'tours.planner.recomputeLeg': 'Volgend deel opnieuw berekenen',
+  'tours.planner.shapeOnLine': 'Klik op de route op de kaart om daar een vormpunt toe te voegen.',
+  'tours.paddle.routeOnWater': 'Volgend deel over het water plannen',
+  'tours.paddle.routeAllOnWater': 'Met de hand getekende delen over het water plannen',
+  'tours.paddle.auto': 'Gevonden',
+  'tours.paddle.autoHint':
+    'TREK zette dit punt bij een overdraagplaats of sluis die het onderweg vond. Verplaats of wijzig je het, dan is het van jou.',
+  'tours.paddle.note.rapids': 'Wildwater {grade}',
+  'tours.paddle.note.pass': 'Kanogoot',
+  'tours.paddle.note.gap': 'Gat in de kaartgegevens',
+  'tours.paddle.note.rapidsHint': 'De route loopt hier door stromend water. Verken het eerst en draag om bij twijfel.',
+  'tours.paddle.note.gapHint':
+    'De watergegevens hebben hier een gat, overbrugd met een rechte lijn. Controleer het ter plaatse.',
+  'tours.paddle.failed.not_on_water':
+    'Eén uiteinde van dit deel ligt niet op water dat TREK kent. Verplaats het naar de rivier of het meer.',
+  'tours.paddle.failed.no_region': 'Nog geen watergegevens voor dit gebied. Een beheerder kan de regio toevoegen.',
+  'tours.paddle.failed.building':
+    'De watergegevens van deze regio worden nog voorbereid. Probeer het over een paar minuten opnieuw.',
+  'tours.paddle.failed.no_water_path': 'TREK vond geen weg over het water tussen deze punten.',
+  'tours.paddle.failed.cross_region': 'Deze punten liggen in twee regio’s zonder gedeelde watergegevens.',
+  'tours.paddle.failed.busy': 'De routeplanner is bezet. Probeer het zo meteen opnieuw.',
+  'tours.paddle.failed.timeout':
+    'Het plannen van dit deel duurde te lang. Voeg een punt ertussen toe en probeer het opnieuw.',
+  'tours.paddle.failed.offline': 'Geen verbinding. Dit deel wordt gepland zodra je weer verbonden bent.',
+  'tours.paddle.drawStraight': 'Recht tekenen',
+  'tours.paddle.retry': 'Opnieuw proberen',
+  'tours.paddle.load.loading': 'Watergegevens voor {region} worden geladen',
+  'tours.paddle.load.ready': 'De watergegevens voor {region} zijn er, het traject wordt gepland.',
+  'tours.paddle.load.requested':
+    'De watergegevens voor {region} zijn aangevraagd. Het traject wordt gepland zodra een beheerder ze doorlaat.',
+  'tours.paddle.load.waiting': "Wacht op andere regio's",
+  'tours.paddle.load.phase.download': 'Downloaden',
+  'tours.paddle.load.phase.read': 'Inlezen',
+  'tours.paddle.load.phase.build': 'Waternet wordt gebouwd',
+  'tours.paddle.load.hint':
+    'Meestal een tot drie minuten. Plan gerust verder, het traject wordt daarna vanzelf gepland.',
+  'tours.paddle.load.reason.tooLarge': 'De regio is groter dan TREK uit zichzelf laadt.',
+  'tours.paddle.load.reason.limit': "TREK heeft vandaag al genoeg regio's uit zichzelf geladen.",
+  'tours.paddle.load.declined': 'Een beheerder heeft de watergegevens voor {region} afgewezen.',
+  'tours.paddle.load.failed': 'De watergegevens voor {region} konden niet worden geladen.',
+  'tours.paddle.load.noWater':
+    'In de watergegevens voor {region} ligt hier geen water. Zet het punt op de rivier of het meer.',
+  'tours.paddle.load.noExtract': 'Voor dit gebied is er geen kaartuitsnede met watergegevens.',
+  'tours.paddle.load.catalogUnavailable': "De lijst met regio's is nu niet bereikbaar. Probeer het later opnieuw.",
+  'tours.paddle.lakeStyle': 'Over meren',
+  'tours.paddle.lakeStyle.direct': 'Rechtdoor',
+  'tours.paddle.lakeStyle.shore': 'Dicht bij de oever',
+  'tours.paddle.lakeStyle.directHint': 'De kortste lijn over open water.',
+  'tours.paddle.lakeStyle.shoreHint':
+    'Blijft dicht bij de oever, voor winderige dagen: langer, maar land is nooit ver.',
+  'tours.paddle.wind.shoreAdvice':
+    'Tot {mean} km/h, windstoten van {gusts} km/h op deze dag. Op de meren is dicht bij de oever misschien de betere lijn.',
+  'tours.paddle.wind.shoreAdopt': 'Dicht bij de oever plannen',
+  'tours.paddle.wind.shoreTaken': 'De meren zijn dicht bij de oever gepland.',
+  'tours.paddle.status.unrouted': '{count} delen niet gepland',
+  'tours.paddle.status.unrouted.one': '{count} deel niet gepland',
 };
 export default tours;

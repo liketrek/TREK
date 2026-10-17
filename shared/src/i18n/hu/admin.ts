@@ -900,5 +900,43 @@ const admin: TranslationStrings = {
     'Adatok © OpenStreetMap-közreműködők (ODbL), regionális kivonatok: Geofabrik. Újraolvasás minden hónap 3-án.',
   'admin.paddleRegions.toast.added': 'Régió hozzáadva. A TREK a háttérben olvassa be.',
   'admin.paddleRegions.toast.removed': 'Régió eltávolítva',
+  'admin.paddleRegions.phase.build': 'Vízhálózat építése',
+  'admin.paddleRegions.network.km': '{km} km víz',
+  'admin.paddleRegions.network.lakes': '{count} tó',
+  'admin.paddleRegions.network.lakes.one': '{count} tó',
+  'admin.paddleRegions.network.portages': '{count} térképezett átemelőhely',
+  'admin.paddleRegions.network.portages.one': '{count} térképezett átemelőhely',
+  'admin.paddleRegions.network.inferred': '{count} feltételezett átemelés',
+  'admin.paddleRegions.network.inferred.one': '{count} feltételezett átemelés',
+  'admin.paddleRegions.network.locks': '{count} zsilip',
+  'admin.paddleRegions.network.locks.one': '{count} zsilip',
+  'admin.paddleRegions.network.gaps': '{count} áthidalt hiány',
+  'admin.paddleRegions.network.gaps.one': '{count} áthidalt hiány',
+  'admin.paddleRegions.network.missing': 'Nincs vízhálózat',
+  'admin.paddleRegions.network.missingHint':
+    'Olvasd be újra a régiót, hogy felépüljön a hálózat, amelyet az evezős útvonal követ.',
+  'admin.paddleRegions.auto.title': 'Régiók automatikus betöltése',
+  'admin.paddleRegions.auto.mode.auto': 'Automatikus',
+  'admin.paddleRegions.auto.mode.ask': 'Kérésre',
+  'admin.paddleRegions.auto.mode.off': 'Ki',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'Ha valaki olyan helyen tervez evezős túrát, ahol még nincs vízadat, a TREK azonnal betölti a legkisebb megfelelő régiót, a méretkorlátig és naponta csak néhányat. A nagyobbak itt várnak kérésként. A Geofabrik csak a régió nevét kapja meg, a helyet soha.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Minden új régió itt vár, amíg egy admin jóvá nem hagyja. Ha admin tervez, azonnal betöltődik.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'A TREK magától semmit nem tölt be és nem kér. A régiókat itt add hozzá kézzel.',
+  'admin.paddleRegions.auto.maxSize': 'Az automatikusan betöltött legnagyobb régió',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'A nagyobb régiók itt várnak kérésként. Egy régió beolvasása néhány percig tart, és közben memóriát foglal.',
+  'admin.paddleRegions.requests.title': 'Kért',
+  'admin.paddleRegions.requests.reason.ask': 'Kérésre',
+  'admin.paddleRegions.requests.reason.too_large': 'Túl nagy',
+  'admin.paddleRegions.requests.reason.limit': 'Napi korlát',
+  'admin.paddleRegions.requests.declined': 'Elutasítva',
+  'admin.paddleRegions.requests.by': '{user} kérte',
+  'admin.paddleRegions.requests.approve': 'Betöltés',
+  'admin.paddleRegions.requests.decline': 'Elutasítás',
+  'admin.paddleRegions.origin.auto': 'Automatikus',
+  'admin.paddleRegions.origin.autoHint': 'A TREK magától töltötte be ezt a régiót egy ott tervezett evezős túrához.',
 };
 export default admin;

@@ -36,6 +36,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "فشلت الكتابة على النسخة المتماثلة '{backend}': {op} لـ {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "فشلت الكتابة على النسخة المتماثلة '{backend}': {op} لـ {key} — {error}. تم تجاهل {suppressed} فشل إضافي منذ آخر إشعار.",
+  'notif.paddle_region_requested.title': 'طلب منطقة تجديف',
+  'notif.paddle_region_requested.text': '{actor} يخطط لرحلة تجديف في {region}',
   'notif.action.view_trip': 'عرض الرحلة',
   'notif.action.view_collab': 'عرض الرسائل',
   'notif.action.view_packing': 'عرض التعبئة',

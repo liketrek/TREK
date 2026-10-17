@@ -106,6 +106,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': '웹훅 알림',
   'settings.notifyVersionAvailable': '새 버전 사용 가능',
   'settings.notifyReplicaFailure': '스토리지 복제본 오류',
+  'settings.notifyPaddleRegionRequested': '패들 지역 요청',
   'settings.notificationPreferences.email': '이메일',
   'settings.notificationPreferences.webhook': '웹훅',
   'settings.notificationPreferences.inapp': '앱 내',

@@ -67,6 +67,10 @@ const az: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Avarçəkmə regionu sorğulanıb',
+      body: `${p.actor} ${p.region} ərazisində avarçəkmə turu planlaşdırır. Su məlumatını admin bölməsində Əlavələr altında yüklə və ya rədd et.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synology sessiyası təmizləndi',
       body: 'Synology hesabınız və ya URL-iniz dəyişib. Synology Photos sessiyanız bağlanıb.',

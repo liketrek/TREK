@@ -63,6 +63,10 @@ const ca: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Regió de caiac demanada',
+      body: `${p.actor} planifica una ruta en caiac a ${p.region}. Carrega o rebutja les seves dades d'aigua a l'administració, a Complements.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Sessió de Synology tancada',
       body: 'El teu compte o URL de Synology ha canviat. Has tancat la sessió a Synology Photos.',

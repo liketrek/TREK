@@ -295,8 +295,6 @@ const tours: TranslationStrings = {
   'tours.paddle.speedInvalid': 'Gib ein Tempo von 0,5 bis 20 km/h ein.',
   'tours.paddle.chooseBoat': 'Wähle Boot und Gewässer, um diese Paddeltour zu speichern.',
   'tours.paddle.chooseBoatImport': 'Wähle Boot und Gewässer, um als Paddeltour zu importieren.',
-  'tours.paddle.drawnByHand':
-    'Eine Paddeltour wird von Hand gezeichnet: TREK verbindet deine Punkte mit geraden Linien. Nichts wird geroutet, und nichts sagt, dass das Gewässer befahrbar ist.',
   'tours.paddle.timeEstimated': 'Paddelzeit (geschätzt)',
   'tours.paddle.timeEstimatedShort': 'Paddeln',
   'tours.paddle.timeEstimatedInfoLabel': 'Wie die Paddelzeit geschätzt wird',
@@ -339,6 +337,16 @@ const tours: TranslationStrings = {
   'tours.paddle.portage': 'Umtragen',
   'tours.paddle.portageOn': 'Ab hier umtragen',
   'tours.paddle.portageOff': 'Diese Strecke wieder paddeln',
+  'tours.paddle.portagePending': 'Umtragen ab hier',
+  'tours.paddle.portagePendingHint': 'Setz jetzt den Punkt, an dem du wieder einsetzt. Bis dorthin wird umgetragen.',
+  'tours.paddle.portagePendingOff': 'Doch nicht umtragen',
+  'tours.paddle.portageWay': 'Verlauf',
+  'tours.paddle.portageWay.follow': 'Dem Weg folgen',
+  'tours.paddle.portageWay.straight': 'Gerade Linie',
+  'tours.paddle.portageWay.noWay': 'Kein Weg ohne großen Umweg gefunden, die Linie bleibt gerade.',
+  'tours.paddle.portageWay.searching': 'Weg wird gesucht',
+  'tours.paddle.placeHere.putIn': 'Hier einsetzen',
+  'tours.paddle.placeHere.egress': 'Hier aussteigen',
   'tours.paddle.portageInfo':
     'Hier wird das Boot getragen. Die Strecke zählt als Land, mit Zeit für Aussteigen, Ausladen und Wiedereinsetzen.',
   'tours.paddle.portageExtra': 'Aus und ein',
@@ -534,6 +542,68 @@ const tours: TranslationStrings = {
   'tours.paddle.safety.short': 'Paddeln birgt Risiken. Prüfe Gewässer, Regeln und Wetter selbst.',
   'tours.paddle.safety.text':
     'Paddeln ist mit Risiken verbunden. Karten, Routenvorschläge und Hinweise können unvollständig oder veraltet sein. Prüfe vor der Tour die aktuellen örtlichen Bedingungen, Befahrungsregeln und das Wetter. Beachte geeignete Sicherheitsmaßnahmen. TREK unterstützt deine Planung und ersetzt keine eigene Prüfung und verantwortliche Entscheidung.',
+  'tours.planner.shapingPoint': 'Formpunkt',
+  'tours.planner.shapingHint': 'Lenkt die Route, ohne ein Halt zu sein. Zieh ihn dorthin, wo die Route verlaufen soll.',
+  'tours.planner.makeStop': 'Zum Halt machen',
+  'tours.planner.makeShaping': 'Zum Formpunkt machen',
+  'tours.planner.recomputeLeg': 'Nächsten Abschnitt neu berechnen',
+  'tours.planner.shapeOnLine': 'Ein Klick auf die Route in der Karte setzt dort einen Formpunkt.',
+  'tours.paddle.routeOnWater': 'Nächsten Abschnitt auf dem Wasser planen',
+  'tours.paddle.routeAllOnWater': 'Von Hand gezeichnete Abschnitte auf dem Wasser planen',
+  'tours.paddle.auto': 'Erkannt',
+  'tours.paddle.autoHint':
+    'TREK hat diesen Punkt an eine Umtragestelle oder Schleuse auf dem Weg gesetzt. Verschiebst oder änderst du ihn, gehört er dir.',
+  'tours.paddle.note.rapids': 'Wildwasser {grade}',
+  'tours.paddle.note.pass': 'Bootsgasse',
+  'tours.paddle.note.gap': 'Lücke in den Kartendaten',
+  'tours.paddle.note.rapidsHint':
+    'Die Route führt hier durch bewegtes Wasser. Erst besichtigen und im Zweifel umtragen.',
+  'tours.paddle.note.gapHint':
+    'Die Gewässerdaten haben hier eine Lücke, überbrückt mit einer geraden Linie. Prüf das vor Ort.',
+  'tours.paddle.failed.not_on_water':
+    'Ein Ende dieses Abschnitts liegt auf keinem Gewässer, das TREK kennt. Setz es auf den Fluss oder See.',
+  'tours.paddle.failed.no_region':
+    'Für diese Gegend gibt es noch keine Gewässerdaten. Ein Admin kann die Region hinzufügen.',
+  'tours.paddle.failed.building':
+    'Die Gewässerdaten dieser Region werden noch aufbereitet. Versuch es in ein paar Minuten erneut.',
+  'tours.paddle.failed.no_water_path': 'TREK hat zwischen diesen Punkten keinen Weg auf dem Wasser gefunden.',
+  'tours.paddle.failed.cross_region': 'Diese Punkte liegen in zwei Regionen ohne gemeinsame Gewässerdaten.',
+  'tours.paddle.failed.busy': 'Der Routenplaner ist ausgelastet. Versuch es gleich noch einmal.',
+  'tours.paddle.failed.timeout':
+    'Die Planung dieses Abschnitts hat zu lange gedauert. Setz einen Punkt dazwischen und versuch es erneut.',
+  'tours.paddle.failed.offline': 'Offline. Der Abschnitt wird geplant, sobald du wieder verbunden bist.',
+  'tours.paddle.drawStraight': 'Gerade zeichnen',
+  'tours.paddle.retry': 'Erneut versuchen',
+  'tours.paddle.load.loading': 'Gewässerdaten für {region} werden geladen',
+  'tours.paddle.load.ready': 'Die Gewässerdaten für {region} sind da, der Abschnitt wird geplant.',
+  'tours.paddle.load.requested':
+    'Die Gewässerdaten für {region} sind angefragt. Sobald ein Admin sie freigibt, wird der Abschnitt geplant.',
+  'tours.paddle.load.waiting': 'Wartet auf andere Regionen',
+  'tours.paddle.load.phase.download': 'Herunterladen',
+  'tours.paddle.load.phase.read': 'Auslesen',
+  'tours.paddle.load.phase.build': 'Wassernetz wird gebaut',
+  'tours.paddle.load.hint':
+    'Meist ein bis drei Minuten. Plan ruhig weiter, der Abschnitt wird danach von selbst geplant.',
+  'tours.paddle.load.reason.tooLarge': 'Die Region ist größer, als TREK von selbst lädt.',
+  'tours.paddle.load.reason.limit': 'TREK hat heute schon genug Regionen von selbst geladen.',
+  'tours.paddle.load.declined': 'Ein Admin hat die Gewässerdaten für {region} abgelehnt.',
+  'tours.paddle.load.failed': 'Die Gewässerdaten für {region} konnten nicht geladen werden.',
+  'tours.paddle.load.noWater':
+    'In den Gewässerdaten für {region} liegt hier kein Gewässer. Setz den Punkt auf den Fluss oder See.',
+  'tours.paddle.load.noExtract': 'Für diese Gegend gibt es keinen Kartenauszug mit Gewässerdaten.',
+  'tours.paddle.load.catalogUnavailable':
+    'Die Liste der Regionen ist gerade nicht erreichbar. Versuch es später erneut.',
+  'tours.paddle.lakeStyle': 'Über Seen',
+  'tours.paddle.lakeStyle.direct': 'Direkt',
+  'tours.paddle.lakeStyle.shore': 'Ufernah',
+  'tours.paddle.lakeStyle.directHint': 'Die kürzeste Linie über offenes Wasser.',
+  'tours.paddle.lakeStyle.shoreHint': 'Bleibt in Ufernähe, für windige Tage: länger, aber Land ist nie weit.',
+  'tours.paddle.wind.shoreAdvice':
+    'An diesem Tag bis {mean} km/h, Böen {gusts} km/h. Auf den Seen ist ufernah vielleicht die bessere Linie.',
+  'tours.paddle.wind.shoreAdopt': 'Ufernah planen',
+  'tours.paddle.wind.shoreTaken': 'Die Seen sind ufernah geplant.',
+  'tours.paddle.status.unrouted': '{count} Abschnitte nicht geplant',
+  'tours.paddle.status.unrouted.one': '{count} Abschnitt nicht geplant',
 };
 
 export default tours;

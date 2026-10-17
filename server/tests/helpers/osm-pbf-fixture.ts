@@ -1,7 +1,7 @@
 /**
  * A small OpenStreetMap PBF writer for the paddle tests: just enough of the
  * format (blob framing, raw and zlib blobs, a header block, string tables,
- * plain and dense nodes, ways) to build an extract in the test itself, so
+ * plain and dense nodes, ways, relations) to build an extract in the test itself, so
  * no binary fixture is checked in. The field numbers are the ones of
  * https://wiki.openstreetmap.org/wiki/PBF_Format.
  */
@@ -19,6 +19,19 @@ export interface FixtureWay {
   refs: number[];
   tags?: Record<string, string>;
 }
+
+export interface FixtureRelation {
+  id: number;
+  members: Array<{ type: 'node' | 'way' | 'relation'; ref: number; role?: string }>;
+  tags?: Record<string, string>;
+}
+
+type BlockContent = {
+  dense?: FixtureNode[];
+  nodes?: FixtureNode[];
+  ways?: FixtureWay[];
+  relations?: FixtureRelation[];
+};
 
 export function varint(value: number): Buffer {
   const bytes: number[] = [];
@@ -54,8 +67,8 @@ function deltas(values: number[]): number[] {
   return values.map((value, index) => value - (values[index - 1] ?? 0));
 }
 
-/** One data block: a string table and one group of dense nodes, plain nodes and ways. */
-export function dataBlock(content: { dense?: FixtureNode[]; nodes?: FixtureNode[]; ways?: FixtureWay[] }): Buffer {
+/** One data block: a string table and one group of dense nodes, plain nodes, ways and relations. */
+export function dataBlock(content: BlockContent): Buffer {
   const strings = [''];
   const index = (text: string): number => {
     const at = strings.indexOf(text);
@@ -118,6 +131,35 @@ export function dataBlock(content: { dense?: FixtureNode[]; nodes?: FixtureNode[
     groups.push(bytesField(3, body));
   }
 
+  for (const relation of content.relations ?? []) {
+    const tags = Object.entries(relation.tags ?? {});
+    const body = Buffer.concat([
+      varintField(1, relation.id),
+      packed(
+        2,
+        tags.map(([k]) => index(k)),
+        false,
+      ),
+      packed(
+        3,
+        tags.map(([, v]) => index(v)),
+        false,
+      ),
+      packed(
+        8,
+        relation.members.map((member) => index(member.role ?? '')),
+        false,
+      ),
+      packed(9, deltas(relation.members.map((member) => member.ref)), true),
+      packed(
+        10,
+        relation.members.map((member) => ['node', 'way', 'relation'].indexOf(member.type)),
+        false,
+      ),
+    ]);
+    groups.push(bytesField(4, body));
+  }
+
   const table = Buffer.concat(strings.map((text) => bytesField(1, Buffer.from(text, 'utf8'))));
   return Buffer.concat([bytesField(1, table), ...groups.map((group) => bytesField(2, group))]);
 }
@@ -146,7 +188,7 @@ export function framedBlob(
 
 /** A whole extract: the header block, then one data block per entry. */
 export function pbfFile(
-  blocks: Array<{ dense?: FixtureNode[]; nodes?: FixtureNode[]; ways?: FixtureWay[] }>,
+  blocks: BlockContent[],
   options: { timestamp?: number; compression?: 'zlib' | 'raw' } = {},
 ): Buffer {
   return Buffer.concat([

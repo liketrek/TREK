@@ -2,7 +2,7 @@ import { type Tours, type TToursOrigin, ToursOrigin } from '../entities/Tours.en
 import type { DB } from '../kysely/db';
 import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import type { PaddleBoatType, PaddleWaterContext } from '@trek/shared';
+import type { PaddleBoatType, PaddleLakeStyle, PaddleWaterContext } from '@trek/shared';
 
 /**
  * A tour as the Tours list and detail read it: the `tours` facet joined with
@@ -32,6 +32,7 @@ export interface TourListRow {
   water_context: string | null;
   paddle_speed_kmh: number | null;
   portage_speed_kmh: number | null;
+  paddle_lake_style: string | null;
   /** The marks laid onto a recorded track, still JSON text. */
   track_marks: string | null;
   has_recorded_track: number;
@@ -62,6 +63,7 @@ export interface TourRow {
   water_context: string | null;
   paddle_speed_kmh: number | null;
   portage_speed_kmh: number | null;
+  paddle_lake_style: string | null;
   track_marks: string | null;
 }
 const _tourRowKeys: AssertRowKeys<TourRow, Tours> = true;
@@ -83,6 +85,7 @@ export interface TourInsert {
   water_context?: PaddleWaterContext | null;
   paddle_speed_kmh?: number | null;
   portage_speed_kmh?: number | null;
+  paddle_lake_style?: PaddleLakeStyle | null;
 }
 
 /** What a route edit replaces on an existing tour: the type and everything that belongs to it. */
@@ -95,6 +98,7 @@ export type TourUpdate = Omit<
   | 'water_context'
   | 'paddle_speed_kmh'
   | 'portage_speed_kmh'
+  | 'paddle_lake_style'
 > & {
   planned_duration_minutes?: number | null;
   break_additional_minutes?: number | null;
@@ -102,6 +106,7 @@ export type TourUpdate = Omit<
   water_context: PaddleWaterContext | null;
   paddle_speed_kmh: number | null;
   portage_speed_kmh: number | null;
+  paddle_lake_style: PaddleLakeStyle | null;
 };
 
 /** A recorded track's paddle plan (PAD-03, PAD-07): its speeds, its marks and the time they make. */
@@ -193,6 +198,7 @@ export class ToursRepository extends TrekRepository<Tours> {
         't.water_context as water_context',
         't.paddle_speed_kmh as paddle_speed_kmh',
         't.portage_speed_kmh as portage_speed_kmh',
+        't.paddle_lake_style as paddle_lake_style',
         't.track_marks as track_marks',
         eb('t.recorded_route_geometry', 'is not', null).as('has_recorded_track'),
         eb
@@ -449,6 +455,7 @@ export class ToursRepository extends TrekRepository<Tours> {
       water_context: input.water_context ?? null,
       paddle_speed_kmh: input.paddle_speed_kmh ?? null,
       portage_speed_kmh: input.portage_speed_kmh ?? null,
+      paddle_lake_style: input.paddle_lake_style ?? null,
       track_marks: input.track_marks ?? null,
     });
   }
@@ -501,6 +508,7 @@ export class ToursRepository extends TrekRepository<Tours> {
         water_context: input.water_context,
         paddle_speed_kmh: input.paddle_speed_kmh,
         portage_speed_kmh: input.portage_speed_kmh,
+        paddle_lake_style: input.paddle_lake_style,
       })
       .where('place_id', '=', place_id)
       .where('place_id', 'in', (eb) => eb.selectFrom('places').select('id').where('trip_id', '=', trip_id))

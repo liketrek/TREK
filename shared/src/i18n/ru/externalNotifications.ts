@@ -71,6 +71,10 @@ const ru: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Запрошен регион для сплава',
+      body: `${p.actor} планирует сплав в регионе ${p.region}. Загрузите или отклоните его данные о воде в администрировании в разделе «Дополнения».`,
+    }),
     synology_session_cleared: () => ({
       title: 'Сессия Synology сброшена',
       body: 'Ваш аккаунт или URL Synology изменился. Вы вышли из Synology Photos.',

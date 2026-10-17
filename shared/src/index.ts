@@ -18,6 +18,7 @@ export * from './weather/wind.schema';
 export * from './paddle/paddle-obstacles.schema';
 export * from './paddle/paddle-route-relation';
 export * from './paddle/paddle-regions.schema';
+export * from './paddle/paddle-route.schema';
 export * from './public-api/public-api.schema';
 export * from './airport/airport.schema';
 export * from './config/config.schema';

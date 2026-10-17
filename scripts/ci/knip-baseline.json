@@ -46,7 +46,7 @@
     "client/src/components/Roadtrip/useFollowTrack.ts": 2,
     "client/src/components/Roadtrip/useHotelBookends.ts": 1,
     "client/src/components/Studio/countryShapes.ts": 1,
-    "client/src/components/Tours/planner/useTourPlanner.ts": 3,
+    "client/src/components/Tours/planner/useTourPlanner.ts": 1,
     "client/src/components/shared/ErrorBoundary.tsx": 1,
     "client/src/components/shared/Toast.tsx": 1,
     "client/src/constants/mapDefaults.ts": 4,

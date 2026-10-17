@@ -32,15 +32,18 @@ const REGION: PaddleRegion = {
   id: 'oberpfalz',
   name: 'Oberpfalz',
   status: 'ready',
+  origin: 'admin',
   source_timestamp: '2026-09-30T20:21:02Z',
   imported_at: '2026-10-01T03:00:00.000Z',
   feature_count: 412,
   error: null,
   progress: null,
+  network: null,
 };
 const QUEUED: PaddleRegion = {
   ...REGION,
   status: 'queued',
+  origin: 'admin',
   source_timestamp: null,
   imported_at: null,
   feature_count: 0,
@@ -51,7 +54,7 @@ const ENTRY: PaddleRegionCatalogEntry = { id: 'oberpfalz', name: 'Oberpfalz', pa
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(isEffectivelyOffline).mockReturnValue(false);
-  vi.mocked(paddleRegionsApi.list).mockResolvedValue([REGION]);
+  vi.mocked(paddleRegionsApi.list).mockResolvedValue({ regions: [REGION], requests: [] });
   vi.mocked(paddleRegionsApi.catalog).mockResolvedValue([ENTRY]);
   vi.mocked(paddleRegionsApi.add).mockResolvedValue(QUEUED);
   vi.mocked(paddleRegionsApi.refresh).mockResolvedValue(READING);
@@ -61,7 +64,7 @@ beforeEach(() => {
 describe('paddleRegionRepo online', () => {
   it('FE-REPO-PADDLEREGION-001: the list and the catalogue search go to the api and answer what it answers', async () => {
     const signal = new AbortController().signal;
-    await expect(paddleRegionRepo.list()).resolves.toEqual([REGION]);
+    await expect(paddleRegionRepo.list()).resolves.toEqual({ regions: [REGION], requests: [] });
     await expect(paddleRegionRepo.catalog('ober', signal)).resolves.toEqual([ENTRY]);
     expect(paddleRegionsApi.list).toHaveBeenCalledTimes(1);
     expect(paddleRegionsApi.catalog).toHaveBeenCalledWith('ober', signal);
@@ -113,7 +116,7 @@ describe('paddleRegionRepo offline', () => {
   it('FE-REPO-PADDLEREGION-006: the connection is read at each call, so the next call once it is back goes through', async () => {
     vi.mocked(isEffectivelyOffline).mockReturnValueOnce(true);
     await expect(paddleRegionRepo.list()).rejects.toBeInstanceOf(PaddleRegionsOfflineError);
-    await expect(paddleRegionRepo.list()).resolves.toEqual([REGION]);
+    await expect(paddleRegionRepo.list()).resolves.toEqual({ regions: [REGION], requests: [] });
     expect(paddleRegionsApi.list).toHaveBeenCalledTimes(1);
   });
 });
@@ -159,6 +162,7 @@ describe('paddleRegionsApi', () => {
     server.use(
       contractHandler('get', LIST, { response: paddleRegionListResponseSchema }, () => ({
         regions: [REGION, READING],
+        requests: [],
       })),
       contractHandler('get', CATALOG, { response: paddleRegionCatalogResponseSchema }, ({ request }) => {
         searches.push(new URL(request.url).searchParams.get('q'));
@@ -166,7 +170,7 @@ describe('paddleRegionsApi', () => {
       })
     );
 
-    await expect(api.list()).resolves.toEqual([REGION, READING]);
+    await expect(api.list()).resolves.toEqual({ regions: [REGION, READING], requests: [] });
     await expect(api.catalog('ober')).resolves.toEqual([ENTRY]);
     expect(searches).toEqual(['ober']);
   });

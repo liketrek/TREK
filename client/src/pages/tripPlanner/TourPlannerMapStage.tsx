@@ -11,9 +11,11 @@ import { MapViewAuto as MapView } from '../../components/Map/MapViewAuto';
 import LocationSelect from '../../components/Planner/LocationSelect';
 import { ChecklistObstaclePanel } from '../../components/Tours/paddle/ObstacleDecisionPanel';
 import PaddleObstacleOverlay from '../../components/Tours/paddle/PaddleObstacleOverlay';
+import { PaddleObstaclePlaceButton } from '../../components/Tours/paddle/PaddleObstaclePlaceButton';
+import { useShapingClick } from '../../components/Tours/planner/useShapingClick';
 import type { TerrainLegendLayout } from '../../components/Tours/terrain/TourTerrainMap';
 import { isRtlLanguage, useTranslation } from '../../i18n';
-import { usePaddleObstacleStore } from '../../store/paddleObstacleStore';
+import { selectPaddleObstacle, usePaddleObstacleStore } from '../../store/paddleObstacleStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { publishTourFerrataCrossings } from '../../store/tourFerrataCrossingStore';
 import { useFerrataAdopt } from './useFerrataAdopt';
@@ -137,6 +139,14 @@ export function TourPlannerMapStage({
   const closingPress = useOutsidePressGuard();
   const paddleOpen = usePaddleObstacleStore((state) => state.selectedRef !== null);
   const adoptFerrata = useFerrataAdopt(tourPlanner, canPlaceEdit, ferrata.close);
+  // PAD-05B: a put-in, slipway or egress taken over from its card as the tour's next point.
+  const placeFromCard =
+    canPlaceEdit && tourPlanner.isPaddle && !tourPlanner.isSaving && tourPlanner.mode.type !== 'view-gpx'
+      ? (lat: number, lng: number) => {
+          tourPlanner.addWaypoint(lat, lng);
+          selectPaddleObstacle(null);
+        }
+      : undefined;
   const ferrataOnTour = useMemo(() => new Set(ferrataCrossings.map(({ group }) => group.id)), [ferrataCrossings]);
   const distanceUnit = useSettingsStore((s) => s.settings.distance_unit);
   // The "set points" tool, per mode; only a real click places, never the end of a drag.
@@ -150,6 +160,8 @@ export function TourPlannerMapStage({
   });
   // PAD-03 on a recorded paddle track: with a marking tool on, a click on the line marks the spot on it.
   const { pickOnLine, onAddOrMark } = useTrackLinePick(tourPlanner, canPlaceEdit, closingPress.guard, waypoints.onAdd);
+  // P2A-03: a click on the route being edited sets a shaping point there.
+  const shapeAt = useShapingClick(tourPlanner, { editable: !!waypoints.onMove, picking: pickOnLine });
   // What each panel covers of the map, a collapsed one its rail.
   const leftInset = leftHidden ? 56 : leftPanelPx;
   const rightInset = rightHidden ? 56 : rightPanelPx;
@@ -180,6 +192,7 @@ export function TourPlannerMapStage({
               rightWidth={rightInset}
               waypoints={waypoints}
               framePoints={tourMap.focusPoints}
+              water={tourPlanner.isPaddle}
               ferrataLayer={ferrataLayer}
               onViewportChange={viewportChanged}
               onControlsHeightChange={setTerrainControlsPx}
@@ -209,6 +222,7 @@ export function TourPlannerMapStage({
             selectedPlannerWaypointId={waypoints.selectedId}
             onPlannerWaypointClick={tourPlanner.setSelectedWaypointId}
             onPlannerWaypointMove={waypoints.onMove}
+            onRouteClick={shapeAt}
             routeProfileFocus={tourPlanner.routeProfileFocus}
             viewBaseLayer={baseLayer}
             onViewBaseLayerChange={tourPlanner.setMapBaseLayer}
@@ -235,11 +249,18 @@ export function TourPlannerMapStage({
         onOutsidePress={closingPress.arm}
         insetEnd={(isRtlLanguage(language) ? leftInset : rightInset) + MAP_LAYER_SWITCHER_INSET}
         {...ferrataCardPlacement(terrain3d, bottomRowTop, terrainLegend)}
-        extra={(detail) =>
-          paddleChecklist ? (
-            <ChecklistObstaclePanel checklist={paddleChecklist} featureRef={detail.feature.ref} />
-          ) : null
-        }
+        extra={(detail) => (
+          <>
+            {paddleChecklist && <ChecklistObstaclePanel checklist={paddleChecklist} featureRef={detail.feature.ref} />}
+            {placeFromCard && (
+              <PaddleObstaclePlaceButton
+                kind={detail.feature.kind}
+                geometry={detail.feature.geometry}
+                onPlace={placeFromCard}
+              />
+            )}
+          </>
+        )}
       />
       {/* "Point set", with the way back, above the bottom row and between the panels. */}
       {placedHint.shown && (

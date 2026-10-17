@@ -24,11 +24,15 @@ const repo = vi.hoisted(() => ({
   add: vi.fn<(id: string) => Promise<PaddleRegion>>(),
   refresh: vi.fn<(id: string) => Promise<PaddleRegion>>(),
   remove: vi.fn<(id: string) => Promise<{ success: true }>>(),
+  decline: vi.fn<(id: string) => Promise<{ success: true }>>(),
+  settings: vi.fn(async () => ({ mode: 'auto' as const, max_mb: 500 })),
+  saveSettings: vi.fn(async (settings: { mode: 'auto' | 'ask' | 'off'; max_mb: number }) => settings),
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock('../../../repo/paddleRegionRepo', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../repo/paddleRegionRepo')>()),
-  paddleRegionRepo: repo,
+  // The list answers its regions and no requests unless a test says otherwise (PAD-11C).
+  paddleRegionRepo: { ...repo, list: () => repo.list().then((regions) => ({ regions, requests: [] })) },
 }));
 vi.mock('../../shared/Toast', () => ({ useToast: () => toast }));
 
@@ -40,11 +44,13 @@ function region(id: string, status: PaddleRegion['status'], over: Partial<Paddle
     id,
     name: id,
     status,
+    origin: 'admin',
     source_timestamp: null,
     imported_at: null,
     feature_count: 0,
     error: null,
     progress: null,
+    network: null,
     ...over,
   };
 }

@@ -67,6 +67,10 @@ const de: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Paddel-Region angefragt',
+      body: `${p.actor} plant eine Paddeltour in ${p.region}. Im Admin-Bereich unter Addons kannst du die Gewässerdaten laden oder ablehnen.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synology-Sitzung beendet',
       body: 'Dein Synology-Konto oder die URL hat sich geändert. Du wurdest von Synology Photos abgemeldet.',

@@ -40,6 +40,10 @@ export type PaddleBoatType = z.infer<typeof paddleBoatTypeSchema>;
 export const paddleWaterContextSchema = z.enum(['river', 'lake']);
 export type PaddleWaterContext = z.infer<typeof paddleWaterContextSchema>;
 
+/** PAD-11: how the router crosses lakes: straight over (the default), or along the shore, which a paddler picks for wind. */
+export const paddleLakeStyleSchema = z.enum(['direct', 'shore']);
+export type PaddleLakeStyle = z.infer<typeof paddleLakeStyleSchema>;
+
 /** The highest planning speed a paddler can enter, in km/h. */
 export const MAX_PADDLE_SPEED_KMH = 20;
 export const paddleSpeedKmhSchema = z.number().finite().min(0.5).max(MAX_PADDLE_SPEED_KMH);
@@ -123,6 +127,8 @@ export const tourSchema = z.object({
   paddle_speed_kmh: z.number().nullable().optional(),
   /** PAD-07: the carrying speed of a paddle tour's portages; null while the starting value applies. */
   portage_speed_kmh: z.number().nullable().optional(),
+  /** PAD-11: how its lakes were routed; null (or absent) means straight over. */
+  paddle_lake_style: paddleLakeStyleSchema.nullable().optional(),
   /** PAD-03: portages and locks laid onto a recorded track; null for a planned tour and a track without any. */
   track_marks: trackMarksSchema.nullable().optional(),
 });
@@ -222,6 +228,11 @@ export const tourWaypointSchema = z.object({
   fixed_leg: tourFixedLegSchema.nullable().optional(),
   /** PAD-07: a lock at this point of a paddle tour, with the times the paddler expects there. */
   lock: paddleLockSchema.nullable().optional(),
+  /**
+   * P2A-03: a shaping point, there only to steer the route: no stop, no place
+   * to get in or out. Absent means a stop, as every point saved before was.
+   */
+  shaping: z.boolean().optional(),
 });
 export type TourWaypoint = z.infer<typeof tourWaypointSchema>;
 
@@ -256,6 +267,7 @@ export const tourCreateRequestSchema = z
     water_context: paddleWaterContextSchema.nullable().optional(),
     paddle_speed_kmh: paddleSpeedKmhSchema.nullable().optional(),
     portage_speed_kmh: portageSpeedKmhSchema.nullable().optional(),
+    paddle_lake_style: paddleLakeStyleSchema.nullable().optional(),
     duration_seconds: z.number().finite().nonnegative().nullable().optional(),
     planned_duration_minutes: plannedTourDurationMinutesSchema.optional(),
     break_additional_minutes: plannedTourDurationMinutesSchema.optional(),
@@ -332,6 +344,7 @@ function tourTypeIssues(value: {
   water_context?: PaddleWaterContext | null;
   paddle_speed_kmh?: number | null;
   portage_speed_kmh?: number | null;
+  paddle_lake_style?: PaddleLakeStyle | null;
   waypoints?: ReadonlyArray<{ fixed_leg?: { kind: string } | null; lock?: unknown }>;
 }): Array<{ path: Array<string | number>; message: string }> {
   const issues: Array<{ path: Array<string | number>; message: string }> = [];
@@ -345,7 +358,13 @@ function tourTypeIssues(value: {
   }
   if (value.max_hiking_difficulty === null)
     issues.push({ path: ['max_hiking_difficulty'], message: 'a hike needs a hiking difficulty' });
-  for (const field of ['boat_type', 'water_context', 'paddle_speed_kmh', 'portage_speed_kmh'] as const) {
+  for (const field of [
+    'boat_type',
+    'water_context',
+    'paddle_speed_kmh',
+    'portage_speed_kmh',
+    'paddle_lake_style',
+  ] as const) {
     if (value[field] != null) issues.push({ path: [field], message: `${field} belongs to a paddle tour` });
   }
   // A portage and a lock are a paddler's: a hike carries no boat.

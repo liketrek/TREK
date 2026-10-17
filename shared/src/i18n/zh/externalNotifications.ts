@@ -61,6 +61,10 @@ const zh: NotificationLocale = {
           ? pluralForm(p.suppressed, 'zh', { other: `自上次通知以来，另有 ${p.suppressed} 次失败未单独通知。` })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: '划桨区域申请',
+      body: `${p.actor} 正在 ${p.region} 规划划桨行程。请在管理后台的附加组件中加载或拒绝其水域数据。`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synology 会话已清除',
       body: '您的 Synology 账户或 URL 已更改，您已退出 Synology Photos。',

@@ -891,5 +891,44 @@ const admin: TranslationStrings = {
     'Gegevens © OpenStreetMap-bijdragers (ODbL), regionale extracten van Geofabrik. Elke maand op de 3e opnieuw ingelezen.',
   'admin.paddleRegions.toast.added': 'Regio toegevoegd. TREK leest de regio op de achtergrond in.',
   'admin.paddleRegions.toast.removed': 'Regio verwijderd',
+  'admin.paddleRegions.phase.build': 'Waternetwerk wordt gebouwd',
+  'admin.paddleRegions.network.km': '{km} km water',
+  'admin.paddleRegions.network.lakes': '{count} meren',
+  'admin.paddleRegions.network.lakes.one': '{count} meer',
+  'admin.paddleRegions.network.portages': '{count} gekarteerde overdraagplaatsen',
+  'admin.paddleRegions.network.portages.one': '{count} gekarteerde overdraagplaats',
+  'admin.paddleRegions.network.inferred': '{count} aangenomen overdrachten',
+  'admin.paddleRegions.network.inferred.one': '{count} aangenomen overdracht',
+  'admin.paddleRegions.network.locks': '{count} sluizen',
+  'admin.paddleRegions.network.locks.one': '{count} sluis',
+  'admin.paddleRegions.network.gaps': '{count} overbrugde gaten',
+  'admin.paddleRegions.network.gaps.one': '{count} overbrugd gat',
+  'admin.paddleRegions.network.missing': 'Geen waternetwerk',
+  'admin.paddleRegions.network.missingHint':
+    'Lees de regio opnieuw in om het netwerk te bouwen dat de peddelroute volgt.',
+  'admin.paddleRegions.auto.title': "Regio's automatisch laden",
+  'admin.paddleRegions.auto.mode.auto': 'Automatisch',
+  'admin.paddleRegions.auto.mode.ask': 'Op aanvraag',
+  'admin.paddleRegions.auto.mode.off': 'Uit',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'Plant iemand een peddeltocht waar nog geen watergegevens zijn, dan laadt TREK meteen de kleinste passende regio, tot de groottegrens en maar een paar per dag. Grotere wachten hier als aanvraag. Alleen de naam van de regio gaat naar Geofabrik, nooit de plek.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Elke nieuwe regio wacht hier tot een beheerder hem doorlaat. Plant een beheerder zelf, dan laadt hij meteen.',
+  'admin.paddleRegions.auto.modeHint.off':
+    "TREK laadt niets uit zichzelf en vraagt niets aan. Voeg regio's hier met de hand toe.",
+  'admin.paddleRegions.auto.maxSize': 'Grootste regio die automatisch laadt',
+  'admin.paddleRegions.auto.maxSizeHint':
+    "Grotere regio's wachten hier als aanvraag. Het inlezen van een regio duurt een paar minuten en kost dan geheugen.",
+  'admin.paddleRegions.requests.title': 'Aangevraagd',
+  'admin.paddleRegions.requests.reason.ask': 'Op aanvraag',
+  'admin.paddleRegions.requests.reason.too_large': 'Te groot',
+  'admin.paddleRegions.requests.reason.limit': 'Daglimiet',
+  'admin.paddleRegions.requests.declined': 'Afgewezen',
+  'admin.paddleRegions.requests.by': 'door {user}',
+  'admin.paddleRegions.requests.approve': 'Laden',
+  'admin.paddleRegions.requests.decline': 'Afwijzen',
+  'admin.paddleRegions.origin.auto': 'Automatisch',
+  'admin.paddleRegions.origin.autoHint':
+    'TREK heeft deze regio zelf geladen voor een peddeltocht die daar gepland wordt.',
 };
 export default admin;

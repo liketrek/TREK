@@ -67,6 +67,10 @@ const nl: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Peddelregio aangevraagd',
+      body: `${p.actor} plant een peddeltocht in ${p.region}. Laad of wijs de watergegevens af in het beheer onder Add-ons.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synology-sessie gewist',
       body: 'Je Synology-account of URL is gewijzigd. Je bent uitgelogd bij Synology Photos.',

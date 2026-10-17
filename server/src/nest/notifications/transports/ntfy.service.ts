@@ -33,6 +33,7 @@ const NTFY_EVENT_META: Partial<Record<NotifEventType, { priority: 1 | 2 | 3 | 4 
   packing_tagged: { priority: 3, tags: ['luggage'] },
   version_available: { priority: 4, tags: ['package'] },
   replica_failure: { priority: 5, tags: ['warning', 'floppy_disk'] },
+  paddle_region_requested: { priority: 3, tags: ['canoe'] },
   synology_session_cleared: { priority: 3, tags: ['warning'] },
 };
 const NTFY_DEFAULT_META = { priority: 3 as const, tags: [] as string[] };

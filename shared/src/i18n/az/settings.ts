@@ -137,6 +137,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Webhook bildirişləri',
   'settings.notifyVersionAvailable': 'Yeni versiya əlçatandır',
   'settings.notifyReplicaFailure': 'Yaddaş replikası xətası',
+  'settings.notifyPaddleRegionRequested': 'Avarçəkmə regionu sorğulanıb',
 
   'settings.notificationPreferences.email': 'E-poçt',
   'settings.notificationPreferences.webhook': 'Webhook',

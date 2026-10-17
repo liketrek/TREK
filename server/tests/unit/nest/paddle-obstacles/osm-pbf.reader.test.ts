@@ -1,13 +1,15 @@
 /**
  * The PBF reader over extracts the test writes itself (tests/helpers/osm-pbf-fixture.ts):
  * blob framing across read chunks, raw and zlib blobs, the header timestamp,
- * plain and dense nodes, ways, and the ways a broken file is refused.
+ * plain and dense nodes, ways, relations, node positions alone (PAD-11), and
+ * the ways a broken file is refused.
  */
 import {
   readDataBlock,
   readHeaderTimestamp,
   readPbfFile,
   type OsmNode,
+  type OsmRelation,
   type OsmWay,
 } from '../../../../src/nest/paddle-obstacles/osm-pbf.reader';
 import {
@@ -202,5 +204,59 @@ describe('readDataBlock and readHeaderTimestamp', () => {
     expect(() => readHeaderTimestamp(Buffer.concat([key(4, 2), varint(10), Buffer.from('ab')]))).toThrow(
       'Truncated field',
     );
+  });
+});
+
+describe('relations and node positions (PAD-11)', () => {
+  it('PBF-013: reads a relation with its members, their types and roles, and skips a field it does not know', () => {
+    const block = dataBlock({
+      relations: [
+        {
+          id: 7,
+          members: [
+            { type: 'way', ref: 100, role: 'outer' },
+            { type: 'way', ref: 90, role: 'inner' },
+            { type: 'node', ref: 5 },
+            { type: 'relation', ref: 3, role: 'subarea' },
+          ],
+          tags: { type: 'multipolygon', natural: 'water', name: 'Müritz' },
+        },
+      ],
+    });
+    const relations: OsmRelation[] = [];
+    readDataBlock(block, { relation: (relation) => relations.push(relation) });
+    expect(relations).toEqual([
+      {
+        id: 7,
+        members: [
+          { type: 'way', ref: 100, role: 'outer' },
+          { type: 'way', ref: 90, role: 'inner' },
+          { type: 'node', ref: 5, role: '' },
+          { type: 'relation', ref: 3, role: 'subarea' },
+        ],
+        tags: { type: 'multipolygon', natural: 'water', name: 'Müritz' },
+      },
+    ]);
+    // A relation with a field the format added later still reads.
+    const unknownField = Buffer.concat([varintField(1, 9), varintField(15, 1)]);
+    const group = bytesField(4, unknownField);
+    const table = bytesField(1, bytesField(1, Buffer.from('')));
+    const read: OsmRelation[] = [];
+    readDataBlock(Buffer.concat([table, bytesField(2, group)]), { relation: (relation) => read.push(relation) });
+    expect(read).toEqual([{ id: 9, members: [], tags: {} }]);
+  });
+
+  it('PBF-014: hands a position visitor the plain and the dense nodes, and nothing else', () => {
+    const block = dataBlock({
+      dense: [{ id: 1, lat: 49.1, lon: 12.1, tags: { waterway: 'weir' } }],
+      nodes: [{ id: 2, lat: 49.2, lon: 12.2 }],
+      ways: [{ id: 3, refs: [1, 2] }],
+    });
+    const seen: Array<[number, number, number]> = [];
+    readDataBlock(block, { coord: (id, lat, lon) => seen.push([id, lat, lon]) });
+    expect(seen.sort((a, b) => a[0] - b[0])).toEqual([
+      [1, expect.closeTo(49.1, 7), expect.closeTo(12.1, 7)],
+      [2, expect.closeTo(49.2, 7), expect.closeTo(12.2, 7)],
+    ]);
   });
 });

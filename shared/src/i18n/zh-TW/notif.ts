@@ -31,6 +31,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "寫入複本 '{backend}' 失敗：{op} / {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "寫入複本 '{backend}' 失敗：{op} / {key} — {error}。自上次通知以來，還有 {suppressed} 個失敗已被抑制。",
+  'notif.paddle_region_requested.title': '划槳區域申請',
+  'notif.paddle_region_requested.text': '{actor} 正在 {region} 規劃划槳行程',
   'notif.action.view_trip': '查看旅行',
   'notif.action.view_collab': '查看訊息',
   'notif.action.view_packing': '查看打包',

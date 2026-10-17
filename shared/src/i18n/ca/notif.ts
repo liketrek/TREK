@@ -30,6 +30,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "L'escriptura a la rèplica '{backend}' ha fallat: {op} de {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "L'escriptura a la rèplica '{backend}' ha fallat: {op} de {key} — {error}. S'han suprimit {suppressed} errors més des de l'última notificació.",
+  'notif.paddle_region_requested.title': 'Regió de caiac demanada',
+  'notif.paddle_region_requested.text': '{actor} planifica una ruta en caiac a {region}',
   'notif.action.view_trip': 'Mostra el viatge',
   'notif.action.view_collab': 'Mostra els missatges',
   'notif.action.view_packing': "Mostra l'equipatge",

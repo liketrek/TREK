@@ -67,6 +67,10 @@ const en: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Paddle region requested',
+      body: `${p.actor} is planning a paddle tour in ${p.region}. Load or decline its water data in the admin area under Addons.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synology session cleared',
       body: 'Your Synology account or URL changed. You have been logged out of Synology Photos.',

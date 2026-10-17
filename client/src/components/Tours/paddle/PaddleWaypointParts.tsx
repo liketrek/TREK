@@ -1,9 +1,10 @@
 import { DEFAULT_PORTAGE_EXTRA_MINUTES, MAX_PADDLE_STOP_MINUTES, type PaddleLock, type PaddleRole } from '@trek/shared';
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, Loader2, X } from 'lucide-react';
 import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from '../../../i18n';
 import { useSettingsStore } from '../../../store/settingsStore';
 import { formatDistance } from '../../../utils/units';
+import { Segmented } from '../../shared/dialogParts';
 import { fs } from '../../shared/DialogShell';
 import { PaddleGlyph } from './PaddleGlyph';
 import { PORTAGE_CSS_COLOR } from './paddlePaint';
@@ -200,6 +201,99 @@ function StopCard({
 }
 
 /**
+ * A portage asked for at the last point, before the point it leads to is set:
+ * dashed in the portage brown, it says where to click next, and can be taken
+ * back. Once the next point is set it becomes a portage like any other.
+ */
+export function PendingPortageRow({ disabled, onRemove }: { disabled: boolean; onRemove: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <li data-testid="tour-planner-portage-pending" className="flex min-w-0 py-0.5 ps-[34px]">
+      <div
+        className="flex w-full min-w-0 items-start gap-1.5 rounded-[14px] border border-dashed bg-surface-card py-1 pe-1 ps-1"
+        style={{ borderColor: PORTAGE_CSS_COLOR }}
+      >
+        <span
+          className="grid h-[20px] w-[20px] flex-none place-items-center rounded-full text-surface-card"
+          style={{ background: PORTAGE_CSS_COLOR }}
+        >
+          <PaddleGlyph kind="portage" size={12} strokeWidth={2.4} />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col py-[2px]">
+          <span className="truncate font-semibold text-content" style={fs(11.5, 'body')}>
+            {t('tours.paddle.portagePending')}
+          </span>
+          <span className="leading-snug text-content-muted" style={fs(11, 'body')}>
+            {t('tours.paddle.portagePendingHint')}
+          </span>
+        </span>
+        {!disabled && (
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={t('tours.paddle.portagePendingOff')}
+            title={t('tours.paddle.portagePendingOff')}
+            className="grid h-[20px] w-[20px] flex-none place-items-center rounded-full text-content-faint transition-colors hover:bg-surface-hover hover:text-content"
+          >
+            <X size={12} strokeWidth={2.4} />
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
+
+export interface PortageWay {
+  /** The portage follows the ways on land (its line has a shape of its own). */
+  routed: boolean;
+  /** The router was asked and found no way without a big detour. */
+  noWay: boolean;
+  /** The router is being asked right now. */
+  searching: boolean;
+  onFollow: () => void;
+  onStraighten: () => void;
+}
+
+/** Whether a portage follows the ways on land or goes straight, and why it stayed straight. */
+function PortageWayField({ way, disabled }: { way: PortageWay; disabled: boolean }) {
+  const { t } = useTranslation();
+  const value = way.routed ? 'follow' : 'straight';
+  const hint = way.searching
+    ? t('tours.paddle.portageWay.searching')
+    : !way.routed && way.noWay
+      ? t('tours.paddle.portageWay.noWay')
+      : null;
+  return (
+    <div className="flex min-w-0 flex-col gap-1" data-testid="tour-planner-portage-way">
+      <span className="block truncate text-content" style={fs(12, 'body')}>
+        {t('tours.paddle.portageWay')}
+      </span>
+      <fieldset disabled={disabled || way.searching} className="m-0 min-w-0 border-0 p-0">
+        <Segmented<'follow' | 'straight'>
+          value={value}
+          fill
+          label={t('tours.paddle.portageWay')}
+          onChange={(next) => (next === 'follow' ? way.onFollow() : way.onStraighten())}
+          options={[
+            {
+              value: 'follow',
+              label: t('tours.paddle.portageWay.follow'),
+              icon: way.searching ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : undefined,
+            },
+            { value: 'straight', label: t('tours.paddle.portageWay.straight') },
+          ]}
+        />
+      </fieldset>
+      {hint && (
+        <span className="leading-snug text-content-faint" style={fs(10.5, 'body')}>
+          {hint}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
  * A portage under the point it starts at, in the earth brown the map draws it
  * in: its length on land and the time for getting out, unloading and back in
  * (the starting value until one is typed).
@@ -211,6 +305,7 @@ export function PortageLegRow({
   onExtraChange,
   position,
   onRemove,
+  way,
 }: {
   lengthM: number;
   extraMinutes: number | null;
@@ -220,6 +315,8 @@ export function PortageLegRow({
   position?: string;
   /** Takes the portage off a recorded track; a planned tour carries it on its leg instead. */
   onRemove?: () => void;
+  /** On a planned tour: whether the portage follows the ways on land or goes straight, and the switch between them. */
+  way?: PortageWay;
 }) {
   const { t } = useTranslation();
   const unit = useSettingsStore((state) => state.settings.distance_unit);
@@ -242,6 +339,7 @@ export function PortageLegRow({
         {t('tours.paddle.portageInfo')}
       </p>
       {onRemove && !disabled && <RemoveStop label={t('tours.paddle.portageRemove')} onRemove={onRemove} />}
+      {way && <PortageWayField way={way} disabled={disabled} />}
       <StopField
         label={t('tours.paddle.portageExtra')}
         hint={extraMinutes === null ? t('tours.paddle.startValue') : undefined}

@@ -109,6 +109,9 @@ export const APP_SETTINGS = {
   // Off until an admin allows it: every user's wanderer calls go out to an address of their choosing.
   tours_wanderer_enabled: { schema: flag, default: 'false' },
   route_usage_enabled: { schema: flag, default: 'false' },
+  // PAD-11C: how TREK gets the water data of a place a paddler plans in (auto, ask, off) and the largest extract it loads by itself.
+  paddle_auto_load: { schema: z.enum(['auto', 'ask', 'off']), default: 'auto' },
+  paddle_auto_max_mb: { schema: intText, default: '500' },
   airtrail_sync_enabled: { schema: flag, default: 'true' },
   airtrail_poll_interval_minutes: { schema: intText, default: null },
   dawarich_poll_interval_minutes: { schema: intText, default: null },

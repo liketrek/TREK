@@ -360,6 +360,20 @@ describe('TourTerrainMap', () => {
     expect(screen.queryByText('18 to 27 %')).toBeNull();
   });
 
+  it('FE-COMP-TERRAIN-012b: a paddle tour keeps its tour colour, without the grade switch or the grade mix', async () => {
+    await renderTerrain({ samples: TOUR, water: true });
+    loadStyle();
+    await act(async () => openTiles());
+
+    expect(screen.queryByRole('button', { name: 'Grade' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Grade mix' })).toBeNull();
+    const setData = gl.sources.get('tour-terrain-track')?.setData as ReturnType<typeof vi.fn> | undefined;
+    const drawCalls = setData?.mock.calls ?? [];
+    const drawn = drawCalls[drawCalls.length - 1]?.[0] as { features: { properties: { color: string } }[] } | undefined;
+    expect(drawn?.features.length).toBeGreaterThan(0);
+    expect(drawn?.features.every((feature) => feature.properties.color === '#0a84ff')).toBe(true);
+  });
+
   it('FE-COMP-TERRAIN-013: swaps the style in place for another base layer and draws on it again', async () => {
     const { rerender } = await renderTerrain({ samples: TOUR });
     loadStyle();

@@ -15,6 +15,7 @@ import {
   PaddleRegionsController,
 } from '../../../../src/nest/paddle-obstacles/paddle-obstacles.controller';
 import type { PaddleObstaclesService } from '../../../../src/nest/paddle-obstacles/paddle-obstacles.service';
+import type { PaddleRegionLoadService } from '../../../../src/nest/paddle-obstacles/paddle-region-load.service';
 import type { PaddleRegionsService } from '../../../../src/nest/paddle-obstacles/paddle-regions.service';
 import type { User } from '../../../../src/types';
 import { RequestMethod } from '@nestjs/common';
@@ -23,7 +24,9 @@ import {
   paddleObstaclesResponseSchema,
   paddleRegionCatalogResponseSchema,
   paddleRegionListResponseSchema,
+  paddleRegionLoadResponseSchema,
   paddleRegionSchema,
+  paddleRegionSettingsSchema,
   successResponseSchema,
   type PaddleRegion,
 } from '@trek/shared';
@@ -35,11 +38,13 @@ const region: PaddleRegion = {
   id: 'oberpfalz',
   name: 'Oberpfalz',
   status: 'queued',
+  origin: 'admin',
   source_timestamp: null,
   imported_at: null,
   feature_count: 0,
   error: null,
   progress: null,
+  network: null,
 };
 
 describe('PaddleObstaclesController', () => {
@@ -56,7 +61,10 @@ describe('PaddleObstaclesController', () => {
   it('PADCTL-002: hands the box on and passes a refusal through as it is', async () => {
     const answer = { features: [], coverage: { state: 'none' as const, regions: [] }, truncated: false };
     const inBox = vi.fn<PaddleObstaclesService['inBox']>().mockResolvedValue(answer);
-    const controller = new PaddleObstaclesController({ inBox } as unknown as PaddleObstaclesService);
+    const controller = new PaddleObstaclesController(
+      { inBox } as unknown as PaddleObstaclesService,
+      {} as PaddleRegionLoadService,
+    );
 
     expect(await controller.inBox({ bbox: '49,12,49.1,12.1' })).toBe(answer);
     expect(inBox).toHaveBeenCalledWith('49,12,49.1,12.1');
@@ -64,6 +72,26 @@ describe('PaddleObstaclesController', () => {
     const refusal = new DomainError(400, 'bbox must be south,west,north,east and at most one degree a side');
     inBox.mockRejectedValueOnce(refusal);
     await expect(controller.inBox({ bbox: '0,0,5,5' })).rejects.toBe(refusal);
+  });
+});
+
+describe('PaddleObstaclesController.loadRegions (PAD-11C)', () => {
+  it('PADCTL-007: anyone signed in with Tours on, POST with 200, the places and the user handed on', async () => {
+    const handler = PaddleObstaclesController.prototype.loadRegions;
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(RequestMethod.POST);
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('regions/load');
+    expect(Reflect.getMetadata(HTTP_CODE_METADATA, handler)).toBe(200);
+    expect(Reflect.getMetadata(RESPONSE_CONTRACT_KEY, handler)).toBe(paddleRegionLoadResponseSchema);
+    const answer = [{ state: 'ready' as const, region: { id: 'oberpfalz', name: 'Oberpfalz' } }];
+    const load = { load: vi.fn().mockResolvedValue(answer) };
+    const controller = new PaddleObstaclesController(
+      {} as PaddleObstaclesService,
+      load as unknown as PaddleRegionLoadService,
+    );
+    const user = { id: 3, role: 'user' } as User;
+    const body = { points: [{ lat: 49.3, lng: 12.2 }], retry: false };
+    expect(await controller.loadRegions(user, body)).toEqual({ points: answer });
+    expect(load.load).toHaveBeenCalledWith(user, body);
   });
 });
 
@@ -95,15 +123,17 @@ describe('PaddleRegionsController', () => {
       refresh: vi.fn().mockResolvedValue(region),
       remove: vi.fn().mockResolvedValue(undefined),
     };
+    const load = { pending: vi.fn().mockResolvedValue([]) };
     const audit = { writeAudit: vi.fn().mockResolvedValue(undefined) };
     const controller = new PaddleRegionsController(
       service as unknown as PaddleRegionsService,
+      load as unknown as PaddleRegionLoadService,
       audit as unknown as AuditService,
     );
     const admin = { id: 2 } as User;
     const req = { ip: '203.0.113.5', headers: {}, socket: { remoteAddress: '203.0.113.5' } } as unknown as Request;
 
-    expect(await controller.list()).toEqual({ regions: [region] });
+    expect(await controller.list()).toEqual({ regions: [region], requests: [] });
     expect(await controller.catalog({ q: 'ober' })).toEqual({
       regions: [{ id: 'oberpfalz', name: 'Oberpfalz', path: ['Europe'] }],
     });
@@ -127,12 +157,51 @@ describe('PaddleRegionsController', () => {
   it('PADCTL-005: a refused change leaves no audit row', async () => {
     const refusal = new DomainError(404, 'Region not found');
     const service = { remove: vi.fn().mockRejectedValue(refusal) };
+    const load = {};
     const audit = { writeAudit: vi.fn() };
     const controller = new PaddleRegionsController(
       service as unknown as PaddleRegionsService,
+      load as unknown as PaddleRegionLoadService,
       audit as unknown as AuditService,
     );
     await expect(controller.remove({ id: 2 } as User, { id: 'bayern' }, {} as Request)).rejects.toBe(refusal);
     expect(audit.writeAudit).not.toHaveBeenCalled();
+  });
+
+  it('PADCTL-006: the setting and declining a request, each with its route, contract and audit row (PAD-11C)', async () => {
+    const p = PaddleRegionsController.prototype;
+    const routes = [
+      [p.settings, RequestMethod.GET, 'settings', undefined, paddleRegionSettingsSchema],
+      [p.updateSettings, RequestMethod.PUT, 'settings', undefined, paddleRegionSettingsSchema],
+      [p.decline, RequestMethod.POST, 'decline', 200, successResponseSchema],
+    ] as const;
+    for (const [handler, method, path, code, schema] of routes) {
+      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(method);
+      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
+      expect(Reflect.getMetadata(HTTP_CODE_METADATA, handler)).toBe(code);
+      expect(Reflect.getMetadata(RESPONSE_CONTRACT_KEY, handler)).toBe(schema);
+    }
+    const settings = { mode: 'ask' as const, max_mb: 250 };
+    const load = {
+      settings: vi.fn().mockResolvedValue(settings),
+      updateSettings: vi.fn().mockResolvedValue(settings),
+      decline: vi.fn().mockResolvedValue(undefined),
+    };
+    const audit = { writeAudit: vi.fn().mockResolvedValue(undefined) };
+    const controller = new PaddleRegionsController(
+      {} as PaddleRegionsService,
+      load as unknown as PaddleRegionLoadService,
+      audit as unknown as AuditService,
+    );
+    const req = { ip: '203.0.113.5', headers: {}, socket: { remoteAddress: '203.0.113.5' } } as unknown as Request;
+    expect(await controller.settings()).toBe(settings);
+    expect(await controller.updateSettings({ id: 2 } as User, settings, req)).toBe(settings);
+    expect(load.updateSettings).toHaveBeenCalledWith(settings);
+    expect(await controller.decline({ id: 2 } as User, { id: 'norway' }, req)).toEqual({ success: true });
+    expect(load.decline).toHaveBeenCalledWith('norway');
+    expect(audit.writeAudit.mock.calls.map(([entry]) => [entry.action, entry.details])).toEqual([
+      ['admin.paddle_region_settings', settings],
+      ['admin.paddle_region_decline', { region: 'norway' }],
+    ]);
   });
 });

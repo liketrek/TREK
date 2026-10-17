@@ -294,6 +294,7 @@ const settings: TranslationStrings = {
   'settings.mustChangePassword': 'Před pokračováním musíte změnit heslo.',
   'settings.notifyVersionAvailable': 'Nová verze k dispozici',
   'settings.notifyReplicaFailure': 'Selhání repliky úložiště',
+  'settings.notifyPaddleRegionRequested': 'Vyžádán vodácký region',
   'settings.notificationPreferences.noChannels':
     'Nejsou nakonfigurovány žádné kanály oznámení. Požádejte správce o nastavení e-mailových nebo webhook oznámení.',
   'settings.webhookUrl.label': 'URL webhooku',

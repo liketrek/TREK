@@ -10,6 +10,8 @@ import { useTranslation } from '../../../i18n';
 import { SoftPill } from '../../Planner/planParts';
 import { INPUT, LABEL, Segmented } from '../../shared/dialogParts';
 import { fs } from '../../shared/DialogShell';
+import { crossesLake } from '../paddle/lakeStyleAdvice';
+import { PaddleLakeStyleField } from '../paddle/PaddleLakeStyleField';
 import { TourNotice } from '../tourParts';
 import type { TourPlannerController } from './useTourPlanner';
 
@@ -126,6 +128,9 @@ export function TourTypeFields({ planner, locked }: TourTypeFieldsProps) {
               options={WATERS.map((water) => ({ value: water, label: t(`tours.paddle.water.${water}`) }))}
             />
           </div>
+          {(paddle.waterContext === 'lake' || crossesLake(planner.paddleRoute)) && (
+            <PaddleLakeStyleField value={paddle.lakeStyle} onChange={paddle.setLakeStyle} />
+          )}
           <div className="min-w-0">
             <div className="mb-[5px] flex min-h-5 min-w-0 items-center gap-1.5">
               <label className={`${LABEL} !mb-0 min-w-0 truncate leading-5`} htmlFor="tour-planner-paddle-speed">

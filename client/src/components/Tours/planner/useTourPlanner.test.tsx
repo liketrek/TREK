@@ -1596,7 +1596,7 @@ describe('useTourPlanner', () => {
 
     expect(result.current.mode).toEqual({ type: 'new-draft' })
     expect(JSON.parse(localStorage.getItem('tour-draft-23') || 'null')).toMatchObject({
-      version: 8,
+      version: 9,
       tourType: 'hike',
       name: '',
       waypoints: [],

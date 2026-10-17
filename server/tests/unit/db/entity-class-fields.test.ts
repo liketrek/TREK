@@ -29,7 +29,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 // + paddle_regions: id, name; paddle_features: id, region_id, osm_ref, kind, geometry, tags, tag_hash and
 //   its bounding box (a feature is only ever written whole, from one read of its region).
 // + tour_obstacle_reviews: place_id, obstacle_key, decision, both fingerprints, obstacle_snapshot, decided_at.
-const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 475;
+// + paddle_water_graphs: file, rev, bytes, built_at, stats and its bounding box (a network is only ever written
+//   whole, from one build of its region).
+const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 484;
 
 describe('entity class fields never carry a NaN initialiser (task-4-review-shape.md, Important 1)', () => {
   it('CLASSFIELD-001: new X() has no own property whose value is NaN, across all 133 entities', () => {

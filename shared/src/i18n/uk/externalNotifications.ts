@@ -71,6 +71,10 @@ const uk: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Запитано регіон для сплаву',
+      body: `${p.actor} планує сплав у регіоні ${p.region}. Завантажте або відхиліть його дані про воду в адмініструванні в розділі «Доповнення».`,
+    }),
     synology_session_cleared: () => ({
       title: 'Сеанс Synology скинуто',
       body: 'Ваш обліковий запис або URL Synology змінився. Ви вийшли з Synology Photos.',

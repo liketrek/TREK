@@ -12,6 +12,8 @@ const PADDLE_PAINT_TOKENS = {
   access: '--map-paddle-access',
   landing: '--map-paddle-landing',
   portage: '--map-portage',
+  rapids: '--map-paddle-rapids',
+  gap: '--map-paddle-gap',
   disc: '--map-paddle-disc',
   shadow: '--map-paddle-shadow',
 } as const;

@@ -831,5 +831,37 @@ const admin: TranslationStrings = {
     '데이터 © OpenStreetMap 기여자 (ODbL), 지역별 추출본은 Geofabrik 제공. 매달 3일에 다시 읽습니다.',
   'admin.paddleRegions.toast.added': '지역을 추가했습니다. TREK이 백그라운드에서 읽습니다.',
   'admin.paddleRegions.toast.removed': '지역을 삭제했습니다',
+  'admin.paddleRegions.phase.build': '수로망 구축 중',
+  'admin.paddleRegions.network.km': '수역 {km} km',
+  'admin.paddleRegions.network.lakes': '호수 {count}개',
+  'admin.paddleRegions.network.portages': '지도에 있는 육로 운반 지점 {count}개',
+  'admin.paddleRegions.network.inferred': '추정 운반 {count}개',
+  'admin.paddleRegions.network.locks': '갑문 {count}개',
+  'admin.paddleRegions.network.gaps': '이은 공백 {count}개',
+  'admin.paddleRegions.network.missing': '수로망 없음',
+  'admin.paddleRegions.network.missingHint': '지역을 다시 읽어 패들링 경로가 따르는 수로망을 구축하세요.',
+  'admin.paddleRegions.auto.title': '지역 자동으로 불러오기',
+  'admin.paddleRegions.auto.mode.auto': '자동',
+  'admin.paddleRegions.auto.mode.ask': '요청 시',
+  'admin.paddleRegions.auto.mode.off': '끄기',
+  'admin.paddleRegions.auto.modeHint.auto':
+    '아직 수역 데이터가 없는 곳에서 누군가 패들 투어를 계획하면 TREK이 알맞은 가장 작은 지역을 바로 불러옵니다. 크기 한도까지, 하루에 몇 개만입니다. 더 큰 지역은 여기에서 요청으로 기다립니다. Geofabrik에는 지역 이름만 전달되며 위치는 절대 전달되지 않습니다.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    '새 지역은 관리자가 허용할 때까지 여기에서 기다립니다. 관리자가 직접 계획하면 바로 불러옵니다.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREK은 스스로 아무것도 불러오지 않고 요청도 하지 않습니다. 지역은 여기에서 직접 추가하세요.',
+  'admin.paddleRegions.auto.maxSize': '자동으로 불러오는 최대 지역',
+  'admin.paddleRegions.auto.maxSizeHint':
+    '더 큰 지역은 여기에서 요청으로 기다립니다. 지역을 읽는 데 몇 분이 걸리며 그동안 메모리를 사용합니다.',
+  'admin.paddleRegions.requests.title': '요청됨',
+  'admin.paddleRegions.requests.reason.ask': '요청 시',
+  'admin.paddleRegions.requests.reason.too_large': '너무 큼',
+  'admin.paddleRegions.requests.reason.limit': '일일 한도',
+  'admin.paddleRegions.requests.declined': '거절됨',
+  'admin.paddleRegions.requests.by': '{user} 요청',
+  'admin.paddleRegions.requests.approve': '불러오기',
+  'admin.paddleRegions.requests.decline': '거절',
+  'admin.paddleRegions.origin.auto': '자동',
+  'admin.paddleRegions.origin.autoHint': 'TREK이 그곳에서 계획된 패들 투어를 위해 이 지역을 스스로 불러왔습니다.',
 };
 export default admin;

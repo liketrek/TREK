@@ -886,5 +886,43 @@ const admin: TranslationStrings = {
     'Data © OpenStreetMap-bidragsgivare (ODbL), regionala utdrag från Geofabrik. Läses in igen den 3:e varje månad.',
   'admin.paddleRegions.toast.added': 'Region tillagd. TREK läser in den i bakgrunden.',
   'admin.paddleRegions.toast.removed': 'Region borttagen',
+  'admin.paddleRegions.phase.build': 'Bygger vattennätet',
+  'admin.paddleRegions.network.km': '{km} km vatten',
+  'admin.paddleRegions.network.lakes': '{count} sjöar',
+  'admin.paddleRegions.network.lakes.one': '{count} sjö',
+  'admin.paddleRegions.network.portages': '{count} kartlagda bärningar',
+  'admin.paddleRegions.network.portages.one': '{count} kartlagd bärning',
+  'admin.paddleRegions.network.inferred': '{count} antagna bärningar',
+  'admin.paddleRegions.network.inferred.one': '{count} antagen bärning',
+  'admin.paddleRegions.network.locks': '{count} slussar',
+  'admin.paddleRegions.network.locks.one': '{count} sluss',
+  'admin.paddleRegions.network.gaps': '{count} överbryggade luckor',
+  'admin.paddleRegions.network.gaps.one': '{count} överbryggad lucka',
+  'admin.paddleRegions.network.missing': 'Inget vattennät',
+  'admin.paddleRegions.network.missingHint': 'Läs in regionen igen för att bygga nätet som paddelrutten följer.',
+  'admin.paddleRegions.auto.title': 'Läs in regioner automatiskt',
+  'admin.paddleRegions.auto.mode.auto': 'Automatiskt',
+  'admin.paddleRegions.auto.mode.ask': 'På begäran',
+  'admin.paddleRegions.auto.mode.off': 'Av',
+  'admin.paddleRegions.auto.modeHint.auto':
+    'När någon planerar en paddeltur där det ännu inte finns vattendata läser TREK direkt in den minsta passande regionen, upp till storleksgränsen och bara några om dagen. Större väntar här som förfrågan. Bara regionens namn går till Geofabrik, aldrig platsen.',
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Varje ny region väntar här tills en administratör släpper igenom den. När en administratör planerar läses den in direkt.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREK läser inte in något av sig själv och frågar inte efter något. Lägg till regioner här för hand.',
+  'admin.paddleRegions.auto.maxSize': 'Största region som läses in automatiskt',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Större regioner väntar här som förfrågan. Att läsa in en region tar några minuter och tar minne under tiden.',
+  'admin.paddleRegions.requests.title': 'Efterfrågade',
+  'admin.paddleRegions.requests.reason.ask': 'På begäran',
+  'admin.paddleRegions.requests.reason.too_large': 'För stor',
+  'admin.paddleRegions.requests.reason.limit': 'Dagsgräns',
+  'admin.paddleRegions.requests.declined': 'Avböjd',
+  'admin.paddleRegions.requests.by': 'av {user}',
+  'admin.paddleRegions.requests.approve': 'Läs in',
+  'admin.paddleRegions.requests.decline': 'Avböj',
+  'admin.paddleRegions.origin.auto': 'Automatiskt',
+  'admin.paddleRegions.origin.autoHint':
+    'TREK läste in den här regionen av sig själv för en paddeltur som planeras där.',
 };
 export default admin;

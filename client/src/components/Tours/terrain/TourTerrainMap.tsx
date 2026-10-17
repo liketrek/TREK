@@ -37,6 +37,8 @@ export interface TourTerrainMapProps {
   rightWidth: number;
   waypoints: TerrainWaypoints;
   framePoints: [number, number][];
+  /** A paddle tour: no grade colours, no grade legend and no switch for them, the water is flat. */
+  water?: boolean;
   /** The planner map's via ferrata layer: its switch joins the layer pill, its lines the terrain. */
   ferrataLayer?: FerrataMapLayer;
   /** What the tour's type offers: its base layers, and the overlays drawn on the terrain too. */
@@ -78,7 +80,10 @@ export default function TourTerrainMap(props: TourTerrainMapProps) {
   const { setContainer, ...terrain } = useTourTerrain({ ...props, panels: { leftWidth, rightWidth } });
   const stats = useMemo(() => terrainStats(samples), [samples]);
   const { fit, height: controlsHeight, attachRow, attachStack } = useControlRowFit();
-  const legend = terrain.canReplay ? <GradeLegend stats={stats} unit={unit} onLayout={props.onLegendLayout} /> : null;
+  const legend =
+    terrain.canReplay && !props.water ? (
+      <GradeLegend stats={stats} unit={unit} onLayout={props.onLegendLayout} />
+    ) : null;
   const legendAbove = fit === 'stacked';
 
   useEffect(() => {
@@ -120,7 +125,7 @@ export default function TourTerrainMap(props: TourTerrainMapProps) {
           <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-end gap-3">
             <span />
             {terrain.canReplay ? (
-              <TerrainDock terrain={terrain} />
+              <TerrainDock terrain={terrain} water={props.water} />
             ) : (
               <div
                 className="pointer-events-auto rounded-full px-4 py-2.5 text-content-muted"
@@ -173,8 +178,14 @@ function Divider() {
   return <span aria-hidden className="mx-0.5 h-5 w-px flex-none bg-edge" />;
 }
 
-/** One pill like the layer switcher: play, restart, overview · speed · relief · colour. */
-function TerrainDock({ terrain }: { terrain: Omit<ReturnType<typeof useTourTerrain>, 'setContainer'> }) {
+/** One pill like the layer switcher: play, restart, overview · speed · relief · colour (not on water). */
+function TerrainDock({
+  terrain,
+  water,
+}: {
+  terrain: Omit<ReturnType<typeof useTourTerrain>, 'setContainer'>;
+  water?: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <div className="pointer-events-auto flex items-center gap-0.5 rounded-full p-1" style={GLASS}>
@@ -231,6 +242,16 @@ function TerrainDock({ terrain }: { terrain: Omit<ReturnType<typeof useTourTerra
           <span className="w-7 font-semibold tabular-nums">{terrain.exaggeration.toFixed(1)}×</span>
         </label>
       </Tooltip>
+      {!water && <GradeSwitch terrain={terrain} />}
+    </div>
+  );
+}
+
+/** Colour the route by grade or in the tour colour. */
+function GradeSwitch({ terrain }: { terrain: Omit<ReturnType<typeof useTourTerrain>, 'setContainer'> }) {
+  const { t } = useTranslation();
+  return (
+    <>
       <Divider />
       <button
         type="button"
@@ -242,7 +263,7 @@ function TerrainDock({ terrain }: { terrain: Omit<ReturnType<typeof useTourTerra
         <Palette size={15} strokeWidth={2} />
         {t('tours.terrain.colorByGrade')}
       </button>
-    </div>
+    </>
   );
 }
 

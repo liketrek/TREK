@@ -1,4 +1,4 @@
-// FE-ADMIN-PADDLEREG-001 to FE-ADMIN-PADDLEREG-021: the paddle regions card in the admin area, drawn from a
+// FE-ADMIN-PADDLEREG-001 to FE-ADMIN-PADDLEREG-027: the paddle regions card in the admin area, drawn from a
 // controlled usePaddleRegionsAdmin (the hook has its own test).
 // FE-ADMIN-PADDLEREG-MODEL-001 to FE-ADMIN-PADDLEREG-MODEL-003: the helpers in paddleRegionsModel.
 import type { PaddleRegion, PaddleRegionCatalogEntry } from '@trek/shared';
@@ -25,11 +25,13 @@ function region(overrides: Partial<PaddleRegion> = {}): PaddleRegion {
     id: 'oberpfalz',
     name: 'Oberpfalz',
     status: 'ready',
+    origin: 'admin',
     source_timestamp: '2026-10-03T12:00:00Z',
     imported_at: '2026-10-04T08:00:00Z',
     feature_count: 1234,
     error: null,
     progress: null,
+    network: null,
     ...overrides,
   };
 }
@@ -56,6 +58,8 @@ function adminState(overrides: Partial<Admin> = {}, search: Partial<Admin['searc
     toursOn: true,
     offline: false,
     regions: [],
+    requests: [],
+    autoLoad: { settings: null, saving: false, save: vi.fn(async () => {}) },
     loading: false,
     error: null,
     retry: vi.fn(),
@@ -63,6 +67,8 @@ function adminState(overrides: Partial<Admin> = {}, search: Partial<Admin['searc
     busyId: null,
     add: vi.fn(async () => {}),
     refresh: vi.fn(async () => {}),
+    approve: vi.fn(async () => {}),
+    decline: vi.fn(async () => {}),
     removing: null,
     askRemove: vi.fn(),
     cancelRemove: vi.fn(),
@@ -292,6 +298,91 @@ describe('PaddleRegionsPanel', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(state.cancelRemove).toHaveBeenCalledTimes(2);
     expect(state.confirmRemove).not.toHaveBeenCalled();
+  });
+});
+
+describe('PaddleRegionsPanel water network (PAD-11)', () => {
+  it('FE-ADMIN-PADDLEREG-022: a region with its network shows the water it holds, the rest in the tooltip', async () => {
+    const network = {
+      water_km: 1364.5,
+      lakes: 266,
+      portages: 14,
+      inferred_portages: 232,
+      gaps: 63,
+      locks: 17,
+      built_at: '2026-10-17T15:30:20Z',
+      bytes: 1496816,
+    };
+    show({ regions: [region({ network })] });
+    const pill = within(rowOf('Oberpfalz')).getByTestId('paddle-region-network');
+    expect(pill).toHaveTextContent('1,365 km of water');
+    fireEvent.mouseEnter(pill);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      '266 lakes, 14 mapped portages, 232 assumed carries, 17 locks, 63 bridged gaps'
+    );
+  });
+
+  it('FE-ADMIN-PADDLEREG-023: a region read before routing existed asks to be read again; one never read or being read says nothing', () => {
+    show({
+      regions: [
+        region({ id: 'old', name: 'Old read', network: null }),
+        region({ id: 'new', name: 'Never read', imported_at: null, status: 'queued', network: null }),
+      ],
+    });
+    expect(within(rowOf('Old read')).getByText('No water network')).toBeInTheDocument();
+    expect(within(rowOf('Never read')).queryByText('No water network')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-PADDLEREG-024: offers automatic, on request and off, with the size limit only for automatic', () => {
+    const save = vi.fn(async () => {});
+    show({ autoLoad: { settings: { mode: 'auto', max_mb: 500 }, saving: false, save } });
+    const auto = screen.getByTestId('paddle-auto-load');
+    expect(within(auto).getByRole('button', { name: /Automatic/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(auto).getByText('Largest region loaded automatically')).toBeInTheDocument();
+    fireEvent.click(within(auto).getByRole('button', { name: /On request/ }));
+    expect(save).toHaveBeenCalledWith({ mode: 'ask' });
+    fireEvent.click(within(auto).getByRole('button', { name: '1 GB' }));
+    expect(save).toHaveBeenCalledWith({ max_mb: 1000 });
+  });
+
+  it('FE-ADMIN-PADDLEREG-025: hides the size limit unless loading is automatic, and shows nothing before the setting is read', () => {
+    show({ autoLoad: { settings: { mode: 'off', max_mb: 500 }, saving: false, save: vi.fn() } });
+    expect(screen.queryByText('Largest region loaded automatically')).not.toBeInTheDocument();
+    expect(screen.getByText(/TREK loads nothing by itself/)).toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-PADDLEREG-026: lists the requests, the open ones first, to load or decline', () => {
+    const approve = vi.fn(async () => {});
+    const decline = vi.fn(async () => {});
+    const base = {
+      bytes: 734_003_200,
+      requested_by: 'elmo',
+      requested_at: '2026-10-18T09:00:00Z',
+    };
+    show({
+      approve,
+      decline,
+      requests: [
+        { ...base, id: 'norway', name: 'Norway', reason: 'too_large', declined: true },
+        { ...base, id: 'brandenburg', name: 'Brandenburg', reason: 'limit', declined: false },
+      ],
+    });
+    const rows = screen.getAllByTestId('paddle-region-request');
+    expect(rows[0]).toHaveTextContent('Brandenburg');
+    expect(rows[0]).toHaveTextContent('Daily limit');
+    expect(rows[0]).toHaveTextContent('by elmo');
+    expect(rows[1]).toHaveTextContent('Declined');
+    fireEvent.click(within(rows[0]).getByRole('button', { name: 'Decline' }));
+    expect(decline).toHaveBeenCalledWith('brandenburg');
+    fireEvent.click(within(rows[1]).getByRole('button', { name: /Load/ }));
+    expect(approve).toHaveBeenCalledWith('norway');
+    expect(within(rows[1]).queryByRole('button', { name: 'Decline' })).toBeNull();
+  });
+
+  it('FE-ADMIN-PADDLEREG-027: marks a region TREK loaded by itself', () => {
+    show({ regions: [region({ id: 'mv', name: 'Mecklenburg', origin: 'auto' }), READY] });
+    expect(within(rowOf('Mecklenburg')).getByTestId('paddle-region-auto')).toHaveTextContent('Automatic');
+    expect(within(rowOf('Oberpfalz')).queryByTestId('paddle-region-auto')).toBeNull();
   });
 });
 

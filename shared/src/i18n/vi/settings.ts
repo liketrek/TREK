@@ -113,6 +113,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Thông báo webhook',
   'settings.notifyVersionAvailable': 'Đã có phiên bản mới',
   'settings.notifyReplicaFailure': 'Lỗi bản sao lưu trữ',
+  'settings.notifyPaddleRegionRequested': 'Có yêu cầu vùng chèo thuyền',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': 'Trong ứng dụng',

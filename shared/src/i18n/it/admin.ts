@@ -894,5 +894,43 @@ const admin: TranslationStrings = {
     'Dati © contributori di OpenStreetMap (ODbL), estratti regionali di Geofabrik. Riletti il 3 di ogni mese.',
   'admin.paddleRegions.toast.added': 'Regione aggiunta. TREK la legge in background.',
   'admin.paddleRegions.toast.removed': 'Regione rimossa',
+  'admin.paddleRegions.phase.build': 'Costruzione della rete delle acque',
+  'admin.paddleRegions.network.km': '{km} km di acque',
+  'admin.paddleRegions.network.lakes': '{count} laghi',
+  'admin.paddleRegions.network.lakes.one': '{count} lago',
+  'admin.paddleRegions.network.portages': '{count} trasbordi mappati',
+  'admin.paddleRegions.network.portages.one': '{count} trasbordo mappato',
+  'admin.paddleRegions.network.inferred': '{count} trasbordi presunti',
+  'admin.paddleRegions.network.inferred.one': '{count} trasbordo presunto',
+  'admin.paddleRegions.network.locks': '{count} chiuse',
+  'admin.paddleRegions.network.locks.one': '{count} chiusa',
+  'admin.paddleRegions.network.gaps': '{count} lacune colmate',
+  'admin.paddleRegions.network.gaps.one': '{count} lacuna colmata',
+  'admin.paddleRegions.network.missing': 'Nessuna rete delle acque',
+  'admin.paddleRegions.network.missingHint':
+    'Rileggi la regione per costruire la rete che segue il percorso in pagaia.',
+  'admin.paddleRegions.auto.title': 'Carica le regioni automaticamente',
+  'admin.paddleRegions.auto.mode.auto': 'Automatico',
+  'admin.paddleRegions.auto.mode.ask': 'Su richiesta',
+  'admin.paddleRegions.auto.mode.off': 'Spento',
+  'admin.paddleRegions.auto.modeHint.auto':
+    "Quando qualcuno pianifica un giro in canoa dove non ci sono ancora dati sull'acqua, TREK carica subito la regione più piccola adatta, fino al limite di dimensione e solo poche al giorno. Quelle più grandi aspettano qui come richiesta. A Geofabrik arriva solo il nome della regione, mai il luogo.",
+  'admin.paddleRegions.auto.modeHint.ask':
+    'Ogni nuova regione aspetta qui finché un amministratore non la approva. Se pianifica un amministratore, si carica subito.',
+  'admin.paddleRegions.auto.modeHint.off':
+    'TREK non carica nulla da solo e non chiede nulla. Aggiungi le regioni qui a mano.',
+  'admin.paddleRegions.auto.maxSize': 'Regione più grande caricata automaticamente',
+  'admin.paddleRegions.auto.maxSizeHint':
+    'Le regioni più grandi aspettano qui come richiesta. Leggere una regione richiede qualche minuto e occupa memoria nel frattempo.',
+  'admin.paddleRegions.requests.title': 'Richieste',
+  'admin.paddleRegions.requests.reason.ask': 'Su richiesta',
+  'admin.paddleRegions.requests.reason.too_large': 'Troppo grande',
+  'admin.paddleRegions.requests.reason.limit': 'Limite giornaliero',
+  'admin.paddleRegions.requests.declined': 'Rifiutata',
+  'admin.paddleRegions.requests.by': 'da {user}',
+  'admin.paddleRegions.requests.approve': 'Carica',
+  'admin.paddleRegions.requests.decline': 'Rifiuta',
+  'admin.paddleRegions.origin.auto': 'Automatico',
+  'admin.paddleRegions.origin.autoHint': 'TREK ha caricato questa regione da solo per un giro in canoa pianificato lì.',
 };
 export default admin;

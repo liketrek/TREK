@@ -112,6 +112,7 @@ const settings: TranslationStrings = {
   'settings.notifyWebhook': 'Webhook meddelanden',
   'settings.notifyVersionAvailable': 'Ny version tillgänglig',
   'settings.notifyReplicaFailure': 'Fel i lagringsreplik',
+  'settings.notifyPaddleRegionRequested': 'Paddelregion efterfrågad',
   'settings.notificationPreferences.email': 'E-post',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': 'I appen',

@@ -58,6 +58,10 @@ const ko: NotificationLocale = {
         `복제본 '${p.backend}'에 쓰기가 실패했습니다: ${p.op} / ${p.key} — ${p.error}.` +
         (p.suppressed !== '0' ? ` 마지막 알림 이후 실패가 ${p.suppressed}건 더 있었지만 따로 알리지 않았습니다.` : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: '패들 지역 요청',
+      body: `${p.actor}님이 ${p.region}에서 패들 투어를 계획하고 있습니다. 관리 화면의 애드온에서 수역 데이터를 불러오거나 거절하세요.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Synology 세션이 초기화되었습니다',
       body: 'Synology 계정 또는 URL이 변경되었습니다. Synology Photos에서 로그아웃되었습니다.',

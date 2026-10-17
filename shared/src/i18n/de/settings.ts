@@ -299,6 +299,7 @@ const settings: TranslationStrings = {
   'settings.mfa.demoBlocked': 'In der Demo nicht verfügbar',
   'settings.notifyVersionAvailable': 'Neue Version verfügbar',
   'settings.notifyReplicaFailure': 'Speicher-Replik-Fehler',
+  'settings.notifyPaddleRegionRequested': 'Paddel-Region angefragt',
   'settings.notificationPreferences.noChannels':
     'Keine Benachrichtigungskanäle konfiguriert. Bitte einen Administrator, E-Mail- oder Webhook-Benachrichtigungen einzurichten.',
   'settings.webhookUrl.label': 'Webhook-URL',

@@ -31,6 +31,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "복제본 '{backend}'에 쓰기가 실패했습니다: {op} / {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "복제본 '{backend}'에 쓰기가 실패했습니다: {op} / {key} — {error}.마지막 알림 이후 {suppressed}개의 추가 실패가 억제되었습니다.",
+  'notif.paddle_region_requested.title': '패들 지역 요청',
+  'notif.paddle_region_requested.text': '{actor}님이 {region}에서 패들 투어를 계획하고 있습니다',
   'notif.action.view_trip': '여행 보기',
   'notif.action.view_collab': '메시지 보기',
   'notif.action.view_packing': '짐 목록 보기',

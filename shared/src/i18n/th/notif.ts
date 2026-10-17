@@ -31,6 +31,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "การเขียนแบบจำลองล้มเหลวใน '{backend}': {op} จาก {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "การเขียนแบบจำลองล้มเหลวใน '{backend}': {op} จาก {key} — {error} {suppressed} ความล้มเหลวเพิ่มขึ้นถูกระงับนับตั้งแต่การแจ้งเตือนครั้งล่าสุด",
+  'notif.paddle_region_requested.title': 'มีคำขอภูมิภาคพายเรือ',
+  'notif.paddle_region_requested.text': '{actor} กำลังวางแผนทริปพายเรือใน {region}',
   'notif.action.view_trip': 'ดูการเดินทาง',
   'notif.action.view_collab': 'ดูข้อความ',
   'notif.action.view_packing': 'ดูการบรรจุ',

@@ -31,6 +31,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "レプリカ '{backend}' への書き込みに失敗しました：{op} / {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "レプリカ '{backend}' への書き込みに失敗しました：{op} / {key} — {error}。前回の通知以降、{suppressed}件の追加の失敗が抑制されました。",
+  'notif.paddle_region_requested.title': 'パドル地域のリクエスト',
+  'notif.paddle_region_requested.text': '{actor}が{region}でパドルツアーを計画しています',
   'notif.action.view_trip': '旅行を見る',
   'notif.action.view_collab': 'メッセージを見る',
   'notif.action.view_packing': '持ち物を見る',

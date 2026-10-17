@@ -282,6 +282,7 @@ const settings: TranslationStrings = {
   'settings.passwordRule.special': 'Un caràcter especial',
   'settings.notifyVersionAvailable': 'Versió nova disponible',
   'settings.notifyReplicaFailure': "Error de rèplica d'emmagatzematge",
+  'settings.notifyPaddleRegionRequested': 'Regió de caiac demanada',
   'settings.notificationPreferences.noChannels':
     'No hi ha canals de notificació configurats. Demana a un administrador que configuri notificacions per correu o webhook.',
   'settings.webhookUrl.label': 'URL del webhook',

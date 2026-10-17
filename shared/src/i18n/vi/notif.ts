@@ -31,6 +31,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Ghi vào bản sao '{backend}' thất bại: {op} của {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Ghi vào bản sao '{backend}' thất bại: {op} của {key} — {error}. {suppressed} lỗi khác đã bị bỏ qua kể từ thông báo trước đó.",
+  'notif.paddle_region_requested.title': 'Có yêu cầu vùng chèo thuyền',
+  'notif.paddle_region_requested.text': '{actor} đang lên kế hoạch chèo thuyền ở {region}',
   'notif.action.view_trip': 'Xem chuyến đi',
   'notif.action.view_collab': 'Xem tin nhắn',
   'notif.action.view_packing': 'Xem đóng gói',

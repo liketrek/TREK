@@ -32,6 +32,8 @@ const notif: TranslationStrings = {
   'notif.replica_failure.text': "Sikertelen írás a(z) '{backend}' replikán: {op} / {key} — {error}",
   'notif.replica_failure.textSuppressed':
     "Sikertelen írás a(z) '{backend}' replikán: {op} / {key} — {error}. Az utolsó értesítés óta {suppressed} további hiba lett elnyomva.",
+  'notif.paddle_region_requested.title': 'Evezős régiót kértek',
+  'notif.paddle_region_requested.text': '{actor} evezős túrát tervez itt: {region}',
   'notif.action.view_trip': 'Utazás megtekintése',
   'notif.action.view_collab': 'Üzenetek megtekintése',
   'notif.action.view_packing': 'Csomagolás megtekintése',

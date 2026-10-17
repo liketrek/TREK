@@ -70,6 +70,10 @@ const gr: NotificationLocale = {
             })
           : ''),
     }),
+    paddle_region_requested: (p) => ({
+      title: 'Αίτημα περιοχής κανό',
+      body: `${p.actor} σχεδιάζει διαδρομή κανό στην περιοχή ${p.region}. Φόρτωσε ή απόρριψε τα δεδομένα νερού στη διαχείριση, στα Πρόσθετα.`,
+    }),
     synology_session_cleared: () => ({
       title: 'Η σύνδεση Synology τερματίστηκε',
       body: 'Ο λογαριασμός σας Synology ή το URL άλλαξε. Έχετε αποσυνδεθεί από το Synology Photos.',
