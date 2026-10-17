@@ -22,7 +22,7 @@ describe('paddleRegionLoadRepo', () => {
         { request: paddleRegionLoadRequestSchema, response: paddleRegionLoadResponseSchema },
         async ({ request }) => {
           bodies.push(await request.json());
-          return { points: [{ state: 'ready', region: { id: 'mv', name: 'Mecklenburg' } }] };
+          return { points: [{ state: 'ready' as const, region: { id: 'mv', name: 'Mecklenburg' } }] };
         }
       )
     );
