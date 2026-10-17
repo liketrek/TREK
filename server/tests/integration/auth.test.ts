@@ -517,6 +517,39 @@ describe('MFA', () => {
     expect(disableRes.status).toBe(200);
     expect(disableRes.body.mfa_enabled).toBe(false);
   });
+
+  it('AUTH-019 — disable MFA with password and unused backup code', async () => {
+    const { hashBackupCodeBcrypt } = await import('../../src/nest/auth/auth.helpers');
+    const { user, password } = createUserWithMfa(testDb);
+    await updateRows(orm, Users, { id: user.id }, {
+      mfa_backup_codes: JSON.stringify([hashBackupCodeBcrypt('A1B2-C3D4')]),
+    });
+    const res = await request(app).post('/api/auth/mfa/disable')
+      .set('Cookie', authCookie(user.id))
+      .send({ password, code: 'a1b2-c3d4' });
+    expect(res.status).toBe(200);
+    expect(res.body.mfa_enabled).toBe(false);
+    const updated = testDb.prepare('SELECT mfa_enabled, mfa_secret, mfa_backup_codes FROM users WHERE id = ?').get(user.id) as any;
+    expect(updated.mfa_enabled).toBe(0);
+    expect(updated.mfa_secret).toBeNull();
+    expect(updated.mfa_backup_codes).toBeNull();
+  });
+
+  it('AUTH-019 — reject invalid recovery code and incorrect password', async () => {
+    const { hashBackupCodeBcrypt } = await import('../../src/nest/auth/auth.helpers');
+    const { user, password } = createUserWithMfa(testDb);
+    await updateRows(orm, Users, { id: user.id }, {
+      mfa_backup_codes: JSON.stringify([hashBackupCodeBcrypt('A1B2-C3D4')]),
+    });
+    const badCode = await request(app).post('/api/auth/mfa/disable')
+      .set('Cookie', authCookie(user.id))
+      .send({ password, code: 'FFFF-FFFF' });
+    expect(badCode.status).toBe(401);
+    const badPassword = await request(app).post('/api/auth/mfa/disable')
+      .set('Cookie', authCookie(user.id))
+      .send({ password: 'invalid-password', code: 'A1B2-C3D4' });
+    expect(badPassword.status).toBe(401);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -244,9 +244,10 @@ export default function MSettingsAccount() {
                 />
                 <MSetInput
                   className="mt-2"
-                  inputMode="numeric"
+                  inputMode="text"
+                  autoComplete="one-time-code"
                   value={mfaDisableCode}
-                  onChange={(e) => setMfaDisableCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                  onChange={(e) => setMfaDisableCode(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 12))}
                   placeholder={t('settings.mfa.codePlaceholder')}
                 />
                 <MSetButton

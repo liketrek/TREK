@@ -308,9 +308,10 @@ export default function AccountTab(): React.ReactElement {
                   />
                   <input
                     type="text"
-                    inputMode="numeric"
+                    inputMode="text"
+                    autoComplete="one-time-code"
                     value={mfaDisableCode}
-                    onChange={e => setMfaDisableCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                    onChange={e => setMfaDisableCode(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 12))}
                     placeholder={t('settings.mfa.codePlaceholder')}
                     aria-label={t('settings.mfa.codePlaceholder')}
                     className={`${INPUT} font-geist tabular-nums`}
