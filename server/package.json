@@ -27,7 +27,7 @@
   "dependencies": {
     "@aws-lite/client": "^0.23.7",
     "@aws-lite/s3": "^0.2.7",
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@nestjs/common": "^11.1.24",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.24",
