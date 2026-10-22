@@ -28,7 +28,7 @@ user/client/grant, trip access, field audience and original ownership.
 `travel_transfer_capabilities()` returns `format: travel-transfer/1`,
 `features: [complete-snapshots, field-manifests, original-chunks,
 historical-attribution, silent-apply, conditional-apply, durable-receipts,
-protected-extensions]`, `max_original_bytes: 536870912`, `chunk_bytes: 1048576`.
+protected-extensions, graph-staging, idempotent-trip-create]`, `max_original_bytes: 536870912`, `chunk_bytes: 1048576`.
 A missing feature blocks full transfer. Advertising is a guarantee, not tool-name
 inference. Unsupported/inaccessible domains are reported explicitly before apply;
 never silently omit fields and then return `complete: true`.
@@ -49,8 +49,13 @@ never silently omit fields and then return `complete: true`.
   chunk_sha256, data)`: append verified chunks into an account/operation-bound
   staging object. Replayed chunks must match exactly; reject holes, offset or digest
   changes. Support512MiB per original. Publish only after full hash verification.
-- `travel_transfer_apply(trip_id, expected_revision, operation_id, payload_digest,
-  snapshot, original_ids)`: commit the reviewed graph, stable mappings and a durable
+- `travel_transfer_stage_graph(trip_id?, operation_id, payload_digest, offset, total,
+  chunk_sha256, data)`: stage canonical UTF-8 JSON in bounded base64 chunks. Bind
+  the staging object to account/client/operation/digest, verify replay bytes and
+  whole SHA-256, and return exactly `{next_offset, payload_digest}`. The metadata
+  aggregate limit is64MiB; it must not become a single MCP request.
+- `travel_transfer_apply(trip_id?, expected_revision?, operation_id, payload_digest,
+  original_ids)`: commit the reviewed graph, stable mappings and a durable
   receipt in one transaction. Original I/O is outside database locks; reauthorise
   before commit. No broadcasts, invites, membership edits, reminders or notifications.
   Retain historic author/source time separately from the importing local account;
@@ -59,7 +64,21 @@ never silently omit fields and then return `complete: true`.
   reauthorised even on replay. Return `applied` with digest/result revision/mappings,
   `not_applied`, or `pending`; never guess based on a matching title/timestamp.
   A lost acknowledgement is reconciled before another apply. Reusing an operation
-  ID with another digest is a conflict. Bind receipts to user, client and trip.
+  ID with another digest is a conflict. Bind receipts to user, client and trip. An applied receipt includes `state`,
+  `payload_digest`, `trip_id` and `revision`. `not_applied` and `pending` include
+  `payload_digest`. Missing receipts must be authoritative, never inferred.
+
+A null trip ID stages a new trip under the same operation; only atomic apply
+creates it, and its receipt supplies the permanent trip ID. The expected revision
+is null only for this explicitly chosen creation. Read snapshots return the
+schema envelope plus `next_cursor` (null on the last page); each page repeats the
+same trip/revision and `complete:true` guarantee for the frozen whole snapshot.
+List pages return `{trips:[{id,title}],next_cursor}`. Original reads return exactly
+`{offset,total,sha256,chunk_sha256,data}` and writes acknowledge exactly
+`{next_offset,sha256}`. Replaying original/graph staging never publishes a trip.
+The apply digest is SHA-256 of canonical JSON (sorted keys, UTF-8, no insignificant
+whitespace, finite numbers); amounts and weights remain strings. Server storage
+must retain bounded receipt history independently of staging expiry.
 
 Metadata writes can be paged/staged before the atomic apply; an implementation must
 not put a64MiB snapshot into one MCP response. Per-call and aggregate time/byte/job
@@ -86,7 +105,9 @@ Credentials/account-security data and unauthorised private fields are excluded.
 Linking trips never grants access. Shared canonical writing is linked without
 creating duplicate journal posts or merging private discussions.
 
-Use a per-record/field common baseline. Apply one-sided edits, settle identical
+Use per-side per-record/field baselines (a common baseline after a settled
+bidirectional run). Unchanged one-way sources must not repeatedly overwrite
+destination-only edits or propose the same deletion. Use a per-record/field comparison. Apply one-sided edits, settle identical
 edits once and explicitly review competing edits. Deletion proposals and audience
 changes always require a choice, including one-sided changes; do not infer deletion
 from missing pages. Date edits must preserve children unless a separately reviewed

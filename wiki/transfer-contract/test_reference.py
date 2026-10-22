@@ -12,6 +12,19 @@ def graph(title='Example'):
 
 
 class TransferContract(unittest.TestCase):
+    def test_one_way_tracks_both_baselines_without_repeated_deletion_or_echo(self):
+        local=graph('Local');remote=graph('Remote')
+        baseline={'local':copy.deepcopy(local),'remote':copy.deepcopy(remote)}
+        local['records'][0]['fields']['notes']='Destination writing stays local'
+        plan=wire.merge(baseline,local,remote,'pull')
+        self.assertEqual(plan['conflicts'],[])
+        self.assertEqual(plan['local'],local)
+        self.assertEqual(plan['remote'],remote)
+        remote['records'][0]['fields']['title']='Remote changed'
+        plan=wire.merge(baseline,local,remote,'pull')
+        self.assertEqual(plan['conflicts'],[])
+        self.assertEqual(plan['local']['records'][0]['fields'],{'title':'Remote changed','notes':'Destination writing stays local'})
+
     def test_child_only_changes_null_empty_and_protected_extension_survive(self):
         base = graph(); local = copy.deepcopy(base); remote = copy.deepcopy(base)
         local['records'][0]['fields']['title'] = 'Local title'

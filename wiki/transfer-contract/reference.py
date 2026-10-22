@@ -15,7 +15,7 @@ CHUNK_BYTES = 1024 * 1024
 MAX_FILE_BYTES = 512 * 1024 * 1024
 FEATURES = frozenset({'complete-snapshots', 'field-manifests', 'original-chunks',
     'historical-attribution', 'silent-apply', 'conditional-apply', 'durable-receipts',
-    'protected-extensions'})
+    'protected-extensions', 'graph-staging', 'idempotent-trip-create'})
 MISSING = {'$transfer': 'absent'}
 
 
@@ -144,21 +144,31 @@ def merge(baseline, local, remote, direction='both', choices=None):
     if direction not in ('pull', 'push', 'both'):
         raise TransferError('Choose a transfer direction')
     snapshot(local); snapshot(remote)
+    split = baseline is not None and set(baseline) == {'local','remote'}
     if baseline is not None:
-        snapshot(baseline)
+        if split:snapshot(baseline['local']); snapshot(baseline['remote'])
+        else:snapshot(baseline)
     choices = choices or {}
     if not isinstance(choices, dict) or any(v not in ('local', 'remote') for v in choices.values()):
         raise TransferError('Invalid conflict choice')
-    base = indexed(baseline) if baseline else {}
+    base = indexed(baseline['local'] if split else baseline) if baseline else {}
+    remote_base = indexed(baseline['remote']) if split else base
     left, right = indexed(local), indexed(remote)
     result, conflicts, used = {}, [], set()
-    for identifier in sorted(base.keys() | left.keys() | right.keys()):
+    for identifier in sorted(base.keys() | remote_base.keys() | left.keys() | right.keys()):
         b, l, r = (v.get(identifier, MISSING) for v in (base, left, right))
+        rb=remote_base.get(identifier,MISSING)
+        # One-way sync tracks each side independently. An unchanged source is
+        # never a fresh deletion/overwrite proposal against destination edits.
+        if baseline is not None and ((direction=='pull' and r==rb) or (direction=='push' and l==b)):
+            picked=l if direction=='pull' else r
+            if picked!=MISSING:result[identifier]=picked
+            continue
         if l == r:
             if l != MISSING: result[identifier] = l
             continue
         if l == MISSING or r == MISSING:
-            destructive = b != MISSING
+            destructive = b != MISSING or rb != MISSING
             key = pointer(identifier, '$record')
             selected = choices.get(key)
             if selected: used.add(key)
@@ -175,14 +185,16 @@ def merge(baseline, local, remote, direction='both', choices=None):
                 lv = l[section].get(name, MISSING) if name is not None else l[section]
                 rv = r[section].get(name, MISSING) if name is not None else r[section]
                 bv = b.get(section, {}).get(name, MISSING) if name is not None and b != MISSING else b.get(section, MISSING) if b != MISSING else MISSING
+                rbv = rb.get(section, {}).get(name, MISSING) if name is not None and rb != MISSING else rb.get(section, MISSING) if rb != MISSING else MISSING
                 key = pointer(identifier, section, name) if name is not None else pointer(identifier, section)
                 choice = choices.get(key)
                 if choice: used.add(key)
-                conflict = lv != rv and (lv != bv and rv != bv or section in ('visibility', 'kind') or bv != MISSING and (lv == MISSING or rv == MISSING))
+                unchanged_source=baseline is not None and (direction=='pull' and rv==rbv or direction=='push' and lv==bv)
+                conflict = not unchanged_source and lv != rv and (lv != bv and rv != rbv or section in ('visibility', 'kind') or (bv != MISSING or rbv!=MISSING) and (lv == MISSING or rv == MISSING))
                 if conflict and not choice:
                     conflicts.append({'key': key, 'reason': 'audience' if section == 'visibility' else 'field', 'local': lv, 'remote': rv})
                     continue
-                selected = lv if choice == 'local' else rv if choice == 'remote' else rv if lv == bv else lv
+                selected = lv if choice == 'local' else rv if choice == 'remote' else (lv if direction=='pull' else rv) if unchanged_source else rv if lv == bv else lv
                 if selected != MISSING:
                     if name is None: merged[section] = selected
                     else: merged[section][name] = selected
