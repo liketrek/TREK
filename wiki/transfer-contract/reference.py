@@ -102,6 +102,8 @@ def snapshot(value):
             raise TransferError('Unreviewable record audience')
         if not isinstance(record['fields'], dict) or not isinstance(record['references'], dict) or not isinstance(record['source'], dict):
             raise TransferError('Record fields, references and source manifest are required')
+        if record['fields'].get('audience') in ('private','trip') and record['fields']['audience']!=record['visibility']:
+            raise TransferError('Record and field audiences disagree')
         # Every source field must have an explicit destination or be preserved as
         # an extension. Unknown/unavailable is distinct from supplied null.
         manifest = record['source'].get('fields')

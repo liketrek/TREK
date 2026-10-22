@@ -37,9 +37,10 @@ never silently omit fields and then return `complete: true`.
 
 - `travel_transfer_list_trips(cursor?, limit=100)`: current authorised IDs/titles
   and bounded cursor. A title never identifies a trip or repairs a lost create.
-- `travel_transfer_snapshot(trip_id, revision?, cursor?)`: revision-bound pages of
+- `travel_transfer_snapshot(trip_id, revision?, cursor?, include_private=false)`: revision-bound pages of
   the attached snapshot schema. First page freezes the complete authorised graph;
-  child-only edits change its revision. Every page reauthorises and binds the same
+  child-only edits change its revision. Private data and nested private widgets are excluded unless explicitly requested
+  and currently authorised. Every page reauthorises and binds the same
   trip/revision. Limit metadata pages to1MiB. Cyclic cursors, changed revisions,
   missing graph references or unavailable domains abort the snapshot.
 - `travel_transfer_read_original(trip_id, revision, id, offset, limit)`: exact bytes
