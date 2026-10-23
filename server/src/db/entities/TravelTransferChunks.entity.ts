@@ -9,6 +9,7 @@ export class TravelTransferChunks {
   object_id!: string;
   offset!: number;
   data!: string;
+  digest?: string | null;
 }
 
 export const TravelTransferChunksSchema = defineEntity({
@@ -21,5 +22,6 @@ export const TravelTransferChunksSchema = defineEntity({
     object_id: p.text().persist(false),
     offset: p.integer(),
     data: p.text(),
+    digest: p.text().nullable(),
   },
 });

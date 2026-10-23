@@ -40,6 +40,7 @@ export class TravelTransferService {
     return {
       format: FORMAT,
       features: [
+        'complete-snapshots',
         'field-manifests',
         'original-chunks',
         'historical-attribution',
@@ -53,8 +54,7 @@ export class TravelTransferService {
       ],
       max_original_bytes: MAX_ORIGINAL,
       chunk_bytes: CHUNK,
-      unavailable: ['complete-snapshots'],
-      reason: 'Native travel-domain projectors are not yet complete. Full-sync clients must refuse negotiation.',
+      unavailable: [],
     };
   }
   async trips(ctx: McpContext, cursor: string | null, limit: number) {
@@ -77,7 +77,7 @@ export class TravelTransferService {
   ) {
     const id = await this.authority.check(ctx, target, false);
     if (id === null) fail('Trip required', 422);
-    const files = await this.files.prepare(id);
+    const files = await this.files.prepare(id, privateData);
     const graph = await this.uow.transactional(() => this.graphs.snapshot(id, privateData, files));
     if (revision !== null && revision !== graph.revision) fail('Trip changed during snapshot');
     if (cursor !== null && (!revision || !/^\d+$/.test(cursor))) fail('Invalid snapshot cursor', 422);
@@ -113,9 +113,14 @@ export class TravelTransferService {
   async readOriginal(ctx: McpContext, target: string, revision: string, id: string, offset: number, limit: number) {
     const trip = await this.authority.check(ctx, target, false);
     if (trip === null) fail('Trip required', 422);
-    const files = await this.files.prepare(trip);
-    let graph = await this.graphs.snapshot(trip, true, files);
-    if (graph.revision !== revision) graph = await this.graphs.snapshot(trip, false, files);
+    let includePrivate = false;
+    let files = await this.files.prepare(trip, false);
+    let graph = await this.graphs.snapshot(trip, false, files);
+    if (graph.revision !== revision) {
+      includePrivate = true;
+      files = await this.files.prepare(trip, true);
+      graph = await this.graphs.snapshot(trip, true, files);
+    }
     if (graph.revision !== revision) fail('Trip changed before original read');
     const original = graph.originals.find((o) => o.id === id);
     if (!original || offset > original.size) fail('Original unavailable', 404);
@@ -125,6 +130,9 @@ export class TravelTransferService {
     if (native) {
       const data = await this.files.read(native, offset, limit);
       await this.authority.check(ctx, target, false);
+      // A long provider read must not return bytes after linked-journal access or associations change.
+      const current = await this.uow.transactional(() => this.graphs.snapshot(trip, includePrivate, files));
+      if (current.revision !== revision) fail('Trip changed during original read');
       return {
         offset,
         total: original.size,
@@ -154,6 +162,8 @@ export class TravelTransferService {
     );
     const data = bytes.subarray(offset - base, offset - base + limit);
     await this.authority.check(ctx, target, false);
+    const current = await this.uow.transactional(() => this.graphs.snapshot(trip, includePrivate, files));
+    if (current.revision !== revision) fail('Trip changed during original read');
     return {
       offset,
       total: original.size,
@@ -251,6 +261,7 @@ export class TravelTransferService {
         await this.store.updateOp(op.id, {
           receipt: encodeJson(TRANSFER_RECEIPT, { request: sha(canonical(input)), response }),
         });
+        await this.staging.retireSuperseded(ctx.userId);
         return response;
       });
     } finally {

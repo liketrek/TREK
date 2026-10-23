@@ -119,6 +119,12 @@ function normalDecimal(value: string): string {
   }
   return digits === '0' ? '0' : (negative ? '-' : '') + digits + 'e' + power;
 }
+function minor(value: number): string {
+  const result = toMinor(value);
+  if (!Number.isFinite(value) || !Number.isSafeInteger(result))
+    fail('Native amount exceeds exact transfer precision', 422);
+  return String(result);
+}
 export function decoratePortable(
   domain: NativeDomain,
   row: NativeRow,
@@ -129,7 +135,7 @@ export function decoratePortable(
     fields.currency = row.currency || currency;
     // TREK's ledger always uses hundredths, including currencies displayed with another precision.
     fields.exponent = 2;
-    fields.amount_minor = String(toMinor(Number(row.total_price)));
+    fields.amount_minor = minor(Number(row.total_price));
     if (Number(row.exchange_rate) > 0) {
       fields.fx_base_currency = currency;
       fields.fx_base_exponent = 2;
@@ -141,7 +147,7 @@ export function decoratePortable(
   }
   if (['budget_item_members', 'budget_item_payers', 'budget_settlements'].includes(domain.table)) {
     fields.amount_text = row.amount === null ? '' : String(row.amount);
-    fields.amount_minor = row.amount === null ? null : String(toMinor(Number(row.amount)));
+    fields.amount_minor = row.amount === null ? null : minor(Number(row.amount));
     if (domain.table === 'budget_settlements') {
       fields.currency = row.currency || currency;
       fields.exponent = 2;

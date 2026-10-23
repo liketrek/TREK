@@ -48,6 +48,7 @@ import { makeUser } from '../../../helpers/factories/users';
 import { createTestModule, type TestModule } from '../../../helpers/test-module';
 import { MikroORM } from '@mikro-orm/core';
 
+import { createHash } from 'node:crypto';
 import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -202,7 +203,7 @@ describe('travel transfer runtime on migrated TREK database', () => {
     ])
       expect(allowed({ ...ctx, ...overrides }, true)).toBe(false);
     expect(allowed({ ...ctx, scopes: ['transfer:write'] }, false)).toBe(false);
-    expect(service.capabilities().features).not.toContain('complete-snapshots');
+    expect(service.capabilities().features).toContain('complete-snapshots');
   });
   it('creates once, retains historical authorship, and recovers a lost response after container reconstruction', async () => {
     const request = await stage();
@@ -262,7 +263,7 @@ describe('travel transfer runtime on migrated TREK database', () => {
         await expect(staging.accept(ctx, { ...input, ...changes })).rejects.toThrow();
       },
     );
-    expect(await countRows(orm, TravelTransferChunks, {})).toBe(1);
+    expect((await findRows(orm, TravelTransferChunks, {})).filter((c) => c.data !== '')).toHaveLength(1);
   });
   it('rolls back bad final whole-file hashes and publishes nothing', async () => {
     const bytes = Buffer.from('bad');
@@ -382,7 +383,7 @@ describe('travel transfer runtime on migrated TREK database', () => {
   });
   it('reserves declared bytes before accepting a large upload and enforces account quota', async () => {
     const part = Buffer.alloc(CHUNK, 1);
-    await serial(['one', 'two'], async (id) => {
+    await serial(['one', 'two', 'three', 'four'], async (id) => {
       await staging.accept(ctx, {
         trip_id: null,
         include_private: false,
@@ -396,7 +397,7 @@ describe('travel transfer runtime on migrated TREK database', () => {
       });
     });
     await expect(original(Buffer.from('x'), 'other-op')).rejects.toThrow('quota');
-    expect(await countRows(orm, TravelTransferObjects, {})).toBe(2);
+    expect(await countRows(orm, TravelTransferObjects, {})).toBe(4);
   });
   it('serializes simultaneous retries into one durable create', async () => {
     const request = await stage();
@@ -800,4 +801,59 @@ describe('travel transfer runtime on migrated TREK database', () => {
       (await service.snapshot(ctx, target.trip_id, null, null, true)).records.find((r) => r.id === member?.id),
     ).toEqual(member);
   });
+  it('retires superseded byte chunks but keeps current originals, immutable identities and durable receipts', async () => {
+    const bytes = Buffer.from('retained bytes');
+    await original(bytes, 'first');
+    const graph = fixture();
+    graph.originals = [{ id: 'original', record: 'message', size: bytes.length, sha256: sha(bytes) }];
+    const firstRequest = await stage(graph, null, 'first');
+    const first = await service.apply(ctx, firstRequest);
+    const { next_cursor: _cursor, ...current } = await service.snapshot(ctx, first.trip_id, null, null, false);
+    await original(bytes, 'second', first.trip_id);
+    await service.apply(ctx, await stage(current, first.trip_id, 'second'));
+    const stored = await findRows(orm, TravelTransferObjects, { source_id: 'original:original' });
+    expect(stored.map((o) => o.verified).sort()).toEqual([0, 1]);
+    expect((await findRows(orm, TravelTransferChunks, {})).filter((c) => c.data !== '')).toHaveLength(1);
+    expect(await service.receipt(ctx, firstRequest)).toEqual(first);
+    expect(await service.apply(ctx, firstRequest)).toEqual(first);
+  });
+  it('streams a full 512 MiB original through staging, native apply and bounded readback', async () => {
+    const part = Buffer.alloc(CHUNK, 0xa3),
+      hash = createHash('sha256');
+    for (let i = 0; i < 512; i++) hash.update(part);
+    const digest = hash.digest('hex'),
+      encoded = part.toString('base64'),
+      chunkDigest = sha(part);
+    await serial(
+      Array.from({ length: 512 }, (_, i) => i * CHUNK),
+      async (offset) => {
+        await staging.accept(ctx, {
+          trip_id: null,
+          include_private: false,
+          operation_id: 'large',
+          id: 'large',
+          sha256: digest,
+          offset,
+          total: 512 * CHUNK,
+          chunk_sha256: chunkDigest,
+          data: encoded,
+        });
+      },
+    );
+    const graph = fixture();
+    graph.records.push({
+      id: 'large-document',
+      kind: 'documents',
+      visibility: 'trip',
+      fields: { original_name: 'Synthetic-512MiB.bin' },
+      references: {},
+      source: { fields: { original_name: 'present' } },
+    });
+    graph.originals = [{ id: 'large', record: 'large-document', size: 512 * CHUNK, sha256: digest }];
+    const applied = await service.apply(ctx, await stage(graph, null, 'large'));
+    const result = await service.readOriginal(ctx, applied.trip_id, applied.revision, 'large', 512 * CHUNK - 43, CHUNK);
+    expect(result.total).toBe(512 * CHUNK);
+    expect(result.sha256).toBe(digest);
+    expect(Buffer.from(result.data, 'base64')).toEqual(part.subarray(0, 43));
+  }, 120_000);
 });

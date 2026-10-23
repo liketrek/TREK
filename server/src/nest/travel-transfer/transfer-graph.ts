@@ -24,7 +24,7 @@ export class TransferGraph {
     private readonly native: TransferNative,
     private readonly files: TransferNativeFiles,
   ) {}
-  async full(id: number, files: HashedNativeFile[] = []): Promise<Graph> {
+  async full(id: number, files: HashedNativeFile[] = [], includePrivate = true): Promise<Graph> {
     const trip = await this.store.trip(id);
     if (!trip) fail('Trip unavailable', 404);
     const projection = await this.native.project(id);
@@ -48,7 +48,14 @@ export class TransferGraph {
       currency: trip.currency,
       trek_archived: Boolean(trip.is_archived),
     };
-    const fields = old ? { ...old.fields } : current;
+    const fields = old
+      ? { ...old.fields }
+      : {
+          ...current,
+          trek_created_at: trip.created_at ?? null,
+          trek_updated_at: trip.updated_at ?? null,
+          trek_owner_id: String(trip.user_id),
+        };
     const states = { ...old?.source.fields };
     const cost = graph.records.find((r) => r.kind === 'cost_settings');
     if (!saved) {
@@ -101,11 +108,15 @@ export class TransferGraph {
     graph.records = [root, ...graph.records.filter((r) => r.id !== 'trip')];
     graph.trip = String(id);
     return validateGraph(
-      this.files.enrich(this.native.merge(graph, projection), this.files.sources(projection, trip.cover_image), files),
+      this.files.enrich(
+        this.native.merge(graph, projection),
+        this.files.sources(projection, trip.cover_image, includePrivate),
+        files,
+      ),
     );
   }
   async snapshot(id: number, includePrivate: boolean, files: HashedNativeFile[] = []): Promise<Graph> {
-    const graph = selected(await this.full(id, files), includePrivate);
+    const graph = selected(await this.full(id, files, includePrivate), includePrivate);
     // Revision includes native root + every retained child and selected audience.
     graph.revision = sha(canonical({ ...graph, revision: '', include_private: includePrivate }));
     return graph;

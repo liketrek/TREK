@@ -11,6 +11,7 @@ import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { AddonsService } from '../addons/addons.service';
 import { encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DomainError } from '../common/domain-error';
 import { UnitOfWork } from '../database/unit-of-work';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.service';
@@ -60,6 +61,11 @@ export class UnifiedMemoriesService {
     const journeyOn = await this.addons.isAddonEnabled(ADDON_IDS.JOURNEY);
     const rows = await this.photoProviders.listAll();
     return rows.map((r) => ({ id: r.id, enabled: journeyOn && r.enabled === 1 }));
+  }
+
+  async assertProviderEnabled(provider: string): Promise<void> {
+    const result = await this._validProvider(provider);
+    if (!result.success) throw new DomainError(403, 'Photo provider is disabled or unavailable');
   }
 
   private async _validProvider(provider: string): Promise<ServiceResult<string>> {

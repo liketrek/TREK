@@ -26,6 +26,10 @@ export class ImmichPhotoProvider implements PhotoProvider {
     });
   }
 
+  openOriginal(ref: PhotoAssetRef) {
+    return this.immich.openOriginal(ref.ownerId, ref.assetId);
+  }
+
   fetchThumbnailBytes(ref: PhotoAssetRef): Promise<PhotoBytes | PhotoFetchError> {
     return this.immich.fetchImmichThumbnailBytes(ref.userId, ref.assetId, ref.ownerId);
   }

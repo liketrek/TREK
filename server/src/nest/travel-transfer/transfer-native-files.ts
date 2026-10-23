@@ -4,6 +4,7 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { StorageService } from '../storage/storage.service';
 import type { ObjectStat, ServedCategory } from '../storage/storage.types';
 import { TransferNative } from './transfer-native';
+import { TransferPhotoFiles } from './transfer-photo-files';
 import { canonical, fail, MAX_ORIGINAL, sha, type Graph } from './transfer-wire';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
@@ -16,6 +17,8 @@ export interface NativeFileSource {
   record: string;
   category: ServedCategory;
   name: string;
+  photo?: { user: number; id: number };
+  document?: { user: number; trip: number; id: number };
 }
 export interface HashedNativeFile extends NativeFileSource {
   size: number;
@@ -31,12 +34,49 @@ export class TransferNativeFiles {
   constructor(
     @InjectRepository(TravelTransferOperations) private readonly store: TravelTransferOperationsRepository,
     private readonly native: TransferNative,
+    private readonly photos: TransferPhotoFiles,
     private readonly storage: StorageService,
     private readonly uow: UnitOfWork,
   ) {}
-  sources(projection: Projection, cover: string | null | undefined): NativeFileSource[] {
+  sources(projection: Projection, cover: string | null | undefined, includePrivate = true): NativeFileSource[] {
     const files: NativeFileSource[] = [];
+    const selected = new Set(
+      projection.records.filter((r) => includePrivate || r.visibility === 'trip').map((r) => r.id),
+    );
     for (const [record, binding] of Object.entries(projection.bindings)) {
+      if (!selected.has(record)) continue;
+      if (binding.table === 'document_sync_items') {
+        const row = projection.rows.document_sync_items.find((r) => r.id === binding.key.id);
+        if (row?.remote_id && !row.remote_missing_at && !row.remote_trashed_at)
+          files.push({
+            record,
+            category: 'files',
+            name: `remote-${row.id}`,
+            document: { user: projection.owner, trip: projection.trip, id: Number(row.id) },
+          });
+        continue;
+      }
+      if (binding.table === 'trek_photos') {
+        const row = projection.rows.trek_photos.find((r) => r.id === binding.key.id);
+        if (!row) fail('Photo association unavailable');
+        files.push({
+          record,
+          category: 'journey',
+          name: `photo-${row.id}`,
+          photo: { user: projection.owner, id: Number(row.id) },
+        });
+        continue;
+      }
+      if (binding.table === 'journeys') {
+        const row = projection.rows.journeys.find((r) => r.id === binding.key.id);
+        if (typeof row?.cover_image === 'string' && row.cover_image) {
+          const path = row.cover_image.replace(/^\/uploads\//, '');
+          const match = /^(journey|covers)\/([^/]+)$/.exec(path);
+          if (!match) fail('Journey cover original is unavailable', 422);
+          files.push({ record, category: match[1] as ServedCategory, name: match[2] });
+        }
+        continue;
+      }
       if (!['trip_files', 'photos'].includes(binding.table)) continue;
       const row = projection.rows[binding.table].find((r) => r.id === binding.key.id);
       if (!row || typeof row.filename !== 'string') fail('Native original unavailable', 422);
@@ -51,9 +91,9 @@ export class TransferNativeFiles {
         fail('Invalid native original storage key', 422);
     return files;
   }
-  async prepare(trip: number): Promise<HashedNativeFile[]> {
+  async prepare(trip: number, includePrivate = true): Promise<HashedNativeFile[]> {
     const sources = await this.uow.transactional(async () =>
-      this.sources(await this.native.project(trip), (await this.store.trip(trip))?.cover_image),
+      this.sources(await this.native.project(trip), (await this.store.trip(trip))?.cover_image, includePrivate),
     );
     const files: HashedNativeFile[] = [];
     // Storage I/O must never occupy the database transaction/mutex.
@@ -64,6 +104,18 @@ export class TransferNativeFiles {
     return files;
   }
   private async hash(source: NativeFileSource): Promise<HashedNativeFile> {
+    if (source.document) {
+      const { size, digest } = await this.photos.document(
+        source.document.user,
+        source.document.trip,
+        source.document.id,
+      );
+      return { ...source, size, digest, stamp: digest };
+    }
+    if (source.photo) {
+      const { size, digest } = await this.photos.consume(source.photo.user, source.photo.id);
+      return { ...source, size, digest, stamp: digest };
+    }
     const stat = await this.storage.stat(source.category, source.name);
     if (!stat) fail('Native original unavailable', 422);
     if (stat.size > MAX_ORIGINAL || stat.size < 0) fail('Native original exceeds transfer limit', 413);
@@ -94,7 +146,12 @@ export class TransferNativeFiles {
   enrich(graph: Graph, sources: NativeFileSource[], files: HashedNativeFile[]): Graph {
     const selected = sources.map((source) => {
       const file = files.find(
-        (f) => f.record === source.record && f.category === source.category && f.name === source.name,
+        (f) =>
+          f.record === source.record &&
+          f.category === source.category &&
+          f.name === source.name &&
+          canonical(f.photo ?? null) === canonical(source.photo ?? null) &&
+          canonical(f.document ?? null) === canonical(source.document ?? null),
       );
       if (!file) fail('Native original associations changed during snapshot');
       return file;
@@ -115,6 +172,20 @@ export class TransferNativeFiles {
     return { ...graph, originals };
   }
   async read(file: HashedNativeFile, offset: number, limit: number): Promise<Buffer> {
+    if (file.document) {
+      const current = await this.photos.document(file.document.user, file.document.trip, file.document.id, {
+        offset,
+        limit,
+      });
+      if (current.digest !== file.digest || current.size !== file.size)
+        fail('External original changed during transfer');
+      return current.bytes;
+    }
+    if (file.photo) {
+      const current = await this.photos.consume(file.photo.user, file.photo.id, { offset, limit });
+      if (current.digest !== file.digest || current.size !== file.size) fail('Photo original changed during transfer');
+      return current.bytes;
+    }
     if (offset === file.size) return Buffer.alloc(0);
     const end = Math.min(file.size, offset + limit) - 1;
     const opened = await this.storage.getStream(file.category, file.name, { start: offset, end });
@@ -203,7 +274,20 @@ export class TransferNativeFiles {
   async cleanup(prepared: MaterializedFiles): Promise<void> {
     await Object.values(prepared).reduce(async (previous, file) => {
       await previous;
+      // A concurrent apply may be preparing this same operation. Retain it until staging expires.
+      const object = await this.store.object(file.filename.slice('transfer-'.length, -'.bin'.length));
+      const operation = object && (await this.store.op(object.operation_id));
+      if (operation && !operation.receipt && operation.expires_at >= Date.now()) return;
       if (!(await this.store.fileIsLinked(file.filename))) await this.storage.delete('files', file.filename);
     }, Promise.resolve());
+  }
+  /** Restart-safe: enumerate only our storage namespace; missing staging rows are recoverable orphans. */
+  async sweep() {
+    for await (const file of this.storage.list('files')) {
+      if (!/^transfer-[a-f0-9]{64}\.bin$/.test(file.key) || file.mtimeMs > Date.now() - 26 * 60 * 60 * 1000) continue;
+      await this.cleanup({
+        orphan: { filename: file.key, file_size: file.size, mime_type: 'application/octet-stream' },
+      });
+    }
   }
 }

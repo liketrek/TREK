@@ -92,6 +92,9 @@ describe('native scalar compatibility and lossless provenance', () => {
       fx_base_currency: 'AUD',
       fx_direction: 'base_per_source',
     });
+    expect(() => decoratePortable(domain('budget_items'), { total_price: 9007199254740991 }, {}, 'AUD')).toThrow(
+      'precision',
+    );
     f.fx_rate = '0';
     decoratePortable(domain('budget_items'), { total_price: 0, currency: 'EUR', exchange_rate: 0 }, f, 'AUD');
     expect(f).not.toHaveProperty('fx_rate');

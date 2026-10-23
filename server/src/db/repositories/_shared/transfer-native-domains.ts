@@ -1,4 +1,5 @@
 import type { DB } from '../../kysely/db';
+import { LINKED_DOMAINS } from './transfer-linked-domains';
 
 export type NativeScalar = string | number | null;
 export type NativeRow = Record<string, NativeScalar>;
@@ -7,13 +8,14 @@ export interface NativeDomain {
   kind: string;
   columns: string[];
   keys: string[];
-  scope: { column: string; parent: string; key: string };
+  scope: { column: string; parent: string; key: string; also?: { parent: string; key: string }[] };
   aliases: Record<string, string>;
   references: Record<string, string>;
   writable: string[];
   omitted: string[];
   accounts: string[];
   privateOwner?: string;
+  privateAudience?: boolean;
   numeric: string[];
   nullable: string[];
   required: string[];
@@ -894,4 +896,5 @@ export const NATIVE_DOMAINS: NativeDomain[] = [
     required: 'user_id source_visit_id name started_at ended_at local_date source_hash'.split(' ').filter(Boolean),
     privateOwner: 'user_id',
   },
+  ...LINKED_DOMAINS,
 ];

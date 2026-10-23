@@ -1,5 +1,5 @@
 import { TravelTransferOperations } from '../../db/entities/TravelTransferOperations.entity';
-import { TRANSFER_NATIVE_MAP, type TransferNativeMap } from '../../db/json-columns';
+import { TRANSFER_NATIVE_MAP, BUDGET_ITEM_TICKET, type TransferNativeMap } from '../../db/json-columns';
 import { TravelTransferOperationsRepository } from '../../db/repositories/TravelTransferOperations.repository';
 import {
   NATIVE_DOMAINS,
@@ -7,6 +7,7 @@ import {
   type NativeRow,
 } from '../../db/repositories/_shared/transfer-native-domains';
 import { decodeJson } from '../../utils/json-column';
+import { TransferLinkedAccess } from './transfer-linked-access';
 import type { MaterializedFiles } from './transfer-native-files';
 import { nativeFieldName, portableValue, nativeValue, decoratePortable } from './transfer-native-values';
 import { canonical, fail, MAX_RECORDS, sha, type Graph, type TransferRecord } from './transfer-wire';
@@ -23,7 +24,12 @@ const keyFor = (domain: NativeDomain, row: NativeRow): NativeRow =>
   Object.fromEntries(domain.keys.map((key) => [key, row[key]]));
 const rowKey = (table: string, key: NativeRow): string => table + ':' + sha(canonical(key));
 function privateRow(domain: NativeDomain, row: NativeRow): boolean {
-  return Boolean(domain.privateOwner || (domain.table === 'packing_items' && row.is_private));
+  return Boolean(
+    domain.privateAudience ||
+    domain.privateOwner ||
+    (domain.table === 'trip_photos' && !row.shared) ||
+    (domain.table === 'packing_items' && row.is_private),
+  );
 }
 function accessible(domain: NativeDomain, row: NativeRow, user: number): boolean {
   if (domain.privateOwner) return row[domain.privateOwner] === user;
@@ -32,7 +38,10 @@ function accessible(domain: NativeDomain, row: NativeRow, user: number): boolean
 
 @Injectable()
 export class TransferNative {
-  constructor(@InjectRepository(TravelTransferOperations) private readonly store: TravelTransferOperationsRepository) {}
+  constructor(
+    @InjectRepository(TravelTransferOperations) private readonly store: TravelTransferOperationsRepository,
+    private readonly linked: TransferLinkedAccess,
+  ) {}
 
   /** Project every explicitly reviewed domain inside the caller's consistent DB snapshot. */
   async project(trip: number) {
@@ -48,28 +57,53 @@ export class TransferNative {
       Object.create(null),
       saved ? decodeJson(TRANSFER_NATIVE_MAP, saved.native_map) : {},
     );
+    const selected = await this.linked.select(rows, root.user_id);
+    const selectedMaps = Object.fromEntries(
+      NATIVE_DOMAINS.map((domain) => [
+        domain.table,
+        new Map(selected[domain.table].map((row) => [canonical(keyFor(domain, row)), row])),
+      ]),
+    );
     const aliases = new Map(Object.entries(bindings).map(([id, b]) => [rowKey(b.table, b.key), id]));
     const targets = new Map<string, string>();
     const authorised: { domain: NativeDomain; row: NativeRow; id: string }[] = [];
     for (const domain of NATIVE_DOMAINS) {
       for (const row of rows[domain.table]) {
         const key = rowKey(domain.table, keyFor(domain, row));
-        if (!accessible(domain, row, root.user_id)) {
+        const selectedRow = selectedMaps[domain.table].get(canonical(keyFor(domain, row)));
+        if (!selectedRow || !accessible(domain, row, root.user_id)) {
           if (aliases.has(key)) fail('Private source access changed; restore access before syncing', 403);
           continue;
         }
         const id = aliases.get(key) ?? 'trek:' + key;
-        authorised.push({ domain, row, id });
+        authorised.push({ domain, row: selectedRow, id });
         // Primary-key associations only. A numeric source ID never resolves outside this trip.
         if (domain.keys.length === 1) targets.set(domain.table + ':' + row[domain.keys[0]], id);
       }
     }
+    const tickets = new Map(
+      authorised
+        .filter((a) => a.domain.table === 'budget_items')
+        .map(({ id, row }) => {
+          const raw =
+            typeof row.ticket_json === 'string'
+              ? row.ticket_json
+              : typeof row.note === 'string' && row.note.startsWith('TICKETJSON:')
+                ? row.note.slice(11)
+                : null;
+          return [id, decodeJson(BUDGET_ITEM_TICKET, raw)];
+        }),
+    );
+    const ticketPeople = [...tickets.values()]
+      .flatMap((ticket) => ticket?.items.flatMap((line) => line.parts ?? []) ?? [])
+      .filter((id) => Number.isSafeInteger(id) && id > 0);
     const people = [
-      ...new Set(
-        authorised.flatMap(({ domain, row }) =>
+      ...new Set([
+        ...ticketPeople,
+        ...authorised.flatMap(({ domain, row }) =>
           domain.accounts.map((column) => row[column]).filter((value): value is number => typeof value === 'number'),
         ),
-      ),
+      ]),
     ];
     const names = await this.store.historicalPeople(people);
     const records: TransferRecord[] = [];
@@ -105,6 +139,11 @@ export class TransferNative {
         }
       }
       decoratePortable(domain, row, fields, root.currency ?? 'EUR');
+      const ticket = tickets.get(id);
+      if (ticket)
+        fields.trek_ticket_participants = [...new Set(ticket.items.flatMap((line) => line.parts ?? []))].map(
+          (person) => ({ id: String(person), name: names[String(person)] ?? null }),
+        );
       if (domain.scope.parent === 'packing_items' && !targets.has('packing_items:' + row.item_id)) continue;
       const visibility = privateRow(domain, row) ? 'private' : 'trip';
       if (domain.table === 'packing_items') fields.visibility = visibility === 'private' ? 'personal' : 'common';
@@ -117,7 +156,11 @@ export class TransferNative {
         visibility,
         fields,
         references,
-        source: { provider: 'trek', fields: Object.fromEntries(Object.keys(fields).map((k) => [k, 'present'])) },
+        source: {
+          provider: 'trek',
+          native_identity: { table: domain.table, key: keyFor(domain, row) },
+          fields: Object.fromEntries(Object.keys(fields).map((k) => [k, 'present'])),
+        },
       };
       records.push(record);
       current[id] = { table: domain.table, key: keyFor(domain, row), baseline: record };
@@ -180,6 +223,15 @@ export class TransferNative {
           trek_person_id: String(person),
         }),
       );
+    for (const record of records) {
+      if (current[record.id]?.table === 'trek_photos') {
+        const shared = records.some(
+          (r) =>
+            current[r.id]?.table === 'trip_photos' && r.visibility === 'trip' && r.references.photo_id === record.id,
+        );
+        record.visibility = shared ? 'trip' : 'private';
+      }
+    }
     // Dependants inherit their private parent's audience; never leave a shared reference to a private row.
     const byId = new Map(records.map((r) => [r.id, r]));
     for (let pass = 0; pass < records.length; pass++) {
@@ -194,7 +246,7 @@ export class TransferNative {
         }
       if (!changed) break;
     }
-    return { records, bindings: current, previousBindings: bindings, rows };
+    return { records, bindings: current, previousBindings: bindings, rows, trip, owner: root.user_id };
   }
 
   /** Native edits replace only changed projected fields; source-only facts remain lossless. */

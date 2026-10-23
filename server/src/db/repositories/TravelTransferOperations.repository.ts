@@ -12,6 +12,7 @@ import { TrekRepository } from './_shared/trek-repository';
 import { UnprocessableEntityException } from '@nestjs/common';
 import { travelTransfer } from '@trek/shared';
 
+import { createHash } from 'node:crypto';
 import type { z } from 'zod';
 
 type Graph = z.infer<typeof travelTransfer.graphSchema>;
@@ -25,6 +26,7 @@ export class TravelTransferOperationsRepository extends TrekRepository<Operation
       .selectFrom('travel_transfer_objects as o')
       .innerJoin('travel_transfer_operations as op', 'op.id', 'o.operation_id')
       .where('op.user_id', '=', userId)
+      .where((eb) => eb.or([eb('op.receipt', 'is', null), eb('o.verified', '=', 1)]))
       .select((eb) => eb.fn.sum('o.size').as('bytes'))
       .executeTakeFirst();
     return Number(row?.bytes ?? 0);
@@ -77,12 +79,23 @@ export class TravelTransferOperationsRepository extends TrekRepository<Operation
     return this.getEntityManager().find(ChunkRow, { object }, { orderBy: { offset: 'asc' }, refresh: true });
   }
   chunk(object: string, offset: number) {
-    return this.getEntityManager().findOne(ChunkRow, { object, offset }, { refresh: true });
+    return this.kysely<Pick<DB, 'travel_transfer_chunks'>>()
+      .selectFrom('travel_transfer_chunks')
+      .selectAll()
+      .where('object_id', '=', object)
+      .where('offset', '=', offset)
+      .executeTakeFirst();
   }
   async addChunk(object: string, offset: number, data: string) {
     await this.kysely<Pick<import('../kysely/db').DB, 'travel_transfer_chunks'>>()
       .insertInto('travel_transfer_chunks')
-      .values({ id: object + ':' + offset, object_id: object, offset, data })
+      .values({
+        id: object + ':' + offset,
+        object_id: object,
+        offset,
+        data,
+        digest: createHash('sha256').update(Buffer.from(data, 'base64')).digest('hex'),
+      })
       .execute();
   }
   graph(trip: number) {
@@ -152,13 +165,26 @@ export class TravelTransferOperationsRepository extends TrekRepository<Operation
 
   /** Explicit domains only; the dynamic SQL identifiers come from our checked-in registry. */
   async nativeRows(trip: number): Promise<Record<string, NativeRow[]>> {
-    const rows: Record<string, NativeRow[]> = { trips: [{ id: trip }] };
+    const rows: Record<string, NativeRow[]> = {
+      trips: [{ id: trip }],
+      journey_candidates: await this.kysely<Pick<DB, 'journey_entries'>>()
+        .selectFrom('journey_entries')
+        .select('journey_id')
+        .distinct()
+        .where('source_trip_id', '=', trip)
+        .limit(20001)
+        .execute(),
+    };
     let count = 0;
     await NATIVE_DOMAINS.reduce(async (previous, domain) => {
       await previous;
-      const ids = [...new Set((rows[domain.scope.parent] ?? []).map((r) => r[domain.scope.key]))].filter(
-        (id): id is string | number => id !== null && id !== undefined,
-      );
+      const ids = [
+        ...new Set(
+          [domain.scope, ...(domain.scope.also ?? [])].flatMap((scope) =>
+            (rows[scope.parent] ?? []).map((r) => r[scope.key]),
+          ),
+        ),
+      ].filter((id): id is string | number => id !== null && id !== undefined);
       const result: NativeRow[] = [];
       const chunks = Array.from({ length: Math.ceil(ids.length / 500) }, (_, i) => ids.slice(i * 500, i * 500 + 500));
       await chunks.reduce(async (prior, chunk) => {
@@ -189,11 +215,20 @@ export class TravelTransferOperationsRepository extends TrekRepository<Operation
       'travel_transfer_operations',
       'travel_transfer_graphs',
       'travel_transfer_silent_tasks',
+      // Operational access/connection/job state is deliberately not portable content.
+      'document_connections',
+      'journey_contributors',
+      'trip_journal_link_members',
+      'journey_share_tokens',
+      'journey_recording_prep',
+      'trek_photo_cache_meta',
     ]);
     for (const domain of NATIVE_DOMAINS) {
       if (rows[domain.table].some((r) => Object.keys(r).some((c) => !domain.columns.includes(c))))
         return domain.table + ' columns';
     }
+    // Category/tag definitions are shared lookup data, not roots of a traveller's unrelated collections.
+    const catalogues = new Set(['categories', 'tags']);
     const relations = [...this.getEntityManager().getMetadata().getAll().values()]
       .filter((meta) => !allowed.has(meta.tableName) && !excluded.has(meta.tableName))
       .flatMap((meta) =>
@@ -202,6 +237,7 @@ export class TravelTransferOperationsRepository extends TrekRepository<Operation
             (prop) =>
               prop.targetMeta &&
               (prop.targetMeta.tableName === 'trips' || allowed.has(prop.targetMeta.tableName)) &&
+              !catalogues.has(prop.targetMeta.tableName) &&
               (prop.kind === 'm:1' || (prop.kind === '1:1' && prop.owner)) &&
               prop.persist !== false,
           )
@@ -287,5 +323,34 @@ export class TravelTransferOperationsRepository extends TrekRepository<Operation
       .values({ todo_id: id })
       .onConflict((oc) => oc.column('todo_id').doNothing())
       .execute();
+  }
+  graphsForUser(user: number) {
+    return this.getEntityManager().find(GraphRow, { user }, { refresh: true });
+  }
+  async retiredCandidates(user: number) {
+    return this.kysely<Pick<DB, 'travel_transfer_objects' | 'travel_transfer_operations'>>()
+      .selectFrom('travel_transfer_objects as o')
+      .innerJoin('travel_transfer_operations as op', 'op.id', 'o.operation_id')
+      .select('o.id')
+      .where('op.user_id', '=', user)
+      .where('op.receipt', 'is not', null)
+      .where('o.verified', '=', 1)
+      .execute();
+  }
+  async retireObject(id: string) {
+    const object = await this.object(id);
+    if (!object) return;
+    await Array.from(
+      { length: Math.max(1, Math.ceil(object.size / travelTransfer.CHUNK)) },
+      (_, i) => i * travelTransfer.CHUNK,
+    ).reduce(async (previous, offset) => {
+      await previous;
+      const chunk = await this.chunk(id, offset);
+      if (!chunk) return;
+      const digest = chunk.digest ?? createHash('sha256').update(Buffer.from(chunk.data, 'base64')).digest('hex');
+      await this.getEntityManager().nativeUpdate(ChunkRow, { id: chunk.id }, { data: '', digest });
+    }, Promise.resolve());
+    // Retain the digest/size/identity tombstone: reusing an original ID with different bytes still fails.
+    await this.getEntityManager().nativeUpdate(ObjectRow, { id }, { received: 0, verified: 0 });
   }
 }

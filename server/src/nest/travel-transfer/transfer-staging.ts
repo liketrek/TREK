@@ -1,5 +1,5 @@
 import { TravelTransferOperations } from '../../db/entities/TravelTransferOperations.entity';
-import { TRANSFER_RECEIPT } from '../../db/json-columns';
+import { TRANSFER_RECEIPT, TRANSFER_GRAPH, TRANSFER_ORIGINALS } from '../../db/json-columns';
 import { TravelTransferOperationsRepository } from '../../db/repositories/TravelTransferOperations.repository';
 import type { McpContext } from '../../nest-mcp';
 import { decodeJson } from '../../utils/json-column';
@@ -23,7 +23,8 @@ import { createHash } from 'node:crypto';
 
 const LIFETIME = 24 * 60 * 60 * 1000;
 // Includes committed bytes. Repeated writes cannot turn receipts into unbounded uploads.
-const ACCOUNT_BYTES = 1024 * CHUNK;
+// Headroom for a 512 MiB current original plus its replacement and metadata.
+const ACCOUNT_BYTES = 2048 * CHUNK;
 @Injectable()
 export class TransferStaging {
   constructor(
@@ -110,7 +111,9 @@ export class TransferStaging {
       if (obj.digest !== input.sha256 || obj.size !== input.total) fail('Original identity changed');
       const prior = await this.store.chunk(id, input.offset);
       if (prior) {
-        if (prior.data !== input.data) fail('Chunk replay changed');
+        const replayMatches =
+          op.receipt && !obj.verified && prior.digest ? prior.digest === input.chunk_sha256 : prior.data === input.data;
+        if (!replayMatches) fail('Chunk replay changed');
       } else {
         if (op.receipt || obj.received !== input.offset) fail('Chunk is out of order');
         await this.store.addChunk(id, input.offset, input.data);
@@ -135,6 +138,24 @@ export class TransferStaging {
       await this.authority.check(ctx, input.trip_id, true);
       return { next_offset: input.offset + bytes.length, sha256: obj.digest };
     });
+  }
+
+  /** Called inside apply's transaction: only current graph originals and unapplied operations retain bytes. */
+  async retireSuperseded(user: number) {
+    const graphs = await this.store.graphsForUser(user),
+      keep = new Set<string>();
+    for (const saved of graphs) {
+      const graph = decodeJson(TRANSFER_GRAPH, saved.graph),
+        originals = decodeJson(TRANSFER_ORIGINALS, saved.originals);
+      for (const original of graph.originals) if (originals[original.id]) keep.add(originals[original.id]);
+    }
+    const candidates = await this.store.retiredCandidates(user);
+    await candidates
+      .filter((candidate) => !keep.has(candidate.id))
+      .reduce(async (previous, candidate) => {
+        await previous;
+        await this.store.retireObject(candidate.id);
+      }, Promise.resolve());
   }
   async graphBytes(operation: string) {
     const obj = (await this.store.objects(operation)).find((o) => o.source_id === 'graph:payload');

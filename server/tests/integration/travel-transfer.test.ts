@@ -94,7 +94,7 @@ describe('travel transfer through real OAuth MCP HTTP transport', () => {
       legacySession = await initialize(legacy.rawToken);
     const oldTools = result(await call('tools/list', {}, legacy.rawToken, legacySession)).tools;
     expect(oldTools.some((t: { name: string }) => t.name.startsWith('travel_transfer_'))).toBe(false);
-    expect((await tool('capabilities', {})).features).not.toContain('complete-snapshots');
+    expect((await tool('capabilities', {})).features).toContain('complete-snapshots');
   });
   it('stages, applies, reads back and reconciles a lost acknowledgment through real endpoints', async () => {
     const graph = {

@@ -556,4 +556,17 @@ describe('fetchSynologyThumbnailBytes', () => {
     expect((init as RequestInit).signal).toBeInstanceOf(AbortSignal);
     expect(options).toEqual({ rejectUnauthorized: false, maxBytes: 8 * 1024 * 1024 });
   });
+  it('downloads original photo bytes with Download rather than Thumbnail', async () => {
+    await seedUser(USER);
+    safeFetch.mockResolvedValue(new Response('original-heic', { headers: { 'content-type': 'image/heic' } }));
+    const result = await svc.openOriginal(USER, '42_123', 'test-passphrase');
+    const chunks = [];
+    for await (const chunk of result.stream) chunks.push(chunk);
+    expect(Buffer.concat(chunks).toString()).toBe('original-heic');
+    const url = new URL(safeFetch.mock.calls.at(-1)?.[0]);
+    expect(url.searchParams.get('api')).toBe('SYNO.Foto.Download');
+    expect(url.searchParams.get('unit_id')).toBe('[42]');
+    expect(url.searchParams.get('passphrase')).toBe('test-passphrase');
+    await expect(svc.openOriginal(USER, 'invalid')).rejects.toThrow('Invalid photo');
+  });
 });

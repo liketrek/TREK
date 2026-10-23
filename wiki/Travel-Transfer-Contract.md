@@ -1,9 +1,10 @@
 # Proposed lossless travel transfer contract
 
-**Draft contract with an initial runtime implementation.** See
-[the runtime status and limits](Travel-Transfer-Runtime.md). Eight tools are now
-implemented, but complete native-trip projectors are still missing and the runtime
-does not advertise `complete-snapshots`. Full-sync clients must remain blocked.
+**Draft contract with a complete transfer runtime.** See
+[the runtime status, protected-history semantics and limits](Travel-Transfer-Runtime.md).
+Eight tools now include native planner, provider-original and linked-journey
+projections and advertise `complete-snapshots`. This describes the PR source,
+not an upgrade to any deployed TREK instance.
 The contribution guide requires prior discussion in Discord #github-pr; that
 approval is still unconfirmed. This PR targets `dev` and changes no deployed image.
 
