@@ -112,6 +112,9 @@ data:
   {{- if .Values.env.TREK_PLACES_URL }}
   TREK_PLACES_URL: {{ .Values.env.TREK_PLACES_URL | quote }}
   {{- end }}
+  {{- if .Values.env.GOOGLE_LIST_DATA_BASE }}
+  GOOGLE_LIST_DATA_BASE: {{ .Values.env.GOOGLE_LIST_DATA_BASE | quote }}
+  {{- end }}
   {{- if .Values.env.AMAP_API_BASE }}
   AMAP_API_BASE: {{ .Values.env.AMAP_API_BASE | quote }}
   {{- end }}

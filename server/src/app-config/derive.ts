@@ -140,6 +140,7 @@ export function deriveManaged(raw: RawEnv) {
 export function deriveMaps(raw: RawEnv) {
   return {
     placesApiBase: raw.PLACES_API_BASE || undefined,
+    googleListDataBase: raw.GOOGLE_LIST_DATA_BASE?.trim() || undefined,
     /**
      * Base URL of the TREK Places API. Unset means the public instance; an
      * operator who runs their own copy of the index points at it here, and one

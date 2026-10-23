@@ -8,6 +8,7 @@ import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { PLACE_IMAGE_FILE_FILTER } from '../common/place-image-upload';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { isDirectionsUrl } from '../place-import/place-import.service';
+import { isGoogleListDataUrl } from '../place-import/providers/google-list.provider';
 import { StorageService } from '../storage/storage.service';
 import { placeImageUrl } from './place-image';
 import {
@@ -320,7 +321,7 @@ export class PlacesController {
       const result =
         provider !== 'google'
           ? await this.places.importNaverList(tripId, url, opts)
-          : isDirectionsUrl(url)
+          : isDirectionsUrl(url) && !isGoogleListDataUrl(url)
             ? await this.places.importGoogleDirections(tripId, url, opts)
             : await this.places.importGoogleList(tripId, url, opts);
       for (const place of result.places) {

@@ -7,6 +7,7 @@ import {
   GoogleListProvider,
   googleMapsFeatureIdFromItem,
   googleMapsHexId,
+  isGoogleListDataUrl,
 } from '../../../../src/nest/place-import/providers/google-list.provider';
 import { SsrfBlockedError } from '../../../../src/utils/ssrfGuard';
 
@@ -24,6 +25,7 @@ vi.mock('../../../../src/utils/ssrfGuard', () => ({
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   mockCheckSsrf.mockReset();
   mockCheckSsrf.mockResolvedValue({ allowed: true });
   mockFollow.mockReset();
@@ -58,6 +60,77 @@ describe('googleMapsHexId / googleMapsFeatureIdFromItem', () => {
 });
 
 describe('GoogleListProvider.read', () => {
+  it('fetches list data from a URL beginning with the configured base', async () => {
+    const url = 'http://list-source.example.test/maps/dir/fixture?other=2';
+    vi.stubEnv('GOOGLE_LIST_DATA_BASE', 'http://list-source.example.test');
+    const body = `)]}'\n${JSON.stringify([
+      [
+        null,
+        null,
+        null,
+        null,
+        'Fixture list',
+        null,
+        null,
+        null,
+        [[null, [null, null, null, null, null, [null, null, 12.34, 56.78]], 'Sample place', '']],
+      ],
+    ])}`;
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => new Response(body));
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(isGoogleListDataUrl(url)).toBe(true);
+    expect(await new GoogleListProvider().read(url)).toEqual({
+      listName: 'Fixture list',
+      places: [{ name: 'Sample place', lat: 12.34, lng: 56.78, notes: null, googleFtid: null }],
+    });
+    expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({ redirect: 'error' }));
+    expect(mockCheckSsrf).not.toHaveBeenCalled();
+    expect(mockFollow).not.toHaveBeenCalled();
+  });
+
+  it('matches the literal base prefix but rejects lookalike origins', () => {
+    const url = 'http://list-source.example.test/fixture';
+    vi.stubEnv('GOOGLE_LIST_DATA_BASE', '');
+    expect(isGoogleListDataUrl(url)).toBe(false);
+    vi.stubEnv('GOOGLE_LIST_DATA_BASE', 'http://list-source.example.test');
+    expect(isGoogleListDataUrl(url)).toBe(true);
+    expect(isGoogleListDataUrl('http://list-source.example.test/other?id=another')).toBe(true);
+    expect(isGoogleListDataUrl('https://list-source.example.test/other')).toBe(false);
+    expect(isGoogleListDataUrl('http://list-source.example.test:8787/fixture')).toBe(false);
+    expect(isGoogleListDataUrl('http://list-source.example.test.evil.test/fixture')).toBe(false);
+    expect(isGoogleListDataUrl('http://list-source.example.test@127.0.0.1/fixture')).toBe(false);
+    vi.stubEnv('GOOGLE_LIST_DATA_BASE', 'http://list-source.example.test/list');
+    expect(isGoogleListDataUrl('http://list-source.example.test/list?id=fixture')).toBe(true);
+    expect(isGoogleListDataUrl('http://list-source.example.test/other?id=fixture')).toBe(false);
+  });
+
+  it('keeps the original Google-link flow when the base does not match', async () => {
+    vi.stubEnv('GOOGLE_LIST_DATA_BASE', 'http://other.example.test');
+    const url = 'http://list-source.example.test/fixture';
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await new GoogleListProvider().read(url)).toEqual({
+      error: 'Could not extract list ID from URL. Please use a shared Google Maps list link.',
+      status: 400,
+    });
+    expect(mockCheckSsrf).toHaveBeenCalledWith(url);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('reports an invalid configured response without falling back to Google', async () => {
+    const url = 'http://list-source.example.test/data';
+    vi.stubEnv('GOOGLE_LIST_DATA_BASE', 'http://list-source.example.test');
+    const fetchMock = vi.fn(async (_url: string) => new Response('not list data'));
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await new GoogleListProvider().read(url)).toEqual({
+      error: 'Invalid list data received from Google Maps',
+      status: 400,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe(url);
+  });
+
   it('refuses a URL the SSRF guard blocks, before fetching anything', async () => {
     mockCheckSsrf.mockResolvedValueOnce({ allowed: false });
     const fetchMock = vi.fn();

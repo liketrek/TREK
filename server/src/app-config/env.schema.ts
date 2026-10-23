@@ -181,6 +181,7 @@ export const envSchema = z.object({
   ADMIN_PASSWORD: anyString,
   TREK_MANAGED: boolStr,
   PLACES_API_BASE: url,
+  GOOGLE_LIST_DATA_BASE: url,
   TREK_PLACES_URL: url,
   TREK_PLACES_ENABLED: boolStr,
   PLACES_API_KEY: anyString,

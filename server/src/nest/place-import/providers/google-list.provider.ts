@@ -1,25 +1,38 @@
 /**
- * A shared Google Maps list, read from Google's own list endpoint.
+ * A shared Google Maps list, read from Google's list endpoint or a configured
+ * data URL pasted by the user.
  *
- * The link is user input, so it is checked by the SSRF guard first and a short
- * link is followed hop by hop through it. A short link that lands on a route
- * (the Share sheet on a phone produces exactly that) is handed back as a
- * directions link for the directions source; everything else must carry a list
- * id. The answer is capped before and after it is read, because its size is
- * attacker-influenced through the list id. Every refusal is the exact message
- * and status the import route has always answered.
+ * Ordinary Google links are checked by the SSRF guard, and short links are
+ * followed hop by hop through it. A short link that lands on a route is handed
+ * to the directions source; other Google list links must carry a list id.
+ * A link under the operator-configured data URL base is read directly and
+ * parsed in the same way. Responses are capped because the URL is user input.
  */
+import { readEnv } from '../../../app-config';
 import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../../../utils/ssrfGuard';
 import { isDirectionsUrl } from '../directions-url.helpers';
 import type { DirectionsRedirect, GoogleListPlace, ListImportError, ListRead } from '../place-import.types';
 import { Injectable } from '@nestjs/common';
 
-/** Cap on a provider list-import response body — the payload is attacker-influenced via the list id. */
+/** Cap on a provider list-import response body — the payload is attacker-influenced via the URL. */
 export const MAX_LIST_RESPONSE_BYTES = 8 * 1024 * 1024; // 8 MB
 
 /** The browser user agent the list endpoints answer. */
 export const LIST_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+export function isGoogleListDataUrl(url: string): boolean {
+  const base = readEnv().maps.googleListDataBase;
+  if (!base || !url.startsWith(base)) return false;
+  try {
+    const configured = new URL(base);
+    return (
+      (configured.protocol === 'http:' || configured.protocol === 'https:') && new URL(url).origin === configured.origin
+    );
+  } catch {
+    return false;
+  }
+}
 
 export function googleMapsHexId(value: unknown): string | null {
   if (typeof value !== 'string' && typeof value !== 'number') return null;
@@ -54,16 +67,18 @@ export class GoogleListProvider {
   async read(url: string): Promise<ListRead<GoogleListPlace> | DirectionsRedirect | ListImportError> {
     let listId: string | null = null;
     let resolvedUrl = url;
+    const listDataUrl = isGoogleListDataUrl(url) ? url : null;
 
-    // SSRF guard: validate user-supplied URL before fetching
-    const ssrf = await checkSsrf(url);
-    if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
+    // The operator-configured base may be internal HTTP. Other user links
+    // retain the SSRF guard.
+    if (!listDataUrl) {
+      const ssrf = await checkSsrf(url);
+      if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
+    }
 
     // Follow redirects for short URLs (maps.app.goo.gl, goo.gl). Redirects are
-    // followed manually so every hop is re-checked against the SSRF guard — a
-    // short link that 302s to an internal IP is blocked even though the initial
-    // host is public.
-    if (url.includes('goo.gl') || url.includes('maps.app')) {
+    // followed manually so every hop is re-checked against the SSRF guard.
+    if (!listDataUrl && (url.includes('goo.gl') || url.includes('maps.app'))) {
       try {
         const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
         resolvedUrl = redirectRes.url;
@@ -81,19 +96,21 @@ export class GoogleListProvider {
     // this shape, and the box says a directions link works.
     //
     // Handed on with the resolved URL, so the hop is not made twice.
-    if (isDirectionsUrl(resolvedUrl)) return { directions: resolvedUrl };
+    if (!listDataUrl && isDirectionsUrl(resolvedUrl)) return { directions: resolvedUrl };
 
-    // Pattern: /placelists/list/{ID}
-    const plMatch = resolvedUrl.match(/placelists\/list\/([A-Za-z0-9_-]+)/);
-    if (plMatch) listId = plMatch[1];
+    if (!listDataUrl) {
+      // Pattern: /placelists/list/{ID}
+      const plMatch = resolvedUrl.match(/placelists\/list\/([A-Za-z0-9_-]+)/);
+      if (plMatch) listId = plMatch[1];
 
-    // Pattern: !2s{ID} in data URL params
-    if (!listId) {
-      const dataMatch = resolvedUrl.match(/!2s([A-Za-z0-9_-]{15,})/);
-      if (dataMatch) listId = dataMatch[1];
+      // Pattern: !2s{ID} in data URL params
+      if (!listId) {
+        const dataMatch = resolvedUrl.match(/!2s([A-Za-z0-9_-]{15,})/);
+        if (dataMatch) listId = dataMatch[1];
+      }
     }
 
-    if (!listId) {
+    if (!listDataUrl && !listId) {
       // A single-place share link (…/maps/place/…) carries no list id — point the user at
       // the place search box instead of a cryptic "could not extract list ID" (#1304).
       if (resolvedUrl.includes('/maps/place/')) {
@@ -106,10 +123,13 @@ export class GoogleListProvider {
       return { error: 'Could not extract list ID from URL. Please use a shared Google Maps list link.', status: 400 };
     }
 
-    // Fetch list data from Google Maps internal API
-    const apiUrl = `https://www.google.com/maps/preview/entitylist/getlist?authuser=0&hl=en&gl=us&pb=!1m1!1s${encodeURIComponent(listId)}!2e2!3e2!4i500!16b1`;
+    // Fetch list data from the configured source or Google's internal API.
+    const apiUrl =
+      listDataUrl ??
+      `https://www.google.com/maps/preview/entitylist/getlist?authuser=0&hl=en&gl=us&pb=!1m1!1s${encodeURIComponent(listId)}!2e2!3e2!4i500!16b1`;
     const apiRes = await fetch(apiUrl, {
       headers: { 'User-Agent': LIST_USER_AGENT },
+      ...(listDataUrl ? { redirect: 'error' as const } : {}),
       signal: AbortSignal.timeout(15000),
     });
 
@@ -118,7 +138,7 @@ export class GoogleListProvider {
     }
 
     // Cap the declared body before reading it (transit.service precedent): the
-    // response is attacker-influenced via the list id, and buffering it whole
+    // response is attacker-influenced via the URL, and buffering it whole
     // used to be unbounded.
     const declared = Number(apiRes.headers?.get('content-length') ?? 0);
     if (declared > MAX_LIST_RESPONSE_BYTES) {

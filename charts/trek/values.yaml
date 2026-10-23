@@ -108,6 +108,7 @@ env:
   # nothing there. There is no switch in the admin panel on purpose: whether searches leave the instance is decided
   # here. Defaults to on.
   # TREK_PLACES_URL: ""
+  # GOOGLE_LIST_DATA_BASE: ""
   # Base URL of a copy of the Places API you run yourself; it has to answer the same /v1 API. Read from
   # configuration rather than typed by a user, so an in-cluster address works without ALLOW_INTERNAL_NETWORK.
   # Defaults to https://places.liketrek.com.

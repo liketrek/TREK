@@ -41,6 +41,7 @@ describe('the Places and Amap switches in the templates', () => {
   const documented = [
     'TREK_PLACES_ENABLED',
     'TREK_PLACES_URL',
+    'GOOGLE_LIST_DATA_BASE',
     'PLACES_API_KEY',
     'AMAP_API_KEY',
     'AMAP_API_SECRET',
@@ -60,7 +61,7 @@ describe('the Places and Amap switches in the templates', () => {
   });
 
   it('the Helm ConfigMap passes through the non-secret ones the values file documents', () => {
-    for (const name of ['TREK_PLACES_ENABLED', 'TREK_PLACES_URL', 'AMAP_API_BASE']) {
+    for (const name of ['TREK_PLACES_ENABLED', 'TREK_PLACES_URL', 'GOOGLE_LIST_DATA_BASE', 'AMAP_API_BASE']) {
       expect(helmValues).toContain(`# ${name}:`);
       expect(helmConfigMap).toContain(`${name}: {{ .Values.env.${name} | quote }}`);
     }
