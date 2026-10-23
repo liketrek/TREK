@@ -567,6 +567,25 @@ describe('travel transfer runtime on migrated TREK database', () => {
     expect(updated.records.find((r) => r.kind === 'chat_messages')?.fields.text).toBe('Historical message');
     expect(t.realtime.broadcastMock).not.toHaveBeenCalled();
   });
+  it('deletes a mapped native place without removing retained places or broadcasting historical changes', async () => {
+    const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Source places' });
+    await insertRow(orm, Places, { trip, name: 'Remove this place' });
+    await insertRow(orm, Places, { trip, name: 'Keep this place' });
+    const { next_cursor: _, ...source } = await service.snapshot(ctx, String(trip), null, null, false);
+    const copied = await service.apply(ctx, await stage(source, null, 'copy-places'));
+    const { next_cursor: _ignored, ...edited } = await service.snapshot(ctx, copied.trip_id, null, null, false);
+    edited.records = edited.records.filter((r) => r.kind !== 'places' || r.fields.name !== 'Remove this place');
+    const request = await stage(edited, copied.trip_id, 'remove-place');
+    const receipt = await service.apply(ctx, request);
+    expect((await findRows(orm, Places, { trip: Number(copied.trip_id) })).map((p) => p.name)).toEqual([
+      'Keep this place',
+    ]);
+    expect(
+      (await service.snapshot(ctx, String(trip), null, null, false)).records.filter((r) => r.kind === 'places'),
+    ).toHaveLength(2);
+    expect(await service.apply(ctx, request)).toEqual(receipt);
+    expect(t.realtime.broadcastMock).not.toHaveBeenCalled();
+  });
   it('swaps native day positions atomically and refuses stale child edits', async () => {
     const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Reorder' });
     const first = await insertRow(orm, Days, { trip, day_number: 1, title: 'First' });

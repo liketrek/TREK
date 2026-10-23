@@ -142,6 +142,22 @@ describe('serveFresh', () => {
 });
 
 describe('the stampede guard', () => {
+  it('CACHE-017: a rejected fetch clears its slot and permits a fresh attempt without an unhandled rejection', async () => {
+    const key = freshKey('rejected');
+    const failed = Promise.reject(new Error('Provider unavailable'));
+    svc.setInFlight(key, failed);
+    await expect(failed).rejects.toThrow('Provider unavailable');
+    await Promise.resolve();
+    expect(svc.getInFlight(key) === undefined).toBe(true);
+
+    const retry = Promise.resolve(Buffer.from('recovered'));
+    svc.setInFlight(key, retry);
+    expect(svc.getInFlight(key)).toBe(retry);
+    await retry;
+    await Promise.resolve();
+    expect(svc.getInFlight(key) === undefined).toBe(true);
+  });
+
   it("CACHE-009: a second caller gets the first caller's in-flight promise", async () => {
     const key = 'inflight-key';
     let resolveFetch!: (b: Buffer) => void;
