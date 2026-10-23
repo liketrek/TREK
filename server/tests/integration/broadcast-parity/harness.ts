@@ -217,7 +217,9 @@ export interface ParityHarness {
  */
 export async function openHarness(): Promise<ParityHarness> {
   const app = await buildApp();
-  await app.init();
+  // Keep REST on a bound IPv4 listener. Supertest's implicit IPv6 wildcard
+  // can share a port with an unrelated IPv4 fixture on macOS.
+  await app.listen(0, '127.0.0.1');
   const orm = app.get(MikroORM);
   await oneByOne(Object.values(ADDON_IDS), (addon) => setAddonEnabled(orm, addon, true));
   await oneByOne(['chat', 'notes', 'polls', 'whatsnext'] as const, (feature) => setCollabFeature(orm, feature, true));
