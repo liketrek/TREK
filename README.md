@@ -37,6 +37,8 @@ A self-hosted, real-time collaborative travel planner — with maps, budgets, pa
 <a href="https://github.com/liketrek/TREK/releases"><img alt="Latest Release" src="https://img.shields.io/github/v/release/liketrek/trek?include_prereleases&style=flat-square&color=6B7280" /></a>
 <a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/mauriceboe/trek?style=flat-square&color=6B7280" /></a>
 <a href="https://github.com/liketrek/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/liketrek/trek?style=flat-square&color=6B7280" /></a>
+<br />
+[![Deploy to Railyard](https://app.railyard.run/deploy/badge)](https://app.railyard.run/deploy?repo=https://github.com/liketrek/TREK)
 </div>
 
 ---
