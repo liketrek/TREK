@@ -61,6 +61,8 @@ import { TourDrafts } from './TourDrafts.entity';
 import { TourPackingLinks } from './TourPackingLinks.entity';
 import { TourSourceHints } from './TourSourceHints.entity';
 import { TourSources } from './TourSources.entity';
+import { TravelTransferGraphs } from './TravelTransferGraphs.entity';
+import { TravelTransferOperations } from './TravelTransferOperations.entity';
 import { TrekPhotos } from './TrekPhotos.entity';
 import { TripAlbumLinks } from './TripAlbumLinks.entity';
 import { TripDocumentLinks } from './TripDocumentLinks.entity';
@@ -197,6 +199,8 @@ export class Users {
   tour_packing_links_collection = new Collection<TourPackingLinks>(this);
   tour_source_hints_collection = new Collection<TourSourceHints>(this);
   tour_sources_collection = new Collection<TourSources>(this);
+  travel_transfer_graphs_collection = new Collection<TravelTransferGraphs>(this);
+  travel_transfer_operations_collection = new Collection<TravelTransferOperations>(this);
   trek_photos_collection = new Collection<TrekPhotos>(this);
   trip_album_links_collection = new Collection<TripAlbumLinks>(this);
   trip_document_links_collection = new Collection<TripDocumentLinks>(this);
@@ -351,6 +355,8 @@ export const UsersSchema = defineEntity({
     tour_packing_links_collection: () => p.oneToMany(TourPackingLinks).mappedBy('linkedByRef').hidden(),
     tour_source_hints_collection: () => p.oneToMany(TourSourceHints).mappedBy('user').hidden(),
     tour_sources_collection: () => p.oneToMany(TourSources).mappedBy('importedByRef').hidden(),
+    travel_transfer_graphs_collection: () => p.oneToMany(TravelTransferGraphs).mappedBy('user').hidden(),
+    travel_transfer_operations_collection: () => p.oneToMany(TravelTransferOperations).mappedBy('user').hidden(),
     trek_photos_collection: () => p.oneToMany(TrekPhotos).mappedBy('owner').hidden(),
     trip_album_links_collection: () => p.oneToMany(TripAlbumLinks).mappedBy('user').hidden(),
     trip_document_links_collection: () => p.oneToMany(TripDocumentLinks).mappedBy('createdByRef').hidden(),

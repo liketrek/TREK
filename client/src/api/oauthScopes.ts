@@ -14,6 +14,8 @@ export interface ScopeKeys {
 }
 
 export const SCOPE_GROUPS: Record<string, ScopeKeys> = {
+  'transfer:read':       { labelKey: 'oauth.scope.transfer:read.label',       descriptionKey: 'oauth.scope.transfer:read.description',       groupKey: 'oauth.scope.group.trips' },
+  'transfer:write':      { labelKey: 'oauth.scope.transfer:write.label',      descriptionKey: 'oauth.scope.transfer:write.description',      groupKey: 'oauth.scope.group.trips' },
   'trips:read':          { labelKey: 'oauth.scope.trips:read.label',          descriptionKey: 'oauth.scope.trips:read.description',          groupKey: 'oauth.scope.group.trips' },
   'trips:write':         { labelKey: 'oauth.scope.trips:write.label',         descriptionKey: 'oauth.scope.trips:write.description',         groupKey: 'oauth.scope.group.trips' },
   'trips:delete':        { labelKey: 'oauth.scope.trips:delete.label',        descriptionKey: 'oauth.scope.trips:delete.description',        groupKey: 'oauth.scope.group.trips' },
@@ -61,7 +63,7 @@ export const ALL_SCOPES = Object.keys(SCOPE_GROUPS)
  * already owns, and wrong for plugins:use: it turns on third-party tool
  * execution, which nobody would have chosen by installing an editor.
  */
-export const PRESET_OPT_IN_ONLY = new Set(['plugins:use'])
+export const PRESET_OPT_IN_ONLY = new Set(['plugins:use', 'transfer:read', 'transfer:write'])
 
 /** The five full-access presets: everything destructive or opt-in-only removed. */
 export const PRESET_SCOPES_DEFAULT = ALL_SCOPES.filter(s => !s.includes(':delete') && !PRESET_OPT_IN_ONLY.has(s))

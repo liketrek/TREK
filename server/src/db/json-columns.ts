@@ -1,5 +1,6 @@
 import type { JsonColumn } from '../utils/json-column';
 import {
+  travelTransfer,
   FERRATAS_RESULT_CAP,
   dawarichTrackSegmentSchema,
   ferrataSchema,
@@ -327,4 +328,35 @@ export const JOURNEY_RECORDED_DAY_SEGMENTS: JsonColumn<DawarichTrackSegment[]> =
   column: 'journey_recorded_days.segments',
   schema: z.array(dawarichTrackSegmentSchema),
   fallback: () => [],
+};
+
+/** Transfer data never falls back to an empty graph/receipt (that could cause a duplicate apply). */
+export const TRANSFER_GRAPH = {
+  column: 'travel_transfer_graphs.graph',
+  schema: travelTransfer.graphSchema,
+  fallback: (): never => {
+    throw new Error('Corrupt transfer graph');
+  },
+};
+export const TRANSFER_ORIGINALS = {
+  column: 'travel_transfer_graphs.originals',
+  schema: z.record(travelTransfer.token, travelTransfer.digest),
+  fallback: (): never => {
+    throw new Error('Corrupt transfer originals');
+  },
+};
+export const TRANSFER_RECEIPT = {
+  column: 'travel_transfer_operations.receipt',
+  schema: z.strictObject({
+    request: travelTransfer.digest,
+    response: z.strictObject({
+      state: z.literal('applied'),
+      payload_digest: travelTransfer.digest,
+      trip_id: travelTransfer.token,
+      revision: travelTransfer.token,
+    }),
+  }),
+  fallback: (): never => {
+    throw new Error('Corrupt transfer receipt');
+  },
 };

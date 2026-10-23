@@ -1,6 +1,11 @@
 import type { TranslationStrings } from '../types';
 
 const oauth: TranslationStrings = {
+  'oauth.scope.transfer:read.label': 'Čítať prenosy ciest',
+  'oauth.scope.transfer:read.description': 'Čítať podporované údaje ciest a pôvodné súbory.',
+  'oauth.scope.transfer:write.label': 'Použiť prenosy ciest',
+  'oauth.scope.transfer:write.description': 'Použiť skontrolované údaje ciest a pôvodné súbory bez upozornení.',
+
   'oauth.scope.group.trips': 'Cesty',
   'oauth.scope.group.places': 'Miesta',
   'oauth.scope.group.collections': 'Kolekcie',

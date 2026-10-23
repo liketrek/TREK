@@ -174,6 +174,10 @@ export class McpTransportService {
     return { user, scopes: null, clientId: null, isStaticToken: false };
   }
 
+  /**
+   * @txIndependent Authentication and later tool revalidation are separate operations.
+   * Never keep a database transaction open across the streaming HTTP transport.
+   */
   async handle(req: Request, res: Response): Promise<void> {
     if (!(await this.addons.isAddonEnabled(ADDON_IDS.MCP))) {
       res.status(403).json({ error: 'MCP is not enabled' });
@@ -336,6 +340,19 @@ export class McpTransportService {
       onInvoke,
       undefined,
       around,
+      {
+        clientId,
+        reauthorize: async () => {
+          const current = await this.verifyToken(req.headers.authorization);
+          return (
+            !!current &&
+            current.user.id === user.id &&
+            current.clientId === clientId &&
+            !current.isStaticToken &&
+            sameScopes(current.scopes, scopes)
+          );
+        },
+      },
     );
 
     const transport = new StreamableHTTPServerTransport({

@@ -3,6 +3,8 @@
 // ---------------------------------------------------------------------------
 
 export const SCOPES = {
+  TRANSFER_READ: 'transfer:read',
+  TRANSFER_WRITE: 'transfer:write',
   TRIPS_READ: 'trips:read',
   TRIPS_WRITE: 'trips:write',
   TRIPS_DELETE: 'trips:delete',
@@ -70,7 +72,7 @@ export const ALL_SCOPES: Scope[] = Object.values(SCOPES) as Scope[];
  * fallback below and from the client-side presets (see PRESET_OPT_IN_ONLY in
  * client/src/api/oauthScopes.ts). Asking for it explicitly still works.
  */
-export const OPT_IN_ONLY_SCOPES: readonly Scope[] = ['plugins:use'];
+export const OPT_IN_ONLY_SCOPES: readonly Scope[] = ['plugins:use', 'transfer:read', 'transfer:write'];
 
 /**
  * What a Dynamic Client Registration gets when it names no scopes at all.
@@ -88,6 +90,16 @@ export interface ScopeInfo {
 }
 
 export const SCOPE_INFO: Record<Scope, ScopeInfo> = {
+  'transfer:read': {
+    label: 'Export travel transfers',
+    description: 'Read supported owned-trip snapshots and original bytes',
+    group: 'Travel transfer',
+  },
+  'transfer:write': {
+    label: 'Apply travel transfers',
+    description: 'Stage originals and silently apply reviewed graphs to owned trips',
+    group: 'Travel transfer',
+  },
   'trips:read': {
     label: 'View trips & itineraries',
     description: 'Read trips, days, day notes, and members',
@@ -271,12 +283,14 @@ export function canReadTrips(scopes: string[] | null): boolean {
 
 /** group:write grants write access; for trips canReadTrips handles read */
 export function canWrite(scopes: string[] | null, group: ScopeGroup): boolean {
+  if (group === 'transfer') return !!scopes?.includes('transfer:write');
   if (!scopes) return true;
   return scopes.includes(`${group}:write`);
 }
 
 /** group:read OR group:write grant read access */
 export function canRead(scopes: string[] | null, group: ScopeGroup): boolean {
+  if (group === 'transfer') return !!scopes?.includes('transfer:read');
   if (!scopes) return true;
   return scopes.some((s) => s === `${group}:read` || s === `${group}:write`);
 }

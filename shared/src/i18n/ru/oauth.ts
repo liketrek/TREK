@@ -1,6 +1,11 @@
 import type { TranslationStrings } from '../types';
 
 const oauth: TranslationStrings = {
+  'oauth.scope.transfer:read.label': 'Чтение переносимых поездок',
+  'oauth.scope.transfer:read.description': 'Чтение поддерживаемых данных поездок и исходных файлов.',
+  'oauth.scope.transfer:write.label': 'Применение переносимых поездок',
+  'oauth.scope.transfer:write.description': 'Применение проверенных данных поездок и исходных файлов без уведомлений.',
+
   'oauth.scope.group.trips': 'Поездки',
   'oauth.scope.group.places': 'Места',
   'oauth.scope.group.collections': 'Коллекции',

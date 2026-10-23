@@ -1,10 +1,11 @@
 # Proposed lossless travel transfer contract
 
-**Contract-first draft for discussion. This PR does not enable new server endpoints or tools.**
-The contribution guide requires prior discussion in Discord #github-pr. That approval
-is unconfirmed; this draft makes the integration request and executable examples
-reviewable before a runtime implementation is agreed. It targets `dev` and does
-not change a deployed image, deployment configuration or existing MCP behavior.
+**Draft contract with an initial runtime implementation.** See
+[the runtime status and limits](Travel-Transfer-Runtime.md). Eight tools are now
+implemented, but complete native-trip projectors are still missing and the runtime
+does not advertise `complete-snapshots`. Full-sync clients must remain blocked.
+The contribution guide requires prior discussion in Discord #github-pr; that
+approval is still unconfirmed. This PR targets `dev` and changes no deployed image.
 
 ## Problem
 
@@ -117,8 +118,8 @@ change bytes, length or hash. Preserve previous originals and their associations
 
 A consumer may retain source-only domains with their full manifests/relationships;
 it must identify them visibly and must not claim native feature parity. A producer
-must define and test all projections before claiming this full contract. This
-proposal does not assert those projectors or server tools are implemented.
+must define and test all projections before claiming this full contract. The initial runtime implements the tools but deliberately refuses ordinary native
+trips until the projectors are reviewed and tested.
 
 ## Required integration acceptance
 
@@ -137,7 +138,8 @@ python3 -m unittest test_reference -v
 ```
 
 The reference is independently developed in Memories and contributed under TREK's
-AGPL-3.0 licence. It has no runtime dependency and is not deployed by this proposal.
+AGPL-3.0 licence. The Python reference has no runtime dependency; the TypeScript server implementation
+uses TREK’s existing dependencies. This draft has not been deployed.
 
 
 ## Selected-audience apply guarantee

@@ -47,7 +47,7 @@ describe('ALL_SCOPES', () => {
     expect(ALL_SCOPES.length).toBeGreaterThan(0);
   });
 
-  it('derives exactly the 17 known scope groups (ScopeGroup lockstep)', () => {
+  it('derives exactly the 18 known scope groups (ScopeGroup lockstep)', () => {
     // The runtime half of the ScopeGroup lockstep — the type half is
     // MCP_ACCESS_GROUPS_MATCH_SCOPE_GROUPS in src/mcp/nest-mcp-policy.ts,
     // covered by `npm run typecheck`. If this list changes, the MCP
@@ -68,6 +68,7 @@ describe('ALL_SCOPES', () => {
       'reservations',
       'settings',
       'todos',
+      'transfer',
       'trips',
       'vacay',
       'weather',
@@ -294,5 +295,16 @@ describe('canShareTrips', () => {
 
   it('returns false for empty scopes array', () => {
     expect(canShareTrips([])).toBe(false);
+  });
+});
+
+describe('transfer consent', () => {
+  it('never inherits full-access or write-implies-read semantics', () => {
+    expect(canRead(null, 'transfer')).toBe(false);
+    expect(canWrite(null, 'transfer')).toBe(false);
+    expect(canRead(['transfer:write'], 'transfer')).toBe(false);
+    expect(canWrite(['transfer:read'], 'transfer')).toBe(false);
+    expect(canRead(['transfer:read'], 'transfer')).toBe(true);
+    expect(canWrite(['transfer:write'], 'transfer')).toBe(true);
   });
 });

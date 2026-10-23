@@ -147,3 +147,13 @@ describe('client presets', () => {
     expect(PRESET_SCOPES_READONLY.every(s => s.endsWith(':read'))).toBe(true)
   })
 })
+
+
+it('transfer grants require explicit selection in every client preset', () => {
+  for (const scope of ['transfer:read', 'transfer:write']) {
+    expect(ALL_SCOPES).toContain(scope)
+    expect(PRESET_OPT_IN_ONLY.has(scope)).toBe(true)
+    expect(PRESET_SCOPES_DEFAULT).not.toContain(scope)
+    expect(PRESET_SCOPES_READONLY).not.toContain(scope)
+  }
+})
