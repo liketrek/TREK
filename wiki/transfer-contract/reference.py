@@ -87,7 +87,7 @@ def snapshot(value):
     if not token(value['trip']) or not token(value['revision']):
         raise TransferError('Snapshot identity/revision missing')
     records, originals = value['records'], value['originals']
-    if not isinstance(records, list) or len(records) > MAX_RECORDS or not isinstance(originals, list):
+    if not isinstance(records, list) or len(records) > MAX_RECORDS or not isinstance(originals, list) or len(originals)>MAX_RECORDS:
         raise TransferError('Snapshot record limit exceeded')
     if len(canonical(value)) > MAX_GRAPH_BYTES:
         raise TransferError('Snapshot exceeds the graph byte limit')
