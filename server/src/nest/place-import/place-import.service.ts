@@ -25,6 +25,7 @@ import type { CollectionGpxExport, CollectionGpxReadResult } from '@trek/shared'
 // shared route with, what the import routes dispatch on, and what the city
 // walk import reads a walking route and its travel mode with (CW-07).
 export { directionsTravelMode, isDirectionsUrl, parseDirectionsUrl, MAX_DIR_WAYPOINTS } from './directions-url.helpers';
+export { isGoogleListDataUrl } from './providers/google-list.provider';
 export type { DirWaypoint } from './directions-url.helpers';
 export type {
   GpxExportDay,

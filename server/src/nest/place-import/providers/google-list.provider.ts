@@ -34,6 +34,11 @@ export function isGoogleListDataUrl(url: string): boolean {
   }
 }
 
+/** Google's internal endpoint for the places of one shared list. */
+function googleListApiUrl(listId: string): string {
+  return `https://www.google.com/maps/preview/entitylist/getlist?authuser=0&hl=en&gl=us&pb=!1m1!1s${encodeURIComponent(listId)}!2e2!3e2!4i500!16b1`;
+}
+
 export function googleMapsHexId(value: unknown): string | null {
   if (typeof value !== 'string' && typeof value !== 'number') return null;
   const raw = String(value).trim();
@@ -124,9 +129,8 @@ export class GoogleListProvider {
     }
 
     // Fetch list data from the configured source or Google's internal API.
-    const apiUrl =
-      listDataUrl ??
-      `https://www.google.com/maps/preview/entitylist/getlist?authuser=0&hl=en&gl=us&pb=!1m1!1s${encodeURIComponent(listId)}!2e2!3e2!4i500!16b1`;
+    // Without a data URL the list id was found above, or the read already ended there.
+    const apiUrl = listDataUrl ?? googleListApiUrl(listId ?? '');
     const apiRes = await fetch(apiUrl, {
       headers: { 'User-Agent': LIST_USER_AGENT },
       ...(listDataUrl ? { redirect: 'error' as const } : {}),

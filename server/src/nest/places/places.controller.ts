@@ -7,8 +7,7 @@ import { contentDisposition } from '../common/content-disposition';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { PLACE_IMAGE_FILE_FILTER } from '../common/place-image-upload';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { isDirectionsUrl } from '../place-import/place-import.service';
-import { isGoogleListDataUrl } from '../place-import/providers/google-list.provider';
+import { isDirectionsUrl, isGoogleListDataUrl } from '../place-import/place-import.service';
 import { StorageService } from '../storage/storage.service';
 import { placeImageUrl } from './place-image';
 import {
