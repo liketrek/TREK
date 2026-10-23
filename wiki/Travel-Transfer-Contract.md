@@ -28,7 +28,7 @@ user/client/grant, trip access, field audience and original ownership.
 `travel_transfer_capabilities()` returns `format: travel-transfer/1`,
 `features: [complete-snapshots, field-manifests, original-chunks,
 historical-attribution, silent-apply, conditional-apply, durable-receipts,
-protected-extensions, graph-staging, idempotent-trip-create]`, `max_original_bytes: 536870912`, `chunk_bytes: 1048576`.
+protected-extensions, graph-staging, idempotent-trip-create, scoped-apply]`, `max_original_bytes: 536870912`, `chunk_bytes: 1048576`.
 A missing feature blocks full transfer. Advertising is a guarantee, not tool-name
 inference. Unsupported/inaccessible domains are reported explicitly before apply;
 never silently omit fields and then return `complete: true`.
@@ -47,21 +47,21 @@ never silently omit fields and then return `complete: true`.
   as bounded base64, offset/total length/full SHA-256/chunk SHA-256. No text decoding,
   redirects, external URLs or credentials. Range must be0..declared size, at most1MiB.
 - `travel_transfer_write_original(trip_id, operation_id, id, offset, total, sha256,
-  chunk_sha256, data)`: append verified chunks into an account/operation-bound
+  chunk_sha256, data, include_private=false)`: append verified chunks into an account/operation-bound
   staging object. Replayed chunks must match exactly; reject holes, offset or digest
   changes. Support512MiB per original. Publish only after full hash verification.
 - `travel_transfer_stage_graph(trip_id?, operation_id, payload_digest, offset, total,
-  chunk_sha256, data)`: stage canonical UTF-8 JSON in bounded base64 chunks. Bind
+  chunk_sha256, data, include_private=false)`: stage canonical UTF-8 JSON in bounded base64 chunks. Bind
   the staging object to account/client/operation/digest, verify replay bytes and
   whole SHA-256, and return exactly `{next_offset, payload_digest}`. The metadata
   aggregate limit is64MiB; it must not become a single MCP request.
 - `travel_transfer_apply(trip_id?, expected_revision?, operation_id, payload_digest,
-  original_ids)`: commit the reviewed graph, stable mappings and a durable
+  original_ids, include_private=false)`: commit the reviewed graph, stable mappings and a durable
   receipt in one transaction. Original I/O is outside database locks; reauthorise
   before commit. No broadcasts, invites, membership edits, reminders or notifications.
   Retain historic author/source time separately from the importing local account;
   do not impersonate accounts or re-cast historical votes as current user's votes.
-- `travel_transfer_receipt(trip_id, operation_id, payload_digest)`: durable lookup,
+- `travel_transfer_receipt(trip_id, operation_id, payload_digest, include_private=false)`: durable lookup,
   reauthorised even on replay. Return `applied` with digest/result revision/mappings,
   `not_applied`, or `pending`; never guess based on a matching title/timestamp.
   A lost acknowledgement is reconciled before another apply. Reusing an operation
@@ -138,3 +138,20 @@ python3 -m unittest test_reference -v
 
 The reference is independently developed in Memories and contributed under TREK's
 AGPL-3.0 licence. It has no runtime dependency and is not deployed by this proposal.
+
+
+## Selected-audience apply guarantee
+
+The `scoped-apply` feature binds `include_private` to the frozen snapshot revision,
+all staged bytes, operation identity, conditional apply and its durable receipt.
+A shared-only snapshot/apply leaves private and otherwise unselected records and
+originals unchanged. Absence outside the selected audience is never a deletion.
+Reject a supplied shared identity that collides with a private/unselected identity;
+never widen that record's audience. Replaying an operation with a different scope
+is a conflict even when the graph digest matches.
+
+Derived personal cost totals, private planner labels and private chat attachments
+must be separate private records. Including private source data never moves it
+into an otherwise shared widget. Bag totals are derived from destination-visible
+canonical items; do not republish selected-reader private item weights through a
+shared summary. Document-link visibility intersects the file and target audiences.

@@ -15,7 +15,7 @@ CHUNK_BYTES = 1024 * 1024
 MAX_FILE_BYTES = 512 * 1024 * 1024
 FEATURES = frozenset({'complete-snapshots', 'field-manifests', 'original-chunks',
     'historical-attribution', 'silent-apply', 'conditional-apply', 'durable-receipts',
-    'protected-extensions', 'graph-staging', 'idempotent-trip-create'})
+    'protected-extensions', 'graph-staging', 'idempotent-trip-create', 'scoped-apply'})
 MISSING = {'$transfer': 'absent'}
 
 
