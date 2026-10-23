@@ -8,6 +8,7 @@ import { useOutsidePressGuard } from '../../components/Ferratas/useOutsidePressG
 import { MAP_LAYER_SWITCHER_INSET, MAP_ROUND_CONTROL_SIZE } from '../../components/Map/MapLayerSwitcher';
 import { MapUndoHint } from '../../components/Map/MapUndoHint';
 import { MapViewAuto as MapView } from '../../components/Map/MapViewAuto';
+import type { AssistantMapProps } from '../../components/Map/mapViewContract';
 import LocationSelect from '../../components/Planner/LocationSelect';
 import { ChecklistObstaclePanel } from '../../components/Tours/paddle/ObstacleDecisionPanel';
 import PaddleObstacleOverlay from '../../components/Tours/paddle/PaddleObstacleOverlay';
@@ -74,6 +75,11 @@ export interface TourPlannerMapStageProps
   onViewportChange?: (bounds: FerrataBbox) => void;
   /** The open paddle tour's checklist (PAD-06): its part for the picked object rides in the object's map card. */
   paddleChecklist?: PageState['paddleChecklist'];
+  /** The routes the assistant's cards show and its camera, as on the plan's map, so a proposed hike shows here too. */
+  assistantRoutes?: Pick<
+    AssistantMapProps,
+    'assistantCamera' | 'assistantRouteLines' | 'onAssistantRouteHover' | 'onAssistantRoutePoint'
+  >;
 }
 
 /** What the map reads of the tour on screen: a GPX file viewed as it came in has its analysis and no points. */
@@ -104,6 +110,7 @@ export function TourPlannerMapStage({
   rightPanelPx,
   onViewportChange,
   paddleChecklist,
+  assistantRoutes,
 }: Readonly<TourPlannerMapStageProps>): ReactElement {
   const [terrain3d, setTerrain3d] = useState(false);
   // How high the 3D map's controls reach: one row, or two once the grade legend moved above the dock.
@@ -285,6 +292,7 @@ export function TourPlannerMapStage({
             onViewportChange={viewportChanged}
             placeTool={placeTool}
             {...poiMarkers}
+            {...assistantRoutes}
           />
         )}
       </div>

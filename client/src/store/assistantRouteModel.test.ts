@@ -1,5 +1,5 @@
 /**
- * FE-AI-ROUTE-001 to FE-AI-ROUTE-005
+ * FE-AI-ROUTE-001 to FE-AI-ROUTE-006
  *
  * Which routes of the chat's cards the plan's map draws, and how: changes
  * that still stand on the map with the way they replace, the cards of the
@@ -125,6 +125,20 @@ describe('assistantRouteModel', () => {
     const refs = routeRefs([change], {}, NOBODY, LOOK);
     expect(refs.map((ref) => ref.use)).toEqual(['before', 'pending']);
     expect(refs[1]?.card).toBe(SAVED);
+  });
+
+  it('FE-AI-ROUTE-006: once one of the ways is taken into the trip, the answer draws none of them; a discarded take brings them back', () => {
+    const latest = message([...read('call_1', HIKE), ...read('call_2', GENTLE)], 'msg-1');
+    const take = (approval: Approval) => {
+      const parts = held('t1', PENDING, approval);
+      const change = parts[1] as Extract<AssistantMessagePart, { type: 'data-trek-change' }>;
+      change.data = { ...change.data, takenFrom: 'call_2' };
+      return message(parts, 'msg-2');
+    };
+    const waiting = routeRefs([latest, take({})], {}, NOBODY, LOOK, AS_WAYS);
+    expect(waiting.map((ref) => `${ref.toolCallId}:${ref.use}`)).toEqual(['t1:before', 't1:pending']);
+    const discarded = routeRefs([latest, take({ approved: false })], {}, NOBODY, LOOK, AS_WAYS);
+    expect(discarded.map((ref) => ref.toolCallId)).toEqual(['call_1', 'call_2']);
   });
 
   it("FE-AI-ROUTE-003: lines lie in order (replaced way, others, the chosen way, the lit one) in their ways' colours", () => {

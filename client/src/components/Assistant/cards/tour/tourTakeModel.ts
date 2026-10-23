@@ -45,7 +45,8 @@ export function takeOfProposal(
 ): { id: string; state: 'waiting' | 'applied'; placeId: number | null } | null {
   const from = proposalIndex(messages, toolCallId);
   if (from < 0) return null;
-  for (const message of messages.slice(from + 1)) {
+  // The server joins a take to the answer that drew its proposal, so that answer is searched as well as the later ones.
+  for (const message of messages.slice(from)) {
     const open = new Map<string, 'waiting' | 'applied'>();
     for (const part of message.parts) {
       if (part.type !== 'tool-call' || part.toolName !== TAKE_TOOL || part.approval?.resolution) continue;

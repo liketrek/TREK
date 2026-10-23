@@ -7,7 +7,6 @@ import { formatWeight } from '../../../Packing/packingListModel';
 import { bagFillPct } from '../../../Packing/packingListPanel.helpers';
 import { SoftPill, WhiteBadge } from '../../../Planner/planParts';
 import { Tooltip } from '../../../shared/Tooltip';
-import { CountBadge } from '../../../Tours/packing/packingLinkParts';
 import { ChangeMark, FactChange, NoLonger } from '../parts/CardFacts';
 import { PeopleStack, PersonFace } from '../parts/CardPeople';
 import { packingColorOf } from './checklistModel';
@@ -56,15 +55,31 @@ function BagSwatch({ bag, size = 'row' }: { bag: PackingCardBag | undefined; siz
  * What a row says at its end: how many, how many packed, its weight, its tier
  * and its bag. A bag the card does not carry draws nothing rather than "Unassigned".
  */
+/** A row's quantity and weight: quiet figures at its end, no frame each. */
+const QUIET = 'text-caption tabular-nums text-content-muted';
+
+/** How many rows a group holds, quiet beside its name. */
+function GroupCount({ count }: { count: number }) {
+  const { t } = useTranslation();
+  return (
+    <span
+      aria-label={t('tours.packing.items', { count })}
+      className="flex-none text-caption tabular-nums text-content-faint"
+    >
+      {count}
+    </span>
+  );
+}
+
 export function PackingRowAside({ row, bag }: { row: PackingCardItem; bag: PackingCardBag | undefined }) {
   const { t } = useTranslation();
   const personal = t('assistant.card.packing.tierPersonal');
   const partial = !row.checked && row.packed > 0 && row.packed < row.quantity;
   return (
     <>
-      {row.quantity > 1 && <WhiteBadge>×{row.quantity}</WhiteBadge>}
-      {partial && <WhiteBadge>{`${row.packed}/${row.quantity}`}</WhiteBadge>}
-      {row.weightGrams !== null && <WhiteBadge>{formatWeight(row.weightGrams)}</WhiteBadge>}
+      {row.quantity > 1 && <span className={QUIET}>×{row.quantity}</span>}
+      {partial && <span className={QUIET}>{`${row.packed}/${row.quantity}`}</span>}
+      {row.weightGrams !== null && <span className={QUIET}>{formatWeight(row.weightGrams)}</span>}
       {row.tier === 'personal' && (
         <Tooltip label={personal}>
           <span role="img" aria-label={personal} className="flex text-content-faint">
@@ -216,7 +231,7 @@ function BagHead({
 }) {
   const { t } = useTranslation();
   if (!bag) {
-    const badge = inChange ? undefined : <CountBadge count={group.count} />;
+    const badge = inChange ? undefined : <GroupCount count={group.count} />;
     const lead = <BagSwatch bag={undefined} size="head" />;
     return <ChecklistHead color="" name={t('packing.noBag')} lead={lead} badge={badge} />;
   }
@@ -283,7 +298,7 @@ export function PackingGroup({
       <ChecklistHead
         color={packingColorOf(key.slot, name)}
         name={name}
-        badge={inChange ? undefined : <CountBadge count={group.count} />}
+        badge={inChange ? undefined : <GroupCount count={group.count} />}
         people={group.assignees}
         removed={group.assigneesRemoved}
       />

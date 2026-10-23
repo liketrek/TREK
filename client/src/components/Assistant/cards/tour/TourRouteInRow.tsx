@@ -10,7 +10,8 @@ import { tourDayRowIcon } from '../../../Tours/tourDayRowIcon';
 import type { ChangeItem } from '../../assistantParts';
 import { verbLookOf } from '../cardLooks';
 import KindTile from '../parts/KindTile';
-import { TourGrade, TourRouteFigures, TourRouteSketch } from './TourRouteHead';
+import WayFigures from './TourFigureLine';
+import { TourGrade, TourRouteSketch } from './TourRouteHead';
 import { legVariantOf, previousVariantOf, profileBands, profileSamples } from './tourRouteModel';
 import { useTourRouteCard } from './useTourRouteCard';
 
@@ -37,29 +38,33 @@ export default function TourRouteInRow({ card, item }: { card: TourRouteCard; it
   const samples = useMemo(() => profileSamples(card), [card]);
   const previous = previousVariantOf(card);
   const notPlanned = card.problem?.why === 'not_planned';
+  const grades = card.activity === 'hike' ? card.grades : null;
   return (
-    <div className="flex flex-col gap-1.5" data-testid="tour-route-row">
-      <div className="flex items-start gap-2">
-        <div className="w-16 flex-none">
-          <TourRouteSketch card={card} height={40} onShow={showOnMap} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-1">
-            <TourRouteFigures card={card} />
-            <TourGrade card={card} />
-            {previous && (
-              <VariantDelta
-                variant={legVariantOf(card, 'current')}
-                current={previous}
-                unit={unit}
-                t={t}
-                hint={t('assistant.card.tour.deltaBefore')}
-              />
-            )}
+    <div
+      className="flex flex-col gap-2 rounded-[12px] border border-edge-faint bg-surface-secondary p-2.5"
+      data-testid="tour-route-row"
+    >
+      <div className="flex items-center gap-2.5">
+        <span className="w-14 flex-none overflow-hidden rounded-[10px] bg-surface-card p-1 shadow-sm">
+          <TourRouteSketch card={card} height={36} onShow={showOnMap} />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 flex-1">
+              <WayFigures way={legVariantOf(card, 'current')} unit={unit} />
+            </span>
+            {grades && grades.highest !== null && <TourGrade card={card} />}
           </span>
-          {notPlanned && (
-            <p className="m-0 mt-1 text-caption text-content-faint">{t('assistant.card.tour.notPlanned')}</p>
+          {previous && (
+            <VariantDelta
+              variant={legVariantOf(card, 'current')}
+              current={previous}
+              unit={unit}
+              t={t}
+              hint={t('assistant.card.tour.deltaBefore')}
+            />
           )}
+          {notPlanned && <p className="m-0 text-caption text-content-faint">{t('assistant.card.tour.notPlanned')}</p>}
         </div>
       </div>
       {!notPlanned && samples.length >= 2 && (

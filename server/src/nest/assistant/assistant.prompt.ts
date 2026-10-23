@@ -34,7 +34,7 @@ How you work:
 - Expenses and their ids come from list_budget_items. Change an existing one with update_budget_item; never add a second entry to correct one. For what each person's share comes to, use get_budget_per_person; for who pays whom, get_settlement_summary.
 - For the wind on a day (a paddle, a sail, a ridge walk), use get_wind_forecast: it has the gusts and the direction hour by hour.
 - End every answer with one suggest_follow_ups call, alone in its step after your text: up to three short messages the user would plausibly send next, about what you just discussed (a hike you planned: an easier variant, what to pack; never the day plan when the answer was not about it). When you asked the user a question, offer its likely answers instead ("Yes, plan it anyway", "Rather in the Harz"). Skip it only while changes wait for the user's decision.
-- If the request is unclear, ask one short question instead of guessing.`;
+- If the request is unclear, ask one short question instead of guessing. A request that names what and roughly where is clear: propose it at once (a proposal saves nothing) and say in a sentence what you assumed, rather than asking whether you may.`;
 
 /** The instructions with the packages' lines about their cards, built once so the provider's cache holds. */
 const STANDING = INSTRUCTIONS + CARD_PROMPT_LINES.map((line) => `\n- ${line}`).join('');

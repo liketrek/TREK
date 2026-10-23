@@ -134,7 +134,7 @@ function BodySlot({ item, settled }: { item: ChangeItem; settled: boolean }) {
   const view = item.card ? viewOf(item.card) : null;
   if (!view?.Body || !item.card) return null;
   return (
-    <div className={`pb-1.5 ps-[38px] ${settled ? 'opacity-60' : ''}`}>
+    <div className={`mt-1.5 pb-1.5 ${view.wideBody ? '' : 'ps-[38px]'} ${settled ? 'opacity-60' : ''}`}>
       <Slot item={item} view={view} name="Body" />
     </div>
   );

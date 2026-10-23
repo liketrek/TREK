@@ -90,7 +90,7 @@ export function ChecklistRow({
           >
             {name}
           </bdi>
-          {aside && <span className="flex flex-none flex-wrap items-center justify-end gap-1">{aside}</span>}
+          {aside && <span className="flex flex-none flex-wrap items-center justify-end gap-x-2 gap-y-1">{aside}</span>}
         </div>
         {under}
       </div>

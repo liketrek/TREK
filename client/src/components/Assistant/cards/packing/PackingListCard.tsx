@@ -1,14 +1,16 @@
 import type { PackingListCard as PackingCard, PackingCardGroup } from '@trek/shared';
-import { Check } from 'lucide-react';
+import { Backpack, Check } from 'lucide-react';
 
 import { useTranslation } from '../../../../i18n';
 import { SoftPill } from '../../../Planner/planParts';
-import { PackedBar, PackTile } from '../../../Tours/packing/packingLinkParts';
+import { PackedBar } from '../../../Tours/packing/packingLinkParts';
 import AssistantChangeFields from '../../AssistantChangeFields';
 import type { ChangeItem } from '../../assistantParts';
 import type { CardEntry, EntityTarget } from '../cardTypes';
 import CardFrame from '../parts/CardFrame';
-import { isRunnable, mergePackingCards, packingColorOf, rowCount } from './checklistModel';
+import CardHeader from '../parts/CardHeader';
+import { CardFoot } from '../parts/CardSection';
+import { isRunnable, mergePackingCards, rowCount } from './checklistModel';
 import { ChecklistFoot, ChecklistRun, type RunEntry, type RunProps } from './checklistParts';
 import { PackingGroup, PackingRowAside, PackingRowFacts } from './packingParts';
 
@@ -62,7 +64,7 @@ function useTitle(card: PackingCard): string {
     : t('assistant.card.packing.title');
 }
 
-/** The head of an answer: the tile with the count, the title, how much is packed, and "All packed" once it is. */
+/** The head band of an answer: the backpack, the title, how much is packed with its bar, and "All packed" once it is. */
 function PackingHead({ card }: { card: PackingCard }) {
   const { t } = useTranslation();
   const title = useTitle(card);
@@ -73,50 +75,46 @@ function PackingHead({ card }: { card: PackingCard }) {
   if (source.type === 'tour') caption = t('assistant.card.packing.forTour');
   else if (source.type === 'template') caption = t('assistant.card.packing.templateAdds', { count: source.itemCount });
   else if (card.progress && total > 0) caption = t('tours.packing.packed', { packed, count: total });
-  const first = card.groups[0]?.key;
-  const color =
-    source.type === 'tour' && source.category !== null && first?.by === 'category'
-      ? packingColorOf(first.slot, source.category)
-      : null;
+  const done = card.progress !== null && total > 0 && packed === total;
   return (
-    <div className="flex min-w-0 items-center gap-2.5">
-      <PackTile count={source.type === 'template' ? source.itemCount : total} color={color} />
-      <div className="min-w-0 flex-1">
-        <p title={title} className="m-0 line-clamp-2 text-body font-semibold leading-tight text-content">
-          {title}
-        </p>
-        {caption && (
-          <p title={caption} className="m-0 truncate text-caption text-content-faint">
-            {caption}
-          </p>
-        )}
-      </div>
-      {card.progress && total > 0 && packed === total && (
-        <SoftPill tone="success" icon={<Check size={11} strokeWidth={2.4} className="flex-none" />}>
-          {t('tours.packing.allPacked')}
-        </SoftPill>
+    <CardHeader
+      icon={Backpack}
+      tone={done ? 'success' : 'info'}
+      title={title}
+      count={source.type === 'template' ? source.itemCount : total}
+      meta={caption ?? undefined}
+      actions={
+        done ? (
+          <SoftPill tone="success" icon={<Check size={11} strokeWidth={2.4} className="flex-none" />}>
+            {t('tours.packing.allPacked')}
+          </SoftPill>
+        ) : undefined
+      }
+    >
+      {card.progress && card.progress.total > 0 && (
+        <div className="mt-2.5">
+          <PackedBar packed={card.progress.packed} total={card.progress.total} />
+        </div>
       )}
-    </div>
+    </CardHeader>
   );
 }
 
 /** One answer card. */
 function PackingAnswer({ card }: { card: PackingCard }) {
   const title = useTitle(card);
-  const progress = card.progress;
   return (
     <CardFrame label={title}>
-      <div className="flex min-w-0 flex-col gap-2.5">
-        <PackingHead card={card} />
-        {progress && progress.total > 0 && <PackedBar packed={progress.packed} total={progress.total} />}
-        <PackingGroups card={card} inChange={false} />
+      <PackingHead card={card} />
+      <PackingGroups card={card} inChange={false} />
+      <CardFoot>
         <ChecklistFoot
           more={card.moreGroups}
           moreKey={MORE_GROUPS[card.groupBy].labelKey}
           target={PACKING_TARGET}
           openKey="tours.packing.open"
         />
-      </div>
+      </CardFoot>
     </CardFrame>
   );
 }

@@ -78,7 +78,6 @@ export function ExpenseFacts({ card }: SlotProps) {
     <>
       <CategoryFact row={row} />
       <DateFact row={row} />
-      {row.place && <PlaceFact place={row.place} />}
       {split && (
         <FactChange
           icon={Tag}
@@ -92,13 +91,16 @@ export function ExpenseFacts({ card }: SlotProps) {
   );
 }
 
-/** The split under the row, and the expense's note under it: too long for the faint line beside the icons. */
+/** Under the row: the place it belongs to beside the split, and the expense's note under them. */
 export function ExpenseBody({ card }: SlotProps) {
   const row = card.rows[0];
   if (!row) return null;
   return (
-    <span className="flex flex-col items-start gap-1">
-      <SplitLine row={row} />
+    <span className="flex flex-col items-start gap-1.5">
+      <span className="flex flex-wrap items-center gap-1.5">
+        {row.place && <PlaceFact place={row.place} />}
+        <SplitLine row={row} />
+      </span>
       {row.note && <NotePill note={row.note} />}
     </span>
   );

@@ -67,6 +67,9 @@ describe('takeInThread', () => {
   it('FE-AI-TOUR-048: a take that names its proposal is matched by it, not by its way', () => {
     const other = { ...GENTLE, line: [[47.9, 12.8, 600], ...GENTLE.line.slice(1)] } satisfies TourRouteCard;
     expect(takeInThread([proposal, take(other, {}, 'take_proposal', 'call_1')], 'call_1', HIKE)).toBe('waiting');
+    // The server joins a take to the answer that drew the proposal: found there too.
+    const joined = { ...proposal, parts: [...proposal.parts, ...take(other, {}, 'take_proposal', 'call_1').parts] };
+    expect(takeInThread([joined], 'call_1', HIKE)).toBe('waiting');
     // The same way taken from another proposal leaves this one free.
     expect(
       takeInThread([proposal, take(HIKE, { approved: true }, 'take_proposal', 'call_2')], 'call_1', HIKE)

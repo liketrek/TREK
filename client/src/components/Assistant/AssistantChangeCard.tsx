@@ -1,10 +1,11 @@
-import { Check, LoaderCircle, MapPin, Undo2 } from 'lucide-react';
+import { Check, CheckCheck, ListChecks, LoaderCircle, MapPin, Undo2 } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { useTranslation } from '../../i18n';
 import { blockKeyOf } from '../../store/assistantMapModel';
 import { chatOf, useAssistantStore } from '../../store/assistantStore';
 import { useTripStore } from '../../store/tripStore';
+import { DialogButton, NEUTRAL_TINT } from '../shared/DialogShell';
 import { useToast } from '../shared/Toast';
 import { Tooltip } from '../shared/Tooltip';
 import AssistantCompareSwitch from './AssistantCompareSwitch';
@@ -13,6 +14,8 @@ import AssistantWeekOverview from './AssistantWeekOverview';
 import { type ChangeItem, undoLeftMs } from './assistantParts';
 import { useAssistantView } from './assistantViewContext';
 import { ChangeRows } from './cards/ChangeCardSlots';
+import CardHeader from './cards/parts/CardHeader';
+import { CardFoot } from './cards/parts/CardSection';
 import { ICON_BUTTON } from './cards/parts/assistantTones';
 import { useChangeExclusions } from './cards/useChangeExclusions';
 import { changePoints, type DayChange } from './dayAfterModel';
@@ -60,6 +63,9 @@ function undoableNow(item: ChangeItem, undone: Readonly<Record<string, true>>, n
   );
 }
 
+/** The band of a card whose changes are all decided: the green of a done booking. */
+const DONE_TINT = 'color-mix(in srgb, var(--success) 9%, transparent)';
+
 /** The waiting changes the user left on that touch the day plan. */
 function dayChangesOf(items: readonly ChangeItem[], excluded: ReadonlySet<string>): DayChange[] {
   return items.flatMap((i) =>
@@ -69,17 +75,18 @@ function dayChangesOf(items: readonly ChangeItem[], excluded: ReadonlySet<string
   );
 }
 
-/** The card's head: what the card is, what can be done with it as a whole, and how many changes it holds. */
+/** The change card's band: tinted green once everything in it is decided, what it holds and its actions. */
 function CardHead({ open, count, actions }: { open: boolean; count: number; actions?: ReactNode }) {
   const { t } = useTranslation();
   return (
-    <div className="mb-1 flex min-h-7 items-center gap-2">
-      <span className="min-w-0 flex-1 truncate text-caption font-semibold text-content-secondary">
-        {t(open ? 'assistant.change.title' : 'assistant.change.doneTitle')}
-      </span>
-      {actions}
-      <span className="text-caption tabular-nums text-content-faint">{count}</span>
-    </div>
+    <CardHeader
+      icon={open ? ListChecks : CheckCheck}
+      tone={open ? 'info' : 'success'}
+      tint={open ? NEUTRAL_TINT : DONE_TINT}
+      title={t(open ? 'assistant.change.title' : 'assistant.change.doneTitle')}
+      count={count}
+      actions={actions}
+    />
   );
 }
 
@@ -224,7 +231,7 @@ export default function AssistantChangeCard({ items }: { items: ChangeItem[] }) 
 
   const open = pending.length > 0;
   return (
-    <section className="trek-popover-enter rounded-xl border border-edge-faint bg-surface-card px-3 pb-2 pt-2.5 shadow-card">
+    <section className="trek-popover-enter overflow-hidden rounded-[16px] border border-edge-faint bg-surface-card px-3.5 pb-3 pt-3 shadow-card">
       <CardHead
         open={open}
         count={items.length}
@@ -257,25 +264,19 @@ export default function AssistantChangeCard({ items }: { items: ChangeItem[] }) 
           <p className="sr-only" role="status">
             {t('assistant.change.pending', { count: pending.length })}
           </p>
-          <div className="flex justify-end gap-2 border-t border-edge-faint pt-2.5">
-            <button
-              type="button"
-              disabled={isRunning}
-              onClick={() => void submit(false)}
-              className="rounded-lg px-3 py-1.5 text-body text-content-secondary hover:bg-surface-hover hover:text-content disabled:opacity-50"
-            >
+          <CardFoot>
+            <DialogButton disabled={isRunning} onClick={() => void submit(false)}>
               {t('assistant.change.discard')}
-            </button>
-            <button
-              type="button"
+            </DialogButton>
+            <DialogButton
+              variant="primary"
               disabled={isRunning || chosen === 0}
               onClick={() => void submit(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-body font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+              icon={<Check size={14} aria-hidden="true" />}
             >
-              <Check size={14} aria-hidden="true" />
               {pending.length === 1 ? t('assistant.change.apply') : t('assistant.change.applyN', { count: chosen })}
-            </button>
-          </div>
+            </DialogButton>
+          </CardFoot>
         </>
       )}
     </section>

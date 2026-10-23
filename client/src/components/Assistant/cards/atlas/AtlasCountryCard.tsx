@@ -1,5 +1,5 @@
 import type { AssistantMessage, AtlasCountryCard as CountryCard } from '@trek/shared';
-import { Briefcase, MapPin, Radio } from 'lucide-react';
+import { Briefcase, Globe2, MapPin, Radio } from 'lucide-react';
 
 import { useTranslation } from '../../../../i18n';
 import { SoftPill, WhiteBadge } from '../../../Planner/planParts';
@@ -8,8 +8,10 @@ import type { ChangeItem } from '../../assistantParts';
 import type { CardEntry } from '../cardTypes';
 import { CardFacts } from '../parts/CardFacts';
 import CardFrame from '../parts/CardFrame';
+import CardHeader from '../parts/CardHeader';
 import { CardOpenButton } from '../parts/CardOpen';
 import { CardMore } from '../parts/CardRows';
+import { CardFoot } from '../parts/CardSection';
 import { CONTINENT_LABEL, continentOf, shortDay, STATUS_LOOK } from './atlasCardModel';
 import { ATLAS_PAGE } from './atlasPage';
 import { ChangeFlag, FlagTile, StatusFact } from './AtlasParts';
@@ -112,14 +114,15 @@ export default function AtlasCountryBlock({ cards }: { cards: readonly CardEntry
   if (countries.length === 0) return null;
   return (
     <CardFrame label={t('assistant.domain.atlas')}>
+      <CardHeader icon={Globe2} tone="info" title={t('assistant.domain.atlas')} />
       {countries.map((entry, index) => (
         <div key={entry.toolCallId} className={index > 0 ? 'mt-2 border-t border-edge-faint pt-2' : ''}>
           {entry.card.kind === 'atlasCountry' && <CountrySection card={entry.card} />}
         </div>
       ))}
-      <div className="mt-1 flex justify-end">
+      <CardFoot>
         <CardOpenButton target={ATLAS_PAGE} labelKey="assistant.card.atlas.open" />
-      </div>
+      </CardFoot>
     </CardFrame>
   );
 }

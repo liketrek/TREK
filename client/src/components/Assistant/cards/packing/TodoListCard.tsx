@@ -6,14 +6,15 @@ import { type PillTone, SoftPill, WhiteBadge } from '../../../Planner/planParts'
 import { localToday } from '../../../Planner/today';
 import { Tooltip } from '../../../shared/Tooltip';
 import { PRIO_CONFIG } from '../../../Todo/todoListModel';
-import { PackTile } from '../../../Tours/packing/packingLinkParts';
 import AssistantChangeFields from '../../AssistantChangeFields';
 import type { ChangeItem } from '../../assistantParts';
 import { useAssistantView } from '../../assistantViewContext';
 import type { CardEntry, EntityTarget } from '../cardTypes';
 import { ChangeMark, FactChange, NoLonger } from '../parts/CardFacts';
 import CardFrame from '../parts/CardFrame';
+import CardHeader from '../parts/CardHeader';
 import { PersonFace } from '../parts/CardPeople';
+import { CardFoot } from '../parts/CardSection';
 import { useCardFormat } from '../parts/useCardFormat';
 import { isRunnable, mergeTodoCards, todoColorOf } from './checklistModel';
 import {
@@ -204,27 +205,30 @@ function TodoAnswer({ card }: { card: TodoCard }) {
   const title = t('assistant.card.todo.title');
   return (
     <CardFrame label={title}>
-      <div className="flex min-w-0 flex-col gap-2.5">
-        <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-          <PackTile count={progress?.open ?? 0} color={null} icon={ListTodo} />
-          <p className="m-0 text-body font-semibold leading-tight text-content">{title}</p>
-          {progress && <SoftPill>{t('assistant.card.todo.openCount', { count: progress.open })}</SoftPill>}
-          {progress && progress.overdue > 0 && (
+      <CardHeader
+        icon={ListTodo}
+        tone={progress && progress.overdue > 0 ? 'danger' : 'info'}
+        title={title}
+        meta={progress ? t('assistant.card.todo.openCount', { count: progress.open }) : undefined}
+        actions={
+          progress && progress.overdue > 0 ? (
             <SoftPill tone="danger">{t('assistant.card.todo.overdueCount', { count: progress.overdue })}</SoftPill>
-          )}
-        </div>
-        <div className="flex min-w-0 flex-col gap-1.5">
-          {card.groups.map((group) => (
-            <TodoGroup key={group.category ?? ''} group={group} inChange={false} />
-          ))}
-        </div>
+          ) : undefined
+        }
+      />
+      <div className="flex min-w-0 flex-col gap-1.5">
+        {card.groups.map((group) => (
+          <TodoGroup key={group.category ?? ''} group={group} inChange={false} />
+        ))}
+      </div>
+      <CardFoot>
         <ChecklistFoot
           more={card.moreGroups}
           moreKey="assistant.card.todo.moreLists"
           target={TODO_TARGET}
           openKey="assistant.card.todo.open"
         />
-      </div>
+      </CardFoot>
     </CardFrame>
   );
 }

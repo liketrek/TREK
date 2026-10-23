@@ -44,7 +44,11 @@ export function CardRow({
         <span className="block text-body font-semibold leading-tight text-content">{title}</span>
         {facts}
       </span>
-      {aside && <span className="flex-none text-caption tabular-nums text-content-secondary">{aside}</span>}
+      {aside && (
+        <span className="flex flex-none items-center gap-2 text-caption tabular-nums text-content-secondary">
+          {aside}
+        </span>
+      )}
     </>
   );
   const hover = onHover

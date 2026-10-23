@@ -85,7 +85,7 @@ export const TOUR_CARDS: DomainCards = {
     },
   },
   prompt: [
-    'Hikes: call propose_hike with a name, and day_id and start_time when known; to compare ways, call it up to three times in one step, each with a variant_label and along false. Call create_hike only once the user chose a way.',
+    'Hikes: call propose_hike with a name, and day_id and start_time when known; to compare ways, call it up to three times in one step, each with a variant_label and along false, the way you recommend first (the card shows the first one chosen). Call create_hike only once the user chose a way.',
     'The app draws a proposed, planned or saved tour (route, profile, stops, times, weather, warnings) and lists of tours as cards: do not repeat their figures or list them again, say in one sentence what matters.',
   ],
 };

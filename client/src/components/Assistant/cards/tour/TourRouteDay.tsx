@@ -4,6 +4,7 @@ import { createElement } from 'react';
 
 import { useTranslation } from '../../../../i18n';
 import { SoftPill } from '../../../Planner/planParts';
+import { Tooltip } from '../../../shared/Tooltip';
 import { weatherIconFor } from '../../../Weather/weatherIcons';
 import { useCardFormat } from '../parts/useCardFormat';
 import { type BarSpan, dayBarOf, forecastHours, RAIN_SHOWN_PCT } from './tourRouteDayModel';
@@ -93,9 +94,13 @@ export default function TourRouteDay({ card }: { card: TourRouteCard }) {
       )}
       {!schedule.start && schedule.latestStart && (
         <div className="mt-1 flex">
-          <SoftPill icon={<Clock size={10} strokeWidth={2.2} aria-hidden="true" />}>
-            {t('assistant.card.tour.latestStart', { time: format.clock(schedule.latestStart) })}
-          </SoftPill>
+          <Tooltip label={t('assistant.card.tour.latestStart', { time: format.clock(schedule.latestStart) })}>
+            <span className="inline-flex">
+              <SoftPill icon={<Clock size={10} strokeWidth={2.2} aria-hidden="true" />}>
+                {t('assistant.card.tour.latestStartShort', { time: format.clock(schedule.latestStart) })}
+              </SoftPill>
+            </span>
+          </Tooltip>
         </div>
       )}
       {schedule.weather === 'climate' && (

@@ -5,6 +5,7 @@ import { useTranslation } from '../../../../i18n';
 import { SoftPill } from '../../../Planner/planParts';
 import { useAssistantView } from '../../assistantViewContext';
 import { CardOpenButton } from '../parts/CardOpen';
+import { CardFoot } from '../parts/CardSection';
 import { tourTarget } from './tourLook';
 import { useTakeProposal } from './useTourRouteCard';
 
@@ -58,7 +59,7 @@ export default function TourRouteActions({
   if (take.state === 'failed') caption = t('assistant.card.tour.askAgain');
   else if (take.state !== 'taken' && take.reasonKey) caption = t(take.reasonKey);
   return (
-    <div className="mt-2.5 flex flex-col items-end gap-1">
+    <CardFoot>
       <div className="flex flex-wrap items-center justify-end gap-1.5">
         <button
           type="button"
@@ -92,10 +93,10 @@ export default function TourRouteActions({
         )}
       </div>
       {take.visible && caption && (
-        <p className="m-0 text-end text-caption text-content-muted" role="status">
+        <p className="m-0 basis-full text-end text-caption text-content-muted" role="status">
           {caption}
         </p>
       )}
-    </div>
+    </CardFoot>
   );
 }

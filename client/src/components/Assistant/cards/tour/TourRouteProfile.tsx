@@ -87,7 +87,7 @@ export default function TourRouteProfile({ toolCallId, card, samples, color, foc
   const bands = useMemo(() => profileBands(card, samples), [card, samples]);
   if (samples.length < 2) {
     if (!card.routed) return null;
-    return <p className="m-0 mt-2 text-caption text-content-faint">{t('assistant.card.tour.noHeights')}</p>;
+    return <p className="m-0 text-caption text-content-faint">{t('assistant.card.tour.noHeights')}</p>;
   }
   const phone = variant === 'fullscreen';
   const focusGrade = focus ? gradeAt(grades, focus.distanceMeters) : null;
@@ -112,7 +112,7 @@ export default function TourRouteProfile({ toolCallId, card, samples, color, foc
   };
 
   return (
-    <div className="mt-2">
+    <div className="rounded-[12px] border border-edge-faint bg-surface-secondary px-2 pb-1.5 pt-2">
       <ElevationProfile
         samples={samples}
         color={color}

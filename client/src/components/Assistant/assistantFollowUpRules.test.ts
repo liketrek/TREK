@@ -111,6 +111,14 @@ describe('the questions an answer offers', () => {
 
   it('FE-AI-FOLLOW-007: an answer that asks the user something waits for their answer, not for "tell me more"', () => {
     expect(followUpsFor(of([{ type: 'text', text: 'Should I plan it anyway?' }]), true)).toEqual([]);
+    // Not the found places' chips either, but the model's own answers to its question.
+    const asked = of([
+      { type: 'data-trek-places', data: { toolCallId: 's', places: [], more: 0 } },
+      { type: 'text', text: 'Shall I plan it there?' },
+    ]);
+    expect(followUpsFor(asked, true)).toEqual([]);
+    const offered = of([...asked.parts, { type: 'data-trek-follow-ups', data: { questions: ['Yes, plan it'] } }]);
+    expect(followUpsFor(offered, true).map((f) => f.text)).toEqual(['Yes, plan it']);
     expect(followUpsFor(of([{ type: 'text', text: 'Here it is.' }]), true).map((f) => f.id)).toEqual(['more', 'next']);
   });
 });

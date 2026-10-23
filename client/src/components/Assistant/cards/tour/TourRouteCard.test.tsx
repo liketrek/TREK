@@ -115,11 +115,11 @@ afterEach(() => {
 });
 
 describe('TourRouteCard', () => {
-  it('FE-AI-TOUR-021: states the name, the figures as badges, the day and the hardest grade, uncertain when little is graded', () => {
+  it('FE-AI-TOUR-021: states the name, the figures as framed fields, the day and the hardest grade, uncertain when little is graded', () => {
     const { container } = renderCard(HIKE);
     expect(screen.getByText('Hochfelln from Bergen')).toBeInTheDocument();
     for (const figure of ['time', 'distance', 'ascent', 'descent']) {
-      expect(container.querySelector(`[data-figure="${figure}"]`)).not.toBeNull();
+      expect(container.querySelector(`[data-field="${figure}"]`)).not.toBeNull();
     }
     expect(screen.getByText('8.2 km')).toBeInTheDocument();
     expect(screen.getAllByText('640 m')).toHaveLength(2);
@@ -159,7 +159,7 @@ describe('TourRouteCard', () => {
 
   it('FE-AI-TOUR-024: a stop chip moves the spot in focus to the stop while pointed at', () => {
     renderCard(HIKE);
-    const hut = screen.getByRole('button', { name: 'Strausshütte, 09:40' });
+    const hut = screen.getByRole('button', { name: /^Strausshütte, 09:40/ });
     fireEvent.mouseEnter(hut);
     expect(useAssistantStore.getState().routeFocus?.focus.distanceMeters).toBeCloseTo(2400, 0);
     fireEvent.mouseLeave(hut);
@@ -171,11 +171,11 @@ describe('TourRouteCard', () => {
   it('FE-AI-TOUR-024b: the stops run as a timeline, each walk on the line between two stops and read with the one it leads to', () => {
     renderCard(HIKE);
     const list = screen.getByRole('list', { name: 'Stops along the way' });
-    // One row per stop; the lines between them are not rows.
-    expect(list.querySelectorAll('[role="listitem"]')).toHaveLength(5);
+    // One row per stop; the walks between them are hidden, read with the stop they lead to.
+    expect(list.querySelectorAll('li:not([aria-hidden="true"])')).toHaveLength(5);
     // The place beside the way has no time: the hut measures from the start, then each stop from the last.
-    expect(screen.getAllByText(/from the last stop$/)).toHaveLength(3);
-    const legs = [...list.querySelectorAll('[aria-hidden="true"]')].map((leg) => leg.textContent).filter(Boolean);
+    expect(screen.getAllByRole('button', { name: /from the last stop$/ })).toHaveLength(3);
+    const legs = [...list.querySelectorAll('li[aria-hidden="true"]')].map((leg) => leg.textContent).filter(Boolean);
     expect(legs).toHaveLength(3);
   });
 
@@ -234,18 +234,21 @@ describe('TourRouteCard', () => {
     const decide = vi.fn(async (_key: number, decisions: { toolCallId: string; approved: boolean }[]) => {
       // The server applies the take; the thread shows it applied with the new tour's place.
       const chat = chatOf(useAssistantStore.getState(), TRIP);
-      const applied = heldTake(true);
-      applied.parts.push({
+      // The server sends the answer back with the take joined to it, now applied with the new tour's place.
+      const applied = proposed();
+      applied.parts.push(...heldTake(true).parts, {
         type: 'data-trek-applied',
         data: { toolCallId: decisions[0]?.toolCallId ?? '', entity: 'tour', ids: [77], dayId: 22, undoUntil: null },
       });
-      useAssistantStore.setState({ byTrip: { [TRIP]: { ...chat, messages: [proposed(), applied] } } });
+      useAssistantStore.setState({ byTrip: { [TRIP]: { ...chat, messages: [applied] } } });
     });
     seed([proposed()]);
     useAssistantStore.setState({ decide });
     takeProposal.mockImplementationOnce(async () => {
       const chat = chatOf(useAssistantStore.getState(), TRIP);
-      useAssistantStore.setState({ byTrip: { [TRIP]: { ...chat, messages: [proposed(), heldTake(undefined)] } } });
+      const joined = proposed();
+      joined.parts.push(...heldTake(undefined).parts);
+      useAssistantStore.setState({ byTrip: { [TRIP]: { ...chat, messages: [joined] } } });
       return 'held';
     });
     renderCard(HIKE, { onOpen });
@@ -374,7 +377,7 @@ describe('TourRouteCard', () => {
   it('FE-AI-TOUR-042: the day shows the latest start when none is set, and the walk in the dark in red', () => {
     const schedule = HIKE.schedule as NonNullable<Route['schedule']>;
     renderCard({ ...HIKE, schedule: { ...schedule, start: null, arrive: null, latestStart: '10:30' } });
-    expect(screen.getByText('Start by 10:30 to finish before sunset')).toBeInTheDocument();
+    expect(screen.getByText('Start by 10:30')).toBeInTheDocument();
 
     const { container } = renderCard({
       ...HIKE,
@@ -382,6 +385,6 @@ describe('TourRouteCard', () => {
       schedule: { ...schedule, start: '06:00', arrive: '19:00', latestStart: '10:30' },
     });
     expect(container.querySelectorAll('[data-testid="tour-day"] .bg-danger')).toHaveLength(2);
-    expect(screen.getAllByText('Start by 10:30 to finish before sunset')).toHaveLength(1);
+    expect(screen.getAllByText('Start by 10:30')).toHaveLength(1);
   });
 });

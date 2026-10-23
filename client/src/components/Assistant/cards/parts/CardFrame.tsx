@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 /**
  * The frame every answer card sits in, the same as the change card's: a
- * rounded card on the chat. A waiting change shows its frame dashed, a
+ * rounded card on the chat whose head band (CardHeader) runs to its edges. A waiting change shows its frame dashed, a
  * removed one faded, a settled one (discarded, expired, undone) fainter
  * still. The chat card (a message in the trip chat) sits on the quieter
  * secondary surface.
@@ -32,7 +32,7 @@ export default function CardFrame({
   return (
     <section
       aria-label={label}
-      className={`trek-assistant-enter rounded-xl border px-3 pb-2 pt-2.5 shadow-card ${STATE[state]} ${
+      className={`trek-assistant-enter overflow-hidden rounded-[16px] border px-3.5 pb-3 pt-3 shadow-card ${STATE[state]} ${
         surface === 'secondary' ? 'bg-surface-secondary' : 'bg-surface-card'
       }`}
     >

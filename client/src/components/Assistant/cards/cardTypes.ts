@@ -126,6 +126,8 @@ export interface CardView<K extends TrekCardKind> {
   Facts?: ComponentType<CardSlotProps<K>>;
   Body?: ComponentType<CardSlotProps<K>>;
   ownsSubject?: boolean;
+  /** The body runs the whole width of the change card instead of under the row's text (a tour's drawing). */
+  wideBody?: boolean;
   Group?: ComponentType<CardRunProps & { place: 'head' | 'foot' }>;
   Run?: ComponentType<CardRunProps>;
   runnable?(card: TrekCardOf<K>): boolean;

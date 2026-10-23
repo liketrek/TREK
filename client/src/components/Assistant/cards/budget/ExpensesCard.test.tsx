@@ -121,8 +121,7 @@ describe('an expense in a change row', () => {
     expect(screen.getByText(money(84))).toHaveClass('line-through');
   });
 
-  it('FE-AI-CARD-BUD-012: the facts name the category, day and place, and what an update changes', () => {
-    const onOpen = vi.fn();
+  it('FE-AI-CARD-BUD-012: the facts name the category and day, and what an update changes', () => {
     const update = expense({
       category: 'transport',
       date: '2026-06-05',
@@ -132,7 +131,7 @@ describe('an expense in a change row', () => {
       split: 'equal',
       before: { name: null, amount: null, category: 'food', date: '2026-06-03', split: 'custom' },
     });
-    inView(<ExpenseFacts card={expenses([update])} item={changeItem('a', null)} />, { onOpen });
+    inView(<ExpenseFacts card={expenses([update])} item={changeItem('a', null)} />);
     expect(screen.getByText('Food & drink')).toHaveClass('line-through');
     expect(screen.getByText('Transport')).toBeInTheDocument();
     expect(screen.getByText('Split unevenly')).toHaveClass('line-through');
@@ -140,6 +139,14 @@ describe('an expense in a change row', () => {
     expect(screen.getByText('1 receipt')).toBeInTheDocument();
     // The note is too long for the faint line beside the row's buttons: it sits under the row.
     expect(screen.queryByText('Window table')).toBeNull();
+    // The place sits under the row, beside the split.
+    expect(screen.queryByText('Lokanta')).toBeNull();
+  });
+
+  it('FE-AI-CARD-BUD-012c: the place sits under the row beside the split, and opens on the map', () => {
+    const onOpen = vi.fn();
+    const row = expense({ place: { id: 12, name: 'Lokanta' } });
+    inView(<ExpenseBody card={expenses([row])} item={changeItem('a', null)} />, { onOpen });
     fireEvent.click(screen.getByRole('button', { name: /Lokanta/ }));
     expect(onOpen).toHaveBeenCalledWith({ kind: 'map', placeId: 12, dayId: null });
   });

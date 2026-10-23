@@ -101,7 +101,8 @@ function standsOnMap(part: ToolCallPart, receipt: AssistantApplied | undefined, 
 /**
  * The cards of the latest answer that draws any, laid out as the chat lays
  * them out: a group of several is a choice of ways, each with its letter, the
- * chosen one (by `picks`, else the first) picked. Older answers drop.
+ * chosen one (by `picks`, else the first) picked. Older answers drop, and so
+ * do the ways of a group once one of them was taken into the trip.
  */
 function lookRefs(
   messages: readonly AssistantMessage[],
@@ -111,6 +112,7 @@ function lookRefs(
   layout: AnswerLayout
 ): RouteRef[] {
   const chosenIds = new Set(Object.values(picks));
+  const taken = takenProposals(messages);
   for (let index = messages.length - 1; index >= 0; index--) {
     const answers = (messages[index]?.parts ?? []).flatMap((part): RouteCardEntry[] =>
       part.type === 'data-trek-card' && part.data.card && !changeIds.has(part.data.toolCallId)
@@ -121,6 +123,7 @@ function lookRefs(
     const drawn = new Set(lined.map((entry) => entry.toolCallId));
     if (drawn.size === 0) continue;
     return layout(answers).flatMap((group) => {
+      if (group.some((entry) => taken.has(entry.toolCallId))) return [];
       const ways = group.length >= 2;
       const chosen = group.find((entry) => chosenIds.has(entry.toolCallId)) ?? group[0];
       return group.flatMap((entry, position): RouteRef[] => {
@@ -131,6 +134,28 @@ function lookRefs(
     });
   }
   return [];
+}
+
+/**
+ * The proposals taken into the trip ("Plan this") and not discarded since:
+ * each stands as its change from then on, so its answer's ways leave the map.
+ */
+function takenProposals(messages: readonly AssistantMessage[]): Set<string> {
+  const dropped = new Set<string>();
+  for (const message of messages) {
+    for (const part of message.parts) {
+      if (part.type !== 'tool-call' || !part.approval) continue;
+      if (part.approval.approved === false || part.approval.resolution) dropped.add(part.toolCallId);
+    }
+  }
+  const taken = new Set<string>();
+  for (const message of messages) {
+    for (const part of message.parts) {
+      if (part.type !== 'data-trek-change' || !part.data.takenFrom) continue;
+      if (!dropped.has(part.data.toolCallId)) taken.add(part.data.takenFrom);
+    }
+  }
+  return taken;
 }
 
 /**

@@ -4,12 +4,14 @@ import { createElement } from 'react';
 
 import { useTranslation } from '../../../../i18n';
 import { SoftPill, WhiteBadge } from '../../../Planner/planParts';
+import { fs, PILL } from '../../../shared/DialogShell';
 import { Tooltip } from '../../../shared/Tooltip';
 import { SacStepChip } from '../../../Tours/hike/SacStepChip';
 import { variantPaintCss } from '../../../Tours/planner/legVariantPaint';
 import { formatTourDuration } from '../../../Tours/planner/tourDurationInput';
 import { tourDayRowIcon } from '../../../Tours/tourDayRowIcon';
-import { CardFacts } from '../parts/CardFacts';
+import CardHeader from '../parts/CardHeader';
+import { CardFields } from '../parts/CardSection';
 import RouteSketch from '../parts/RouteSketch';
 import { useCardFormat } from '../parts/useCardFormat';
 import { factKeysOf, factValue, percentText, type FactKey } from './tourRouteModel';
@@ -89,7 +91,7 @@ export function TourGrade({ card }: { card: TourRouteCard }) {
   );
 }
 
-/** The day a route is planned on, as words: "Day 2, Tue 14 Oct", or the date alone. */
+/** The day a route is planned on, as a white pill on the band: "Day 2, Tue 14 Oct", or the date alone. */
 function DayPill({ card }: { card: TourRouteCard }) {
   const { t } = useTranslation();
   const format = useCardFormat();
@@ -98,7 +100,12 @@ function DayPill({ card }: { card: TourRouteCard }) {
   const date = format.date(schedule.date);
   const text =
     schedule.dayNumber !== null ? `${t('assistant.card.tour.day', { day: schedule.dayNumber })}, ${date}` : date;
-  return <SoftPill icon={<CalendarDays size={10} strokeWidth={2.2} aria-hidden="true" />}>{text}</SoftPill>;
+  return (
+    <span className={PILL} style={fs(11)}>
+      <CalendarDays size={11} strokeWidth={2.2} aria-hidden="true" className="flex-none text-content-faint" />
+      {text}
+    </span>
+  );
 }
 
 /** The route drawn small: a button that shows it on the map. */
@@ -127,35 +134,51 @@ export function TourRouteSketch({
   );
 }
 
-export default function TourRouteHead({
-  card,
-  sketchHeight,
-  onShow,
-}: {
-  card: TourRouteCard;
-  sketchHeight: number;
-  onShow: () => void;
-}) {
+/** The route's figures as framed fields, each under its label: distance, climb, descent and time, as known. */
+export function TourRouteFields({ card }: { card: TourRouteCard }) {
+  const { t } = useTranslation();
+  const format = useCardFormat();
+  const fields = factKeysOf(card).flatMap((key) => {
+    const value = factValue(card, key);
+    if (value === null) return [];
+    // A field's label is short; how the time was reckoned is the figure badges' tooltip.
+    const label = t(FACT_LOOK[key].labelKey ?? 'tours.planner.inspector.duration');
+    let text: string;
+    if (key === 'time') text = formatTourDuration(value);
+    else text = key === 'distance' ? format.distance(value / 1000) : format.elevation(value);
+    return [{ key, label, value: text }];
+  });
+  return <CardFields fields={fields} />;
+}
+
+/**
+ * The head band of a route card: the route drawn small on a raised tile, what
+ * kind of tour it is above its name, the label under it, and its grade and
+ * the day it is planned on as pills on the band.
+ */
+export default function TourRouteHead({ card, onShow }: { card: TourRouteCard; onShow: () => void }) {
   const { t } = useTranslation();
   const name = routeName(card, t);
+  const tile = (
+    <span className="w-14 flex-none overflow-hidden rounded-[12px] bg-surface-card p-1 shadow-sm">
+      <TourRouteSketch card={card} height={48} onShow={onShow} />
+    </span>
+  );
   return (
-    <div className="flex items-start gap-2.5">
-      <div className="w-[72px] flex-none">
-        <TourRouteSketch card={card} height={sketchHeight} onShow={onShow} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-start gap-2">
-          <bdi title={name} className="line-clamp-2 min-w-0 flex-1 text-body font-semibold leading-tight text-content">
-            {name}
-          </bdi>
-          <TourGrade card={card} />
-        </div>
-        {card.label && <p className="m-0 mt-0.5 truncate text-caption text-content-muted">{card.label}</p>}
-        <CardFacts>
-          <TourRouteFigures card={card} />
+    <CardHeader
+      icon={tourDayRowIcon(card.activity)}
+      tone="info"
+      tile={tile}
+      eyebrow={t(TOUR_TYPE_WORDS[card.activity].labelKey)}
+      title={name}
+      meta={card.label ?? undefined}
+    >
+      {((card.activity === 'hike' && card.grades) || card.schedule) && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          {card.activity === 'hike' && card.grades && <TourGrade card={card} />}
           <DayPill card={card} />
-        </CardFacts>
-      </div>
-    </div>
+        </div>
+      )}
+    </CardHeader>
   );
 }

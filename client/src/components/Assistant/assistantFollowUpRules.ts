@@ -126,11 +126,12 @@ export function followUpsFor(message: AssistantMessage, canEdit: boolean): reado
   if (fromModel.length > 0) return fromModel;
   const fromCards = cardFollowUps(message, canEdit);
   if (fromCards.length > 0) return fromCards;
+  // An answer that asks the user something waits for their answer: only the model's own offer fits it.
+  if (endsWithQuestion(message)) return [];
   const fromChanges = changeFollowUps(message, canEdit);
   if (fromChanges !== null) return fromChanges.length > 0 ? fromChanges : GENERAL;
   const types = new Set(message.parts.map((part) => part.type));
   if (types.has('data-trek-places')) return PLACES;
   if (types.has('data-trek-weather')) return WEATHER;
-  // An answer that asks the user something waits for their answer, not for "tell me more".
-  return types.has('text') && !endsWithQuestion(message) ? GENERAL : [];
+  return types.has('text') ? GENERAL : [];
 }

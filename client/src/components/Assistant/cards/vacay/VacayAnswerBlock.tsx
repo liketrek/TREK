@@ -1,10 +1,14 @@
 import type { CSSProperties } from 'react';
 
+import { Palmtree } from 'lucide-react';
+
 import { useTranslation } from '../../../../i18n';
 import { safeHexColor } from '../../../../utils/safeColor';
 import type { CardEntry } from '../cardTypes';
 import CardFrame from '../parts/CardFrame';
+import CardHeader from '../parts/CardHeader';
 import { CardOpenButton } from '../parts/CardOpen';
+import { CardFoot } from '../parts/CardSection';
 import { useViewerId } from '../parts/useViewerId';
 import VacayBalance from './VacayBalance';
 import { balanceLines, mergeVacayCards, type VacayView } from './vacayCardModel';
@@ -26,7 +30,6 @@ const SQUARE = 'size-2 flex-none rounded-sm';
 const COMPANY = 'size-2 flex-none rounded-sm bg-warning-soft ring-1 ring-inset ring-warning';
 const TRIP = 'size-1.5 flex-none rounded-full bg-info';
 const OTHER = 'mt-1.5 text-caption text-content-muted';
-const FOOT = 'mt-1 flex justify-end';
 
 interface LegendItem {
   key: string;
@@ -79,13 +82,14 @@ export default function VacayAnswerBlock({ cards }: { cards: readonly CardEntry[
   const first = own[0] ?? null;
   return (
     <CardFrame label={t('assistant.card.vacay.label')}>
+      <CardHeader icon={Palmtree} tone="info" title={t('assistant.card.vacay.label')} />
       {view.months.length > 0 && <VacayMonthStrip view={view} placed={[]} labelOf={() => ''} />}
       <Legend view={view} />
       {view.otherDays > 0 && <p className={OTHER}>{t('assistant.card.vacay.otherDays', { count: view.otherDays })}</p>}
       <VacayBalance lines={lines} view={view} mode="read" />
-      <div className={FOOT}>
+      <CardFoot>
         <CardOpenButton target={{ kind: 'page', path: vacayPathOf(first) }} labelKey="assistant.card.vacay.open" />
-      </div>
+      </CardFoot>
     </CardFrame>
   );
 }

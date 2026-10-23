@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useLocation, useMatch, useNavigate } from 'react-router';
 
 import { rememberListsSubTab } from '../../hooks/useListsSubTab';
+import { useAssistantStore } from '../../store/assistantStore';
 import { useTripStore } from '../../store/tripStore';
 import AssistantWindow from './AssistantWindow';
 import { plannerSearchOf } from './assistantShowOnMap';
@@ -22,7 +23,7 @@ function useRouteTripId(): number | null {
  * notification opens a place, a tab of the trip opens as `?tab=` (a list's
  * own tab remembered first), and another page is simply navigated to. A day
  * picked in the chat (its weather) selects that day the same way, and "On
- * map" on a card brings the planner's map back first.
+ * map" on a card brings the planner's map back first from a tab without one.
  */
 export default function AssistantHost() {
   const navigate = useNavigate();
@@ -54,8 +55,12 @@ export default function AssistantHost() {
     [navigate, openPlanner, tripId]
   );
   const focusDay = useCallback((dayId: number) => openPlanner(`?day=${dayId}`), [openPlanner]);
-  // "On map" from another tab of the planner (Tours, Costs, ...) first brings the map back.
-  const revealMap = useCallback(() => openPlanner('?tab=plan'), [openPlanner]);
+  // "On map" from a tab without a map (Costs, Lists, ...) first brings the plan's map back; the Tours tab
+  // shows the route on its own map. A map on screen tells the assistant its view, which is how it is known.
+  const revealMap = useCallback(() => {
+    if (useAssistantStore.getState().mapView?.tripId === tripId) return;
+    openPlanner('?tab=plan');
+  }, [openPlanner, tripId]);
 
   return <AssistantWindow trip={trip} onOpen={open} onFocusDay={focusDay} onRevealMap={revealMap} />;
 }

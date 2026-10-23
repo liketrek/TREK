@@ -14,6 +14,6 @@ import TourRouteInRow, { TourRouteLead } from './TourRouteInRow';
  * file.
  */
 export const TOUR_VIEWS = {
-  tourRoute: { Block: TourRouteBlock, Lead: TourRouteLead, Body: TourRouteInRow },
+  tourRoute: { Block: TourRouteBlock, Lead: TourRouteLead, Body: TourRouteInRow, wideBody: true },
   tourList: { Block: TourListCard },
 } satisfies { [K in 'tourRoute' | 'tourList']: CardView<K> };
