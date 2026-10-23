@@ -1,4 +1,4 @@
-import { EntityRepositoryType, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
+import { EntityRepositoryType, type Opt, PrimaryKeyProp, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { TravelTransferGraphsRepository } from '../repositories/TravelTransferGraphs.repository';
 import { Trips } from './Trips.entity';
 import { Users } from './Users.entity';
@@ -12,6 +12,7 @@ export class TravelTransferGraphs {
   user_id!: number;
   graph!: string;
   originals!: string;
+  native_map: string & Opt = '{}';
 }
 
 export const TravelTransferGraphsSchema = defineEntity({
@@ -24,5 +25,6 @@ export const TravelTransferGraphsSchema = defineEntity({
     user_id: p.integer().persist(false).index('idx_transfer_graph_user'),
     graph: p.text(),
     originals: p.text(),
+    native_map: p.text().default('{}'),
   },
 });

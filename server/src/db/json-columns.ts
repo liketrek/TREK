@@ -360,3 +360,20 @@ export const TRANSFER_RECEIPT = {
     throw new Error('Corrupt transfer receipt');
   },
 };
+
+/** Server-owned row bindings. Incoming source metadata is never an authority for local IDs. */
+export const TRANSFER_NATIVE_MAP = {
+  column: 'travel_transfer_graphs.native_map',
+  schema: z.record(
+    travelTransfer.token,
+    z.strictObject({
+      table: z.string(),
+      key: z.record(z.string(), z.union([z.string(), z.number(), z.null()])),
+      baseline: travelTransfer.recordSchema,
+    }),
+  ),
+  fallback: (): never => {
+    throw new Error('Corrupt native transfer mappings');
+  },
+};
+export type TransferNativeMap = z.infer<typeof TRANSFER_NATIVE_MAP.schema>;

@@ -1,10 +1,33 @@
+import { BudgetItemMembers } from '../../../../src/db/entities/BudgetItemMembers.entity';
+import { BudgetItemPayers } from '../../../../src/db/entities/BudgetItemPayers.entity';
+import { BudgetItems } from '../../../../src/db/entities/BudgetItems.entity';
+import { CollabMessages } from '../../../../src/db/entities/CollabMessages.entity';
+import { DayAccommodations } from '../../../../src/db/entities/DayAccommodations.entity';
+import { DayAssignments } from '../../../../src/db/entities/DayAssignments.entity';
 import { Days } from '../../../../src/db/entities/Days.entity';
+import { FileLinks } from '../../../../src/db/entities/FileLinks.entity';
+import { PackingBags } from '../../../../src/db/entities/PackingBags.entity';
+import { PackingItems } from '../../../../src/db/entities/PackingItems.entity';
+import { Places } from '../../../../src/db/entities/Places.entity';
+import { ReservationEndpoints } from '../../../../src/db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../../../src/db/entities/Reservations.entity';
+import { RoadtripPreferences } from '../../../../src/db/entities/RoadtripPreferences.entity';
+import { TodoItems } from '../../../../src/db/entities/TodoItems.entity';
 import { TravelTransferChunks } from '../../../../src/db/entities/TravelTransferChunks.entity';
 import { TravelTransferObjects } from '../../../../src/db/entities/TravelTransferObjects.entity';
 import { TravelTransferOperations } from '../../../../src/db/entities/TravelTransferOperations.entity';
+import { TravelTransferSilentTasks } from '../../../../src/db/entities/TravelTransferSilentTasks.entity';
+import { TripFiles } from '../../../../src/db/entities/TripFiles.entity';
+import { TripMembers } from '../../../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../../../src/db/entities/Trips.entity';
+import { Users } from '../../../../src/db/entities/Users.entity';
 import { DEFAULT_CLIENT_SCOPES } from '../../../../src/mcp/scopes';
 import type { McpContext } from '../../../../src/nest-mcp';
+import { LocalDriver } from '../../../../src/nest/storage/drivers/local.driver';
+import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
+import { StorageService } from '../../../../src/nest/storage/storage.service';
+import { TodoModule } from '../../../../src/nest/todo/todo.module';
+import { TodoService } from '../../../../src/nest/todo/todo.service';
 import { allowed } from '../../../../src/nest/travel-transfer/transfer-authority';
 import { TransferStaging } from '../../../../src/nest/travel-transfer/transfer-staging';
 import {
@@ -20,11 +43,15 @@ import {
 import { TravelTransferModule } from '../../../../src/nest/travel-transfer/travel-transfer.module';
 import { TravelTransferService } from '../../../../src/nest/travel-transfer/travel-transfer.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { insertRow, updateRows, countRows, findRow } from '../../../helpers/factories/rows';
+import { insertRow, updateRows, countRows, findRow, findRows, deleteRows } from '../../../helpers/factories/rows';
 import { makeUser } from '../../../helpers/factories/users';
 import { createTestModule, type TestModule } from '../../../helpers/test-module';
 import { MikroORM } from '@mikro-orm/core';
 
+import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 async function serial<T>(values: T[], run: (value: T) => Promise<unknown>) {
@@ -61,14 +88,31 @@ function fixture(): Graph {
 describe('travel transfer runtime on migrated TREK database', () => {
   let db: ReturnType<typeof createSnapshotTestDb>, t: TestModule, orm: MikroORM;
   let service: TravelTransferService, staging: TransferStaging, ctx: McpContext;
+  let storageRoot: string, driver: LocalDriver;
   async function boot() {
-    t = await createTestModule({ db, imports: [TravelTransferModule] });
+    t = await createTestModule({
+      db,
+      imports: [TravelTransferModule, TodoModule],
+      overrides: [
+        {
+          provide: StorageRegistryService,
+          useValue: {
+            resolve: (category: string) => ({ driver, keyPrefix: category + '/', backendName: 'transfer-test' }),
+            tempDir: () => storageRoot,
+            replicaFailures: () => [],
+          },
+        },
+      ],
+    });
     orm = t.get(MikroORM);
     service = t.get(TravelTransferService);
     staging = t.get(TransferStaging);
   }
   beforeEach(async () => {
     db = createSnapshotTestDb();
+    storageRoot = await mkdtemp(join(tmpdir(), 'trek-native-transfer-'));
+    driver = new LocalDriver({ id: 'transfer-test', root: storageRoot });
+    driver.init({ cleanSpool: true });
     await boot();
     const { user } = await makeUser(orm);
     ctx = {
@@ -82,6 +126,7 @@ describe('travel transfer runtime on migrated TREK database', () => {
   afterEach(async () => {
     await t?.close();
     db?.close();
+    await rm(storageRoot, { recursive: true, force: true });
   });
   async function stage(
     graph = fixture(),
@@ -274,19 +319,23 @@ describe('travel transfer runtime on migrated TREK database', () => {
     await expect(service.apply(ctx, request)).rejects.toThrow('changed since review');
     expect((await findRow(orm, Trips, { id: Number(result.trip_id) })).title).toBe('Concurrent edit');
   });
-  it('refuses an incomplete snapshot of an ordinary native trip', async () => {
+  it('projects an ordinary native trip and its planner days', async () => {
     const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Native trip' });
     await insertRow(orm, Days, { trip, day_number: 1 });
-    await expect(service.snapshot(ctx, String(trip), null, null, false)).rejects.toThrow('No data was omitted');
+    const snapshot = await service.snapshot(ctx, String(trip), null, null, false);
+    expect(snapshot.records.find((r) => r.kind === 'days')?.fields.position).toBe(1);
   });
-  it('refuses native settings added outside the initial root projector', async () => {
+  it('observes native currency edits while preserving reminder configuration', async () => {
     const created = await service.apply(ctx, await stage());
     const page = await service.snapshot(ctx, created.trip_id, null, null, false);
     const { next_cursor: _, ...graph } = page;
     const pending = await stage(graph, created.trip_id, 'settings-edit');
     await updateRows(orm, Trips, { id: Number(created.trip_id) }, { currency: 'USD', reminder_days: 3 });
-    await expect(service.snapshot(ctx, created.trip_id, null, null, false)).rejects.toThrow('settings projection');
-    await expect(service.apply(ctx, pending)).rejects.toThrow('settings projection');
+    expect(
+      (await service.snapshot(ctx, created.trip_id, null, null, false)).records.find((r) => r.id === 'trip')?.fields
+        .currency,
+    ).toBe('USD');
+    await expect(service.apply(ctx, pending)).rejects.toThrow('changed since review');
     expect((await findRow(orm, Trips, { id: Number(created.trip_id) })).reminder_days).toBe(3);
   });
   it('preserves unselected private history during a shared-only apply', async () => {
@@ -455,5 +504,300 @@ describe('travel transfer runtime on migrated TREK database', () => {
     await original(different, 'replace', result.trip_id);
     replacement.originals = [{ id: 'original', record: 'message', size: different.length, sha256: sha(different) }];
     await expect(service.apply(ctx, await stage(replacement, result.trip_id, 'replace'))).rejects.toThrow('immutable');
+  });
+  it('round trips native planner rows and updates the same mapped identities without notifications', async () => {
+    const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Native source', currency: 'AUD' });
+    const day = await insertRow(orm, Days, { trip, day_number: 1, date: '2027-02-01' });
+    const place = await insertRow(orm, Places, { trip, name: 'Museum', lat: -33.8, lng: 151.2 });
+    const stay = await insertRow(orm, DayAccommodations, {
+      trip,
+      place,
+      startDay: day,
+      endDay: day,
+      notes: 'Two nights',
+    });
+    const item = await insertRow(orm, DayAssignments, { day, place, accommodation_id: stay, order_index: 2 });
+    const booking = await insertRow(orm, Reservations, {
+      trip,
+      day,
+      place,
+      assignment: item,
+      title: 'Museum ticket',
+      type: 'event',
+    });
+    await insertRow(orm, ReservationEndpoints, {
+      reservation: booking,
+      role: 'from',
+      name: 'Station',
+      lat: -33.8,
+      lng: 151.2,
+    });
+    await insertRow(orm, TodoItems, { trip, name: 'Pack', checked: 1 });
+    const bag = await insertRow(orm, PackingBags, { trip, name: 'Backpack', weight_limit_grams: 7500 });
+    await insertRow(orm, PackingItems, { trip, bag, name: 'Jacket', quantity: 2, weight_grams: 550 });
+    await insertRow(orm, BudgetItems, {
+      trip,
+      name: 'Tickets',
+      total_price: 12.25,
+      currency: 'AUD',
+      reservation: booking,
+    });
+    await insertRow(orm, CollabMessages, { trip, user: ctx.userId, text: 'Historical message' });
+    const { next_cursor: _, ...graph } = await service.snapshot(ctx, String(trip), null, null, true);
+    if (process.env.TREK_TRANSFER_FIXTURE) await writeFile(process.env.TREK_TRANSFER_FIXTURE, canonical(graph));
+    const created = await service.apply(ctx, await stage(graph, null, 'native-copy', true));
+    const target = Number(created.trip_id);
+    expect(await countRows(orm, Places, { trip: target })).toBe(1);
+    expect(await countRows(orm, Days, { trip: target })).toBe(1);
+    expect(await countRows(orm, Reservations, { trip: target })).toBe(1);
+    expect(await countRows(orm, CollabMessages, { trip: target })).toBe(0);
+    const firstPlace = (await findRows(orm, Places, { trip: target }))[0];
+    const { next_cursor: _ignored, ...edited } = await service.snapshot(ctx, created.trip_id, null, null, true);
+    const projected = edited.records.find((r) => r.kind === 'places');
+    if (!projected) throw new Error('Missing mapped place');
+    projected.fields.name = 'Museum and gallery';
+    await service.apply(ctx, await stage(edited, created.trip_id, 'native-edit', true));
+    expect((await findRow(orm, Places, { id: firstPlace.id })).name).toBe('Museum and gallery');
+    expect(await countRows(orm, Places, { trip: target })).toBe(1);
+    await updateRows(orm, Places, { id: firstPlace.id }, { name: 'Edited in native planner' });
+    const updated = await service.snapshot(ctx, created.trip_id, null, null, true);
+    expect(updated.records.find((r) => r.id === projected.id)?.fields.name).toBe('Edited in native planner');
+    expect(updated.records.find((r) => r.kind === 'chat_messages')?.fields.text).toBe('Historical message');
+    expect(t.realtime.broadcastMock).not.toHaveBeenCalled();
+  });
+  it('swaps native day positions atomically and refuses stale child edits', async () => {
+    const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Reorder' });
+    const first = await insertRow(orm, Days, { trip, day_number: 1, title: 'First' });
+    const second = await insertRow(orm, Days, { trip, day_number: 2, title: 'Second' });
+    const { next_cursor: _, ...graph } = await service.snapshot(ctx, String(trip), null, null, false);
+    for (const r of graph.records.filter((r) => r.kind === 'days')) r.fields.position = 3 - Number(r.fields.position);
+    await service.apply(ctx, await stage(graph, String(trip), 'swap'));
+    expect((await findRow(orm, Days, { id: first })).day_number).toBe(2);
+    expect((await findRow(orm, Days, { id: second })).day_number).toBe(1);
+    const { next_cursor: _ignored, ...stale } = await service.snapshot(ctx, String(trip), null, null, false);
+    const request = await stage(stale, String(trip), 'stale-child');
+    await updateRows(orm, Days, { id: second }, { notes: 'Concurrent native child edit' });
+    await expect(service.apply(ctx, request)).rejects.toThrow('changed since review');
+  });
+  it('keeps other people private packing items out and refuses cascades into them', async () => {
+    const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Private packing' });
+    const { user: other } = await makeUser(orm);
+    const bag = await insertRow(orm, PackingBags, { trip, name: 'Shared bag' });
+    const secret = await insertRow(orm, PackingItems, {
+      trip,
+      bag,
+      name: 'Private medication',
+      is_private: 1,
+      owner: other.id,
+    });
+    await insertRow(orm, PackingItems, { trip, name: 'Own private item', is_private: 1, owner: ctx.userId });
+    const full = await service.snapshot(ctx, String(trip), null, null, true);
+    expect(canonical(full)).not.toContain('Private medication');
+    expect(full.records.find((r) => r.kind === 'packing_items')?.visibility).toBe('private');
+    const { next_cursor: _, ...graph } = await service.snapshot(ctx, String(trip), null, null, false);
+    expect(canonical(graph)).not.toContain('Own private item');
+    graph.records = graph.records.filter((r) => r.kind !== 'packing_bags');
+    await expect(service.apply(ctx, await stage(graph, String(trip), 'cascade'))).rejects.toThrow('private record');
+    expect(await countRows(orm, PackingItems, { id: secret })).toBe(1);
+  });
+  it('does not treat forged source metadata as a grant to a different trip row', async () => {
+    const otherTrip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Unrelated' });
+    const place = await insertRow(orm, Places, { trip: otherTrip, name: 'Untouched' });
+    const graph = fixture();
+    graph.records.push({
+      id: 'foreign-place',
+      kind: 'places',
+      visibility: 'trip',
+      fields: { name: 'New place' },
+      references: {},
+      source: { native: { table: 'places', id: place }, fields: { name: 'present' } },
+    });
+    const result = await service.apply(ctx, await stage(graph));
+    expect((await findRow(orm, Places, { id: place })).name).toBe('Untouched');
+    expect(await countRows(orm, Places, { trip: Number(result.trip_id) })).toBe(1);
+  });
+  it('propagates native deletion and rejects invalid scalar values transactionally', async () => {
+    const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Native deletion' });
+    const place = await insertRow(orm, Places, { trip, name: 'Removed later' });
+    const { next_cursor: _, ...graph } = await service.snapshot(ctx, String(trip), null, null, false);
+    await service.apply(ctx, await stage(graph, String(trip), 'bind'));
+    await deleteRows(orm, Places, { id: place });
+    expect(
+      (await service.snapshot(ctx, String(trip), null, null, false)).records.some((r) => r.kind === 'places'),
+    ).toBe(false);
+    const bad = fixture();
+    bad.records.push({
+      id: 'bad',
+      kind: 'days',
+      visibility: 'trip',
+      fields: { position: 'not a number' },
+      references: {},
+      source: { fields: { position: 'present' } },
+    });
+    const before = await countRows(orm, Trips, {});
+    await expect(service.apply(ctx, await stage(bad, null, 'bad'))).rejects.toThrow('Invalid native field type');
+    expect(await countRows(orm, Trips, {})).toBe(before);
+  });
+  it('exports real native original bytes and imports them into native files with associations', async () => {
+    const bytes = Buffer.alloc(CHUNK + 43, 0x93);
+    bytes[0] = 0;
+    const storage = t.get(StorageService);
+    await storage.put('files', 'native-original.bin', Readable.from(bytes));
+    const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Native files' });
+    const place = await insertRow(orm, Places, { trip, name: 'Gallery' });
+    const file = await insertRow(orm, TripFiles, {
+      trip,
+      filename: 'native-original.bin',
+      original_name: 'Tickets.pdf',
+      file_size: bytes.length,
+    });
+    await insertRow(orm, FileLinks, { file, place });
+    const { next_cursor: _, ...graph } = await service.snapshot(ctx, String(trip), null, null, false);
+    expect(graph.originals).toHaveLength(1);
+    expect(graph.originals[0].sha256).toBe(sha(bytes));
+    const range = await service.readOriginal(ctx, String(trip), graph.revision, graph.originals[0].id, CHUNK - 7, 40);
+    expect(Buffer.from(range.data, 'base64')).toEqual(bytes.subarray(CHUNK - 7, CHUNK + 33));
+    await original(bytes, 'file-copy', null, false, graph.originals[0].id);
+    const copy = await service.apply(ctx, await stage(graph, null, 'file-copy'));
+    const native = (await findRows(orm, TripFiles, { trip: Number(copy.trip_id) }))[0];
+    expect(native.original_name).toBe('Tickets.pdf');
+    expect(native.mime_type).toBe('application/octet-stream');
+    expect(await countRows(orm, FileLinks, { file: native.id })).toBe(1);
+    const copied = await service.readOriginal(ctx, copy.trip_id, copy.revision, graph.originals[0].id, 0, CHUNK);
+    expect(Buffer.from(copied.data, 'base64')).toEqual(bytes.subarray(0, CHUNK));
+    expect(await service.apply(ctx, await stage(graph, null, 'file-copy'))).toEqual(copy);
+    expect(await countRows(orm, TripFiles, { trip: Number(copy.trip_id) })).toBe(1);
+  });
+  it('refuses missing originals and observes changed native file hashes', async () => {
+    const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Missing file' });
+    await insertRow(orm, TripFiles, { trip, filename: 'missing.bin', original_name: 'Original' });
+    await expect(service.snapshot(ctx, String(trip), null, null, false)).rejects.toThrow('original unavailable');
+    const storage = t.get(StorageService);
+    await storage.put('files', 'missing.bin', Readable.from(Buffer.from('first')));
+    const before = await service.snapshot(ctx, String(trip), null, null, false);
+    await storage.put('files', 'missing.bin', Readable.from(Buffer.from('changed bytes')));
+    await expect(service.snapshot(ctx, String(trip), before.revision, null, false)).rejects.toThrow(
+      'changed during snapshot',
+    );
+    await expect(
+      service.readOriginal(ctx, String(trip), before.revision, before.originals[0].id, 0, 5),
+    ).rejects.toThrow('changed before original read');
+  });
+  it('keeps private imported documents out of the shared native file table', async () => {
+    const graph = fixture(),
+      bytes = Buffer.from('Private booking');
+    graph.records.push({
+      id: 'private-doc',
+      kind: 'documents',
+      visibility: 'private',
+      fields: { original_name: 'Private.txt' },
+      references: {},
+      source: { fields: { original_name: 'present' } },
+    });
+    graph.originals.push({ id: 'private-bytes', record: 'private-doc', sha256: sha(bytes), size: bytes.length });
+    await original(bytes, 'private-file', null, true, 'private-bytes');
+    const copy = await service.apply(ctx, await stage(graph, null, 'private-file', true));
+    expect(await countRows(orm, TripFiles, { trip: Number(copy.trip_id) })).toBe(0);
+    expect((await service.snapshot(ctx, copy.trip_id, null, null, false)).originals).toHaveLength(0);
+    expect(
+      Buffer.from(
+        (await service.readOriginal(ctx, copy.trip_id, copy.revision, 'private-bytes', 0, 100)).data,
+        'base64',
+      ),
+    ).toEqual(bytes);
+  });
+  it('mutes imported task reminders, preserves no-op native reminders, and resumes on native edit', async () => {
+    const trip = await insertRow(orm, Trips, {
+      user: ctx.userId,
+      title: 'Reminders',
+      start_date: '2027-02-01',
+      reminder_days: 7,
+    });
+    const task = await insertRow(orm, TodoItems, { trip, name: 'Native task', due_date: '2027-02-01', checked: 0 });
+    const { next_cursor: _, ...graph } = await service.snapshot(ctx, String(trip), null, null, false);
+    await service.apply(ctx, await stage(graph, String(trip), 'no-op-task'));
+    expect(await countRows(orm, TravelTransferSilentTasks, {})).toBe(0);
+    const copy = await service.apply(ctx, await stage(graph, null, 'copy-task'));
+    const copied = (await findRows(orm, TodoItems, { trip: Number(copy.trip_id) }))[0];
+    const repo = orm.em.fork().getRepository(TodoItems);
+    expect(await repo.claimReminder(copied.id)).toBe(false);
+    expect((await repo.listDueForReminder('2027-02-01', '2027-02-02')).map((r) => r.id)).toEqual([task]);
+    await t.get(TodoService).updateItem(copy.trip_id, copied.id, { name: 'Explicit native edit' }, ['name']);
+    expect((await repo.listDueForReminder('2027-02-01', '2027-02-02')).map((r) => r.id)).toContain(copied.id);
+    const { next_cursor: _next, ...changed } = await service.snapshot(ctx, String(trip), null, null, false);
+    const root = changed.records.find((r) => r.id === 'trip');
+    if (!root) throw new Error('Missing root');
+    root.fields.start_date = '2027-02-02';
+    await service.apply(ctx, await stage(changed, String(trip), 'date-change'));
+    expect((await findRow(orm, Trips, { id: trip })).reminder_days).toBe(7);
+    expect((await findRow(orm, Trips, { id: trip })).reminder_sent_for).toBe('2027-02-02');
+  });
+  it('does not vacate a day position whose value is unknown and rejects forged raw booleans', async () => {
+    const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Known and unknown' });
+    const day = await insertRow(orm, Days, { trip, day_number: 1 });
+    const { next_cursor: _, ...graph } = await service.snapshot(ctx, String(trip), null, null, false);
+    const record = graph.records.find((r) => r.kind === 'days');
+    if (!record) throw new Error('Missing day');
+    record.source.fields.position = 'unknown';
+    await service.apply(ctx, await stage(graph, String(trip), 'unknown-day'));
+    expect((await findRow(orm, Days, { id: day })).day_number).toBe(1);
+    const forged = fixture();
+    forged.records.push({
+      id: 'bad-task',
+      kind: 'tasks',
+      visibility: 'trip',
+      references: {},
+      fields: { title: 'Bad', checked: true, trek_native_values: { checked: 2 } },
+      source: { fields: { title: 'present', checked: 'present', trek_native_values: 'extension' } },
+    });
+    await expect(service.apply(ctx, await stage(forged, null, 'bad-flag'))).rejects.toThrow('Invalid native boolean');
+  });
+  it('imports the graph returned by Memories after a real PostgreSQL round trip', async () => {
+    const graph = validateGraph(
+      JSON.parse(await readFile(join(__dirname, '../../../fixtures/travel-transfer/memories-native.json'), 'utf8')),
+    );
+    const result = await service.apply(ctx, await stage(graph, null, 'memories-return', true));
+    const trip = Number(result.trip_id);
+    expect(await countRows(orm, Places, { trip })).toBe(1);
+    expect(await countRows(orm, Reservations, { trip })).toBe(1);
+    expect(await countRows(orm, PackingItems, { trip })).toBe(1);
+    expect((await findRows(orm, TodoItems, { trip }))[0].checked).toBe(0);
+    const snapshot = await service.snapshot(ctx, result.trip_id, null, null, true);
+    expect(snapshot.records.slice().sort((a, b) => a.id.localeCompare(b.id))).toEqual(
+      graph.records.slice().sort((a, b) => a.id.localeCompare(b.id)),
+    );
+    const sourceHistory = graph.records.find((r) => r.kind === 'chat_messages');
+    expect(snapshot.records.find((r) => r.id === sourceHistory?.id)).toEqual(sourceHistory);
+  });
+  it('preserves composite relationships and source people without granting accounts or memberships', async () => {
+    const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Relationships' });
+    const { user: other } = await makeUser(orm);
+    const expense = await insertRow(orm, BudgetItems, { trip, name: 'Shared bill', total_price: 25 });
+    await insertRow(orm, BudgetItemMembers, { budgetItem: expense, user: other.id, amount: 25 });
+    await insertRow(orm, BudgetItemPayers, { budgetItem: expense, user: ctx.userId, amount: 25 });
+    const bag = await insertRow(orm, PackingBags, { trip, name: 'Shared bag' });
+    const em = orm.em.fork();
+    const nativeBag = await em.findOneOrFail(PackingBags, bag);
+    nativeBag.packing_bag_members.add(em.getReference(Users, other.id));
+    await em.flush();
+    await insertRow(orm, RoadtripPreferences, { trip, key: 'route_mode', value: 'scenic' });
+    const { next_cursor: _, ...graph } = await service.snapshot(ctx, String(trip), null, null, true);
+    expect(graph.records.filter((r) => r.kind === 'travellers')).toHaveLength(2);
+    expect(graph.records.find((r) => r.kind === 'expense_shares')?.references.traveller_id).toBe(
+      'trek:traveller:' + other.id,
+    );
+    const member = graph.records.find((r) => r.kind === 'trek:packing_bag_members');
+    expect(member?.references.bag_id).toBe(graph.records.find((r) => r.kind === 'packing_bags')?.id);
+    expect(member?.fields.trek_user_id).toMatchObject({ id: String(other.id) });
+    expect(graph.records.find((r) => r.kind === 'trek:roadtrip_preferences')?.fields).toMatchObject({
+      key: 'route_mode',
+      value: 'scenic',
+    });
+    expect(canonical(graph)).not.toContain(other.email);
+    const target = await service.apply(ctx, await stage(graph, null, 'history-copy', true));
+    expect(await countRows(orm, TripMembers, { trip: Number(target.trip_id) })).toBe(0);
+    expect(
+      (await service.snapshot(ctx, target.trip_id, null, null, true)).records.find((r) => r.id === member?.id),
+    ).toEqual(member);
   });
 });

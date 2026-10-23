@@ -259,6 +259,8 @@ export class TodoItemsRepository extends TrekRepository<TodoItems> {
     const platform = this.getEntityManager().getPlatform();
     const rows = await this.qb('ti')
       .join('ti.trip', 't')
+      .leftJoin('ti.travel_transfer_silent_tasks', 'silenced')
+      .andWhere({ travel_transfer_silent_tasks: null })
       .select([
         'ti.id',
         columnRef(platform, 'ti.trip_id'),
@@ -288,6 +290,13 @@ export class TodoItemsRepository extends TrekRepository<TodoItems> {
     }));
   }
 
+  async resumeTransferReminder(id: number): Promise<void> {
+    await this.kysely<Pick<import('../kysely/db').DB, 'travel_transfer_silent_tasks'>>()
+      .deleteFrom('travel_transfer_silent_tasks')
+      .where('todo_id', '=', id)
+      .execute();
+  }
+
   /**
    * RJ5 (`reminder-jobs.service.ts#todoTick`, looped): claims the reminder
    * before it is sent. `UPDATE todo_items SET reminded_at = CURRENT_TIMESTAMP
@@ -299,7 +308,11 @@ export class TodoItemsRepository extends TrekRepository<TodoItems> {
   async claimReminder(id: number): Promise<boolean> {
     const platform = this.getEntityManager().getPlatform();
     const changed = await this.nativeUpdate(
-      { id, $or: [{ reminded_at: null }, { reminded_at: { $lte: nowMinusHours(platform, 20) } }] },
+      {
+        id,
+        travel_transfer_silent_tasks: null,
+        $or: [{ reminded_at: null }, { reminded_at: { $lte: nowMinusHours(platform, 20) } }],
+      },
       { reminded_at: currentTimestamp(platform) },
     );
     return changed === 1;

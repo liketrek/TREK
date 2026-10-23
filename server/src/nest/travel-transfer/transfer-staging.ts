@@ -34,19 +34,25 @@ export class TransferStaging {
   key(ctx: McpContext, operation: string) {
     return sha(canonical([ctx.userId, ctx.clientId, operation]));
   }
+  async existing(ctx: McpContext, input: Omit<OperationInput, 'payload_digest'>) {
+    await this.authority.check(ctx, input.trip_id, true);
+    if (!ctx.clientId) fail('OAuth client required', 403);
+    const key = this.key(ctx, input.operation_id);
+    const op = await this.store.op(key);
+    if (op && ((op.target_id ?? null) !== tripId(input.trip_id) || !!op.include_private !== input.include_private))
+      fail('Operation scope changed');
+    if (op?.receipt) {
+      const result = decodeJson(TRANSFER_RECEIPT, op.receipt).response;
+      await this.authority.check(ctx, result.trip_id, true);
+    }
+    if (op && !op.receipt && op.expires_at < Date.now()) fail('Transfer staging expired', 410);
+    return op;
+  }
   async operation(ctx: McpContext, input: Omit<OperationInput, 'payload_digest'>, create: boolean) {
     return this.uow.transactional(async () => {
-      await this.authority.check(ctx, input.trip_id, true);
-      if (!ctx.clientId) fail('OAuth client required', 403);
+      let op = await this.existing(ctx, input);
       const key = this.key(ctx, input.operation_id);
-      let op = await this.store.op(key);
-      if (op && ((op.target_id ?? null) !== tripId(input.trip_id) || !!op.include_private !== input.include_private))
-        fail('Operation scope changed');
-      if (op?.receipt) {
-        const result = decodeJson(TRANSFER_RECEIPT, op.receipt).response;
-        await this.authority.check(ctx, result.trip_id, true);
-      }
-      if (op && !op.receipt && op.expires_at < Date.now()) fail('Transfer staging expired', 410);
+      if (!ctx.clientId) fail('OAuth client required', 403);
       if (!op && create) {
         await this.store.expire(ctx.userId, Date.now());
         if ((await this.store.active(ctx.userId)).length >= 64) fail('Too many staged operations', 429);

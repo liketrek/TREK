@@ -127,14 +127,17 @@ export class TodoService {
     const item = await this.todoItemsRepo.findInTrip(id, tripId);
     if (!item) return null;
 
-    await this.todoItemsRepo.update(id, {
-      name: [!!data.name, data.name || ''],
-      checked: [data.checked !== undefined, data.checked ? 1 : 0],
-      category: [!!data.category, data.category || ''],
-      due_date: [bodyKeys.includes('due_date'), data.due_date ?? null],
-      description: [bodyKeys.includes('description'), data.description ?? null],
-      assigned_user_id: [bodyKeys.includes('assigned_user_id'), data.assigned_user_id ?? null],
-      priority: [bodyKeys.includes('priority'), data.priority ?? 0],
+    await this.uow.transactional(async () => {
+      await this.todoItemsRepo.update(id, {
+        name: [!!data.name, data.name || ''],
+        checked: [data.checked !== undefined, data.checked ? 1 : 0],
+        category: [!!data.category, data.category || ''],
+        due_date: [bodyKeys.includes('due_date'), data.due_date ?? null],
+        description: [bodyKeys.includes('description'), data.description ?? null],
+        assigned_user_id: [bodyKeys.includes('assigned_user_id'), data.assigned_user_id ?? null],
+        priority: [bodyKeys.includes('priority'), data.priority ?? 0],
+      });
+      await this.todoItemsRepo.resumeTransferReminder(id);
     });
 
     return this.todoItemsRepo.findById(id);

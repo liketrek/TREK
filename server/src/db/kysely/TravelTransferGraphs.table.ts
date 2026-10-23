@@ -7,4 +7,5 @@ export interface TravelTransferGraphsTable {
   user_id: number;
   graph: string;
   originals: string;
+  native_map: InsertOptional<string>;
 }
