@@ -168,12 +168,3 @@ export function dayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualCont
   }
   return visual
 }
-
-/** Empty leading cells before the 1st, honoring the configured week start. */
-export function monthLead(year: number, month: number, weekStart: number): number {
-  return (new Date(year, month, 1).getDay() - weekStart + 7) % 7
-}
-
-export function localDateStr(year: number, month: number, day: number): string {
-  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}

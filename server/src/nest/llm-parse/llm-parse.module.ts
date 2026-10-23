@@ -12,7 +12,9 @@ import { Module } from '@nestjs/common';
 
 /**
  * Provides the LLM booking-import fallback; imported by BookingImportModule.
- * Exports LlmConfigResolver for the plugin host surface (HostSurfaceRpc).
+ * Exports LlmConfigResolver for the plugin host surface (HostSurfaceRpc), and
+ * LlmLocalService for the AI assistant, which lists a custom server's models
+ * the same way the admin screen does.
  *
  * MikroOrmModule.forFeature([Addons]): Plan 4 Task 1 —
  * `LlmConfigResolver.readInstanceConfig`'s own `AddonsRepository`
@@ -25,6 +27,6 @@ import { Module } from '@nestjs/common';
   imports: [AppConfigModule, SettingsModule, AddonsModule, MikroOrmModule.forFeature([Addons])],
   controllers: [LlmLocalController, LlmCapabilitiesController],
   providers: [LlmParseService, LlmLocalService, LlmConfigResolver],
-  exports: [LlmParseService, LlmConfigResolver],
+  exports: [LlmParseService, LlmConfigResolver, LlmLocalService],
 })
 export class LlmParseModule {}

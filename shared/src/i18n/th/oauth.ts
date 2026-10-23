@@ -88,6 +88,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loginButton': 'ลงชื่อเข้าใช้ TREK',
   'oauth.authorize.requestLabel': 'คำขออนุมัติ',
   'oauth.authorize.requestDescription': 'แอปพลิเคชันนี้กำลังขอเข้าถึงบัญชี TREK ของคุณ',
+  'oauth.authorize.verifiedHost': 'โดเมนที่ยืนยันแล้ว: {host}',
   'oauth.authorize.trustNote':
     'ให้สิทธิ์การเข้าถึงเฉพาะแอปพลิเคชันที่คุณเชื่อถือเท่านั้น ข้อมูลของคุณอยู่บนเซิร์ฟเวอร์ของคุณ',
   'oauth.authorize.selectScope': 'เลือกอย่างน้อยหนึ่งขอบเขต',

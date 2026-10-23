@@ -311,7 +311,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'ДЕНЬ',
+  'journey.studio.day': 'ДЕНЬ {day}',
   'journey.studio.stations': 'Зупинки',
   'journey.studio.peersHere': 'тут',
   'journey.studio.folioAuto': 'Автоматично',
@@ -473,7 +473,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Позначки',
   'journey.studio.dateMark': 'Дата',
   'journey.studio.dayMark': 'Лічильник днів',
-  'journey.studio.dayWord': 'ДЕНЬ',
   'journey.studio.coordsMark': 'Координати',
   'journey.studio.coordsDms': 'Градуси',
   'journey.studio.coordsDecimal': 'Десяткові',
@@ -672,6 +671,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Повернути ліворуч',
   'journey.studio.rotateRight': 'Повернути праворуч',
   'journey.studio.saveReadOnly': 'Лише для читання, не зберігається',
+  'journey.studio.saveNewer': 'Цю книгу збережено новішою версією Studio. Перезавантажте, щоб редагувати.',
+  'journey.studio.saveReload': 'Перезавантажити',
   'journey.studio.filterPhotos': 'Фільтр фото',
   'journey.studio.filterAll': 'Усі фото',
   'journey.studio.filterLoose': 'Без запису',
@@ -953,5 +954,15 @@ const journey: TranslationStrings = {
     'Записані дні та взяті з них зупинки, у дні з опублікованим записом. Вони показують, де і коли ви були, зокрема ваше житло.',
   'journey.share.needsMap': 'Відкрийте доступ до карти, щоб увімкнути це',
   'journey.editor.tags': 'Теги',
+  'journey.studio.assistant.toggle': 'Асистент',
+  'journey.studio.assistant.toggleHint': 'Створюйте книгу разом з асистентом',
+  'journey.studio.assistant.panel': 'Асистент книги',
+  'journey.studio.assistant.welcome': 'Якою має бути книга?',
+  'journey.studio.assistant.readOnly':
+    'Ви можете лише переглядати цю книгу, тож я відповідаю на запитання, але нічого не змінюю.',
+  'journey.studio.assistant.notice':
+    'Асистент може переглянути сторінку, над якою ви працюєте. До {provider} надсилається лише ця сторінка, як зображення, на якому видно тільки фото, додані вами. Визначити, хто є на ваших фото, неможливо.',
+  'journey.studio.assistant.noticeAllow': 'Показувати сторінки',
+  'journey.studio.assistant.noticeLater': 'Не зараз',
 };
 export default journey;

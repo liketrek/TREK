@@ -18,6 +18,7 @@ import { placeMatchesSearch } from '../../utils/placeSearch'
 import { matchesCategoryFilter, matchesPlacesFilter } from '../../utils/placesFilter'
 import { safeHttpUrl } from '../../utils/safeUrl'
 import { plannedPlaceIds, plannedPlaceIdsForDay, type PlannedAccommodation } from '../../utils/plannedPlaces'
+import { useAssistantMenu } from '../Assistant/useAssistantMenu'
 import type { MenuEntry } from './planParts'
 import { useListImport, type ListImportProvider } from './useListImport'
 import { usePlacesPool, type PlacesFilter } from './usePlacesPool'
@@ -93,6 +94,7 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const { t, language } = useTranslation()
   const toast = useToast()
   const ctxMenu = useContextMenu()
+  const ai = useAssistantMenu(tripId)
   const trip = useTripStore((s) => s.trip)
   // A booking plans the place it points at, so the pool has to see them (#2072).
   const reservations = useTripStore((s) => s.reservations)
@@ -276,11 +278,12 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
       !!website && { label: t('inspector.website'), icon: ExternalLink, onClick: () => window.open(website, '_blank', 'noopener,noreferrer') },
       !!googleMapsUrl && { label: t('inspector.google'), icon: Navigation, onClick: () => window.open(googleMapsUrl, '_blank') },
       collectionsEnabled && { label: t('inspector.saveToCollection'), icon: Bookmark, onClick: () => useSaveToCollectionStore.getState().open(placeToSaveTarget(place)) },
+      ...ai.place(place),
       { divider: true },
       canEditPlaces && { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => onDeletePlace(place.id) },
     ]
     return entries.filter((entry): entry is MenuEntry => entry !== false)
-  }, [canEditPlaces, collectionsEnabled, t, onEditPlace, onAssignToDay, onDeletePlace])
+  }, [canEditPlaces, collectionsEnabled, t, onEditPlace, onAssignToDay, onDeletePlace, ai])
 
   // The day is read when the menu opens, so it stays stable across day switches.
   const openCtxMenu = ctxMenu.open

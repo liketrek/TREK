@@ -268,7 +268,7 @@ export class FilesMcp {
     }
     const foreign = await this.files.findForeignLinkTarget(tripId, targets);
     if (foreign) return errorResult(`Linked item does not belong to this trip (${foreign}).`);
-    const links = await this.files.createFileLink(fileId, targets);
+    const links = await this.files.linkFile(fileId, targets, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ success: true, links });
   }
 
@@ -294,7 +294,7 @@ export class FilesMcp {
     // against :tripId first, exactly as the REST route does it. Otherwise a member of
     // any trip could drop a link row belonging to a foreign trip's file.
     if (!(await this.files.getFileById(fileId, tripId))) return errorResult('File not found.');
-    await this.files.deleteFileLink(linkId, fileId);
+    await this.files.unlinkFile(fileId, linkId, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ success: true });
   }
 

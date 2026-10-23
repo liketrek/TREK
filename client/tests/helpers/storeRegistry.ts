@@ -1,5 +1,6 @@
 import type { StoreApi } from 'zustand';
 import { useAddonStore } from '../../src/store/addonStore';
+import { useAssistantHintsStore } from '../../src/store/assistantHintsStore';
 import { useAuthStore } from '../../src/store/authStore';
 import { useInAppNotificationStore } from '../../src/store/inAppNotificationStore';
 import { usePaddleObstacleStore } from '../../src/store/paddleObstacleStore';
@@ -42,6 +43,7 @@ export const RESET_STORES: Record<string, ResettableStore> = {
   useTourMapViewportStore,
   usePaddleObstacleStore,
   useTrackMarkToolStore,
+  useAssistantHintsStore,
 };
 
 /** Not reset so far; moving one into RESET_STORES changes what every file that resets starts from. */
@@ -49,6 +51,8 @@ const NOT_YET = 'never reset by resetAllStores; its own tests set the state they
 
 export const UNRESET_STORES: Record<string, string> = {
   useJourneyStore: 'reset in the journey tests themselves; importing it here pulls in a circular import',
+  useAssistantStore:
+    'the assistant chats, window and live map links; the tests that read it put back its first state themselves',
   useBackgroundTasksStore: NOT_YET,
   useCollectionStore: NOT_YET,
   useCollectionTourStore:

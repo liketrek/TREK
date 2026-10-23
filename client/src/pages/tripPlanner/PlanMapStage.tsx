@@ -23,7 +23,7 @@ type StageMap = Pick<Planner,
   | 'mapPlaces' | 'dayPlaces' | 'dayOrderMap' | 'mapTileUrl' | 'fitKey' | 'mapLocked' | 'toggleMapLocked' | 'mapFocusPoints'
   | 'route' | 'routeWalking' | 'routeSegments' | 'routeVias' | 'transitRoutesShown'
   | 'handleMarkerClick' | 'handleMapClick' | 'handleMapContextMenu' | 'handlePoiClick'
-  | 'visibleConnections' | 'setMapTransportDetail' | 'openBookingDetail'
+  | 'visibleConnections' | 'setMapTransportDetail' | 'openBookingDetail' | 'assistantMap'
 >
 type StageRoadtrip = Pick<Planner,
   | 'roadtripActive' | 'roadtripMapPlaces' | 'roadtripMapLines' | 'roadtripLineColors' | 'roadtripMapVias' | 'roadtripRoutes' | 'roadtripConnections' | 'roadtripVias'
@@ -64,7 +64,7 @@ export function PlanMapStage({
   mapPlaces, dayPlaces, dayOrderMap, mapTileUrl, fitKey, mapLocked, toggleMapLocked, mapFocusPoints,
   route, routeWalking, routeSegments, routeVias, transitRoutesShown,
   handleMarkerClick, handleMapClick, handleMapContextMenu, handlePoiClick,
-  visibleConnections, setMapTransportDetail, openBookingDetail,
+  visibleConnections, setMapTransportDetail, openBookingDetail, assistantMap,
   roadtripActive, roadtripMapPlaces, roadtripMapLines, roadtripLineColors, roadtripMapVias,
   roadtripRoutes, roadtripConnections, roadtripVias,
   dayBoundaryControls, dropPoiOnRoute, addRoadtripVia, moveRoadtripVia, removeRoadtripVia,
@@ -151,6 +151,8 @@ export function PlanMapStage({
         onRemoveVia={can('day_edit', trip) ? removeRoadtripVia : undefined}
         onViewportChange={tourMap.captureViewport}
         onMapReady={setGlMap}
+        // The assistant's suggestions, camera and pin marks (useAssistantMapLink).
+        {...assistantMap}
       />
 
       {/* Over the map rather than in a dialog: the answer to "which of these" is the

@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const assistantBudget: TranslationStrings = {
+  'assistant.change.verb.addPayment': 'Registrera en betalning',
+  'assistant.change.verb.updatePayment': 'Ändra en betalning',
+  'assistant.tool.create_budget_item_with_members': 'Lägg till utgift',
+  'assistant.tool.set_budget_item_members': 'Ändra vem som delar kostnaden',
+  'assistant.tool.toggle_budget_member_paid': 'Uppdatera vem som har betalat',
+  'assistant.tool.create_settlement': 'Registrera en betalning',
+  'assistant.tool.update_settlement': 'Ändra betalningen',
+  'assistant.tool.delete_settlement': 'Ta bort betalningen',
+  'assistant.tool.freeze_budget_rates': 'Lås dagens växelkurser',
+  'assistant.followUp.whoOwes': 'Vem är skyldig vem?',
+  'assistant.followUp.recordPayments': 'Registrera de här betalningarna',
+  'assistant.card.budget.open': 'Öppna i Kostnader',
+  'assistant.card.budget.paidBy': '{name} betalade',
+  'assistant.card.budget.notPaid': 'Inte betald',
+  'assistant.card.budget.split.equal': 'Delad lika',
+  'assistant.card.budget.split.custom': 'Delad ojämnt',
+  'assistant.card.budget.split.none': 'Bara planering, inte delad',
+  'assistant.card.budget.together': 'Totalt {amount}',
+  'assistant.card.budget.markedPaid': '{amount} markerat som betalt',
+  'assistant.card.budget.receipts': '{count} kvitton',
+  'assistant.card.budget.receipts.one': '{count} kvitto',
+  'assistant.card.budget.leftOut': '{count} utgifter i utländsk valuta räknas inte i summan: ingen växelkurs än.',
+  'assistant.card.budget.leftOut.one': '{count} utgift i utländsk valuta räknas inte i summan: ingen växelkurs än.',
+  'assistant.card.budget.unconverted': '{count} poster i {currencies} räknas inte: ingen växelkurs än.',
+  'assistant.card.budget.unconverted.one': '{count} post i {currencies} räknas inte: ingen växelkurs än.',
+};
+export default assistantBudget;

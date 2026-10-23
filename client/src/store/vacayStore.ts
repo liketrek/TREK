@@ -217,7 +217,8 @@ interface VacayState {
   declineInvite: (planId: number) => Promise<void>
   cancelInvite: (userId: number) => Promise<void>
   dissolve: () => Promise<void>
-  loadYears: () => Promise<void>
+  /** Opens `preferred` when the plan has that year (a link from the assistant), else as before. */
+  loadYears: (preferred?: number) => Promise<void>
   addYear: (year: number) => Promise<void>
   removeYear: (year: number) => Promise<void>
   loadEntries: (year?: number) => Promise<void>
@@ -237,7 +238,7 @@ interface VacayState {
   setShareHidden: (shareId: number, hidden: boolean) => Promise<void>
   loadYearSettings: () => Promise<void>
   updateYearSettings: (data: VacayYearSettingsRequest) => Promise<void>
-  loadAll: () => Promise<void>
+  loadAll: (preferredYear?: number) => Promise<void>
 }
 
 export const useVacayStore = create<VacayState>((set, get) => ({
@@ -316,16 +317,18 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     await get().loadAll()
   },
 
-  loadYears: async () => {
+  loadYears: async (preferred?: number) => {
     const data = await api.getYears()
     // Opening Vacay lands on the period we are in, not on whichever year sorts
     // last. A reload (invite, live settings update) keeps the year the viewer is
     // looking at as long as it still exists — only the first load picks one.
+    // A year asked for by a link wins when the plan has it.
     const previous = get().selectedYear
     const keepSelection = get().years.length > 0 && data.years.includes(previous)
+    const asked = preferred !== undefined && data.years.includes(preferred) ? preferred : null
     set({
       years: data.years,
-      selectedYear: keepSelection ? previous : defaultPeriodYear(data.years, get().yearSettings),
+      selectedYear: asked ?? (keepSelection ? previous : defaultPeriodYear(data.years, get().yearSettings)),
     })
   },
 
@@ -529,14 +532,14 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     await get().loadSharedCalendars(year)
   },
 
-  loadAll: async () => {
+  loadAll: async (preferredYear?: number) => {
     set({ loading: true })
     try {
       await get().loadPlan()
       // The leave-year window decides which period is current, so it is resolved
       // before the year list picks a default (#737).
       await get().loadYearSettings()
-      await get().loadYears()
+      await get().loadYears(preferredYear)
       const year = get().selectedYear
       await get().loadEntries(year)
       await get().loadStats(year)

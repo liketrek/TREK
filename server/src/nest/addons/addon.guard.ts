@@ -25,7 +25,9 @@ export class AddonGuard implements CanActivate {
       context.getClass(),
     ]);
     if (!meta) return true;
-    if (!(await this.addons.isAddonEnabled(meta.addonId))) {
+    const ids = typeof meta.addonId === 'string' ? [meta.addonId] : meta.addonId;
+    const enabled = await Promise.all(ids.map((id) => this.addons.isAddonEnabled(id)));
+    if (!enabled.includes(true)) {
       throw new HttpException({ error: `${meta.label} addon is not enabled` }, 404);
     }
     return true;

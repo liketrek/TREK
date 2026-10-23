@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip } from '../../../tests/helpers/factories';
+import { addListener } from '../../api/websocket';
 import { TranslationProvider } from '../../i18n/TranslationContext';
 import { useAuthStore } from '../../store/authStore';
 import { useDashboard } from './useDashboard';
@@ -434,5 +435,33 @@ describe('useDashboard', () => {
     await act(async () => { await result.current.confirmCopy(); });
 
     expect(statsCalls).toBe(1);
+  });
+});
+
+describe('useDashboard: trips changed elsewhere', () => {
+  it('FE-BCAST-018: trips:changed reads the list again quietly, once per burst', async () => {
+    vi.mocked(addListener).mockClear();
+    const view = await mountLoaded();
+    const COPY = buildTrip({ id: 104, title: 'Paris Adventure (copy)', start_date: '2028-08-01', end_date: '2028-08-05' });
+    let listCalls = 0;
+    server.use(
+      http.get('/api/trips', ({ request }) => {
+        const url = new URL(request.url);
+        if (!url.searchParams.get('archived')) listCalls++;
+        return HttpResponse.json({ trips: url.searchParams.get('archived') ? [ROME] : [PARIS, TOKYO, COPY] });
+      }),
+    );
+    act(() => {
+      for (const [listener] of vi.mocked(addListener).mock.calls) {
+        listener({ type: 'trips:changed' });
+        listener({ type: 'trips:changed' });
+      }
+    });
+    const shown = () => [view.result.current.spotlight, ...view.result.current.gridTrips].map((t) => t?.id);
+    expect(shown()).not.toContain(104);
+    await waitFor(() => expect(shown()).toContain(104));
+    expect(listCalls).toBe(1);
+    expect(view.result.current.isLoading).toBe(false);
+    expect(toastCalls).toEqual([]);
   });
 });

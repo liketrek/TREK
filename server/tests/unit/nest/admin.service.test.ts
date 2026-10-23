@@ -1021,6 +1021,19 @@ describe('checkVersion on a centrally administered install', () => {
   });
 });
 
+describe('the AI addons on a centrally administered install', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('ADMIN-SVC-096 — hides AI parsing and the AI assistant, and refuses to switch either', async () => {
+    expect((await listAddons()).map((a) => a.id)).toContain(ADDON_IDS.AI_ASSISTANT);
+    vi.stubEnv('TREK_MANAGED', 'true');
+    const ids = (await listAddons()).map((a) => a.id);
+    expect(ids).not.toContain(ADDON_IDS.AI_ASSISTANT);
+    expect(ids).not.toContain(ADDON_IDS.LLM_PARSING);
+    expect(await updateAddon(ADDON_IDS.AI_ASSISTANT, { enabled: true })).toMatchObject({ status: 403 });
+  });
+});
+
 // ── Plan 3i Task 1 — R4's guard-location + TX-boundary + AD22 parity proofs ──
 
 describe('updateUser — last-admin guard (AD9/AD10, R4)', () => {

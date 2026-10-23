@@ -3,11 +3,10 @@ import type { BookDocument, BookElement, BookPageSetup, BookSpread } from '@trek
 import {
   MAX_BOOK_LAYOUTS, bookBadgeElementSchema, bookLayoutSchema, bookPageSetupSchema, bookPhotoElementSchema,
   bookShapeElementSchema, bookTextElementSchema,
+  applySavedBookLayout as applySavedLayout, bookLayoutFromSpread as layoutFromSpread,
+  bookLayoutPreview as layoutPreview, bookLayoutRole as layoutRole, nextBookLayoutName as nextLayoutName,
 } from '@trek/shared'
 import { pastedElements } from '../../../src/components/Studio/studioClipboard'
-import {
-  applySavedLayout, layoutFromSpread, layoutPreview, layoutRole, nextLayoutName,
-} from '../../../src/components/Studio/savedLayouts'
 import { useStudioStore } from '../../../src/store/studioStore'
 
 /**

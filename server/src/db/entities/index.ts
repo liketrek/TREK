@@ -1,7 +1,12 @@
 import type { EntitySchema } from '@mikro-orm/core';
 import { AddonsSchema } from './Addons.entity';
+import { AiConnectionsSchema } from './AiConnections.entity';
 import { AppSettingsSchema } from './AppSettings.entity';
 import { AssignmentParticipantsSchema } from './AssignmentParticipants.entity';
+import { AssistantMessagesSchema } from './AssistantMessages.entity';
+import { AssistantThreadsSchema } from './AssistantThreads.entity';
+import { AssistantToolCallsSchema } from './AssistantToolCalls.entity';
+import { AssistantUsageSchema } from './AssistantUsage.entity';
 import { AuditLogSchema } from './AuditLog.entity';
 import { BucketListSchema } from './BucketList.entity';
 import { BudgetCategoryOrderSchema } from './BudgetCategoryOrder.entity';
@@ -40,6 +45,7 @@ import { HiddenCountriesSchema } from './HiddenCountries.entity';
 import { HiddenRegionsSchema } from './HiddenRegions.entity';
 import { IdempotencyKeysSchema } from './IdempotencyKeys.entity';
 import { InviteTokensSchema } from './InviteTokens.entity';
+import { JourneyBookRevisionsSchema } from './JourneyBookRevisions.entity';
 import { JourneyBooksSchema } from './JourneyBooks.entity';
 import { JourneyContributorsSchema } from './JourneyContributors.entity';
 import { JourneyEntriesSchema } from './JourneyEntries.entity';
@@ -130,6 +136,7 @@ import { TravelTransferObjectsSchema } from './TravelTransferObjects.entity';
 import { TravelTransferOperationsSchema } from './TravelTransferOperations.entity';
 import { TravelTransferSilentTasksSchema } from './TravelTransferSilentTasks.entity';
 import { TrekPhotoCacheMetaSchema } from './TrekPhotoCacheMeta.entity';
+import { TrekPhotoSignalsSchema } from './TrekPhotoSignals.entity';
 import { TrekPhotosSchema } from './TrekPhotos.entity';
 import { TripAlbumLinksSchema } from './TripAlbumLinks.entity';
 import { TripDocumentLinksSchema } from './TripDocumentLinks.entity';
@@ -161,8 +168,13 @@ import { WebauthnCredentialsSchema } from './WebauthnCredentials.entity';
 
 export const ALL_ENTITIES: readonly EntitySchema[] = [
   AddonsSchema,
+  AiConnectionsSchema,
   AppSettingsSchema,
   AssignmentParticipantsSchema,
+  AssistantMessagesSchema,
+  AssistantThreadsSchema,
+  AssistantToolCallsSchema,
+  AssistantUsageSchema,
   AuditLogSchema,
   BucketListSchema,
   BudgetCategoryOrderSchema,
@@ -201,6 +213,7 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   HiddenRegionsSchema,
   IdempotencyKeysSchema,
   InviteTokensSchema,
+  JourneyBookRevisionsSchema,
   JourneyBooksSchema,
   JourneyContributorsSchema,
   JourneyEntriesSchema,
@@ -291,6 +304,7 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   TravelTransferOperationsSchema,
   TravelTransferSilentTasksSchema,
   TrekPhotoCacheMetaSchema,
+  TrekPhotoSignalsSchema,
   TrekPhotosSchema,
   TripAlbumLinksSchema,
   TripDocumentLinksSchema,

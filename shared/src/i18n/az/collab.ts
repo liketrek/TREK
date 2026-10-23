@@ -118,5 +118,7 @@ const collab: TranslationStrings = {
     'Qeydlər hələ də bu kateqoriyadan istifadə edir. Silmək üçün əvvəlcə onları köçürün və ya silin.',
   'collab.notes.categoriesLocalHint':
     'Qeydi olmayan kateqoriya yalnız bu brauzerdə saxlanır. Digər üzvlər onu qeyd istifadə etdikdə görəcək.',
+  'collab.chat.fromAssistant': 'köməkçidən',
+  'collab.chat.fromAssistantHint': '{name} köməkçinin bu cavabını paylaşdı',
 };
 export default collab;

@@ -87,6 +87,14 @@ const UNNUMBERED = [
   'Migration20200101046180_journeys_can_prepare_recorded_days',
   'Migration20200101046190_a_journey_share_can_show_its_plan_and_recordings',
   'Migration20200101046200_a_tour_draft_lives_on_the_account',
+  'Migration20200101046200_a_user_can_connect_an_ai_provider',
+  'Migration20200101046210_the_trip_assistant_remembers_its_conversations',
+  'Migration20200101046220_a_chat_message_can_say_it_came_from_the_assistant',
+  'Migration20200101046230_an_admin_can_share_a_chatgpt_plan',
+  'Migration20200101046240_a_photo_keeps_its_quality_signals',
+  'Migration20200101046250_an_assistant_conversation_can_be_about_a_journey',
+  'Migration20200101046260_a_book_keeps_its_last_revisions',
+  'Migration20200101046270_a_photo_knows_its_colours_and_calm_areas',
 ];
 // The last step the positional runner ever had; planLegacyBaseline refuses a
 // schema_version past it.

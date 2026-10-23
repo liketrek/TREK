@@ -32,10 +32,7 @@
   "src/nest/integrations/dawarich-sync.service.ts#DawarichSyncService.runSync": 2,
   "src/nest/integrations/dawarich-sync.service.ts#DawarichSyncService.syncTripWindow": 3,
   "src/nest/integrations/dawarich-sync.service.ts#DawarichSyncService.syncUserOnce": 3,
-  "src/nest/journey/journey.controller.ts#JourneyController.galleryProviderPhotos": 2,
-  "src/nest/journey/journey.controller.ts#JourneyController.providerPhotos": 2,
   "src/nest/journey/journey.controller.ts#JourneyController.uploadEntryPhotos": 4,
-  "src/nest/journey/journey.mcp.ts#JourneyMcp.addJourneyProviderPhotos": 2,
   "src/nest/memories/photo-resolver.service.ts#PhotoResolverService.streamCachedThumbnail": 3,
   "src/nest/memories/photo-resolver.service.ts#PhotoResolverService.streamPhoto": 2,
   "src/nest/memories/synology.service.ts#SynologyService._fetchAllSynologyAlbums": 2,
@@ -90,6 +87,5 @@
   "src/nest/plugins/plugins.controller.ts#PluginsController.install": 2,
   "src/nest/plugins/plugins.controller.ts#PluginsController.update": 2,
   "src/nest/plugins/plugins.controller.ts#PluginsController.updateConfig": 3,
-  "src/nest/reservations/reservations.controller.ts#ReservationsController.update": 2,
   "src/nest/vacay/vacay.service.ts#VacayService.updatePlan": 2
 }

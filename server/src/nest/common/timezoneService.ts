@@ -37,6 +37,53 @@ export function resolveTimeZone(lat: unknown, lng: unknown): string | null {
   }
 }
 
+// One formatter per zone: the calendar's transition scan asks it about once a
+// day across its span, and every booking card asks it for both ends of a leg.
+const offsetFormatters = new Map<string, Intl.DateTimeFormat>();
+function offsetFormatter(zone: string): Intl.DateTimeFormat {
+  let f = offsetFormatters.get(zone);
+  if (!f) {
+    f = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'longOffset' });
+    if (offsetFormatters.size >= 1000) offsetFormatters.clear();
+    offsetFormatters.set(zone, f);
+  }
+  return f;
+}
+
+/** The zone's UTC offset at instant `ms`, in minutes east of UTC. Throws a RangeError on an unknown zone. */
+export function offsetMinutesAt(zone: string, ms: number): number {
+  const raw =
+    offsetFormatter(zone)
+      .formatToParts(new Date(ms))
+      .find((p) => p.type === 'timeZoneName')?.value ?? 'GMT';
+  const m = raw.match(/GMT([+-])(\d{2}):?(\d{2})?/);
+  if (!m) return 0; // "GMT" (UTC) has no offset digits
+  return (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] ?? 0));
+}
+
+/**
+ * The instant a wall clock (`YYYY-MM-DD`, `HH:MM`) reads in an IANA zone, in
+ * ms since the epoch; null for a malformed or impossible date, a malformed time
+ * or an unknown zone. A clock a spring-forward skips lands an hour later, as a
+ * clock set by hand would.
+ */
+export function wallClockInstant(date: string, time: string, zone: string): number | null {
+  const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  const t = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time);
+  if (!d || !t) return null;
+  const asUtc = Date.UTC(Number(d[1]), Number(d[2]) - 1, Number(d[3]), Number(t[1]), Number(t[2]));
+  // A day the month does not have (31 February) rolls over into the next month; refuse it instead.
+  if (Number.isNaN(asUtc) || new Date(asUtc).toISOString().slice(0, 10) !== date) return null;
+  try {
+    const first = asUtc - offsetMinutesAt(zone, asUtc) * 60_000;
+    // The offset in force at the first guess can differ from the one at the
+    // instant itself across a change of offset; one more step settles it.
+    return asUtc - offsetMinutesAt(zone, first) * 60_000;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Today's date and the clock time where the instance runs, in the TZ the crons
  * are scheduled in (CronRegistrarService). A UTC "today" disagreed with the

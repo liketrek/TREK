@@ -13,6 +13,7 @@ import { Trips } from '../../../src/db/entities/Trips.entity';
 import { VacayEntries } from '../../../src/db/entities/VacayEntries.entity';
 import { VacayUserYears } from '../../../src/db/entities/VacayUserYears.entity';
 import { VacayYears } from '../../../src/db/entities/VacayYears.entity';
+import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
 import {
   createUser,
   createTrip,
@@ -29,7 +30,7 @@ import {
 } from '../../helpers/factories';
 import { makePackingItem } from '../../helpers/factories/packing';
 import { countRows, findRow, findRows, insertRow, insertRows, updateRows } from '../../helpers/factories/rows';
-import { setUserSetting } from '../../helpers/factories/settings';
+import { setAppSetting, setUserSetting } from '../../helpers/factories/settings';
 import { makeVacayEntry, makeVacayPlan, addVacayPlanMember } from '../../helpers/factories/vacay';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
@@ -1088,5 +1089,94 @@ describe('scope gating', () => {
     const names = await toolNames(['weather:read']);
     for (const t of NAV_TOOLS) expect(names).toContain(t);
     for (const t of [...WRITE_TOOLS, ...READ_TOOLS, 'delete_trip', ...SHARE_TOOLS]) expect(names).not.toContain(t);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The trip writes REST shares (TripWritesService) and the rights PUT
+// /api/trips/:id checks field by field.
+// ---------------------------------------------------------------------------
+
+describe('Trip writes, as REST makes them', () => {
+  /** Lower or raise a configurable action the way the admin permission panel does. */
+  async function setPermission(action: string, level: string): Promise<void> {
+    await setAppSetting(orm, `perm_${action}`, level);
+    await invalidatePermissionsCache();
+  }
+
+  beforeEach(() => {
+    realtime.broadcastToUserMock.mockClear();
+  });
+
+  afterEach(async () => {
+    await invalidatePermissionsCache();
+  });
+
+  it('MCP-TRIPS-001: create_trip and copy_trip tell every tab of the owner that the trip list changed', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const created = parseToolResult(
+        await h.client.callTool({ name: 'create_trip', arguments: { title: 'Lisbon' } }),
+      ) as { trip: { id: number } };
+      await h.client.callTool({ name: 'copy_trip', arguments: { tripId: created.trip.id } });
+    });
+    expect(realtime.broadcastToUserMock.mock.calls).toEqual([
+      [user.id, { type: 'trips:changed' }, undefined],
+      [user.id, { type: 'trips:changed' }, undefined],
+    ]);
+  });
+
+  it('MCP-TRIPS-002: create_trip and copy_trip are refused without trip_create, as the routes refuse them', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await setPermission('trip_create', 'admin');
+    await withHarness(user.id, async (h) => {
+      const created = await h.client.callTool({ name: 'create_trip', arguments: { title: 'Lisbon' } });
+      const copied = await h.client.callTool({ name: 'copy_trip', arguments: { tripId: trip.id } });
+      for (const result of [created, copied]) {
+        expect(result.isError).toBe(true);
+        expect(JSON.stringify(result.content)).toContain('You do not have permission to create trips.');
+      }
+    });
+    expect(await countRows(orm, Trips, { user: user.id })).toBe(1);
+    expect(realtime.broadcastToUserMock).not.toHaveBeenCalled();
+  });
+
+  it('MCP-TRIPS-003: delete_trip tells the room the trip is gone, as the route does', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'delete_trip', arguments: { tripId: trip.id } });
+    });
+    expect(broadcastMock.mock.calls).toEqual([[trip.id, 'trip:deleted', { id: trip.id, _source: 'mcp' }]]);
+  });
+
+  it('MCP-TRIPS-004: update_trip asks trip_archive and trip_cover_upload for those fields, not trip_edit alone', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Before' });
+    addTripMember(testDb, trip.id, member.id);
+    await setPermission('trip_edit', 'trip_member');
+    await withHarness(member.id, async (h) => {
+      const archive = await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, is_archived: true },
+      });
+      const cover = await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, cover_image: null } });
+      expect(archive.isError).toBe(true);
+      expect(cover.isError).toBe(true);
+      expect((await tripRow(trip.id)).is_archived).toBe(0);
+      const rename = await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, title: 'After' } });
+      expect(rename.isError).toBeFalsy();
+    });
+    await setPermission('trip_archive', 'trip_member');
+    await withHarness(member.id, async (h) => {
+      const archive = await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, is_archived: true },
+      });
+      expect(archive.isError).toBeFalsy();
+    });
+    expect(await tripRow(trip.id)).toMatchObject({ title: 'After', is_archived: 1 });
   });
 });

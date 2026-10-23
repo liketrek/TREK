@@ -292,12 +292,12 @@ describe('DawarichController parseId', () => {
 
   it('DAWARICH-CTRL-033: DELETE bucket-list/:itemId/visit refuses a non-numeric item id with 400', () => {
     const clearBucketVisit = vi.fn();
-    return thrown(() => makeController({ suggestions: { clearBucketVisit } }).clearBucketVisit(user, '12abc')).then(
-      (r) => {
-        expect(r).toEqual({ status: 400, body: { error: 'Invalid id' } });
-        expect(clearBucketVisit).not.toHaveBeenCalled();
-      },
-    );
+    return thrown(() =>
+      makeController({ suggestions: { clearBucketVisit } }).clearBucketVisit(user, '12abc', makeReq()),
+    ).then((r) => {
+      expect(r).toEqual({ status: 400, body: { error: 'Invalid id' } });
+      expect(clearBucketVisit).not.toHaveBeenCalled();
+    });
   });
 
   it("DAWARICH-CTRL-034: GET trips/:tripId/track refuses a non-numeric trip id with 400, not with the guard's 502", async () => {
@@ -363,19 +363,21 @@ describe('DawarichController suggestion routes', () => {
   it('DAWARICH-CTRL-045: POST bucket-list/confirm wraps the count', async () => {
     const confirmBucketVisits = vi.fn().mockReturnValue(3);
     expect(
-      await makeController({ suggestions: { confirmBucketVisits } }).confirmBucketVisits(user, {
-        itemIds: [1, 2, 3],
-        visitedAt: '2026-05-01',
-      }),
+      await makeController({ suggestions: { confirmBucketVisits } }).confirmBucketVisits(
+        user,
+        { itemIds: [1, 2, 3], visitedAt: '2026-05-01' },
+        makeReq({ 'x-socket-id': 'sock-abc' }),
+      ),
     ).toEqual({ updated: 3 });
-    expect(confirmBucketVisits).toHaveBeenCalledWith(7, [1, 2, 3], '2026-05-01');
+    // The socket id goes on, so the asking tab is left out of atlas:changed.
+    expect(confirmBucketVisits).toHaveBeenCalledWith(7, [1, 2, 3], '2026-05-01', 'sock-abc');
   });
 
   it('DAWARICH-CTRL-046: DELETE bucket-list/:itemId/visit is a 404 when nothing was cleared', () => {
     const clearBucketVisit = vi.fn().mockReturnValue(false);
-    return thrown(() => makeController({ suggestions: { clearBucketVisit } }).clearBucketVisit(user, '4')).then((r) =>
-      expect(r).toEqual({ status: 404, body: { error: 'Bucket-list entry not found' } }),
-    );
+    return thrown(() =>
+      makeController({ suggestions: { clearBucketVisit } }).clearBucketVisit(user, '4', makeReq()),
+    ).then((r) => expect(r).toEqual({ status: 404, body: { error: 'Bucket-list entry not found' } }));
   });
 
   it('DAWARICH-CTRL-076: DELETE bucket-list/:itemId/visit answers 200 { success: true } when a tick was cleared', async () => {
@@ -383,20 +385,24 @@ describe('DawarichController suggestion routes', () => {
     // only the "nothing changed" answer is a 404. A cleared tick must not come
     // back as one, or undoing a wish would look like it failed.
     const clearBucketVisit = vi.fn().mockReturnValue(true);
-    expect(await makeController({ suggestions: { clearBucketVisit } }).clearBucketVisit(user, '4')).toEqual({
+    const req = makeReq({ 'x-socket-id': 'sock-abc' });
+    expect(await makeController({ suggestions: { clearBucketVisit } }).clearBucketVisit(user, '4', req)).toEqual({
       success: true,
     });
-    expect(clearBucketVisit).toHaveBeenCalledWith(7, 4);
+    expect(clearBucketVisit).toHaveBeenCalledWith(7, 4, 'sock-abc');
   });
 
   it('DAWARICH-CTRL-047: POST atlas/accept wraps the marked count', async () => {
     const acceptAtlasCountries = vi.fn().mockReturnValue(2);
     expect(
-      await makeController({ suggestions: { acceptAtlasCountries } }).acceptAtlasCountries(user, {
-        countryCodes: ['DE', 'FR'],
-      }),
+      await makeController({ suggestions: { acceptAtlasCountries } }).acceptAtlasCountries(
+        user,
+        { countryCodes: ['DE', 'FR'] },
+        makeReq(),
+      ),
     ).toEqual({ marked: 2 });
-    expect(acceptAtlasCountries).toHaveBeenCalledWith(7, ['DE', 'FR']);
+    // No socket on the request: every tab of the user hears atlas:changed.
+    expect(acceptAtlasCountries).toHaveBeenCalledWith(7, ['DE', 'FR'], undefined);
   });
 
   it('DAWARICH-CTRL-048: POST bucket-list/scan returns the scan untouched', async () => {

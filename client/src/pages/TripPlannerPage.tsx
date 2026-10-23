@@ -123,7 +123,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     selectedPlace, dayOrderMap, dayPlaces,
     toursEnabled, toursMode, setToursMode, tours, toursLoading, tourDataReady, tourPlaceIds,
     invalidateTourPlaceIds, selectedTour,
-    mapTileUrl, fontStyle, splashDone,
+    mapTileUrl, fontStyle, splashDone, assistantMap,
   } = pageState.planner
   const {
     poi,
@@ -273,7 +273,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               mapPlaces={mapPlaces} dayPlaces={dayPlaces} dayOrderMap={dayOrderMap} mapTileUrl={mapTileUrl} fitKey={fitKey} mapLocked={mapLocked} toggleMapLocked={toggleMapLocked} mapFocusPoints={mapFocusPoints}
               route={route} routeWalking={routeWalking} routeSegments={routeSegments} routeVias={routeVias} transitRoutesShown={transitRoutesShown}
               handleMarkerClick={handleMarkerClick} handleMapClick={handleMapClick} handleMapContextMenu={handleMapContextMenu} handlePoiClick={handlePoiClick}
-              visibleConnections={visibleConnections} setMapTransportDetail={setMapTransportDetail} openBookingDetail={openBookingDetail}
+              visibleConnections={visibleConnections} setMapTransportDetail={setMapTransportDetail} openBookingDetail={openBookingDetail} assistantMap={assistantMap}
               roadtripActive={roadtripActive} roadtripMapPlaces={roadtripMapPlaces} roadtripMapLines={roadtripMapLines} roadtripLineColors={roadtripLineColors} roadtripMapVias={roadtripMapVias}
               roadtripRoutes={roadtripRoutes} roadtripConnections={roadtripConnections} roadtripVias={roadtripVias}
               dayBoundaryControls={dayBoundaryControls} dropPoiOnRoute={dropPoiOnRoute} addRoadtripVia={addRoadtripVia} moveRoadtripVia={moveRoadtripVia} removeRoadtripVia={removeRoadtripVia}

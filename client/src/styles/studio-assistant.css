@@ -1,0 +1,35 @@
+/* The assistant in TREK Studio (journey-studio.md 4.5) floats over the
+   Studio in the planner's window (assistantFrame.tsx), so the page and the
+   inspector keep all their room. */
+
+/* The toggle is the bar's newest tool, so it gives up its label first: from 1360
+   to 1519 it is an icon while the others keep theirs, and the bar fits where it
+   did before. The journey's name gives way too rather than push the bar past
+   the window. */
+@media (max-width: 1519px) {
+  .trek-dash .st-assistant-toggle .st-tool-label {
+    display: none;
+  }
+  .trek-dash .st-assistant-toggle {
+    padding: 0 8px;
+  }
+}
+
+.trek-dash .st-bar .st-back {
+  min-width: 0;
+}
+
+.trek-dash .st-bar .st-back > svg {
+  flex: none;
+}
+
+.trek-dash .st-assistant-notice {
+  margin: 8px 12px 0;
+}
+
+/* The page a chat card points at, outlined in the page rail (journey-studio.md 4.2).
+   Inset, so the rail's scroll box does not clip it, and apart from the border the
+   page on screen is marked with. */
+.trek-dash .st-thumb.is-hinted {
+  box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--accent) 55%, transparent);
+}

@@ -3,6 +3,10 @@ import {
   travelTransfer,
   FERRATAS_RESULT_CAP,
   dawarichTrackSegmentSchema,
+  assistantChangePreviewSchema,
+  assistantChangePreviewWriteSchema,
+  assistantMessagePartWriteSchema,
+  assistantStoredPartsSchema,
   ferrataSchema,
   hikingPreferencesSchema,
   obstacleSnapshotSchema,
@@ -18,6 +22,8 @@ import {
   tourWaypointSchema,
   trackMarksSchema,
   type DawarichTrackSegment,
+  type AssistantChangePreview,
+  type AssistantMessagePart,
   type Ferrata,
   type GeometryPoint,
   type HikingPreferences,
@@ -377,3 +383,110 @@ export const TRANSFER_NATIVE_MAP = {
   },
 };
 export type TransferNativeMap = z.infer<typeof TRANSFER_NATIVE_MAP.schema>;
+
+/**
+ * The parts of an assistant message as the client renders them: text, tool
+ * calls with their results and approvals, change previews, receipts and
+ * cards. A data part this build does not know (one a later build wrote) is
+ * dropped on read, not the message, and a later verb, entity or card kind
+ * reads as its generic stand-in; any other broken row reads as an empty
+ * message and is logged. A row this build rewrites (a decision, a cancel)
+ * is written back as it was read, so what only a later build knew is gone
+ * from it for good: a rollback costs those cards, never the conversation.
+ */
+export const ASSISTANT_MESSAGE_PARTS: JsonColumn<AssistantMessagePart[]> = {
+  column: 'assistant_messages.parts',
+  schema: assistantStoredPartsSchema,
+  fallback: () => [],
+};
+
+/** The same column as it is written: strictly, so a part this build cannot describe is a bug in the writer. */
+export const ASSISTANT_MESSAGE_PARTS_WRITE: JsonColumn<AssistantMessagePart[]> = {
+  column: ASSISTANT_MESSAGE_PARTS.column,
+  schema: z.array(assistantMessagePartWriteSchema),
+  fallback: () => [],
+};
+
+/**
+ * What a provider needs replayed as it sent it, when its history cannot be
+ * rebuilt from the parts: the Responses API's output items (reasoning with its
+ * encrypted content, function calls) for a conversation that stores nothing on
+ * the provider's side. A broken row reads as none, and the history is rebuilt
+ * from the parts instead.
+ */
+const aiProviderStateSchema = z.object({
+  adapter: z.literal('openai-responses'),
+  items: z.array(z.record(z.string(), z.unknown())),
+});
+export type AiProviderState = z.infer<typeof aiProviderStateSchema>;
+
+export const ASSISTANT_PROVIDER_STATE: JsonColumn<AiProviderState | null> = {
+  column: 'assistant_messages.provider_state',
+  schema: aiProviderStateSchema.nullable(),
+  fallback: () => null,
+};
+
+/** The arguments a proposed change runs with once approved, as the model sent them. A broken row runs nothing. */
+export const ASSISTANT_TOOL_ARGS: JsonColumn<Record<string, unknown>> = {
+  column: 'assistant_tool_calls.args',
+  schema: z.record(z.string(), z.unknown()),
+  fallback: () => ({}),
+};
+
+/** The change card of a proposed change. A broken row reads as none, a later verb or card kind as its stand-in. */
+export const ASSISTANT_TOOL_PREVIEW: JsonColumn<AssistantChangePreview | null> = {
+  column: 'assistant_tool_calls.preview',
+  schema: assistantChangePreviewSchema.nullable(),
+  fallback: () => null,
+};
+
+/** The same column as it is written: strictly, like the message parts. */
+export const ASSISTANT_TOOL_PREVIEW_WRITE: JsonColumn<AssistantChangePreview | null> = {
+  column: ASSISTANT_TOOL_PREVIEW.column,
+  schema: assistantChangePreviewWriteSchema.nullable(),
+  fallback: () => null,
+};
+
+/** What an executed change answered, the tool's own result. A broken row reads as none, which offers no undo. */
+export const ASSISTANT_TOOL_RESULT: JsonColumn<unknown> = {
+  column: 'assistant_tool_calls.result',
+  schema: z.unknown(),
+  fallback: () => null,
+};
+
+/**
+ * What a ChatGPT sign-in leaves that is not secret: the client id issued to
+ * this user's registration, the account's subject and the scopes granted. A
+ * broken row reads as none, so the next sign-in registers afresh.
+ */
+const aiConnectionAccountSchema = z.object({
+  clientId: z.string().optional(),
+  sub: z.string().optional(),
+  scopes: z.array(z.string()).optional(),
+});
+export type AiConnectionAccount = z.infer<typeof aiConnectionAccountSchema>;
+
+export const AI_CONNECTION_ACCOUNT: JsonColumn<AiConnectionAccount> = {
+  column: 'ai_connections.account',
+  schema: aiConnectionAccountSchema,
+  fallback: () => ({}),
+};
+
+/**
+ * A book as an applied design found it, kept for its undo: the same document
+ * `journey_books.document` holds. Read as a JSON object; the book contract
+ * normalizes it on the way back. A broken row reads as none and is refused,
+ * never written back as an empty book.
+ */
+export const JOURNEY_BOOK_REVISION_DOCUMENT: JsonColumn<Record<string, unknown> | null> = {
+  column: 'journey_book_revisions.document',
+  schema: z.record(z.string(), z.unknown()),
+  fallback: () => null,
+};
+
+/** A photo's main colours, up to five `#rrggbb:share`, most of the picture first. A broken row reads as none. */
+export const TREK_PHOTO_SIGNAL_PALETTE: JsonColumn<string[]> = {
+  column: 'trek_photo_signals.palette',
+  schema: z.array(z.string().regex(/^#[0-9a-f]{6}(?::(?:0|1)(?:\.\d{1,2})?)?$/)).max(5),
+  fallback: () => [],
+};

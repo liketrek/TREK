@@ -86,9 +86,13 @@ export default defineConfig({
         'src/nest/accommodations/**/*.ts': { statements: 92, branches: 87, functions: 99, lines: 97 },
         'src/nest/addons/**/*.ts': { statements: 99, branches: 89, functions: 99, lines: 99 },
         'src/nest/admin/**/*.ts': { statements: 86, branches: 70, functions: 89, lines: 88 },
+        // New domains in this change, unmeasured: pinned at the 80 floor. Regenerate
+        // with scripts/coverage-thresholds.mjs after the first full run.
+        'src/nest/ai-connections/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/airports/**/*.ts': { statements: 68, branches: 60, functions: 93, lines: 73 },
         'src/nest/app-config/**/*.ts': { statements: 79, branches: 100, functions: 65, lines: 71 },
         'src/nest/assignments/**/*.ts': { statements: 90, branches: 80, functions: 97, lines: 96 },
+        'src/nest/assistant/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/atlas/**/*.ts': { statements: 92, branches: 82, functions: 96, lines: 94 },
         'src/nest/audit/**/*.ts': { statements: 93, branches: 80, functions: 99, lines: 96 },
         'src/nest/auth/**/*.ts': { statements: 93, branches: 85, functions: 95, lines: 96 },

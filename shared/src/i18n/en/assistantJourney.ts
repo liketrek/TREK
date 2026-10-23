@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const assistantJourney: TranslationStrings = {
+  'assistant.card.journey.label': 'Journal entries',
+  'assistant.card.journey.open': 'Open in the journal',
+  'assistant.card.journey.entries': '{count} entries',
+  'assistant.card.journey.entries.one': '{count} entry',
+  'assistant.card.journey.more': '{count} more in the journal',
+  'assistant.card.journey.more.one': '{count} more in the journal',
+  'assistant.card.journey.photos': '{count} photos',
+  'assistant.card.journey.photos.one': '{count} photo',
+  'assistant.card.journey.toSuggestion': 'Goes back to a suggestion',
+  'assistant.card.journey.video': 'Opens with a video',
+  'assistant.card.journey.typeEntry': 'Written entry',
+  'assistant.card.journey.typeCheckin': 'Check-in',
+  'assistant.card.journey.notDraft': 'No longer a draft',
+  'assistant.card.journey.onRoute': 'Back on the route',
+  'assistant.card.journey.restored': 'Suggestion brought back',
+  'assistant.change.verb.addJournalEntry': 'Add a journal entry',
+  'assistant.change.verb.updateJournalEntry': 'Change the journal entry',
+  'assistant.change.verb.removeJournalEntry': 'Delete the journal entry',
+  'assistant.step.readingJournal': 'Reading the journal',
+  'assistant.tool.create_journey': 'Start a journal',
+  'assistant.tool.update_journey': 'Change the journal',
+  'assistant.tool.add_journey_trip': 'Add the trip to the journal',
+  'assistant.tool.link_trip_journal': 'Show the journal in this trip',
+  'assistant.tool.reorder_journey_entries': 'Reorder the journal',
+  'assistant.followUp.journalToday': 'Write an entry for today',
+  'assistant.followUp.journalSummary': 'Sum up these days',
+};
+export default assistantJourney;

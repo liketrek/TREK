@@ -155,12 +155,12 @@ export class VacayController {
   @Post('invite')
   @HttpCode(200)
   @ResponseContract(successResponseSchema)
-  async invite(@CurrentUser() user: User, @Body() body: VacayInviteDto) {
+  async invite(@CurrentUser() user: User, @Body() body: VacayInviteDto, @Headers('x-socket-id') socketId?: string) {
     if (!body.user_id) {
       throw new HttpException({ error: 'user_id required' }, 400);
     }
     const plan = await this.vacay.getActivePlan(user.id);
-    await this.vacay.sendInvite(plan.id, user.id, user.username, body.user_id as number);
+    await this.vacay.sendInvite(plan.id, user.id, user.username, body.user_id as number, socketId);
     return { success: true };
   }
 
@@ -191,9 +191,13 @@ export class VacayController {
   @Post('invite/cancel')
   @HttpCode(200)
   @ResponseContract(successResponseSchema)
-  async cancelInvite(@CurrentUser() user: User, @Body() body: VacayInviteDto) {
+  async cancelInvite(
+    @CurrentUser() user: User,
+    @Body() body: VacayInviteDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     const plan = await this.vacay.getActivePlan(user.id);
-    await this.vacay.cancelInvite(plan.id, body.user_id as number);
+    await this.vacay.cancelInvite(plan.id, body.user_id as number, socketId);
     return { success: true };
   }
 

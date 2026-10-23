@@ -2,7 +2,8 @@
  * Unit tests for the collections MCP surface (CollectionsMcp, DI-discovered):
  * the 25 tools ported 1:1 from the legacy src/mcp/tools/collections.ts
  * registrar, plus the two later additions that closed the gap to REST
- * (find_place_in_collections, set_collection_place_status_from_trip).
+ * (find_place_in_collections, set_collection_place_status_from_trip) and the
+ * assistant's lookup of saved places and labels by id (get_collection_items).
  * New with the DI fold: the legacy registrar had no tool-level
  * suite — so this is a characterization of the ported behavior: payload
  * shapes, error texts (the service's thrown httpError messages surfaced via
@@ -290,6 +291,66 @@ describe('Tool: find_place_in_collections', () => {
         }),
       ) as { saved: boolean; lists: unknown[] };
       expect(data).toEqual({ saved: false, lists: [] });
+    });
+  });
+});
+
+describe('Tool: get_collection_items', () => {
+  it('MCP-COLL-ITEMS-001: reads saved places and labels by their ids with their lists, leaving out what the user cannot see', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const mine = await seedCollection(user.id, 'Paris');
+    const shared = await seedCollection(other.id, 'Shared with me');
+    const hidden = await seedCollection(other.id, 'Not shared');
+    await addMember(shared, user.id, 'viewer');
+    const { user: invited } = createUser(testDb);
+    await addMember(shared, invited.id, 'editor', 'pending');
+    const louvre = await seedPlace(mine, user.id, 'Louvre', { status: 'want' });
+    await seedPlace(mine, user.id, 'Not asked for');
+    const orsay = await seedPlace(shared, other.id, 'Orsay');
+    const secret = await seedPlace(hidden, other.id, 'Secret');
+    const dinner = await insertRow(orm, CollectionLabels, { collection: mine, name: 'Dinner', color: '#2563eb' });
+    const theirs = await insertRow(orm, CollectionLabels, { collection: hidden, name: 'Theirs' });
+
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'get_collection_items',
+          arguments: { placeIds: [louvre, orsay, secret, 999999], labelIds: [dinner, theirs] },
+        }),
+      ) as {
+        lists: {
+          id: number;
+          name: string;
+          can_delete: boolean;
+          members: Record<string, unknown>[];
+          labels: { id: number }[];
+        }[];
+        places: { id: number; name: string; status: string }[];
+        labels: { id: number; name: string }[];
+      };
+      expect(data.lists.map((l) => l.name).sort()).toEqual(['Paris', 'Shared with me']);
+      expect(data.places.map((p) => p.name).sort()).toEqual(['Louvre', 'Orsay']);
+      expect(data.places.find((p) => p.id === louvre)?.status).toBe('want');
+      expect(data.labels.map((l) => l.name)).toEqual(['Dinner']);
+      // The owner may delete places from a list; a viewer of a shared one may not.
+      expect(data.lists.find((l) => l.id === mine)?.can_delete).toBe(true);
+      expect(data.lists.find((l) => l.id === shared)?.can_delete).toBe(false);
+      // People by name and role only: no addresses travel with a lookup.
+      for (const list of data.lists) for (const member of list.members) expect(member).not.toHaveProperty('email');
+    });
+  });
+
+  it('MCP-COLL-ITEMS-002: an empty or unknown lookup answers empty lists; more than 50 places is refused', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const empty = parseToolResult(await h.client.callTool({ name: 'get_collection_items', arguments: {} }));
+      expect(empty).toEqual({ lists: [], places: [], labels: [] });
+      const tooMany = await h.client.callTool({
+        name: 'get_collection_items',
+        arguments: { placeIds: Array.from({ length: 51 }, (_, i) => i + 1) },
+      });
+      expect(tooMany.isError).toBe(true);
     });
   });
 });
@@ -647,6 +708,27 @@ describe('Tool: copy_collection_places_to_trip', () => {
     });
   });
 
+  it('MCP-COLL-COPY-001: each copied place reaches every tab of the trip as place:created, the asking one included', async () => {
+    const { user } = createUser(testDb);
+    createCategory(testDb);
+    const trip = createTrip(testDb, user.id);
+    const col = await seedCollection(user.id, 'Plan');
+    const pid = await seedPlace(col, user.id, 'Spanish Steps');
+    realtime.broadcastMock.mockClear();
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'copy_collection_places_to_trip',
+        arguments: { trip_id: trip.id, place_ids: [pid] },
+      });
+    });
+    const sent = realtime.broadcastMock.mock.calls.filter(([, event]) => event === 'place:created');
+    expect(sent).toHaveLength(1);
+    // Room-wide in three arguments: no socket is skipped.
+    expect(sent[0]).toHaveLength(3);
+    expect(sent[0][0]).toBe(trip.id);
+    expect(sent[0][2]).toMatchObject({ place: { name: 'Spanish Steps', trip_id: trip.id }, _source: 'mcp' });
+  });
+
   it('surfaces the 404 text for a trip the user cannot access', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);
@@ -654,6 +736,7 @@ describe('Tool: copy_collection_places_to_trip', () => {
     const trip = createTrip(testDb, other.id);
     const col = await seedCollection(user.id, 'C');
     const pid = await seedPlace(col, user.id, 'X');
+    realtime.broadcastMock.mockClear();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'copy_collection_places_to_trip',
@@ -662,6 +745,8 @@ describe('Tool: copy_collection_places_to_trip', () => {
       expect(result.isError).toBe(true);
       expect(errorText(result)).toBe('Trip not found');
     });
+    // A refused copy reaches nobody.
+    expect(realtime.broadcastMock.mock.calls.filter(([, event]) => event === 'place:created')).toHaveLength(0);
   });
 });
 
@@ -859,7 +944,13 @@ describe('Sharing tools', () => {
 // Scope gating (collections read/write, registration-time)
 // ---------------------------------------------------------------------------
 
-const READ_TOOLS = ['list_collections', 'get_collection', 'available_collection_users', 'find_place_in_collections'];
+const READ_TOOLS = [
+  'list_collections',
+  'get_collection',
+  'get_collection_items',
+  'available_collection_users',
+  'find_place_in_collections',
+];
 const WRITE_TOOLS = [
   'create_collection',
   'update_collection',
@@ -896,7 +987,7 @@ describe('Collection tools — scope gating', () => {
     }
   }
 
-  it('registers all 27 tools with null scopes (full access)', async () => {
+  it('registers all 28 tools with null scopes (full access)', async () => {
     const { user } = createUser(testDb);
     const names = await listToolNames(user.id, null);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).toContain(tool);

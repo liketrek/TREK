@@ -110,5 +110,7 @@ const collab: TranslationStrings = {
     'Anteckningar använder fortfarande den här kategorin. Flytta eller ta bort dem först, så kan kategorin tas bort.',
   'collab.notes.categoriesLocalHint':
     'En kategori utan anteckningar sparas bara i den här webbläsaren. Andra medlemmar ser den först när en anteckning använder den.',
+  'collab.chat.fromAssistant': 'från assistenten',
+  'collab.chat.fromAssistantHint': '{name} delade det här svaret från assistenten',
 };
 export default collab;

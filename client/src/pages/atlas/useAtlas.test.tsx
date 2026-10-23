@@ -5,6 +5,7 @@ import { render, act, waitFor } from '../../../tests/helpers/render';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildSettings } from '../../../tests/helpers/factories';
+import { addListener } from '../../api/websocket';
 import { useSettingsStore } from '../../store/settingsStore';
 import L from 'leaflet';
 import { A2_TO_A3 } from './atlasModel';
@@ -1384,5 +1385,29 @@ describe('useAtlas', () => {
         expect(marker.closeTooltip).toHaveBeenCalled();
       });
     });
+  });
+});
+
+describe('useAtlas: changes written elsewhere', () => {
+  it('FE-BCAST-022: atlas:changed reads the atlas again, once per burst', async () => {
+    vi.mocked(addListener).mockClear();
+    await mountAtlas();
+    let statsCalls = 0;
+    server.use(
+      http.get('/api/addons/atlas/stats', () => {
+        statsCalls++;
+        return HttpResponse.json(statsResponse);
+      }),
+    );
+    act(() => {
+      for (const [listener] of vi.mocked(addListener).mock.calls) {
+        listener({ type: 'atlas:changed' });
+        listener({ type: 'atlas:changed' });
+        listener({ type: 'collections:updated' });
+      }
+    });
+    await waitFor(() => expect(statsCalls).toBe(1));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(statsCalls).toBe(1);
   });
 });

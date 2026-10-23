@@ -23,6 +23,11 @@ export function variantPaintCss(key: LegVariantKey): string {
   return `var(${VARIANT_PAINT_TOKENS[key]})`;
 }
 
+/** The ways' colours and their rim resolved for map paint, again whenever the theme changes. */
+export function useVariantPaint(): Readonly<Record<LegVariantKey | 'casing', string>> {
+  return useMapPaint(VARIANT_PAINT_TOKENS);
+}
+
 type Drawn = Parameters<typeof withRouteHighlight>;
 /** A way as the map draws it: its line and the key its colour goes by. */
 type DrawnWay = Pick<LegVariant, 'key' | 'coordinates'>;
@@ -60,7 +65,7 @@ export function useLegVariantLines(
   variants: readonly DrawnWay[] | null,
   focus: LegVariantKey | null
 ) {
-  const paint = useMapPaint(VARIANT_PAINT_TOKENS);
+  const paint = useVariantPaint();
   return useMemo(() => {
     const ordered = variants ? drawOrder(variants, focus) : [];
     const highlight = ordered.length

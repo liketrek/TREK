@@ -1,5 +1,6 @@
 import { readEnv } from '../../app-config';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { aiPolicySchema } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -128,6 +129,14 @@ export const APP_SETTINGS = {
   dawarich_poll_interval_minutes: { schema: intText, default: null },
   /** The release the admins were last notified about (the version-check job's memory). */
   last_notified_version: { schema: text, default: null },
+  // The trip assistant: whose connection it runs on, how many turns a day a
+  // user may take on the instance's, and how long chats are kept (the JSON of
+  // aiRetentionSchema). The admin sets them through /api/admin/ai/settings.
+  ai_assistant_policy: { schema: aiPolicySchema, default: 'instance_or_user' },
+  ai_assistant_daily_turns: { schema: intText, default: '50' },
+  ai_assistant_retention: { schema: text, default: '{"mode":"days","days":90}' },
+  /** `urn:uuid:<uuid>`: this install as one host to Sign in with ChatGPT, created on the first sign-in. */
+  ai_siwc_host_id: { schema: text, default: null },
 } as const satisfies Record<string, AppSettingDef>;
 
 export type AppSettingKey = keyof typeof APP_SETTINGS;

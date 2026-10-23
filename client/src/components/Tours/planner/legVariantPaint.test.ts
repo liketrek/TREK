@@ -1,9 +1,9 @@
-// FE-TOUR-LEG-VARIANT-PAINT-001 to FE-TOUR-LEG-VARIANT-PAINT-004: the ways of a compared section
+// FE-TOUR-LEG-VARIANT-PAINT-001 to FE-TOUR-LEG-VARIANT-PAINT-005: the ways of a compared section
 // and the round hikes offered on the planner map, each in its colour, the one in focus on top
 // (RTE-02, RTE-03).
 import { renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { drawOrder, useLegVariantLines, variantPaintCss } from './legVariantPaint';
+import { drawOrder, useLegVariantLines, useVariantPaint, variantPaintCss } from './legVariantPaint';
 import type { LegVariant } from './legVariants';
 
 const variant = (key: LegVariant['key'], lat: number): LegVariant => ({
@@ -86,5 +86,16 @@ describe('legVariantPaint', () => {
     expect(result.current.overlays).toHaveLength(2);
     const empty = renderHook(() => useLegVariantLines([], null, null, rounds, null));
     expect(empty.result.current.route).toEqual([WAYS[1].coordinates, WAYS[2].coordinates]);
+  });
+
+  it('FE-TOUR-LEG-VARIANT-PAINT-005: hands the colours of the ways and their rim resolved, for a map outside the planner', () => {
+    const { result } = renderHook(() => useVariantPaint());
+    expect(result.current).toEqual({
+      current: '#0a84ff',
+      a: '#f97316',
+      b: '#d946ef',
+      c: '#14b8a6',
+      casing: '#ffffff',
+    });
   });
 });

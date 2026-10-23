@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const assistantJourney: TranslationStrings = {
+  'assistant.card.journey.label': 'Gündəlik qeydləri',
+  'assistant.card.journey.open': 'Gündəlikdə aç',
+  'assistant.card.journey.entries': '{count} qeyd',
+  'assistant.card.journey.entries.one': '{count} qeyd',
+  'assistant.card.journey.more': 'gündəlikdə daha {count}',
+  'assistant.card.journey.more.one': 'gündəlikdə daha {count}',
+  'assistant.card.journey.photos': '{count} foto',
+  'assistant.card.journey.photos.one': '{count} foto',
+  'assistant.card.journey.toSuggestion': 'Yenidən təklifə çevrilir',
+  'assistant.card.journey.video': 'Videoyla başlayır',
+  'assistant.card.journey.typeEntry': 'Yazılmış qeyd',
+  'assistant.card.journey.typeCheckin': 'Məkanda qeydiyyat',
+  'assistant.card.journey.notDraft': 'Artıq qaralama deyil',
+  'assistant.card.journey.onRoute': 'Yenidən marşrutda',
+  'assistant.card.journey.restored': 'Təklif geri qaytarıldı',
+  'assistant.change.verb.addJournalEntry': 'Gündəlik qeydi əlavə et',
+  'assistant.change.verb.updateJournalEntry': 'Gündəlik qeydini dəyiş',
+  'assistant.change.verb.removeJournalEntry': 'Gündəlik qeydini sil',
+  'assistant.step.readingJournal': 'Gündəlik oxunur',
+  'assistant.tool.create_journey': 'Gündəlik başlat',
+  'assistant.tool.update_journey': 'Gündəliyi dəyiş',
+  'assistant.tool.add_journey_trip': 'Səfəri gündəliyə əlavə et',
+  'assistant.tool.link_trip_journal': 'Gündəliyi bu səfərdə göstər',
+  'assistant.tool.reorder_journey_entries': 'Gündəliyi yenidən sırala',
+  'assistant.followUp.journalToday': 'Bu gün üçün qeyd yaz',
+  'assistant.followUp.journalSummary': 'Bu günləri yekunlaşdır',
+};
+export default assistantJourney;

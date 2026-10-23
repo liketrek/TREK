@@ -378,14 +378,14 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
     collectionIds: number[],
     query: { google_place_id?: string; google_ftid?: string; lat?: number; lng?: number },
     tolerance: number,
-  ): Promise<{ place_id: number; collection_id: number; name: string; status: string }[]> {
+  ): Promise<{ place_id: number; collection_id: number; name: string; color: string | null; status: string }[]> {
     if (collectionIds.length === 0) return [];
     const hasCoords = query.lat != null && query.lng != null;
     if (!query.google_place_id && !query.google_ftid && !hasCoords) return [];
     return await this.kysely<CollectionPlacesMembershipKyselyDB>()
       .selectFrom('collection_places as cp')
       .innerJoin('collections as c', 'c.id', 'cp.collection_id')
-      .select(['cp.id as place_id', 'cp.collection_id', 'c.name', 'cp.status'])
+      .select(['cp.id as place_id', 'cp.collection_id', 'c.name', 'c.color', 'cp.status'])
       .where('cp.collection_id', 'in', collectionIds)
       .where((eb) => {
         const clauses = [];

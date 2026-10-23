@@ -110,5 +110,7 @@ const collab: TranslationStrings = {
     'Notlar hâlâ bu kategoriyi kullanıyor. Kategoriyi kaldırmak için önce notları taşıyın veya silin.',
   'collab.notes.categoriesLocalHint':
     'Notu olmayan bir kategori yalnızca bu tarayıcıda saklanır. Diğer üyeler onu, bir not kullandığında görür.',
+  'collab.chat.fromAssistant': 'asistandan',
+  'collab.chat.fromAssistantHint': '{name} asistanın bu yanıtını paylaştı',
 };
 export default collab;

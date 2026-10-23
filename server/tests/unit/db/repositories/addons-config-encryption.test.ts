@@ -68,11 +68,11 @@ describe('AddonsRepository.setConfig — AD36 encryption boundary', () => {
 
   it('ADDONSREPO-011: a second write of the SAME plaintext produces a different stored ciphertext (random IV), both still decrypting to the same plaintext', async () => {
     const plaintext = 'sk-live-same-secret-both-times';
-    const first = prepareLlmAddonConfigForWrite({ apiKey: plaintext }, undefined);
+    const first = prepareLlmAddonConfigForWrite({ provider: 'openai', apiKey: plaintext }, undefined);
     await addons.setConfig('llm_parsing', first as { apiKey?: string; [k: string]: unknown });
     const firstStored = ((await addons.findById('llm_parsing'))?.config as { apiKey?: string } | null)?.apiKey;
 
-    const second = prepareLlmAddonConfigForWrite({ apiKey: plaintext }, undefined);
+    const second = prepareLlmAddonConfigForWrite({ provider: 'openai', apiKey: plaintext }, undefined);
     await addons.setConfig('llm_parsing', second as { apiKey?: string; [k: string]: unknown });
     const secondStored = ((await addons.findById('llm_parsing'))?.config as { apiKey?: string } | null)?.apiKey;
 

@@ -5,19 +5,22 @@
  * copy_trip, export_trip_ics, get_share_link, create_share_link, delete_share_link.
  */
 import { db as testDb } from '../../../src/db/database';
+import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { GUEST_HAS_PAYMENTS } from '../../../src/nest/budget/budget-departure.helpers';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
 import { createUser, createAdmin, createTrip, addTripMember } from '../../helpers/factories';
-import { addBudgetItemPayer, makeBudgetItem } from '../../helpers/factories/budget';
-import { countRows, findRow } from '../../helpers/factories/rows';
+import { addBudgetItemMember, addBudgetItemPayer, makeBudgetItem } from '../../helpers/factories/budget';
+import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
 import { setAppSetting } from '../../helpers/factories/settings';
 import { makeShareToken } from '../../helpers/factories/trips';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { bootTestApp } from '../../helpers/test-app';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 
@@ -770,6 +773,7 @@ describe('Tool: rename_trip_guest', () => {
     const otherTrip = createTrip(testDb, owner.id);
     await withHarness(owner.id, async (h) => {
       const guestId = await makeGuest(h, otherTrip.id, 'Anna');
+      broadcastMock.mockClear();
       const result = await h.client.callTool({
         name: 'rename_trip_guest',
         arguments: { tripId: ownTrip.id, guestId, name: 'Renamed' },
@@ -777,6 +781,8 @@ describe('Tool: rename_trip_guest', () => {
       expect(result.isError).toBe(true);
       const row = await userRow(guestId);
       expect(row.display_name).toBe('Anna');
+      // A refused rename announces nothing, on either trip.
+      expect(broadcastMock).not.toHaveBeenCalledWith(expect.anything(), 'member:updated', expect.anything());
     });
   });
 
@@ -856,6 +862,7 @@ describe('Tool: delete_trip_guest', () => {
       expect(JSON.stringify(result.content)).toContain(GUEST_HAS_PAYMENTS);
       expect(await findRow(orm, Users, { id: guestId })).not.toBeNull();
       expect(broadcastMock).not.toHaveBeenCalledWith(trip.id, 'member:removed', expect.anything());
+      expect(broadcastMock).not.toHaveBeenCalledWith(trip.id, 'budget:updated', expect.anything());
     });
   });
 
@@ -971,5 +978,88 @@ describe('Guest tools stay owner-only', () => {
     const row = await userRow(guestId);
     expect(row.display_name).toBe('Anna');
     expect(await countRows(orm, Users, { is_guest: 1 })).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The roster use cases REST shares (TripMemberWritesService): what each tool
+// sends besides its member event.
+// ---------------------------------------------------------------------------
+
+describe('Roster writes, as REST makes them', () => {
+  it('MCP-MEMBERS-001: add_trip_member sends the invitation the planner sends, naming the inviter by name', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: invitee } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const send = vi
+      .spyOn((await bootTestApp(realtime)).get(NotificationsService), 'send')
+      .mockResolvedValue({ attempted: 0, delivered: 0 });
+    try {
+      await withHarness(owner.id, async (h) => {
+        await h.client.callTool({ name: 'add_trip_member', arguments: { tripId: trip.id, identifier: invitee.email } });
+      });
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'trip_invite',
+          actorId: owner.id,
+          scope: 'user',
+          targetId: invitee.id,
+          params: expect.objectContaining({ actor: owner.username, invitee: invitee.email, tripId: String(trip.id) }),
+        }),
+      );
+    } finally {
+      send.mockRestore();
+    }
+  });
+
+  it('MCP-MEMBERS-002: rename_trip_guest tells the room the new name, and nothing else of the row', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    await withHarness(owner.id, async (h) => {
+      const guestId = await makeGuest(h, trip.id, 'Anna');
+      broadcastMock.mockClear();
+      await h.client.callTool({
+        name: 'rename_trip_guest',
+        arguments: { tripId: trip.id, guestId, name: ' Anna B. ' },
+      });
+      expect(broadcastMock.mock.calls).toEqual([
+        [trip.id, 'member:updated', { member: { id: guestId, username: 'Anna B.' }, _source: 'mcp' }],
+      ]);
+    });
+  });
+
+  it('MCP-MEMBERS-003: delete_trip_guest sends each expense the guest shared again, split among the rest, after the member', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    await withHarness(owner.id, async (h) => {
+      const guestId = await makeGuest(h, trip.id, 'Anna');
+      const shared = await makeBudgetItem(orm, trip.id, { total_price: 60 });
+      await addBudgetItemMember(orm, shared.id, owner.id);
+      await addBudgetItemMember(orm, shared.id, guestId);
+      await makeBudgetItem(orm, trip.id, { total_price: 10 });
+      broadcastMock.mockClear();
+      await h.client.callTool({ name: 'delete_trip_guest', arguments: { tripId: trip.id, guestId } });
+      expect(broadcastMock.mock.calls.map((call) => call[1])).toEqual(['member:removed', 'budget:updated']);
+      const [, , payload] = broadcastMock.mock.calls[1];
+      const item = payload.item as { id: number; members: { user_id: number }[] };
+      expect(item.id).toBe(shared.id);
+      expect(item.members.map((m) => m.user_id)).toEqual([owner.id]);
+    });
+  });
+
+  it('MCP-MEMBERS-004: delete_trip_guest also sends an expense the guest was only the legacy payer of, cleared', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    await withHarness(owner.id, async (h) => {
+      const guestId = await makeGuest(h, trip.id, 'Anna');
+      const legacy = await makeBudgetItem(orm, trip.id, { total_price: 40 });
+      await updateRows(orm, BudgetItems, { id: legacy.id }, { paidByUser: guestId });
+      broadcastMock.mockClear();
+      await h.client.callTool({ name: 'delete_trip_guest', arguments: { tripId: trip.id, guestId } });
+      expect(broadcastMock.mock.calls.map((call) => call[1])).toEqual(['member:removed', 'budget:updated']);
+      const item = broadcastMock.mock.calls[1][2].item as { id: number; paid_by_user_id: number | null };
+      expect(item.id).toBe(legacy.id);
+      expect(item.paid_by_user_id).toBeNull();
+    });
   });
 });

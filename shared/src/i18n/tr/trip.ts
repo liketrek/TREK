@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'Lütfen önce bir gün seçin',
   'trip.toast.assignedToDay': 'Yer güne atandı',
   'trip.toast.loadError': 'Gezi yüklenemedi',
+  'trip.toast.accessLost': 'Artık bu gezinin üyesi değilsiniz',
   'trip.toast.reorderError': 'Sıralama yapılamadı',
   'trip.toast.reservationUpdated': 'Rezervasyon güncellendi',
   'trip.toast.reservationAdded': 'Rezervasyon eklendi',

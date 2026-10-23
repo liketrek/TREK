@@ -270,9 +270,11 @@ export const PILL = 'inline-flex flex-none items-center gap-1.5 rounded-full bg-
 export function DialogSection({ label, action, className, children }: { label: ReactNode; action?: ReactNode; className?: string; children: ReactNode }) {
   return (
     <section className={className}>
-      <div className="mb-2 flex items-center gap-2">
+      {/* A fixed height, so a section with an action (an upload pill) starts its content on the
+          same line as its neighbour without one; the action is centred and may overhang. */}
+      <div className="mb-2 flex h-4 items-center gap-2">
         <div className={EYEBROW} style={fs(9.5)}>{label}</div>
-        {action && <span className="ms-auto">{action}</span>}
+        {action && <span className="ms-auto flex items-center">{action}</span>}
       </div>
       {children}
     </section>

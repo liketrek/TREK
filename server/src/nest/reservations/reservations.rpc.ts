@@ -68,14 +68,17 @@ export class ReservationsRpc {
     if (!current) throw new ForbiddenResource(`no reservation ${reservationId} on trip ${tripId}`);
     await this.requireOwnReferences(tripId, input);
     const i = input as { title?: string; type?: string; create_budget_entry?: unknown };
-    const { reservation, accommodationChanged, costEvents } = await this.reservations.updateWithCost(
-      String(reservationId),
-      String(tripId),
-      input as never,
-      current,
-      i.create_budget_entry as never,
-    );
-    if (accommodationChanged) this.realtime.broadcast(tripId, 'accommodation:updated', {}, undefined);
+    const { reservation, accommodationChanged, accommodationCreated, costEvents } =
+      await this.reservations.updateWithCost(
+        String(reservationId),
+        String(tripId),
+        input as never,
+        current,
+        i.create_budget_entry as never,
+      );
+    // A stay this edit wrote for the first time is new, as the REST route announces it.
+    if (accommodationCreated) this.realtime.broadcast(tripId, 'accommodation:created', {}, undefined);
+    else if (accommodationChanged) this.realtime.broadcast(tripId, 'accommodation:updated', {}, undefined);
     const cur = current as { title: string; type?: string };
     this.reservations.announceCost(tripId, costEvents, undefined);
     this.realtime.broadcast(tripId, 'reservation:updated', { reservation }, undefined);

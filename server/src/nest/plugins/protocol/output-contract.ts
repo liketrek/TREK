@@ -409,7 +409,8 @@ export const PLUGIN_ENTITY_CONTRACT = {
   collabMessage: {
     table: 'collab_messages',
     columns: ['id', 'trip_id', 'user_id', 'text', 'reply_to', 'created_at', 'deleted'],
-    withheld: [],
+    // Which surface a message came from (the assistant's share) is the app's own bookkeeping.
+    withheld: ['origin'],
     wholeRow: true,
     derived: [
       'username',

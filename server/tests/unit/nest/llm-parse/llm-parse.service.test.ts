@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // LlmConfigResolver is constructor-injected — a stub instance instead of the
 // old path mock (same behaviors as before the DI move).
 const resolveLlmConfig = vi.fn();
+const readInstanceEndpoint = vi.fn();
 
 const { createLlmClient, extract } = vi.hoisted(() => {
   const extract = vi.fn();
@@ -47,7 +48,7 @@ vi.mock('../../../../src/nest/llm-parse/router/extraction-router', async (orig) 
 });
 
 const cfg = (over: Record<string, unknown> = {}) => ({ provider: 'openai', model: 'm', vision: 'off', ...over });
-const llmConfigStub = { resolve: resolveLlmConfig } as unknown as LlmConfigResolver;
+const llmConfigStub = { resolve: resolveLlmConfig, readInstanceEndpoint } as unknown as LlmConfigResolver;
 const modelCapabilities = vi.fn();
 const svc = () =>
   new LlmParseService(
@@ -81,6 +82,11 @@ beforeEach(() => {
 });
 
 describe('LlmParseService', () => {
+  it('hands the AI assistant the parsing endpoint the resolver reads', async () => {
+    readInstanceEndpoint.mockResolvedValueOnce({ provider: 'openai', model: 'gpt-x', baseUrl: undefined });
+    expect(await svc().instanceEndpoint()).toEqual({ provider: 'openai', model: 'gpt-x', baseUrl: undefined });
+  });
+
   it('isAvailable reflects whether a config resolves', async () => {
     resolveLlmConfig.mockReturnValueOnce(null);
     expect(await svc().isAvailable(1)).toBe(false);

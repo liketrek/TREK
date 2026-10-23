@@ -1,10 +1,10 @@
+import { readImageHeader } from '../../../../src/nest/common/image-header';
 import {
   capImage,
   IMAGE_MAX_BYTES,
   IMAGE_MAX_EDGE,
   imageMimeType,
   ImageTooLargeError,
-  readImageHeader,
   renderPdfPages,
 } from '../../../../src/nest/llm-parse/image-input';
 

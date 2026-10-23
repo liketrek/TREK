@@ -3,14 +3,12 @@ import type {
   BookBadgeElement, BookCountriesElement, BookElement, BookListElement, BookMapElement,
   BookMetric, BookStatsElement, JourneyStats,
 } from '@trek/shared'
-import { BOOK_METRICS } from '@trek/shared'
-import { isStale, refreshPatch } from './travelRefresh'
+import { BOOK_METRICS, MAX_PATH_POINTS, MAX_PATH_SEGMENTS, isStale, refreshPatch } from '@trek/shared'
 import { Swatches } from './StudioSwatches'
 import { FontButtons, WeightLine } from './StudioTypeControls'
 import { sourceIdOf, useMapSources } from './mapSources'
 import { printDpi, tileView } from './mapTiles'
 import { useCartoApiKey } from '../../hooks/useTileUrl'
-import { routeFor } from './travelRefresh'
 import { Choice, Line, Picks, Section, Switch } from './StudioControls'
 import { fetchRoads } from './roadRoute'
 
@@ -27,6 +25,8 @@ export interface TravelInspectorProps {
   el: BookElement
   /** Live figures, for the refresh button. Null while loading or on failure. */
   stats: JourneyStats | null
+  /** The journey's recorded way, thinned, which a map switched back to the whole journey draws again. */
+  path: [number, number][][]
   set: (patch: Partial<BookElement>) => void
   t: (k: string) => string
   locale: string
@@ -38,7 +38,7 @@ interface Props<T> {
   t: (k: string) => string
 }
 
-export function TravelInspector({ el, stats, set, t }: TravelInspectorProps) {
+export function TravelInspector({ el, stats, path, set, t }: TravelInspectorProps) {
   if (
     el.kind !== 'map' && el.kind !== 'stats' && el.kind !== 'countries'
     && el.kind !== 'badge' && el.kind !== 'list'
@@ -66,7 +66,7 @@ export function TravelInspector({ el, stats, set, t }: TravelInspectorProps) {
         </div>
       )}
 
-      {el.kind === 'map' && <MapProps el={el} set={set} t={t} stats={stats} />}
+      {el.kind === 'map' && <MapProps el={el} set={set} t={t} stats={stats} journeyPath={path} />}
       {el.kind === 'stats' && <StatsProps el={el} set={set} t={t} />}
       {el.kind === 'countries' && <CountriesProps el={el} set={set} t={t} />}
       {el.kind === 'badge' && <BadgeProps el={el} set={set} t={t} />}
@@ -190,7 +190,13 @@ function ListProps({ el, set, t }: Props<BookListElement>) {
   )
 }
 
-function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: JourneyStats | null }) {
+/** A map's panel reads the journey too: its live figures, and its recorded way for a map of all of it. */
+type MapPropsInput = Props<BookMapElement> & {
+  stats: JourneyStats | null
+  journeyPath: [number, number][][]
+}
+
+function MapProps({ el, set, t, stats, journeyPath }: MapPropsInput) {
   const cartoKey = useCartoApiKey()
   const [roadState, setRoadState] = useState<'idle' | 'busy'>('idle')
   const [roadDone, setRoadDone] = useState(0)
@@ -250,15 +256,26 @@ function MapProps({ el, set, t, stats }: Props<BookMapElement> & { stats: Journe
               })),
             ]}
             onPick={id => {
-              if (!stats) return
               const tripId = id === 0 ? null : id
-              const route = routeFor(stats, tripId)
+              // The scope it already has: a re-cut would only drop the roads loaded for these legs.
+              if (!stats || tripId === (el.tripId ?? null)) return
+              /*
+               * Re-cut by the engine's own refresh at the new scope, so the
+               * stops and countries are what refresh_travel and a newly placed
+               * map of that scope hold. The recorded way is the whole
+               * journey's: a trip map draws none, as the engine places none,
+               * and a map of the whole journey gets it back from the journey
+               * at the engine's caps, so a switch there and back loses
+               * nothing. The roads go with the old legs, since entry i is the
+               * way from stop i to stop i + 1 of the route that is gone.
+               */
               set({
+                ...refreshPatch({ ...el, tripId }, stats),
                 tripId,
-                countries: tripId == null
-                  ? stats.countries.map(c => c.code)
-                  : [...new Set(route.map(p => p.country).filter((c): c is string => !!c))],
-                points: route.map(p => ({ lat: p.lat, lng: p.lng, label: p.label, photoId: p.photoId ?? null })),
+                path: tripId == null
+                  ? journeyPath.slice(0, MAX_PATH_SEGMENTS).map(seg => seg.slice(0, MAX_PATH_POINTS))
+                  : [],
+                roads: [],
               } as Partial<BookElement>)
             }}
           />

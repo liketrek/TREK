@@ -142,8 +142,8 @@ export interface GuestMember {
  * the member rows, and create() defaults the currency to the owner's display
  * currency instead of the legacy EUR literal. Auth (canAccessTrip), per-field permission checks and
  * audit logging stay in the controller (1:1 with the legacy route);
- * trip:updated / trip:deleted broadcasts stay in the controller too — this
- * service emits none.
+ * trip:updated goes out from its callers, trip:deleted and the trips:changed ping
+ * from TripWritesService; this service emits none.
  */
 @Injectable()
 export class TripsService {

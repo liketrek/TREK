@@ -43,7 +43,7 @@ import { decodeJson } from '../../utils/json-column';
 
 type Trip = TripAccess;
 type BudgetEntry = { total_price?: number; category?: string; currency?: string | null; exchange_rate?: number } | undefined;
-/** A booking's cost as the service writes it: the entry, dated on the booking's day (bookingDate), never by the caller. */
+/** A booking's cost as written: the entry, dated on the booking's day (bookingDate), never by the caller. */
 type DatedBudgetEntry = (NonNullable<BudgetEntry> & { expense_date?: string | null }) | undefined;
 
 /** What a booking write did to its linked costs, for the caller to send once the write has committed. */
@@ -842,7 +842,7 @@ export class ReservationsService {
     return written;
   }
 
-  private async updateInTx(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): Promise<{ reservation: ReservationRow; accommodationChanged: boolean; stayMirror: AccommodationMirror }> {
+  private async updateInTx(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation) {
     const {
       title, reservation_time, reservation_end_time, location,
       confirmation_number, notes, url, day_id, end_day_id, place_id, assignment_id,
@@ -891,6 +891,7 @@ export class ReservationsService {
       const accExists = await this.dayAccommodationsRepo.existsInTrip(accIdForRead(resolvedAccId)!, this.rowIdNum(tripId));
       if (!accExists) resolvedAccId = null;
     }
+    const hadStay = Boolean(resolvedAccId);
     if (type === 'hotel' && create_accommodation) {
       const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
       if (start_day_id && end_day_id) {
@@ -1027,7 +1028,7 @@ export class ReservationsService {
     // The caller passed the pre-checked `current` row, so the re-select can't
     // miss (legacy typed this any).
     const reservation = (await this.getReservationWithJoins(id))!;
-    return { reservation, accommodationChanged, stayMirror };
+    return { reservation, accommodationChanged, accommodationCreated: !hadStay && Boolean(resolvedAccId), stayMirror };
   }
 
   /** The accommodation + budget-item + reservation deletes are one logical

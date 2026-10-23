@@ -1,6 +1,6 @@
 import React from 'react'
 import { SCOPE_GROUPS } from '../api/oauthScopes'
-import { Lock, ShieldCheck, AlertTriangle, Loader2, LogIn } from 'lucide-react'
+import { Lock, ShieldCheck, AlertTriangle, Loader2, LogIn, BadgeCheck } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useOAuthAuthorize } from './oauthAuthorize/useOAuthAuthorize'
 
@@ -92,6 +92,12 @@ export default function OAuthAuthorizePage(): React.ReactElement {
                 <h1 className="text-lg font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
                   {validation?.client?.name || clientId}
                 </h1>
+                {validation?.client?.verified_host && (
+                    <p className="flex items-center gap-1.5 text-body font-medium text-content-secondary mt-1 min-w-0">
+                      <BadgeCheck className="w-4 h-4 flex-shrink-0 text-accent-on" aria-hidden="true" />
+                      <span className="truncate">{t('oauth.authorize.verifiedHost', { host: validation.client.verified_host })}</span>
+                    </p>
+                )}
                 <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
                   {t('oauth.authorize.requestDescription')}
                 </p>

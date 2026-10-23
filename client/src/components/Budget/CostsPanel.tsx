@@ -1,5 +1,4 @@
-import { Fragment, useState, useEffect, useMemo, useCallback, useId, type ReactNode } from 'react'
-import { useSearchParams } from 'react-router'
+import { Fragment, useState, useMemo, useCallback, useId, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download, StickyNote, ChevronDown, Receipt, Paperclip, ScanLine, Users } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
@@ -22,6 +21,7 @@ import {
   type CostsSettlement as Settlement, type CostsSettlementResponse,
 } from './costsModel'
 import { useCostsLedger } from './useCostsLedger'
+import { useExpenseLinks } from './useExpenseLinks'
 import { useSettlementForm } from './useSettlementForm'
 import { usePercentSplit, type CustomSplitUnit } from './usePercentSplit'
 import { useExpenseForm } from './useExpenseForm'
@@ -119,14 +119,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const fmt = useCallback((v: number, c = base) => formatMoney(v, c, locale), [base, locale])
   const fmt0 = useCallback((v: number, c = base) => formatMoney(v, c, locale, { decimals: 0 }), [base, locale])
 
-  // The bottom-nav "+" on the Costs tab opens the add-expense modal via ?create=expense.
-  const [searchParams, setSearchParams] = useSearchParams()
-  useEffect(() => {
-    if (searchParams.get('create') === 'expense') {
-      setEditing(null); setModalOpen(true)
-      setSearchParams(p => { p.delete('create'); return p }, { replace: true })
-    }
-  }, [searchParams])
+  // The bottom-nav "+" (?create=expense) and a link to one expense (?expense=<id>) open the expense modal.
+  useExpenseLinks(tripId, budgetItems, e => { setEditing(e); setModalOpen(true) }, { create: true })
 
   // ── derived expense maths (everything converted to the base currency) ────
   // Booked, not live: an expense entered in a foreign currency keeps the rate it was

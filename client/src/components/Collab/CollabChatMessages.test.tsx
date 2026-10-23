@@ -1,4 +1,4 @@
-// FE-W5CCM-001 to FE-W5CCM-024
+// FE-W5CCM-001 to FE-W5CCM-025
 // ChatMessages is a pure presentational component — every piece of state arrives
 // as a prop from useCollabChat, so the tests drive it directly instead of going
 // through CollabChat (that path is covered in CollabChat.test.tsx).
@@ -26,6 +26,7 @@ interface ChatMsg {
   reply_to?: number | null
   reactions?: { emoji: string; count: number; users: { user_id: number; username: string }[] }[]
   _deleted?: boolean
+  origin?: string | null
 }
 
 const currentUser = { id: 1, username: 'me' }
@@ -296,5 +297,12 @@ describe('ChatMessages', () => {
     renderMessages([buildMsg({ text: '🎉' })])
     const big = screen.getByText('🎉')
     expect(big.getAttribute('style')).toContain('font-size: calc(40px')
+  })
+
+  it('FE-W5CCM-025: a shared assistant answer carries its label, a typed message none', () => {
+    renderMessages([buildMsg({ id: 1, text: 'typed' }), buildMsg({ id: 2, text: 'shared', origin: 'assistant' })])
+    expect(screen.getAllByText('from the assistant')).toHaveLength(1)
+    expect(screen.getByText('shared').closest('div[style*="column"]')).toHaveTextContent('from the assistant')
+    expect(screen.getByText('typed').closest('div[style*="column"]')).not.toHaveTextContent('from the assistant')
   })
 })

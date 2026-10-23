@@ -87,6 +87,22 @@ export function useJourneyDetail({ journeyId, embedded = false }: JourneyDetailO
       setSearchParams(p => { p.delete('create'); return p }, { replace: true })
     }
   }, [searchParams, current, canEditEntries])
+  // A link into one entry (`?entry=<id>`, the assistant chat's "Open in the journal"):
+  // kept here and dropped from the URL, so a reload does not repeat it. It wins over
+  // today below for as long as this journal holds that entry. Every link counts
+  // apart (`seq`), so a second click on the same entry scrolls to it again.
+  const requestedEntry = searchParams.get('entry')
+  const [entryLink, setEntryLink] = useState(requestedEntry === null ? null : { id: requestedEntry, seq: 1 })
+  const [seenEntryParam, setSeenEntryParam] = useState(requestedEntry)
+  if (requestedEntry !== seenEntryParam) {
+    setSeenEntryParam(requestedEntry)
+    if (requestedEntry !== null) setEntryLink(link => ({ id: requestedEntry, seq: (link?.seq ?? 0) + 1 }))
+  }
+  const linkedEntryId = entryLink?.id ?? null
+  useEffect(() => {
+    if (requestedEntry === null) return
+    setSearchParams(p => { p.delete('entry'); return p }, { replace: true })
+  }, [requestedEntry, setSearchParams])
   const [unlinkTrip, setUnlinkTrip] = useState<{ trip_id: number; title: string } | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [hideSkeletons, setHideSkeletons] = useState(false)
@@ -119,15 +135,52 @@ export function useJourneyDetail({ journeyId, embedded = false }: JourneyDetailO
   useEffect(() => {
     if (!id) return
     const journeyId = Number(id)
+    // One read at a time: events that arrive while it is open ask for exactly
+    // one more after it, so a burst of changes is two reads, not one per event.
+    let live = true
+    let reading = false
+    let again = false
+    const reload = () => {
+      reading = true
+      again = false
+      // Also the failure path: a 404 has already become `notFound` in the store
+      // (handled above), anything else keeps the journal as shown until the
+      // next event reads it again.
+      const settle = () => {
+        reading = false
+        if (again && live) reload()
+      }
+      void loadJourney(journeyId).then(settle, settle)
+    }
     const handler = (event: Record<string, unknown>) => {
       const type = event.type as string
       if (!type?.startsWith('journey:')) return
       if (event.journeyId !== journeyId) return
+      // The photo book has its own store in Studio (useBookStore), and its
+      // presence frames come many times a second: none of them changes what
+      // this page reads.
+      if (type.startsWith('journey:book:')) return
+      // Its owner deleted it elsewhere: there is nothing left to read again, so
+      // the page goes back to the list (a journal shown inside a trip stays put).
+      if (type === 'journey:deleted') {
+        if (!embedded) {
+          toast.info(t('journey.deleted'))
+          void navigate('/journey')
+        }
+        return
+      }
       // reload journey data on any change from other contributors
-      loadJourney(journeyId)
+      if (reading) {
+        again = true
+        return
+      }
+      reload()
     }
     addListener(handler)
-    return () => removeListener(handler)
+    return () => {
+      live = false
+      removeListener(handler)
+    }
   }, [id])
 
   // scroll sync with map — the sticky map on the right follows whichever
@@ -445,6 +498,7 @@ export function useJourneyDetail({ journeyId, embedded = false }: JourneyDetailO
   const openAtEntryId = useMemo(() => {
     const entries = current?.entries ?? []
     if (entries.length === 0) return null
+    if (linkedEntryId !== null && entries.some(e => String(e.id) === linkedEntryId)) return linkedEntryId
     const dated = [...entries].sort((a, b) => a.entry_date.localeCompare(b.entry_date))
     const today = new Date()
     const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
@@ -457,25 +511,29 @@ export function useJourneyDetail({ journeyId, embedded = false }: JourneyDetailO
     // from its beginning.
     const dayStart = dated.find(e => e.entry_date === target.entry_date) ?? target
     return String(dayStart.id)
-  }, [current?.entries])
+  }, [current?.entries, linkedEntryId])
 
-  // Desktop only: scroll it into the feed once per journey, after the list is up.
+  // Desktop only: scroll it into the feed once per journey and once per link, after
+  // the list is up, so a linked entry scrolls in even when the journal is open
+  // already. Today's entry moving as entries come and go does not scroll again.
   // The scroll-sync primes at 300ms and would otherwise pick a winner from the top
   // of the feed and pin the map there.
-  const openedAtRef = useRef<number | null>(null)
+  const openedAtRef = useRef<string | null>(null)
+  const linkKey = entryLink && entryLink.id === openAtEntryId ? `${entryLink.id}#${entryLink.seq}` : ''
   useEffect(() => {
     if (isMobile || !current || view !== 'timeline') return
-    if (openedAtRef.current === current.id) return
-    if (!openAtEntryId) { openedAtRef.current = current.id; return }
+    const openKey = `${current.id}:${linkKey}`
+    if (openedAtRef.current === openKey) return
+    if (!openAtEntryId) { openedAtRef.current = openKey; return }
     const timer = window.setTimeout(() => {
       const el = document.querySelector(`[data-entry-id="${openAtEntryId}"]`)
       if (!el) return
-      openedAtRef.current = current.id
+      openedAtRef.current = openKey
       el.scrollIntoView({ block: 'center' })
       setActiveEntryId(openAtEntryId)
     }, 350)
     return () => window.clearTimeout(timer)
-  }, [current, openAtEntryId, isMobile, view])
+  }, [current, openAtEntryId, linkKey, isMobile, view])
 
   const locatedEntryIdsRef = useRef(new Set<string>())
   useEffect(() => {

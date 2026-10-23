@@ -1,14 +1,43 @@
-import { BudgetController } from '../../../src/nest/budget/budget.controller';
-import type { BudgetService } from '../../../src/nest/budget/budget.service';
+import { BudgetWritesService } from '../../../src/nest/budget/budget-writes.service';
+import { BudgetController as RouteBudgetController } from '../../../src/nest/budget/budget.controller';
+import { BudgetService } from '../../../src/nest/budget/budget.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { TRIP_PERMISSION_KEY } from '../../../src/nest/permissions/trip-access.guard';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import type { User } from '../../../src/types';
 import { HttpException } from '@nestjs/common';
 import { HTTP_CODE_METADATA } from '@nestjs/common/constants';
+import { Test } from '@nestjs/testing';
 
 import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 const trip = { id: 5, user_id: 1 };
+
+/** Every route but the create, over the service mock alone. */
+class BudgetController extends RouteBudgetController {
+  constructor(svc: BudgetService) {
+    super(svc, {} as BudgetWritesService);
+  }
+}
+
+/**
+ * The create route over the real use case (BudgetWritesService), built by Nest
+ * over the service mock with the permission granted: the 403 lives in
+ * trip-access.guard.test.ts. Its events leave through the returned realtime.
+ */
+async function createRoute(svc: BudgetService) {
+  const realtime = { broadcast: vi.fn() };
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BudgetWritesService,
+      { provide: BudgetService, useValue: svc },
+      { provide: PermissionsService, useValue: { checkPermission: vi.fn().mockResolvedValue(true) } },
+      { provide: RealtimeService, useValue: realtime },
+    ],
+  }).compile();
+  return { route: new RouteBudgetController(svc, moduleRef.get(BudgetWritesService)), realtime };
+}
 
 function makeService(overrides: Partial<BudgetService> = {}): BudgetService {
   return {
@@ -281,15 +310,19 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
 
     it('creates and broadcasts', async () => {
       const create = vi.fn().mockReturnValue({ id: 9, name: 'Hotel' });
-      const broadcast = vi.fn();
       const linkRefusal = vi.fn().mockReturnValue(null);
       const resyncReservationPrice = vi.fn();
-      const svc = makeService({ create, broadcast, linkRefusal, resyncReservationPrice } as Partial<BudgetService>);
-      expect(await new BudgetController(svc).create(user, '5', { name: 'Hotel', total_price: 200 }, 'sock')).toEqual({
+      const svc = makeService({ create, linkRefusal, resyncReservationPrice } as Partial<BudgetService>);
+      const { route, realtime } = await createRoute(svc);
+      expect(await route.create(user, '5', { name: 'Hotel', total_price: 200 }, 'sock')).toEqual({
         item: { id: 9, name: 'Hotel' },
       });
       expect(linkRefusal).toHaveBeenCalledWith('5', { name: 'Hotel', total_price: 200 });
-      expect(broadcast).toHaveBeenCalledWith('5', 'budget:created', { item: { id: 9, name: 'Hotel' } }, 'sock');
+      // budget:created alone, skipping the tab that created it: no members-updated,
+      // since the item already carries its split.
+      expect(realtime.broadcast.mock.calls).toEqual([
+        ['5', 'budget:created', { item: { id: 9, name: 'Hotel' } }, 'sock'],
+      ]);
       // Not linked to a booking, so no booking price to work out.
       expect(resyncReservationPrice).not.toHaveBeenCalled();
     });
@@ -297,41 +330,35 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
     it('an expense created on a booking adds to the price the booking mirrors (#2084)', async () => {
       const item = { id: 9, name: 'Seat', total_price: 15, reservation_id: 42 };
       const resyncReservationPrice = vi.fn();
-      const broadcast = vi.fn();
       const svc = makeService({
         create: vi.fn().mockReturnValue(item),
         resyncReservationPrice,
-        broadcast,
       } as Partial<BudgetService>);
-      expect(
-        await new BudgetController(svc).create(
-          user,
-          '5',
-          { name: 'Seat', total_price: 15, reservation_id: 42 },
-          'sock',
-        ),
-      ).toEqual({ item });
+      const { route, realtime } = await createRoute(svc);
+      expect(await route.create(user, '5', { name: 'Seat', total_price: 15, reservation_id: 42 }, 'sock')).toEqual({
+        item,
+      });
       expect(resyncReservationPrice).toHaveBeenCalledWith('5', 42, 'sock');
-      expect(broadcast).toHaveBeenCalledWith('5', 'budget:created', { item }, 'sock');
+      expect(realtime.broadcast).toHaveBeenCalledWith('5', 'budget:created', { item }, 'sock');
     });
 
     // #2084: an expense can only point at a booking or a place of its own trip.
     // The body and the status are the contract the MCP tool mirrors word for word.
     it('400s on a reservation_id from another trip, without writing or broadcasting', async () => {
       const create = vi.fn();
-      const broadcast = vi.fn();
       const resyncReservationPrice = vi.fn();
       const linkRefusal = vi.fn().mockReturnValue('reservation_id does not belong to this trip.');
-      const svc = makeService({ create, broadcast, linkRefusal, resyncReservationPrice } as Partial<BudgetService>);
+      const svc = makeService({ create, linkRefusal, resyncReservationPrice } as Partial<BudgetService>);
+      const { route, realtime } = await createRoute(svc);
       const body = { name: 'Hotel', total_price: 200, reservation_id: 4711 };
-      expect(await thrownAsync(() => new BudgetController(svc).create(user, '5', body, 'sock'))).toEqual({
+      expect(await thrownAsync(() => route.create(user, '5', body, 'sock'))).toEqual({
         status: 400,
         body: { error: 'reservation_id does not belong to this trip.' },
       });
       expect(linkRefusal).toHaveBeenCalledWith('5', body);
       expect(create).not.toHaveBeenCalled();
       expect(resyncReservationPrice).not.toHaveBeenCalled();
-      expect(broadcast).not.toHaveBeenCalled();
+      expect(realtime.broadcast).not.toHaveBeenCalled();
     });
 
     it('400s on a place_id from another trip, without writing', async () => {
@@ -340,9 +367,8 @@ describe('BudgetController (parity with the legacy /api/trips/:tripId/budget rou
         create,
         linkRefusal: vi.fn().mockReturnValue('place_id does not belong to this trip.'),
       } as Partial<BudgetService>);
-      expect(
-        await thrownAsync(() => new BudgetController(svc).create(user, '5', { name: 'Tickets', place_id: 4711 })),
-      ).toEqual({
+      const { route } = await createRoute(svc);
+      expect(await thrownAsync(() => route.create(user, '5', { name: 'Tickets', place_id: 4711 }))).toEqual({
         status: 400,
         body: { error: 'place_id does not belong to this trip.' },
       });

@@ -8,6 +8,10 @@ import {
   journeyUpdateRequestSchema,
   journeyPreferencesRequestSchema,
   journeyLinkPhotoRequestSchema,
+  journeyEntriesRangeSchema,
+  journeyEntryProsConsSchema,
+  journeyEntryTypeSchema,
+  journeyEntryVisibilitySchema,
 } from './journey.schema';
 
 import { describe, it, expect } from 'vitest';
@@ -111,5 +115,28 @@ describe('the free-form bodies keep their unknown keys', () => {
       journey_photo_id: 4,
       extra: true,
     });
+  });
+});
+
+describe('the entry enums and the range of a read', () => {
+  it('JRNSCH-001: names the entry types and visibilities a row can hold, nothing else', () => {
+    expect(journeyEntryTypeSchema.options).toEqual(['entry', 'checkin', 'skeleton']);
+    expect(journeyEntryVisibilitySchema.options).toEqual(['private', 'shared', 'public']);
+    expect(journeyEntryVisibilitySchema.safeParse('friends-only').success).toBe(false);
+  });
+
+  it('JRNSCH-002: a verdict sent half fills the other half with an empty list and refuses extra keys', () => {
+    expect(journeyEntryProsConsSchema.parse({ pros: ['view'] })).toEqual({ pros: ['view'], cons: [] });
+    expect(journeyEntryProsConsSchema.safeParse({ pros: [], cons: [], extra: 1 }).success).toBe(false);
+  });
+
+  it('JRNSCH-003: a range takes calendar days at either end, both optional', () => {
+    expect(journeyEntriesRangeSchema.parse({})).toEqual({});
+    expect(journeyEntriesRangeSchema.parse({ from: '2026-10-21', to: '2026-10-22' })).toEqual({
+      from: '2026-10-21',
+      to: '2026-10-22',
+    });
+    expect(journeyEntriesRangeSchema.safeParse({ from: '2026-02-30' }).success).toBe(false);
+    expect(journeyEntriesRangeSchema.safeParse({ to: 'yesterday' }).success).toBe(false);
   });
 });

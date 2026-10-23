@@ -297,7 +297,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'DAG',
+  'journey.studio.day': 'DAG {day}',
   'journey.studio.stations': 'Etapper',
   'journey.studio.peersHere': 'här',
   'journey.studio.folioAuto': 'Automatiskt',
@@ -451,7 +451,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Märken',
   'journey.studio.dateMark': 'Datum',
   'journey.studio.dayMark': 'Dagräknare',
-  'journey.studio.dayWord': 'DAG',
   'journey.studio.coordsMark': 'Koordinater',
   'journey.studio.coordsDms': 'Grader',
   'journey.studio.coordsDecimal': 'Decimal',
@@ -649,6 +648,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Rotera åt vänster',
   'journey.studio.rotateRight': 'Rotera åt höger',
   'journey.studio.saveReadOnly': 'Skrivskyddad, sparas inte',
+  'journey.studio.saveNewer': 'En nyare version av Studio har sparat den här boken. Ladda om för att redigera.',
+  'journey.studio.saveReload': 'Ladda om',
   'journey.studio.filterPhotos': 'Filtrera foton',
   'journey.studio.filterAll': 'Alla foton',
   'journey.studio.filterLoose': 'Inte i något inlägg',
@@ -896,5 +897,15 @@ const journey: TranslationStrings = {
     'Inspelade dagar och de stopp som hämtats från dem, på dagar med ett publicerat inlägg. De visar var och när du var, även ditt boende.',
   'journey.share.needsMap': 'Dela kartan för att slå på detta',
   'journey.editor.tags': 'Taggar',
+  'journey.studio.assistant.toggle': 'Assistent',
+  'journey.studio.assistant.toggleHint': 'Formge boken tillsammans med assistenten',
+  'journey.studio.assistant.panel': 'Bokassistent',
+  'journey.studio.assistant.welcome': 'Hur ska boken se ut?',
+  'journey.studio.assistant.readOnly':
+    'Du kan bara visa den här boken, så jag kan svara på frågor men inte ändra något.',
+  'journey.studio.assistant.notice':
+    'Assistenten kan titta på sidan du arbetar med. Bara den sidan skickas till {provider}, som en bild som bara visar foton du själv har lagt till. Vem som finns på dina foton går inte att upptäcka.',
+  'journey.studio.assistant.noticeAllow': 'Visa sidor',
+  'journey.studio.assistant.noticeLater': 'Inte nu',
 };
 export default journey;

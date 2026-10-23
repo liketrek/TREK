@@ -120,5 +120,7 @@ const collab: TranslationStrings = {
     'Эта категория всё ещё используется в заметках. Сначала перенесите или удалите их, тогда категорию можно будет убрать.',
   'collab.notes.categoriesLocalHint':
     'Категория без заметок сохраняется только в этом браузере. Другие участники увидят её, когда её начнёт использовать заметка.',
+  'collab.chat.fromAssistant': 'от ассистента',
+  'collab.chat.fromAssistantHint': '{name} делится этим ответом ассистента',
 };
 export default collab;

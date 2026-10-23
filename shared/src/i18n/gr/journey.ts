@@ -300,7 +300,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'ΗΜΕΡΑ',
+  'journey.studio.day': 'ΗΜΕΡΑ {day}',
   'journey.studio.stations': 'Στάσεις',
   'journey.studio.peersHere': 'εδώ',
   'journey.studio.folioAuto': 'Αυτόματα',
@@ -457,7 +457,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Σημάνσεις',
   'journey.studio.dateMark': 'Ημερομηνία',
   'journey.studio.dayMark': 'Μετρητής ημερών',
-  'journey.studio.dayWord': 'ΗΜΕΡΑ',
   'journey.studio.coordsMark': 'Συντεταγμένες',
   'journey.studio.coordsDms': 'Μοίρες',
   'journey.studio.coordsDecimal': 'Δεκαδικές',
@@ -658,6 +657,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Περιστροφή αριστερά',
   'journey.studio.rotateRight': 'Περιστροφή δεξιά',
   'journey.studio.saveReadOnly': 'Μόνο για ανάγνωση, δεν αποθηκεύεται',
+  'journey.studio.saveNewer': 'Μια νεότερη έκδοση του Studio αποθήκευσε αυτό το βιβλίο. Φορτώστε ξανά για επεξεργασία.',
+  'journey.studio.saveReload': 'Επαναφόρτωση',
   'journey.studio.filterPhotos': 'Φιλτράρισμα φωτογραφιών',
   'journey.studio.filterAll': 'Όλες οι φωτογραφίες',
   'journey.studio.filterLoose': 'Χωρίς καταχώρηση',
@@ -914,5 +915,15 @@ const journey: TranslationStrings = {
     'Καταγεγραμμένες μέρες και οι στάσεις που προέρχονται από αυτές, σε μέρες με δημοσιευμένη καταχώριση. Δείχνουν πού και πότε ήσουν, και το κατάλυμά σου.',
   'journey.share.needsMap': 'Μοιράσου τον χάρτη για να το ενεργοποιήσεις',
   'journey.editor.tags': 'Ετικέτες',
+  'journey.studio.assistant.toggle': 'Βοηθός',
+  'journey.studio.assistant.toggleHint': 'Σχεδιάστε το βιβλίο μαζί με τον βοηθό',
+  'journey.studio.assistant.panel': 'Βοηθός βιβλίου',
+  'journey.studio.assistant.welcome': 'Πώς πρέπει να είναι το βιβλίο;',
+  'journey.studio.assistant.readOnly':
+    'Μπορείτε μόνο να δείτε αυτό το βιβλίο, οπότε απαντώ σε ερωτήσεις αλλά δεν αλλάζω τίποτα.',
+  'journey.studio.assistant.notice':
+    'Ο βοηθός μπορεί να δει τη σελίδα στην οποία δουλεύετε. Μόνο αυτή η σελίδα στέλνεται στο {provider}, ως εικόνα που δείχνει μόνο τις φωτογραφίες που προσθέσατε εσείς. Δεν είναι δυνατό να αναγνωριστεί ποιος εμφανίζεται στις φωτογραφίες σας.',
+  'journey.studio.assistant.noticeAllow': 'Εμφάνιση σελίδων',
+  'journey.studio.assistant.noticeLater': 'Όχι τώρα',
 };
 export default journey;

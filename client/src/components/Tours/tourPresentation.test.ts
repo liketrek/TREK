@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { estimateBadgeText, estimateLabel, filterTours, formatPlannedTourDuration, hikeSourceBadgeLabel, plannedTotalText, tourDayMinutes, tourPlannedTimes, tourSource, tourWebsitePresentation } from './tourPresentation'
+import { estimateBadgeText, estimateLabel, filterTours, formatPlannedTourDuration, hikeSourceBadgeLabel, plannedTotalText, profileFocusLabel, tourDayMinutes, tourPlannedTimes, tourSource, tourWebsitePresentation } from './tourPresentation'
 
 describe('tourPresentation', () => {
   it('formats planned Tour totals using the shared compact duration formatter', () => {
@@ -128,4 +128,11 @@ describe('tourPresentation', () => {
     ('does not classify unsafe URL %s', value => {
       expect(tourWebsitePresentation(value)).toBeNull()
     })
+
+  it('FE-TOUR-PRES-001: says a spot of the profile by how far along and how high, without a height where none is known', () => {
+    const t = vi.fn((key: string, params?: Record<string, unknown>) => `${key} ${params?.distance} ${params?.elevation}`)
+    const focus = { distanceMeters: 2500, elevationMeters: 1234.4, lat: 47.6, lng: 12.6, sampleIndex: 3 }
+    expect(profileFocusLabel(focus, t, 'metric')).toBe('tours.planner.inspector.profileFocus 2.5 km 1234 m')
+    expect(profileFocusLabel({ ...focus, elevationMeters: null }, t, 'metric')).toBe('tours.planner.inspector.profileFocus 2.5 km -')
+  })
 })

@@ -1,24 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { HikingPreferencesField } from './HikingPreferencesField';
-import { hikingCosting, hikingCostingOptions } from './hikingCosting';
-
-describe('hikingCostingOptions (MF-08, RTE-01)', () => {
-  it('asks the router only for what was switched on, in the options it was checked with', () => {
-    expect(hikingCostingOptions(null)).toEqual({});
-    expect(hikingCostingOptions({ avoid_steps: false })).toEqual({});
-    expect(hikingCostingOptions({ avoid_climbs: true, avoid_steps: true, avoid_ferries: true })).toEqual({
-      use_hills: 0.2,
-      step_penalty: 600,
-      use_ferry: 0,
-    });
-  });
-
-  it('weighs the whole tour and one of its sections alike: the limit with the preferences (RTE-02)', () => {
-    expect(hikingCosting()).toEqual({ max_hiking_difficulty: 2 });
-    expect(hikingCosting(4, { avoid_steps: true })).toEqual({ max_hiking_difficulty: 4, step_penalty: 600 });
-  });
-});
 
 describe('HikingPreferencesField (MF-08, RTE-01)', () => {
   it('shows the three preferences in order with what each does, and switching one keeps the others', () => {

@@ -2,7 +2,9 @@ import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { Settings } from '../../db/entities/Settings.entity';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { AuditModule } from '../audit/audit.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { SettingsWritesService } from './settings-writes.service';
 import { AdminDefaultUserSettingsController, SettingsController } from './settings.controller';
 import { SettingsMcp } from './settings.mcp';
 import { SettingsService } from './settings.service';
@@ -26,9 +28,16 @@ import { Module } from '@nestjs/common';
   // `@InjectRepository(Users)`. TripMembershipModule is here for the planner
   // view row (#2639), which keeps only trips the user can still open: the
   // trips table belongs to another domain, so the ids come from its service.
-  imports: [AppConfigModule, AuditModule, TripMembershipModule, MikroOrmModule.forFeature([AppSettings, Settings])],
+  // RealtimeModule for SettingsWritesService, which tells a user's other tabs which keys changed.
+  imports: [
+    AppConfigModule,
+    AuditModule,
+    TripMembershipModule,
+    RealtimeModule,
+    MikroOrmModule.forFeature([AppSettings, Settings]),
+  ],
   controllers: [SettingsController, AdminDefaultUserSettingsController],
-  providers: [SettingsService, SettingsMcp],
+  providers: [SettingsService, SettingsWritesService, SettingsMcp],
   exports: [SettingsService],
 })
 export class SettingsModule {}

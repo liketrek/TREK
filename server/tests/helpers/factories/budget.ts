@@ -13,13 +13,17 @@ export function makeBudgetItem(
   tripId: number,
   overrides: EntityData<BudgetItems> = {},
 ): Promise<BudgetItemRow> {
-  return createRow(orm, BudgetItems, {
-    trip: tripId,
-    name: 'Test Budget Item',
-    category: 'Transport',
-    total_price: 100,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    BudgetItems,
+    {
+      trip: tripId,
+      name: 'Test Budget Item',
+      category: 'Transport',
+      total_price: 100,
+    },
+    overrides,
+  );
 }
 
 /** Adds the user to the expense's split, with an explicit share when `amount` is given. */
@@ -29,7 +33,7 @@ export function addBudgetItemMember(
   userId: number,
   overrides: EntityData<BudgetItemMembers> = {},
 ): Promise<EntityDTO<BudgetItemMembers>> {
-  return createRow(orm, BudgetItemMembers, { budgetItem: budgetItemId, user: userId, ...overrides });
+  return createRow(orm, BudgetItemMembers, { budgetItem: budgetItemId, user: userId }, overrides);
 }
 
 /** Records that the user paid `amount` of the expense. */

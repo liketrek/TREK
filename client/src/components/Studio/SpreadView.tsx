@@ -260,7 +260,10 @@ function PhotoView({ el, big, print, dropLabel }: {
           src={photoSrc(el.photoId!, big)}
           alt=""
           draggable={false}
-          loading="lazy"
+          // Lazy on the canvas, where a long book scrolls past; eager in print,
+          // where every sheet is laid out at once and a picture the browser put
+          // off is a picture missing from the PDF.
+          loading={print ? 'eager' : 'lazy'}
           style={{
             width: '100%',
             height: '100%',
@@ -376,9 +379,18 @@ function IconView({ el }: { el: BookIconElement }) {
 }
 
 export function ElementView({
-  el, big, print = false, dropLabel = '',
-}: { el: BookElement; big: boolean; print?: boolean; dropLabel?: string }) {
+  el, big, print = false, dropLabel = '', hiddenPhotoIds,
+}: {
+  el: BookElement; big: boolean; print?: boolean; dropLabel?: string
+  /** Photos drawn as empty frames instead of themselves. */
+  hiddenPhotoIds?: ReadonlySet<number>
+}) {
   if (el.kind === 'photo') {
+    // A photo left out is drawn as its empty frame, kept even in print, so the
+    // page still shows where a picture sits without showing the picture.
+    if (el.photoId != null && hiddenPhotoIds?.has(el.photoId)) {
+      return <PhotoView el={{ ...el, photoId: null }} big={big} print={false} dropLabel="" />
+    }
     return <PhotoView el={el} big={big} print={print} dropLabel={dropLabel} />
   }
 
@@ -432,6 +444,7 @@ export function SpreadView({
   showGuides = false,
   print = false,
   dropLabel = '',
+  hiddenPhotoIds,
 }: {
   spread: BookSpread
   page: BookPageSetup
@@ -447,6 +460,11 @@ export function SpreadView({
   /** The print renderer passes this: no guides, no placeholders, no chrome. */
   print?: boolean
   dropLabel?: string
+  /**
+   * Photos to leave out, drawn as empty frames: a page drawn for the
+   * assistant shows only the asking user's own photos (journey-studio.md 3.4).
+   */
+  hiddenPhotoIds?: ReadonlySet<number>
 }) {
   const isSingle = spread.role !== 'inner'
   const w = isSingle ? page.pageWidth : page.pageWidth * 2
@@ -468,7 +486,14 @@ export function SpreadView({
       }}
     >
       {spread.elements.map(el => (
-        <ElementView key={el.id} el={el} big={big} print={print} dropLabel={dropLabel} />
+        <ElementView
+          key={el.id}
+          el={el}
+          big={big}
+          print={print}
+          dropLabel={dropLabel}
+          hiddenPhotoIds={hiddenPhotoIds}
+        />
       ))}
 
       <PageNumbers spread={spread} page={page} folios={folios} />

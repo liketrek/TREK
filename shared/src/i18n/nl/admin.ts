@@ -644,6 +644,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'AI-analyse',
   'admin.addons.catalog.llm_parsing.description':
     'Leest boekingen die de ingebouwde parser niet begrijpt, met een AI-model naar keuze',
+  'admin.addons.catalog.ai_assistant.name': 'AI-assistent',
+  'admin.addons.catalog.ai_assistant.description':
+    'Een chat in elke reis die vragen beantwoordt en wijzigingen voorstelt die jij bevestigt',
   'admin.addons.llm.vision.auto': 'Automatisch',
   'admin.addons.llm.vision.on': 'Ja',
   'admin.addons.llm.vision.off': 'Nee',
@@ -974,5 +977,32 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Categorie verwijderen',
   'admin.packingTemplates.deleteCategoryConfirm': 'Categorie "{name}" en alle items erin verwijderen?',
   'admin.rotateJwt.button': 'Vernieuwen',
+  'admin.addons.ai.name': 'AI', // same-as-en
+  'admin.addons.ai.description':
+    'Eén verbinding voor de assistent en het inlezen van boekingen. Met MCP kunnen andere AI-apps TREK gebruiken.',
+  'admin.addons.ai.setup': 'AI instellen',
+  'admin.addons.ai.dialogSub': 'De verbinding die de assistent en AI-verwerking delen, en wat elk ervan mag.',
+  'admin.addons.ai.tab.connection': 'Verbinding',
+  'admin.addons.ai.parsing.readsWith': 'Leest boekingen met',
+  'admin.addons.ai.parsing.own': 'Eigen verbinding',
+  'admin.addons.ai.parsing.ownHint': 'Wordt gebruikt in plaats van de gedeelde verbinding.',
+  'admin.addons.ai.parsing.useShared': 'Gedeelde verbinding gebruiken',
+  'admin.addons.ai.parsing.sharedTag': 'Gedeeld',
+  'admin.addons.ai.parsing.perUser': 'Iedereen leest met de eigen verbinding uit de eigen instellingen.',
+  'admin.addons.ai.parsing.none':
+    'Nog geen verbinding. Stel er een in voor iedereen, of geef AI-verwerking een eigen verbinding.',
+  'admin.addons.ai.parsing.setupOwn': 'Een andere gebruiken',
+  'admin.addons.ai.parsing.installed': 'Geïnstalleerd op de server',
+  'admin.addons.ai.parsing.refresh': 'Vernieuwen',
+  'admin.addons.ai.parsing.noModels': 'Nog geen modellen geïnstalleerd. Haal er hieronder een op.',
+  'admin.addons.ai.parsing.pullTitle': 'Een aanbevolen model ophalen',
+  'admin.addons.ai.parsing.pull': 'Ophalen',
+  'admin.addons.ai.parsing.pulling': 'Ophalen…',
+  'admin.addons.ai.parsing.use': 'Gebruiken',
+  'admin.addons.ai.parsing.selected': 'Geselecteerd',
+  'admin.addons.ai.parsing.pulled': 'Model opgehaald',
+  'admin.addons.ai.parsing.pullFailed': 'Model kon niet worden opgehaald',
+  'admin.addons.ai.parsing.unreachable': 'De lokale server is niet bereikbaar',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Meestal niet nodig',
 };
 export default admin;

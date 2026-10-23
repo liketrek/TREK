@@ -90,6 +90,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loginButton': 'Inicia la sessió a TREK',
   'oauth.authorize.requestLabel': "Sol·licitud d'autorització",
   'oauth.authorize.requestDescription': 'Aquesta aplicació està sol·licitant accés al teu compte de TREK.',
+  'oauth.authorize.verifiedHost': 'Domini verificat: {host}',
   'oauth.authorize.trustNote':
     'Només atorga accés a aplicacions de confiança. Les teves dades es mantenen al teu servidor.',
   'oauth.authorize.selectScope': 'Selecciona almenys un àmbit',

@@ -9,5 +9,6 @@
     "noEmit": true,
     "strictNullChecks": true,
     "noImplicitAny": true
-  }
+  },
+  "include": ["src", "scripts/strict-typings"]
 }

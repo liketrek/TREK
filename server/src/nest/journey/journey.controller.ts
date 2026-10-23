@@ -26,7 +26,7 @@ import { StorageService } from '../storage/storage.service';
 import { journeyThumbName } from '../memories/thumbnail.service';
 import { JourneyService } from './journey.service';
 import { JourneyBookService } from './journey-book.service';
-import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
+import { JourneyPhotoCaptureService, type ProviderPhotoBatch, type ProviderPhotoTarget } from './journey-photo-capture.service';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
 import { ADDON_IDS } from '../../addons';
@@ -212,7 +212,7 @@ export class JourneyController {
 
   @Post()
   @ResponseContract(journeySchema)
-  create(@CurrentUser() user: User, @Body() body: JourneyCreateDto) {
+  create(@CurrentUser() user: User, @Body() body: JourneyCreateDto, @Headers('x-socket-id') socketId?: string) {
     if (!body.title || typeof body.title !== 'string' || !body.title.trim()) {
       throw new HttpException({ error: 'Title is required' }, 400);
     }
@@ -222,7 +222,7 @@ export class JourneyController {
       title: (body.title as string).trim(),
       subtitle: body.subtitle as string | undefined,
       trip_ids: Array.isArray(body.trip_ids) ? body.trip_ids.map(Number) : [],
-    });
+    }, socketId);
   }
 
   @Get('suggestions')
@@ -361,27 +361,33 @@ export class JourneyController {
   }
 
   @Post('entries/:entryId/provider-photos')
-  async providerPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: JourneyProviderPhotosDto) {
-    const pp = body.passphrase && typeof body.passphrase === 'string' ? body.passphrase : undefined;
+  async providerPhotos(@CurrentUser() user: User, @Param('entryId') entryId: string, @Body() body: JourneyProviderPhotosDto, @Headers('x-socket-id') socketId?: string) {
+    return this.addProviderPhotos({ entryId: Number(entryId) }, user, body, socketId);
+  }
+
+  /**
+   * Both provider-photo routes: a batch (`asset_ids`) answers what landed, a
+   * single asset answers the photo or 403 when it did not land. The adds, the
+   * event and the capture refresh are JourneyPhotoCaptureService's, as for MCP.
+   */
+  private async addProviderPhotos(target: ProviderPhotoTarget, user: User, body: JourneyProviderPhotosDto, socketId?: string) {
+    const passphrase = body.passphrase && typeof body.passphrase === 'string' ? body.passphrase : undefined;
+    // The gallery add has never stored a caption.
+    const caption = 'entryId' in target ? (body.caption as string | undefined) : undefined;
     if (Array.isArray(body.asset_ids) && body.provider) {
-      const added: unknown[] = [];
-      for (let i = 0; i < body.asset_ids.length; i++) {
-        const id = body.asset_ids[i];
-        const mt = Array.isArray(body.media_types) && body.media_types[i] === 'video' ? 'video' : 'image';
-        const photo = await this.journey.addProviderPhoto(Number(entryId), user.id, String(body.provider), String(id), body.caption as string | undefined, pp, mt);
-        if (photo) added.push(photo);
-      }
-      this.photoCapture.scheduleForEntry(Number(entryId), added, user.id);
+      const mediaTypes = Array.isArray(body.media_types) ? body.media_types : undefined;
+      const batch: ProviderPhotoBatch = { provider: String(body.provider), assetIds: body.asset_ids.map(String), mediaTypes, caption, passphrase };
+      const added = await this.photoCapture.addProviderPhotos(target, user.id, batch, socketId);
       return { photos: added, added: added.length };
     }
     if (!body.provider || !body.asset_id) {
       throw new HttpException({ error: 'provider and asset_id required' }, 400);
     }
-    const photo = await this.journey.addProviderPhoto(Number(entryId), user.id, String(body.provider), String(body.asset_id), body.caption as string | undefined, pp, body.media_type === 'video' ? 'video' : 'image');
+    const batch: ProviderPhotoBatch = { provider: String(body.provider), assetIds: [String(body.asset_id)], mediaTypes: [body.media_type], caption, passphrase };
+    const [photo] = await this.photoCapture.addProviderPhotos(target, user.id, batch, socketId);
     if (!photo) {
       throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
     }
-    this.photoCapture.scheduleForEntry(Number(entryId), [photo], user.id);
     return photo;
   }
 
@@ -522,28 +528,8 @@ export class JourneyController {
   }
 
   @Post(':id/gallery/provider-photos')
-  async galleryProviderPhotos(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyProviderPhotosDto) {
-    const pp = body.passphrase && typeof body.passphrase === 'string' ? body.passphrase : undefined;
-    if (Array.isArray(body.asset_ids) && body.provider) {
-      const added: unknown[] = [];
-      for (let i = 0; i < body.asset_ids.length; i++) {
-        const aid = body.asset_ids[i];
-        const mt = Array.isArray(body.media_types) && body.media_types[i] === 'video' ? 'video' : 'image';
-        const photo = await this.journey.addProviderPhotoToGallery(Number(id), user.id, String(body.provider), String(aid), undefined, pp, mt);
-        if (photo) added.push(photo);
-      }
-      this.photoCapture.scheduleForJourney(Number(id), added, user.id);
-      return { photos: added, added: added.length };
-    }
-    if (!body.provider || !body.asset_id) {
-      throw new HttpException({ error: 'provider and asset_id required' }, 400);
-    }
-    const photo = await this.journey.addProviderPhotoToGallery(Number(id), user.id, String(body.provider), String(body.asset_id), undefined, pp, body.media_type === 'video' ? 'video' : 'image');
-    if (!photo) {
-      throw new HttpException({ error: 'Not allowed or duplicate' }, 403);
-    }
-    this.photoCapture.scheduleForJourney(Number(id), [photo], user.id);
-    return photo;
+  async galleryProviderPhotos(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyProviderPhotosDto, @Headers('x-socket-id') socketId?: string) {
+    return this.addProviderPhotos({ journeyId: Number(id) }, user, body, socketId);
   }
 
   @Delete(':id/gallery/:journeyPhotoId')
@@ -569,8 +555,8 @@ export class JourneyController {
   }
 
   @Patch(':id')
-  async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyUpdateDto) {
-    const result = await this.journey.updateJourney(Number(id), user.id, body);
+  async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyUpdateDto, @Headers('x-socket-id') socketId?: string) {
+    const result = await this.journey.updateJourney(Number(id), user.id, body, socketId);
     if (!result) {
       throw new HttpException({ error: 'Journey not found' }, 404);
     }
@@ -580,12 +566,12 @@ export class JourneyController {
   @Post(':id/cover')
   @HttpCode(200) // Express answers cover with res.json (200).
   @UseInterceptors(FileInterceptor('cover'))
-  async cover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined) {
+  async cover(@CurrentUser() user: User, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined, @Headers('x-socket-id') socketId?: string) {
     if (!file) {
       throw new HttpException({ error: 'No file uploaded' }, 400);
     }
     await this.commitJourneyUploads([file]);
-    const result = await this.journey.updateJourney(Number(id), user.id, { cover_image: `journey/${file.filename}` });
+    const result = await this.journey.updateJourney(Number(id), user.id, { cover_image: `journey/${file.filename}` }, socketId);
     if (!result) {
       await this.discardJourneyUploads([file]);
       throw new HttpException({ error: 'Journey not found' }, 404);
@@ -595,8 +581,8 @@ export class JourneyController {
 
   @Delete(':id')
   @ResponseContract(successResponseSchema)
-  async remove(@CurrentUser() user: User, @Param('id') id: string) {
-    if (!(await this.journey.deleteJourney(Number(id), user.id))) {
+  async remove(@CurrentUser() user: User, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
+    if (!(await this.journey.deleteJourney(Number(id), user.id, socketId))) {
       throw new HttpException({ error: 'Journey not found' }, 404);
     }
     return { success: true };
@@ -618,8 +604,8 @@ export class JourneyController {
 
   @Delete(':id/trips/:tripId')
   @ResponseContract(successResponseSchema)
-  async removeTrip(@CurrentUser() user: User, @Param('id') id: string, @Param('tripId') tripId: string) {
-    if (!(await this.journey.removeTripFromJourney(Number(id), Number(tripId), user.id))) {
+  async removeTrip(@CurrentUser() user: User, @Param('id') id: string, @Param('tripId') tripId: string, @Headers('x-socket-id') socketId?: string) {
+    if (!(await this.journey.removeTripFromJourney(Number(id), Number(tripId), user.id, socketId))) {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
     return { success: true };
@@ -697,11 +683,13 @@ export class JourneyController {
     @Body() body: BookSaveDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const result = await this.books.saveBook(Number(id), user.id, {
-      title: body.title ?? '',
-      document: body.document,
-      baseVersion: body.baseVersion,
-    });
+    // The service announces the save after its commit, leaving out this tab.
+    const result = await this.books.saveBook(
+      Number(id),
+      user.id,
+      { title: body.title ?? '', document: body.document, baseVersion: body.baseVersion },
+      { socketId },
+    );
     if (result === null) {
       throw await this.bookRefusal(Number(id), user.id);
     }
@@ -719,7 +707,6 @@ export class JourneyController {
         409,
       );
     }
-    await this.books.broadcastSaved(Number(id), user.id, result.record, socketId);
     return result.record;
   }
 
@@ -806,8 +793,8 @@ export class JourneyController {
   // ── Suggestions ─────────────────────────────────────────────────────────
   @Post(':id/suggestions/restore')
   @HttpCode(200)
-  async restoreSuggestions(@CurrentUser() user: User, @Param('id') id: string) {
-    const result = await this.journey.restoreDismissedSuggestions(Number(id), user.id);
+  async restoreSuggestions(@CurrentUser() user: User, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
+    const result = await this.journey.restoreDismissedSuggestions(Number(id), user.id, socketId);
     if (!result) {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
@@ -816,8 +803,8 @@ export class JourneyController {
 
   // ── User Preferences ────────────────────────────────────────────────────
   @Patch(':id/preferences')
-  async preferences(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyPreferencesDto) {
-    const result = await this.journey.updateJourneyPreferences(Number(id), user.id, body);
+  async preferences(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyPreferencesDto, @Headers('x-socket-id') socketId?: string) {
+    const result = await this.journey.updateJourneyPreferences(Number(id), user.id, body, socketId);
     if (!result) {
       throw new HttpException({ error: 'Not allowed' }, 403);
     }

@@ -9,12 +9,14 @@ import { db as testDb } from '../../../src/db/database';
 import { CollabNotes } from '../../../src/db/entities/CollabNotes.entity';
 import { DayNotes } from '../../../src/db/entities/DayNotes.entity';
 import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { createUser, createTrip, createDay, createDayNote, createCollabNote } from '../../helpers/factories';
 import { makeTripFile } from '../../helpers/factories/files';
 import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
+import { bootTestApp } from '../../helpers/test-app';
+import { resetTestDb, setCollabFeature } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
@@ -795,5 +797,92 @@ describe('Resource: trek://trips/{tripId}/collab-notes', () => {
       const data = parseResourceResult(result) as any;
       expect(data.error).toBeTruthy();
     });
+  });
+});
+
+describe('create_collab_note, as the Collab tab posts it', () => {
+  it('MCP-COLLAB-002: notifies the fellow travellers like the route does, after the room heard of the note', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const send = vi
+      .spyOn((await bootTestApp(realtime)).get(NotificationsService), 'send')
+      .mockResolvedValue({ attempted: 0, delivered: 0 });
+    try {
+      await withHarness(user.id, async (h) => {
+        await h.client.callTool({ name: 'create_collab_note', arguments: { tripId: trip.id, title: 'Ideas' } });
+      });
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'collab:note:created', expect.any(Object));
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'collab_message',
+          actorId: user.id,
+          targetId: trip.id,
+          params: expect.objectContaining({ actor: user.username }),
+        }),
+      );
+    } finally {
+      send.mockRestore();
+    }
+  });
+});
+
+describe('Tool: list_collab_notes', () => {
+  interface ListedNote {
+    id: number;
+    title: string;
+    username: string;
+    pinned: number | null;
+    attachments: unknown[];
+  }
+
+  async function listNotes(userId: number, tripId: number) {
+    let listed: { isError?: unknown; data: unknown } = { data: null };
+    await withHarness(userId, async (h) => {
+      const result = await h.client.callTool({ name: 'list_collab_notes', arguments: { tripId } });
+      listed = { isError: result.isError, data: result.isError ? null : parseToolResult(result) };
+    });
+    return listed;
+  }
+
+  it('MCP-COLLAB-010: lists the notes of the trip, pinned first, with their author and files', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createCollabNote(testDb, trip.id, user.id, { title: 'Ideas' });
+    const pinned = createCollabNote(testDb, trip.id, user.id, { title: 'Restaurants' });
+    await updateRows(orm, CollabNotes, { id: pinned.id }, { pinned: 1 });
+    const { isError, data } = await listNotes(user.id, trip.id);
+    expect(isError).not.toBe(true);
+    const notes = (data as { notes: ListedNote[] }).notes;
+    expect(notes.map((note) => note.title)).toEqual(['Restaurants', 'Ideas']);
+    expect(notes[0]).toMatchObject({ id: pinned.id, pinned: 1, username: user.username, attachments: [] });
+  });
+
+  it('MCP-COLLAB-011: refuses a trip the user is not part of, and reads nothing', async () => {
+    const { user } = createUser(testDb);
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    createCollabNote(testDb, trip.id, owner.id, { title: 'Private' });
+    const { isError, data } = await listNotes(user.id, trip.id);
+    expect(isError).toBe(true);
+    expect(data).toBeNull();
+  });
+
+  it('MCP-COLLAB-012: is a read, offered only while the notes are switched on', async () => {
+    const { user } = createUser(testDb);
+    const names = async () => {
+      const h = await createMcpHarness({ realtime, userId: user.id, withResources: false });
+      try {
+        return (await h.client.listTools()).tools.map((tool) => [tool.name, tool.annotations?.readOnlyHint]);
+      } finally {
+        await h.cleanup();
+      }
+    };
+    expect(await names()).toContainEqual(['list_collab_notes', true]);
+    setCollabFeature(testDb, 'notes', false);
+    try {
+      expect((await names()).map(([name]) => name)).not.toContain('list_collab_notes');
+    } finally {
+      setCollabFeature(testDb, 'notes', true);
+    }
   });
 });

@@ -298,7 +298,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'DAG',
+  'journey.studio.day': 'DAG {day}',
   'journey.studio.stations': 'Etappes',
   'journey.studio.peersHere': 'hier',
   'journey.studio.folioAuto': 'Automatisch',
@@ -454,7 +454,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Markeringen',
   'journey.studio.dateMark': 'Datum',
   'journey.studio.dayMark': 'Dagteller',
-  'journey.studio.dayWord': 'DAG',
   'journey.studio.coordsMark': 'Coördinaten',
   'journey.studio.coordsDms': 'Graden',
   'journey.studio.coordsDecimal': 'Decimaal',
@@ -653,6 +652,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Naar links draaien',
   'journey.studio.rotateRight': 'Naar rechts draaien',
   'journey.studio.saveReadOnly': 'Alleen lezen, wordt niet opgeslagen',
+  'journey.studio.saveNewer': 'Een nieuwere versie van Studio heeft dit boek opgeslagen. Herlaad om het te bewerken.',
+  'journey.studio.saveReload': 'Herladen',
   'journey.studio.filterPhotos': "Foto's filteren",
   'journey.studio.filterAll': "Alle foto's",
   'journey.studio.filterLoose': 'Niet in een vermelding',
@@ -906,5 +907,15 @@ const journey: TranslationStrings = {
     'Opgenomen dagen en de stops die eruit zijn overgenomen, op dagen met een gepubliceerd verhaal. Ze tonen waar en wanneer je was, ook je verblijf.',
   'journey.share.needsMap': 'Deel de kaart om dit aan te zetten',
   'journey.editor.tags': 'Tags', // same-as-en
+  'journey.studio.assistant.toggle': 'Assistent',
+  'journey.studio.assistant.toggleHint': 'Ontwerp het boek samen met de assistent',
+  'journey.studio.assistant.panel': 'Boekassistent',
+  'journey.studio.assistant.welcome': 'Hoe moet het boek eruitzien?',
+  'journey.studio.assistant.readOnly':
+    'Je kunt dit boek alleen bekijken, dus ik beantwoord vragen maar verander niets.',
+  'journey.studio.assistant.notice':
+    'De assistent kan de pagina bekijken waaraan je werkt. Alleen die pagina gaat naar {provider}, als afbeelding met alleen de foto’s die je zelf hebt toegevoegd. Wie er op je foto’s staat, kan niet worden herkend.',
+  'journey.studio.assistant.noticeAllow': 'Pagina’s tonen',
+  'journey.studio.assistant.noticeLater': 'Niet nu',
 };
 export default journey;

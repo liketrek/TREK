@@ -11,6 +11,7 @@ import { usePlanMapViewport } from '../../hooks/usePlanMapViewport'
 import { usePaddleObstacleStore } from '../../store/paddleObstacleStore'
 import { useHighlightedRoute } from '../../components/Tours/bike/useHighlightedRoute'
 import { useLegVariantLines } from '../../components/Tours/planner/legVariantPaint'
+import { useAssistantEntityLinks } from './useAssistantEntityLinks'
 import { useMapLocationSearch } from './useMapLocationSearch'
 import { usePlannerFocusPoints } from './usePlannerFocusPoints'
 import { useTripPlanner } from './useTripPlanner'
@@ -33,8 +34,11 @@ export function useTripPlannerPage() {
 
   const canPlaceEdit = can('place_edit', trip)
   const canDayEdit = can('day_edit', trip)
+  const workspace = useTourWorkspace(planner, canPlaceEdit, canDayEdit)
   const { tourPlanner, viewImportedTour, tourGpxImport, wandererBrowser, tourConversion, recordedTrack, trackPaddlePlan, paddleChecklist, skiClassification, tourDetailActions } =
-    useTourWorkspace(planner, canPlaceEdit, canDayEdit)
+    workspace
+  // What the chat opens in another tab of this trip, and in each part's own tab.
+  useAssistantEntityLinks({ planner, workspace })
 
   const tourDetailOpenerRef = useRef<{ placeId: number; element: HTMLElement } | null>(null)
   const { focusPoints, lastPlanMapViewportRef } = usePlannerFocusPoints(activeTab, places, tourPlanner, wandererBrowser)

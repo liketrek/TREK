@@ -700,6 +700,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'Yapay zekâ ile ayrıştırma',
   'admin.addons.catalog.llm_parsing.description':
     'Yerleşik ayrıştırıcının okuyamadığı rezervasyonları, seçtiğiniz yapay zekâ modeliyle okur',
+  'admin.addons.catalog.ai_assistant.name': 'Yapay zekâ asistanı',
+  'admin.addons.catalog.ai_assistant.description':
+    'Her gezide soruları yanıtlayan ve onayladığın değişiklikleri öneren bir sohbet',
   'admin.addons.llm.vision.auto': 'Otomatik',
   'admin.addons.llm.vision.on': 'Evet',
   'admin.addons.llm.vision.off': 'Hayır',
@@ -974,5 +977,33 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Kategoriyi sil',
   'admin.packingTemplates.deleteCategoryConfirm': '"{name}" kategorisi ve tüm öğeleri silinsin mi?',
   'admin.rotateJwt.button': 'Döndür',
+  'admin.addons.ai.name': 'Yapay zekâ',
+  'admin.addons.ai.description':
+    'Asistan ve rezervasyon içe aktarma için tek bağlantı. MCP, diğer yapay zekâ uygulamalarının TREK kullanmasını sağlar.',
+  'admin.addons.ai.setup': 'Yapay zekâyı ayarla',
+  'admin.addons.ai.dialogSub':
+    'Asistanın ve yapay zekâ ayrıştırmanın paylaştığı bağlantı ve her birinin neler yapabileceği.',
+  'admin.addons.ai.tab.connection': 'Bağlantı',
+  'admin.addons.ai.parsing.readsWith': 'Rezervasyonları şununla okur',
+  'admin.addons.ai.parsing.own': 'Kendi bağlantısı',
+  'admin.addons.ai.parsing.ownHint': 'Paylaşılan bağlantının yerine kullanılır.',
+  'admin.addons.ai.parsing.useShared': 'Paylaşılan bağlantıyı kullan',
+  'admin.addons.ai.parsing.sharedTag': 'Paylaşılan',
+  'admin.addons.ai.parsing.perUser': 'Herkes kendi ayarlarındaki bağlantıyla okur.',
+  'admin.addons.ai.parsing.none':
+    'Henüz bağlantı yok. Herkes için bir tane kurun ya da yapay zekâ ayrıştırmaya kendi bağlantısını verin.',
+  'admin.addons.ai.parsing.setupOwn': 'Başka birini kullan',
+  'admin.addons.ai.parsing.installed': 'Sunucuda kurulu',
+  'admin.addons.ai.parsing.refresh': 'Yenile',
+  'admin.addons.ai.parsing.noModels': 'Henüz kurulu model yok. Aşağıdan birini indirin.',
+  'admin.addons.ai.parsing.pullTitle': 'Önerilen bir modeli indir',
+  'admin.addons.ai.parsing.pull': 'İndir',
+  'admin.addons.ai.parsing.pulling': 'İndiriliyor…',
+  'admin.addons.ai.parsing.use': 'Kullan',
+  'admin.addons.ai.parsing.selected': 'Seçildi',
+  'admin.addons.ai.parsing.pulled': 'Model indirildi',
+  'admin.addons.ai.parsing.pullFailed': 'Model indirilemedi',
+  'admin.addons.ai.parsing.unreachable': 'Yerel sunucuya ulaşılamıyor',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Çoğu zaman gerekmez',
 };
 export default admin;

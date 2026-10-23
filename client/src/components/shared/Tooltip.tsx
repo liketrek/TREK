@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import Kbd from './Kbd'
 
 type Placement = 'top' | 'bottom' | 'left' | 'right'
 
@@ -8,10 +9,12 @@ interface TooltipProps {
   placement?: Placement
   delay?: number
   disabled?: boolean
+  /** The keys that do the same, shown beside the label: ["⌘", "K"]. */
+  shortcut?: readonly string[]
   children: React.ReactElement
 }
 
-export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, children }: TooltipProps) {
+export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, shortcut, children }: TooltipProps) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
@@ -100,7 +103,12 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, ch
             transformOrigin: placement === 'top' ? 'bottom center' : placement === 'bottom' ? 'top center' : placement === 'left' ? 'center right' : 'center left',
           }}
         >
-          {label}
+          {shortcut && shortcut.length > 0 ? (
+            <span className="inline-flex items-center gap-2">
+              {label}
+              <Kbd keys={shortcut} />
+            </span>
+          ) : label}
         </div>,
         document.body,
       )}

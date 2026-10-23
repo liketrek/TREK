@@ -31,6 +31,7 @@ function makeService(overrides: Partial<Record<keyof CollectionsService, unknown
     deletePlace: vi.fn(),
     deletePlacesMany: vi.fn().mockResolvedValue([1, 2]),
     copyToTrip: vi.fn().mockResolvedValue({ copied: 1, skipped: [] }),
+    tripEvents: vi.fn((tripId: number, socketId: string | undefined) => ({ tripId, socketId })),
     findMembership: vi.fn().mockResolvedValue({ inLists: [] }),
     assertAccess: vi.fn(),
     isOwner: vi.fn().mockResolvedValue(true),
@@ -80,12 +81,13 @@ describe('CollectionsController', () => {
     const svc = makeService();
     const c = new CollectionsController(svc, new RuntimeEnvService(), storageStub);
     expect(await c.list(user)).toEqual({ collections: [], incomingInvites: [] });
-    expect(await c.create(user, { name: 'Italy' } as never)).toEqual({ id: 7 });
+    expect(await c.create(user, { name: 'Italy' } as never, 'sock')).toEqual({ id: 7 });
+    expect(svc.createCollection).toHaveBeenCalledWith(1, { name: 'Italy' }, 'sock');
     expect(await c.get(user, '3')).toEqual({ collection: { id: 3 }, places: [] });
     expect(await c.update(user, '3', { name: 'x' } as never, 'sock')).toEqual({ id: 3 });
     expect(svc.updateCollection).toHaveBeenCalledWith(1, 3, { name: 'x' }, 'sock');
-    expect(await c.remove(user, '3')).toEqual({ success: true });
-    expect(svc.deleteCollection).toHaveBeenCalledWith(1, 3);
+    expect(await c.remove(user, '3', 'sock')).toEqual({ success: true });
+    expect(svc.deleteCollection).toHaveBeenCalledWith(1, 3, 'sock');
   });
 
   describe('reorder', () => {
@@ -95,11 +97,13 @@ describe('CollectionsController', () => {
     it('reorders a valid array', async () => {
       const svc = makeService();
       expect(
-        await new CollectionsController(svc, new RuntimeEnvService(), storageStub).reorder(user, {
-          orderedIds: [3, 1, 2],
-        } as never),
+        await new CollectionsController(svc, new RuntimeEnvService(), storageStub).reorder(
+          user,
+          { orderedIds: [3, 1, 2] } as never,
+          'sock',
+        ),
       ).toEqual({ success: true });
-      expect(svc.reorderCollections).toHaveBeenCalledWith(1, [3, 1, 2]);
+      expect(svc.reorderCollections).toHaveBeenCalledWith(1, [3, 1, 2], 'sock');
     });
   });
 
@@ -117,7 +121,13 @@ describe('CollectionsController', () => {
       expect(svc.deletePlace).toHaveBeenCalledWith(1, 9, 'sid');
       await c.saveFromTrip(user, { collection_id: 3, source_trip_id: 5, source_place_id: 8 } as never, 'sid');
       expect(svc.saveFromTripPlace).toHaveBeenCalledWith(1, 3, 5, 8, undefined, 'sid');
-      expect(await c.copyToTrip(user, { trip_id: 5, place_ids: [9] } as never)).toEqual({ copied: 1, skipped: [] });
+      expect(await c.copyToTrip(user, { trip_id: 5, place_ids: [9] } as never, 'sid')).toEqual({
+        copied: 1,
+        skipped: [],
+      });
+      // The copies go to the target trip's room, past the tab that asked.
+      expect(svc.tripEvents).toHaveBeenCalledWith(5, 'sid');
+      expect(svc.copyToTrip).toHaveBeenCalledWith(1, { trip_id: 5, place_ids: [9] }, { tripId: 5, socketId: 'sid' });
     });
 
     // The legacy 'ids must be an array of numbers' 400 is gone:
@@ -191,14 +201,16 @@ describe('CollectionsController', () => {
         ),
       ).toEqual({ status: 409, body: { error: 'Already a member' } });
     });
-    it('invites successfully as owner', async () => {
+    it('invites successfully as owner, handing on the socket id', async () => {
       const svc = makeService();
       expect(
-        await new CollectionsController(svc, new RuntimeEnvService(), storageStub).invite(user, {
-          collection_id: 3,
-          user_id: 2,
-        } as never),
+        await new CollectionsController(svc, new RuntimeEnvService(), storageStub).invite(
+          user,
+          { collection_id: 3, user_id: 2 } as never,
+          'sid',
+        ),
       ).toEqual({ success: true });
+      expect(svc.sendInvite).toHaveBeenCalledWith(3, 1, user.username, 2, undefined, 'sid');
     });
     it('accept surfaces an error, else succeeds', async () => {
       const bad = makeService({ acceptInvite: vi.fn().mockRejectedValue(new DomainError(404, 'Gone')) });
@@ -241,11 +253,13 @@ describe('CollectionsController', () => {
       ).toEqual({ status: 403, body: { error: 'Only the owner can cancel invites' } });
       const svc = makeService();
       expect(
-        await new CollectionsController(svc, new RuntimeEnvService(), storageStub).cancelInvite(user, {
-          collection_id: 3,
-          user_id: 2,
-        } as never),
+        await new CollectionsController(svc, new RuntimeEnvService(), storageStub).cancelInvite(
+          user,
+          { collection_id: 3, user_id: 2 } as never,
+          'sid',
+        ),
       ).toEqual({ success: true });
+      expect(svc.cancelInvite).toHaveBeenCalledWith(3, 1, 2, 'sid');
     });
   });
 

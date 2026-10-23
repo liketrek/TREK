@@ -15,6 +15,8 @@ import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { BudgetItemsMcp } from './budget-items.mcp';
+import { BudgetWritesService } from './budget-writes.service';
 import { BudgetController } from './budget.controller';
 import { BudgetMcp } from './budget.mcp';
 import { BudgetService } from './budget.service';
@@ -25,7 +27,8 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 
 /** Budget domain (S4 — Phase 2 trip sub-domain). Registered in AppModule.
- *  BudgetMcp carries the decorator-registered MCP tools + resources.
+ *  BudgetMcp carries the decorator-registered MCP tools + resources,
+ *  BudgetItemsMcp the reads that answer with the expense rows.
  *  AuthModule is deliberately absent (BudgetMcp's demo guard reads
  *  RuntimeEnvService + the users table, not AuthService) — that absence is
  *  what lets AuthModule import BudgetModule for UserCleanupService.
@@ -57,7 +60,15 @@ import { Module } from '@nestjs/common';
     ]),
   ],
   controllers: [BudgetController],
-  providers: [BudgetService, ExchangeRatesService, BudgetMcp, ExchangeRatesRpc, CostsRpc],
+  providers: [
+    BudgetService,
+    BudgetWritesService,
+    ExchangeRatesService,
+    BudgetMcp,
+    BudgetItemsMcp,
+    ExchangeRatesRpc,
+    CostsRpc,
+  ],
   // For in-container consumers (CostsRpc, TripsService,
   // ReservationsService, BookingImportService).
   exports: [BudgetService, ExchangeRatesService],

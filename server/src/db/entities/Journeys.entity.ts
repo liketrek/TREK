@@ -1,5 +1,7 @@
 import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { JourneysRepository } from '../repositories/Journeys.repository';
+import { AssistantThreads } from './AssistantThreads.entity';
+import { JourneyBookRevisions } from './JourneyBookRevisions.entity';
 import { JourneyBooks } from './JourneyBooks.entity';
 import { JourneyContributors } from './JourneyContributors.entity';
 import { JourneyEntries } from './JourneyEntries.entity';
@@ -31,6 +33,8 @@ export class Journeys {
   status_override?: string | null;
   photo_location: number & Opt = 0;
   auto_prepare_recordings: number & Opt = 0;
+  assistant_threads_collection = new Collection<AssistantThreads>(this);
+  journey_book_revisions_collection = new Collection<JourneyBookRevisions>(this);
   journey_books_collection = new Collection<JourneyBooks>(this);
   journey_contributors_collection = new Collection<JourneyContributors>(this);
   journey_entries_collection = new Collection<JourneyEntries>(this);
@@ -64,6 +68,8 @@ export const JourneysSchema = defineEntity({
     status_override: p.text().nullable(),
     photo_location: p.integer().default(0),
     auto_prepare_recordings: p.integer().default(0),
+    assistant_threads_collection: () => p.oneToMany(AssistantThreads).mappedBy('journey').hidden(),
+    journey_book_revisions_collection: () => p.oneToMany(JourneyBookRevisions).mappedBy('journey').hidden(),
     journey_books_collection: () => p.oneToMany(JourneyBooks).mappedBy('journey').hidden(),
     journey_contributors_collection: () => p.oneToMany(JourneyContributors).mappedBy('journey').hidden(),
     journey_entries_collection: () => p.oneToMany(JourneyEntries).mappedBy('journey').hidden(),

@@ -17,6 +17,7 @@ export class CollabMessages {
   reply_to?: number | null;
   created_at?: string | null;
   deleted?: number | null = 0;
+  origin?: string | null;
   replyToRef?: Ref<CollabMessages> | null;
   collab_message_reactions_collection = new Collection<CollabMessageReactions>(this);
   collab_messages_collection = new Collection<CollabMessages>(this);
@@ -36,6 +37,7 @@ export const CollabMessagesSchema = defineEntity({
     reply_to: p.integer().nullable().persist(false).index('idx_collab_messages_reply_to'),
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     deleted: p.integer().nullable(),
+    origin: p.text().nullable(),
     replyToRef: () => p.manyToOne(CollabMessages).ref().joinColumn('reply_to').nullable().hidden().index('idx_collab_messages_reply_to'),
     collab_message_reactions_collection: () => p.oneToMany(CollabMessageReactions).mappedBy('message').hidden(),
     collab_messages_collection: () => p.oneToMany(CollabMessages).mappedBy('replyToRef').hidden(),

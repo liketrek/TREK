@@ -46,7 +46,7 @@ async function thrown(fn: () => unknown) {
 }
 
 /** Apply @RequireAddon to a throwaway class the way a controller would. */
-function decorated(addonId: string, label: string) {
+function decorated(addonId: string | readonly string[], label: string) {
   class Gated {}
   RequireAddon(addonId, label)(Gated);
   return Gated;
@@ -70,6 +70,19 @@ describe('AddonGuard', () => {
 
     expect(await guard.canActivate(ctxFor(() => {}, cls))).toBe(true);
     expect(svc.isAddonEnabled).toHaveBeenCalledWith(ADDON_IDS.COLLECTIONS);
+  });
+
+  it('ADDON-GUARD-007: a list of addons opens the route while any one of them is on', async () => {
+    const cls = decorated([ADDON_IDS.AI_ASSISTANT, ADDON_IDS.LLM_PARSING], 'AI assistant');
+    const isAddonEnabled = vi.fn(async (id: string) => id === ADDON_IDS.LLM_PARSING);
+    const guard = new AddonGuard({ isAddonEnabled } as unknown as AddonsService, new Reflector());
+    expect(await guard.canActivate(ctxFor(() => {}, cls))).toBe(true);
+
+    isAddonEnabled.mockResolvedValue(false);
+    expect(await thrown(() => guard.canActivate(ctxFor(() => {}, cls)))).toEqual({
+      status: 404,
+      body: { error: 'AI assistant addon is not enabled' },
+    });
   });
 
   it('ADDON-GUARD-003: is a no-op on a route that never asked for an addon', async () => {

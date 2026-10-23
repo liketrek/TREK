@@ -11,11 +11,13 @@ import { db as testDb } from '../../../src/db/database';
 import { CollabPollVotes } from '../../../src/db/entities/CollabPollVotes.entity';
 import { CollabPolls } from '../../../src/db/entities/CollabPolls.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { createUser, createTrip } from '../../helpers/factories';
 import { makeCollabMessage } from '../../helpers/factories/collab';
 import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { bootTestApp } from '../../helpers/test-app';
 import { resetTestDb } from '../../helpers/test-db';
 import { setAddonEnabled } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
@@ -408,7 +410,12 @@ describe('Tool: delete_collab_message', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'collab:message:deleted', expect.any(Object));
+      // Named like REST names it: the author, who is the only one allowed to delete.
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'collab:message:deleted',
+        expect.objectContaining({ messageId: Number(msgId), username: user.username }),
+      );
     });
   });
 
@@ -526,5 +533,31 @@ describe('Resource: trek://trips/{tripId}/collab/messages', () => {
       const data = parseResourceResult(result) as any;
       expect(Array.isArray(data)).toBe(true);
     });
+  });
+});
+
+describe('send_collab_message, as the chat posts it', () => {
+  it('MCP-COLLAB-001: notifies the fellow travellers with the preview a typed message gets, after the room heard it', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const send = vi
+      .spyOn((await bootTestApp(realtime)).get(NotificationsService), 'send')
+      .mockResolvedValue({ attempted: 0, delivered: 0 });
+    try {
+      await withHarness(user.id, async (h) => {
+        await h.client.callTool({ name: 'send_collab_message', arguments: { tripId: trip.id, text: 'Dinner at 8?' } });
+      });
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'collab:message:created', expect.any(Object));
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'collab_message',
+          actorId: user.id,
+          targetId: trip.id,
+          params: expect.objectContaining({ actor: user.username, preview: 'Dinner at 8?' }),
+        }),
+      );
+    } finally {
+      send.mockRestore();
+    }
   });
 });

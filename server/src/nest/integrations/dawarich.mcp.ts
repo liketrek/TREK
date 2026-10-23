@@ -13,6 +13,7 @@ import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { AcceptError, DawarichSuggestionsService } from './dawarich-suggestions.service';
 import { DawarichTracksService } from './dawarich-tracks.service';
+import { DawarichError } from './dawarich.client';
 import { idSchema } from '@trek/shared';
 
 import { z } from 'zod';
@@ -48,6 +49,9 @@ const MAX_LIMIT = 200;
  * The connection routes (settings, test, disconnect) are deliberately absent:
  * they take an API key for somebody's complete location history, and that is
  * exactly what no assistant scope should be able to read or replace.
+ *
+ * The bucket-list and Atlas twins of `/bucket-list/*` and `/atlas/*` are
+ * DawarichAtlasMcp, which the assistant loads with the Atlas.
  */
 @McpController()
 export class DawarichMcp {
@@ -251,11 +255,22 @@ export class DawarichMcp {
 
   /** The MCP echo of the controller's error shaping: a refusal, not an exception. */
   private async run<T>(action: () => Promise<T>) {
-    try {
-      return ok((await action()) as object);
-    } catch (err) {
-      if (err instanceof AcceptError) return errorResult(err.message);
-      throw err;
-    }
+    return dawarichToolResult(action);
+  }
+}
+
+/**
+ * A Dawarich tool's answer: the action's result, or a refusal in its words
+ * when it fails as the routes refuse. An instance that cannot be read is a
+ * refusal too, with TREK's own sentence for it (the upstream text stays in
+ * the error's detail, as on the route). Anything else propagates. Shared with
+ * DawarichAtlasMcp.
+ */
+export async function dawarichToolResult<T>(action: () => Promise<T>) {
+  try {
+    return ok((await action()) as object);
+  } catch (err) {
+    if (err instanceof AcceptError || err instanceof DawarichError) return errorResult(err.message);
+    throw err;
   }
 }

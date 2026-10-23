@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '../../../tests/helpers/render';
+import { render, screen, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { delay, http, HttpResponse } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -24,23 +24,20 @@ function addonsRoute(addons: ReturnType<typeof buildAddon>[]) {
   return http.get('/api/admin/addons', () => HttpResponse.json({ addons }));
 }
 
-function llmAddon(config: Record<string, unknown> = {}) {
+function llmAddon(config: Record<string, unknown> = {}, enabled = true) {
   return buildAddon({
     id: 'llm_parsing',
     name: 'AI Parsing',
     description: 'Extract bookings from files',
     icon: 'Sparkles',
     type: 'integration',
-    enabled: true,
+    enabled,
     config,
   });
 }
 
-function modelsRoute(names: string[], seen?: (string | null)[]) {
-  return http.get('/api/admin/llm/local/models', ({ request }) => {
-    seen?.push(new URL(request.url).searchParams.get('baseUrl'));
-    return HttpResponse.json({ models: names.map(name => ({ name, size: 1 })) });
-  });
+function aiAddon(id: string, name: string, enabled: boolean) {
+  return buildAddon({ id, name, icon: id === 'mcp' ? 'Terminal' : 'Sparkles', type: 'integration', enabled });
 }
 
 /** Every switch is labelled with the thing it controls, top-level tile or shelf
@@ -576,286 +573,55 @@ describe('AddonManager', () => {
     expect(links.getAttribute('title')).not.toBe('No shared links yet');
   });
 
-  it('FE-ADMIN-ADDON-020: a disabled AI-parsing addon renders the row without its config block', async () => {
-    server.use(addonsRoute([{ ...llmAddon({ provider: 'local' }), enabled: false }]));
-    render(<AddonManager />);
-
-    await screen.findByText('AI Parsing');
-    // The catalog key now exists, so the tile shows the translation rather than falling
-    // back to the English description the server sent.
-    expect(screen.getByText('Reads bookings the built-in parser cannot, using an AI model you choose')).toBeInTheDocument();
-    expect(screen.queryByText('Provider')).not.toBeInTheDocument();
-  });
-
-  it('FE-ADMIN-ADDON-020b: the config lives in the tile shelf, not as a band below the grid', async () => {
-    server.use(addonsRoute([llmAddon({ provider: 'openai' })]));
-    render(<AddonManager />);
-
-    const label = await screen.findByText('Provider');
-    // Inside the AI Parsing tile's <article>, like the collab toggles sit in theirs.
-    const tile = label.closest('article');
-    expect(tile).not.toBeNull();
-    expect(tile!.textContent).toContain('AI Parsing');
-  });
-
-  it('FE-ADMIN-ADDON-021: the local provider lists installed models and a chip fills the model field', async () => {
-    const user = userEvent.setup();
-    const urls: (string | null)[] = [];
-    server.use(addonsRoute([llmAddon({ provider: 'local' })]), modelsRoute(['qwen3.5:4b', 'llama3:8b'], urls));
-    render(<AddonManager />);
-
-    await screen.findByText('Installed on the server');
-    await screen.findByRole('button', { name: 'llama3:8b' });
-    expect(urls[0]).toBe('http://localhost:11434/v1');
-
-    await user.click(screen.getByRole('button', { name: 'llama3:8b' }));
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('llama3:8b');
-
-    // qwen3.5:4b is already installed, so the recommended row offers "Use" instead of "Pull"
-    await user.click(screen.getByRole('button', { name: 'Use' }));
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3.5:4b');
-    expect(screen.getByRole('button', { name: 'Selected' })).toBeDisabled();
-  });
-
-  it('FE-ADMIN-ADDON-022: an unreachable Ollama shows the error and Refresh retries', async () => {
-    const user = userEvent.setup();
-    let calls = 0;
+  it('FE-ADMIN-ADDON-020: the AI addons head the integration column as one tile with a switch each', async () => {
     server.use(
-      addonsRoute([llmAddon({ provider: 'local' })]),
-      http.get('/api/admin/llm/local/models', () => {
-        calls += 1;
-        return calls === 1
-          ? HttpResponse.json({ error: 'down' }, { status: 500 })
-          : HttpResponse.json({ models: [] });
-      }),
+      addonsRoute([
+        aiAddon('mcp', 'MCP', false),
+        llmAddon({}, false),
+        aiAddon('ai_assistant', 'AI Assistant', false),
+        buildAddon({ id: 'airtrail', name: 'AirTrail', type: 'integration', icon: 'Plane' }),
+      ]),
     );
     render(<AddonManager />);
 
-    // The server's reason is shown, not axios' status line (#2649)
-    await screen.findByText('down');
-    expect(screen.queryByText(/Request failed with status code/)).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Refresh' }));
-    await screen.findByText('No models installed yet — pull one below.');
-    expect(calls).toBe(2);
+    const tile = (await screen.findByText('AI')).closest('article') as HTMLElement;
+    const switches = within(tile).getAllByRole('button').map((b) => b.getAttribute('aria-label'));
+    // In the tile's order, whatever order the server sent them in.
+    expect(switches).toEqual(['AI Assistant', 'AI Parsing', 'MCP']);
+    expect(within(tile).getByText('0/3')).toBeInTheDocument();
+    // Their own icons, keyed by id: the icon column of an install still says Sparkles or Terminal.
+    expect(tile.querySelector('svg.lucide-messages-square')).toBeInTheDocument();
+    expect(tile.querySelector('svg.lucide-scan-text')).toBeInTheDocument();
+    expect(tile.querySelector('svg.lucide-cable')).toBeInTheDocument();
+    // Nothing to set up while neither the assistant nor parsing is on.
+    expect(within(tile).queryByRole('button', { name: 'Set up AI' })).toBeNull();
+    // AirTrail is still its own tile in the same column.
+    expect(screen.getByText('AirTrail').closest('article')).not.toBe(tile);
   });
 
-  it('FE-ADMIN-ADDON-023: switching providers swaps the base URL field, the model hint and the Ollama block', async () => {
+  it('FE-ADMIN-ADDON-021: with parsing on, the tile offers the settings dialog, which closes again', async () => {
     const user = userEvent.setup();
-    const urls: (string | null)[] = [];
-    server.use(addonsRoute([llmAddon({ provider: 'local', apiKey: '••••••••' })]), modelsRoute([], urls));
+    server.use(
+      addonsRoute([llmAddon({}), aiAddon('ai_assistant', 'AI Assistant', false), aiAddon('mcp', 'MCP', true)]),
+      http.get('/api/admin/ai/settings', () =>
+        HttpResponse.json({ policy: 'instance_or_user', dailyTurns: 50, retention: { mode: 'days', days: 90 } }),
+      ),
+      http.get('/api/admin/ai/connection', () => HttpResponse.json({ connection: null, prefill: null })),
+      http.get('/api/ai/status', () => HttpResponse.json({ error: 'not needed' }, { status: 404 })),
+    );
     render(<AddonManager />);
 
-    await screen.findByText('Installed on the server');
-    expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
-
-    // A hand-typed base URL is used for the next lookup on blur
-    await user.type(screen.getByPlaceholderText('http://localhost:11434/v1'), 'http://ollama.lan:11434/v1');
-    await user.tab();
-    await waitFor(() => expect(urls).toContain('http://ollama.lan:11434/v1'));
-
-    await user.click(screen.getByRole('button', { name: /Local · OpenAI-compatible/ }));
-    await user.click(screen.getByRole('button', { name: 'OpenAI' }));
-    expect(screen.getByPlaceholderText('https://api.openai.com/v1')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('gpt-4o')).toBeInTheDocument();
-    expect(screen.queryByText('Installed on the server')).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'OpenAI' }));
-    await user.click(screen.getByRole('button', { name: 'Anthropic' }));
-    expect(screen.queryByPlaceholderText('https://api.openai.com/v1')).not.toBeInTheDocument();
-    // A gateway can stand in for Anthropic too, so the field stays (#2655).
-    expect(screen.getByPlaceholderText('https://api.anthropic.com')).toHaveValue('');
-    expect(screen.getByPlaceholderText('claude-opus-4-8')).toBeInTheDocument();
-    expect(screen.getByText(/Anthropic reads PDFs/)).toBeInTheDocument();
+    const tile = (await screen.findByText('AI')).closest('article') as HTMLElement;
+    expect(within(tile).getByText('2/3')).toBeInTheDocument();
+    await user.click(within(tile).getByRole('button', { name: 'Set up AI' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('button', { name: 'AI Parsing' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'AI Assistant' })).toBeNull();
+    const closes = within(dialog).getAllByRole('button', { name: 'Close' });
+    await user.click(closes[closes.length - 1]);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
-  it('FE-ADMIN-ADDON-024: pulling a model streams progress and then selects it', async () => {
-    const user = userEvent.setup();
-    let pulled: unknown = null;
-    let modelCalls = 0;
-    server.use(
-      addonsRoute([llmAddon({ provider: 'local' })]),
-      http.get('/api/admin/llm/local/models', () => {
-        modelCalls += 1;
-        return HttpResponse.json({ models: modelCalls === 1 ? [] : [{ name: 'qwen3.5:4b', size: 1 }] });
-      }),
-      http.post('/api/admin/llm/local/pull', async ({ request }) => {
-        pulled = await request.json();
-        await delay(150);
-        return new HttpResponse(
-          '{"status":"pulling manifest"}\n{"status":"downloading","total":100,"completed":40}\nnot-json\n',
-          { headers: { 'Content-Type': 'application/x-ndjson' } },
-        );
-      }),
-    );
-    render(<><ToastContainer /><AddonManager /></>);
-
-    await screen.findByText('No models installed yet — pull one below.');
-    await user.click(screen.getByRole('button', { name: 'Pull' }));
-
-    await screen.findByText('Pulling…');
-    expect(screen.getByText('starting…')).toBeInTheDocument();
-
-    await screen.findByText('Model pulled');
-    expect(pulled).toEqual({ baseUrl: 'http://localhost:11434/v1', model: 'qwen3.5:4b' });
-    expect(screen.getByPlaceholderText('select or pull below')).toHaveValue('qwen3.5:4b');
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Selected' })).toBeDisabled());
-  });
-
-  it('FE-ADMIN-ADDON-025: a failing pull surfaces the server error and saving reports both outcomes', async () => {
-    const user = userEvent.setup();
-    const bodies: unknown[] = [];
-    server.use(
-      addonsRoute([llmAddon({ provider: 'local', model: 'qwen3:8b', baseUrl: '', apiKey: '••••••••', multimodal: true })]),
-      modelsRoute([]),
-      http.post('/api/admin/llm/local/pull', () => HttpResponse.json({ error: 'no disk space' }, { status: 500 })),
-      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
-        bodies.push(await request.json());
-        return bodies.length === 1 ? HttpResponse.json({ success: true }) : HttpResponse.error();
-      }),
-    );
-    render(<><ToastContainer /><AddonManager /></>);
-
-    await screen.findByText('No models installed yet — pull one below.');
-    await user.click(screen.getByRole('button', { name: 'Pull' }));
-    await screen.findByText('no disk space');
-    expect(screen.getByRole('button', { name: 'Pull' })).toBeEnabled();
-
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-    await screen.findByText('Saved');
-    expect(bodies[0]).toEqual({
-      config: { provider: 'local', model: 'qwen3:8b', baseUrl: '', apiKey: '••••••••', vision: 'auto' },
-    });
-
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-    await screen.findByText('Failed to save');
-  });
-
-  it('FE-ADMIN-ADDON-026: model and API key are editable and their hints follow the provider', async () => {
-    const user = userEvent.setup();
-    const bodies: unknown[] = [];
-    server.use(
-      addonsRoute([llmAddon({ provider: 'local' })]),
-      modelsRoute([]),
-      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
-        bodies.push(await request.json());
-        return HttpResponse.json({ success: true });
-      }),
-    );
-    render(<><ToastContainer /><AddonManager /></>);
-
-    await screen.findByText('Installed on the server');
-    expect(screen.getByPlaceholderText('(often not required)')).toBeInTheDocument();
-
-    await user.type(screen.getByPlaceholderText('select or pull below'), ' mistral:7b ');
-    await user.type(screen.getByPlaceholderText('(often not required)'), 'sk-live');
-
-    await user.click(screen.getByRole('button', { name: /Local · OpenAI-compatible/ }));
-    await user.click(screen.getByRole('button', { name: 'OpenAI' }));
-    expect(screen.getByPlaceholderText('sk-…')).toHaveValue('sk-live');
-
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-    await screen.findByText('Saved');
-    // The model is trimmed before it is stored, the key is sent verbatim
-    expect(bodies[0]).toEqual({
-      config: { provider: 'openai', model: 'mistral:7b', baseUrl: '', apiKey: 'sk-live', vision: 'auto' },
-    });
-  });
-
-  it('FE-ADMIN-ADDON-029: switching to Anthropic clears a stale base URL before saving', async () => {
-    const user = userEvent.setup();
-    const bodies: unknown[] = [];
-    server.use(
-      addonsRoute([llmAddon({ provider: 'local', model: '', baseUrl: 'http://ollama.lan:11434/v1', apiKey: '', multimodal: false })]),
-      modelsRoute([]),
-      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
-        bodies.push(await request.json());
-        return HttpResponse.json({ success: true });
-      }),
-    );
-    render(<><ToastContainer /><AddonManager /></>);
-
-    await screen.findByText('Installed on the server');
-
-    await user.click(screen.getByRole('button', { name: /Local · OpenAI-compatible/ }));
-    await user.click(screen.getByRole('button', { name: 'Anthropic' }));
-    await user.type(screen.getByPlaceholderText('claude-opus-4-8'), 'claude-haiku-4-5-20251001');
-    await user.type(screen.getByPlaceholderText('sk-…'), 'sk-ant-live');
-
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-    await screen.findByText('Saved');
-    // The stale local base URL must not ride along to Anthropic — it would hijack the endpoint.
-    expect(bodies[0]).toEqual({
-      config: { provider: 'anthropic', model: 'claude-haiku-4-5-20251001', baseUrl: '', apiKey: 'sk-ant-live', vision: 'auto' },
-    });
-  });
-
-  it('FE-ADMIN-ADDON-038: whether the model reads images is auto, on or off, kept as stored and saved as chosen', async () => {
-    const user = userEvent.setup();
-    const bodies: unknown[] = [];
-    server.use(
-      addonsRoute([llmAddon({ provider: 'openai', model: 'gpt-4.1-mini', baseUrl: '', apiKey: 'sk', vision: 'off' })]),
-      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
-        bodies.push(await request.json());
-        return HttpResponse.json({ success: true });
-      }),
-    );
-    render(<><ToastContainer /><AddonManager /></>);
-
-    // Stored off stays off; a cloud provider is told what Automatic means for it.
-    await user.click(await screen.findByRole('button', { name: 'No' }));
-    expect(screen.getByText('Automatic means no for a cloud model. Choose Yes if this model reads images.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Yes' }));
-
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-    await screen.findByText('Saved');
-    expect(bodies[0]).toMatchObject({ config: { provider: 'openai', vision: 'on' } });
-    expect(bodies[0]).not.toHaveProperty('config.multimodal');
-  });
-
-  it('FE-ADMIN-ADDON-039: with the local provider the hint says Automatic asks the server', async () => {
-    server.use(addonsRoute([llmAddon({ provider: 'local', model: 'qwen3.5:4b' })]), modelsRoute([]));
-    render(<AddonManager />);
-    expect(await screen.findByText('Automatic asks the Ollama server whether this model reads images.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Automatic' })).toBeInTheDocument();
-  });
-
-  it('FE-ADMIN-ADDON-027: an error frame in the pull stream aborts the pull and is reported', async () => {
-    const user = userEvent.setup();
-    server.use(
-      addonsRoute([llmAddon({ provider: 'local' })]),
-      modelsRoute([]),
-      http.post('/api/admin/llm/local/pull', () => new HttpResponse(
-        '{"status":"pulling manifest"}\n{"error":"manifest not found"}\n',
-        { headers: { 'Content-Type': 'application/x-ndjson' } },
-      )),
-    );
-    render(<><ToastContainer /><AddonManager /></>);
-
-    await screen.findByText('No models installed yet — pull one below.');
-    await user.click(screen.getByRole('button', { name: 'Pull' }));
-
-    await screen.findByText('manifest not found');
-    expect(screen.queryByText('Model pulled')).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Pull' })).toBeEnabled());
-    expect(screen.queryByText('Pulling…')).not.toBeInTheDocument();
-  });
-
-  it('FE-ADMIN-ADDON-028: blurring the base URL under a cloud provider queries no local models', async () => {
-    const user = userEvent.setup();
-    const urls: (string | null)[] = [];
-    server.use(addonsRoute([llmAddon({ provider: 'openai' })]), modelsRoute([], urls));
-    render(<AddonManager />);
-
-    await screen.findByText('Provider');
-    expect(screen.queryByText('Installed on the server')).not.toBeInTheDocument();
-
-    await user.type(screen.getByPlaceholderText('https://api.openai.com/v1'), 'https://proxy.local/v1');
-    await user.tab();
-
-    await waitFor(() => expect(screen.getByDisplayValue('https://proxy.local/v1')).toBeInTheDocument());
-    expect(urls).toHaveLength(0);
-  });
   it('FE-ADMIN-ADDON-040: a shelf of several options starts folded and says how many there are and how many are on', async () => {
     server.use(addonsRoute([buildAddon({ id: 'collab', name: 'Collab', enabled: true })]));
     render(
@@ -901,6 +667,10 @@ describe('AddonManager', () => {
       </>
     );
 
+    // Folded like Collab's and Documents' options until the bar is opened.
+    await screen.findByRole('button', { name: /\d+ options?/, expanded: false });
+    expect(screen.queryByRole('button', { name: 'wanderer' })).not.toBeInTheDocument();
+    await unfoldShelves();
     const toggle = await screen.findByRole('button', { name: 'wanderer' });
     expect(isOn(toggle)).toBe(false);
     await userEvent.click(toggle);
@@ -921,6 +691,7 @@ describe('AddonManager', () => {
       </>
     );
 
+    await unfoldShelves();
     await userEvent.click(await screen.findByRole('button', { name: 'wanderer' }));
 
     await waitFor(() => expect(isOn(screen.getByRole('button', { name: 'wanderer' }))).toBe(false));

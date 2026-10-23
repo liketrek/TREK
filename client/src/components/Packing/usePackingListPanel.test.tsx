@@ -11,6 +11,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useTripStore } from '../../store/tripStore'
 import { useAddonStore } from '../../store/addonStore'
 import { usePermissionsStore } from '../../store/permissionsStore'
+import { addListener } from '../../api/websocket'
 import { usePackingList, type PackingListPanelProps } from './usePackingListPanel'
 import type { PackingItem } from '../../types'
 
@@ -82,6 +83,31 @@ describe('usePackingList — members & assignees', () => {
 
     await settled()
     expect(result.current.tripMembers).toEqual([])
+  })
+
+  it('FE-BCAST-024: a traveller added or renamed elsewhere reaches the pickers, one read per burst', async () => {
+    vi.mocked(addListener).mockClear()
+    let calls = 0
+    server.use(
+      http.get('/api/trips/:id/members', () => {
+        calls++
+        return HttpResponse.json({
+          owner: { id: 1, username: 'owner', avatar_url: null },
+          members: calls > 1 ? [{ id: 2, username: 'Ana', avatar_url: null, is_guest: 1 }] : [],
+        })
+      }),
+    )
+    const { result } = renderPanel()
+    await waitFor(() => expect(result.current.tripMembers).toHaveLength(1))
+
+    act(() => {
+      for (const [listener] of vi.mocked(addListener).mock.calls) {
+        listener({ type: 'member:added', member: { id: 2 } })
+        listener({ type: 'member:updated', member: { id: 2, username: 'Ana' } })
+      }
+    })
+    await waitFor(() => expect(result.current.tripMembers.map((m) => m.username)).toEqual(['owner', 'Ana']))
+    expect(calls).toBe(2)
   })
 
   it('FE-W5HOOK-004: an assignee response without a map falls back to an empty record', async () => {

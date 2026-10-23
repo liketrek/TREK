@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'Selecteer eerst een dag',
   'trip.toast.assignedToDay': 'Plaats toegewezen aan dag',
   'trip.toast.loadError': 'Kan de reis niet laden',
+  'trip.toast.accessLost': 'Je bent geen lid meer van deze reis',
   'trip.toast.reorderError': 'Herordenen mislukt',
   'trip.toast.reservationUpdated': 'Reservering bijgewerkt',
   'trip.toast.reservationAdded': 'Reservering toegevoegd',

@@ -2,8 +2,9 @@ import type { User } from '../../types';
 import { isUpdateConflict } from '../common/conflictResult';
 import { DomainError } from '../common/domain-error';
 import { requireTripWrite, type TripWriter } from '../common/trip-writer';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { PackingService, isInvalidBagRef } from './packing.service';
+import { PackingService, isInvalidBagRef, type PackingVisibility } from './packing.service';
 import { Injectable } from '@nestjs/common';
 import type { TrekWsPayload } from '@trek/shared';
 
@@ -18,6 +19,12 @@ type PrivacyItem = { is_private?: number; owner_id?: number | null; recipients?:
 const itemNotFound = () => new DomainError(404, 'Item not found', { mcpMessage: 'Packing item not found.' });
 // The payload named a bag that is not on this trip (#2154): 400, as on create.
 const bagNotFound = () => new DomainError(400, 'Bag not found', { mcpMessage: 'Bag not found.' });
+// The path named a bag that is not on this trip: 404, as every bag route answers it.
+const bagMissing = () => new DomainError(404, 'Bag not found', { mcpMessage: 'Bag not found.' });
+const ownerOnly = () =>
+  new DomainError(403, 'Only the owner can change sharing', { mcpMessage: 'Only the owner can change sharing.' });
+const templateMissing = () =>
+  new DomainError(404, 'Template not found or empty', { mcpMessage: 'Template not found.' });
 
 /** Writes that can move a bag's weight, the only ones worth a bag-totals ping (#2191). */
 const WEIGHT_KEYS = ['weight_grams', 'quantity', 'bag_id'];
@@ -36,12 +43,20 @@ const WEIGHT_KEYS = ['weight_grams', 'quantity', 'bag_id'];
  * (PackingService.broadcastUpdate), and its owner plus recipients on MCP. Which
  * of the two is right is a product decision; until it is made, each surface
  * keeps the routing it had.
+ *
+ * The list writes below the item ones (sharing, order, bag delete, category
+ * assignees, templates) came here where the two surfaces had drifted apart:
+ * the REST reorder told nobody, the MCP sharing change pinged bag totals it
+ * cannot move, the MCP bag delete reported success for a bag that was not
+ * there, the MCP assignee change told none of the tagged travellers, and a
+ * template applied over MCP always landed on the common list.
  */
 @Injectable()
 export class PackingWritesService {
   constructor(
     private readonly packing: PackingService,
     private readonly permissions: PermissionsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -143,5 +158,80 @@ export class PackingWritesService {
     writer.events.emit('packing:deleted', { itemId }, this.packing.viewersOf(deleted));
     this.packing.broadcastBagTotals(String(tripId));
     return deleted;
+  }
+
+  /**
+   * Move an item between the sharing tiers (#858). Only its owner may; an item
+   * nobody owns yet is claimed by the writer. Visibility moves no weight, so
+   * there is no bag-totals ping.
+   */
+  async setSharing(
+    tripId: string | number,
+    itemId: number,
+    visibility: PackingVisibility,
+    recipientIds: number[],
+    writer: TripWriter,
+  ) {
+    await this.gate(tripId, writer);
+    const item = await this.packing.setItemSharing(tripId, itemId, writer.userId, visibility, recipientIds);
+    if (!item) throw itemNotFound();
+    if ((item as { forbidden?: boolean }).forbidden) throw ownerOnly();
+    // The viewer set just changed: off the whole room's screens first, then back
+    // to whoever may see it now (owner and recipients, or the room for Common).
+    writer.events.emit('packing:deleted', { itemId });
+    writer.events.emit('packing:created', { item } as TrekWsPayload<'packing:created'>, this.packing.viewersOf(item));
+    return item;
+  }
+
+  /** The list's new order, for every other tab on both surfaces. */
+  async reorder(tripId: string | number, orderedIds: number[], writer: TripWriter) {
+    await this.gate(tripId, writer);
+    await this.packing.reorderItems(tripId, orderedIds);
+    writer.events.emit('packing:reordered', { orderedIds });
+  }
+
+  /** Delete a bag; a bag that is not on the trip is refused and announced to nobody. */
+  async deleteBag(tripId: string | number, bagId: number, writer: TripWriter) {
+    await this.gate(tripId, writer);
+    if (!(await this.packing.deleteBag(tripId, bagId))) throw bagMissing();
+    writer.events.emit('packing:bag-deleted', { bagId });
+    // bag_id is ON DELETE SET NULL, so everything that was in it just landed in
+    // the unassigned pile: both figures moved (#2191).
+    this.packing.broadcastBagTotals(String(tripId));
+  }
+
+  /**
+   * Who looks after a packing category. The tagged travellers are notified on
+   * every surface, the way the route always notified them.
+   */
+  async setCategoryAssignees(tripId: string | number, category: string, userIds: number[], writer: TripWriter) {
+    await this.gate(tripId, writer);
+    const assignees = await this.packing.updateCategoryAssignees(tripId, category, userIds);
+    writer.events.emit('packing:assignees', { category, assignees });
+    if (userIds.length > 0) {
+      // The notification names its actor by name. A writer carries only the id,
+      // so the name is read here; an account that is gone notifies nobody.
+      const username = await this.notifications.actorName(writer.userId);
+      if (username) await this.packing.notifyTagged(String(tripId), { id: writer.userId, username }, category, userIds);
+    }
+    return assignees;
+  }
+
+  /**
+   * Add a template's items to the list, on the common list or as the writer's
+   * own. Personal items reach their owner alone, common ones the room (#858).
+   */
+  async applyTemplate(
+    tripId: string | number,
+    templateId: number,
+    visibility: 'common' | 'personal',
+    writer: TripWriter,
+  ) {
+    await this.gate(tripId, writer);
+    const items = await this.packing.applyTemplate(tripId, templateId, visibility, writer.userId);
+    if (!items) throw templateMissing();
+    writer.events.emit('packing:template-applied', { items }, this.packing.viewersOf(items[0]));
+    this.packing.broadcastBagTotals(String(tripId));
+    return items;
   }
 }

@@ -5,7 +5,8 @@ import { useVacayStore } from '../../../store/vacayStore'
 import { useAuthStore } from '../../../store/authStore'
 import { useTranslation } from '../../../i18n'
 import { currentPeriodYear, windowMonths } from '../../../vacay/yearWindow'
-import { FALLBACK_PERSON_COLOR, localDateStr, type DayVisualContext } from './vacayDayModel'
+import { localDateStr } from '../../../vacay/monthGrid'
+import { FALLBACK_PERSON_COLOR, type DayVisualContext } from './vacayDayModel'
 import { useVacayShareActions } from '../../../components/Vacay/useVacayShareActions'
 import {
   useDefaultVacayPerson, useVacayCalendarLogic, vacayWindowShape, type VacayMode,

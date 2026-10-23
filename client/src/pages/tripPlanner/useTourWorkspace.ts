@@ -167,6 +167,8 @@ export function useTourWorkspace(planner: TripPlanner, canPlaceEdit: boolean, ca
   return {
     tourPlanner,
     viewImportedTour,
+    // A saved tour opened in the editor, or shown as it came in; the chat's `?tour=` link opens it this way.
+    openTourInPlanner,
     tourGpxImport,
     wandererBrowser,
     tourConversion,

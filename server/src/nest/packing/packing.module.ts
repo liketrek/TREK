@@ -11,6 +11,7 @@ import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { AddonsModule } from '../addons/addons.module';
 import { AuditModule } from '../audit/audit.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
+import { MailerModule } from '../notifications/mailer/mailer.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RealtimeModule } from '../realtime/realtime.module';
@@ -45,6 +46,8 @@ import { Module } from '@nestjs/common';
     ]),
     McpSharedModule,
     NotificationsModule,
+    // The actor's email for the category assignee notification (PackingWritesService).
+    MailerModule,
     PermissionsModule,
     RealtimeModule,
     PluginGuardsModule,

@@ -302,7 +302,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'DEN',
+  'journey.studio.day': 'DEN {day}',
   'journey.studio.stations': 'Zastávky',
   'journey.studio.peersHere': 'zde',
   'journey.studio.folioAuto': 'Automaticky',
@@ -458,7 +458,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Značky',
   'journey.studio.dateMark': 'Datum',
   'journey.studio.dayMark': 'Počítadlo dní',
-  'journey.studio.dayWord': 'DEN',
   'journey.studio.coordsMark': 'Souřadnice',
   'journey.studio.coordsDms': 'Stupně',
   'journey.studio.coordsDecimal': 'Desetinné',
@@ -656,6 +655,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Otočit doleva',
   'journey.studio.rotateRight': 'Otočit doprava',
   'journey.studio.saveReadOnly': 'Jen ke čtení, neukládá se',
+  'journey.studio.saveNewer': 'Tuto knihu uložila novější verze aplikace Studio. Pro úpravy ji načtěte znovu.',
+  'journey.studio.saveReload': 'Načíst znovu',
   'journey.studio.filterPhotos': 'Filtrovat fotografie',
   'journey.studio.filterAll': 'Všechny fotografie',
   'journey.studio.filterLoose': 'Bez záznamu',
@@ -916,5 +917,14 @@ const journey: TranslationStrings = {
     'Zaznamenané dny a zastávky z nich převzaté, u dnů se zveřejněným záznamem. Ukazují, kde a kdy jste byli, i vaše ubytování.',
   'journey.share.needsMap': 'Pro zapnutí sdílejte mapu',
   'journey.editor.tags': 'Štítky',
+  'journey.studio.assistant.toggle': 'Asistent',
+  'journey.studio.assistant.toggleHint': 'Navrhněte knihu společně s asistentem',
+  'journey.studio.assistant.panel': 'Asistent knihy',
+  'journey.studio.assistant.welcome': 'Jak má kniha vypadat?',
+  'journey.studio.assistant.readOnly': 'Tuhle knihu můžeš jen prohlížet, takže odpovím na otázky, ale nic nezměním.',
+  'journey.studio.assistant.notice':
+    'Asistent se může podívat na stránku, na které pracujete. Na {provider} jde jen tato stránka, jako obrázek, na kterém jsou jen fotky, které jste přidali sami. Kdo je na vašich fotkách, nelze rozpoznat.',
+  'journey.studio.assistant.noticeAllow': 'Ukázat stránky',
+  'journey.studio.assistant.noticeLater': 'Teď ne',
 };
 export default journey;

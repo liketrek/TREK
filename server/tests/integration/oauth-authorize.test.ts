@@ -18,6 +18,7 @@ import { OauthTokens } from '../../src/db/entities/OauthTokens.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { AuditService } from '../../src/nest/audit/audit.service';
 import { UnitOfWork } from '../../src/nest/database/unit-of-work';
+import { CimdClientResolver } from '../../src/nest/oauth/oauth-cimd';
 import { OauthService } from '../../src/nest/oauth/oauth.service';
 import { createUser } from '../helpers/factories';
 import { upsertRow } from '../helpers/factories/rows';
@@ -96,6 +97,7 @@ beforeAll(async () => {
     await createTestAddonsService(testDb),
     new AuditService(t.repo(AuditLog), t.repo(Users)),
     new UnitOfWork(t.em),
+    nestApp.get(CimdClientResolver),
   );
 });
 

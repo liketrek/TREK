@@ -687,7 +687,7 @@ export class VacayService {
   // Invitations
   // -------------------------------------------------------------------------
 
-  async sendInvite(planId: number, inviterId: number, inviterUsername: string, targetUserId: number): Promise<void> {
+  async sendInvite(planId: number, inviterId: number, inviterName: string, targetUserId: number, socketId?: string) {
     if (targetUserId === inviterId) throw new DomainError(400, 'Cannot invite yourself');
 
     // The picker no longer offers guests, but the id arrives from the client, so the
@@ -706,20 +706,18 @@ export class VacayService {
 
     await this.members.insertPending(planId, targetUserId);
 
-    try {
-      this.realtime.broadcastToUser(targetUserId, {
-        type: 'vacay:invite',
-        from: { id: inviterId, username: inviterUsername },
-        planId,
-      });
-    } catch { /* websocket not available */ }
+    const from = { id: inviterId, username: inviterName };
+    this.realtime.broadcastToUser(targetUserId, { type: 'vacay:invite', from, planId });
+    // The plan's own tabs list the pending invite too: vacay:settings reads the plan again.
+    const planUserIds = (await this.getPlanUsers(planId)).map(u => u.id);
+    planUserIds.forEach(id => this.realtime.broadcastToUser(id, { type: 'vacay:settings' }, socketId));
 
     // Notify invited user
     // Injected, not a lazy import of the old notifications bridge. The laziness bought
     // nothing the module graph does not already give — NotificationsModule
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
-    this.notifications.send({ event: 'vacay_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterUsername, planId: String(planId) } }).catch(() => {});
+    this.notifications.send({ event: 'vacay_invite', actorId: inviterId, scope: 'user', targetId: targetUserId, params: { actor: inviterName, planId: String(planId) } }).catch(() => {});
   }
 
   async acceptInvite(userId: number, planId: number, socketId: string | undefined): Promise<void> {
@@ -777,14 +775,14 @@ export class VacayService {
   async declineInvite(userId: number, planId: number, socketId: string | undefined): Promise<void> {
     await this.members.deletePending(planId, userId);
     await this.notifyPlanUsers(planId, socketId, 'vacay:declined');
+    this.realtime.broadcastToUser(userId, { type: 'vacay:declined' }, socketId); // the decliner's tabs too
   }
 
-  async cancelInvite(planId: number, targetUserId: number): Promise<void> {
+  async cancelInvite(planId: number, targetUserId: number, socketId?: string): Promise<void> {
     await this.members.deletePending(planId, targetUserId);
-
-    try {
-      this.realtime.broadcastToUser(targetUserId, { type: 'vacay:cancelled' });
-    } catch { /* */ }
+    // The invitee's tabs drop the invite, the plan's own tabs the pending row.
+    const userIds = [targetUserId, ...(await this.getPlanUsers(planId)).map(u => u.id)];
+    userIds.forEach(id => this.realtime.broadcastToUser(id, { type: 'vacay:cancelled' }, socketId));
   }
 
   // -------------------------------------------------------------------------
@@ -822,9 +820,8 @@ export class VacayService {
       return userIds;
     });
 
-    try {
-      allUserIds.filter(id => id !== userId).forEach(id => this.realtime.broadcastToUser(id, { type: 'vacay:dissolved' }));
-    } catch { /* */ }
+    // Everyone on the plan, the one dissolving it included: all their tabs but the one that asked.
+    allUserIds.forEach(id => this.realtime.broadcastToUser(id, { type: 'vacay:dissolved' }, socketId));
     // Everyone's entries just moved back to their own plans — refresh read-only viewers.
     await this.notifyShareViewers(allUserIds, socketId);
   }
@@ -929,7 +926,8 @@ export class VacayService {
     await this.shares.insertShare(ownerId, targetUserId);
 
     try {
-      this.realtime.broadcastToUser(targetUserId, { type: 'vacay:share', from: { id: ownerId } });
+      // The asking socket is the owner's, so leaving it out costs the viewer nothing.
+      this.realtime.broadcastToUser(targetUserId, { type: 'vacay:share', from: { id: ownerId } }, socketId);
       // The owner's other devices refresh their outgoing list too.
       this.realtime.broadcastToUser(ownerId, { type: 'vacay:share', from: { id: ownerId } }, socketId);
     } catch { /* websocket not available */ }

@@ -110,5 +110,7 @@ const collab: TranslationStrings = {
     'Diese Kategorie wird noch von Notizen verwendet. Verschiebe oder lösche sie zuerst, dann lässt sie sich entfernen.',
   'collab.notes.categoriesLocalHint':
     'Eine Kategorie ohne Notizen wird nur in diesem Browser gespeichert. Andere Mitglieder sehen sie, sobald eine Notiz sie verwendet.',
+  'collab.chat.fromAssistant': 'vom Assistenten',
+  'collab.chat.fromAssistantHint': '{name} hat diese Antwort des Assistenten geteilt',
 };
 export default collab;

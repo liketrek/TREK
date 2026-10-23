@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, useMemo, useCallback, createElement, memo, type ComponentType } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback, memo, type ComponentType } from 'react'
 import DOM from 'react-dom'
-import { renderIconMarkup } from '../../utils/iconMarkup'
+import { categoryIconSvg } from './categoryIconSvg'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
@@ -40,7 +40,7 @@ import L from 'leaflet'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import { mapsApi } from '../../api/client'
-import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
+import { AssistantMapLeaflet } from './AssistantMapLeaflet'
 import PlaceHoverCard from './PlaceHoverCard'
 import { ratingBadgeHtml } from './ratingBadge'
 import ReservationOverlay from './ReservationOverlay'
@@ -75,12 +75,6 @@ import { MapLockPill } from './MapLockPill'
 import { computeMapViewport, TILE_SIZE_RASTER, type ViewportPadding } from '../../utils/mapViewport'
 import { parseRenderableRouteGeometry } from '../../utils/routeGeometry'
 
-function categoryIconSvg(iconName: string | null | undefined, size: number): string {
-  const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
-  try {
-    return renderIconMarkup(createElement(IconComponent, { size, color: 'white', strokeWidth: 2.5 }))
-  } catch { return '' }
-}
 import type { MapViewProps } from './mapViewContract'
 
 // Fix default marker icons for vite. `_getIconUrl` is a Leaflet-internal field
@@ -834,6 +828,7 @@ export const MapView = memo(function MapView({
   onPlannerWaypointMove,
   routeProfileFocus = null,
   viewBaseLayer, onViewBaseLayerChange, onToggleTerrain3d, ferrataLayer, placeTool, tourLayers,
+  ...assistant
 }: MapViewProps) {
   const globalBaseLayer = useSettingsStore(s => s.settings.map_base_layer) || 'default'
   const updateSetting = useSettingsStore(s => s.updateSetting)
@@ -972,7 +967,7 @@ export const MapView = memo(function MapView({
   const isTouchDevice = typeof window !== 'undefined' && navigator.maxTouchPoints > 0
   // Drag a marker onto a day (#891). Pointer-driven, so it is off wherever
   // HTML5 drag does not exist — and the day plan is not on screen there anyway.
-  const markersDraggable = !isTouchDevice
+  const markersDraggable = !isTouchDevice && !assistant.markersLocked
 
   /**
    * Reaching a stop that shares its coordinates with others.
@@ -991,6 +986,7 @@ export const MapView = memo(function MapView({
     if (marker) placeMarkersRef.current.set(id, marker)
     else placeMarkersRef.current.delete(id)
   }, [])
+  const assistantMarkerEl = useCallback((id: number) => (placeMarkersRef.current.get(id) as L.Marker | undefined)?.getElement() ?? null, [])
 
   useEffect(() => {
     if (selectedPlaceId == null) return
@@ -1316,6 +1312,7 @@ export const MapView = memo(function MapView({
         </RouteViaMarker>
       ))}
       <PluginMapMarkers tripId={tripId} />
+      <AssistantMapLeaflet assistant={assistant} padding={paddingBox} markerEl={assistantMarkerEl} />
       <PluginMapLayers tripId={tripId} />
     </MapContainer>
     {isMobile && <LocationButton

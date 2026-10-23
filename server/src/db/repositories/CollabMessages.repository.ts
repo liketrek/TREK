@@ -13,6 +13,8 @@ export interface CollabMessageRow {
   reply_to: number | null;
   created_at: string | null;
   deleted: number | null;
+  /** Where the message came from when it was not typed in the chat (`'assistant'`), else null. */
+  origin: string | null;
 }
 
 const _collabMessageRowKeys: AssertRowKeys<CollabMessageRow, CollabMessages> = true;
@@ -166,14 +168,15 @@ export class CollabMessagesRepository extends TrekRepository<CollabMessages> {
     return await this.count({ trip: trip_id });
   }
 
-  /** CB48 (`createMessage`, inside its transaction) — `INSERT INTO collab_messages (trip_id, user_id, text, reply_to) VALUES (?×4)`. Returns the new row's id. */
+  /** CB48 (`createMessage`, inside its transaction) — `INSERT INTO collab_messages (trip_id, user_id, text, reply_to, origin) VALUES (?×5)`. Returns the new row's id. */
   async insertMessage(
     trip_id: number | string,
     user_id: number,
     text: string,
     reply_to: number | null,
+    origin: string | null = null,
   ): Promise<number> {
-    return await this.insert({ trip: trip_id, user: user_id, text, reply_to });
+    return await this.insert({ trip: trip_id, user: user_id, text, reply_to, origin });
   }
 
   /** CB54 (`deleteMessage`, inside its transaction) — `UPDATE collab_messages SET deleted = 1 WHERE id = ?`, soft delete — the row survives for the placeholder. */

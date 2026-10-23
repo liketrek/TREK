@@ -99,3 +99,19 @@ describe('a conflict', () => {
     expect(screen.getByRole('alert')).toBeTruthy()
   })
 })
+
+describe('a book a newer Studio saved', () => {
+  /*
+   * Nothing done in this tab is kept until it reloads, so the state is loud
+   * like a conflict and offers the one way out there is.
+   */
+  it('is announced, says why, and reloads on request', () => {
+    const onReload = vi.fn()
+    draw({ status: 'newer' }, { onReload })
+
+    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(screen.getByText('journey.studio.saveNewer')).toBeTruthy()
+    fireEvent.click(screen.getByText('journey.studio.saveReload'))
+    expect(onReload).toHaveBeenCalledTimes(1)
+  })
+})

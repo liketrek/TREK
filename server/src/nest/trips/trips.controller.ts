@@ -11,6 +11,7 @@ import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { StorageService } from '../storage/storage.service';
 import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
 import { UnsplashService } from '../unsplash/unsplash.service';
+import { TripWritesService } from './trip-writes.service';
 import {
   TripCreateDto,
   TripUpdateDto,
@@ -20,6 +21,7 @@ import {
   TripCreateGuestDto,
   TripRenameGuestDto,
 } from './trips.dto';
+import { tripUpdatePermissions } from './trips.helpers';
 import { TripsService } from './trips.service';
 import { NotFoundError, ValidationError } from './trips.service';
 import {
@@ -81,6 +83,7 @@ export class TripsController {
     private readonly calendar: CalendarService,
     private readonly readModel: TripReadModelService,
     private readonly storage: StorageService,
+    private readonly tripWrites: TripWritesService,
   ) {}
 
   @Get()
@@ -120,7 +123,12 @@ export class TripsController {
 
   @Post()
   @HttpCode(201)
-  async create(@CurrentUser() user: User, @Body() body: TripCreateDto, @Req() req: Request) {
+  async create(
+    @CurrentUser() user: User,
+    @Body() body: TripCreateDto,
+    @Req() req: Request,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     if (!(await this.trips.can('trip_create', user.role, null, user.id, false))) {
       throw new HttpException({ error: 'No permission to create trips' }, 403);
     }
@@ -133,15 +141,10 @@ export class TripsController {
     }
     const parsedDayCount = day_count ? Math.min(Math.max(Number(day_count) || 7, 1), MAX_TRIP_DAYS) : undefined;
     try {
-      const { trip, tripId, reminderDays } = await this.trips.create(user.id, {
-        title,
-        description,
-        start_date,
-        end_date,
-        currency,
-        reminder_days,
-        day_count: parsedDayCount,
-      });
+      const { trip, tripId, reminderDays } = await this.tripWrites.create(
+        { title, description, start_date, end_date, currency, reminder_days, day_count: parsedDayCount },
+        { userId: user.id, role: user.role, socketId },
+      );
       await this.audit.writeAudit({
         userId: user.id,
         action: 'trip.create',
@@ -179,25 +182,13 @@ export class TripsController {
     }
     const ownerId = access.user_id;
     const isMember = ownerId !== user.id;
-    if (
-      body.is_archived !== undefined &&
-      !(await this.trips.can('trip_archive', user.role, ownerId, user.id, isMember))
-    ) {
-      throw new HttpException({ error: 'No permission to archive/unarchive this trip' }, 403);
-    }
-    if (
-      body.cover_image !== undefined &&
-      !(await this.trips.can('trip_cover_upload', user.role, ownerId, user.id, isMember))
-    ) {
-      throw new HttpException({ error: 'No permission to change cover image' }, 403);
-    }
-    const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'day_count'];
-    if (
-      editFields.some((f) => body[f] !== undefined) &&
-      !(await this.trips.can('trip_edit', user.role, ownerId, user.id, isMember))
-    ) {
-      throw new HttpException({ error: 'No permission to edit this trip' }, 403);
-    }
+    // A body the caller may only partly write is refused on the first right it lacks, in the list's order.
+    const needed = tripUpdatePermissions(body);
+    const granted = await Promise.all(
+      needed.map(({ action }) => this.trips.can(action, user.role, ownerId, user.id, isMember)),
+    );
+    const lacking = needed.find((_, i) => !granted[i]);
+    if (lacking) throw new HttpException({ error: lacking.refusal }, 403);
     // A chosen Unsplash cover arrives as an images.unsplash.com hot-link; download
     // it into uploads/covers so the cover survives offline + CDN link-rot (#1277).
     if (this.unsplash.isUnsplashCoverUrl(body.cover_image)) {
@@ -282,7 +273,13 @@ export class TripsController {
 
   @Post(':id/copy')
   @HttpCode(201)
-  async copy(@CurrentUser() user: User, @Param('id') id: string, @Body() body: TripCopyDto, @Req() req: Request) {
+  async copy(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: TripCopyDto,
+    @Req() req: Request,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     if (!(await this.trips.can('trip_create', user.role, null, user.id, false))) {
       throw new HttpException({ error: 'No permission to create trips' }, 403);
     }
@@ -291,7 +288,7 @@ export class TripsController {
     }
     const { title } = body;
     try {
-      const newTripId = await this.trips.copy(id, user.id, title);
+      const newTripId = await this.tripWrites.copy(id, title, { userId: user.id, role: user.role, socketId });
       await this.audit.writeAudit({
         userId: user.id,
         action: 'trip.copy',
@@ -325,7 +322,7 @@ export class TripsController {
     if (!(await this.trips.can('trip_delete', user.role, owner.user_id, user.id, owner.user_id !== user.id))) {
       throw new HttpException({ error: 'No permission to delete this trip' }, 403);
     }
-    const info = await this.trips.remove(id, user.id, user.role);
+    const info = await this.tripWrites.remove(id, this.tripWrites.restWriter(id, user, socketId));
     await this.audit.writeAudit({
       userId: user.id,
       action: 'trip.delete',
@@ -334,7 +331,6 @@ export class TripsController {
     });
     if (info.isAdminDelete && info.ownerEmail)
       logInfo(`Admin ${user.email} deleted trip "${info.title}" owned by ${info.ownerEmail}`);
-    this.trips.broadcast(String(info.tripId), 'trip:deleted', { id: info.tripId }, socketId);
     return { success: true };
   }
 

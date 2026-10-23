@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'Сначала выберите день',
   'trip.toast.assignedToDay': 'Место назначено на день',
   'trip.toast.loadError': 'Не удалось загрузить поездку',
+  'trip.toast.accessLost': 'Вы больше не участник этой поездки',
   'trip.toast.reorderError': 'Ошибка изменения порядка',
   'trip.toast.reservationUpdated': 'Бронирование обновлено',
   'trip.toast.reservationAdded': 'Бронирование добавлено',

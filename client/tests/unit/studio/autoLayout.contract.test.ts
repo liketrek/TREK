@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { BookPageSetup, JourneyStats } from '@trek/shared'
-import { bookDocumentSchema, bookPageSetupSchema } from '@trek/shared'
-import { buildBook, emptyBook, type AutoEntry, type AutoInput } from '../../../src/components/Studio/autoLayout'
+import { bookDocumentSchema, bookPageSetupSchema, buildBook, emptyBook, type AutoEntry, type AutoInput } from '@trek/shared'
 
 /**
  * The auto layout writes journey data straight into a book document, and the

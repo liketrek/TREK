@@ -175,6 +175,11 @@ With the [MCP](MCP-Overview) addon on as well, an assistant can review your stay
 | `accept_dawarich_suggestion_as_place` | Turns a stay into a place on a trip, optionally on one of its days, with a corrected name, notes or coordinates. | `places:write` |
 | `accept_dawarich_suggestion_as_journal_entry` | Turns a stay into a dated journal entry, with a title, a story, a date and a time. | `journey:write` |
 | `mark_bucket_list_item_visited_from_dawarich` | Ticks off the wish a stay was linked to, or another wish of yours. | `atlas:write` |
+| `scan_bucket_list_visits` | Checks your wishlist against your recordings, as **Check wishlist** does: per wish the longest stay that counts, or none. Ticks nothing off. If your Dawarich does not answer, the check stops with that error. | `atlas:read` |
+| `confirm_bucket_list_visits` | Ticks off the wishes you confirmed, dated with the stay that matched, or a date you name. | `atlas:write` |
+| `clear_bucket_list_visit` | Takes the tick off one of your wishes again. | `atlas:write` |
+| `suggest_atlas_countries` | Lists the countries and cities your recordings cover between two dates (at most 400 days apart) and which of them your Atlas has already. Marks nothing. | `atlas:read` |
+| `accept_atlas_countries` | Marks the countries you confirmed as visited in your Atlas, recorded as coming from Dawarich. | `atlas:write` |
 | `dismiss_dawarich_suggestion` | Dismisses a stay, or puts a dismissed one back. | `journey:write` |
 | `get_dawarich_trip_track` | Summarises a trip's recorded route per day: segments, times, travel mode and distance. The line itself stays on the map. | `journey:read` |
 | `preview_journey_recorded_day` | Reads one day of your recording and says what a journal would keep, without keeping it. Needs the Journey addon too. | `journey:read` |

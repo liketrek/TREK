@@ -129,6 +129,7 @@ describe('OAuth pending codes', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
       store,
     );
     const issued = await service.createAuthCode({
@@ -147,7 +148,15 @@ describe('OAuth pending codes', () => {
 
   it('PORTS-007: OauthModule provides the process-wide store, the one a hand-built service defaults to', () => {
     expectRegisteredProvider(OauthModule, { provide: PendingCodeStore, useValue: processPendingCodes });
-    const service = new OauthService({} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
+    const service = new OauthService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
     expect((service as unknown as { pendingCodes: unknown }).pendingCodes).toBe(processPendingCodes);
   });
 
@@ -159,7 +168,15 @@ describe('OAuth pending codes', () => {
       expect(pendingCodesSlot.get()).toBe(fake);
       await sweepPendingCodes(5);
       expect(sweep).toHaveBeenCalledWith(5);
-      const service = new OauthService({} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
+      const service = new OauthService(
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+      );
       expect((service as unknown as { pendingCodes: unknown }).pendingCodes).toBe(fake);
     } finally {
       oauthModule.onModuleDestroy();

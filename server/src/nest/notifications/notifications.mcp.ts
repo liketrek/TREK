@@ -85,7 +85,8 @@ export class NotificationsMcp {
     access: { group: 'notifications', mode: 'write' },
   })
   async markNotificationRead({ notificationId }: { notificationId: number }, ctx: McpContext) {
-    const success = await this.notifications.markRead(notificationId, ctx.userId);
+    // No socket to leave out: every tab of the user, the asking one included, follows the bell.
+    const success = await this.notifications.markRead(notificationId, ctx.userId, undefined);
     if (!success) return { content: [{ type: 'text' as const, text: 'Notification not found.' }], isError: true };
     return ok({ success: true });
   }
@@ -100,7 +101,7 @@ export class NotificationsMcp {
     access: { group: 'notifications', mode: 'write' },
   })
   async markNotificationUnread({ notificationId }: { notificationId: number }, ctx: McpContext) {
-    const success = await this.notifications.markUnread(notificationId, ctx.userId);
+    const success = await this.notifications.markUnread(notificationId, ctx.userId, undefined);
     if (!success) return { content: [{ type: 'text' as const, text: 'Notification not found.' }], isError: true };
     return ok({ success: true });
   }
@@ -113,7 +114,7 @@ export class NotificationsMcp {
     access: { group: 'notifications', mode: 'write' },
   })
   async markAllNotificationsRead(_input: Record<string, never>, ctx: McpContext) {
-    const count = await this.notifications.markAllRead(ctx.userId);
+    const count = await this.notifications.markAllRead(ctx.userId, undefined);
     return ok({ success: true, count });
   }
 

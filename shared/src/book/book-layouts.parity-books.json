@@ -1,0 +1,1314 @@
+{
+ "books": {
+  "a": {
+   "title": "Iceland",
+   "page": {
+    "preset": "square-210",
+    "pageWidth": 210,
+    "pageHeight": 210,
+    "bleed": 3,
+    "safe": 5
+   },
+   "spreads": [
+    {
+     "id": "a-cover",
+     "role": "cover",
+     "elements": [
+      {
+       "id": "a-c-p",
+       "kind": "photo",
+       "frame": {
+        "x": -3,
+        "y": -3,
+        "w": 216,
+        "h": 216
+       },
+       "photoId": 101,
+       "focalY": 0.4
+      },
+      {
+       "id": "a-c-t",
+       "kind": "text",
+       "frame": {
+        "x": 16,
+        "y": 140,
+        "w": 178,
+        "h": 30
+       },
+       "text": "Iceland",
+       "size": 30,
+       "weight": 700,
+       "binding": {
+        "source": "journey.title"
+       },
+       "color": "#ffffff"
+      },
+      {
+       "id": "a-c-s",
+       "kind": "text",
+       "frame": {
+        "x": 16,
+        "y": 180,
+        "w": 178,
+        "h": 8
+       },
+       "text": "Summer 2026",
+       "size": 9,
+       "binding": {
+        "source": "journey.subtitle"
+       }
+      }
+     ]
+    },
+    {
+     "id": "a-first",
+     "role": "first",
+     "elements": []
+    },
+    {
+     "id": "a-1",
+     "role": "inner",
+     "elements": [
+      {
+       "id": "a-1-hero",
+       "kind": "photo",
+       "frame": {
+        "x": -3,
+        "y": -3,
+        "w": 213,
+        "h": 216
+       },
+       "photoId": 102,
+       "focalX": 0.55,
+       "filter": "bw"
+      },
+      {
+       "id": "a-1-cap",
+       "kind": "text",
+       "frame": {
+        "x": 18,
+        "y": 186,
+        "w": 126,
+        "h": 5
+       },
+       "text": "Harbour at dawn",
+       "size": 7.5,
+       "weight": 500,
+       "color": "#ffffff",
+       "binding": {
+        "source": "photo.caption",
+        "entryId": 11,
+        "photoId": 102
+       }
+      },
+      {
+       "id": "a-1-h",
+       "kind": "text",
+       "frame": {
+        "x": 228,
+        "y": 52,
+        "w": 174,
+        "h": 14
+       },
+       "text": "Reykjavik",
+       "size": 20,
+       "weight": 700,
+       "binding": {
+        "source": "entry.title",
+        "entryId": 11
+       }
+      },
+      {
+       "id": "a-1-b",
+       "kind": "text",
+       "frame": {
+        "x": 228,
+        "y": 70,
+        "w": 174,
+        "h": 80
+       },
+       "text": "We walked along the old harbour while the fishing boats came in.\nThe light stayed until midnight.",
+       "size": 10,
+       "leading": 1.62,
+       "binding": {
+        "source": "entry.story",
+        "entryId": 11
+       }
+      },
+      {
+       "id": "a-1-m",
+       "kind": "text",
+       "frame": {
+        "x": 228,
+        "y": 40,
+        "w": 174,
+        "h": 5
+       },
+       "text": "MAY 28, 2026",
+       "size": 7.5,
+       "weight": 600,
+       "tracking": 0.14,
+       "binding": {
+        "source": "entry.date",
+        "entryId": 11,
+        "value": "2026-05-28"
+       },
+       "overridden": true
+      },
+      {
+       "id": "a-1-p2",
+       "kind": "photo",
+       "frame": {
+        "x": 228,
+        "y": 160,
+        "w": 55,
+        "h": 34
+       },
+       "photoId": 103,
+       "mask": "heart",
+       "radius": 2
+      },
+      {
+       "id": "a-1-p3",
+       "kind": "photo",
+       "frame": {
+        "x": 290,
+        "y": 160,
+        "w": 55,
+        "h": 34
+       },
+       "photoId": 104,
+       "frameStyle": "polaroid",
+       "fit": "contain"
+      },
+      {
+       "id": "a-1-s",
+       "kind": "shape",
+       "frame": {
+        "x": 210,
+        "y": 0,
+        "w": 210,
+        "h": 6
+       },
+       "shape": "rect",
+       "fill": "#111827"
+      },
+      {
+       "id": "a-1-badge",
+       "kind": "badge",
+       "frame": {
+        "x": 380,
+        "y": 20,
+        "w": 30,
+        "h": 8
+       },
+       "variant": "day",
+       "text": "DAY 1"
+      },
+      {
+       "id": "a-1-map",
+       "kind": "map",
+       "frame": {
+        "x": 228,
+        "y": 18,
+        "w": 26,
+        "h": 20
+       },
+       "points": [
+        {
+         "lat": 64.1,
+         "lng": -21.9,
+         "label": "Reykjavik"
+        }
+       ]
+      }
+     ],
+     "entryId": 11,
+     "background": "#ffffff"
+    },
+    {
+     "id": "a-2",
+     "role": "inner",
+     "elements": [
+      {
+       "id": "a-2-p0",
+       "kind": "photo",
+       "frame": {
+        "x": 16,
+        "y": 16,
+        "w": 60,
+        "h": 80
+       },
+       "photoId": 105,
+       "focalX": 0
+      },
+      {
+       "id": "a-2-p1",
+       "kind": "photo",
+       "frame": {
+        "x": 80,
+        "y": 16,
+        "w": 60,
+        "h": 80
+       },
+       "photoId": 106,
+       "focalX": 0.1
+      },
+      {
+       "id": "a-2-p2",
+       "kind": "photo",
+       "frame": {
+        "x": 144,
+        "y": 16,
+        "w": 60,
+        "h": 80
+       },
+       "photoId": 107,
+       "focalX": 0.2
+      },
+      {
+       "id": "a-2-p3",
+       "kind": "photo",
+       "frame": {
+        "x": 208,
+        "y": 16,
+        "w": 60,
+        "h": 80
+       },
+       "photoId": 108,
+       "focalX": 0.30000000000000004
+      },
+      {
+       "id": "a-2-p4",
+       "kind": "photo",
+       "frame": {
+        "x": 272,
+        "y": 16,
+        "w": 60,
+        "h": 80
+       },
+       "photoId": 109,
+       "focalX": 0.4
+      },
+      {
+       "id": "a-2-p5",
+       "kind": "photo",
+       "frame": {
+        "x": 336,
+        "y": 16,
+        "w": 60,
+        "h": 80
+       },
+       "photoId": 110,
+       "focalX": 0.5
+      },
+      {
+       "id": "a-2-empty",
+       "kind": "photo",
+       "frame": {
+        "x": 16,
+        "y": 110,
+        "w": 60,
+        "h": 80
+       },
+       "photoId": null
+      }
+     ],
+     "parked": [
+      {
+       "id": "a-2-park-p",
+       "kind": "photo",
+       "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 10,
+        "h": 10
+       },
+       "photoId": 111,
+       "filter": "warm"
+      },
+      {
+       "id": "a-2-park-t",
+       "kind": "text",
+       "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 50,
+        "h": 10
+       },
+       "text": "Parked words",
+       "size": 12
+      }
+     ]
+    },
+    {
+     "id": "a-3",
+     "role": "inner",
+     "elements": [
+      {
+       "id": "a-3-h",
+       "kind": "text",
+       "frame": {
+        "x": 226,
+        "y": 50,
+        "w": 178,
+        "h": 14
+       },
+       "text": "Quiet",
+       "size": 22,
+       "weight": 700,
+       "font": "serif",
+       "align": "center"
+      },
+      {
+       "id": "a-3-b",
+       "kind": "text",
+       "frame": {
+        "x": 226,
+        "y": 70,
+        "w": 178,
+        "h": 100
+       },
+       "text": "A long story about a quiet day at the lake, with nothing much happening and that being the point.",
+       "size": 10
+      },
+      {
+       "id": "a-3-m",
+       "kind": "text",
+       "frame": {
+        "x": 226,
+        "y": 40,
+        "w": 178,
+        "h": 5
+       },
+       "text": "DAY 4",
+       "size": 7.5
+      },
+      {
+       "id": "a-3-x",
+       "kind": "text",
+       "frame": {
+        "x": 16,
+        "y": 16,
+        "w": 60,
+        "h": 5
+       },
+       "text": "Note",
+       "size": 8,
+       "italic": true
+      },
+      {
+       "id": "a-3-blank",
+       "kind": "text",
+       "frame": {
+        "x": 16,
+        "y": 30,
+        "w": 60,
+        "h": 5
+       },
+       "text": "   ",
+       "size": 9
+      }
+     ]
+    },
+    {
+     "id": "a-4",
+     "role": "inner",
+     "elements": []
+    },
+    {
+     "id": "a-last",
+     "role": "last",
+     "elements": [
+      {
+       "id": "a-l-t",
+       "kind": "text",
+       "frame": {
+        "x": 16,
+        "y": 190,
+        "w": 100,
+        "h": 5
+       },
+       "text": "Printed with TREK",
+       "size": 8
+      }
+     ]
+    },
+    {
+     "id": "a-back",
+     "role": "back",
+     "elements": [
+      {
+       "id": "a-b-s",
+       "kind": "shape",
+       "frame": {
+        "x": -3,
+        "y": -3,
+        "w": 216,
+        "h": 216
+       },
+       "shape": "rect",
+       "fill": "#141414"
+      },
+      {
+       "id": "a-b-t",
+       "kind": "text",
+       "frame": {
+        "x": 16,
+        "y": 100,
+        "w": 178,
+        "h": 10
+       },
+       "text": "Iceland, 2026",
+       "size": 12,
+       "color": "#ffffff"
+      }
+     ],
+     "background": "#141414"
+    }
+   ],
+   "layouts": [
+    {
+     "id": "ly-a1",
+     "name": "Hero",
+     "role": "inner",
+     "pageWidth": 210,
+     "pageHeight": 210,
+     "background": "#fafafa",
+     "elements": [
+      {
+       "id": "ly-a1-s",
+       "kind": "shape",
+       "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 420,
+        "h": 20
+       },
+       "shape": "rect",
+       "fill": "#222222"
+      },
+      {
+       "id": "ly-a1-p1",
+       "kind": "photo",
+       "frame": {
+        "x": -3,
+        "y": -3,
+        "w": 213,
+        "h": 216
+       },
+       "photoId": null,
+       "frameStyle": "white"
+      },
+      {
+       "id": "ly-a1-p2",
+       "kind": "photo",
+       "frame": {
+        "x": 230,
+        "y": 120,
+        "w": 80,
+        "h": 60
+       },
+       "photoId": null
+      },
+      {
+       "id": "ly-a1-h",
+       "kind": "text",
+       "frame": {
+        "x": 230,
+        "y": 40,
+        "w": 170,
+        "h": 14
+       },
+       "text": "Title",
+       "size": 24,
+       "weight": 700
+      },
+      {
+       "id": "ly-a1-b",
+       "kind": "text",
+       "frame": {
+        "x": 230,
+        "y": 60,
+        "w": 170,
+        "h": 50
+       },
+       "text": "Story",
+       "size": 10,
+       "binding": {
+        "source": "entry.story",
+        "entryId": 99
+       }
+      },
+      {
+       "id": "ly-a1-l",
+       "kind": "text",
+       "frame": {
+        "x": 230,
+        "y": 30,
+        "w": 170,
+        "h": 5
+       },
+       "text": "CHAPTER",
+       "size": 8
+      },
+      {
+       "id": "ly-a1-badge",
+       "kind": "badge",
+       "frame": {
+        "x": 380,
+        "y": 190,
+        "w": 30,
+        "h": 8
+       },
+       "variant": "day",
+       "text": "DAY 9"
+      },
+      {
+       "id": "ly-a1-list",
+       "kind": "list",
+       "frame": {
+        "x": 320,
+        "y": 120,
+        "w": 80,
+        "h": 60
+       },
+       "items": [
+        {
+         "text": "Good",
+         "tone": "pro"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "ly-a2",
+     "name": "Small cover",
+     "role": "single",
+     "pageWidth": 105,
+     "pageHeight": 105,
+     "background": null,
+     "elements": [
+      {
+       "id": "ly-a2-p",
+       "kind": "photo",
+       "frame": {
+        "x": 10,
+        "y": 10,
+        "w": 85,
+        "h": 60
+       },
+       "photoId": null
+      },
+      {
+       "id": "ly-a2-h",
+       "kind": "text",
+       "frame": {
+        "x": 10,
+        "y": 75,
+        "w": 85,
+        "h": 12
+       },
+       "text": "Cover title",
+       "size": 18,
+       "weight": 700
+      }
+     ]
+    }
+   ]
+  },
+  "b": {
+   "title": "Portugal",
+   "page": {
+    "preset": "a4-landscape",
+    "pageWidth": 297,
+    "pageHeight": 210,
+    "bleed": 5,
+    "safe": 8
+   },
+   "spreads": [
+    {
+     "id": "b-cover",
+     "role": "cover",
+     "elements": [
+      {
+       "id": "b-c-p1",
+       "kind": "photo",
+       "frame": {
+        "x": -5,
+        "y": -5,
+        "w": 307,
+        "h": 110
+       },
+       "photoId": 201
+      },
+      {
+       "id": "b-c-p2",
+       "kind": "photo",
+       "frame": {
+        "x": -5,
+        "y": 105,
+        "w": 307,
+        "h": 110
+       },
+       "photoId": 202,
+       "focalY": 0.8
+      }
+     ]
+    },
+    {
+     "id": "b-first",
+     "role": "first",
+     "elements": [
+      {
+       "id": "b-f-p",
+       "kind": "photo",
+       "frame": {
+        "x": 40,
+        "y": 40,
+        "w": 217,
+        "h": 130
+       },
+       "photoId": 203,
+       "filter": "fade"
+      }
+     ]
+    },
+    {
+     "id": "b-1",
+     "role": "inner",
+     "elements": [
+      {
+       "id": "b-1-p0",
+       "kind": "photo",
+       "frame": {
+        "x": 10,
+        "y": 10,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 204,
+       "fit": "cover",
+       "focalX": 0,
+       "focalY": 1
+      },
+      {
+       "id": "b-1-p1",
+       "kind": "photo",
+       "frame": {
+        "x": 105,
+        "y": 10,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 205,
+       "fit": "contain",
+       "focalX": 0.25,
+       "focalY": 0.5
+      },
+      {
+       "id": "b-1-p2",
+       "kind": "photo",
+       "frame": {
+        "x": 200,
+        "y": 10,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 206,
+       "fit": "cover",
+       "focalX": 0.5,
+       "focalY": 0
+      },
+      {
+       "id": "b-1-p3",
+       "kind": "photo",
+       "frame": {
+        "x": 295,
+        "y": 10,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 207,
+       "fit": "contain",
+       "focalX": 0.75,
+       "focalY": 1
+      },
+      {
+       "id": "b-1-p4",
+       "kind": "photo",
+       "frame": {
+        "x": 390,
+        "y": 10,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 208,
+       "fit": "cover",
+       "focalX": 1,
+       "focalY": 0.5
+      },
+      {
+       "id": "b-1-p5",
+       "kind": "photo",
+       "frame": {
+        "x": 485,
+        "y": 10,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 209,
+       "fit": "contain",
+       "focalX": 0,
+       "focalY": 0
+      },
+      {
+       "id": "b-1-p6",
+       "kind": "photo",
+       "frame": {
+        "x": 10,
+        "y": 110,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 210,
+       "fit": "cover",
+       "focalX": 0.25,
+       "focalY": 1
+      },
+      {
+       "id": "b-1-p7",
+       "kind": "photo",
+       "frame": {
+        "x": 105,
+        "y": 110,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 211,
+       "fit": "contain",
+       "focalX": 0.5,
+       "focalY": 0.5
+      },
+      {
+       "id": "b-1-p8",
+       "kind": "photo",
+       "frame": {
+        "x": 200,
+        "y": 110,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 212,
+       "fit": "cover",
+       "focalX": 0.75,
+       "focalY": 0
+      },
+      {
+       "id": "b-1-p9",
+       "kind": "photo",
+       "frame": {
+        "x": 295,
+        "y": 110,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 213,
+       "fit": "contain",
+       "focalX": 1,
+       "focalY": 1
+      },
+      {
+       "id": "b-1-p10",
+       "kind": "photo",
+       "frame": {
+        "x": 390,
+        "y": 110,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 214,
+       "fit": "cover",
+       "focalX": 0,
+       "focalY": 0.5
+      },
+      {
+       "id": "b-1-p11",
+       "kind": "photo",
+       "frame": {
+        "x": 485,
+        "y": 110,
+        "w": 90,
+        "h": 95
+       },
+       "photoId": 215,
+       "fit": "contain",
+       "focalX": 0.25,
+       "focalY": 0
+      }
+     ]
+    },
+    {
+     "id": "b-2",
+     "role": "inner",
+     "elements": [
+      {
+       "id": "b-2-lock",
+       "kind": "photo",
+       "frame": {
+        "x": 20,
+        "y": 20,
+        "w": 200,
+        "h": 150
+       },
+       "photoId": 216,
+       "locked": true,
+       "rotation": 4
+      },
+      {
+       "id": "b-2-t14",
+       "kind": "text",
+       "frame": {
+        "x": 320,
+        "y": 20,
+        "w": 200,
+        "h": 10
+       },
+       "text": "Fourteen points",
+       "size": 14,
+       "binding": {
+        "source": "entry.title",
+        "entryId": 21
+       }
+      },
+      {
+       "id": "b-2-t16",
+       "kind": "text",
+       "frame": {
+        "x": 320,
+        "y": 40,
+        "w": 200,
+        "h": 10
+       },
+       "text": "Sixteen points, the heading",
+       "size": 16,
+       "font": "playfair",
+       "weight": 600
+      },
+      {
+       "id": "b-2-t9",
+       "kind": "text",
+       "frame": {
+        "x": 320,
+        "y": 60,
+        "w": 200,
+        "h": 60
+       },
+       "text": "Nine points of body copy that runs a little longer than the rest of them.",
+       "size": 9,
+       "align": "justify",
+       "overridden": true
+      }
+     ],
+     "entryId": 21
+    },
+    {
+     "id": "b-3",
+     "role": "inner",
+     "elements": [
+      {
+       "id": "b-3-list",
+       "kind": "list",
+       "frame": {
+        "x": 20,
+        "y": 20,
+        "w": 120,
+        "h": 80
+       },
+       "items": [
+        {
+         "text": "Tram 28",
+         "tone": "pro"
+        },
+        {
+         "text": "Hills",
+         "tone": "con"
+        }
+       ]
+      },
+      {
+       "id": "b-3-stats",
+       "kind": "stats",
+       "frame": {
+        "x": 160,
+        "y": 20,
+        "w": 120,
+        "h": 40
+       },
+       "metrics": [
+        "distance",
+        "days"
+       ]
+      },
+      {
+       "id": "b-3-countries",
+       "kind": "countries",
+       "frame": {
+        "x": 320,
+        "y": 20,
+        "w": 200,
+        "h": 80
+       },
+       "codes": [
+        "PT",
+        "ES"
+       ]
+      },
+      {
+       "id": "b-3-icon",
+       "kind": "icon",
+       "frame": {
+        "x": 540,
+        "y": 20,
+        "w": 20,
+        "h": 20
+       },
+       "name": "Sun"
+      },
+      {
+       "id": "b-3-t",
+       "kind": "text",
+       "frame": {
+        "x": 320,
+        "y": 120,
+        "w": 200,
+        "h": 14
+       },
+       "text": "Lisbon in numbers",
+       "size": 18,
+       "weight": 700
+      },
+      {
+       "id": "b-3-badge",
+       "kind": "badge",
+       "frame": {
+        "x": 20,
+        "y": 120,
+        "w": 40,
+        "h": 10
+       },
+       "variant": "coords",
+       "text": "38.7 N 9.1 W"
+      }
+     ]
+    },
+    {
+     "id": "b-last",
+     "role": "last",
+     "elements": []
+    },
+    {
+     "id": "b-back",
+     "role": "back",
+     "elements": [
+      {
+       "id": "b-b-t",
+       "kind": "text",
+       "frame": {
+        "x": 20,
+        "y": 180,
+        "w": 100,
+        "h": 8
+       },
+       "text": "Back",
+       "size": 10
+      }
+     ]
+    }
+   ],
+   "layouts": [
+    {
+     "id": "ly-b1",
+     "name": "Marks",
+     "role": "inner",
+     "pageWidth": 297,
+     "pageHeight": 210,
+     "background": null,
+     "elements": [
+      {
+       "id": "ly-b1-p",
+       "kind": "photo",
+       "frame": {
+        "x": 10,
+        "y": 10,
+        "w": 200,
+        "h": 150
+       },
+       "photoId": null,
+       "mask": "ellipse",
+       "frameStyle": "shadow"
+      },
+      {
+       "id": "ly-b1-coords",
+       "kind": "badge",
+       "frame": {
+        "x": 320,
+        "y": 10,
+        "w": 60,
+        "h": 10
+       },
+       "variant": "coords",
+       "text": "0 N 0 E"
+      },
+      {
+       "id": "ly-b1-day",
+       "kind": "badge",
+       "frame": {
+        "x": 400,
+        "y": 10,
+        "w": 40,
+        "h": 10
+       },
+       "variant": "day",
+       "text": "DAY 0"
+      },
+      {
+       "id": "ly-b1-list",
+       "kind": "list",
+       "frame": {
+        "x": 320,
+        "y": 30,
+        "w": 200,
+        "h": 80
+       },
+       "items": [
+        {
+         "text": "x",
+         "tone": "plain"
+        }
+       ]
+      },
+      {
+       "id": "ly-b1-big",
+       "kind": "text",
+       "frame": {
+        "x": 320,
+        "y": 120,
+        "w": 200,
+        "h": 20
+       },
+       "text": "Big",
+       "size": 28,
+       "weight": 700
+      },
+      {
+       "id": "ly-b1-small",
+       "kind": "text",
+       "frame": {
+        "x": 320,
+        "y": 150,
+        "w": 200,
+        "h": 20
+       },
+       "text": "Small",
+       "size": 9
+      },
+      {
+       "id": "ly-b1-bound",
+       "kind": "text",
+       "frame": {
+        "x": 320,
+        "y": 175,
+        "w": 200,
+        "h": 20
+       },
+       "text": "Bound",
+       "size": 9,
+       "binding": {
+        "source": "entry.date",
+        "entryId": 5
+       }
+      }
+     ]
+    }
+   ]
+  },
+  "c": {
+   "title": "Weekend",
+   "page": {
+    "preset": "custom",
+    "pageWidth": 148,
+    "pageHeight": 105,
+    "bleed": 2,
+    "safe": 4
+   },
+   "spreads": [
+    {
+     "id": "c-cover",
+     "role": "cover",
+     "elements": [
+      {
+       "id": "c-c-p",
+       "kind": "photo",
+       "frame": {
+        "x": -2,
+        "y": -2,
+        "w": 152,
+        "h": 70
+       },
+       "photoId": 301
+      },
+      {
+       "id": "c-c-t",
+       "kind": "text",
+       "frame": {
+        "x": 8,
+        "y": 75,
+        "w": 132,
+        "h": 10
+       },
+       "text": "Weekend",
+       "size": 12
+      }
+     ]
+    },
+    {
+     "id": "c-1",
+     "role": "inner",
+     "elements": [
+      {
+       "id": "c-1-p1",
+       "kind": "photo",
+       "frame": {
+        "x": 8,
+        "y": 8,
+        "w": 60,
+        "h": 40
+       },
+       "photoId": 302
+      },
+      {
+       "id": "c-1-p2",
+       "kind": "photo",
+       "frame": {
+        "x": 80,
+        "y": 8,
+        "w": 60,
+        "h": 40
+       },
+       "photoId": 303,
+       "radius": 3
+      },
+      {
+       "id": "c-1-p3",
+       "kind": "photo",
+       "frame": {
+        "x": 160,
+        "y": 8,
+        "w": 60,
+        "h": 40
+       },
+       "photoId": 304
+      }
+     ],
+     "parked": [
+      {
+       "id": "c-1-k1",
+       "kind": "photo",
+       "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 10,
+        "h": 10
+       },
+       "photoId": 305
+      },
+      {
+       "id": "c-1-k2",
+       "kind": "photo",
+       "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 10,
+        "h": 10
+       },
+       "photoId": 306,
+       "mask": "star-5"
+      },
+      {
+       "id": "c-1-k3",
+       "kind": "photo",
+       "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 10,
+        "h": 10
+       },
+       "photoId": 307
+      },
+      {
+       "id": "c-1-kt1",
+       "kind": "text",
+       "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 10
+       },
+       "text": "Parked heading",
+       "size": 15
+      },
+      {
+       "id": "c-1-kt2",
+       "kind": "text",
+       "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 10
+       },
+       "text": "Parked line",
+       "size": 8
+      }
+     ]
+    },
+    {
+     "id": "c-2",
+     "role": "inner",
+     "elements": [
+      {
+       "id": "c-2-p",
+       "kind": "photo",
+       "frame": {
+        "x": 150,
+        "y": 8,
+        "w": 140,
+        "h": 90
+       },
+       "photoId": 308
+      },
+      {
+       "id": "c-2-t",
+       "kind": "text",
+       "frame": {
+        "x": 8,
+        "y": 8,
+        "w": 130,
+        "h": 10
+       },
+       "text": "Exactly fourteen",
+       "size": 14
+      }
+     ],
+     "entryId": 31
+    },
+    {
+     "id": "c-back",
+     "role": "back",
+     "elements": []
+    }
+   ]
+  }
+ }
+}

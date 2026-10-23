@@ -1,4 +1,4 @@
-// FE-STORE-VCY-001 to FE-STORE-VCY-023
+// FE-STORE-VCY-001 to FE-STORE-VCY-024
 // Complements tests/unit/stores/vacayStore.test.ts: optimistic toggles and their
 // rollbacks, the leave-year window plumbing and the holiday-marker merge rules.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -421,6 +421,19 @@ describe('vacayStore year selection', () => {
     await useVacayStore.getState().removeYear(current + 1);
 
     expect(useVacayStore.getState().selectedYear).toBe(current);
+  });
+
+  it('FE-STORE-VCY-024: a year asked for by a link opens when the plan has it, and is ignored when not', async () => {
+    const current = new Date().getFullYear();
+    useVacayStore.setState({ years: [current, current + 1], selectedYear: current });
+    server.use(http.get('/api/addons/vacay/years', () =>
+      HttpResponse.json({ years: [current, current + 1] })));
+
+    await useVacayStore.getState().loadYears(current + 1);
+    expect(useVacayStore.getState().selectedYear).toBe(current + 1);
+
+    await useVacayStore.getState().loadYears(current + 5);
+    expect(useVacayStore.getState().selectedYear).toBe(current + 1);
   });
 });
 

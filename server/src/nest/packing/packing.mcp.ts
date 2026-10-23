@@ -18,16 +18,22 @@ import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { PackingWritesService } from './packing-writes.service';
 import { PackingService } from './packing.service';
 import {
+  packingApplyTemplateRequestSchema,
   packingCreateBagRequestSchema,
   packingCreateItemRequestSchema,
+  packingListItemsRequestSchema,
   packingSetSharingRequestSchema,
   packingUpdateBagRequestSchema,
   packingUpdateItemRequestSchema,
+  type PackingListItemsRequest,
   type PackingVisibility,
   idSchema,
 } from '@trek/shared';
 
 import { z } from 'zod';
+
+/** What `list_packing_items` filters a packing item by. */
+type PackingListRow = { category?: string | null; bag_id?: number | null; checked?: number | boolean | null };
 
 /** Legacy registrar gate: the whole packing surface rides the packing addon. */
 const packingAddonOn = addonGate(ADDON_IDS.PACKING);
@@ -49,9 +55,10 @@ function parseId(value: string | string[]): number | null {
  * by trekMcpAccessPolicy). The two template-management tools keep their inline
  * admin gate (isAdminUser), matching the REST routes.
  *
- * set_packing_item_sharing is the one tool with no legacy ancestor: PUT
- * /:id/sharing had no counterpart here, so the whole three-tier sharing model
- * (#858) was invisible to an assistant.
+ * set_packing_item_sharing and list_packing_items have no legacy ancestor.
+ * PUT /:id/sharing had no counterpart here, so the whole three-tier sharing
+ * model (#858) was invisible to an assistant; and the items themselves could
+ * only be read inside get_trip_summary, unfiltered and without their bags.
  */
 @McpController()
 export class PackingMcp {
@@ -277,16 +284,15 @@ export class PackingMcp {
     }: { tripId: number; itemId: number; visibility: PackingVisibility; recipient_ids?: number[] },
     ctx: McpContext,
   ) {
-    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
-    const item = await this.packing.setItemSharing(tripId, itemId, ctx.userId, visibility, recipient_ids ?? []);
-    if (!item) return errorResult('Packing item not found.');
-    if ((item as { forbidden?: boolean }).forbidden) return errorResult('Only the owner can change sharing.');
-    // The viewer set just changed: drop the item from the whole room, then hand
-    // it back to whoever may see it now, as the REST route does.
-    this.guards.safeBroadcast(tripId, 'packing:deleted', { itemId });
-    this.guards.safeBroadcast(tripId, 'packing:created', { item }, this.packing.viewersOf(item));
-    this.packing.broadcastBagTotals(String(tripId));
+    // The use case sends what the REST route sends: no bag-totals ping, since
+    // who sees an item moves no weight.
+    const item = await this.writes.setSharing(
+      tripId,
+      itemId,
+      visibility,
+      recipient_ids ?? [],
+      await this.guards.tripWriter(tripId, ctx.userId),
+    );
     return ok({ item });
   }
 
@@ -304,11 +310,49 @@ export class PackingMcp {
     access: { group: 'packing', mode: 'write' },
   })
   async reorderPackingItems({ tripId, orderedIds }: { tripId: number; orderedIds: number[] }, ctx: McpContext) {
-    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
-    await this.packing.reorderItems(tripId, orderedIds);
-    this.guards.safeBroadcast(tripId, 'packing:reordered', { orderedIds });
+    await this.writes.reorder(tripId, orderedIds, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ success: true });
+  }
+
+  @Tool({
+    name: 'list_packing_items',
+    description:
+      "List the packing items of a trip the user may see (another member's personal items stay hidden), with the trip's bags and who looks after each category. Narrow it to one category, one bag or what is still open; group_by says how the list is meant to be shown, by category or by bag, as the packing list groups it.",
+    inputSchema: {
+      tripId: idSchema,
+      category: packingListItemsRequestSchema.shape.category.describe(
+        'Only the items of this category, named exactly as the items carry it',
+      ),
+      bag_id: packingListItemsRequestSchema.shape.bag_id.describe(
+        'Only the items in this bag (ids come from list_packing_bags); null for the items in no bag',
+      ),
+      status: packingListItemsRequestSchema.shape.status.describe(
+        "'open' for what is still to pack, 'packed' for what is ticked off, 'all' (the default) for both",
+      ),
+      group_by: packingListItemsRequestSchema.shape.group_by.describe(
+        "How the list is shown: by 'category' (the default) or by 'bag'. It filters nothing",
+      ),
+    },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: packingAddonOn,
+    access: { group: 'packing', mode: 'read' },
+  })
+  async listPackingItems(
+    { tripId, category, bag_id, status }: { tripId: number } & PackingListItemsRequest,
+    ctx: McpContext,
+  ) {
+    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    // The viewer's own list (#858): another member's personal items never come back.
+    const visible = (await this.packing.listItems(tripId, ctx.userId)) as PackingListRow[];
+    const items = visible.filter(
+      (item) =>
+        (category === undefined || item.category === category) &&
+        (bag_id === undefined || (item.bag_id ?? null) === bag_id) &&
+        (status === 'open' ? !item.checked : status === 'packed' ? !!item.checked : true),
+    );
+    const bags = await this.packing.listBags(tripId);
+    const category_assignees = await this.packing.getCategoryAssignees(tripId);
+    return ok({ items, bags, category_assignees });
   }
 
   @Tool({
@@ -446,15 +490,9 @@ export class PackingMcp {
     access: { group: 'packing', mode: 'write' },
   })
   async deletePackingBag({ tripId, bagId }: { tripId: number; bagId: number }, ctx: McpContext) {
-    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
-    await this.packing.deleteBag(tripId, bagId);
-    // { bagId } matches the REST route and the plugin host (the legacy
-    // registrar's { id } was the odd one out).
-    this.guards.safeBroadcast(tripId, 'packing:bag-deleted', { bagId });
-    // packing_items.bag_id is ON DELETE SET NULL, so the contents land in the
-    // unassigned pile and both numbers move (#2191), as on REST and plugin RPC.
-    this.packing.broadcastBagTotals(String(tripId));
+    // A bag that is not on the trip answers 'Bag not found.' and is announced to
+    // nobody, as on REST; it used to report success and send both events.
+    await this.writes.deleteBag(tripId, bagId, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ success: true });
   }
 
@@ -514,31 +552,43 @@ export class PackingMcp {
     { tripId, categoryName, userIds }: { tripId: number; categoryName: string; userIds: number[] },
     ctx: McpContext,
   ) {
-    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
-    const assignees = await this.packing.updateCategoryAssignees(tripId, categoryName, userIds);
-    this.guards.safeBroadcast(tripId, 'packing:assignees', { category: categoryName, assignees });
+    // The tagged travellers get the same notification the REST route sends them.
+    const assignees = await this.writes.setCategoryAssignees(
+      tripId,
+      categoryName,
+      userIds,
+      await this.guards.tripWriter(tripId, ctx.userId),
+    );
     return ok({ assignees });
   }
 
   @Tool({
     name: 'apply_packing_template',
-    description: 'Apply a packing template to a trip (adds items from the template).',
+    description:
+      "Apply a packing template to a trip (adds items from the template), to the common list or as the caller's own items.",
     inputSchema: {
       tripId: idSchema,
       templateId: idSchema,
+      visibility: packingApplyTemplateRequestSchema
+        .unwrap()
+        .shape.visibility.describe(
+          "'common' (the default) adds the items to the list everyone shares, 'personal' to the caller's own list",
+        ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: packingAddonOn,
     access: { group: 'packing', mode: 'write' },
   })
-  async applyPackingTemplate({ tripId, templateId }: { tripId: number; templateId: number }, ctx: McpContext) {
-    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
-    const items = await this.packing.applyTemplate(tripId, templateId);
-    if (items === null) return errorResult('Template not found.');
-    this.guards.safeBroadcast(tripId, 'packing:template-applied', { items });
-    this.packing.broadcastBagTotals(String(tripId));
+  async applyPackingTemplate(
+    { tripId, templateId, visibility }: { tripId: number; templateId: number; visibility?: 'common' | 'personal' },
+    ctx: McpContext,
+  ) {
+    const items = await this.writes.applyTemplate(
+      tripId,
+      templateId,
+      visibility ?? 'common',
+      await this.guards.tripWriter(tripId, ctx.userId),
+    );
     return ok({ items, count: items.length });
   }
 

@@ -97,11 +97,16 @@ describe('TodoController (parity with the legacy /api/trips/:tripId/todo route)'
     });
   });
 
-  it('PUT /reorder succeeds with permission', async () => {
-    const reorderItems = vi.fn().mockResolvedValue(undefined);
-    const svc = makeService({ reorderItems } as Partial<TodoService>);
-    expect(await new TodoController(svc).reorder(user, '5', { orderedIds: [3, 1, 2] })).toEqual({ success: true });
-    expect(reorderItems).toHaveBeenCalledWith('5', [3, 1, 2]);
+  it('PUT /reorder hands the order to the use case, with the requesting socket to skip', async () => {
+    const writer = { userId: user.id, surface: 'rest' };
+    const reorder = vi.fn().mockResolvedValue(undefined);
+    const restWriter = vi.fn().mockReturnValue(writer);
+    const svc = makeService({ reorder, restWriter } as Partial<TodoService>);
+    expect(await new TodoController(svc).reorder(user, '5', { orderedIds: [3, 1, 2] }, 'sock')).toEqual({
+      success: true,
+    });
+    expect(restWriter).toHaveBeenCalledWith('5', user, 'sock');
+    expect(reorder).toHaveBeenCalledWith('5', [3, 1, 2], writer);
   });
 
   describe('category assignees', () => {

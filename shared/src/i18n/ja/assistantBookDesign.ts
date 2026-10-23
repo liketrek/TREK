@@ -1,0 +1,35 @@
+import type { TranslationStrings } from '../types';
+
+const assistantBookDesign: TranslationStrings = {
+  'assistant.change.verb.designBook': 'フォトブックのデザインを適用',
+  'assistant.change.verb.setBookSetup': 'ページ形式を変更',
+  'assistant.change.verb.duplicateBookPage': 'ページを複製',
+  'assistant.change.verb.saveBookLayout': 'ページをレイアウトとして保存',
+  'assistant.change.verb.removeBookLayout': '保存したレイアウトを削除',
+  'assistant.step.designingBook': 'フォトブックをデザインしています',
+  'assistant.step.readingDesign': 'デザインを読んでいます',
+  'assistant.step.revisingDesign': 'デザインのページを手直ししています',
+  'assistant.card.bookDesign.label': 'フォトブックのデザイン',
+  'assistant.card.bookDesign.style.classic': 'クラシックなデザイン',
+  'assistant.card.bookDesign.style.minimal': 'ミニマルなデザイン',
+  'assistant.card.bookDesign.style.editorial': '雑誌風のデザイン',
+  'assistant.card.bookDesign.style.journal': '日記風のデザイン',
+  'assistant.card.bookDesign.style.bold': '大胆なデザイン',
+  'assistant.card.bookDesign.style.scrapbook': 'スクラップブック風のデザイン',
+  'assistant.card.bookDesign.colours': '用紙、インク、アクセントの色',
+  'assistant.card.bookDesign.faces': '{heading} と {body}',
+  'assistant.card.bookDesign.pages': '{count} ページ',
+  'assistant.card.bookDesign.changes': '{count} ページが変わります',
+  'assistant.card.bookDesign.leftOut': '{count} 枚の写真を除外',
+  'assistant.card.bookDesign.skippedChanged': 'その後変更された {count} ページはそのままです',
+  'assistant.card.bookDesign.skippedPhoto': '{count} ページを維持、写真がギャラリーから外れました',
+  'assistant.card.bookDesign.skippedExcluded': '選ばれていない {count} ページ',
+  'assistant.card.bookDesign.pagesLabel': 'デザインのページ',
+  'assistant.card.bookDesign.include': '{page}: 新しいデザインを使う',
+  'assistant.card.bookDesign.showAll': '{count} ページをすべて表示',
+  'assistant.card.bookDesign.expired':
+    'この下書きはもうありません。ページを見るにはもう一度デザインを依頼してください。',
+  'assistant.card.bookDesign.unavailable': 'ページを読み込めませんでした。',
+  'assistant.card.bookDesign.selectFailed': 'ページの選択を保存できなかったため、元に戻しました。',
+};
+export default assistantBookDesign;

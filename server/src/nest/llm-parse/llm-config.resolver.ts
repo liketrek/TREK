@@ -4,8 +4,10 @@ import type { AddonsRepository } from '../../db/repositories/Addons.repository';
 import { AddonsService } from '../addons/addons.service';
 import { SettingsService } from '../settings/settings.service';
 import { decryptLlmApiKey, LLM_PROVIDERS, type LlmProvider, type ResolvedLlmConfig } from './llm-config';
+import { SHARED_AI_CONNECTION, type SharedAiConnectionPort } from './shared-ai-connection.interface';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { asLlmVision } from '@trek/shared';
 
 function asProvider(v: unknown): LlmProvider | null {
@@ -28,17 +30,43 @@ export class LlmConfigResolver {
     private readonly settings: SettingsService,
     @InjectRepository(Addons) private readonly addonsRepo: AddonsRepository,
     private readonly addons: AddonsService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   /**
    * Resolve the effective LLM config for a user, gated by the addon.
-   * Order: addon disabled → null; admin instance config wins; else per-user config;
-   * else null. This is the single place the API key is decrypted, and the single
-   * place that decides which endpoint the server is allowed to call (#1772).
+   * Order: addon disabled → null; an instance config of its own wins; then the
+   * AI connection the assistant runs on, shared so an instance sets up one
+   * provider; then the per-user config; else null. This is the single place
+   * the API key is decrypted, and the single place that decides which endpoint
+   * the server is allowed to call (#1772).
    */
   async resolve(userId: number): Promise<ResolvedLlmConfig | null> {
     if (!(await this.addons.isAddonEnabled(ADDON_IDS.LLM_PARSING))) return null;
-    return (await this.readInstanceConfig()) ?? (await this.readUserConfig(userId));
+    return (
+      (await this.readInstanceConfig()) ??
+      (await this.readSharedConnection(userId)) ??
+      (await this.readUserConfig(userId))
+    );
+  }
+
+  /**
+   * The assistant's connection, read with the vision setting AI parsing keeps
+   * in its own addon config (an instance on the shared connection keeps only
+   * that there). Null when nothing provides the port or it has no connection.
+   */
+  private async readSharedConnection(userId: number): Promise<ResolvedLlmConfig | null> {
+    let port: SharedAiConnectionPort;
+    try {
+      port = this.moduleRef.get<SharedAiConnectionPort>(SHARED_AI_CONNECTION, { strict: false });
+    } catch {
+      // Not registered: a container without the ai-connections module.
+      return null;
+    }
+    const shared = await port.forParsing(userId);
+    if (!shared) return null;
+    const row = await this.addonsRepo.findById(ADDON_IDS.LLM_PARSING);
+    return { ...shared, vision: asLlmVision(row?.config?.vision) };
   }
 
   private async readInstanceConfig(): Promise<ResolvedLlmConfig | null> {
@@ -55,6 +83,16 @@ export class LlmConfigResolver {
       apiKey: decryptLlmApiKey(cfg.apiKey),
       vision: asLlmVision(cfg.vision),
     };
+  }
+
+  /**
+   * The instance config without its key: the provider, the model and the
+   * address, for the AI assistant's admin form to start from while it has no
+   * connection of its own. Read only; nothing here changes AI parsing.
+   */
+  async readInstanceEndpoint(): Promise<Pick<ResolvedLlmConfig, 'provider' | 'model' | 'baseUrl'> | null> {
+    const config = await this.readInstanceConfig();
+    return config ? { provider: config.provider, model: config.model, baseUrl: config.baseUrl } : null;
   }
 
   /**

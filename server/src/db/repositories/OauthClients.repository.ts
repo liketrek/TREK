@@ -1,6 +1,10 @@
 import { OauthClients } from '../entities/OauthClients.entity';
+import type { DB } from '../kysely/db';
+import type { DbTimestamp } from '../types';
 import { toRow, type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
+
+type OauthClientsKyselyDB = Pick<DB, 'oauth_clients' | 'oauth_tokens'>;
 
 /**
  * A full `oauth_clients` row (`SELECT * FROM oauth_clients WHERE ...`), as
@@ -86,6 +90,20 @@ export interface OauthClientSdkRow {
   allowed_scopes: string;
   is_public: number;
   created_via: string;
+}
+
+/**
+ * A client registered from its metadata document (`created_via = 'cimd'`): public,
+ * anonymous, its `client_id` the document URL. `id` and `client_secret_hash` are
+ * only used when the row is new.
+ */
+export interface CimdClientUpsertRow {
+  id: string;
+  name: string;
+  client_id: string;
+  client_secret_hash: string;
+  redirect_uris: string;
+  allowed_scopes: string;
 }
 
 /** OA21 (`refreshTokens`'s client-auth read) — client auth needs only these three columns. */
@@ -355,5 +373,55 @@ export class OauthClientsRepository extends TrekRepository<OauthClients> {
   async findByClientIdFull(clientId: string): Promise<OauthClientRow | null> {
     const row = await this.findOne({ client_id: clientId });
     return row ? (toRow(row) as OauthClientRow) : null;
+  }
+
+  // ---------------------------------------------------------------------
+  // Client ID Metadata Documents
+  // ---------------------------------------------------------------------
+
+  /**
+   * `INSERT INTO oauth_clients (...) VALUES (...) ON CONFLICT (client_id) DO
+   *  UPDATE SET name, redirect_uris, allowed_scopes WHERE created_via = 'cimd'`
+   * — a metadata-document client, refreshed from its document on every
+   * consent. The WHERE keeps the update off any row another path registered.
+   */
+  async upsertCimdClient(row: CimdClientUpsertRow): Promise<void> {
+    await this.kysely<OauthClientsKyselyDB>()
+      .insertInto('oauth_clients')
+      .values({
+        id: row.id,
+        user_id: null,
+        name: row.name,
+        client_id: row.client_id,
+        client_secret_hash: row.client_secret_hash,
+        redirect_uris: row.redirect_uris,
+        allowed_scopes: row.allowed_scopes,
+        is_public: 1,
+        created_via: 'cimd',
+        allows_client_credentials: 0,
+      })
+      .onConflict((oc) =>
+        oc
+          .column('client_id')
+          .doUpdateSet({ name: row.name, redirect_uris: row.redirect_uris, allowed_scopes: row.allowed_scopes })
+          .where('oauth_clients.created_via', '=', 'cimd'),
+      )
+      .execute();
+  }
+
+  /**
+   * `DELETE FROM oauth_clients WHERE created_via = 'cimd' AND created_at < ?
+   *  AND client_id NOT IN (SELECT client_id FROM oauth_tokens)` — metadata-
+   * document clients nobody holds a token for any more. Their consents go with
+   * them (FK cascade); the next authorization registers the client again.
+   */
+  async deleteUnusedCimdBefore(cutoff: DbTimestamp): Promise<number> {
+    const result = await this.kysely<OauthClientsKyselyDB>()
+      .deleteFrom('oauth_clients')
+      .where('created_via', '=', 'cimd')
+      .where('created_at', '<', cutoff)
+      .where('client_id', 'not in', (eb) => eb.selectFrom('oauth_tokens').select('oauth_tokens.client_id'))
+      .executeTakeFirst();
+    return Number(result.numDeletedRows ?? 0);
   }
 }

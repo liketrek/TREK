@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'まず日を選択してください',
   'trip.toast.assignedToDay': '場所を日に割り当てました',
   'trip.toast.loadError': '旅行を読み込めませんでした',
+  'trip.toast.accessLost': 'この旅行のメンバーではなくなりました',
   'trip.toast.reorderError': '並び替えに失敗しました',
   'trip.toast.reservationUpdated': '予約を更新しました',
   'trip.toast.reservationAdded': '予約を追加しました',

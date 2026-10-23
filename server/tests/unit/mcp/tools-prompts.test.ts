@@ -133,6 +133,9 @@ beforeAll(async () => {
     readModelStub,
     addonsStub,
     promptGuards,
+    // The trip and roster writes: no prompt reaches a write.
+    undefined as never,
+    undefined as never,
   );
   promptPackingService = new PackingService(
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
@@ -164,7 +167,8 @@ beforeAll(async () => {
     new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)),
     addonsStub,
     promptGuards,
-    await createTestUnitOfWork(testDb),
+    // BudgetWritesService: a prompt writes nothing.
+    {} as never,
     await createTestPlacesRepo(testDb),
     await createTestTripsRepo(testDb),
   );

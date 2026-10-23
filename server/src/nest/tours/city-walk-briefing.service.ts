@@ -11,6 +11,7 @@ import {
   frameOf,
   planWalk,
   themeCandidates,
+  walkLineGeometry,
   type LeftOut,
   type LeftOutReason,
   type WalkCandidate,
@@ -135,8 +136,10 @@ export class CityWalkBriefingService {
       themes: theme.candidates,
       themeLimit: theme.limit,
     });
+    const way = await this.footWays.plan(userId, tripId, plan.route);
     return {
-      ...describeWalk(plan.route, frame, await this.footWays.plan(userId, tripId, plan.route)),
+      ...describeWalk(plan.route, frame, way),
+      ...walkLineGeometry(way, briefing.include_geometry),
       left_out: [...leftOut, ...plan.leftOut],
       searched: theme.searched,
     };

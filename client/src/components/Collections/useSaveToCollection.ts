@@ -5,10 +5,24 @@ import { useNavigate } from 'react-router';
 import { collectionsApi } from '../../api/collections';
 import { useTranslation } from '../../i18n';
 import { useSaveToCollectionStore } from '../../store/saveToCollectionStore';
+import { useServerPing } from '../../sync/useServerPing';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { useToast } from '../shared/Toast';
 
 type MembershipEntry = CollectionMembership['lists'][number];
+
+/**
+ * The collection events that can change whether a place is saved: a place saved or
+ * removed in another tab or through MCP, an invite to a list accepted, a list
+ * deleted, left or taken away.
+ */
+const MEMBERSHIP_EVENTS = [
+  'collections:updated',
+  'collections:accepted',
+  'collections:deleted',
+  'collections:left',
+  'collections:removed',
+] as const;
 
 /** busyId while the "visited everywhere" bulk action runs. */
 export const VISITED_EVERYWHERE_BUSY = -1;
@@ -53,6 +67,19 @@ export function useSaveToCollection() {
       setMembership({ saved: false, lists: [] });
     }
   }, [membershipQuery]);
+
+  // Saved elsewhere: the open picker reads its membership again, and the version
+  // bump lets the inspector bookmark re-check, once per burst of events. Collection
+  // events go to the user, not to a trip room, so opening a trip is no reason to re-check.
+  useServerPing(
+    MEMBERSHIP_EVENTS,
+    true,
+    async () => {
+      bumpVersion();
+      await refreshMembership();
+    },
+    { rejoin: false }
+  );
 
   // Load lists + membership whenever the picker opens for a new target. The query is
   // derived from the target alone, so both change together.

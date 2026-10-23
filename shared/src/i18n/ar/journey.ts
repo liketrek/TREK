@@ -320,7 +320,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'اليوم',
+  'journey.studio.day': 'اليوم {day}',
   'journey.studio.stations': 'المحطات',
   'journey.studio.peersHere': 'هنا',
   'journey.studio.folioAuto': 'تلقائي',
@@ -481,7 +481,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'العلامات',
   'journey.studio.dateMark': 'التاريخ',
   'journey.studio.dayMark': 'عدّاد الأيام',
-  'journey.studio.dayWord': 'اليوم',
   'journey.studio.coordsMark': 'الإحداثيات',
   'journey.studio.coordsDms': 'درجات',
   'journey.studio.coordsDecimal': 'عشرية',
@@ -678,6 +677,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'تدوير لليسار',
   'journey.studio.rotateRight': 'تدوير لليمين',
   'journey.studio.saveReadOnly': 'للقراءة فقط، لا يتم الحفظ',
+  'journey.studio.saveNewer': 'حفظ إصدار أحدث من Studio هذا الكتاب. أعد التحميل لتعديله.',
+  'journey.studio.saveReload': 'إعادة التحميل',
   'journey.studio.filterPhotos': 'تصفية الصور',
   'journey.studio.filterAll': 'كل الصور',
   'journey.studio.filterLoose': 'ليست ضمن إدخال',
@@ -972,5 +973,14 @@ const journey: TranslationStrings = {
     'الأيام المسجَّلة ومحطات التوقف المأخوذة منها، للأيام التي لها تدوينة منشورة. تُظهر أين كنت ومتى، بما في ذلك مكان إقامتك.',
   'journey.share.needsMap': 'شارك الخريطة لتفعيل هذا',
   'journey.editor.tags': 'الوسوم',
+  'journey.studio.assistant.toggle': 'المساعد',
+  'journey.studio.assistant.toggleHint': 'صمّم الكتاب مع المساعد',
+  'journey.studio.assistant.panel': 'مساعد الكتاب',
+  'journey.studio.assistant.welcome': 'كيف تريد أن يبدو الكتاب؟',
+  'journey.studio.assistant.readOnly': 'يمكنك عرض هذا الكتاب فقط، لذا أستطيع الإجابة عن الأسئلة لكن لا أغيّر شيئًا.',
+  'journey.studio.assistant.notice':
+    'يمكن للمساعد رؤية الصفحة التي تعمل عليها. تُرسل هذه الصفحة وحدها إلى {provider} كصورة لا تظهر فيها إلا الصور التي أضفتها بنفسك. لا يمكن التعرّف على من يظهر في صورك.',
+  'journey.studio.assistant.noticeAllow': 'اعرض الصفحات',
+  'journey.studio.assistant.noticeLater': 'ليس الآن',
 };
 export default journey;

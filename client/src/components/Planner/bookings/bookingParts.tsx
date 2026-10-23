@@ -232,6 +232,18 @@ export function RoundAction({ label, onClick, children, danger = false }: { labe
   )
 }
 
+/**
+ * A traveller's round face: the picture where there is one, else the first
+ * letter of the name on the accent. Sized and ringed by the caller.
+ */
+export function TravelerAvatar({ src, name, className = '', style }: { src: string | null; name?: string | null; className?: string; style?: CSSProperties }) {
+  return (
+    <span className={`grid flex-none place-items-center overflow-hidden rounded-full bg-accent font-bold text-accent-text ${className}`} style={{ ...fs(9), ...style }}>
+      {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : name?.[0]?.toUpperCase()}
+    </span>
+  )
+}
+
 /** Who a booking is for, as the phone shows them: avatar and name in a soft chip. */
 export function TravelerChips({ travelers }: { travelers: ReservationTraveler[] }) {
   if (travelers.length === 0) return null
@@ -241,9 +253,7 @@ export function TravelerChips({ travelers }: { travelers: ReservationTraveler[] 
         const src = tv.avatar_url || avatarSrc(tv.avatar)
         return (
           <span key={tv.user_id} className={`${BOX} flex items-center gap-1.5 rounded-full py-[3px] ps-[3px] pe-2.5`}>
-            <span className="grid h-5 w-5 flex-none place-items-center overflow-hidden rounded-full bg-accent font-bold text-accent-text" style={fs(9)}>
-              {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : tv.username?.[0]?.toUpperCase()}
-            </span>
+            <TravelerAvatar src={src} name={tv.username} className="h-5 w-5" />
             <span className="truncate font-semibold text-content" style={fs(12, 'body')}>{tv.username}</span>
             {!!tv.is_guest && <GuestBadge size="xs" customTooltip />}
           </span>
@@ -263,9 +273,7 @@ export function TravelerStack({ travelers, max = 3 }: { travelers: ReservationTr
         {travelers.slice(0, max).map((tv, i) => {
           const src = tv.avatar_url || avatarSrc(tv.avatar)
           return (
-            <span key={tv.user_id} className="grid h-[22px] w-[22px] flex-none place-items-center overflow-hidden rounded-full border-2 border-surface-card bg-accent font-bold text-accent-text" style={{ ...fs(9), marginInlineStart: i ? -7 : 0 }}>
-              {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : tv.username?.[0]?.toUpperCase()}
-            </span>
+            <TravelerAvatar key={tv.user_id} src={src} name={tv.username} className="h-[22px] w-[22px] border-2 border-surface-card" style={{ marginInlineStart: i ? -7 : 0 }} />
           )
         })}
         {travelers.length > max && <span className="ms-1 font-geist font-semibold text-content-faint" style={fs(10.5)}>+{travelers.length - max}</span>}

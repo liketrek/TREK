@@ -1,10 +1,16 @@
+import { DomainError } from '../common/domain-error';
 import type {
   DawarichSlimPoint,
   DawarichTrackFeature,
   DawarichVisitRaw,
   DawarichVisitedCountry,
 } from './dawarich.client';
-import { RECORDING_GAP_METERS, type DawarichTrackDay, type DawarichTrackSegment } from '@trek/shared';
+import {
+  DAWARICH_WINDOW_MAX_DAYS,
+  RECORDING_GAP_METERS,
+  type DawarichTrackDay,
+  type DawarichTrackSegment,
+} from '@trek/shared';
 
 import { createHash } from 'crypto';
 
@@ -689,4 +695,26 @@ function sumOf(a: unknown, b: unknown): number | undefined {
   const right = toNumber(b);
   if (left === null && right === null) return undefined;
   return (left ?? 0) + (right ?? 0);
+}
+
+// ── Windows ──────────────────────────────────────────────────────────────────
+
+/**
+ * An explicit instant window, read the one way for the REST routes and the
+ * MCP tools that take one. Both ends are required together: a half-open range
+ * would silently become "everything since the epoch" on one side, which is the
+ * request that makes an instance time out. A refusal is a 400 that REST and
+ * MCP answer with the same sentence.
+ */
+export function parseTimeWindow(from: string | undefined, to: string | undefined): { from: Date; to: Date } {
+  const start = from ? new Date(from) : null;
+  const end = to ? new Date(to) : null;
+  if (!start || !end || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) {
+    throw new DomainError(400, 'from and to are required ISO timestamps');
+  }
+  if (end <= start) throw new DomainError(400, 'to must be after from');
+  if (end.getTime() - start.getTime() > DAWARICH_WINDOW_MAX_DAYS * 86_400_000) {
+    throw new DomainError(400, `Window must be ${DAWARICH_WINDOW_MAX_DAYS} days or less`);
+  }
+  return { from: start, to: end };
 }

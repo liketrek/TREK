@@ -114,6 +114,8 @@ describe('PaddleRoutingMcp', () => {
     expect(input.safeParse({ tripId: 3, legs: [] }).success).toBe(false);
     expect(input.safeParse({ tripId: 3, legs: [{ from: A, to: B }], lake_style: 'zigzag' }).success).toBe(false);
     expect(input.safeParse({ legs: [{ from: A, to: B }] }).success).toBe(false);
+    expect(input.safeParse({ tripId: 3, legs: [{ from: A, to: B }], include_geometry: true }).success).toBe(true);
+    expect(input.safeParse({ tripId: 3, legs: [{ from: A, to: B }], include_geometry: 'yes' }).success).toBe(false);
   });
 
   it('PADROUTE-MCP-003: plans for a trip the caller sees, the same request as REST, and answers each leg without its points', async () => {
@@ -131,8 +133,8 @@ describe('PaddleRoutingMcp', () => {
           snapped_m: { from: 12, to: 0 },
           points: 3,
           segments: [
-            { kind: 'water', name: 'Regen', source: null, osm_ref: null },
-            { kind: 'portage', name: 'Wehr', source: 'tagged', osm_ref: 'way/1' },
+            { kind: 'water', name: 'Regen', source: null, osm_ref: null, from_m: 0, to_m: 6526 },
+            { kind: 'portage', name: 'Wehr', source: 'tagged', osm_ref: 'way/1', from_m: 6526, to_m: 11903 },
           ],
         },
         { status: 'failed', code: 'no_region', at: B },
@@ -145,5 +147,55 @@ describe('PaddleRoutingMcp', () => {
     const result = (await mcp.planPaddleRoute({ tripId: 9, legs: [{ from: A, to: B }] }, ctx)) as McpTextResult;
     expect(result.isError).toBe(true);
     expect(routing.route).not.toHaveBeenCalled();
+  });
+
+  it("PADROUTE-MCP-005: adds each planned leg's line for drawing only when asked, all legs within 300 points by length", async () => {
+    const { mcp, routing } = makeMcp(true);
+    const long = (from: number, count: number): Array<[number, number]> =>
+      Array.from({ length: count }, (_, index) => [49 + (from + index) * 0.0001, 12]);
+    const leg = (geometry: Array<[number, number]>, distance: number) => ({
+      status: 'ok' as const,
+      geometry,
+      segments: [
+        {
+          kind: 'water' as const,
+          from: 0,
+          to: geometry.length - 1,
+          name: null,
+          source: null,
+          osm_ref: null,
+          grade: null,
+        },
+      ],
+      distance_m: distance,
+      snapped_m: { from: 0, to: 0 },
+    });
+    routing.route.mockResolvedValueOnce({
+      graph_rev: 'r2',
+      legs: [
+        leg(long(0, 1000), 11_100),
+        { status: 'failed', code: 'no_water_path', at: A },
+        leg(long(1000, 500), 5_550),
+        leg(long(1500, 2), 11),
+      ],
+    });
+    const legs = [
+      { from: A, to: B },
+      { from: B, to: A },
+      { from: A, to: B },
+      { from: B, to: A },
+    ];
+    const result = (await mcp.planPaddleRoute({ tripId: 3, legs, include_geometry: true }, ctx)) as McpTextResult;
+    // The flag is the tool's own: the router gets the REST request.
+    expect(routing.route).toHaveBeenCalledWith(paddleRouteRequestSchema.parse({ legs }));
+    const answer = JSON.parse(result.content[0].text) as { legs: Array<{ line_geometry?: Array<[number, number]> }> };
+    const drawn = answer.legs.map((planned) => planned.line_geometry?.length ?? null);
+    expect(drawn).toEqual([198, null, 100, 2]);
+    expect(drawn.reduce<number>((sum, count) => sum + (count ?? 0), 0)).toBeLessThanOrEqual(300);
+    expect(answer.legs[0].line_geometry?.[0]).toEqual([49, 12]);
+    expect(answer.legs[0].line_geometry?.at(-1)).toEqual(long(0, 1000)[999]);
+
+    const plain = (await mcp.planPaddleRoute({ tripId: 3, legs: [{ from: A, to: B }] }, ctx)) as McpTextResult;
+    expect(JSON.parse(plain.content[0].text).legs[0]).not.toHaveProperty('line_geometry');
   });
 });

@@ -25,6 +25,8 @@ import { dbNow } from '../../../src/db/types/db-timestamp.type';
 import { CollabService } from '../../../src/nest/collab/collab.service';
 import { avatarUrl } from '../../../src/nest/common/avatarUrl';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
+import type { TripWriter } from '../../../src/nest/common/trip-writer';
+import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import {
@@ -37,6 +39,7 @@ import {
 } from '../../helpers/collab-repos';
 import { createUser, createTrip } from '../../helpers/factories';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { notificationsStub } from '../../helpers/notifications';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
 import { resetTestDb } from '../../helpers/test-db';
@@ -111,13 +114,18 @@ let pollVotesRepo: CollabPollVotesRepository;
 let linksRepo: CollabLinksRepository;
 let messagesRepo: CollabMessagesRepository;
 
-async function buildCollabService(storage = collabFx.storage, rl = rateLimit): Promise<CollabService> {
+async function buildCollabService(
+  storage = collabFx.storage,
+  rl = rateLimit,
+  notifications = notificationsStub(),
+  realtime: RealtimeService = new RealtimeService(),
+): Promise<CollabService> {
   // Plan 4 Task 2/4 — CollabService's own DatabaseService param is gone:
   // canAccessTrip now reads through the TripsRepository passed at the end.
   return new CollabService(
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
-    new RealtimeService(),
-    notificationsStub(),
+    realtime,
+    notifications,
     storage,
     rl,
     await createTestUnitOfWork(testDb),
@@ -396,6 +404,92 @@ describe('createMessage', () => {
   });
 });
 
+// ── posting (every surface) ───────────────────────────────────────────────────
+
+describe('postNote / postMessage', () => {
+  /** A CollabService whose broadcasts and notifications a case reads. */
+  async function postingSvc() {
+    const realtime = new FakeRealtimeService();
+    const send = vi.fn(async (_payload: { params: Record<string, string> }) => ({ attempted: 0, delivered: 0 }));
+    const notifications = {
+      send,
+      actorName: vi.fn(async () => 'owner'),
+    } as unknown as NotificationsService;
+    const service = await buildCollabService(collabFx.storage, rateLimit, notifications, realtime);
+    return { service, realtime, send };
+  }
+
+  /** The MCP shape of a writer: every socket, no socket left out. */
+  const mcpWriter = (service: CollabService, tripId: number, userId: number): TripWriter => ({
+    ...service.restWriter(tripId, { id: userId, role: 'user' }, undefined),
+    surface: 'mcp',
+  });
+
+  it('COLLAB-SVC-050: a posted note goes to the room minus the asking tab, then notifies the trip as its writer', async () => {
+    const { user1, trip } = setup();
+    const { service, realtime, send } = await postingSvc();
+    const note = await service.postNote(
+      trip.id,
+      { title: 'Ideas' },
+      service.restWriter(String(trip.id), { id: user1.id, role: 'user' }, 'sock-1'),
+    );
+    expect(realtime.broadcastMock.mock.calls).toEqual([[String(trip.id), 'collab:note:created', { note }, 'sock-1']]);
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'collab_message',
+        actorId: user1.id,
+        scope: 'trip',
+        targetId: trip.id,
+        params: expect.objectContaining({ actor: 'owner', tripId: String(trip.id) }),
+      }),
+    );
+  });
+
+  it('COLLAB-SVC-051: a posted message is sent and notified with an 80 character preview, from any surface', async () => {
+    const { user1, trip } = setup();
+    const { service, realtime, send } = await postingSvc();
+    const long = 'x'.repeat(100);
+    const result = await service.postMessage(trip.id, { text: `  ${long}  ` }, mcpWriter(service, trip.id, user1.id));
+    expect(result.message?.text).toBe(long);
+    expect(realtime.broadcastMock).toHaveBeenCalledWith(
+      trip.id,
+      'collab:message:created',
+      { message: result.message },
+      undefined,
+    );
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ params: expect.objectContaining({ preview: `${'x'.repeat(80)}...` }) }),
+    );
+  });
+
+  it('COLLAB-SVC-052: a short message is previewed whole, and an image without text says so', async () => {
+    const { user1, trip } = setup();
+    const { service, send } = await postingSvc();
+    const writer = mcpWriter(service, trip.id, user1.id);
+    await service.postMessage(trip.id, { text: 'Hi' }, writer);
+    await service.postMessage(
+      trip.id,
+      { text: '', files: [{ filename: 'a.jpg', originalname: 'a.jpg', size: 3, mimetype: 'image/jpeg' }] },
+      writer,
+    );
+    const previews = send.mock.calls.map(([payload]) => payload.params.preview);
+    expect(previews).toEqual(['Hi', 'sent an image']);
+  });
+
+  it('COLLAB-SVC-053: a reply to a message that is gone sends and notifies nothing', async () => {
+    const { user1, trip } = setup();
+    const { service, realtime, send } = await postingSvc();
+    const result = await service.postMessage(
+      trip.id,
+      { text: 'Hi', replyTo: 9999 },
+      mcpWriter(service, trip.id, user1.id),
+    );
+    expect(result).toEqual({ error: 'reply_not_found' });
+    expect(realtime.broadcastMock).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+  });
+});
+
 // ── deleteMessage ownership check ─────────────────────────────────────────────
 
 describe('deleteMessage', () => {
@@ -419,11 +513,9 @@ describe('deleteMessage', () => {
 
     const result = await svc.deleteMessage(trip.id, r.message!.id, user1.id);
     expect(result.error).toBeUndefined();
-    // U5 (pre-existing, pinned not fixed): findInTrip never joins users, so
-    // this has always been undefined at runtime — the controller falls back
-    // to the caller's own username (CollabController.deleteMessage, correct
-    // because only the owner may delete their own message).
-    expect(result.username).toBeUndefined();
+    // The author's name, read before the delete: MCP has no session user to
+    // fall back on, and REST's fallback names the same person anyway.
+    expect(result.username).toBe(user1.username);
 
     const row = await findRow(orm, CollabMessages, { id: r.message!.id });
     expect(row?.deleted).toBe(1);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { BookDocument, BookRecord } from '@trek/shared'
-import { normalizeBookDocument } from '@trek/shared'
+import { BOOK_SCHEMA_NEWER_CODE, readBookDocument, stampBookSchemaRev } from '@trek/shared'
 import { journeyApi } from '../../api/client'
 import { addListener, removeListener } from '../../api/websocket'
 
@@ -42,6 +42,28 @@ import { addListener, removeListener } from '../../api/websocket'
  * save conflicts, and the conflict offers a choice, which is the whole point of
  * the version. Quietly replacing someone's open document with somebody else's
  * is exactly the failure this design exists to avoid.
+ *
+ * ── Why the refetch is coalesced ──────────────────────────────────────────
+ *
+ * The assistant can apply many page edits in one step, each a save and each a
+ * broadcast. Fetching the book once per event would be a burst of identical
+ * reads racing each other, and an older answer landing last would roll the
+ * editor back. So one read is open at a time, events that arrive during it ask
+ * for exactly one more, and a document no newer than the one held is dropped.
+ * An event that lands while this client's own write is open is not dropped
+ * either: it is remembered and read once that work has reached the server,
+ * because the save response and the broadcast travel on different channels and
+ * either can arrive first.
+ *
+ * ── Why a book from a newer Studio is never written ───────────────────────
+ *
+ * A document says which revision of the format wrote it (book-schema-rev.ts).
+ * This build reads a newer one as far as it can, and what it cannot read is
+ * already gone from the copy it holds: saving that copy would delete the rest
+ * for everyone. So such a book is shown and never written, the same way a
+ * viewer's is, until a reload brings the Studio that wrote it. The server
+ * refuses the save as well, which covers a tab that loaded the book before the
+ * newer Studio saved it.
  */
 
 /** How long the document has to stay still before it is written. */
@@ -57,12 +79,26 @@ export type SaveState =
   | { status: 'conflict'; current: BookRecord }
   /** The journey is open to this user, but they may not write it (role 'viewer'). */
   | { status: 'readonly' }
+  /** The book was saved by a newer Studio than this one: shown, never written, until a reload. */
+  | { status: 'newer' }
   | { status: 'error' }
+
+/** What the editor needs to know about a version it is handed from elsewhere. */
+interface RemoteBookMeta {
+  /**
+   * Whether every save folded into it was this user's own (their assistant, or
+   * another tab of theirs), so taking it back with Ctrl+Z only undoes their own
+   * work. False as soon as somebody else's save is among them.
+   */
+  undoable: boolean
+}
 
 export function useBookStore(
   journeyId: number,
   /** Called when another editor's version is taken, with their document. */
-  onRemote?: (document: BookDocument) => void,
+  onRemote?: (document: BookDocument, meta: RemoteBookMeta) => void,
+  /** The signed-in user, to tell their own saves from everybody else's. */
+  selfId?: number | null,
 ) {
   const [record, setRecord] = useState<BookRecord | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -70,6 +106,11 @@ export function useBookStore(
 
   /** The version every save is made against, and what a conflict compares to. */
   const version = useRef<number | null>(null)
+  /**
+   * The id of the book that version belongs to. A book deleted and made again
+   * starts its versions over, so a lower version is only stale for the same book.
+   */
+  const bookId = useRef<number | null>(null)
   const timer = useRef<number | null>(null)
   const firstDirtyAt = useRef<number | null>(null)
   const pending = useRef<{ document: BookDocument; title: string } | null>(null)
@@ -115,9 +156,19 @@ export function useBookStore(
    */
   const blocked = useRef(false)
 
+  /** The write that is open, so `flush` can wait for it rather than poll. */
+  const flight = useRef<Promise<void> | null>(null)
+
   /** Kept in a ref so the socket listener is not re-subscribed per render. */
   const onRemoteRef = useRef(onRemote)
   onRemoteRef.current = onRemote
+
+  /**
+   * Read the book again if a save from elsewhere was passed over while this
+   * client had work of its own. Set by the listener below, called once that
+   * work has settled.
+   */
+  const catchUp = useRef<() => void>(() => {})
 
   useEffect(() => {
     if (!Number.isFinite(journeyId)) return
@@ -137,9 +188,15 @@ export function useBookStore(
          * agreed document by identity, so a consumer that normalised on its own
          * would hand back a different object and turn every open into a save.
          */
-        const book = res.book ? { ...res.book, document: normalizeBookDocument(res.book.document) } : null
+        const read = res.book ? readBookDocument(res.book.document) : null
+        const book = res.book && read ? { ...res.book, document: read.document } : null
+        if (read?.newer) {
+          blocked.current = true
+          setState({ status: 'newer' })
+        }
         setRecord(book)
         version.current = book?.version ?? null
+        bookId.current = book?.id ?? null
         synced.current = book?.document ?? null
         latest.current = book?.document ?? null
       })
@@ -152,6 +209,8 @@ export function useBookStore(
     const next = pending.current
     if (!next || inFlight.current || blocked.current) return
     inFlight.current = true
+    let settle = () => {}
+    flight.current = new Promise<void>(resolve => { settle = resolve })
     pending.current = null
     firstDirtyAt.current = null
     setState({ status: 'saving' })
@@ -159,11 +218,13 @@ export function useBookStore(
     try {
       const saved = await journeyApi.saveBook(journeyId, {
         title: next.title,
-        document: next.document,
+        // Stamped on the way out only: `synced` below keeps the editor's own object.
+        document: stampBookSchemaRev(next.document),
         baseVersion: version.current ?? undefined,
       })
       setRecord(saved)
       version.current = saved.version
+      bookId.current = saved.id
       synced.current = next.document
       setState({ status: 'saved', at: Date.now() })
     } catch (err) {
@@ -174,8 +235,12 @@ export function useBookStore(
        * not need a second request: the editor can offer to take their version
        * or keep going from here, and either way it can say whose work it is.
        */
-      const res = (err as { response?: { status?: number; data?: { current?: BookRecord } } }).response
-      if (res?.status === 409 && res.data?.current) {
+      const res = (err as { response?: { status?: number; data?: { current?: BookRecord; code?: string } } }).response
+      if (res?.status === 409 && res.data?.code === BOOK_SCHEMA_NEWER_CODE) {
+        // A newer Studio saved the book since this tab read it: nothing here may be written over it.
+        blocked.current = true
+        setState({ status: 'newer' })
+      } else if (res?.status === 409 && res.data?.current) {
         blocked.current = true
         setState({ status: 'conflict', current: res.data.current })
       } else if (res?.status === 403) {
@@ -192,9 +257,11 @@ export function useBookStore(
       }
     } finally {
       inFlight.current = false
+      settle()
       // Anything that arrived while the request was open goes next, so a save
       // during a save is queued rather than dropped.
       if (pending.current) void write()
+      else catchUp.current()
     }
   }, [journeyId])
 
@@ -230,16 +297,48 @@ export function useBookStore(
     return write()
   }, [write])
 
+  /**
+   * Hand everything this client holds to the server, and say whether it landed.
+   *
+   * For the moments where a write from somewhere else is about to happen on
+   * purpose: the assistant is sent a turn, or one of its cards is applied. Its
+   * write is checked against the version, so an edit still sitting in the
+   * debounce would turn the assistant's change into a conflict, or the other way
+   * round. Resolves false when the work could not be written (a conflict, a
+   * viewer, a failed request), so the caller can hold off instead of racing it.
+   */
+  const flush = useCallback(async (): Promise<boolean> => {
+    if (timer.current != null) {
+      window.clearTimeout(timer.current)
+      timer.current = null
+    }
+    // Work that is local but not queued, as after a failed request.
+    if (!blocked.current && !pending.current && !inFlight.current && latest.current && latest.current !== synced.current) {
+      pending.current = { document: latest.current, title: lastTitle.current }
+    }
+    // Bounded: every round writes once or waits for one write to settle.
+    for (let round = 0; round < 8 && !blocked.current; round++) {
+      if (inFlight.current) await flight.current
+      else if (pending.current) await write()
+      else break
+    }
+    return !blocked.current && !hasLocalWork()
+  }, [write])
+
   /** Take the other version, discarding the local one. */
   const acceptTheirs = useCallback((current: BookRecord) => {
-    const document = normalizeBookDocument(current.document)
-    blocked.current = false
+    const { document, newer } = readBookDocument(current.document)
+    blocked.current = newer
     setRecord({ ...current, document })
     version.current = current.version
+    bookId.current = current.id
     synced.current = document
     latest.current = document
     pending.current = null
-    setState({ status: 'idle' })
+    setState(newer ? { status: 'newer' } : { status: 'idle' })
+    // A save from elsewhere passed over while the conflict was open may be
+    // newer than the record it carried.
+    catchUp.current()
     return document
   }, [])
 
@@ -279,44 +378,108 @@ export function useBookStore(
   useEffect(() => {
     if (!Number.isFinite(journeyId)) return
     let cancelled = false
+    /** A read is open; events that arrive meanwhile ask for one more after it. */
+    let fetching = false
+    let again = false
+    /** A save was passed over because this client had work of its own. */
+    let missed = false
+    /** The versions saved by somebody other than this user, not taken yet. */
+    let foreign: number[] = []
 
-    const handler = (event: Record<string, unknown>) => {
-      if (event.type !== 'journey:book:saved') return
-      if (event.journeyId !== journeyId) return
-      if (hasLocalWork()) return
-      // Already ours: the server excludes the saving socket, but a second tab
-      // on the same account is a different socket and the same person.
-      if (typeof event.version === 'number' && event.version === version.current) return
+    /** Whether a version is one this client does not hold yet. */
+    const isNewer = (v: unknown) =>
+      typeof v !== 'number' || version.current == null || v > version.current
 
+    const refetch = () => {
+      fetching = true
+      again = false
+      missed = false
       void journeyApi.getBook(journeyId)
         .then(res => {
           if (cancelled || !res.book) return
           // Re-checked after the round trip: the user may have started editing
-          // while it was in the air, and their work outranks the refresh.
-          if (hasLocalWork()) return
+          // while it was in the air, and their work outranks the refresh. Kept
+          // for later, in case that work lands without a conflict.
+          if (hasLocalWork()) {
+            missed = true
+            return
+          }
+          // An answer overtaken by one already taken would roll the editor
+          // back. A different book (deleted and made again) is never stale.
+          const sameBook = bookId.current == null || res.book.id === bookId.current
+          if (sameBook && !isNewer(res.book.version)) return
           // Normalised for the same reason the initial load is: a document
           // written by an older build is missing whatever the contract has
-          // gained since.
-          const document = normalizeBookDocument(res.book.document)
+          // gained since. One written by a newer build is shown and held.
+          const { document, newer } = readBookDocument(res.book.document)
+          if (newer) {
+            blocked.current = true
+            setState({ status: 'newer' })
+          }
+          const held = version.current
+          const taken = res.book.version
+          // Undoable only when every save it folds in, past the version held,
+          // was this user's own.
+          const undoable = sameBook && !foreign.some(v => held == null || (v > held && v <= taken))
+          foreign = foreign.filter(v => v > taken)
           setRecord({ ...res.book, document })
-          version.current = res.book.version
+          version.current = taken
+          bookId.current = res.book.id
           synced.current = document
           latest.current = document
-          onRemoteRef.current?.(document)
+          onRemoteRef.current?.(document, { undoable })
         })
         .catch(() => { /* The next save will conflict and offer the choice. */ })
+        .finally(() => {
+          fetching = false
+          if (!again || cancelled) return
+          if (hasLocalWork()) missed = true
+          else refetch()
+        })
+    }
+
+    catchUp.current = () => {
+      if (cancelled || !missed || hasLocalWork()) return
+      if (fetching) again = true
+      else refetch()
+    }
+
+    const handler = (event: Record<string, unknown>) => {
+      if (event.type !== 'journey:book:saved') return
+      if (event.journeyId !== journeyId) return
+      // Already ours: the server excludes the saving socket, but a second tab
+      // on the same account is a different socket and the same person. Older
+      // than ours is a broadcast that arrived after a newer read.
+      if (!isNewer(event.version)) return
+      // Unknown who saved, or not this user: their change is not ours to undo.
+      if (selfId == null || event.savedBy !== selfId) {
+        // A version that did not come along counts against the next one taken.
+        foreign.push(typeof event.version === 'number' ? event.version : (version.current ?? 0) + 1)
+      }
+      if (hasLocalWork()) {
+        // Remembered rather than dropped: the user's own write may land first
+        // and leave this one unseen, with no conflict to bring it up.
+        missed = true
+        return
+      }
+      if (fetching) {
+        again = true
+        return
+      }
+      refetch()
     }
 
     addListener(handler)
     return () => {
       cancelled = true
+      catchUp.current = () => {}
       removeListener(handler)
     }
-  }, [journeyId])
+  }, [journeyId, selfId])
 
   useEffect(() => () => {
     if (timer.current != null) window.clearTimeout(timer.current)
   }, [])
 
-  return { record, loaded, state, queueSave, saveNow, acceptTheirs, keepMine, version }
+  return { record, loaded, state, queueSave, saveNow, flush, acceptTheirs, keepMine, version }
 }

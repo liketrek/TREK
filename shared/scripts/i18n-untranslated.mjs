@@ -54,9 +54,12 @@ export const BRAND_NAMES = [
   'Anthropic',
   'Apple Maps',
   'Atlas',
+  'ChatGPT',
+  'Claude',
   'Dawarich',
   'Discord',
   'Docker',
+  'Gemini',
   'Google',
   'Google Maps',
   'Google Places',
@@ -64,6 +67,8 @@ export const BRAND_NAMES = [
   'Immich',
   'Mapbox',
   'Ntfy',
+  'Ollama',
+  'OpenRouter',
   'Organic Maps',
   'Polaroid',
   'Synology',
@@ -75,6 +80,13 @@ export const BRAND_NAMES = [
 
 /** Unit symbols, short codes rather than words: "{count} km", "{minutes} min". */
 export const UNITS = ['km', 'mi', 'ft', 'min'];
+
+/**
+ * Key cap labels, printed on the keyboard in Latin letters whatever the
+ * language around them ("Ctrl" on a Russian or Japanese keyboard too). A
+ * locale whose keyboards print another word (German "Strg") translates it.
+ */
+export const KEY_NAMES = ['Ctrl'];
 
 /**
  * Locales written in a script other than Latin. A Latin word left in one of
@@ -113,7 +125,7 @@ const WORD_RE = /\p{L}[\p{L}\p{M}'’-]*/gu;
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // Longest first, so "Google Maps" goes as one name before "Google" could split it.
 const NAME_RE = new RegExp(
-  `(?<![\\p{L}\\p{N}])(?:${[...BRAND_NAMES, ...UNITS]
+  `(?<![\\p{L}\\p{N}])(?:${[...BRAND_NAMES, ...UNITS, ...KEY_NAMES]
     .sort((a, b) => b.length - a.length)
     .map(escapeRe)
     .join('|')})(?![\\p{L}\\p{N}])`,

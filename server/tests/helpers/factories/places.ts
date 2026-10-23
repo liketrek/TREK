@@ -11,22 +11,26 @@ export type TagRow = EntityDTO<Tags>;
 
 /** A category; global unless `user` names an owner. */
 export function makeCategory(orm: FactoryOrm, overrides: EntityData<Categories> = {}): Promise<CategoryRow> {
-  return createRow(orm, Categories, {
-    name: `Test Category ${nextSeq('category')}`,
-    color: '#6366f1',
-    icon: '📍',
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    Categories,
+    { name: `Test Category ${nextSeq('category')}`, color: '#6366f1', icon: '📍' },
+    overrides,
+  );
 }
 
 /** A tag owned by `userId`. */
 export function makeTag(orm: FactoryOrm, userId: number, overrides: EntityData<Tags> = {}): Promise<TagRow> {
-  return createRow(orm, Tags, {
-    user: userId,
-    name: `Test Tag ${nextSeq('tag')}`,
-    color: '#10b981',
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    Tags,
+    {
+      user: userId,
+      name: `Test Tag ${nextSeq('tag')}`,
+      color: '#10b981',
+    },
+    overrides,
+  );
 }
 
 /** The lowest-id category, the one a place gets when the test names none. */
@@ -47,16 +51,22 @@ export async function makePlace(
   tripId: number,
   overrides: EntityData<Places> = {},
 ): Promise<PlaceRow> {
-  const category = 'category' in overrides ? overrides.category : await firstCategoryId(orm);
-  return createRow(orm, Places, {
-    trip: tripId,
-    name: 'Test Place',
-    lat: 48.8566,
-    lng: 2.3522,
-    description: null,
-    ...overrides,
-    category,
-  });
+  // A plain id (or null): the relation's own type, checked against the whole row, runs tsc past its depth.
+  const given = 'category' in overrides ? overrides.category : await firstCategoryId(orm);
+  const category = (given ?? null) as number | null;
+  return createRow(
+    orm,
+    Places,
+    {
+      trip: tripId,
+      name: 'Test Place',
+      lat: 48.8566,
+      lng: 2.3522,
+      description: null,
+      category,
+    },
+    { ...overrides, category },
+  );
 }
 
 /** Puts the tags on the place; tags it already has are skipped. */

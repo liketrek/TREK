@@ -13,6 +13,7 @@ export const ADDON_IDS = {
   COLLECTIONS: 'collections',
   ROADTRIP: 'roadtrip',
   TOURS: 'tours',
+  AI_ASSISTANT: 'ai_assistant',
 } as const;
 
 export type AddonId = (typeof ADDON_IDS)[keyof typeof ADDON_IDS];

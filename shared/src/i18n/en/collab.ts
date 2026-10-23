@@ -109,5 +109,7 @@ const collab: TranslationStrings = {
   'collab.notes.categoryInUse': 'Notes still use this category. Move or delete them first to remove it.',
   'collab.notes.categoriesLocalHint':
     'A category without notes is only saved in this browser. Other members see it once a note uses it.',
+  'collab.chat.fromAssistant': 'from the assistant',
+  'collab.chat.fromAssistantHint': '{name} shared this answer from the assistant',
 };
 export default collab;

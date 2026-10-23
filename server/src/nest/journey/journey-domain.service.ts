@@ -9,7 +9,7 @@ import type { JourneyStats, JourneyTrack, TrekWsUserEventName } from '@trek/shar
 import { todayUtc } from '@trek/shared';
 import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.service';
 import { getCountryFromCoords } from '../atlas/atlas-geo';
-import { computeJourneyStats, type StatsInputPoint } from './journey-stats';
+import { computeJourneyStats, countryNamesFor, type StatsInputPoint } from './journey-stats';
 import { newEntrySortOrder, placeMovedEntry } from './journey-entry-order';
 import { Journeys } from '../../db/entities/Journeys.entity';
 import type { JourneysRepository } from '../../db/repositories/Journeys.repository';
@@ -31,28 +31,6 @@ import { presenceSet } from '../../db/repositories/_shared/presence-set';
 import { parseRouteGeometry } from './journey-geometry';
 
 /**
- * English country names for whatever codes a journey turned up.
- *
- * `Intl.DisplayNames` rather than a bundled table or the admin-0 properties:
- * Node has the CLDR data already, the names it gives are the ones every other
- * piece of software shows, and parsing 30MB of boundary GeoJSON to read a
- * `NAME` field would be an absurd way to learn that IS is Iceland.
- *
- * English on purpose — the client re-resolves these into the reader's language
- * when it places the element, and a book needs the country's name in the
- * language the book is written in, not the language of whoever's server it is.
- */
-function regionNames(): Intl.DisplayNames | null {
-  try {
-    return new Intl.DisplayNames(['en'], { type: 'region' });
-  } catch {
-    // A Node built without full ICU has no region names. Codes are a poor
-    // label but a working one, and a book page is not worth a 500 over.
-    return null;
-  }
-}
-
-/**
  * What makes a journal skeleton unique: the place *and* the day assignment it
  * stands on (#2329). Keyed on the place alone, a stop kept across two days — the
  * city you land in at dusk and walk through the next morning — got one entry, and
@@ -65,20 +43,6 @@ function regionNames(): Intl.DisplayNames | null {
 function skeletonKey(placeId: number, assignmentId: number | null | undefined): string {
   return `${placeId}:${assignmentId ?? ''}`;
 }
-
-function countryNamesFor(points: { country: string | null }[]): Record<string, string> {
-  const out: Record<string, string> = {};
-  const display = regionNames();
-  for (const p of points) {
-    if (!p.country) continue;
-    const code = p.country.toUpperCase();
-    if (out[code]) continue;
-    out[code] = (display?.of(code) ?? code) || code;
-  }
-  return out;
-}
-
-
 
 // Per-journey gallery view: journey_photos → trek_photos (no entry context).
 // Per-entry photo view: join journey_entry_photos → journey_photos (gallery) → trek_photos.
@@ -159,11 +123,13 @@ export class JourneyDomainService {
     event: TrekWsUserEventName,
     data: Record<string, unknown>,
     excludeSocketId?: string | number,
+    // Read before a write that takes people off the journey, so they still hear about it.
+    audience?: number[],
   ): Promise<void> {
     // JG1/JG2 — one composed recipient-set read (`JourneysRepository
     // .listRecipientUserIds`), public because Task 2/3 reuse it for their
     // own `broadcastJourneyEvent` calls too.
-    const userIds = await this.journeysRepo.listRecipientUserIds(journeyId);
+    const userIds = audience ?? (await this.journeysRepo.listRecipientUserIds(journeyId));
 
     for (const uid of userIds) {
       this.realtime.broadcastToUser(uid, { type: event, journeyId, ...data }, excludeSocketId);
@@ -207,6 +173,7 @@ export class JourneyDomainService {
       subtitle?: string;
       trip_ids?: number[];
     },
+    sid?: string,
   ): Promise<Journey> {
     const now = this.ts();
     // The journey, its owner row, its trips and their skeletons and the cover are
@@ -232,6 +199,8 @@ export class JourneyDomainService {
       return { journeyId: id, linked: done };
     });
     for (const tripId of linked) await this.broadcastJourneyEvent(journeyId, 'journey:trip:synced', { tripId });
+    // Every tab of the owner lists the new journey, the one that asked over REST aside.
+    await this.broadcastJourneyEvent(journeyId, 'journey:updated', {}, sid);
     return (await this.journeysRepo.findById(journeyId)) as Journey;
   }
 
@@ -332,6 +301,7 @@ export class JourneyDomainService {
       show_weather: boolean | number;
       auto_prepare_recordings: boolean | number;
     }>,
+    sid?: string,
   ): Promise<Journey | null> {
     // Journey-level settings (title, cover, status) are owner-only — editors
     // may only edit entries and photos, not reshape the journey itself.
@@ -376,6 +346,7 @@ export class JourneyDomainService {
     if (Object.keys(patch).length === 0) return ((await this.journeysRepo.findById(journeyId)) as Journey) ?? null;
 
     await this.journeysRepo.updateFields(journeyId, { ...patch, updated_at: this.ts() });
+    await this.broadcastJourneyEvent(journeyId, 'journey:updated', {}, sid);
     return ((await this.journeysRepo.findById(journeyId)) as Journey) ?? null;
   }
 
@@ -412,12 +383,14 @@ export class JourneyDomainService {
     await this.entriesRepo.nameLocationIfUnnamed(entryId, name); // JG124
   }
 
-  async updateJourneyPreferences(journeyId: number, userId: number, data: { hide_skeletons?: boolean }) {
+  async updateJourneyPreferences(journeyId: number, userId: number, data: { hide_skeletons?: boolean }, sid?: string) {
     if (!(await this.canAccessJourney(journeyId, userId))) return null;
     if (data.hide_skeletons !== undefined) {
       await this.contributorsRepo.setHideSkeletons(journeyId, userId, data.hide_skeletons ? 1 : 0);
     }
     const hideSkeletons = await this.contributorsRepo.getHideSkeletons(journeyId, userId);
+    // The preference is this user's own, so only their tabs read the journey again.
+    this.realtime.broadcastToUser(userId, { type: 'journey:updated', journeyId }, sid);
     return { hide_skeletons: hideSkeletons };
   }
 
@@ -429,16 +402,19 @@ export class JourneyDomainService {
    * things you have already said you did not want is not a screen worth
    * building. The count comes back so the caller can say what happened.
    */
-  async restoreDismissedSuggestions(journeyId: number, userId: number): Promise<{ restored: number } | null> {
+  async restoreDismissedSuggestions(journeyId: number, userId: number, sid?: string): Promise<{ restored: number } | null> {
     if (!(await this.canEdit(journeyId, userId))) return null;
     const restored = await this.entriesRepo.restoreDismissed(journeyId);
-    if (restored > 0) await this.broadcastJourneyEvent(journeyId, 'journey:entry:updated', { restored });
+    if (restored > 0) await this.broadcastJourneyEvent(journeyId, 'journey:updated', {}, sid);
     return { restored };
   }
 
-  async deleteJourney(journeyId: number, userId: number): Promise<boolean> {
+  async deleteJourney(journeyId: number, userId: number, sid?: string): Promise<boolean> {
     if (!(await this.isOwner(journeyId, userId))) return false;
+    // Read first: the delete takes the contributor rows with it.
+    const audience = await this.journeysRepo.listRecipientUserIds(journeyId);
     await this.journeysRepo.deleteById(journeyId);
+    await this.broadcastJourneyEvent(journeyId, 'journey:deleted', {}, sid, audience);
     return true;
   }
 
@@ -479,7 +455,7 @@ export class JourneyDomainService {
     return true;
   }
 
-  async removeTripFromJourney(journeyId: number, tripId: number, userId: number): Promise<boolean> {
+  async removeTripFromJourney(journeyId: number, tripId: number, userId: number, sid?: string): Promise<boolean> {
     if (!(await this.isOwner(journeyId, userId))) return false;
     await this.uow.transactional(async () => {
       // Unfilled skeletons go, filled entries stay but let go of the trip.
@@ -487,6 +463,7 @@ export class JourneyDomainService {
       await this.entriesRepo.detachFilledForTrip(journeyId, tripId);
       await this.journeyTripsRepo.deleteLink(journeyId, tripId);
     });
+    await this.broadcastJourneyEvent(journeyId, 'journey:updated', {}, sid);
     return true;
   }
 
@@ -1742,10 +1719,16 @@ export class JourneyDomainService {
 
   async removeContributor(journeyId: number, userId: number, targetUserId: number): Promise<boolean> {
     if (!(await this.isOwner(journeyId, userId))) return false;
+    // Read first, so the one taken off hears it too and leaves the journey.
+    const audience = await this.journeysRepo.listRecipientUserIds(journeyId);
     // JG119 — R5: the owner-protection guard stays INSIDE the repository's
     // own statement (`deleteNonOwner`'s `role != 'owner'` condition, Task
     // 1's build), never split into a find-then-conditional-delete.
-    await this.contributorsRepo.deleteNonOwner(journeyId, targetUserId);
+    const removed = await this.contributorsRepo.deleteNonOwner(journeyId, targetUserId);
+    // The owner, or someone who was never on the journey, leaves nothing to announce.
+    if (removed > 0) {
+      await this.broadcastJourneyEvent(journeyId, 'journey:contributor:changed', { targetUserId, role: null }, undefined, audience);
+    }
     return true;
   }
 

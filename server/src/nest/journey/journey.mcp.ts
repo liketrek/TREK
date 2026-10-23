@@ -17,7 +17,17 @@ import { AddonsService } from '../addons/addons.service';
 import { JourneyDomainService } from './journey-domain.service';
 import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
 import { JourneyShareService } from './journey-share.service';
-import { idSchema, journeyShareLinkRequestSchema, journeyUpdateRequestSchema } from '@trek/shared';
+import {
+  idSchema,
+  journeyEntriesRangeSchema,
+  journeyEntryProsConsSchema,
+  journeyEntryTypeSchema,
+  journeyEntryVisibilitySchema,
+  journeyShareLinkRequestSchema,
+  journeyUpdateRequestSchema,
+  type JourneyEntryType,
+  type JourneyEntryVisibility,
+} from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -58,26 +68,13 @@ function jsonContent(uri: string, data: unknown) {
 }
 
 /*
- * The three entry fields with a fixed set of values. `journey_entries.type` and
- * `.visibility` are plain TEXT columns and the REST route forwards whatever the
- * client sent, but the row type (JourneyEntry in src/types) only ever models
- * these, so the tools name them rather than take a free string: a model that
+ * The entry types, visibilities and the verdict come from @trek/shared
+ * (journey.schema.ts), where the assistant's cards read them too: a model that
  * invents "friends-only" would write a value nothing reads.
  */
-const ENTRY_TYPE = z.enum(['entry', 'checkin', 'skeleton']);
-const ENTRY_VISIBILITY = z.enum(['private', 'shared', 'public']);
-type EntryType = z.infer<typeof ENTRY_TYPE>;
-type EntryVisibility = z.infer<typeof ENTRY_VISIBILITY>;
-
-/**
- * The verdict on a place. Either side defaults to empty so a caller can send
- * only the half it has, which is what the entry editor does when a place was
- * all good or all bad. The service stores nothing when both come back empty.
- */
-const PROS_CONS = z.strictObject({
-  pros: z.array(z.string()).default([]),
-  cons: z.array(z.string()).default([]),
-});
+const ENTRY_TYPE = journeyEntryTypeSchema;
+const ENTRY_VISIBILITY = journeyEntryVisibilitySchema;
+const PROS_CONS = journeyEntryProsConsSchema;
 
 /**
  * The photo backends a journey can reference. The REST route forwards whatever
@@ -181,16 +178,40 @@ export class JourneyMcp {
 
   @Tool({
     name: 'list_journey_entries',
-    description: 'List all entries in a journey.',
-    inputSchema: { journeyId: idSchema },
+    description:
+      'List the entries of a journey in reading order, with the id and title of the journey. from/to keep only the entries of those days (YYYY-MM-DD, both included), so asking for one day reads that day and no more.',
+    inputSchema: { journeyId: idSchema, ...journeyEntriesRangeSchema.shape },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'read' },
   })
-  async listJourneyEntries({ journeyId }: { journeyId: number }, ctx: McpContext) {
-    if (!(await this.journey.canAccessJourney(journeyId, ctx.userId)))
-      return notFound('Journey not found or access denied.');
-    return ok({ entries: await this.journey.listEntries(journeyId, ctx.userId) });
+  async listJourneyEntries(
+    { journeyId, from, to }: { journeyId: number; from?: string; to?: string },
+    ctx: McpContext,
+  ) {
+    const journey = await this.journey.canAccessJourney(journeyId, ctx.userId);
+    const entries = journey ? await this.journey.listEntries(journeyId, ctx.userId) : null;
+    if (!journey || !entries) return notFound('Journey not found or access denied.');
+    const inRange = entries.filter((e) => (!from || e.entry_date >= from) && (!to || e.entry_date <= to));
+    return ok({ entries: inRange, journey: { id: journey.id, title: journey.title } });
+  }
+
+  @Tool({
+    name: 'get_journey_entry',
+    description:
+      'One journal entry by its id, as list_journey_entries answers it (photos included), with the id and title of its journey.',
+    inputSchema: { entryId: idSchema },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: journeyAddonOn,
+    access: { group: 'journey', mode: 'read' },
+  })
+  async getJourneyEntry({ entryId }: { entryId: number }, ctx: McpContext) {
+    const journeyId = await this.journey.journeyIdOfEntry(entryId);
+    const journey = journeyId === null ? null : await this.journey.canAccessJourney(journeyId, ctx.userId);
+    const entries = journey ? await this.journey.listEntries(journey.id, ctx.userId) : null;
+    const entry = entries?.find((e) => e.id === entryId);
+    if (!journey || !entry) return notFound('Entry not found or access denied.');
+    return ok({ entry, journey: { id: journey.id, title: journey.title } });
   }
 
   @Tool({
@@ -426,8 +447,8 @@ export class JourneyMcp {
       weather?: string;
       tags?: string[];
       pros_cons?: { pros: string[]; cons: string[] };
-      visibility?: EntryVisibility;
-      type?: EntryType;
+      visibility?: JourneyEntryVisibility;
+      type?: JourneyEntryType;
       sort_order?: number;
       is_draft?: boolean;
     },
@@ -509,8 +530,8 @@ export class JourneyMcp {
       weather?: string | null;
       tags?: string[] | null;
       pros_cons?: { pros: string[]; cons: string[] } | null;
-      visibility?: EntryVisibility;
-      type?: EntryType;
+      visibility?: JourneyEntryVisibility;
+      type?: JourneyEntryType;
       sort_order?: number;
       stats_excluded?: boolean;
       dismissed?: boolean;
@@ -730,30 +751,20 @@ export class JourneyMcp {
       return notFound('Entry not found in this journey.');
     }
 
-    const photos: unknown[] = [];
-    for (let i = 0; i < asset_ids.length; i++) {
-      const assetId = asset_ids[i];
-      const mediaType = media_types?.[i] === 'video' ? 'video' : 'image';
-      const photo =
-        entryId === undefined
-          ? await this.journey.addProviderPhotoToGallery(
-              journeyId,
-              ctx.userId,
-              provider,
-              assetId,
-              undefined,
-              passphrase,
-              mediaType,
-            )
-          : await this.journey.addProviderPhoto(entryId, ctx.userId, provider, assetId, caption, passphrase, mediaType);
-      if (photo) photos.push(photo);
-    }
-
-    // Detached, exactly as the REST routes schedule it: the provider is asked
-    // when and where each photo was taken, and without that answer an attached
-    // photo can never appear on the journey map (#1614). Open clients are told
-    // once it lands, so the gallery re-sorts without a reload (#1587).
-    this.photoCapture.scheduleForJourney(journeyId, photos, ctx.userId);
+    // The same use case as the REST routes: the adds, the journey:updated every
+    // open tab hears, then, detached, the provider is asked when and where each
+    // photo was taken, without which it never appears on the journey map (#1614).
+    const photos = await this.photoCapture.addProviderPhotos(
+      entryId === undefined ? { journeyId } : { entryId },
+      ctx.userId,
+      {
+        provider,
+        assetIds: asset_ids,
+        mediaTypes: media_types,
+        caption: entryId === undefined ? undefined : caption,
+        passphrase,
+      },
+    );
     // `skipped` is what tells a caller that a shortfall was duplicates rather
     // than a failure; the REST body carries only photos and added.
     return ok({ photos, added: photos.length, skipped: asset_ids.length - photos.length });

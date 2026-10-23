@@ -14,7 +14,7 @@
     "src/nest/help/help.mcp.ts": 4,
     "src/nest/integrations/airtrail.mcp.ts": 2,
     "src/nest/integrations/dawarich.mcp.ts": 13,
-    "src/nest/journey/journey.mcp.ts": 66,
+    "src/nest/journey/journey.mcp.ts": 57,
     "src/nest/maps/maps.mcp.ts": 18,
     "src/nest/memories/memories.mcp.ts": 8,
     "src/nest/notifications/notifications.mcp.ts": 2,

@@ -5,10 +5,14 @@ import { adminApi } from '../../../api/client';
 import { type Addon, DEFAULT_OLLAMA_URL, MASKED } from './addonModel';
 import { useLlmParsingConfig } from './useLlmParsingConfig';
 
-// FE-HOOK-LLMCFG-001 to FE-HOOK-LLMCFG-011
+// FE-HOOK-LLMCFG-001 to FE-HOOK-LLMCFG-013
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock('../../shared/Toast', () => ({ useToast: () => toast }));
+vi.mock('../../../i18n', () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
+
+/** A local connection of parsing's own, so the form is open and lists the server's models. */
+const OWN_LOCAL = { provider: 'local', model: 'm' };
 
 function llm(config?: Record<string, unknown>): Addon {
   return {
@@ -45,7 +49,7 @@ describe('useLlmParsingConfig', () => {
   });
 
   it('FE-HOOK-LLMCFG-002: the local provider lists the installed models from the default URL', async () => {
-    const { result } = renderHook(() => useLlmParsingConfig(llm()));
+    const { result } = renderHook(() => useLlmParsingConfig(llm(OWN_LOCAL)));
     await waitFor(() => expect(result.current.installed).toEqual(['qwen3.5:4b']));
     expect(adminApi.llmLocalModels).toHaveBeenCalledWith(DEFAULT_OLLAMA_URL);
     expect(result.current.isInstalled('qwen3.5:4b')).toBe(true);
@@ -54,7 +58,7 @@ describe('useLlmParsingConfig', () => {
 
   it('FE-HOOK-LLMCFG-003: a cloud provider lists nothing; switched to local it starts from the default, then uses the typed URL', async () => {
     const { result } = renderHook(() =>
-      useLlmParsingConfig(llm({ provider: 'openai', baseUrl: ' http://box:11434/v1 ' }))
+      useLlmParsingConfig(llm({ provider: 'openai', model: 'gpt', baseUrl: ' http://box:11434/v1 ' }))
     );
     expect(adminApi.llmLocalModels).not.toHaveBeenCalled();
     await act(() => result.current.loadModels());
@@ -69,13 +73,13 @@ describe('useLlmParsingConfig', () => {
 
   it('FE-HOOK-LLMCFG-004: an unreachable server shows its message and empties the list', async () => {
     vi.mocked(adminApi.llmLocalModels).mockRejectedValue(new Error('ECONNREFUSED'));
-    const { result } = renderHook(() => useLlmParsingConfig(llm()));
+    const { result } = renderHook(() => useLlmParsingConfig(llm(OWN_LOCAL)));
     await waitFor(() => expect(result.current.modelsErr).toBe('ECONNREFUSED'));
     expect(result.current.installed).toEqual([]);
     expect(result.current.loadingModels).toBe(false);
     vi.mocked(adminApi.llmLocalModels).mockRejectedValue('nope');
     await act(() => result.current.loadModels());
-    expect(result.current.modelsErr).toBe('Could not reach the local LLM server');
+    expect(result.current.modelsErr).toBe('admin.addons.ai.parsing.unreachable');
   });
 
   it("FE-HOOK-LLMCFG-011: a refused list shows the server's reason, not the status line (#2649)", async () => {
@@ -83,7 +87,7 @@ describe('useLlmParsingConfig', () => {
       response: { status: 502, data: { error: 'Local LLM server rejected the API key (401)' } },
     });
     vi.mocked(adminApi.llmLocalModels).mockRejectedValue(refused);
-    const { result } = renderHook(() => useLlmParsingConfig(llm({ provider: 'local' })));
+    const { result } = renderHook(() => useLlmParsingConfig(llm(OWN_LOCAL)));
     await waitFor(() => expect(result.current.modelsErr).toBe('Local LLM server rejected the API key (401)'));
   });
 
@@ -94,14 +98,14 @@ describe('useLlmParsingConfig', () => {
       progress = onProgress;
       return new Promise<void>((r) => (finish = r));
     });
-    const { result } = renderHook(() => useLlmParsingConfig(llm()));
+    const { result } = renderHook(() => useLlmParsingConfig(llm(OWN_LOCAL)));
     await waitFor(() => expect(result.current.installed).toEqual(['qwen3.5:4b']));
     let pending!: Promise<void>;
     act(() => {
       pending = result.current.pull('qwen3.5:4b');
     });
     expect(result.current.pulling).toBe('qwen3.5:4b');
-    expect(result.current.pullStatus).toBe('starting…');
+    expect(result.current.pullStatus).toBe('admin.addons.ai.parsing.pulling');
     act(() => progress({ status: 'downloading', total: 200, completed: 50 }));
     expect(result.current.pullStatus).toBe('downloading');
     expect(result.current.pullPct).toBe(25);
@@ -109,7 +113,7 @@ describe('useLlmParsingConfig', () => {
       finish();
       await pending;
     });
-    expect(toast.success).toHaveBeenCalledWith('Model pulled');
+    expect(toast.success).toHaveBeenCalledWith('admin.addons.ai.parsing.pulled');
     expect(result.current.model).toBe('qwen3.5:4b');
     expect(adminApi.llmLocalModels).toHaveBeenCalledTimes(2);
     expect(result.current.pulling).toBeNull();
@@ -136,7 +140,7 @@ describe('useLlmParsingConfig', () => {
     expect(toast.error).toHaveBeenCalledWith('manifest unknown');
     vi.mocked(adminApi.llmLocalPull).mockRejectedValue('nope');
     await act(() => result.current.pull('x'));
-    expect(toast.error).toHaveBeenLastCalledWith('Pull failed');
+    expect(toast.error).toHaveBeenLastCalledWith('admin.addons.ai.parsing.pullFailed');
     expect(result.current.pulling).toBeNull();
   });
 
@@ -148,18 +152,17 @@ describe('useLlmParsingConfig', () => {
     expect(adminApi.updateAddon).toHaveBeenCalledWith('llm_parsing', {
       config: { provider: 'openai', model: 'gpt-4o', baseUrl: 'https://o/v1', apiKey: MASKED, vision: 'auto' },
     });
-    expect(toast.success).toHaveBeenCalledWith('Saved');
+    expect(toast.success).toHaveBeenCalledWith('settings.aiParsing.toast.saved');
     expect(result.current.saving).toBe(false);
   });
 
   it("FE-HOOK-LLMCFG-009: switching to Anthropic drops the previous provider's base URL", async () => {
     const { result } = renderHook(() => useLlmParsingConfig(llm({ provider: 'openai', baseUrl: 'https://o/v1' })));
-    act(() => {
-      result.current.setProvider('anthropic');
-      result.current.setVision('off');
-    });
+    await act(async () => result.current.setVision('off'));
+    act(() => result.current.setProvider('anthropic'));
     await act(() => result.current.save());
-    expect(vi.mocked(adminApi.updateAddon).mock.calls[0][1]).toEqual({
+    const calls = vi.mocked(adminApi.updateAddon).mock.calls;
+    expect(calls[calls.length - 1]?.[1]).toEqual({
       config: { provider: 'anthropic', model: '', baseUrl: '', apiKey: '', vision: 'off' },
     });
   });
@@ -212,7 +215,35 @@ describe('useLlmParsingConfig', () => {
     vi.mocked(adminApi.updateAddon).mockRejectedValue(new Error('x'));
     const { result } = renderHook(() => useLlmParsingConfig(llm({ provider: 'openai' })));
     await act(() => result.current.save());
-    expect(toast.error).toHaveBeenCalledWith('Failed to save');
+    expect(toast.error).toHaveBeenCalledWith('settings.aiParsing.toast.saveError');
     expect(result.current.saving).toBe(false);
+  });
+
+  it('FE-HOOK-LLMCFG-012: without its own connection the form stays shut and asks the server nothing until opened', async () => {
+    const { result } = renderHook(() => useLlmParsingConfig(llm({ vision: 'on' })));
+    expect(result.current.ownConnection).toBe(false);
+    expect(result.current.formOpen).toBe(false);
+    expect(adminApi.llmLocalModels).not.toHaveBeenCalled();
+    act(() => result.current.startOwn());
+    expect(result.current.formOpen).toBe(true);
+    await waitFor(() => expect(adminApi.llmLocalModels).toHaveBeenCalledWith(DEFAULT_OLLAMA_URL));
+    // The vision setting alone is saved without a connection.
+    await act(async () => result.current.setVision('off'));
+    expect(adminApi.updateAddon).toHaveBeenLastCalledWith('llm_parsing', { config: { vision: 'off' } });
+    act(() => result.current.cancelOwn());
+    expect(result.current.formOpen).toBe(false);
+  });
+
+  it('FE-HOOK-LLMCFG-013: going back to the shared connection drops the own one and keeps the vision setting', async () => {
+    const { result } = renderHook(() =>
+      useLlmParsingConfig(llm({ provider: 'anthropic', model: 'claude-x', apiKey: MASKED, vision: 'on' }))
+    );
+    expect(result.current.ownConnection).toBe(true);
+    expect(result.current.savedModel).toBe('claude-x');
+    await act(() => result.current.switchToShared());
+    expect(adminApi.updateAddon).toHaveBeenCalledWith('llm_parsing', { config: { vision: 'on' } });
+    expect(result.current.ownConnection).toBe(false);
+    expect(result.current.formOpen).toBe(false);
+    expect(result.current.model).toBe('');
   });
 });

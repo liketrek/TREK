@@ -13,15 +13,19 @@ export function makeBucketListItem(
   userId: number,
   overrides: EntityData<BucketList> = {},
 ): Promise<BucketListRow> {
-  return createRow(orm, BucketList, {
-    user: userId,
-    name: 'Test Destination',
-    lat: null,
-    lng: null,
-    country_code: null,
-    notes: null,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    BucketList,
+    {
+      user: userId,
+      name: 'Test Destination',
+      lat: null,
+      lng: null,
+      country_code: null,
+      notes: null,
+    },
+    overrides,
+  );
 }
 
 /** Marks the country visited by hand; marking it twice is a no-op. The code is upper-cased as the atlas stores it. */

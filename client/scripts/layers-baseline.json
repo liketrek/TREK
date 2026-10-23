@@ -12,7 +12,6 @@
   "src/components/Collections/CollectionPlaceDetail.tsx": 1,
   "src/components/Collections/ListEditorModal.tsx": 1,
   "src/components/Collections/MSaveToCollectionSheet.tsx": 3,
-  "src/components/Collections/StatusBadge.tsx": 1,
   "src/components/Dawarich/DawarichAcceptDialog.tsx": 3,
   "src/components/Dawarich/DawarichAtlasDialog.tsx": 3,
   "src/components/Dawarich/DawarichSuggestionsPanel.tsx": 1,
@@ -56,6 +55,6 @@
   "src/hooks/useWebPush.ts": 1,
   "src/repo/pluginPoiRepo.ts": 1,
   "src/store/slices/budgetSlice.ts": 1,
-  "src/store/studioStore.ts": 2,
+  "src/store/studioStore.ts": 1,
   "src/store/vacayStore.ts": 1
 }

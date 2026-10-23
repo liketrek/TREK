@@ -1,10 +1,11 @@
 import type { BookPageSetup } from '@trek/shared'
-import { MAX_BOOK_LAYOUTS } from '@trek/shared'
+import {
+  MAX_BOOK_LAYOUTS, bookLayoutPreview as layoutPreview, bookLayoutRole as layoutRole, nextBookLayoutName as nextLayoutName,
+} from '@trek/shared'
 import { BookmarkPlus, Trash2 } from 'lucide-react'
 import { useStudioStore } from '../../store/studioStore'
 import { Tooltip } from '../shared/Tooltip'
 import { SpreadView } from './SpreadView'
-import { layoutPreview, layoutRole, nextLayoutName } from './savedLayouts'
 
 /**
  * The book's own layouts, above the built-in ones (#2316).

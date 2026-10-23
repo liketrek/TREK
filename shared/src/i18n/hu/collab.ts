@@ -110,5 +110,7 @@ const collab: TranslationStrings = {
     'Még vannak jegyzetek, amelyek ezt a kategóriát használják. Előbb helyezd át vagy töröld őket, utána eltávolítható.',
   'collab.notes.categoriesLocalHint':
     'A jegyzet nélküli kategória csak ebben a böngészőben tárolódik. A többi tag akkor látja, amikor egy jegyzet használja.',
+  'collab.chat.fromAssistant': 'az asszisztenstől',
+  'collab.chat.fromAssistantHint': '{name} megosztotta az asszisztens válaszát',
 };
 export default collab;

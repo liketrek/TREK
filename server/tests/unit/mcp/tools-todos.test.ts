@@ -367,6 +367,11 @@ describe('Tool: reorder_todos', () => {
       // item2 should now have sort_order 0
       const updated = await findRow(orm, TodoItems, { id: item2.id });
       expect(updated?.sort_order).toBe(0);
+      // Every open list, the asking tab's too, takes the new order live.
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'todo:reordered', {
+        orderedIds: [item2.id, item1.id],
+        _source: 'mcp',
+      });
     });
   });
 

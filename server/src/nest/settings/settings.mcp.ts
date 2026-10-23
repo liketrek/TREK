@@ -7,6 +7,7 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
+import { SettingsWritesService } from './settings-writes.service';
 import { SettingsService } from './settings.service';
 import {
   MASKED_SETTING_VALUE,
@@ -110,7 +111,10 @@ const KEY_LIST = DISPLAY_PREFERENCE_KEYS.join(', ');
  */
 @McpController()
 export class SettingsMcp {
-  constructor(private readonly settings: SettingsService) {}
+  constructor(
+    private readonly settings: SettingsService,
+    private readonly writes: SettingsWritesService,
+  ) {}
 
   /**
    * getUserSettings resolves admin defaults and the managed-install token
@@ -182,7 +186,8 @@ export class SettingsMcp {
       validated[key] = parsed.data;
     }
 
-    const updated = await this.settings.bulkUpsertSettings(ctx.userId, validated);
+    // Every tab of the user, the asking one included, reads its settings again.
+    const updated = await this.writes.saveMany(ctx.userId, validated, undefined);
     // Read back rather than echoing the input: an admin default or the managed
     // token injection can still shape what the user ends up seeing.
     return ok({ success: true, updated, settings: await this.readDisplayPreferences(ctx.userId) });

@@ -298,7 +298,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'See lehepaar on veel tühi',
   'journey.studio.autoLayout': 'Automaatne paigutus',
   'journey.studio.export': 'Eksport',
-  'journey.studio.day': 'PÄEV',
+  'journey.studio.day': '{day}. PÄEV',
   'journey.studio.stations': 'Peatused',
   'journey.studio.peersHere': 'siin',
   'journey.studio.folioAuto': 'Automaatne',
@@ -452,7 +452,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Märgised',
   'journey.studio.dateMark': 'Kuupäev',
   'journey.studio.dayMark': 'Päevaloendur',
-  'journey.studio.dayWord': 'PÄEV',
   'journey.studio.coordsMark': 'Koordinaadid',
   'journey.studio.coordsDms': 'Kraadid',
   'journey.studio.coordsDecimal': 'Kümnendkujul',
@@ -650,6 +649,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Pööra vasakule',
   'journey.studio.rotateRight': 'Pööra paremale',
   'journey.studio.saveReadOnly': 'Ainult lugemiseks, salvestamata',
+  'journey.studio.saveNewer': 'Selle raamatu salvestas Studio uuem versioon. Muutmiseks laadi leht uuesti.',
+  'journey.studio.saveReload': 'Laadi uuesti',
   'journey.studio.filterPhotos': 'Filtreeri fotosid',
   'journey.studio.filterAll': 'Kõik fotod',
   'journey.studio.filterLoose': 'Sissekandega sidumata',
@@ -896,5 +897,15 @@ const journey: TranslationStrings = {
     'Salvestatud päevad ja neist võetud peatused päevadel, millel on avaldatud sissekanne. Need näitavad, kus ja millal sa olid, ka su majutust.',
   'journey.share.needsMap': 'Selle sisselülitamiseks jaga kaarti',
   'journey.editor.tags': 'Sildid',
+  'journey.studio.assistant.toggle': 'Assistent',
+  'journey.studio.assistant.toggleHint': 'Kujunda raamat koos assistendiga',
+  'journey.studio.assistant.panel': 'Raamatu assistent',
+  'journey.studio.assistant.welcome': 'Milline peaks raamat välja nägema?',
+  'journey.studio.assistant.readOnly':
+    'Sa saad seda raamatut ainult vaadata, seega saan küsimustele vastata, kuid mitte midagi muuta.',
+  'journey.studio.assistant.notice':
+    'Assistent saab vaadata lehte, mille kallal töötad. {provider} saab ainult selle lehe, pildina, millel on näha ainult sinu enda lisatud fotod. Seda, kes sinu fotodel on, ei saa tuvastada.',
+  'journey.studio.assistant.noticeAllow': 'Näita lehti',
+  'journey.studio.assistant.noticeLater': 'Mitte praegu',
 };
 export default journey;

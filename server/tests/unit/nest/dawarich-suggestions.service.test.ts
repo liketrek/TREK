@@ -1,5 +1,5 @@
 /**
- * Unit tests for DawarichSuggestionsService: DAWARICH-SUG-001..064.
+ * Unit tests for DawarichSuggestionsService: DAWARICH-SUG-001..069.
  *
  * This is the only service in the Dawarich domain that writes into TREK proper,
  * and every write it makes crosses an ownership line: a suggestion belongs to
@@ -23,9 +23,10 @@ import type { PlacesRepository } from '../../../src/db/repositories/Places.repos
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import type { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
+import type { AtlasWritesService } from '../../../src/nest/atlas/atlas-writes.service';
 import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { AcceptError, DawarichSuggestionsService } from '../../../src/nest/integrations/dawarich-suggestions.service';
-import type { DawarichClient } from '../../../src/nest/integrations/dawarich.client';
+import { DawarichError, type DawarichClient } from '../../../src/nest/integrations/dawarich.client';
 import type { DawarichService } from '../../../src/nest/integrations/dawarich.service';
 import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import type { JourneyEntryStaysService } from '../../../src/nest/journey/journey-entry-stays.service';
@@ -92,13 +93,17 @@ const atlasStub = { markCountry: vi.fn(), stats: vi.fn() };
 // place write and has to behave like one: everyone on the trip is told, and a
 // live journey mirrors it. Both are asserted rather than merely tolerated.
 const placesStub = { create: vi.fn(), broadcast: vi.fn(), onCreated: vi.fn() };
-const assignmentsStub = { dayExists: vi.fn(), createAssignment: vi.fn(), broadcast: vi.fn() };
+// `reconcile` is what the planner runs once a stop is on a day: linked journeys gain its skeleton and hear it.
+const assignmentsStub = { dayExists: vi.fn(), createAssignment: vi.fn(), broadcast: vi.fn(), reconcile: vi.fn() };
 // The instance's permission matrix, stubbed so a case can narrow place_edit or
 // day_edit to the owner the way an admin would and watch a member be refused.
 const permissionsStub = { checkPermission: vi.fn() };
-const journeyStub = { canEdit: vi.fn(), createEntry: vi.fn() };
+// `broadcastJourneyEvent` announces an accepted entry once the transaction has committed.
+const journeyStub = { canEdit: vi.fn(), createEntry: vi.fn(), broadcastJourneyEvent: vi.fn() };
 // The stay an entry was taken over from is recorded on it (JRN-02); its own suite has the rows.
 const journeyStaysStub = { record: vi.fn() };
+// Tells the user's tabs that their atlas changed, after a tick or a country landed.
+const atlasWritesStub = { announce: vi.fn() };
 
 let t: TestOrm;
 let suggestions: DawarichVisitSuggestionsRepository;
@@ -133,6 +138,7 @@ beforeAll(async () => {
     bucketList,
     users,
     await createTestUnitOfWork(testDb),
+    atlasWritesStub as unknown as AtlasWritesService,
   );
 });
 
@@ -183,9 +189,12 @@ function armStubs(): void {
   placesStub.onCreated.mockReset();
   assignmentsStub.createAssignment.mockReset();
   assignmentsStub.broadcast.mockReset();
+  assignmentsStub.reconcile.mockReset();
+  atlasWritesStub.announce.mockReset();
+  journeyStub.broadcastJourneyEvent.mockReset();
   permissionsStub.checkPermission.mockReset().mockReturnValue(true);
   journeyStub.canEdit.mockReset().mockReturnValue(true);
-  journeyStub.createEntry.mockReset().mockReturnValue({ id: CREATED_ENTRY_ID });
+  journeyStub.createEntry.mockReset().mockReturnValue({ id: CREATED_ENTRY_ID, journey_id: 88 });
   journeyStaysStub.record.mockReset();
 }
 
@@ -637,6 +646,14 @@ describe('DawarichSuggestionsService — accepting into a journey', () => {
         location_lng: 16.3658,
       }),
       'socket-7',
+      // Quiet inside the transaction: the entry is announced once it has committed.
+      false,
+    );
+    expect(journeyStub.broadcastJourneyEvent).toHaveBeenCalledWith(
+      88,
+      'journey:entry:created',
+      { entry: { id: CREATED_ENTRY_ID, journey_id: 88 } },
+      'socket-7',
     );
     expect(result.createdJournalEntryId).toBe(CREATED_ENTRY_ID);
     expect(result.createdPlaceId).toBeNull();
@@ -717,6 +734,7 @@ describe('DawarichSuggestionsService — accepting into a journey', () => {
         location_lng: 16.363,
       }),
       undefined,
+      false,
     );
   });
 
@@ -787,6 +805,8 @@ describe('DawarichSuggestionsService — ticking off a wish', () => {
     expect(result.bucketListItemId).toBe(wish);
     expect(result.createdPlaceId).toBeNull();
     expect((await rowOf(id)).accepted_bucket_list_item_id).toBe(wish);
+    // The tick is in the atlas, so every tab of the user (no socket here) reads it again.
+    expect(atlasWritesStub.announce).toHaveBeenCalledWith(user.id, undefined);
   });
 
   it('DAWARICH-SUG-016: with no wish named in the body, the matched one is used', async () => {
@@ -885,6 +905,25 @@ describe('DawarichSuggestionsService — confirming a scan', () => {
     // The hand-ticked one keeps both its date and who decided it.
     expect((await bucketOf(alreadyTicked)).visited_at).toBe('2026-01-04T12:00:00Z');
     expect((await bucketOf(alreadyTicked)).visited_source).toBe('manual');
+  });
+
+  it("DAWARICH-SUG-070: a confirmed or cleared tick tells the user's other tabs, and a write that changed nothing tells no one", async () => {
+    const { user } = createUser(testDb);
+    const wish = await seedBucketItem(user.id, { name: 'Hallstatt' });
+
+    expect(await svc.confirmBucketVisits(user.id, [wish], '2026-09-05T10:00:00Z', 'sock-3')).toBe(1);
+    expect(atlasWritesStub.announce).toHaveBeenCalledWith(user.id, 'sock-3');
+
+    atlasWritesStub.announce.mockClear();
+    expect(await svc.confirmBucketVisits(user.id, [wish], '2026-09-06T10:00:00Z', 'sock-3')).toBe(0);
+    expect(atlasWritesStub.announce).not.toHaveBeenCalled();
+
+    expect(await svc.clearBucketVisit(user.id, wish, 'sock-3')).toBe(true);
+    expect(atlasWritesStub.announce).toHaveBeenCalledWith(user.id, 'sock-3');
+
+    atlasWritesStub.announce.mockClear();
+    expect(await svc.clearBucketVisit(user.id + 1000, wish, 'sock-3')).toBe(false);
+    expect(atlasWritesStub.announce).not.toHaveBeenCalled();
   });
 
   it("DAWARICH-SUG-023: confirmBucketVisits ignores ids that are not the caller's", async () => {
@@ -1139,6 +1178,39 @@ describe('DawarichSuggestionsService — scanning for stays', () => {
     expect(scan.matches).toHaveLength(1);
     expect(scan.matches[0].match).toBeNull();
   });
+
+  it.each(['unreachable', 'unauthorized', 'forbidden', 'rate_limited'] as const)(
+    'DAWARICH-SUG-068: an instance failing with %s ends the scan at the first wish instead of reporting every wish as missed',
+    async (code) => {
+      const { user } = createUser(testDb);
+      await Promise.all(['Hallstatt', 'Kyoto', 'Petra'].map((name) => seedBucketItem(user.id, { name })));
+      dawarichStub.getCredentials.mockReturnValue(CREDS);
+      const failure = new DawarichError(code, 'Could not reach Dawarich');
+      clientStub.findVisitsNear.mockReset().mockRejectedValue(failure);
+
+      await expect(svc.scanBucketList(user.id)).rejects.toBe(failure);
+      // A hanging instance costs one timeout, not one per wish.
+      expect(clientStub.findVisitsNear).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(['server_error', 'not_found', 'invalid_response'] as const)(
+    'DAWARICH-SUG-069: a lookup answered with %s is that one wish missed, and the scan goes on',
+    async (code) => {
+      const { user } = createUser(testDb);
+      await Promise.all(['Hallstatt', 'Kyoto'].map((name) => seedBucketItem(user.id, { name })));
+      dawarichStub.getCredentials.mockReturnValue(CREDS);
+      clientStub.findVisitsNear
+        .mockReset()
+        .mockRejectedValueOnce(new DawarichError(code, 'Dawarich answered HTTP 500'))
+        .mockResolvedValueOnce([]);
+
+      const scan = await svc.scanBucketList(user.id);
+
+      expect(scan.matches.map((m) => m.match)).toEqual([null, null]);
+      expect(clientStub.findVisitsNear).toHaveBeenCalledTimes(2);
+    },
+  );
 });
 
 // ── Atlas ────────────────────────────────────────────────────────────────────
@@ -1154,6 +1226,9 @@ describe('DawarichSuggestionsService — the Atlas hand-off', () => {
     expect(atlasStub.markCountry).toHaveBeenNthCalledWith(1, user.id, 'DE', 'dawarich');
     expect(atlasStub.markCountry).toHaveBeenNthCalledWith(2, user.id, 'FR', 'dawarich');
     expect(atlasStub.markCountry).toHaveBeenNthCalledWith(3, user.id, 'US', 'dawarich');
+    // One announcement after the commit, not one per country.
+    expect(atlasWritesStub.announce).toHaveBeenCalledTimes(1);
+    expect(atlasWritesStub.announce).toHaveBeenCalledWith(user.id, undefined);
   });
 
   it('DAWARICH-SUG-042: the count is what was added, not what was asked for', async () => {
@@ -1418,6 +1493,8 @@ describe('DawarichSuggestionsService — the Atlas hand-off', () => {
       { assignment: { id: 4242, day_id: day.id } },
       'socket-9',
     );
+    // As the planner does once a stop is on a day: the linked journeys reconcile, leaving out the same tab.
+    expect(assignmentsStub.reconcile).toHaveBeenCalledWith(trip.id, 'socket-9');
   });
 
   it('DAWARICH-SUG-033: an assignment the domain refuses to create is not broadcast as one', async () => {
@@ -1430,6 +1507,7 @@ describe('DawarichSuggestionsService — the Atlas hand-off', () => {
     await svc.accept(user.id, id, { target: 'place', tripId: trip.id, dayId: day.id });
 
     expect(assignmentsStub.broadcast).not.toHaveBeenCalled();
+    expect(assignmentsStub.reconcile).not.toHaveBeenCalled();
   });
 
   // ── An acceptance whose result was deleted ────────────────────────────────

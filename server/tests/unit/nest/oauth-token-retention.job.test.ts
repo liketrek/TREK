@@ -1,3 +1,4 @@
+import type { OauthClientsRepository } from '../../../src/db/repositories/OauthClients.repository';
 import type { OauthTokensRepository } from '../../../src/db/repositories/OauthTokens.repository';
 import { OauthTokenRetentionJob, OAUTH_TOKEN_RETENTION_DAYS } from '../../../src/nest/oauth/oauth-token-retention.job';
 import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
@@ -7,10 +8,15 @@ import { describe, expect, it, vi } from 'vitest';
 const logMock = vi.hoisted(() => ({ logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
 
-function make(deleteExpiredBefore: (cutoff: string) => Promise<number>, enabled = true) {
+function make(
+  deleteExpiredBefore: (cutoff: string) => Promise<number>,
+  enabled = true,
+  deleteUnusedCimdBefore: (cutoff: string) => Promise<number> = vi.fn().mockResolvedValue(0),
+) {
   const registrar = { isEnabled: vi.fn(() => enabled), register: vi.fn() };
   const job = new OauthTokenRetentionJob(
     { deleteExpiredBefore } as unknown as OauthTokensRepository,
+    { deleteUnusedCimdBefore } as unknown as OauthClientsRepository,
     registrar as unknown as CronRegistrarService,
   );
   return { job, registrar };
@@ -38,5 +44,12 @@ describe('OauthTokenRetentionJob', () => {
   it('OAUTHRET-003: a failing purge is logged, not thrown', async () => {
     await make(vi.fn().mockRejectedValue(new Error('database is locked'))).job.tick();
     expect(logMock.logError).toHaveBeenCalledWith('OAuth token retention: database is locked');
+  });
+
+  it('OAUTHRET-004: drops metadata-document clients without tokens from before the same cutoff', async () => {
+    const dropClients = vi.fn().mockResolvedValue(2);
+    await make(vi.fn().mockResolvedValue(0), true, dropClients).job.tick(new Date('2026-10-07T00:00:00.000Z'));
+    expect(dropClients).toHaveBeenCalledWith('2026-09-07 00:00:00');
+    expect(logMock.logInfo).toHaveBeenCalledWith('OAuth token retention: removed 2 unused metadata-document client(s)');
   });
 });

@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const assistantJourney: TranslationStrings = {
+  'assistant.card.journey.label': 'Naplóbejegyzések',
+  'assistant.card.journey.open': 'Megnyitás a naplóban',
+  'assistant.card.journey.entries': '{count} bejegyzés',
+  'assistant.card.journey.entries.one': '{count} bejegyzés',
+  'assistant.card.journey.more': 'még {count} a naplóban',
+  'assistant.card.journey.more.one': 'még {count} a naplóban',
+  'assistant.card.journey.photos': '{count} fotó',
+  'assistant.card.journey.photos.one': '{count} fotó',
+  'assistant.card.journey.toSuggestion': 'Újra javaslat lesz belőle',
+  'assistant.card.journey.video': 'Videóval kezdődik',
+  'assistant.card.journey.typeEntry': 'Megírt bejegyzés',
+  'assistant.card.journey.typeCheckin': 'Bejelentkezés a helyszínen',
+  'assistant.card.journey.notDraft': 'Már nem piszkozat',
+  'assistant.card.journey.onRoute': 'Újra az útvonalon',
+  'assistant.card.journey.restored': 'Javaslat visszahozva',
+  'assistant.change.verb.addJournalEntry': 'Naplóbejegyzés hozzáadása',
+  'assistant.change.verb.updateJournalEntry': 'Naplóbejegyzés módosítása',
+  'assistant.change.verb.removeJournalEntry': 'Naplóbejegyzés törlése',
+  'assistant.step.readingJournal': 'A napló olvasása',
+  'assistant.tool.create_journey': 'Napló indítása',
+  'assistant.tool.update_journey': 'Napló módosítása',
+  'assistant.tool.add_journey_trip': 'Az utazás hozzáadása a naplóhoz',
+  'assistant.tool.link_trip_journal': 'A napló megjelenítése ebben az utazásban',
+  'assistant.tool.reorder_journey_entries': 'A napló átrendezése',
+  'assistant.followUp.journalToday': 'Bejegyzés írása mára',
+  'assistant.followUp.journalSummary': 'Ezeknek a napoknak az összefoglalása',
+};
+export default assistantJourney;

@@ -19,9 +19,10 @@ import {
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { UnitOfWork } from '../database/unit-of-work';
+import { DomainError } from '../common/domain-error';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
+import { BudgetWritesService } from './budget-writes.service';
 import { BudgetService } from './budget.service';
 import { ExchangeRatesService } from './exchange-rates.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -97,7 +98,7 @@ export class BudgetMcp {
     private readonly membership: TripMembershipService,
     readonly addons: AddonsService,
     private readonly guards: McpToolGuardsService,
-    private readonly uow: UnitOfWork,
+    private readonly writes: BudgetWritesService,
     @InjectRepository(Places) private readonly places: PlacesRepository,
     @InjectRepository(Trips) private readonly trips: TripsRepository,
   ) {}
@@ -469,7 +470,7 @@ export class BudgetMcp {
   @Tool({
     name: 'create_budget_item_with_members',
     description:
-      'Create a budget/expense item and set the trip members splitting it equally in one atomic operation. If userIds is omitted, the cost is split across all trip members; pass an explicit list to split among a subset, or an empty array for a planning-only entry with no split. Ask the user which members share this expense rather than guessing; resolve user IDs with list_trip_members. Only use when the item does not yet exist; if it already exists, use set_budget_item_members directly. For an uneven split, a foreign currency or a date, use create_budget_item instead.',
+      'Create a budget/expense item and set the trip members splitting it equally in one atomic operation. If userIds is omitted or empty, the cost is split across all trip members; pass an explicit list to split among a subset. For a planning-only entry with no split, use create_budget_item with member_ids []. Ask the user which members share this expense rather than guessing; resolve user IDs with list_trip_members. Only use when the item does not yet exist; if it already exists, use set_budget_item_members directly. For an uneven split, a foreign currency or a date, use create_budget_item instead.',
     inputSchema: {
       tripId: idSchema,
       name: z.string().min(1).max(200),
@@ -479,9 +480,7 @@ export class BudgetMcp {
       userIds: z
         .array(idSchema)
         .optional()
-        .describe(
-          'User IDs splitting this item; omit to split across all trip members, or pass an empty array for no split',
-        ),
+        .describe('User IDs splitting this item; omit or pass an empty array to split across all trip members'),
       place_id: idSchema
         .optional()
         .describe(
@@ -512,33 +511,19 @@ export class BudgetMcp {
     },
     ctx: McpContext,
   ) {
+    // Check access before the roster is read for the default split; createItem
+    // runs the full trip gate again, with the same refusal.
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
-    if (place_id != null && !(await this.placeOnTrip(tripId, place_id)))
-      return errorResult('place_id does not belong to this trip.');
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
     // Omitted userIds → default to the whole trip, matching create_budget_item.
     const members = userIds && userIds.length > 0 ? userIds : await this.resolveMemberIds(tripId, undefined);
     try {
-      const item = await this.uow.transactional(async () => {
-        const created = await this.budget.createBudgetItem(tripId, {
-          category,
-          name,
-          total_price,
-          note,
-          member_ids: members,
-          place_id,
-        });
-        return (await this.budget.getBudgetItem(created.id, tripId))!;
-      });
-      this.guards.safeBroadcast(tripId, 'budget:created', { item });
-      if (members && members.length > 0)
-        this.guards.safeBroadcast(tripId, 'budget:members-updated', {
-          itemId: item.id,
-          members: item.members,
-          persons: item.persons,
-        });
-      return ok({ item });
-    } catch {
+      // The REST create's use case: the trip gate, the place check (#2084) and
+      // budget:created alone, since the item it sends already carries its members.
+      const data = { category, name, total_price, note, member_ids: members, place_id };
+      return ok({ item: await this.writes.createItem(tripId, data, writer) });
+    } catch (err) {
+      if (err instanceof DomainError) throw err;
       return errorResult('Failed to create budget item.');
     }
   }

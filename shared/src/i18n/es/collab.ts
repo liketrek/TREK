@@ -110,5 +110,7 @@ const collab: TranslationStrings = {
     'Todavía hay notas que usan esta categoría. Muévelas o elimínalas primero para quitarla.',
   'collab.notes.categoriesLocalHint':
     'Una categoría sin notas solo se guarda en este navegador. Los demás miembros la verán cuando una nota la use.',
+  'collab.chat.fromAssistant': 'del asistente',
+  'collab.chat.fromAssistantHint': '{name} compartió esta respuesta del asistente',
 };
 export default collab;

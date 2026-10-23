@@ -1,3 +1,4 @@
+import { BOOK_SCHEMA_REV } from './book-schema-rev';
 import { bookDocumentSchema } from './book.schema';
 
 import { z } from 'zod';
@@ -42,9 +43,23 @@ export const bookRecordSchema = bookSummarySchema.extend({
 });
 export type BookRecord = z.infer<typeof bookRecordSchema>;
 
+/**
+ * A document a newer TREK wrote, as far as a save request carries it: only the
+ * revision. Its new element kinds or values would fail `bookDocumentSchema` at
+ * the pipe and end in a 400, so it is taken first and handed to the service
+ * this bare, where the save is refused with 409 `book_schema_newer` before
+ * anything is written. Nothing of the rest is needed for that refusal.
+ */
+const newerBookDocumentSchema = z.object({
+  schemaRev: z
+    .number()
+    .int()
+    .min(BOOK_SCHEMA_REV + 1),
+});
+
 export const bookSaveRequestSchema = z.object({
   title: z.string().max(200).default(''),
-  document: bookDocumentSchema,
+  document: z.union([newerBookDocumentSchema, bookDocumentSchema]),
   /**
    * The version this edit was made against.
    *

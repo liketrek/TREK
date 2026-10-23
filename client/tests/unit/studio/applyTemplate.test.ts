@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import type { BookElement, JourneyStats } from '@trek/shared'
-import { bookPageSetupSchema } from '@trek/shared'
-import { applyTemplate, templateFit, type TemplateEntry } from '../../../src/components/Studio/applyTemplate'
-import type { SpreadTemplate } from '../../../src/components/Studio/bookTemplates.data'
+import type { AutoEntry, AutoTemplate, BookElement, JourneyStats } from '@trek/shared'
+import { applyAutoTemplate, autoTemplateFit, bookElementId, bookPageSetupSchema } from '@trek/shared'
+
+/** The client names these were written against, now the shared auto layout's. */
+type SpreadTemplate = AutoTemplate
+type TemplateEntry = AutoEntry
+type TemplateContext = Omit<Parameters<typeof applyAutoTemplate>[2], 'newId'>
+const templateFit = autoTemplateFit
+const applyTemplate = (t: SpreadTemplate, e: TemplateEntry, ctx: TemplateContext) =>
+  applyAutoTemplate(t, e, { ...ctx, newId: bookElementId })
 
 /**
  * Laying an entry onto a template somebody drew (#1973).

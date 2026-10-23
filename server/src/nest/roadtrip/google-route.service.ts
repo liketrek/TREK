@@ -119,6 +119,11 @@ export class GoogleRouteService {
       this.assignments.broadcast(String(tripId), 'assignment:created', { assignment }, socketId);
     }
     await this.assignments.reconcile(tripId, socketId);
-    return { imported: imported.length };
+    // The ids name what the import made, so the assistant's receipt can show and open it.
+    return {
+      imported: imported.length,
+      place_ids: imported.map(({ place }) => place.id),
+      assignment_ids: imported.flatMap(({ assignment }) => (assignment ? [assignment.id] : [])),
+    };
   }
 }

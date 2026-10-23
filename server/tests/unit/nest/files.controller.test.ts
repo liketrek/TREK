@@ -336,22 +336,40 @@ describe('FilesController (parity with the legacy /api/trips/:tripId/files route
         ),
       ),
     ).toEqual({ status: 404, body: { error: 'File not found' } });
-    const createFileLink = vi.fn().mockReturnValue([{ id: 1 }]);
-    const s = fsvc({ getFileById: vi.fn().mockReturnValue({ id: 9 }), createFileLink } as Partial<FilesService>);
-    expect(await fc(s).link(user, trip, '5', '9', { reservation_id: 2 })).toEqual({
+    // Through the link use case, which sends the file with its links to the room minus the asking tab.
+    const writer = { socketId: 'sock' };
+    const restWriter = vi.fn().mockReturnValue(writer);
+    const linkFile = vi.fn().mockReturnValue([{ id: 1 }]);
+    const s = fsvc({
+      getFileById: vi.fn().mockReturnValue({ id: 9 }),
+      linkFile,
+      restWriter,
+    } as Partial<FilesService>);
+    expect(await fc(s).link(user, trip, '5', '9', { reservation_id: 2 }, 'sock')).toEqual({
       success: true,
       links: [{ id: 1 }],
     });
+    expect(restWriter).toHaveBeenCalledWith('5', user, 'sock');
+    expect(linkFile).toHaveBeenCalledWith(
+      '9',
+      { reservation_id: 2, assignment_id: undefined, place_id: undefined, budget_item_id: undefined },
+      writer,
+    );
   });
 
   it('DELETE /:id/link/:linkId removes the link; GET /:id/links lists', async () => {
-    const deleteFileLink = vi.fn();
+    const writer = { socketId: 'sock' };
+    const unlinkFile = vi.fn();
     expect(
       await fc(
-        fsvc({ getFileById: vi.fn().mockReturnValue({ id: 9 }), deleteFileLink } as Partial<FilesService>),
-      ).unlink(user, trip, '5', '9', '3'),
+        fsvc({
+          getFileById: vi.fn().mockReturnValue({ id: 9 }),
+          unlinkFile,
+          restWriter: vi.fn().mockReturnValue(writer),
+        } as Partial<FilesService>),
+      ).unlink(user, trip, '5', '9', '3', 'sock'),
     ).toEqual({ success: true });
-    expect(deleteFileLink).toHaveBeenCalledWith('3', '9');
+    expect(unlinkFile).toHaveBeenCalledWith('9', '3', writer);
     const s = fsvc({
       getFileById: vi.fn().mockReturnValue({ id: 9 }),
       getFileLinks: vi.fn().mockReturnValue([{ id: 1 }]),
@@ -363,7 +381,7 @@ describe('FilesController (parity with the legacy /api/trips/:tripId/files route
     const foreign = () =>
       fsvc({
         getFileById: vi.fn().mockReturnValue(undefined),
-        deleteFileLink: vi.fn(),
+        unlinkFile: vi.fn(),
         getFileLinks: vi.fn(),
       } as Partial<FilesService>);
     const unlinkSvc = foreign();
@@ -371,7 +389,7 @@ describe('FilesController (parity with the legacy /api/trips/:tripId/files route
       status: 404,
       body: { error: 'File not found' },
     });
-    expect(unlinkSvc.deleteFileLink).not.toHaveBeenCalled();
+    expect(unlinkSvc.unlinkFile).not.toHaveBeenCalled();
     const listSvc = foreign();
     expect(await rejected(fc(listSvc).links(user, trip, '5', '9'))).toEqual({
       status: 404,

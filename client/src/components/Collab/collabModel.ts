@@ -7,6 +7,7 @@
  * Collab has no store slice, so unlike `transportsModel.ts` these helpers never
  * touch `useTripStore` data.
  */
+import { COLLAB_MESSAGE_ORIGIN_ASSISTANT } from '@trek/shared';
 
 /** Same shape `t()` has everywhere else (TranslationContext.tsx) — kept local
  *  so this file stays planner-agnostic like transportsModel.ts. */
@@ -43,6 +44,8 @@ export interface ChatMessage {
   deleted?: number | boolean;
   reactions: ChatReaction[];
   attachments?: Array<{ id: number; url: string; original_name?: string; mime_type?: string }>;
+  /** Set by the server when the message was shared from an assistant answer. */
+  origin?: string | null;
   /** Client-only: set once a delete (own or via WS) has landed. */
   _deleted?: boolean;
 }
@@ -68,6 +71,20 @@ export const OTHER_BUBBLE_RADIUS = {
   borderEndEndRadius: 16,
   borderEndStartRadius: 16,
 } as const;
+
+/** The corners of a desktop chat bubble: round all over, with the tail (a tight
+ *  corner on the sender's side) only on the last message of a group. Logical
+ *  corners, so the tail follows the row in a right-to-left language. The Collab
+ *  tab and the assistant's chat card draw with it. */
+export function bubbleRadius(own: boolean, lastInGroup: boolean) {
+  const tail = lastInGroup ? 4 : 18;
+  return {
+    borderStartStartRadius: 18,
+    borderStartEndRadius: 18,
+    borderEndEndRadius: own ? tail : 18,
+    borderEndStartRadius: own ? 18 : tail,
+  };
+}
 
 // SQLite stores UTC without a 'Z' suffix — append one so JS parses it as UTC
 // rather than local time.
@@ -111,6 +128,11 @@ export function shouldShowChatDateSeparator(msg: ChatMessage, prevMsg?: ChatMess
 
 /** Same sender → part of the same visual group (spacing tightens, avatar and
  *  name collapse to the first message, timestamp moves to the last one). */
+/** A message someone shared from an answer of the trip assistant. */
+export function isFromAssistant(msg: Pick<ChatMessage, 'origin'>): boolean {
+  return msg.origin === COLLAB_MESSAGE_ORIGIN_ASSISTANT;
+}
+
 export function isSameSender(a: ChatMessage | undefined, b: ChatMessage | undefined): boolean {
   if (!a || !b) return false;
   return String(a.user_id) === String(b.user_id);

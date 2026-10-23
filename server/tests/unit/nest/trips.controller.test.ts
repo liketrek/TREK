@@ -2,7 +2,9 @@ import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.serv
 import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { CalendarService } from '../../../src/nest/calendar/calendar.service';
 import { DomainError } from '../../../src/nest/common/domain-error';
+import type { TripWriter } from '../../../src/nest/common/trip-writer';
 import type { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
+import type { TripListWriter, TripWritesService } from '../../../src/nest/trips/trip-writes.service';
 import { TripsController, MAX_COVER_SIZE, TRIP_COVER_FILE_FILTER } from '../../../src/nest/trips/trips.controller';
 import type { TripsService } from '../../../src/nest/trips/trips.service';
 import { NotFoundError, ValidationError } from '../../../src/nest/trips/trips.service';
@@ -52,7 +54,30 @@ const audit = { writeAudit } as unknown as AuditService;
 const storageStub = {
   put: vi.fn().mockResolvedValue(undefined),
 } as unknown as import('../../../src/nest/storage/storage.service').StorageService;
-const tc = (s: TripsService, calendar?: Partial<CalendarService>, readModel?: Partial<TripReadModelService>) =>
+/**
+ * TripWritesService over the stubbed TripsService: create, copy and delete go
+ * through it, so it hands each on to the stub and records the writer the route
+ * built. What the real one sends is held by tools-trips.test.ts and the
+ * broadcast parity suite, on the booted app.
+ */
+function writesFor(s: TripsService) {
+  return {
+    restWriter: vi.fn(
+      (_tripId: string, u: User, socketId: string | undefined) =>
+        ({ userId: u.id, role: u.role, socketId }) as TripWriter,
+    ),
+    create: vi.fn((input: Parameters<TripsService['create']>[1], w: TripListWriter) => s.create(w.userId, input)),
+    copy: vi.fn((id: string, title: string | undefined, w: TripListWriter) => s.copy(id, w.userId, title)),
+    remove: vi.fn((id: string, w: TripWriter) => s.remove(id, w.userId, w.role)),
+  };
+}
+
+const tc = (
+  s: TripsService,
+  calendar?: Partial<CalendarService>,
+  readModel?: Partial<TripReadModelService>,
+  writes = writesFor(s),
+) =>
   new TripsController(
     s,
     audit,
@@ -61,6 +86,7 @@ const tc = (s: TripsService, calendar?: Partial<CalendarService>, readModel?: Pa
     (calendar ?? {}) as CalendarService,
     (readModel ?? {}) as TripReadModelService,
     storageStub,
+    writes as unknown as TripWritesService,
   );
 
 function svc(o: Partial<TripsService> = {}): TripsService {
@@ -290,6 +316,19 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
         trip: { id: 9 },
       });
     });
+
+    it('creates through the trip writes as the session user, naming the tab that asked', async () => {
+      const s = svc({
+        create: vi.fn().mockReturnValue({ trip: { id: 9 }, tripId: 9, reminderDays: 0 }),
+      } as Partial<TripsService>);
+      const writes = writesFor(s);
+      await tc(s, undefined, undefined, writes).create(user, { title: 'T' }, req, 'sock');
+      expect(writes.create).toHaveBeenCalledWith(expect.objectContaining({ title: 'T' }), {
+        userId: 1,
+        role: 'user',
+        socketId: 'sock',
+      });
+    });
   });
 
   it('GET /:id 404 when missing', async () => {
@@ -440,7 +479,11 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
         copy: vi.fn().mockReturnValue(42),
         getCopiedTrip: vi.fn().mockReturnValue({ id: 42 }),
       } as Partial<TripsService>);
-      expect(await tc(s).copy(user, '9', { title: 'Copy' }, req)).toEqual({ trip: { id: 42 } });
+      const writes = writesFor(s);
+      expect(await tc(s, undefined, undefined, writes).copy(user, '9', { title: 'Copy' }, req, 'sock')).toEqual({
+        trip: { id: 42 },
+      });
+      expect(writes.copy).toHaveBeenCalledWith('9', 'Copy', { userId: 1, role: 'user', socketId: 'sock' });
     });
   });
 
@@ -487,20 +530,27 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
       expect(remove).toHaveBeenCalledWith('9', 1, 'admin');
     });
 
-    it('deletes, audits and broadcasts', async () => {
+    it('deletes through the trip writes, which announce it to the room minus the asking tab, and audits', async () => {
       const remove = vi.fn().mockReturnValue({ tripId: 9, title: 'T', isAdminDelete: false });
-      const broadcast = vi.fn();
-      const s = svc({ getOwner: vi.fn().mockReturnValue({ user_id: 1 }), remove, broadcast } as Partial<TripsService>);
-      expect(await tc(s).remove(user, '9', req, 'sock')).toEqual({ success: true });
-      expect(broadcast).toHaveBeenCalledWith('9', 'trip:deleted', { id: 9 }, 'sock');
+      const s = svc({ getOwner: vi.fn().mockReturnValue({ user_id: 1 }), remove } as Partial<TripsService>);
+      const writes = writesFor(s);
+      expect(await tc(s, undefined, undefined, writes).remove(user, '9', req, 'sock')).toEqual({ success: true });
+      expect(writes.restWriter).toHaveBeenCalledWith('9', user, 'sock');
+      expect(writes.remove).toHaveBeenCalledWith('9', { userId: 1, role: 'user', socketId: 'sock' });
+      expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'trip.delete' }));
+      // The broadcast left the controller for the use case: nothing goes out from here twice.
+      expect(s.broadcast).not.toHaveBeenCalled();
     });
 
     it('admin delete logs the owner', async () => {
       const remove = vi.fn().mockReturnValue({ tripId: 9, title: 'T', isAdminDelete: true, ownerEmail: 'owner@x.y' });
-      const broadcast = vi.fn();
-      const s = svc({ getOwner: vi.fn().mockReturnValue({ user_id: 2 }), remove, broadcast } as Partial<TripsService>);
-      expect(await tc(s).remove(user, '9', req)).toEqual({ success: true });
-      expect(broadcast).toHaveBeenCalledWith('9', 'trip:deleted', { id: 9 }, undefined);
+      const s = svc({ getOwner: vi.fn().mockReturnValue({ user_id: 2 }), remove } as Partial<TripsService>);
+      const writes = writesFor(s);
+      expect(await tc(s, undefined, undefined, writes).remove(user, '9', req)).toEqual({ success: true });
+      expect(writes.restWriter).toHaveBeenCalledWith('9', user, undefined);
+      expect(writeAudit).toHaveBeenCalledWith(
+        expect.objectContaining({ details: expect.objectContaining({ owner: 'owner@x.y' }) }),
+      );
     });
   });
 

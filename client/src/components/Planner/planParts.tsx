@@ -105,7 +105,7 @@ export function TimePill({ children, className = '', quiet = false }: { children
   return <WhiteBadge className={className} quiet={quiet} icon={<Clock size={10} strokeWidth={2.2} className="flex-none text-content-faint" />}>{children}</WhiteBadge>
 }
 
-type PillTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'accent'
+export type PillTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'accent'
 
 // White badges on whatever tint the row has; the tone only colours the words and the icon.
 const PILL_TONES: Record<PillTone, string> = {

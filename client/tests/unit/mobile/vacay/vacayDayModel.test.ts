@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { dayVisual, hatchTint, monthLead, personTint, type DayVisualContext } from '../../../../src/mobile/screens/vacay/vacayDayModel';
+import { dayVisual, hatchTint, personTint, type DayVisualContext } from '../../../../src/mobile/screens/vacay/vacayDayModel';
+import { localDateStr, monthLead } from '../../../../src/vacay/monthGrid';
 
 // FE-MOB-VACAY-001 onwards
 
@@ -164,6 +165,7 @@ describe('vacayDayModel', () => {
     // July 2026 starts on a Wednesday: 2 leading cells Monday-first, 3 Sunday-first.
     expect(monthLead(2026, 6, 1)).toBe(2);
     expect(monthLead(2026, 6, 0)).toBe(3);
+    expect(localDateStr(2026, 6, 4)).toBe('2026-07-04');
   });
 
   it('FE-MOB-VACAY-003: shared calendars draw inset rings on top of the base cell', () => {

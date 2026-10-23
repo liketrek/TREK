@@ -1,5 +1,6 @@
 import { idSchema } from '../common/primitives.schema';
 import { clockTimeSchema } from '../place/place-hours';
+import { includeGeometryFlagSchema } from './tour-display.schema';
 import { tourPoiSearchRequestSchema, walkThemeSchema } from './tour-poi-search.schema';
 import { TOUR_STATION_NAME_MAX, tourDescriptionSchema, tourNameSchema, tourWaypointSchema } from './tours.schema';
 
@@ -103,6 +104,7 @@ export const cityWalkBriefingRequestSchema = z
       .optional()
       .describe('How far from the start, the wishes and the appointments to search, in metres; 1000 when left out'),
     lang: tourPoiSearchRequestSchema.shape.lang,
+    include_geometry: includeGeometryFlagSchema,
   })
   .strict();
 export type CityWalkBriefingRequest = z.infer<typeof cityWalkBriefingRequestSchema>;

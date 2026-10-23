@@ -27,17 +27,23 @@ function endName(stop: number | undefined, t: Translate): string {
   return stop === undefined ? t('tours.planner.shapingPoint') : t('tours.planner.waypointLabel', { n: stop });
 }
 
-/** How another way differs from the one taken now, in length and time; nothing it cannot say. */
-function VariantDelta({
+/**
+ * How another way differs from the one taken now, in length and time; nothing
+ * it cannot say. `hint` names what it is compared with, the way taken now
+ * unless said otherwise.
+ */
+export function VariantDelta({
   variant,
   current,
   unit,
   t,
+  hint,
 }: {
   variant: LegVariant;
   current: LegVariant;
   unit: DistanceUnit;
   t: Translate;
+  hint?: string;
 }) {
   const delta = variantDelta(variant, current);
   const parts = [
@@ -51,7 +57,7 @@ function VariantDelta({
   ].filter((part) => part.text !== null);
   if (parts.length === 0) return null;
   return (
-    <Tooltip label={t('tours.variants.deltaHint')}>
+    <Tooltip label={hint ?? t('tours.variants.deltaHint')}>
       <span className="flex flex-wrap gap-1" data-testid="leg-variant-delta">
         {parts.map(({ key, Icon, text }) => (
           <SoftPill key={key} icon={<Icon size={10} strokeWidth={2.2} aria-hidden="true" />}>

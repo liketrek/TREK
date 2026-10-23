@@ -14,6 +14,7 @@ import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { PlacesModule } from '../places/places.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
+import { DawarichAtlasMcp } from './dawarich-atlas.mcp';
 import { DawarichDayStaysService } from './dawarich-day-stays.service';
 import { DawarichSuggestionsService } from './dawarich-suggestions.service';
 import { DawarichSyncJob } from './dawarich-sync.job';
@@ -90,6 +91,7 @@ import { Module } from '@nestjs/common';
     DawarichDayStaysService,
     DawarichSyncJob,
     DawarichMcp,
+    DawarichAtlasMcp,
   ],
   exports: [DawarichService, DawarichSuggestionsService, DawarichTracksService, DawarichDayStaysService],
 })

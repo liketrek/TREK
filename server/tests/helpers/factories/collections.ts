@@ -14,11 +14,15 @@ export function makeCollection(
   ownerId: number,
   overrides: EntityData<Collections> = {},
 ): Promise<CollectionRow> {
-  return createRow(orm, Collections, {
-    owner: ownerId,
-    name: `Test Collection ${nextSeq('collection')}`,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    Collections,
+    {
+      owner: ownerId,
+      name: `Test Collection ${nextSeq('collection')}`,
+    },
+    overrides,
+  );
 }
 
 /** Invites the user into the collection; `status: 'accepted'` makes them a member right away. */
@@ -28,13 +32,17 @@ export function addCollectionMember(
   userId: number,
   overrides: EntityData<CollectionMembers> = {},
 ): Promise<EntityDTO<CollectionMembers>> {
-  return createRow(orm, CollectionMembers, {
-    collection: collectionId,
-    user: userId,
-    status: 'accepted',
-    role: 'editor',
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    CollectionMembers,
+    {
+      collection: collectionId,
+      user: userId,
+      status: 'accepted',
+      role: 'editor',
+    },
+    overrides,
+  );
 }
 
 /** A place saved into the collection by `ownerId`. */
@@ -44,14 +52,18 @@ export function makeCollectionPlace(
   ownerId: number,
   overrides: EntityData<CollectionPlaces> = {},
 ): Promise<CollectionPlaceRow> {
-  return createRow(orm, CollectionPlaces, {
-    collection: collectionId,
-    owner: ownerId,
-    name: `Saved Place ${nextSeq('collection-place')}`,
-    lat: 48.8566,
-    lng: 2.3522,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    CollectionPlaces,
+    {
+      collection: collectionId,
+      owner: ownerId,
+      name: `Saved Place ${nextSeq('collection-place')}`,
+      lat: 48.8566,
+      lng: 2.3522,
+    },
+    overrides,
+  );
 }
 
 /** Puts the tags on the saved place. */

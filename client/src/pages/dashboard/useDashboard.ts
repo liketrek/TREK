@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router'
 import { tripsApi, authApi, reservationsApi } from '../../api/client'
 import { tripRepo } from '../../repo/tripRepo'
 import { isEffectivelyOffline } from '../../sync/networkMode'
+import { useServerPing } from '../../sync/useServerPing'
 import { useAuthStore } from '../../store/authStore'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../../components/shared/Toast'
@@ -91,6 +92,21 @@ export function useDashboard() {
       setIsLoading(false)
     }
   }
+
+  // A trip created, copied or deleted by this user elsewhere (another tab, an MCP
+  // client) is read back quietly, one read per burst: no loading state and no
+  // toast, since nobody here asked for it. trips:changed goes to the acting user
+  // only; trip:deleted goes to the trip's room, which this page is never in.
+  useServerPing('trips:changed', true, async () => {
+    try {
+      const { trips, archivedTrips } = await tripRepo.list()
+      setTrips(sortTrips(trips))
+      setArchivedTrips(sortTrips(archivedTrips))
+      loadSideData()
+    } catch {
+      // The list on screen stays; the next visit reads it again.
+    }
+  })
 
   // Re-run both the trip fetch and the auth check so a recovered backend clears
   // the error banner (loadUser resets authCheckFailed on success). #1283

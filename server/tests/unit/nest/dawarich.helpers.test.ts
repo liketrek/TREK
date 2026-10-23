@@ -27,6 +27,7 @@ import {
   minutesBetween,
   normalizeVisit,
   offsetMinutesOf,
+  parseTimeWindow,
   simplify,
   splitAtGaps,
   splitWindow,
@@ -1325,5 +1326,27 @@ describe('visited cities over a long range', () => {
       [{ country: 'Denmark', cities: [{ city: 'Gedser', points: 3 }] }],
     ]);
     expect(again[0].cities[0]).toEqual({ city: 'Gedser', points: 10, stayed_for: undefined, timestamp: undefined });
+  });
+});
+
+describe('parseTimeWindow', () => {
+  it('DAWARICH-SPAN-001: reads both ends as instants, a bare date as its midnight UTC, up to 400 days apart', () => {
+    expect(parseTimeWindow('2025-01-01', '2026-02-05T00:00:00Z')).toEqual({
+      from: new Date('2025-01-01T00:00:00.000Z'),
+      to: new Date('2026-02-05T00:00:00.000Z'),
+    });
+  });
+
+  it.each<[string | undefined, string | undefined, string]>([
+    [undefined, '2026-01-01', 'from and to are required ISO timestamps'],
+    ['2026-01-01', '', 'from and to are required ISO timestamps'],
+    ['2026-01-01', 'later', 'from and to are required ISO timestamps'],
+    ['2026-01-01', '2026-01-01', 'to must be after from'],
+    ['2025-01-01', '2026-02-06', 'Window must be 400 days or less'],
+  ])('DAWARICH-SPAN-002: from %j to %j is a 400 both REST and MCP answer with "%s"', (from, to, message) => {
+    // A DomainError: the route writes it as its { error } body, the MCP registry as the refusal text.
+    expect(() => parseTimeWindow(from, to)).toThrow(
+      expect.objectContaining({ name: 'DomainError', status: 400, publicMessage: message }),
+    );
   });
 });

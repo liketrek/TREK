@@ -9,6 +9,7 @@ import { resetFreezeAttempts } from '../../../../src/components/Budget/useFreeze
 import { clearExchangeRateCache } from '../../../../src/hooks/useExchangeRates'
 import { useAuthStore } from '../../../../src/store/authStore'
 import { useSettingsStore } from '../../../../src/store/settingsStore'
+import { useTripStore } from '../../../../src/store/tripStore'
 import type { BudgetItem, Day, Trip } from '../../../../src/types'
 import { buildTrip, buildUser } from '../../../helpers/factories'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
@@ -16,7 +17,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
-// FE-MOB-COSTT-001 to FE-MOB-COSTT-051
+// FE-MOB-COSTT-001 to FE-MOB-COSTT-053
 
 // The add/edit expense sheet is the shared desktop-sized form; the panel only
 // owns when it opens and what happens on save, so it is stubbed here.
@@ -915,5 +916,20 @@ describe('MCostsTab', () => {
     const bread = { ...RAMEN, id: 15, name: 'Bread', total_price: 18.1 } as BudgetItem
     rerender(<MCostsTab planner={{ ...p, budgetItems: [...ITEMS, bread] }} shell={shell} />)
     await waitFor(() => expect(settlementBases).toHaveLength(2))
+  })
+
+  it('FE-MOB-COSTT-052: a link to one expense opens its edit sheet for an editor', async () => {
+    render(<MCostsTab planner={planner()} shell={buildShell()} />, { initialEntries: ['/trips/7?expense=12'] })
+    expect(await screen.findByText('sheet editing 12')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTT-053: a link to one expense opens no edit sheet for a member who may not edit costs', async () => {
+    const reload = vi.fn(async () => undefined)
+    useTripStore.setState({ loadBudgetItems: reload })
+    const viewer = planner({ can: vi.fn(() => false) as unknown as TripPlanner['can'] })
+    render(<MCostsTab planner={viewer} shell={buildShell()} />, { initialEntries: ['/trips/7?expense=12'] })
+    await screen.findByText('+$12.50')
+    expect(screen.queryByText('sheet editing 12')).not.toBeInTheDocument()
+    expect(reload).not.toHaveBeenCalled()
   })
 })

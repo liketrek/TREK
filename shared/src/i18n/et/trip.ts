@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'Vali esmalt päev',
   'trip.toast.assignedToDay': 'Koht lisatud päevale',
   'trip.toast.loadError': 'Reisi laadimine ebaõnnestus',
+  'trip.toast.accessLost': 'Sa ei ole enam selle reisi liige',
   'trip.toast.reorderError': 'Järjekorra muutmine ebaõnnestus',
   'trip.toast.reservationUpdated': 'Broneering uuendatud',
   'trip.toast.reservationAdded': 'Broneering lisatud',

@@ -28,16 +28,14 @@ const storageStub = {
   exists: storageExists,
   sendToResponse: storageSendToResponse,
 } as unknown as StorageService;
-// The capture backfill is detached; most cases here only need it to exist so the
-// constructor can call it. The spies are read by the cases that pin which journey
-// (or entry) a provider batch is reported against, and that uploads get the
-// backfill without the refresh (#1587).
-const scheduleForEntry = vi.fn();
-const scheduleForJourney = vi.fn();
+// The provider-photo adds, their event and their detached capture refresh are
+// JourneyPhotoCaptureService's (#1587), so the routes only shape the batch and
+// the answer; the spies pin that shape. Uploads get the backfill without the
+// refresh.
+const addProviderPhotos = vi.fn();
 const scheduleUpload = vi.fn();
 const captureBackfillStub = {
-  scheduleForEntry,
-  scheduleForJourney,
+  addProviderPhotos,
   scheduleUpload,
 } as unknown as JourneyPhotoCaptureService;
 
@@ -66,7 +64,11 @@ async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number
   throw new Error('expected throw');
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  // A case's own answers for the provider-photo use case never carry into the next.
+  addProviderPhotos.mockReset();
+});
 
 describe('JourneyController', () => {
   it('GET / lists; POST / 400 without title, else creates', async () => {
@@ -79,12 +81,14 @@ describe('JourneyController', () => {
     });
     const createJourney = vi.fn().mockReturnValue({ id: 9 });
     expect(
-      await ctl(svc({ createJourney } as Partial<JourneyService>)).create(user, {
-        title: ' Trip ',
-        trip_ids: [1, '2'],
-      }),
+      await ctl(svc({ createJourney } as Partial<JourneyService>)).create(
+        user,
+        { title: ' Trip ', trip_ids: [1, '2'] },
+        'sock-1',
+      ),
     ).toEqual({ id: 9 });
-    expect(createJourney).toHaveBeenCalledWith(1, { title: 'Trip', subtitle: undefined, trip_ids: [1, 2] });
+    // The socket id goes on, so the creating tab is left out of journey:updated.
+    expect(createJourney).toHaveBeenCalledWith(1, { title: 'Trip', subtitle: undefined, trip_ids: [1, 2] }, 'sock-1');
   });
 
   it('GET /suggestions + /available-trips', async () => {
@@ -124,8 +128,8 @@ describe('JourneyController', () => {
   });
 
   it('provider-photos: batch, single 400/403, success', async () => {
-    const batch = svc({ addProviderPhoto: vi.fn().mockReturnValue({ id: 1 }) } as Partial<JourneyService>);
-    expect(await ctl(batch).providerPhotos(user, '3', { provider: 'immich', asset_ids: ['a', 'b'] })).toEqual({
+    addProviderPhotos.mockResolvedValueOnce([{ id: 1 }, { id: 1 }]);
+    expect(await ctl(svc()).providerPhotos(user, '3', { provider: 'immich', asset_ids: ['a', 'b'] })).toEqual({
       photos: [{ id: 1 }, { id: 1 }],
       added: 2,
     });
@@ -133,45 +137,40 @@ describe('JourneyController', () => {
       status: 400,
       body: { error: 'provider and asset_id required' },
     });
+    expect(addProviderPhotos).toHaveBeenCalledTimes(1);
+    addProviderPhotos.mockResolvedValueOnce([]);
     expect(
-      await thrownAsync(() =>
-        ctl(svc({ addProviderPhoto: vi.fn().mockReturnValue(null) } as Partial<JourneyService>)).providerPhotos(
-          user,
-          '3',
-          { provider: 'immich', asset_id: 'a' },
-        ),
-      ),
+      await thrownAsync(() => ctl(svc()).providerPhotos(user, '3', { provider: 'immich', asset_id: 'a' })),
     ).toEqual({ status: 403, body: { error: 'Not allowed or duplicate' } });
   });
 
-  it('provider-photos hand what they added to the shared capture refresh, by entry or by journey; uploads only backfill (#1587)', async () => {
+  it('provider-photos go through the one use case, by entry or by journey, with the socket id; uploads only backfill (#1587)', async () => {
     const entryPhoto = { id: 1, photo_id: 11 };
     const galleryPhoto = { id: 2, photo_id: 12 };
-    const withAdds = svc({
-      addProviderPhoto: vi.fn().mockReturnValue(entryPhoto),
-      addProviderPhotoToGallery: vi.fn().mockReturnValue(galleryPhoto),
-      addPhoto: vi.fn().mockReturnValue(entryPhoto),
-      uploadGalleryPhotos: vi.fn().mockReturnValue([galleryPhoto]),
-      immichAutoUploadEnabled: vi.fn().mockReturnValue(false),
-    } as Partial<JourneyService>);
-    const c = ctl(withAdds);
+    addProviderPhotos.mockImplementation(async (target: { entryId?: number }) =>
+      target.entryId === undefined ? [galleryPhoto] : [entryPhoto],
+    );
+    const c = ctl(
+      svc({
+        addPhoto: vi.fn().mockReturnValue(entryPhoto),
+        uploadGalleryPhotos: vi.fn().mockReturnValue([galleryPhoto]),
+        immichAutoUploadEnabled: vi.fn().mockReturnValue(false),
+      } as Partial<JourneyService>),
+    );
 
-    await c.providerPhotos(user, '3', { provider: 'immich', asset_ids: ['a'] });
+    await c.providerPhotos(user, '3', { provider: 'immich', asset_ids: ['a'] }, 'sock-1');
     await c.providerPhotos(user, '3', { provider: 'immich', asset_id: 'b' });
     await c.uploadEntryPhotos(user, '3', [{ filename: 'a.jpg', originalname: 'a.jpg' } as Express.Multer.File], {});
-    expect(scheduleForEntry.mock.calls).toEqual([
-      [3, [entryPhoto], 1],
-      [3, [entryPhoto], 1],
-    ]);
-
-    await c.galleryProviderPhotos(user, '9', { provider: 'immich', asset_ids: ['a'] });
+    await c.galleryProviderPhotos(user, '9', { provider: 'immich', asset_ids: ['a'] }, 'sock-1');
     await c.galleryProviderPhotos(user, '9', { provider: 'immich', asset_id: 'b' });
     await c.uploadGalleryPhotos(user, '9', [{ filename: 'g.jpg' } as Express.Multer.File]);
-    expect(scheduleForJourney.mock.calls).toEqual([
-      [9, [galleryPhoto], 1],
-      [9, [galleryPhoto], 1],
-    ]);
 
+    expect(addProviderPhotos.mock.calls.map(([target, userId, , sid]) => [target, userId, sid])).toEqual([
+      [{ entryId: 3 }, 1, 'sock-1'],
+      [{ entryId: 3 }, 1, undefined],
+      [{ journeyId: 9 }, 1, 'sock-1'],
+      [{ journeyId: 9 }, 1, undefined],
+    ]);
     // The client uploads one file per request, so a refresh per upload would
     // reload every open client once per photo: uploads backfill and stay quiet.
     expect(scheduleUpload.mock.calls).toEqual([
@@ -301,38 +300,30 @@ describe('JourneyController', () => {
   });
 
   it('provider-photos forwards per-asset media_types for gallery and entries (#823)', async () => {
-    const add = vi.fn().mockReturnValue({ id: 1 });
-    await ctl(svc({ addProviderPhotoToGallery: add } as Partial<JourneyService>)).galleryProviderPhotos(user, '9', {
+    addProviderPhotos.mockResolvedValue([{ id: 1 }]);
+    await ctl(svc()).galleryProviderPhotos(user, '9', {
       provider: 'immich',
       asset_ids: ['a', 'b'],
       media_types: ['video', 'image'],
     });
-    expect(add).toHaveBeenNthCalledWith(1, 9, 1, 'immich', 'a', undefined, undefined, 'video');
-    expect(add).toHaveBeenNthCalledWith(2, 9, 1, 'immich', 'b', undefined, undefined, 'image');
-    const addOne = vi.fn().mockReturnValue({ id: 2 });
-    await ctl(svc({ addProviderPhotoToGallery: addOne } as Partial<JourneyService>)).galleryProviderPhotos(user, '9', {
-      provider: 'immich',
-      asset_id: 'c',
-      media_type: 'video',
-    });
-    expect(addOne).toHaveBeenCalledWith(9, 1, 'immich', 'c', undefined, undefined, 'video');
-
-    // Entry path mirrors the gallery path.
-    const eAdd = vi.fn().mockReturnValue({ id: 3 });
-    await ctl(svc({ addProviderPhoto: eAdd } as Partial<JourneyService>)).providerPhotos(user, '4', {
+    await ctl(svc()).galleryProviderPhotos(user, '9', { provider: 'immich', asset_id: 'c', media_type: 'video' });
+    // Entry path mirrors the gallery path, and only an entry keeps the caption.
+    await ctl(svc()).providerPhotos(user, '4', {
       provider: 'immich',
       asset_ids: ['x'],
       media_types: ['video'],
       caption: 'c',
     });
-    expect(eAdd).toHaveBeenNthCalledWith(1, 4, 1, 'immich', 'x', 'c', undefined, 'video');
-    const eOne = vi.fn().mockReturnValue({ id: 4 });
-    await ctl(svc({ addProviderPhoto: eOne } as Partial<JourneyService>)).providerPhotos(user, '4', {
-      provider: 'immich',
-      asset_id: 'y',
-      media_type: 'video',
-    });
-    expect(eOne).toHaveBeenCalledWith(4, 1, 'immich', 'y', undefined, undefined, 'video');
+    await ctl(svc()).providerPhotos(user, '4', { provider: 'immich', asset_id: 'y', media_type: 'video' });
+    await ctl(svc()).galleryProviderPhotos(user, '9', { provider: 'immich', asset_ids: ['z'], caption: 'dropped' });
+
+    expect(addProviderPhotos.mock.calls.map(([target, , batch]) => [target, batch])).toEqual([
+      [{ journeyId: 9 }, { provider: 'immich', assetIds: ['a', 'b'], mediaTypes: ['video', 'image'] }],
+      [{ journeyId: 9 }, { provider: 'immich', assetIds: ['c'], mediaTypes: ['video'] }],
+      [{ entryId: 4 }, { provider: 'immich', assetIds: ['x'], mediaTypes: ['video'], caption: 'c' }],
+      [{ entryId: 4 }, { provider: 'immich', assetIds: ['y'], mediaTypes: ['video'] }],
+      [{ journeyId: 9 }, { provider: 'immich', assetIds: ['z'] }],
+    ]);
   });
 
   it('GET/PATCH/DELETE /:id map 404', async () => {
@@ -673,20 +664,22 @@ describe('JourneyController', () => {
   });
 
   it('provider-photos batch passes the passphrase through when present', async () => {
-    const addProviderPhoto = vi.fn().mockReturnValue({ id: 1 });
-    await ctl(svc({ addProviderPhoto } as Partial<JourneyService>)).providerPhotos(user, '3', {
+    addProviderPhotos.mockResolvedValueOnce([{ id: 1 }]);
+    await ctl(svc()).providerPhotos(user, '3', {
       provider: 'immich',
       asset_ids: ['a'],
       caption: 'cap',
       passphrase: 'secret',
     });
-    expect(addProviderPhoto).toHaveBeenCalledWith(3, 1, 'immich', 'a', 'cap', 'secret', 'image');
+    expect(addProviderPhotos).toHaveBeenCalledWith(
+      { entryId: 3 },
+      1,
+      { provider: 'immich', assetIds: ['a'], mediaTypes: undefined, caption: 'cap', passphrase: 'secret' },
+      undefined,
+    );
     // single-photo success path
-    expect(
-      await ctl(
-        svc({ addProviderPhoto: vi.fn().mockReturnValue({ id: 2 }) } as Partial<JourneyService>),
-      ).providerPhotos(user, '3', { provider: 'immich', asset_id: 'a' }),
-    ).toEqual({ id: 2 });
+    addProviderPhotos.mockResolvedValueOnce([{ id: 2 }]);
+    expect(await ctl(svc()).providerPhotos(user, '3', { provider: 'immich', asset_id: 'a' })).toEqual({ id: 2 });
   });
 
   it('PATCH photos: 404 then returns the updated photo', async () => {
@@ -735,28 +728,30 @@ describe('JourneyController', () => {
   });
 
   it('gallery provider-photos: batch (with passphrase), single 400/403, success', async () => {
-    const addProviderPhotoToGallery = vi.fn().mockReturnValue({ id: 1 });
-    const batch = ctl(svc({ addProviderPhotoToGallery } as Partial<JourneyService>));
+    addProviderPhotos.mockResolvedValueOnce([{ id: 1 }, { id: 1 }]);
     expect(
-      await batch.galleryProviderPhotos(user, '9', { provider: 'immich', asset_ids: ['a', 'b'], passphrase: 'pw' }),
+      await ctl(svc()).galleryProviderPhotos(user, '9', {
+        provider: 'immich',
+        asset_ids: ['a', 'b'],
+        passphrase: 'pw',
+      }),
     ).toEqual({ photos: [{ id: 1 }, { id: 1 }], added: 2 });
-    expect(addProviderPhotoToGallery).toHaveBeenCalledWith(9, 1, 'immich', 'a', undefined, 'pw', 'image');
+    expect(addProviderPhotos).toHaveBeenCalledWith(
+      { journeyId: 9 },
+      1,
+      { provider: 'immich', assetIds: ['a', 'b'], mediaTypes: undefined, caption: undefined, passphrase: 'pw' },
+      undefined,
+    );
     expect(await thrownAsync(() => ctl(svc()).galleryProviderPhotos(user, '9', { provider: 'immich' }))).toEqual({
       status: 400,
       body: { error: 'provider and asset_id required' },
     });
+    addProviderPhotos.mockResolvedValueOnce([]);
     expect(
-      await thrownAsync(() =>
-        ctl(
-          svc({ addProviderPhotoToGallery: vi.fn().mockReturnValue(null) } as Partial<JourneyService>),
-        ).galleryProviderPhotos(user, '9', { provider: 'immich', asset_id: 'a' }),
-      ),
+      await thrownAsync(() => ctl(svc()).galleryProviderPhotos(user, '9', { provider: 'immich', asset_id: 'a' })),
     ).toEqual({ status: 403, body: { error: 'Not allowed or duplicate' } });
-    expect(
-      await ctl(
-        svc({ addProviderPhotoToGallery: vi.fn().mockReturnValue({ id: 3 }) } as Partial<JourneyService>),
-      ).galleryProviderPhotos(user, '9', { provider: 'immich', asset_id: 'a' }),
-    ).toEqual({ id: 3 });
+    addProviderPhotos.mockResolvedValueOnce([{ id: 3 }]);
+    expect(await ctl(svc()).galleryProviderPhotos(user, '9', { provider: 'immich', asset_id: 'a' })).toEqual({ id: 3 });
   });
 
   it('DELETE gallery photo: 404, then removes the object when present', async () => {
@@ -834,7 +829,7 @@ describe('JourneyController', () => {
       } as Express.Multer.File),
     ).toEqual({ id: 9, cover_image: 'journey/c.jpg' });
     expect(storageStub.put).toHaveBeenCalledWith('journey', 'c.jpg', { tmpPath: undefined });
-    expect(updateJourney).toHaveBeenCalledWith(9, 1, { cover_image: 'journey/c.jpg' });
+    expect(updateJourney).toHaveBeenCalledWith(9, 1, { cover_image: 'journey/c.jpg' }, undefined);
   });
 
   it('DELETE /:id and trips/contributors success paths', async () => {
@@ -915,7 +910,7 @@ describe('JourneyController', () => {
     expect(
       await ctl(svc({ restoreDismissedSuggestions: restore } as Partial<JourneyService>)).restoreSuggestions(user, '9'),
     ).toEqual({ restored: 3 });
-    expect(restore).toHaveBeenCalledWith(9, 1);
+    expect(restore).toHaveBeenCalledWith(9, 1, undefined);
     expect(
       await thrownAsync(() =>
         ctl(
@@ -995,24 +990,28 @@ describe('JourneyController', () => {
 
     // The record comes back bare, not in an envelope — the contract in
     // shared/src/book/book-store.schema.ts is the record itself.
-    const broadcastSaved = vi.fn();
     const saveBook = vi.fn().mockReturnValue({ record: { id: 3, version: 5 } });
     expect(
-      await ctl(svc(), { saveBook, broadcastSaved }).saveBook(
+      await ctl(svc(), { saveBook }).saveBook(
         user,
         '9',
         { title: 'T', document: { v: 1 }, baseVersion: 4 } as never,
         'sock-7',
       ),
     ).toEqual({ id: 3, version: 5 });
-    expect(saveBook).toHaveBeenCalledWith(9, 1, { title: 'T', document: { v: 1 }, baseVersion: 4 });
-    // Forwarded so the client that just saved does not process its own change.
-    expect(broadcastSaved).toHaveBeenCalledWith(9, 1, { id: 3, version: 5 }, 'sock-7');
+    // The socket goes to the service, which announces the save after its
+    // commit and leaves out the tab that saved, so it does not echo its change.
+    expect(saveBook).toHaveBeenCalledWith(
+      9,
+      1,
+      { title: 'T', document: { v: 1 }, baseVersion: 4 },
+      { socketId: 'sock-7' },
+    );
 
     // A missing title is '' rather than undefined: the column is NOT NULL and
     // an untitled book is an ordinary thing to have.
     const untitled = vi.fn().mockReturnValue({ record: { id: 3, version: 1 } });
-    await ctl(svc(), { saveBook: untitled, broadcastSaved: vi.fn() }).saveBook(user, '9', { document: {} } as never);
+    await ctl(svc(), { saveBook: untitled }).saveBook(user, '9', { document: {} } as never);
     expect(untitled.mock.calls[0][2].title).toBe('');
   });
 
@@ -1022,18 +1021,13 @@ describe('JourneyController', () => {
      * make showing what the other version is a second round trip, at exactly
      * the moment someone is worried about losing work.
      */
-    const broadcastSaved = vi.fn();
     const saveBook = vi.fn().mockReturnValue({ conflict: { id: 3, version: 6, title: 'Theirs' } });
     expect(
-      await thrownAsync(() =>
-        ctl(svc(), { saveBook, broadcastSaved }).saveBook(user, '9', { document: {}, baseVersion: 4 } as never),
-      ),
+      await thrownAsync(() => ctl(svc(), { saveBook }).saveBook(user, '9', { document: {}, baseVersion: 4 } as never)),
     ).toEqual({
       status: 409,
       body: { error: 'Book was changed by someone else', current: { id: 3, version: 6, title: 'Theirs' } },
     });
-    // Nothing was written, so nobody is told anything moved.
-    expect(broadcastSaved).not.toHaveBeenCalled();
   });
 
   it('book: delete answers 204, 403 for a viewer, or 404 out of reach', async () => {

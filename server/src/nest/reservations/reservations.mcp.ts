@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { BudgetService } from '../budget/budget.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { ReservationsService } from './reservations.service';
+import { ReservationWritesService } from './reservation-writes.service';
 import { DaysService } from '../days/days.service';
 import { findByIata } from '../airports/airports.data';
 import type { EndpointInput } from './reservations.service';
@@ -330,6 +331,9 @@ export class ReservationsMcp {
     // positionally.
     private readonly assignments: AssignmentsService,
     private readonly guards: McpToolGuardsService,
+    // The booking use cases the REST routes run too: the events, the booking
+    // notice and the AirTrail push leave from there, not from the tools.
+    private readonly writes: ReservationWritesService,
   ) {}
 
   @Tool({
@@ -388,20 +392,13 @@ export class ReservationsMcp {
 
     const metadata = price != null ? { price: String(price) } : undefined;
 
-    // The booking and its linked cost are one write, the same service path REST takes.
-    const { reservation, accommodationCreated, costEvents } = await this.reservations.createWithCost(String(tripId), {
+    // The booking and its linked cost are one write, the same use case REST runs.
+    const { reservation } = await this.writes.createBooking(String(tripId), {
       title, type, reservation_time, reservation_end_time, url, location, confirmation_number,
       notes, day_id, place_id, assignment_id,
       create_accommodation: createAccommodation,
       metadata,
-    }, linkedCost(price, budget_category || type));
-
-    if (accommodationCreated) {
-      this.guards.safeBroadcast(tripId, 'accommodation:created', {});
-    }
-    for (const { event, payload } of costEvents) this.guards.safeBroadcast(tripId, event, payload);
-
-    this.guards.safeBroadcast(tripId, 'reservation:created', { reservation });
+    }, linkedCost(price, budget_category || type), await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ reservation });
   }
 
@@ -446,15 +443,12 @@ export class ReservationsMcp {
       return errorResult('assignment_id does not belong to this trip.');
 
     // The booking and the linked expenses a type change re-files are one write,
-    // the same service path REST and the plugin RPC take.
-    const { reservation, accommodationChanged, costEvents } = await this.reservations.updateWithCost(String(reservationId), String(tripId), {
+    // the same use case REST runs.
+    const { reservation } = await this.writes.updateBooking(String(reservationId), String(tripId), {
       title, type, reservation_time, reservation_end_time, url, location, confirmation_number, notes, status,
       place_id: place_id !== undefined ? place_id ?? undefined : undefined,
       assignment_id: assignment_id !== undefined ? assignment_id ?? undefined : undefined,
-    }, existing, undefined);
-    if (accommodationChanged) this.guards.safeBroadcast(tripId, 'accommodation:updated', {});
-    for (const { event, payload } of costEvents) this.guards.safeBroadcast(tripId, event, payload);
-    this.guards.safeBroadcast(tripId, 'reservation:updated', { reservation });
+    }, existing, undefined, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ reservation });
   }
 
@@ -471,14 +465,7 @@ export class ReservationsMcp {
   async deleteReservation({ tripId, reservationId }: { tripId: number; reservationId: number }, ctx: McpContext) {
     if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
-    const { deleted, accommodationDeleted, deletedBudgetItemIds } = await this.reservations.remove(reservationId, tripId);
-    if (!deleted) return errorResult('Reservation not found.');
-    if (accommodationDeleted) {
-      this.guards.safeBroadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id });
-    }
-    for (const itemId of deletedBudgetItemIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
-    this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
-    return ok({ success: true });
+    return ok(await this.writes.deleteBooking(reservationId, tripId, await this.guards.tripWriter(tripId, ctx.userId)));
   }
 
   @Tool({
@@ -542,8 +529,7 @@ export class ReservationsMcp {
     if (dayId && !(await this.days.getDay(dayId, tripId)))
       return errorResult('dayId does not belong to this trip.');
 
-    await this.reservations.updatePositions(tripId, positions, dayId);
-    this.guards.safeBroadcast(tripId, 'reservation:positions', { positions, dayId });
+    await this.writes.reorderBookings(tripId, positions, dayId, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ success: true });
   }
 
@@ -582,16 +568,14 @@ export class ReservationsMcp {
     if (!(await this.days.getDay(end_day_id, tripId)))
       return errorResult('end_day_id does not belong to this trip.');
 
-    const isNewAccommodation = !current.accommodation_id;
-    const { reservation } = await this.reservations.update(reservationId, tripId, {
+    // The edit the booking form's PUT makes, through the same use case: a stay
+    // written for the first time is announced as created, a changed one as updated.
+    const { reservation } = await this.writes.updateBooking(String(reservationId), String(tripId), {
       place_id,
       type: current.type,
       status: current.status as string,
       create_accommodation: { place_id, start_day_id, end_day_id, check_in: check_in || undefined, check_out: check_out || undefined },
-    }, current);
-
-    this.guards.safeBroadcast(tripId, isNewAccommodation ? 'accommodation:created' : 'accommodation:updated', {});
-    this.guards.safeBroadcast(tripId, 'reservation:updated', { reservation });
+    }, current, undefined, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ reservation, accommodation_id: reservation?.accommodation_id ?? null });
   }
 
@@ -736,7 +720,7 @@ export class ReservationsMcp {
 
     if (price != null) meta.price = String(price);
 
-    const { reservation, costEvents } = await this.reservations.createWithCost(String(tripId), {
+    const { reservation } = await this.writes.createBooking(String(tripId), {
       title,
       type,
       reservation_time: departureTime,
@@ -751,10 +735,7 @@ export class ReservationsMcp {
       metadata: Object.keys(meta).length > 0 ? meta : undefined,
       endpoints: transportEndpoints,
       needs_review,
-    }, linkedCost(price, budget_category || type));
-    for (const { event, payload } of costEvents) this.guards.safeBroadcast(tripId, event, payload);
-
-    this.guards.safeBroadcast(tripId, 'reservation:created', { reservation });
+    }, linkedCost(price, budget_category || type), await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ reservation });
   }
 
@@ -856,8 +837,9 @@ export class ReservationsMcp {
       if (applied.endpointsChanged) resolvedEndpoints = applied.endpoints;
     }
 
-    // One write with the linked expenses a type change re-files, as on update_reservation.
-    const { reservation, accommodationChanged, costEvents } = await this.reservations.updateWithCost(String(reservationId), String(tripId), {
+    // One write with the linked expenses a type change re-files, as on update_reservation;
+    // a linked AirTrail flight is pushed back, as on REST.
+    const { reservation } = await this.writes.updateBooking(String(reservationId), String(tripId), {
       title,
       type,
       reservation_time: departureTime,
@@ -871,10 +853,7 @@ export class ReservationsMcp {
       metadata: nextMetadata,
       endpoints: resolvedEndpoints,
       needs_review,
-    }, existing, undefined);
-    if (accommodationChanged) this.guards.safeBroadcast(tripId, 'accommodation:updated', {});
-    for (const { event, payload } of costEvents) this.guards.safeBroadcast(tripId, event, payload);
-    this.guards.safeBroadcast(tripId, 'reservation:updated', { reservation });
+    }, existing, undefined, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ reservation });
   }
 
@@ -891,10 +870,9 @@ export class ReservationsMcp {
   async deleteTransport({ tripId, reservationId }: { tripId: number; reservationId: number }, ctx: McpContext) {
     if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
-    const { deleted, deletedBudgetItemIds } = await this.reservations.remove(reservationId, tripId);
-    if (!deleted) return errorResult('Transport not found.');
-    for (const itemId of deletedBudgetItemIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
-    this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
-    return ok({ success: true });
+    // The same cascade as delete_reservation: a row a REST edit retyped from a
+    // hotel still takes its stay along, and says so with accommodation:deleted.
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
+    return ok(await this.writes.deleteBooking(reservationId, tripId, writer, 'Transport not found.'));
   }
 }

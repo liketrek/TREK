@@ -86,6 +86,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loginButton': 'Sign in to TREK', // en-fallback
   'oauth.authorize.requestLabel': 'Authorization Request', // en-fallback
   'oauth.authorize.requestDescription': 'This application is requesting access to your TREK account.', // en-fallback
+  'oauth.authorize.verifiedHost': '확인된 도메인: {host}',
   'oauth.authorize.trustNote': 'Only grant access to applications you trust. Your data stays on your server.', // en-fallback
   'oauth.authorize.selectScope': 'Select at least one scope', // en-fallback
   'oauth.authorize.approveScopes': '승인 (권한 범위 {count}개)',

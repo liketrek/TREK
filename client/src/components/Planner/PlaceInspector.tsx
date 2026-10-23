@@ -29,6 +29,7 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { usePluginStore } from '../../store/pluginStore'
 import PluginFrame from '../Plugins/PluginFrame'
+import AssistantAskButton from '../Assistant/AssistantAskButton'
 import type { Place, Category, Day, Reservation, TripFile, AssignmentsMap, DistanceUnit } from '../../types'
 import type { CollectionStatus } from '@trek/shared'
 import { splitReservationDateTime, formatTime, formatMoney } from '../../utils/formatters'
@@ -218,10 +219,9 @@ export default function PlaceInspector({
   leftWidth = 0, rightWidth = 0, clearMapPill = false,
   collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList, roadtripEndDay, roadtripStay, roadtripActive,
 }: PlaceInspectorProps) {
-  // Editing the place is a place right. The planner hands the handlers over
-  // regardless, and a member without the right saw Edit, Delete and the inline
-  // rename and got the server's 403 for each (#2446). Collection mode gates
-  // its own actions.
+  // Editing the place is a place right. The planner hands the handlers over regardless, and a member
+  // without the right saw Edit, Delete and the inline rename and got the server's 403 for each (#2446).
+  // Collection mode gates its own actions.
   const can = useCanDo()
   const trip = useTripStore(s => s.trip)
   const mayEditPlace = mode !== 'trip' || can('place_edit', trip)
@@ -686,10 +686,9 @@ function InspectorHead({ place, category, openNow, phone, email, rating, ratingC
                   {price}
                 </span>
               )}
-              {/* Where the place came from, when it did not come from somebody
-                  typing it: a stay accepted out of their own recordings. The mark
-                  alone — the name beside it is already the place's name, and a
-                  word here would only repeat the tooltip. */}
+              {/* Where the place came from, when it did not come from somebody typing it: a stay
+                  accepted out of their own recordings. The mark alone — the name beside it is
+                  already the place's name, and a word here would only repeat the tooltip. */}
               {place.source === 'dawarich' && (
                 <Tooltip label={t('dawarich.place.fromDawarich')} placement="top">
                   <span role="img" aria-label={t('dawarich.place.fromDawarich')} className={`${HEAD_PILL} px-1 py-[3px]`}>
@@ -718,6 +717,7 @@ function InspectorHead({ place, category, openNow, phone, email, rating, ratingC
           )}
         </div>
 
+        <AssistantAskButton place={place} />
         <Tooltip label={t('common.close')}>
           <button type="button" onClick={onClose} aria-label={t('common.close')}
             className="grid h-8 w-8 flex-none place-items-center rounded-full bg-surface-card text-content-muted shadow-sm transition-colors hover:text-content">

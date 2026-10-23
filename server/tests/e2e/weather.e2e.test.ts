@@ -3,8 +3,13 @@
  * real JwtAuthGuard against a temp SQLite db (seeded via the shared harness).
  * The weather service is mocked so no real Open-Meteo calls happen.
  */
+import type { McpContext } from '../../src/nest-mcp';
+import { DomainError } from '../../src/nest/common/domain-error';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { WeatherMcp } from '../../src/nest/weather/weather.mcp';
 import { WeatherModule } from '../../src/nest/weather/weather.module';
+import { WIND_UNAVAILABLE_MESSAGE, WindService } from '../../src/nest/weather/wind.service';
 import { createTestMikroOrmModule } from '../helpers/test-orm';
 import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { createTempDb, seedUser, sessionCookie } from './harness';
@@ -49,6 +54,8 @@ describe('Weather e2e (real auth guard + temp SQLite)', () => {
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
+    // Mirror the production APP_PIPE: the wind route's DTO query is coerced as under buildApp().
+    nest.useGlobalPipes(new ZodValidationPipe());
     await nest.init();
     return nest;
   }
@@ -102,5 +109,59 @@ describe('Weather e2e (real auth guard + temp SQLite)', () => {
       .query({ lat: '1', lng: '2', date: '2026-07-01' });
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ type: 'forecast' });
+  });
+
+  // ── Wind: GET /wind and get_wind_forecast ask the one service alike ───────
+
+  const WIND = {
+    status: 'forecast' as const,
+    date: '2026-07-01',
+    lat: 38.7,
+    lng: -9.1,
+    timezone: 'Europe/Lisbon',
+    source: 'Open-Meteo' as const,
+    fetched_at: '2026-06-30T08:00:00.000Z',
+    horizon_days: 16,
+    hours: [{ hour: 14, speed_kmh: 22, gusts_kmh: 38, direction_deg: 320 }],
+    day: { speed_max_kmh: 22, gusts_max_kmh: 38, direction_dominant_deg: 320 },
+  };
+  const asMcp = { userId: 1 } as McpContext;
+
+  it('WEATHER-E2E-001: the wind route and get_wind_forecast answer the same forecast for the same query', async () => {
+    const forecast = vi.spyOn(app.get(WindService), 'forecast').mockResolvedValue(WIND);
+
+    const res = await request(server)
+      .get('/api/weather/wind')
+      .set('Cookie', sessionCookie(1))
+      .query({ lat: '38.7', lng: '-9.1', date: '2026-07-01' });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(WIND);
+
+    const tool = await app.get(WeatherMcp).getWindForecast({ lat: 38.7, lng: -9.1, date: '2026-07-01' }, asMcp);
+    expect(JSON.parse(tool.content[0]?.text ?? '')).toEqual({ wind: WIND });
+    expect(forecast.mock.calls).toEqual([
+      [{ lat: 38.7, lng: -9.1, date: '2026-07-01' }],
+      [{ lat: 38.7, lng: -9.1, date: '2026-07-01' }],
+    ]);
+    forecast.mockRestore();
+  });
+
+  it('WEATHER-E2E-002: a failed source is the 502 sentence on the route and the same sentence as a refusal over MCP', async () => {
+    const failure = new DomainError(502, WIND_UNAVAILABLE_MESSAGE, {
+      code: 'wind_unavailable',
+      details: { code: 'wind_unavailable' },
+    });
+    const forecast = vi.spyOn(app.get(WindService), 'forecast').mockRejectedValue(failure);
+
+    const res = await request(server)
+      .get('/api/weather/wind')
+      .set('Cookie', sessionCookie(1))
+      .query({ lat: '38.7', lng: '-9.1', date: '2026-07-01' });
+    expect(res.status).toBe(502);
+    expect(res.body).toEqual({ error: WIND_UNAVAILABLE_MESSAGE, code: 'wind_unavailable' });
+
+    const tool = await app.get(WeatherMcp).getWindForecast({ lat: 38.7, lng: -9.1, date: '2026-07-01' }, asMcp);
+    expect(tool).toEqual({ content: [{ type: 'text', text: WIND_UNAVAILABLE_MESSAGE }], isError: true });
+    forecast.mockRestore();
   });
 });

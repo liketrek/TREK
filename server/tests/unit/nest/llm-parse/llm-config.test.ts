@@ -18,3 +18,11 @@ describe('prepareLlmAddonConfigForWrite: the vision setting', () => {
     expect(prepareLlmAddonConfigForWrite({ provider: 'openai', model: 'm' }, undefined)).not.toHaveProperty('vision');
   });
 });
+
+describe('prepareLlmAddonConfigForWrite: back on the shared connection', () => {
+  it('LLMCFG-SHARED-001: a config without a provider keeps no key, neither sent nor stored', () => {
+    const stored = { provider: 'anthropic', model: 'm', apiKey: 'enc:old' };
+    expect(prepareLlmAddonConfigForWrite({ vision: 'on' }, stored)).toEqual({ vision: 'on' });
+    expect(prepareLlmAddonConfigForWrite({ apiKey: 'sk-new' }, stored)).toEqual({});
+  });
+});

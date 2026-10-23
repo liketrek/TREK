@@ -645,6 +645,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'Analisi con IA',
   'admin.addons.catalog.llm_parsing.description':
     'Legge le prenotazioni che l’analizzatore integrato non riesce a interpretare, con un modello di IA a tua scelta',
+  'admin.addons.catalog.ai_assistant.name': 'Assistente IA',
+  'admin.addons.catalog.ai_assistant.description':
+    'Una chat in ogni viaggio che risponde alle domande e propone modifiche che confermi tu',
   'admin.addons.llm.vision.auto': 'Automatico',
   'admin.addons.llm.vision.on': 'Sì',
   'admin.addons.llm.vision.off': 'No',
@@ -977,5 +980,32 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Elimina categoria',
   'admin.packingTemplates.deleteCategoryConfirm': 'Eliminare la categoria "{name}" e tutte le sue voci?',
   'admin.rotateJwt.button': 'Rinnova',
+  'admin.addons.ai.name': 'IA',
+  'admin.addons.ai.description':
+    "Una connessione per l'assistente e l'importazione delle prenotazioni. MCP permette ad altre app di IA di usare TREK.",
+  'admin.addons.ai.setup': "Configura l'IA",
+  'admin.addons.ai.dialogSub': 'La connessione condivisa da assistente e analisi con IA, e cosa può fare ciascuno.',
+  'admin.addons.ai.tab.connection': 'Connessione',
+  'admin.addons.ai.parsing.readsWith': 'Legge le prenotazioni con',
+  'admin.addons.ai.parsing.own': 'Connessione propria',
+  'admin.addons.ai.parsing.ownHint': 'Usata al posto della connessione condivisa.',
+  'admin.addons.ai.parsing.useShared': 'Usa la connessione condivisa',
+  'admin.addons.ai.parsing.sharedTag': 'Condivisa',
+  'admin.addons.ai.parsing.perUser': 'Ogni persona legge con la propria connessione, impostata nelle sue impostazioni.',
+  'admin.addons.ai.parsing.none':
+    "Nessuna connessione. Configurane una per tutti o dai all'analisi con IA una propria.",
+  'admin.addons.ai.parsing.setupOwn': "Usane un'altra",
+  'admin.addons.ai.parsing.installed': 'Installati sul server',
+  'admin.addons.ai.parsing.refresh': 'Aggiorna',
+  'admin.addons.ai.parsing.noModels': 'Nessun modello installato. Scaricane uno qui sotto.',
+  'admin.addons.ai.parsing.pullTitle': 'Scarica un modello consigliato',
+  'admin.addons.ai.parsing.pull': 'Scarica',
+  'admin.addons.ai.parsing.pulling': 'Download in corso…',
+  'admin.addons.ai.parsing.use': 'Usa',
+  'admin.addons.ai.parsing.selected': 'Selezionato',
+  'admin.addons.ai.parsing.pulled': 'Modello scaricato',
+  'admin.addons.ai.parsing.pullFailed': 'Impossibile scaricare il modello',
+  'admin.addons.ai.parsing.unreachable': 'Impossibile raggiungere il server locale',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Spesso non serve',
 };
 export default admin;

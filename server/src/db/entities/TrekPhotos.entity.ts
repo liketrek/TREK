@@ -2,6 +2,7 @@ import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p }
 import { TrekPhotosRepository } from '../repositories/TrekPhotos.repository';
 import { DbTimestampType } from '../types';
 import { JourneyPhotos } from './JourneyPhotos.entity';
+import { TrekPhotoSignals } from './TrekPhotoSignals.entity';
 import { TripPhotos } from './TripPhotos.entity';
 import { Users } from './Users.entity';
 
@@ -24,6 +25,7 @@ export class TrekPhotos {
   lat?: number | null;
   lng?: number | null;
   journey_photos_collection = new Collection<JourneyPhotos>(this);
+  trek_photo_signals_collection = new Collection<TrekPhotoSignals>(this);
   trip_photos_collection = new Collection<TripPhotos>(this);
 }
 
@@ -62,6 +64,7 @@ export const TrekPhotosSchema = defineEntity({
     lat: p.double().nullable(),
     lng: p.double().nullable(),
     journey_photos_collection: () => p.oneToMany(JourneyPhotos).mappedBy('photo').hidden(),
+    trek_photo_signals_collection: () => p.oneToMany(TrekPhotoSignals).mappedBy('photo').hidden(),
     trip_photos_collection: () => p.oneToMany(TripPhotos).mappedBy('photo').hidden(),
   },
 });

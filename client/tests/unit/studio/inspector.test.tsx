@@ -69,6 +69,7 @@ function draw(over: { page?: BookPageSetup; setPageNumbers?: (p: Partial<BookPag
       spreadIndex={0}
       page={over.page ?? setup()}
       stats={null}
+      path={[]}
       source={source}
       setPageNumbers={over.setPageNumbers ?? (() => {})}
       t={(k: string) => k}

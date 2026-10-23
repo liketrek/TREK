@@ -26,6 +26,8 @@ const ADDONS = [
   addon('llm_parsing', 'integration', false),
   addon('immich', 'photo_provider', false),
   addon('gdrive', 'document_provider'),
+  addon('airtrail', 'integration', false),
+  addon('mcp', 'integration'),
 ];
 
 let loadAddons: ReturnType<typeof vi.fn<() => Promise<void>>>;
@@ -60,14 +62,16 @@ function mapSwitch(manager: ReturnType<typeof useAddonManager>, key: 'hiking' | 
 }
 
 describe('useAddonManager', () => {
-  it('FE-HOOK-ADDONMGR-001: loads once and sorts addons into trip, global, integration and the two shelves', async () => {
+  it('FE-HOOK-ADDONMGR-001: loads once and sorts addons into trip, global, integration, AI and the two shelves', async () => {
     const { result, rerender } = await loaded();
     rerender();
     expect(adminApi.addons).toHaveBeenCalledTimes(1);
     const ids = (list: { id?: string; key?: string }[]) => list.map((a) => a.id ?? a.key);
     expect(ids(result.current.tripAddons)).toEqual(['todo', 'documents']);
     expect(ids(result.current.globalAddons)).toEqual(['journey']);
-    expect(ids(result.current.integrationAddons)).toEqual(['llm_parsing']);
+    // The AI addons leave the integration list for their own tile, in its order.
+    expect(ids(result.current.integrationAddons)).toEqual(['airtrail']);
+    expect(ids(result.current.aiAddons)).toEqual(['llm_parsing', 'mcp']);
     expect(result.current.providerOptions).toEqual([
       expect.objectContaining({ key: 'immich', label: 'immich', description: 'immich addon', enabled: false }),
     ]);

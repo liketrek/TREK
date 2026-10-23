@@ -244,6 +244,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'Anàlisi amb IA',
   'admin.addons.catalog.llm_parsing.description':
     'Llegeix reserves que l’analitzador integrat no entén, amb un model d’IA que triïs',
+  'admin.addons.catalog.ai_assistant.name': 'Assistent d’IA',
+  'admin.addons.catalog.ai_assistant.description':
+    'Un xat a cada viatge que respon preguntes i proposa canvis que tu confirmes',
   'admin.addons.llm.vision.auto': 'Automàtic',
   'admin.addons.llm.vision.on': 'Sí',
   'admin.addons.llm.vision.off': 'No',
@@ -981,5 +984,32 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Elimina la categoria',
   'admin.packingTemplates.deleteCategoryConfirm': 'Vols eliminar la categoria "{name}" i tots els seus elements?',
   'admin.rotateJwt.button': 'Renova',
+  'admin.addons.ai.name': 'IA',
+  'admin.addons.ai.description':
+    "Una connexió per a l'assistent i la importació de reserves. MCP permet que altres apps d'IA facin servir TREK.",
+  'admin.addons.ai.setup': 'Configura la IA',
+  'admin.addons.ai.dialogSub': "La connexió que comparteixen l'assistent i l'anàlisi amb IA, i què pot fer cadascun.",
+  'admin.addons.ai.tab.connection': 'Connexió',
+  'admin.addons.ai.parsing.readsWith': 'Llegeix les reserves amb',
+  'admin.addons.ai.parsing.own': 'Connexió pròpia',
+  'admin.addons.ai.parsing.ownHint': "S'utilitza en lloc de la connexió compartida.",
+  'admin.addons.ai.parsing.useShared': 'Utilitza la connexió compartida',
+  'admin.addons.ai.parsing.sharedTag': 'Compartida',
+  'admin.addons.ai.parsing.perUser': 'Cada persona llegeix amb la seva pròpia connexió, configurada als seus ajustos.',
+  'admin.addons.ai.parsing.none':
+    "Encara no hi ha connexió. Configura'n una per a tothom o dona'n una de pròpia a l'anàlisi amb IA.",
+  'admin.addons.ai.parsing.setupOwn': "Utilitza'n una altra",
+  'admin.addons.ai.parsing.installed': 'Instal·lats al servidor',
+  'admin.addons.ai.parsing.refresh': 'Actualitza',
+  'admin.addons.ai.parsing.noModels': "Encara no hi ha models instal·lats. Baixa'n un a sota.",
+  'admin.addons.ai.parsing.pullTitle': 'Baixa un model recomanat',
+  'admin.addons.ai.parsing.pull': 'Baixa',
+  'admin.addons.ai.parsing.pulling': 'Baixant…',
+  'admin.addons.ai.parsing.use': 'Utilitza',
+  'admin.addons.ai.parsing.selected': 'Seleccionat',
+  'admin.addons.ai.parsing.pulled': 'Model baixat',
+  'admin.addons.ai.parsing.pullFailed': "No s'ha pogut baixar el model",
+  'admin.addons.ai.parsing.unreachable': "No s'ha pogut connectar amb el servidor local",
+  'admin.addons.ai.parsing.apiKeyOptional': 'Normalment no cal',
 };
 export default admin;

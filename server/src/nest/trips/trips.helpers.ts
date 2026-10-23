@@ -1,5 +1,5 @@
 import { ValidationError } from '../common/domain-errors';
-import { MAX_TRIP_DAYS, tripSpanDays } from '@trek/shared';
+import { MAX_TRIP_DAYS, tripSpanDays, type PermissionKey } from '@trek/shared';
 
 /**
  * Pure helpers of the trips domain, moved out of trips.service.ts. Nothing
@@ -32,4 +32,27 @@ export function assertTripSpan(startDate: string, endDate: string) {
 export function withoutFeedToken<T>(row: T): T {
   if (row && typeof row === 'object') delete (row as { feed_token?: unknown }).feed_token;
   return row;
+}
+
+/** The fields of a trip update that count as an edit, as against archiving it or changing its cover. */
+const TRIP_EDIT_FIELDS = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'day_count'];
+
+/**
+ * The permissions a trip update needs, in the order PUT /api/trips/:id checks
+ * them, each with the refusal that route answers. Archiving and the cover have
+ * their own action; any other field present is an edit. update_trip runs the
+ * same list, so an MCP caller cannot archive a trip or swap its cover on the
+ * strength of trip_edit alone.
+ */
+export function tripUpdatePermissions(body: object): { action: PermissionKey; refusal: string }[] {
+  const sent = (field: string) => (body as Record<string, unknown>)[field] !== undefined;
+  const needed: { action: PermissionKey; refusal: string }[] = [];
+  if (sent('is_archived')) {
+    needed.push({ action: 'trip_archive', refusal: 'No permission to archive/unarchive this trip' });
+  }
+  if (sent('cover_image')) {
+    needed.push({ action: 'trip_cover_upload', refusal: 'No permission to change cover image' });
+  }
+  if (TRIP_EDIT_FIELDS.some(sent)) needed.push({ action: 'trip_edit', refusal: 'No permission to edit this trip' });
+  return needed;
 }

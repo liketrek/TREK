@@ -202,8 +202,14 @@ export const collabMessageSchema = z.object({
   avatar_url: z.string().nullable(),
   reactions: z.array(collabReactionSchema),
   attachments: z.array(collabAttachmentSchema),
+  // Where the text came from when no one typed it. A string rather than an
+  // enum, so a value added later does not break an older parser.
+  origin: z.string().nullable().optional(),
 });
 export type CollabMessage = z.infer<typeof collabMessageSchema>;
+
+/** The `origin` of a message shared from an answer of the trip assistant. */
+export const COLLAB_MESSAGE_ORIGIN_ASSISTANT = 'assistant';
 
 export const collabMessagesResponseSchema = z.object({ messages: z.array(collabMessageSchema) });
 export type CollabMessagesResponse = z.infer<typeof collabMessagesResponseSchema>;

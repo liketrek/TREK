@@ -69,7 +69,7 @@ const listEl = (over: Record<string, unknown> = {}): BookElement => bookListElem
   ...over,
 }) as BookElement
 
-function show(el: BookElement, live: JourneyStats | null = null) {
+function show(el: BookElement, live: JourneyStats | null = null, trail: [number, number][][] = []) {
   useStudioStore.getState().load({
     version: 1, title: 'T', page,
     spreads: [{ id: 'sp1', role: 'inner', background: null, elements: [el], parked: [], entryId: null }],
@@ -80,6 +80,7 @@ function show(el: BookElement, live: JourneyStats | null = null) {
       spreadIndex={0}
       page={page}
       stats={live}
+      path={trail}
       source={{ entries: [], photos: [], photoEntries: {} }}
       setPageNumbers={() => {}}
       t={k => k}
@@ -237,6 +238,60 @@ describe('the route map', () => {
 
     press('journey.studio.showLabels')
     expect(saved().showLabels).toBe(true)
+  })
+
+  /** A journey of two trips, so the map offers its scope at all. */
+  const twoTrips: JourneyStats = journeyStatsSchema.parse({
+    ...stats,
+    countries: [
+      { code: 'IS', name: 'Iceland', places: 2, firstVisit: '2026-01-01' },
+      { code: 'PT', name: 'Portugal', places: 1, firstVisit: '2026-03-01' },
+    ],
+    points: [
+      { lat: 64.14, lng: -21.94, label: 'Reykjavik', date: '2026-01-01', country: 'IS', tripId: 11 },
+      { lat: 65.68, lng: -18.09, label: 'Akureyri', date: '2026-01-04', country: 'IS', tripId: 11 },
+      { lat: 38.72, lng: -9.14, label: 'Lisboa', date: '2026-03-01', country: 'PT', tripId: 22 },
+    ],
+    trips: [
+      { id: 11, title: 'North', start: '2026-01-01', end: '2026-01-05', points: 2 },
+      { id: 22, title: 'South', start: '2026-03-01', end: '2026-03-02', points: 1 },
+    ],
+  })
+  /** The journey's recorded way, as the Studio hands it to the inspector. */
+  const trail: [number, number][][] = [[[64.14, -21.94], [38.72, -9.14]]]
+  /** Roads loaded for the whole journey's legs: entry i runs from stop i to stop i + 1. */
+  const roads = [[[64.14, -21.94], [64.0, -21.5], [65.68, -18.09]], null]
+
+  /*
+   * The scope switch re-cuts the map as the book engine refreshes one, so a
+   * map turned into a trip map here holds what the panel or the assistant
+   * would have placed for that trip: its own stops, its own countries, no
+   * recorded way, since the trail is the whole journey's, and no roads, since
+   * those belonged to the old legs. Switched back, the map takes the trail
+   * from the journey again, so the round trip loses nothing.
+   */
+  it('STTRV-007: re-cuts a map to one trip as the engine does, and back to the journey with its trail', () => {
+    show(mapEl({ countries: ['IS', 'PT'], path: trail, roads }), twoTrips, trail)
+
+    pick('North')
+    expect(saved()).toMatchObject({
+      tripId: 11, countries: ['IS'], path: [], roads: [], stale: false,
+      points: [{ label: 'Reykjavik' }, { label: 'Akureyri' }],
+    })
+
+    pick('journey.studio.mapWholeJourney')
+    expect(saved()).toMatchObject({ tripId: null, countries: ['IS', 'PT'], roads: [], stale: false })
+    expect(saved().path).toEqual(trail)
+    expect(saved().points).toHaveLength(3)
+  })
+
+  it('STTRV-008: picking the scope a map already has writes nothing, so its loaded roads stay', () => {
+    show(mapEl({ countries: ['IS', 'PT'], path: trail, roads }), twoTrips, trail)
+
+    pick('journey.studio.mapWholeJourney')
+    expect(saved()).toMatchObject({ tripId: null, path: trail, roads })
+    // Still the one stop it was made with: a re-cut would have brought all three.
+    expect(saved().points).toHaveLength(1)
   })
 })
 

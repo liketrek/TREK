@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': '請先選擇一天',
   'trip.toast.assignedToDay': '地點已分配到當天',
   'trip.toast.loadError': '無法載入行程',
+  'trip.toast.accessLost': '你已不再是此行程的成員',
   'trip.toast.reorderError': '排序失敗',
   'trip.toast.reservationUpdated': '預訂已更新',
   'trip.toast.reservationAdded': '預訂已新增',

@@ -409,6 +409,7 @@ export const KNOWN_ADDONS: string[] = [
   'collections',
   'roadtrip',
   'tours',
+  'ai_assistant',
 ];
 
 /**

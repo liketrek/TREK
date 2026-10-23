@@ -1,5 +1,6 @@
 import { schoolHolidayBand } from '../../../components/Vacay/holidayVisual'
-import { dayVisual, hatchTint, localDateStr, monthLead, type DayVisualContext } from './vacayDayModel'
+import { localDateStr, monthLead } from '../../../vacay/monthGrid'
+import { dayVisual, hatchTint, type DayVisualContext } from './vacayDayModel'
 
 interface MVacayMonthProps {
   year: number

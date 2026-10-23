@@ -86,6 +86,8 @@ function checkPluralForms(locale, keys, groups) {
  * ungrouped count string fails the check, so the list cannot go stale.
  */
 export const NOT_PLURAL = [
+  { key: 'assistant.place.addToShort', because: 'the number of the day a found place would go on ("+ Day 3")' },
+  { key: 'assistant.card.tour.days', because: 'the numbers of the days a tour lies on ("Days 2, 4")' },
   { key: 'collab.polls.optionPlaceholder', because: 'the position of a poll option ("Option 3")' },
   { key: 'collections.importOnDay', because: 'the number of the day a place is planned on' },
   { key: 'dashboard.atlas.aroundEquator', because: 'a decimal multiplier ("≈ 1.37×"), not a count of things' },

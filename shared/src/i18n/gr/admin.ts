@@ -712,6 +712,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'Ανάλυση με τεχνητή νοημοσύνη',
   'admin.addons.catalog.llm_parsing.description':
     'Διαβάζει κρατήσεις που δεν καταλαβαίνει ο ενσωματωμένος αναλυτής, με μοντέλο ΤΝ της επιλογής σας',
+  'admin.addons.catalog.ai_assistant.name': 'Βοηθός τεχνητής νοημοσύνης',
+  'admin.addons.catalog.ai_assistant.description':
+    'Συνομιλία σε κάθε ταξίδι που απαντά σε ερωτήσεις και προτείνει αλλαγές που εσύ επιβεβαιώνεις',
   'admin.addons.llm.vision.auto': 'Αυτόματα',
   'admin.addons.llm.vision.on': 'Ναι',
   'admin.addons.llm.vision.off': 'Όχι',
@@ -994,5 +997,33 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Διαγραφή κατηγορίας',
   'admin.packingTemplates.deleteCategoryConfirm': 'Διαγραφή της κατηγορίας "{name}" και όλων των στοιχείων της;',
   'admin.rotateJwt.button': 'Εναλλαγή',
+  'admin.addons.ai.name': 'ΤΝ',
+  'admin.addons.ai.description':
+    'Μία σύνδεση για τον βοηθό και την εισαγωγή κρατήσεων. Το MCP επιτρέπει σε άλλες εφαρμογές ΤΝ να χρησιμοποιούν το TREK.',
+  'admin.addons.ai.setup': 'Ρύθμιση ΤΝ',
+  'admin.addons.ai.dialogSub':
+    'Η σύνδεση που μοιράζονται ο βοηθός και η ανάλυση με ΤΝ, και τι μπορεί να κάνει ο καθένας.',
+  'admin.addons.ai.tab.connection': 'Σύνδεση',
+  'admin.addons.ai.parsing.readsWith': 'Διαβάζει κρατήσεις με',
+  'admin.addons.ai.parsing.own': 'Δική της σύνδεση',
+  'admin.addons.ai.parsing.ownHint': 'Χρησιμοποιείται αντί για την κοινή σύνδεση.',
+  'admin.addons.ai.parsing.useShared': 'Χρήση της κοινής σύνδεσης',
+  'admin.addons.ai.parsing.sharedTag': 'Κοινή',
+  'admin.addons.ai.parsing.perUser': 'Ο καθένας διαβάζει με τη δική του σύνδεση από τις ρυθμίσεις του.',
+  'admin.addons.ai.parsing.none':
+    'Δεν υπάρχει ακόμη σύνδεση. Ρυθμίστε μία για όλους ή δώστε στην ανάλυση με ΤΝ δική της.',
+  'admin.addons.ai.parsing.setupOwn': 'Χρήση άλλης',
+  'admin.addons.ai.parsing.installed': 'Εγκατεστημένα στον διακομιστή',
+  'admin.addons.ai.parsing.refresh': 'Ανανέωση',
+  'admin.addons.ai.parsing.noModels': 'Δεν υπάρχουν ακόμη μοντέλα. Κατεβάστε ένα παρακάτω.',
+  'admin.addons.ai.parsing.pullTitle': 'Λήψη προτεινόμενου μοντέλου',
+  'admin.addons.ai.parsing.pull': 'Λήψη',
+  'admin.addons.ai.parsing.pulling': 'Λήψη…',
+  'admin.addons.ai.parsing.use': 'Χρήση',
+  'admin.addons.ai.parsing.selected': 'Επιλεγμένο',
+  'admin.addons.ai.parsing.pulled': 'Το μοντέλο κατέβηκε',
+  'admin.addons.ai.parsing.pullFailed': 'Δεν ήταν δυνατή η λήψη του μοντέλου',
+  'admin.addons.ai.parsing.unreachable': 'Ο τοπικός διακομιστής δεν είναι προσβάσιμος',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Συνήθως δεν χρειάζεται',
 };
 export default admin;

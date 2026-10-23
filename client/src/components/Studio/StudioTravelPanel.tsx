@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, RouteOff } from 'lucide-react'
-import type { BookElement, BookMetric, BookPageSetup, JourneyStats } from '@trek/shared'
-import { BOOK_METRICS } from '@trek/shared'
+import type {
+  BookBadgeVariant, BookElement, BookMapScope, BookMetric, BookPageSetup, BookTravelContext, JourneyStats,
+} from '@trek/shared'
+import {
+  BOOK_METRICS, bookBadgeValue, bookCountryMark, bookCountryName, bookElementId as uid, bookTravelBadge,
+  bookTravelCountries, bookTravelMap, bookTravelSize, bookTravelStats,
+} from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
 import { PanelHead } from './StudioPanelHead'
 import { Section } from './StudioControls'
 import { TravelPreview } from './TravelPreview'
-import { formatBookCoords } from './entryText'
-import { elementId as uid } from './bookIds'
-import { routeFor } from './travelRefresh'
-import { useMapSources } from './mapSources'
 import { fetchRoads } from './roadRoute'
 
 /**
@@ -63,10 +64,19 @@ type StopRow = {
  * the section scannable. The tile measures its own width — see TravelPreview.
  */
 
-/** Kilometres, grouped for the reader's locale. */
-function formatDistance(metres: number, locale: string): string {
-  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(metres / 1000)} km`
-}
+/** The words a mark carries, as the book engine resolves them. */
+type BadgeValue = NonNullable<ReturnType<typeof bookBadgeValue>>
+
+/*
+ * The two imagery maps, satellite first: the recommendation should not be the
+ * second thing read. Their tiles and credit are the book engine's own
+ * (BOOK_MAP_SOURCES), so a satellite map placed here is the one the assistant
+ * places.
+ */
+const IMAGERY = [
+  { id: 'satellite', labelKey: 'journey.studio.mapSourceSatellite' },
+  { id: 'relief', labelKey: 'journey.studio.mapSourceRelief' },
+] as const
 
 function Card({ label, onClick, children, recommended = false, title }: {
   label: string
@@ -145,23 +155,6 @@ export function StudioTravelPanel({
     return { x: (W - w) / 2, y: (page.pageHeight - h) / 2, w, h }
   }
 
-  const mapSide = Math.min(page.pageWidth, page.pageHeight) * 0.72
-
-  /*
-   * The imagery this instance can reach, so the relief card below places a map
-   * that already has its template and its credit rather than an empty one the
-   * user then has to point at a source.
-   *
-   * Asked for above the empty-state return, and not beside the card that reads
-   * it: a journey whose figures are still loading renders this panel once with
-   * no stats at all, and a hook that only runs on the second render is a hook
-   * count that changes between them.
-   */
-  const sources = useMapSources(
-    { x: 0, y: 0, w: mapSide, h: mapSide * 0.78 },
-    (stats?.points ?? []).map(p => ({ lat: p.lat, lng: p.lng })),
-  )
-
   if (!stats) {
     return (
       <>
@@ -173,11 +166,23 @@ export function StudioTravelPanel({
     )
   }
 
-  const base = {
-    rotation: 0, opacity: 1, locked: false,
-    font: 'sans' as const, color: '#1a1a1a', accent: '#111111', textScale: 1, weight: 700 as const,
-    stale: false,
+  /*
+   * What the book engine's factories read: the journey, its recorded way and
+   * the words in the reader's language. Every tile below is built by the
+   * factory the engine's `add` calls. Where it lands is the panel's own:
+   * centred across the spread, where `add` takes the right page. The day word
+   * is the engine's too, handed over as its template: `t` leaves the `{day}`
+   * in it untouched, and `bookDayText` puts the number there.
+   */
+  const travel: BookTravelContext = {
+    locale, stats, path, entries: [],
+    labels: {
+      day: t('journey.studio.day'), stations: t('journey.studio.stations'), summary: t('journey.studio.summary'),
+      countries: t('journey.studio.countries'), distance: t('journey.studio.metric.distance'),
+      pros: t('journey.editor.pros'), cons: t('journey.editor.cons'),
+    },
   }
+  const at = (size: { w: number; h: number }) => centre(size.w, size.h)
 
   /**
    * Country names in the reader's language, not the server's.
@@ -187,29 +192,13 @@ export function StudioTravelPanel({
    * a German book says "Island" and an English one says "Iceland" — from one set
    * of codes, with no translation table to keep in step.
    */
-  const countryName = (code: string): string => {
-    try {
-      const display = new Intl.DisplayNames([locale], { type: 'region' })
-      return display.of(code.toUpperCase()) || code.toUpperCase()
-    } catch {
-      return stats.countries.find(c => c.code === code)?.name || code.toUpperCase()
-    }
-  }
-
-  const values: Record<string, number> = {
-    distance: stats.distance,
-    days: stats.days,
-    steps: stats.steps,
-    photos: stats.photos,
-    countries: stats.countries.length,
-    places: stats.places,
-    furthest: stats.furthest,
-  }
+  const countryName = (code: string): string => bookCountryName(code, locale, stats)
 
   /*
    * Each builder returns the finished element. The tile renders it and the
-   * click places it, so the preview and the result are the same object — there
-   * is no second description of what a card means.
+   * click places it, so the preview and the result are the same object, and
+   * the object is the engine's, so there is no second description of what a
+   * card means.
    */
   /** The linked trips that actually put stops on the route. */
   const tripsWithRoute = (stats.trips ?? []).filter(t => t.points > 0)
@@ -264,11 +253,6 @@ export function StudioTravelPanel({
     })
   }
 
-  /* Satellite first: the recommendation should not be the second thing read. */
-  const imagery = sources
-    .filter(s => s.id === 'relief' || s.id === 'satellite')
-    .sort((a, b) => (a.id === 'satellite' ? -1 : b.id === 'satellite' ? 1 : 0))
-
   /**
    * One country, as the entry a list would have made of it.
    *
@@ -282,90 +266,28 @@ export function StudioTravelPanel({
    * The name is editable afterwards, so numbering them "1. Germany",
    * "2. Netherlands" is typing rather than a feature.
    */
-  const countryEl = (code: string): BookElement => ({
-    ...base, id: uid('co'), kind: 'countries',
-    frame: centre(page.pageWidth * 0.34, 34),
-    codes: [code], names: [countryName(code)],
-    layout: 'list', showOutline: true, showFlag: false, showName: true, align: 'center',
-  } as BookElement)
+  const countryEl = (code: string): BookElement =>
+    bookTravelCountries(travel, { id: uid('co'), frame: at(bookTravelSize('countries', page)), codes: [code] })
 
+  /**
+   * A map as the engine's `add` places it, in the style the card offers.
+   *
+   * The scope is the journey or one trip. A trip map carries no recorded way:
+   * the trail is the journey's, and a map fitted to it would frame the whole
+   * journey around one trip and lose the bow its legs are drawn with.
+   */
   const mapEl = (
     style: 'minimal' | 'outline' | 'dark' | 'paper',
-    source: 'vector' | 'tiles' | 'static' = 'vector',
-    url = '',
-    attribution = '',
-    clip: 'rect' | 'country' = 'rect',
-    /** Null is the whole journey; a trip id is a map of that trip alone. */
-    tripId: number | null = null,
-  ): BookElement => {
-    const route = routeFor(stats, tripId)
-    return {
-    ...base, id: uid('mp'), kind: 'map',
-    frame: centre(mapSide, mapSide * 0.78),
-    style, source, tileUrl: url, attribution, zoom: null, clip, tripId,
-    /*
-     * White over a photograph, ink on paper. The accent IS the line, so this is
-     * how a satellite map arrives drawn the way the reference draws it, while
-     * the colour stays something the user can change afterwards.
-     */
-    accent: source === 'tiles' || source === 'static' ? '#ffffff' : base.accent,
-    showLand: true, showRoute: true, showPins: true, showLabels: false,
-    /*
-     * A map placed today gets the drawn treatment; the contract defaults to the
-     * plain line so that every book made before this existed opens unchanged.
-     * Set explicitly rather than inherited because this object is cast, not
-     * parsed.
-     */
-    routeStyle: 'drawn', routeArc: 'bow', routeDash: 'arcs', pinStyle: 'photo',
-    countries: tripId == null
-      ? stats.countries.map(c => c.code)
-      : [...new Set(route.map(p => p.country).filter((c): c is string => !!c))],
-    points: route.map(p => ({ lat: p.lat, lng: p.lng, label: p.label, photoId: p.photoId ?? null })),
-    /*
-     * Frozen into the element, like every other travel figure: a page that
-     * fetches its own route at print time is a page that changes when someone
-     * edits the trip, and prints empty when the export runs signed out.
-     */
-    path,
-    // Empty until somebody asks for the roads; see roadRoute.ts.
-    roads: [],
-    fitPadding: 0.5,
-    fitToCountries: true,
-    } as BookElement
-  }
+    scope: BookMapScope = 'journey',
+    source: 'vector' | 'relief' | 'satellite' = 'vector',
+  ): BookElement => ({
+    ...bookTravelMap(travel, stats, { id: uid('mp'), frame: at(bookTravelSize('map', page)), scope, source }),
+    style,
+  })
 
-  /*
-   * A mark is placed at the size that suits what it holds.
-   *
-   * One size for all six put a flag and a country name into a box built for a
-   * line of coordinates, which is how a small mark ends up floating inside a
-   * large selection rectangle. Fractions of the page, so the proportions hold
-   * on any format.
-   */
-  const MARK_SIZE: Record<string, [number, number]> = {
-    flag: [0.25, 0.062],
-    date: [0.16, 0.14],
-    day: [0.17, 0.062],
-    coords: [0.36, 0.05],
-    country: [0.22, 0.078],
-    distance: [0.26, 0.066],
-  }
-
-  const badgeEl = (
-    variant: 'flag' | 'date' | 'day' | 'coords' | 'country' | 'distance',
-    text: string,
-    sub: string,
-    code: string | null,
-    style: 'plain' | 'chip' | 'outline' | 'stacked' = 'plain',
-  ): BookElement => {
-    const [fw, fh] = MARK_SIZE[variant] ?? [0.24, 0.08]
-    return {
-      ...base, id: uid('bd'), kind: 'badge', autoColor: true,
-      showIcon: true, showLabel: true, autoIconColor: true, iconColor: '#111111',
-      frame: centre(page.pageWidth * fw, page.pageHeight * fh),
-      variant, text, sub, code, style,
-    } as BookElement
-  }
+  /** A mark at the size that suits what it holds, which is the engine's size for its variant. */
+  const badgeEl = (variant: BookBadgeVariant, value: BadgeValue): BookElement =>
+    bookTravelBadge({ id: uid('bd'), frame: at(bookTravelSize('badge', page, { variant })), variant, value })
 
   /**
    * One figure on its own.
@@ -375,11 +297,8 @@ export function StudioTravelPanel({
    * and offering only the composition meant anyone wanting "14 DAYS" beside a
    * picture had to place all four and delete three.
    */
-  const singleEl = (metric: BookMetric): BookElement => ({
-    ...base, id: uid('st'), kind: 'stats',
-    frame: centre(page.pageWidth * 0.22, page.pageHeight * 0.13),
-    metrics: [metric], layout: 'grid', showIcons: true, units: 'metric', values,
-  } as BookElement)
+  const singleEl = (metric: BookMetric): BookElement =>
+    bookTravelStats(stats, { id: uid('st'), frame: at(bookTravelSize('stats', page)), metrics: [metric] })
 
   /** Place a copy — the previewed element keeps its own id for React. */
   const place = (el: BookElement) => {
@@ -413,37 +332,20 @@ export function StudioTravelPanel({
     }
   }
 
-  const first = stats.points[0] ?? null
-  const firstCountry = stats.countries[0] ?? null
-  const startDay = stats.start ? new Date(`${stats.start}T00:00:00`) : null
-
-  const marks: { el: BookElement; label: string }[] = []
-  if (startDay) {
-    marks.push({
-      el: badgeEl('date', String(startDay.getDate()),
-        startDay.toLocaleDateString(locale, { month: 'long' }).toUpperCase(), null, 'stacked'),
-      label: t('journey.studio.dateMark'),
-    })
-  }
-  marks.push({
-    el: badgeEl('day', `${t('journey.studio.dayWord')} 1`, '', null, 'chip'),
-    label: t('journey.studio.dayMark'),
-  })
-  if (first) {
-    marks.push({
-      el: badgeEl('coords', formatBookCoords(first.lat, first.lng), first.label, null),
-      label: t('journey.studio.coordsMark'),
-    })
-  }
-  if (firstCountry) {
-    marks.push({
-      el: badgeEl('flag', '', countryName(firstCountry.code), firstCountry.code),
-      label: t('journey.studio.flagMark'),
-    })
-  }
-  marks.push({
-    el: badgeEl('distance', formatDistance(stats.distance, locale), t('journey.studio.metric.distance'), null, 'outline'),
-    label: t('journey.studio.distanceMark'),
+  /*
+   * The marks of the journey, with the words the engine resolves for each. A
+   * mark the journey cannot fill (no start date, no stop, no country) is not
+   * offered.
+   */
+  const marks: { el: BookElement; label: string }[] = ([
+    ['date', t('journey.studio.dateMark')],
+    ['day', t('journey.studio.dayMark')],
+    ['coords', t('journey.studio.coordsMark')],
+    ['flag', t('journey.studio.flagMark')],
+    ['distance', t('journey.studio.distanceMark')],
+  ] as const).flatMap(([variant, label]) => {
+    const value = bookBadgeValue(travel, variant, null)
+    return value ? [{ el: badgeEl(variant, value), label }] : []
   })
 
   return (
@@ -564,7 +466,7 @@ export function StudioTravelPanel({
                   a scale that suits a continent, and satellite is the ground
                   itself, which is what a page about one country wants.
                 */}
-                {imagery.map(src => (
+                {IMAGERY.map(src => (
                   <Card
                     key={src.id}
                     /*
@@ -580,10 +482,10 @@ export function StudioTravelPanel({
                     label={t(src.labelKey)}
                     recommended={src.id === 'satellite'}
                     title={src.id === 'satellite' ? t('journey.studio.recommended') : undefined}
-                    onClick={() => place(mapEl('minimal', 'tiles', src.url, src.attribution))}
+                    onClick={() => place(mapEl('minimal', 'journey', src.id))}
                   >
                     <TravelPreview
-                      el={mapEl('minimal', 'tiles', src.url, src.attribution)}
+                      el={mapEl('minimal', 'journey', src.id)}
                       minHeight={62}
                       maxHeight={80}
                     />
@@ -608,7 +510,7 @@ export function StudioTravelPanel({
                   <div className="st-section-label">{t('journey.studio.mapPerTrip')}</div>
                   <div className="st-travel-grid">
                     {tripsWithRoute.map(trip => {
-                      const el = mapEl('minimal', 'vector', '', '', 'rect', trip.id)
+                      const el = mapEl('minimal', { tripId: trip.id })
                       return (
                         <Card
                           key={trip.id}
@@ -660,7 +562,7 @@ export function StudioTravelPanel({
               */}
               <div className="st-travel-grid" style={{ marginTop: 6 }}>
                 {stats.countries.slice(0, 12).map(c => {
-                  const el = badgeEl('country', countryName(c.code), '', c.code)
+                  const el = badgeEl('country', bookCountryMark('country', c.code, countryName(c.code)))
                   return (
                     <Card key={`mark-${c.code}`} label={countryName(c.code)} onClick={() => place(el)}>
                       <TravelPreview el={el} minHeight={30} maxHeight={44} />

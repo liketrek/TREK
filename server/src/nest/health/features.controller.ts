@@ -1,4 +1,5 @@
 import { ADDON_IDS } from '../../addons';
+import { readEnv } from '../../app-config';
 import { MaintenanceRepository } from '../../db/repositories/MaintenanceRepository';
 import { AddonsService } from '../addons/addons.service';
 import { Public } from '../auth-core/public.decorator';
@@ -58,6 +59,9 @@ export class FeaturesController {
       // Addon-level flag (per-user config availability is reported per-file in
       // the preview response). Drives whether the client shows AI affordances.
       aiParsing: await this.addons.isAddonEnabled(ADDON_IDS.LLM_PARSING),
+      // Whether the assistant exists on this install at all; whether it can
+      // run for a user is /api/ai/status. A managed install has none.
+      aiAssistant: !readEnv().managed.enabled && (await this.addons.isAddonEnabled(ADDON_IDS.AI_ASSISTANT)),
     };
   }
 }

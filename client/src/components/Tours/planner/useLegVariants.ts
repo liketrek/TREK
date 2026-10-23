@@ -1,8 +1,12 @@
-import type { HikingPreferences, PlannableTourType, TourMaxHikingDifficulty } from '@trek/shared';
+import {
+  hikingCosting,
+  type HikingPreferences,
+  type PlannableTourType,
+  type TourMaxHikingDifficulty,
+} from '@trek/shared';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CostingOptions } from '../../Map/valhallaRoute';
 import { pinAlternative } from '../../Roadtrip/alternativePins';
-import { hikingCosting } from './hikingCosting';
 import { askOtherWays, routeSection, type OtherWaysAnswer } from './legVariantRouting';
 import {
   comparedLegOf,

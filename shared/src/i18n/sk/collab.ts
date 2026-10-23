@@ -115,5 +115,7 @@ const collab: TranslationStrings = {
     'Túto kategóriu ešte používajú poznámky. Najprv ich presuňte alebo zmažte, potom sa dá kategória odstrániť.',
   'collab.notes.categoriesLocalHint':
     'Kategória bez poznámok sa ukladá len v tomto prehliadači. Ostatní členovia ju uvidia, keď ju použije nejaká poznámka.',
+  'collab.chat.fromAssistant': 'od asistenta',
+  'collab.chat.fromAssistantHint': '{name} zdieľal(a) túto odpoveď asistenta',
 };
 export default collab;

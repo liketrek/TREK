@@ -1,4 +1,4 @@
-// FE-PAGE-OAUTH-001 to FE-PAGE-OAUTH-012
+// FE-PAGE-OAUTH-001 to FE-PAGE-OAUTH-013
 import { render, screen, waitFor } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -201,5 +201,26 @@ describe('OAuthAuthorizePage', () => {
     await screen.findByText('Permissions requested');
     // No checkboxes in read-only mode
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+  });
+
+  it('FE-PAGE-OAUTH-013: names the verified host of a metadata-document client, and nothing for others', async () => {
+    server.use(
+      http.get('/api/oauth/authorize/validate', () =>
+        HttpResponse.json({
+          ...VALIDATE_OK,
+          client: { name: 'Claude', allowed_scopes: ['trips:read'], verified_host: 'claude.ai' },
+          scopeSelectable: true,
+        })
+      )
+    );
+    const { unmount } = render(<OAuthAuthorizePage />);
+    await screen.findByText('Claude');
+    expect(screen.getByText(/claude\.ai/)).toBeInTheDocument();
+    unmount();
+
+    server.use(http.get('/api/oauth/authorize/validate', () => HttpResponse.json(VALIDATE_OK)));
+    render(<OAuthAuthorizePage />);
+    await screen.findByText('Test App');
+    expect(screen.queryByText(/claude\.ai/)).not.toBeInTheDocument();
   });
 });

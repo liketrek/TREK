@@ -9,6 +9,7 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
+import { TagWritesService } from './tag-writes.service';
 import { TagsService } from './tags.service';
 import { idSchema } from '@trek/shared';
 
@@ -22,7 +23,11 @@ import { z } from 'zod';
  */
 @McpController()
 export class TagsMcp {
-  constructor(private readonly tags: TagsService) {}
+  // The writes go through TagWritesService with no socket to leave out: every tab of the caller reads its tags again.
+  constructor(
+    private readonly tags: TagsService,
+    private readonly writes: TagWritesService,
+  ) {}
 
   @Tool({
     name: 'list_tags',
@@ -47,7 +52,7 @@ export class TagsMcp {
     access: { group: 'places', mode: 'write' },
   })
   async createTag({ name, color }: { name: string; color?: string }, ctx: McpContext) {
-    const tag = await this.tags.create(ctx.userId, name, color);
+    const tag = await this.writes.create(ctx.userId, name, color, undefined);
     return ok({ tag });
   }
 
@@ -64,8 +69,8 @@ export class TagsMcp {
   })
   async updateTag({ tagId, name, color }: { tagId: number; name?: string; color?: string }, ctx: McpContext) {
     if (!(await this.tags.getByIdAndUser(tagId, ctx.userId))) return errorResult('Tag not found.');
-    const tag = await this.tags.update(tagId, name, color);
-    if (!(await tag)) return errorResult('Tag not found.');
+    const tag = await this.writes.update(ctx.userId, tagId, { name, color }, undefined);
+    if (!tag) return errorResult('Tag not found.');
     return ok({ tag });
   }
 
@@ -80,7 +85,7 @@ export class TagsMcp {
   })
   async deleteTag({ tagId }: { tagId: number }, ctx: McpContext) {
     if (!(await this.tags.getByIdAndUser(tagId, ctx.userId))) return errorResult('Tag not found.');
-    await this.tags.remove(tagId);
+    await this.writes.remove(ctx.userId, tagId, undefined);
     return ok({ success: true });
   }
 }

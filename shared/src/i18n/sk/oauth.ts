@@ -88,6 +88,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loginButton': 'Prihlásiť sa do TREK',
   'oauth.authorize.requestLabel': 'Žiadosť o autorizáciu',
   'oauth.authorize.requestDescription': 'Táto aplikácia žiada o prístup k vášmu účtu TREK.',
+  'oauth.authorize.verifiedHost': 'Overená doména: {host}',
   'oauth.authorize.trustNote':
     'Prístup udeľujte len aplikáciám, ktorým dôverujete. Vaše dáta zostávajú na vašom serveri.',
   'oauth.authorize.selectScope': 'Vyberte aspoň jedno oprávnenie',

@@ -98,14 +98,18 @@ export class CollectionsController {
   }
 
   @Post()
-  create(@CurrentUser() user: User, @Body() body: CollectionCreateDto) {
-    return this.collections.createCollection(user.id, body);
+  create(@CurrentUser() user: User, @Body() body: CollectionCreateDto, @Headers('x-socket-id') socketId?: string) {
+    return this.collections.createCollection(user.id, body, socketId);
   }
 
   @Post('reorder')
   @HttpCode(200)
-  async reorder(@CurrentUser() user: User, @Body() body: CollectionReorderDto) {
-    await this.collections.reorderCollections(user.id, body.orderedIds);
+  async reorder(
+    @CurrentUser() user: User,
+    @Body() body: CollectionReorderDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    await this.collections.reorderCollections(user.id, body.orderedIds, socketId);
     return { success: true };
   }
 
@@ -253,8 +257,12 @@ export class CollectionsController {
    * are @HttpCode(200) because they act on one that already exists.
    */
   @Post('import')
-  importCollection(@CurrentUser() user: User, @Body() body: CollectionImportDto) {
-    return this.collections.importCollection(user.id, body);
+  importCollection(
+    @CurrentUser() user: User,
+    @Body() body: CollectionImportDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return this.collections.importCollection(user.id, body, socketId);
   }
 
   /**
@@ -277,8 +285,12 @@ export class CollectionsController {
 
   @Post('copy-to-trip')
   @HttpCode(200)
-  copyToTrip(@CurrentUser() user: User, @Body() body: CollectionCopyToTripDto) {
-    return this.collections.copyToTrip(user.id, body);
+  copyToTrip(
+    @CurrentUser() user: User,
+    @Body() body: CollectionCopyToTripDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return this.collections.copyToTrip(user.id, body, this.collections.tripEvents(body.trip_id, socketId));
   }
 
   // ── Labels (per-collection custom labels; static prefixes before /:id) ───────
@@ -350,12 +362,17 @@ export class CollectionsController {
   // ── Fusion invitations ──────────────────────────────────────────────────────
   @Post('invite')
   @HttpCode(200)
-  async invite(@CurrentUser() user: User, @Body() body: CollectionInviteDto) {
+  async invite(
+    @CurrentUser() user: User,
+    @Body() body: CollectionInviteDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     await this.collections.assertAccess(user.id, body.collection_id); // 404 if not visible (no enumeration)
     if (!(await this.collections.isOwner(user.id, body.collection_id))) {
       throw new HttpException({ error: 'Only the owner can invite' }, 403);
     }
-    await this.collections.sendInvite(body.collection_id, user.id, user.username, body.user_id, body.role);
+    const { collection_id, user_id, role } = body;
+    await this.collections.sendInvite(collection_id, user.id, user.username, user_id, role, socketId);
     return { success: true };
   }
 
@@ -383,12 +400,16 @@ export class CollectionsController {
 
   @Post('invite/cancel')
   @HttpCode(200)
-  async cancelInvite(@CurrentUser() user: User, @Body() body: CollectionInviteCancelDto) {
+  async cancelInvite(
+    @CurrentUser() user: User,
+    @Body() body: CollectionInviteCancelDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
     await this.collections.assertAccess(user.id, body.collection_id); // 404 if not visible
     if (!(await this.collections.isOwner(user.id, body.collection_id))) {
       throw new HttpException({ error: 'Only the owner can cancel invites' }, 403);
     }
-    await this.collections.cancelInvite(body.collection_id, user.id, body.user_id);
+    await this.collections.cancelInvite(body.collection_id, user.id, body.user_id, socketId);
     return { success: true };
   }
 
@@ -517,8 +538,8 @@ export class CollectionsController {
   }
 
   @Delete(':id')
-  async remove(@CurrentUser() user: User, @Param('id') id: string) {
-    await this.collections.deleteCollection(user.id, Number(id));
+  async remove(@CurrentUser() user: User, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
+    await this.collections.deleteCollection(user.id, Number(id), socketId);
     return { success: true };
   }
 }

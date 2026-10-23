@@ -179,6 +179,9 @@ describe('SkiRoutingMcp', () => {
     const three = { tripId: 3, legs: [{ from: A, to: B }], discipline: 'alpine', alternatives: 3 };
     expect(input.safeParse(three).success).toBe(false);
     expect(input.safeParse({ legs: [{ from: A, to: B }], discipline: 'alpine' }).success).toBe(false);
+    const drawn = { tripId: 3, legs: [{ from: A, to: B }], discipline: 'alpine', include_geometry: true };
+    expect(input.safeParse(drawn).success).toBe(true);
+    expect(input.safeParse({ ...drawn, include_geometry: 1 }).success).toBe(false);
   });
 
   it('SKIMCP-003: plans for a trip the caller sees, the same request as REST, legs without their points', async () => {
@@ -215,6 +218,8 @@ describe('SkiRoutingMcp', () => {
               wait_seconds: 0,
               length_m: 2500,
               flags: [],
+              from_m: 0,
+              to_m: 1354,
             },
           ],
           why: [],
@@ -231,5 +236,38 @@ describe('SkiRoutingMcp', () => {
     const result = (await mcp.planSkiRoute(asked, ctx)) as McpTextResult;
     expect(result.isError).toBe(true);
     expect(routing.route).not.toHaveBeenCalled();
+  });
+
+  it("SKIMCP-005: adds each planned leg's line with its heights only when asked, all legs within 300 points by length", async () => {
+    const { mcp, routing } = makeMcp(true);
+    const [planned] = ANSWER.legs;
+    if (planned.status !== 'ok') throw new Error('the fixture plans its first leg');
+    const geometry = Array.from({ length: 800 }, (_, index): [number, number, number | null] => [
+      45.98 - index * 0.0001,
+      7.75,
+      index === 5 ? null : 2500 - index,
+    ]);
+    routing.route.mockResolvedValueOnce({ ...ANSWER, legs: [{ ...planned, geometry }, ANSWER.legs[1]] });
+    const asked = {
+      tripId: 3,
+      legs: [
+        { from: A, to: B },
+        { from: B, to: A },
+      ],
+      discipline: 'alpine' as const,
+    };
+    const result = (await mcp.planSkiRoute({ ...asked, include_geometry: true }, ctx)) as McpTextResult;
+    const { tripId: _trip, ...asRest } = asked;
+    expect(routing.route).toHaveBeenCalledWith(skiRouteRequestSchema.parse(asRest));
+    const answer = JSON.parse(result.content[0].text) as {
+      legs: Array<{ line_geometry?: Array<[number, number, number | null]> }>;
+    };
+    expect(answer.legs[0].line_geometry).toHaveLength(300);
+    expect(answer.legs[0].line_geometry?.[0]).toEqual([45.98, 7.75, 2500]);
+    expect(answer.legs[0].line_geometry?.at(-1)).toEqual(geometry[799]);
+    expect(answer.legs[1]).not.toHaveProperty('line_geometry');
+
+    const plain = (await mcp.planSkiRoute(asked, ctx)) as McpTextResult;
+    expect(JSON.parse(plain.content[0].text).legs[0]).not.toHaveProperty('line_geometry');
   });
 });

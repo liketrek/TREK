@@ -1,8 +1,8 @@
 import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { AirtrailLinkService } from '../integrations/airtrail-link.service';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { ReservationWritesService } from './reservation-writes.service';
 import {
   ReservationCreateDto,
   ReservationUpdateDto,
@@ -25,6 +25,8 @@ type ReservationBody = Record<string, unknown> & {
  * trip access (404), 'reservation_edit' permission (403), create 201 / rest 200,
  * the bespoke 404 bodies, the accommodation + budget side effects, the booking
  * notifications, and all WebSocket broadcasts with the forwarded X-Socket-Id.
+ * Create, edit, delete and reorder run the use cases of ReservationWritesService,
+ * which the MCP tools share, so both surfaces send the same events.
  * Invalid bodies (missing title, non-array positions/user_ids) now 400 through
  * the global ZodValidationPipe envelope instead of the bespoke strings.
  * /positions is declared before /:id so it wins over the param.
@@ -37,8 +39,7 @@ type ReservationBody = Record<string, unknown> & {
 export class ReservationsController {
   constructor(
     private readonly reservations: ReservationsService,
-    // Injected from AirtrailCoreModule — the split that retired airtrail.bridge.
-    private readonly airtrailLink: AirtrailLinkService,
+    private readonly writes: ReservationWritesService,
   ) {}
 
   @Get()
@@ -60,18 +61,12 @@ export class ReservationsController {
     // at a rate frozen now (#2525).
     const budgetEntry = await this.reservations.withFrozenRate(tripId, body.create_budget_entry);
     // The booking and its linked cost are one write.
-    const { reservation, accommodationCreated, costEvents } = await this.reservations.createWithCost(
+    return this.writes.createBooking(
       tripId,
       body as never,
       budgetEntry,
+      this.writes.restWriter(tripId, user, socketId),
     );
-    if (accommodationCreated) {
-      this.reservations.broadcast(tripId, 'accommodation:created', {}, socketId);
-    }
-    this.reservations.announceCost(tripId, costEvents, socketId);
-    this.reservations.broadcast(tripId, 'reservation:created', { reservation }, socketId);
-    await this.reservations.notifyBookingChange(tripId, user.id, body.title, body.type ?? '');
-    return { reservation };
   }
 
   @RequirePermission('reservation_edit')
@@ -84,16 +79,11 @@ export class ReservationsController {
   ) {
     // The legacy signature declares day_plan_position required, but the wire
     // contract tolerates absent values (bind NULL) — see the shared schema.
-    await this.reservations.updatePositions(
+    await this.writes.reorderBookings(
       tripId,
       body.positions as { id: number; day_plan_position: number }[],
       body.day_id,
-    );
-    this.reservations.broadcast(
-      tripId,
-      'reservation:positions',
-      { positions: body.positions, day_id: body.day_id },
-      socketId,
+      this.writes.restWriter(tripId, user, socketId),
     );
     return { success: true };
   }
@@ -113,27 +103,15 @@ export class ReservationsController {
       throw new HttpException({ error: 'Reservation not found' }, 404);
     }
     await this.rejectForeignReferences(tripId, body);
-    // The booking and its linked cost are one write.
-    const { reservation, accommodationChanged, costEvents } = await this.reservations.updateWithCost(
+    // The booking and its linked cost are one write; a linked AirTrail flight is pushed back after it.
+    return this.writes.updateBooking(
       id,
       tripId,
       body as never,
       current,
       body.create_budget_entry,
+      this.writes.restWriter(tripId, user, socketId),
     );
-    if (accommodationChanged) {
-      this.reservations.broadcast(tripId, 'accommodation:updated', {}, socketId);
-    }
-    const cur = current as { title: string; type?: string };
-    this.reservations.announceCost(tripId, costEvents, socketId);
-    this.reservations.broadcast(tripId, 'reservation:updated', { reservation }, socketId);
-    // Push a locally-edited AirTrail flight back to AirTrail (fire-and-forget,
-    // under the importer's credentials — see airtrailSync). #214
-    if ((reservation as any)?.external_source === 'airtrail' && (reservation as any)?.sync_enabled) {
-      void this.airtrailLink.pushReservationToAirtrail(Number((reservation as any).id), Number(tripId)).catch(() => {});
-    }
-    await this.reservations.notifyBookingChange(tripId, user.id, body.title || cur.title, body.type || cur.type || '');
-    return { reservation };
   }
 
   @RequirePermission('reservation_edit')
@@ -166,24 +144,8 @@ export class ReservationsController {
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const { deleted, accommodationDeleted, deletedBudgetItemIds } = await this.reservations.remove(id, tripId);
-    if (!deleted) {
-      throw new HttpException({ error: 'Reservation not found' }, 404);
-    }
-    if (accommodationDeleted) {
-      this.reservations.broadcast(
-        tripId,
-        'accommodation:deleted',
-        { accommodationId: deleted.accommodation_id },
-        socketId,
-      );
-    }
-    for (const itemId of deletedBudgetItemIds) {
-      this.reservations.broadcast(tripId, 'budget:deleted', { itemId }, socketId);
-    }
-    this.reservations.broadcast(tripId, 'reservation:deleted', { reservationId: Number(id) }, socketId);
-    await this.reservations.notifyBookingChange(tripId, user.id, deleted.title, deleted.type || '');
-    return { success: true };
+    // A missing booking answers { error: 'Reservation not found' } with 404.
+    return this.writes.deleteBooking(id, tripId, this.writes.restWriter(tripId, user, socketId));
   }
 
   /**

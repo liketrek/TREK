@@ -1,8 +1,10 @@
 import { create } from 'zustand'
 import type { BookDocument, BookElement, BookFrame, BookLayout, BookSpread } from '@trek/shared'
-import { MAX_BOOK_LAYOUTS, MAX_SPREAD_ELEMENTS } from '@trek/shared'
+import {
+  MAX_BOOK_LAYOUTS, MAX_SPREAD_ELEMENTS, applySavedBookLayout as applySavedLayout,
+  bookLayoutFromSpread as layoutFromSpread, canEditSpread as isMovableSpread, innerSpreadBounds as innerBounds,
+} from '@trek/shared'
 import { pastedElements, type StudioClipboard } from '../components/Studio/studioClipboard'
-import { applySavedLayout, layoutFromSpread } from '../components/Studio/savedLayouts'
 
 /**
  * The book being edited.
@@ -30,9 +32,39 @@ interface StudioState {
   gestureBase: BookDocument | null
   /** Elements copied for pasting onto any page of the book (#2316). Kept across page switches. */
   clipboard: StudioClipboard | null
+  /**
+   * The page a chat card points at, outlined in the page rail (journey-studio.md
+   * 4.2). Not part of the book or its history; opening a book clears it.
+   */
+  hintSpread: string | null
+  /**
+   * Whether the open book is held as it is. True for a book a newer Studio
+   * saved (useBookStore's `newer`): this build has already dropped what
+   * it cannot read from its copy, so every edit, undo and redo is refused
+   * rather than shown as work that can never be saved. Loading and taking a
+   * remote version still work, so the page stays current while it is shown.
+   */
+  readOnly: boolean
+  setReadOnly: (readOnly: boolean) => void
 
   load: (doc: BookDocument) => void
+  /**
+   * Take a version saved somewhere else (another editor, the assistant) into
+   * the open book without throwing the user out of it.
+   *
+   * `load` is for opening: back to the cover, history gone. Here the page stays
+   * the one the user was on (found by its spread id, wherever it moved to),
+   * what is still on that page stays selected, and the document it replaces
+   * becomes an undo step, so Ctrl+Z takes an assistant's change back.
+   *
+   * `undoable: false` is for a save by somebody else: the page and selection
+   * stay, but the history goes, as with `load`. Otherwise their whole save would
+   * sit one Ctrl+Z away, and undoing what the user took for their own last step
+   * would quietly write the older book over another person's work.
+   */
+  adoptRemote: (doc: BookDocument, opts?: { undoable?: boolean }) => void
   setActiveSpread: (i: number) => void
+  setHintSpread: (spreadId: string | null) => void
   select: (ids: string[]) => void
   toggleSelect: (id: string, additive: boolean) => void
 
@@ -92,33 +124,9 @@ interface StudioState {
   canRedo: () => boolean
 }
 
-/**
- * Where an inner spread may go: after the cover and the first page, before
- * the last page and the back cover.
- *
- * Read from the document each time rather than assumed, because a book from
- * before the single first page existed has none, and a book with no covers at
- * all (the tests build those) has nothing to stay inside of. The lower bound
- * is not decoration either: a book with no inner spreads yet reports its last
- * inner one as -1, which asked for a page at 0 — in front of the cover, where
- * it could not be moved back from, because a move only ever swaps with
- * another inner spread.
- */
-function innerBounds(spreads: readonly BookSpread[]): { first: number; limit: number } {
-  let first = 0
-  for (let i = 0; i < spreads.length; i++) {
-    const role = spreads[i].role
-    if (role === 'cover' || role === 'first') first = i + 1
-    else break
-  }
-  let limit = spreads.length
-  for (let i = spreads.length - 1; i >= 0; i--) {
-    const role = spreads[i].role
-    if (role === 'back' || role === 'last') limit = i
-    else break
-  }
-  return { first, limit: Math.max(first, limit) }
-}
+// Where an inner spread may go (`innerBounds`) and which spreads may move at
+// all (`isMovableSpread`) are shared with the server's book tools
+// (shared/src/book/book-pages.ts), so the assistant keeps the same pages fixed.
 
 function replaceSpread(doc: BookDocument, index: number, fn: (s: BookSpread) => BookSpread): BookDocument {
   const spreads = doc.spreads.slice()
@@ -135,9 +143,36 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   future: [],
   gestureBase: null,
   clipboard: null,
+  hintSpread: null,
+  readOnly: false,
 
-  load: doc => set({ doc, selection: [], activeSpread: 0, past: [], future: [], gestureBase: null }),
+  setReadOnly: readOnly => set({ readOnly, gestureBase: null }),
+  load: doc => set({ doc, selection: [], activeSpread: 0, past: [], future: [], gestureBase: null, hintSpread: null }),
+  adoptRemote: (doc, opts) => set(s => {
+    if (!s.doc) return { doc, selection: [], activeSpread: 0, past: [], future: [], gestureBase: null }
+    if (doc === s.doc) return {}
+    const spreadId = s.doc.spreads[s.activeSpread]?.id
+    const found = spreadId ? doc.spreads.findIndex(sp => sp.id === spreadId) : -1
+    // A page that is gone (deleted elsewhere) leaves the user where it was, or on the last page.
+    const activeSpread = found >= 0 ? found : Math.max(0, Math.min(s.activeSpread, doc.spreads.length - 1))
+    const onPage = new Set((doc.spreads[activeSpread]?.elements ?? []).map(e => e.id))
+    // A gesture that has already moved is replaced half done, so the step to go
+    // back to is where it started, not the half-finished frame.
+    const replaced = s.gestureBase ?? s.doc
+    return {
+      doc,
+      activeSpread,
+      selection: found >= 0 ? s.selection.filter(id => onPage.has(id)) : [],
+      past: opts?.undoable === false ? [] : [...s.past, replaced].slice(-HISTORY_LIMIT),
+      // A new branch: redoing what was undone before this arrived would write over it.
+      future: [],
+      // An open gesture carries on from the new document, so closing it records
+      // that, not the old one a second time.
+      gestureBase: s.gestureBase ? doc : null,
+    }
+  }),
   setActiveSpread: i => set({ activeSpread: i, selection: [] }),
+  setHintSpread: spreadId => set({ hintSpread: spreadId }),
   select: ids => set({ selection: ids }),
   toggleSelect: (id, additive) => set(s => {
     if (!additive) return { selection: [id] }
@@ -156,13 +191,13 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   }),
 
   commit: fn => set(s => {
-    if (!s.doc) return {}
+    if (!s.doc || s.readOnly) return {}
     const next = fn(s.doc)
     if (next === s.doc) return {}
     return { doc: next, past: [...s.past, s.doc].slice(-HISTORY_LIMIT), future: [] }
   }),
 
-  apply: fn => set(s => (s.doc ? { doc: fn(s.doc) } : {})),
+  apply: fn => set(s => (s.doc && !s.readOnly ? { doc: fn(s.doc) } : {})),
 
   updateElement: (spreadIndex, id, patch) => get().apply(doc =>
     replaceSpread(doc, spreadIndex, sp => ({
@@ -289,10 +324,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
    * rail, the menu and the store all ask it rather than each testing `role`
    * for themselves.
    */
-  canEditSpread: index => {
-    const sp = get().doc?.spreads[index]
-    return !!sp && sp.role === 'inner'
-  },
+  canEditSpread: index => isMovableSpread(get().doc?.spreads[index]),
 
   addSpread: index => {
     const doc = get().doc
@@ -399,16 +431,16 @@ export const useStudioStore = create<StudioState>((set, get) => ({
 
   undo: () => set(s => {
     const prev = s.past[s.past.length - 1]
-    if (!prev || !s.doc) return {}
+    if (!prev || !s.doc || s.readOnly) return {}
     return { doc: prev, past: s.past.slice(0, -1), future: [s.doc, ...s.future].slice(0, HISTORY_LIMIT), selection: [] }
   }),
 
   redo: () => set(s => {
     const next = s.future[0]
-    if (!next || !s.doc) return {}
+    if (!next || !s.doc || s.readOnly) return {}
     return { doc: next, future: s.future.slice(1), past: [...s.past, s.doc].slice(-HISTORY_LIMIT), selection: [] }
   }),
 
-  canUndo: () => get().past.length > 0,
-  canRedo: () => get().future.length > 0,
+  canUndo: () => !get().readOnly && get().past.length > 0,
+  canRedo: () => !get().readOnly && get().future.length > 0,
 }))

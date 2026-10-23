@@ -1,3 +1,5 @@
+import { journeyRecordingDateSchema } from './journey-recordings.schema';
+
 import { z } from 'zod';
 
 /**
@@ -129,6 +131,41 @@ export const journalPluginPhotoInputSchema = z.strictObject({
   caption: z.string().max(2000).optional(),
 });
 export type JournalPluginPhotoInput = z.infer<typeof journalPluginPhotoInputSchema>;
+
+/*
+ * The three entry fields with a fixed set of values. `journey_entries.type` and
+ * `.visibility` are plain TEXT columns and the REST route forwards whatever the
+ * client sent, but the row type (JourneyEntry on the server) only ever models
+ * these, so the MCP tools and the assistant's cards name them rather than take
+ * a free string: a model that invents "friends-only" would write a value
+ * nothing reads.
+ */
+export const journeyEntryTypeSchema = z.enum(['entry', 'checkin', 'skeleton']);
+export type JourneyEntryType = z.infer<typeof journeyEntryTypeSchema>;
+export const journeyEntryVisibilitySchema = z.enum(['private', 'shared', 'public']);
+export type JourneyEntryVisibility = z.infer<typeof journeyEntryVisibilitySchema>;
+
+/**
+ * The verdict on a place. Either side defaults to empty so a caller can send
+ * only the half it has, which is what the entry editor does when a place was
+ * all good or all bad. The service stores nothing when both come back empty.
+ */
+export const journeyEntryProsConsSchema = z.strictObject({
+  pros: z.array(z.string()).default([]),
+  cons: z.array(z.string()).default([]),
+});
+export type JourneyEntryProsCons = z.infer<typeof journeyEntryProsConsSchema>;
+
+/**
+ * The days a read of a journal's entries keeps, both ends included; either end
+ * left out is open. What the assistant asks for when it shows the entries of
+ * one day ("what did I write yesterday"), so it reads that day and no more.
+ */
+export const journeyEntriesRangeSchema = z.object({
+  from: journeyRecordingDateSchema.optional().describe('First day to include (YYYY-MM-DD); open when left out'),
+  to: journeyRecordingDateSchema.optional().describe('Last day to include (YYYY-MM-DD); open when left out'),
+});
+export type JourneyEntriesRange = z.infer<typeof journeyEntriesRangeSchema>;
 
 /** Free-form plus the entry_date the handler demands itself. */
 export const journeyEntryCreateRequestSchema = z.looseObject({

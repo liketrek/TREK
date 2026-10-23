@@ -7,6 +7,8 @@ import PhotoProvidersSection from './PhotoProvidersSection'
 import AirTrailConnectionSection from './AirTrailConnectionSection'
 import DawarichConnectionSection from './DawarichConnectionSection'
 import LlmConnectionSection from './LlmConnectionSection'
+import AiConnectionSection from './ai/AiConnectionSection'
+import ClaudeConnectorCard from './ai/ClaudeConnectorCard'
 import ApiKeysSection from './ApiKeysSection'
 import ScopeGroupPicker from '../OAuth/ScopeGroupPicker'
 import ConfirmDialog from '../shared/ConfirmDialog'
@@ -33,10 +35,17 @@ export default function IntegrationsTab(): React.ReactElement {
       {/* Which model reads a booking, and what that costs, comes with the instance on
        a managed install. The per-user fallback exists for people who supply their
        own key, and there nobody does. */}
-      {S.llmEnabled && !managed && <LlmConnectionSection />}
+      {/* The assistant in TREK, with the same managed rule as AI parsing: there the
+          operator decides which model the install talks to. */}
+      {S.aiConnectionEnabled && !managed && (
+        <AiConnectionSection assistant={S.aiAssistantEnabled} parsing={S.llmEnabled} />
+      )}
+      {S.llmEnabled && S.ownParsing && !managed && <LlmConnectionSection />}
       {/* Above MCP on purpose: an API key needs no addon, and someone looking for
           one should not have to read past a section about AI assistants. */}
       <ApiKeysSection />
+      {/* TREK inside Claude rides on the MCP server, so it follows that addon. */}
+      {S.mcpEnabled && <ClaudeConnectorCard />}
       {S.mcpEnabled && <IntegrationsMcpSection S={S} />}
       <McpTokenModals S={S} />
       <OAuthClientModals S={S} />
@@ -47,11 +56,11 @@ export default function IntegrationsTab(): React.ReactElement {
 function useIntegrations() {
   const { t, locale } = useTranslation()
   const toast = useToast()
-  const { mcpEnabled, airtrailEnabled, llmEnabled, dawarichEnabled, wandererEnabled, managed } = useIntegrationGates({ reloadAddons: true })
+  const { mcpEnabled, airtrailEnabled, llmEnabled, aiAssistantEnabled, aiConnectionEnabled, ownParsing, dawarichEnabled, wandererEnabled, managed } = useIntegrationGates({ reloadAddons: true })
 
   const mcp = useMcpIntegration({ enabled: mcpEnabled, reloadClientsAfterWrite: false })
 
-  return { t, locale, toast, mcpEnabled, airtrailEnabled, llmEnabled, dawarichEnabled,
+  return { t, locale, toast, mcpEnabled, airtrailEnabled, llmEnabled, aiAssistantEnabled, aiConnectionEnabled, ownParsing, dawarichEnabled,
     wandererEnabled,
     managed, ...mcp,
   }

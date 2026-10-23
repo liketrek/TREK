@@ -1,0 +1,38 @@
+data: {"type":"start","messageId":"msg-12"}
+
+data: {"type":"data-trek-thread","data":{"threadId":7,"title":"Fit the Golden Pavilion into Friday"}}
+
+data: {"type":"start-step"}
+
+data: {"type":"tool-input-start","toolCallId":"toolu_01","toolName":"get_trip_summary"}
+
+data: {"type":"tool-input-available","toolCallId":"toolu_01","toolName":"get_trip_summary","input":{}}
+
+data: {"type":"tool-output-available","toolCallId":"toolu_01","output":{"title":"Kyoto in June","days":[{"id":31,"date":"2026-06-11","places":3},{"id":32,"date":"2026-06-12","places":1}]}}
+
+data: {"type":"finish-step"}
+
+data: {"type":"start-step"}
+
+data: {"type":"text-start","id":"txt-0"}
+
+data: {"type":"text-delta","id":"txt-0","delta":"Friday has room in the afternoon. "}
+
+data: {"type":"text-delta","id":"txt-0","delta":"I would add Kinkaku-ji there."}
+
+data: {"type":"text-end","id":"txt-0"}
+
+data: {"type":"tool-input-start","toolCallId":"3f2b8c1e-6d4a-4f7b-9e2c-5a1d8b7c6e40","toolName":"create_and_assign_place"}
+
+data: {"type":"tool-input-available","toolCallId":"3f2b8c1e-6d4a-4f7b-9e2c-5a1d8b7c6e40","toolName":"create_and_assign_place","input":{"dayId":32,"name":"Kinkaku-ji","address":"1 Kinkakujicho, Kita Ward, Kyoto","lat":35.0394,"lng":135.7292}}
+
+data: {"type":"tool-approval-request","approvalId":"3f2b8c1e-6d4a-4f7b-9e2c-5a1d8b7c6e40","toolCallId":"3f2b8c1e-6d4a-4f7b-9e2c-5a1d8b7c6e40"}
+
+data: {"type":"data-trek-change","data":{"toolCallId":"3f2b8c1e-6d4a-4f7b-9e2c-5a1d8b7c6e40","verbKey":"addPlaceToDay","subject":"Kinkaku-ji","rows":[{"op":"add","labelKey":"day","before":null,"after":"Day 2, Fri 12 Jun"},{"op":"add","labelKey":"address","before":null,"after":"1 Kinkakujicho, Kita Ward, Kyoto"}],"dayId":32,"placeIds":[],"undoable":true}}
+
+data: {"type":"data-trek-quota","data":{"used":3,"limit":50}}
+
+data: {"type":"finish","finishReason":"tool-calls"}
+
+data: [DONE]
+

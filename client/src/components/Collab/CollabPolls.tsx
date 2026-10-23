@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useId } from 'react'
-import { Plus, Trash2, X, Check, BarChart3, Lock, Clock } from 'lucide-react'
+import { Plus, Trash2, X, BarChart3, Lock, Clock } from 'lucide-react'
 import { RoundAction } from '../Planner/bookings/bookingParts'
 import CollabPanelHead, { HEAD_ACTION } from './CollabPanelHead'
+import { PollChip, PollOptionRow } from './CollabPollOption'
 import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { AddRowButton, EditorField, TEXTAREA } from '../shared/dialogParts'
 import { Tooltip } from '../shared/Tooltip'
@@ -18,12 +19,6 @@ import type { User } from '../../types'
 import type { CollabPollCreateRequest } from '@trek/shared'
 import { useCollabPolls } from './useCollabPolls'
 import { hasUserVoted, isPollActive, pollMaxVoteCount, splitPolls, totalPollVotes, type CollabPollData } from './collabModel'
-
-interface PollVoter {
-  user_id: number
-  username: string
-  avatar_url: string | null
-}
 
 const FONT = "var(--font-system)"
 
@@ -156,33 +151,6 @@ function CreatePollModal({ onClose, onCreate, t }: CreatePollModalProps) {
   )
 }
 
-// ── Voter Chip ───────────────────────────────────────────────────────────────
-interface VoterChipProps {
-  voter: PollVoter
-  offset: boolean
-}
-
-function VoterChip({ voter, offset }: VoterChipProps) {
-  return (
-    <Tooltip label={voter.username || '?'}>
-      <span className="grid h-[18px] w-[18px] flex-none place-items-center overflow-hidden rounded-full border-[1.5px] border-surface-card bg-surface-tertiary font-bold text-content-muted"
-        style={{ ...fs(7), marginInlineStart: offset ? -5 : 0 }}>
-        {voter.avatar_url ? <img src={voter.avatar_url} alt={voter.username || ''} className="h-full w-full object-cover" /> : (voter.username || '?')[0].toUpperCase()}
-      </span>
-    </Tooltip>
-  )
-}
-
-/** A fact about the poll on its head band, set like the type chip on a booking card. */
-function PollChip({ icon, tone = 'muted', children }: { icon?: React.ReactNode; tone?: 'muted' | 'warning'; children: React.ReactNode }) {
-  return (
-    <span className={`inline-flex flex-none items-center gap-1 rounded-full border border-edge-faint bg-surface-card px-2 py-[2px] font-geist font-bold uppercase tracking-[.06em] ${tone === 'warning' ? 'text-warning' : 'text-content-muted'}`} style={fs(9.5)}>
-      {icon}
-      {children}
-    </span>
-  )
-}
-
 // ── Poll Card ────────────────────────────────────────────────────────────────
 interface PollCardProps {
   poll: CollabPollData
@@ -238,48 +206,17 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
           const isWinner = isClosed && count > 0 && count === topCount
 
           return (
-            <button type="button" key={idx} onClick={() => onVote(poll.id, idx)}
+            <PollOptionRow
+              key={idx}
+              text={typeof opt === 'string' ? opt : opt.text}
+              pct={pct}
+              mine={myVote}
+              winner={isWinner}
+              showResults={hasVoted || isClosed}
+              voters={(opt.voters || []).map((v, vi) => ({ key: v.user_id || vi, name: v.username || '?', src: v.avatar_url }))}
               disabled={isClosed}
-              className={`relative flex w-full items-start gap-2.5 overflow-hidden rounded-[10px] border bg-surface-secondary px-3 py-2.5 text-start transition-colors disabled:cursor-default ${myVote ? 'border-accent' : 'border-edge-faint enabled:hover:border-edge'}`}
-            >
-              {/* Progress bar background */}
-              <span aria-hidden="true" className="absolute inset-y-0 left-0 transition-[width] duration-500"
-                style={{
-                  width: `${pct}%`,
-                  background: myVote ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : isWinner ? 'var(--success-soft)' : 'var(--bg-tertiary)',
-                }} />
-
-              {/* Check circle */}
-              <span className={`relative grid h-5 w-5 flex-none place-items-center rounded-full border-2 transition-colors ${myVote ? 'border-accent bg-accent text-accent-text' : 'border-edge bg-surface-card'}`}>
-                {myVote && <Check size={11} strokeWidth={3} />}
-              </span>
-
-              {/* Label — options stay plain text, but long or multiline ones
-                  must wrap instead of being clipped by the button's
-                  overflow:hidden (#2177) */}
-              <span className="relative z-[1] text-content" style={{
-                flex: 1, minWidth: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word',
-                lineHeight: 1.35, ...fs(13, 'body'), fontWeight: myVote || isWinner ? 600 : 400,
-              }}>
-                {typeof opt === 'string' ? opt : opt.text}
-              </span>
-
-              {/* Voter avatars */}
-              {(opt.voters || []).length > 0 && (hasVoted || isClosed) && (
-                <span className="relative z-[1] flex">
-                  {(opt.voters || []).slice(0, 3).map((v, vi) => (
-                    <VoterChip key={v.user_id || vi} voter={v} offset={vi > 0} />
-                  ))}
-                </span>
-              )}
-
-              {/* Percentage */}
-              {(hasVoted || isClosed) && (
-                <span className={`relative z-[1] min-w-[32px] text-end font-geist font-bold tabular-nums ${myVote ? 'text-content' : 'text-content-muted'}`} style={fs(12, 'body')}>
-                  {pct}%
-                </span>
-              )}
-            </button>
+              onClick={() => onVote(poll.id, idx)}
+            />
           )
         })}
       </div>

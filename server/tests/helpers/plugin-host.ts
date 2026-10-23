@@ -181,6 +181,7 @@ import {
   createTestVacaySharesRepo,
   createTestVacayUserSettingsRepo,
 } from './vacay-repos';
+import type { ModuleRef } from '@nestjs/core';
 
 import type Database from 'better-sqlite3';
 
@@ -346,33 +347,6 @@ export async function createPluginRpcHostParts(
     await createTestJourneyEntryPhotosRepo(db),
     await createTestPlacesRepo(db),
   );
-  const collections = new CollectionsService(
-    permissions,
-    realtime,
-    notificationsStub(),
-    generalStorage,
-    await createTestUnitOfWork(db),
-    // Plan 3h Task 1 — the constructor-ripple fix: collections part A's own
-    // repositories, first cut (`CollectionMembersRepository` extended by
-    // Task 2), plus the already-DONE `CategoriesRepository` (CL21 reuse).
-    await createTestCollectionsRepo(db),
-    await createTestCollectionMembersRepo(db),
-    await createTestCollectionLabelsRepo(db),
-    await createTestCategoriesRepo(db),
-    // Plan 3h Task 2 — part B's own repositories: `DatabaseService` dropped
-    // entirely (this service's last use of it), the trip/place/tag/user
-    // repositories AP1-AP6's `TripsRepository.findAccessible` calls and the
-    // cross-domain writes need, injected directly.
-    await createTestCollectionPlacesRepo(db),
-    await createTestCollectionPlaceRatingsRepo(db),
-    await createTestTripsRepo(db),
-    await createTestTripMembersRepo(db),
-    await createTestPlacesRepo(db),
-    await createTestPlaceRatingsRepo(db),
-    await createTestTagsRepo(db),
-    usersRepo,
-    buildPlaceImportService(),
-  );
   const atlas = new AtlasService(
     await createTestBucketListRepo(db),
     await createTestHiddenCountriesRepo(db),
@@ -416,6 +390,12 @@ export async function createPluginRpcHostParts(
     new SettingsService(await createTestUnitOfWork(db), appSettings, await createTestSettingsRepo(db), membership),
     (await sharedTestOrm(db)).repo(Addons),
     addons,
+    // No ai-connections here: parsing reads only its own settings.
+    {
+      get: () => {
+        throw new Error('not registered');
+      },
+    } as unknown as ModuleRef,
   );
   const pluginOrm = await sharedTestOrm(db);
   const oauth = new PluginOAuthService(
@@ -468,6 +448,35 @@ export async function createPluginRpcHostParts(
     await createTestBudgetItemsRepo(db),
     await createTestCollectionPlacesRepo(db),
     buildPlaceImportService(),
+  );
+  // After places: copying saved places into a trip runs the places journey hook.
+  const collections = new CollectionsService(
+    permissions,
+    realtime,
+    notificationsStub(),
+    generalStorage,
+    await createTestUnitOfWork(db),
+    // Plan 3h Task 1, the constructor-ripple fix: collections part A's own
+    // repositories, first cut (`CollectionMembersRepository` extended by
+    // Task 2), plus the already-DONE `CategoriesRepository` (CL21 reuse).
+    await createTestCollectionsRepo(db),
+    await createTestCollectionMembersRepo(db),
+    await createTestCollectionLabelsRepo(db),
+    await createTestCategoriesRepo(db),
+    // Plan 3h Task 2, part B's own repositories: `DatabaseService` dropped
+    // entirely (this service's last use of it), the trip/place/tag/user
+    // repositories AP1-AP6's `TripsRepository.findAccessible` calls and the
+    // cross-domain writes need, injected directly.
+    await createTestCollectionPlacesRepo(db),
+    await createTestCollectionPlaceRatingsRepo(db),
+    await createTestTripsRepo(db),
+    await createTestTripMembersRepo(db),
+    await createTestPlacesRepo(db),
+    await createTestPlaceRatingsRepo(db),
+    await createTestTagsRepo(db),
+    usersRepo,
+    buildPlaceImportService(),
+    places,
   );
   // After accommodations: a hotel booking writes the stay's day stop through it.
   const reservations = new ReservationsService(

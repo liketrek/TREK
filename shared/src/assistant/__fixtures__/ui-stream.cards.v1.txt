@@ -1,0 +1,44 @@
+data: {"type":"start","messageId":"msg-12"}
+
+data: {"type":"tool-output-available","toolCallId":"7c1e2d3a-0b4f-4e8a-9d6c-1f2e3a4b5c6d","output":{"tour":{"place_id":77,"name":"Ridge walk"}}}
+
+data: {"type":"data-trek-applied","data":{"toolCallId":"7c1e2d3a-0b4f-4e8a-9d6c-1f2e3a4b5c6d","entity":"tour","ids":[77],"dayId":32,"undoUntil":"2026-06-11T09:15:00Z"}}
+
+data: {"type":"data-trek-card","data":{"toolCallId":"7c1e2d3a-0b4f-4e8a-9d6c-1f2e3a4b5c6d","card":{"kind":"tourRoute"}}}
+
+data: {"type":"start-step"}
+
+data: {"type":"tool-input-start","toolCallId":"toolu_02","toolName":"list_tours"}
+
+data: {"type":"tool-input-available","toolCallId":"toolu_02","toolName":"list_tours","input":{}}
+
+data: {"type":"tool-output-available","toolCallId":"toolu_02","output":{"tours":[{"place_id":77,"name":"Ridge walk"}]}}
+
+data: {"type":"data-trek-card","data":{"toolCallId":"toolu_02","card":{"kind":"tourList"}}}
+
+data: {"type":"finish-step"}
+
+data: {"type":"start-step"}
+
+data: {"type":"text-start","id":"txt-0"}
+
+data: {"type":"text-delta","id":"txt-0","delta":"The ridge walk is on Friday now. "}
+
+data: {"type":"text-delta","id":"txt-0","delta":"A lake loop would fit on Saturday."}
+
+data: {"type":"text-end","id":"txt-0"}
+
+data: {"type":"tool-input-start","toolCallId":"9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d","toolName":"create_hike"}
+
+data: {"type":"tool-input-available","toolCallId":"9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d","toolName":"create_hike","input":{"name":"Lake loop","round_trip":true}}
+
+data: {"type":"tool-approval-request","approvalId":"9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d","toolCallId":"9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"}
+
+data: {"type":"data-trek-change","data":{"toolCallId":"9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d","verbKey":"addTour","subject":"Lake loop","rows":[{"op":"add","labelKey":"route","before":null,"after":"Car park → Lake → Car park"}],"dayId":null,"placeIds":[],"undoable":true,"card":{"kind":"tourRoute"}}}
+
+data: {"type":"data-trek-quota","data":{"used":4,"limit":50}}
+
+data: {"type":"finish","finishReason":"tool-calls"}
+
+data: [DONE]
+

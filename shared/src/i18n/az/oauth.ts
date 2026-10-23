@@ -98,6 +98,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loginButton': 'TREK-ə daxil ol',
   'oauth.authorize.requestLabel': 'İcazə sorğusu',
   'oauth.authorize.requestDescription': 'Bu tətbiq TREK hesabınıza giriş icazəsi istəyir.',
+  'oauth.authorize.verifiedHost': 'Təsdiqlənmiş domen: {host}',
   'oauth.authorize.trustNote':
     'Yalnız etibar etdiyiniz tətbiqlərə giriş icazəsi verin. Məlumatlarınız serverinizdə qalır.',
   'oauth.authorize.selectScope': 'Ən azı bir icazə sahəsi seçin',

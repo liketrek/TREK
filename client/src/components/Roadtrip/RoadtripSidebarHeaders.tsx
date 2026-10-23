@@ -136,7 +136,7 @@ function flagTexts(day: RoadtripDay, followable: boolean, t: ReturnType<typeof u
  * The day's number on a raised tile, the way the day plan badges a day, with its date
  * folded in under it where the day plan keeps the weather.
  */
-function DayTile({ day, tint }: { day: RoadtripDay; tint: string | null }): React.ReactElement {
+export function DayTile({ day, tint }: { day: RoadtripDay; tint: string | null }): React.ReactElement {
   const { language } = useTranslation()
   const is12h = useSettingsStore(s => s.settings.time_format) === "12h"
   return (
@@ -229,8 +229,10 @@ const HEAD_HOVER = 'color-mix(in srgb, var(--accent) 10%, transparent)'
  * At module scope on purpose: declared inside the card it would remount on every render
  * and drop the keyboard focus on the fold control.
  */
-export function DayHeader({ day, collapsed, onToggle, onFollowTrack, viaCount, trackName }: Readonly<{
+export function DayHeader({ day, collapsed, onToggle, onFollowTrack, viaCount, trackName, dayColors }: Readonly<{
   day: RoadtripDay
+  /** Whether days wear their own colour, when the drive shown is not the trip's saved one. Absent reads the setting. */
+  dayColors?: boolean
   /** Folded down to the header, and off the map with it. */
   collapsed?: boolean
   onToggle?: () => void
@@ -245,7 +247,7 @@ export function DayHeader({ day, collapsed, onToggle, onFollowTrack, viaCount, t
   // The colour the map draws this day in, or none while the map draws one blue line for
   // the whole trip. With it on, the tile wears the colour and the band a tenth of it, so
   // a green line on the map finds its card.
-  const dayColorsOn = useRoadtripSettings(s => !!s.roadtrip_day_colors)
+  const dayColorsOn = useRoadtripSettings(s => dayColors ?? !!s.roadtrip_day_colors)
   const tint = dayColorsOn ? dayColor(day.dayNumber).line : null
   const rest = tint ? `color-mix(in srgb, ${tint} 11%, transparent)` : HEAD_REST
   const hover = tint ? `color-mix(in srgb, ${tint} 17%, transparent)` : HEAD_HOVER

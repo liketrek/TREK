@@ -14,6 +14,7 @@ import { Users } from '../../src/db/entities/Users.entity';
 import { ALL_SCOPES } from '../../src/mcp/scopes';
 import { AuditService } from '../../src/nest/audit/audit.service';
 import { UnitOfWork } from '../../src/nest/database/unit-of-work';
+import { CimdClientResolver } from '../../src/nest/oauth/oauth-cimd';
 import { OauthService } from '../../src/nest/oauth/oauth.service';
 import { authCookie } from '../helpers/auth';
 import { createUser } from '../helpers/factories';
@@ -97,6 +98,7 @@ beforeAll(async () => {
     await createTestAddonsService(testDb),
     new AuditService(t.repo(AuditLog), t.repo(Users)),
     new UnitOfWork(t.em),
+    nestApp.get(CimdClientResolver),
   );
 });
 
@@ -125,6 +127,7 @@ describe('GET /.well-known/oauth-authorization-server', () => {
     expect(res.body.token_endpoint).toContain('/oauth/token');
     expect(Array.isArray(res.body.scopes_supported)).toBe(true);
     expect(res.body.scopes_supported.length).toBeGreaterThan(0);
+    expect(res.body.client_id_metadata_document_supported).toBe(true);
   });
 });
 
@@ -233,6 +236,8 @@ describe('platform/discovery parity pins', () => {
       code_challenge_methods_supported: ['S256'],
       token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
       scopes_supported: ALL_SCOPES,
+      // A client may name itself by its metadata document's URL (Claude's connector does).
+      client_id_metadata_document_supported: true,
       userinfo_endpoint: 'https://trek.example.com/oauth/userinfo',
     });
   });

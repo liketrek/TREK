@@ -32,23 +32,43 @@ function make(available: boolean, aiEnabled: boolean) {
 describe('FeaturesController (GET /api/health/features)', () => {
   it('FEAT-001: reports both flags on', async () => {
     const { controller } = make(true, true);
-    expect(await controller.features()).toEqual({ bookingImport: true, aiParsing: true });
+    expect(await controller.features()).toEqual({ bookingImport: true, aiParsing: true, aiAssistant: true });
   });
 
   it('FEAT-002: reports both flags off', async () => {
     const { controller } = make(false, false);
-    expect(await controller.features()).toEqual({ bookingImport: false, aiParsing: false });
+    expect(await controller.features()).toEqual({ bookingImport: false, aiParsing: false, aiAssistant: false });
   });
 
   it('FEAT-003: the two flags are independent', async () => {
-    expect(await make(true, false).controller.features()).toEqual({ bookingImport: true, aiParsing: false });
-    expect(await make(false, true).controller.features()).toEqual({ bookingImport: false, aiParsing: true });
+    expect(await make(true, false).controller.features()).toEqual({
+      bookingImport: true,
+      aiParsing: false,
+      aiAssistant: false,
+    });
+    expect(await make(false, true).controller.features()).toEqual({
+      bookingImport: false,
+      aiParsing: true,
+      aiAssistant: true,
+    });
   });
 
   it('FEAT-004: aiParsing asks the addons service for the LLM parsing addon specifically', async () => {
     const { controller, addons } = make(true, true);
     await controller.features();
     expect(addons.isAddonEnabled).toHaveBeenCalledWith(ADDON_IDS.LLM_PARSING);
+  });
+
+  it('FEAT-013: aiAssistant follows its own addon, and is off on a managed install whatever the addon says', async () => {
+    const { controller, addons } = make(true, true);
+    await controller.features();
+    expect(addons.isAddonEnabled).toHaveBeenCalledWith(ADDON_IDS.AI_ASSISTANT);
+    vi.stubEnv('TREK_MANAGED', 'true');
+    try {
+      expect((await controller.features()).aiAssistant).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('FEAT-005: bookingImport is read live, not cached at construction', async () => {

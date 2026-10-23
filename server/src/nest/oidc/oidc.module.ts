@@ -21,5 +21,7 @@ import { Module } from '@nestjs/common';
   // The login states and codes stay in this process's memory; a store shared
   // between processes would be provided here instead.
   providers: [OidcService, { provide: OidcFlowStore, useClass: InMemoryOidcFlowStore }],
+  // The AI assistant checks a ChatGPT sign-in's ID token with the same verifier.
+  exports: [OidcService],
 })
 export class OidcModule {}

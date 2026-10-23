@@ -297,7 +297,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'DIA',
+  'journey.studio.day': 'DIA {day}',
   'journey.studio.stations': 'Etapes',
   'journey.studio.peersHere': 'aquí',
   'journey.studio.folioAuto': 'Automàtic',
@@ -453,7 +453,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Marques',
   'journey.studio.dateMark': 'Data',
   'journey.studio.dayMark': 'Comptador de dies',
-  'journey.studio.dayWord': 'DIA',
   'journey.studio.coordsMark': 'Coordenades',
   'journey.studio.coordsDms': 'Graus',
   'journey.studio.coordsDecimal': 'Decimal',
@@ -654,6 +653,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': "Gira cap a l'esquerra",
   'journey.studio.rotateRight': 'Gira cap a la dreta',
   'journey.studio.saveReadOnly': 'Només lectura, no es desa',
+  'journey.studio.saveNewer': 'Una versió més recent de Studio ha desat aquest llibre. Recarrega per editar-lo.',
+  'journey.studio.saveReload': 'Recarrega',
   'journey.studio.filterPhotos': 'Filtra les fotos',
   'journey.studio.filterAll': 'Totes les fotos',
   'journey.studio.filterLoose': 'Sense entrada',
@@ -906,5 +907,15 @@ const journey: TranslationStrings = {
     "Dies enregistrats i les parades que se'n treuen, en els dies amb una entrada publicada. Mostren on i quan eres, també el teu allotjament.",
   'journey.share.needsMap': 'Comparteix el mapa per activar-ho',
   'journey.editor.tags': 'Etiquetes',
+  'journey.studio.assistant.toggle': 'Assistent',
+  'journey.studio.assistant.toggleHint': 'Dissenya el llibre amb l’assistent',
+  'journey.studio.assistant.panel': 'Assistent del llibre',
+  'journey.studio.assistant.welcome': 'Com hauria de ser el llibre?',
+  'journey.studio.assistant.readOnly':
+    'Només pots veure aquest llibre, així que puc respondre preguntes però no canviar res.',
+  'journey.studio.assistant.notice':
+    'L’assistent pot mirar la pàgina en què treballes. Només aquesta pàgina s’envia a {provider}, com una imatge que mostra només les fotos que has afegit tu. No es pot detectar qui surt a les teves fotos.',
+  'journey.studio.assistant.noticeAllow': 'Mostra-li pàgines',
+  'journey.studio.assistant.noticeLater': 'Ara no',
 };
 export default journey;

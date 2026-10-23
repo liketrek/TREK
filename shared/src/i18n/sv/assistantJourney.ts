@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const assistantJourney: TranslationStrings = {
+  'assistant.card.journey.label': 'Dagboksinlägg',
+  'assistant.card.journey.open': 'Öppna i dagboken',
+  'assistant.card.journey.entries': '{count} inlägg',
+  'assistant.card.journey.entries.one': '{count} inlägg',
+  'assistant.card.journey.more': '{count} till i dagboken',
+  'assistant.card.journey.more.one': '{count} till i dagboken',
+  'assistant.card.journey.photos': '{count} foton',
+  'assistant.card.journey.photos.one': '{count} foto',
+  'assistant.card.journey.toSuggestion': 'Blir ett förslag igen',
+  'assistant.card.journey.video': 'Börjar med en video',
+  'assistant.card.journey.typeEntry': 'Skrivet inlägg',
+  'assistant.card.journey.typeCheckin': 'Incheckning',
+  'assistant.card.journey.notDraft': 'Inte längre ett utkast',
+  'assistant.card.journey.onRoute': 'Tillbaka på rutten',
+  'assistant.card.journey.restored': 'Förslaget återställt',
+  'assistant.change.verb.addJournalEntry': 'Lägg till ett dagboksinlägg',
+  'assistant.change.verb.updateJournalEntry': 'Ändra dagboksinlägget',
+  'assistant.change.verb.removeJournalEntry': 'Ta bort dagboksinlägget',
+  'assistant.step.readingJournal': 'Läser dagboken',
+  'assistant.tool.create_journey': 'Skapa en dagbok',
+  'assistant.tool.update_journey': 'Ändra dagboken',
+  'assistant.tool.add_journey_trip': 'Lägg till resan i dagboken',
+  'assistant.tool.link_trip_journal': 'Visa dagboken i den här resan',
+  'assistant.tool.reorder_journey_entries': 'Ordna om dagboken',
+  'assistant.followUp.journalToday': 'Skriv ett inlägg för i dag',
+  'assistant.followUp.journalSummary': 'Sammanfatta de här dagarna',
+};
+export default assistantJourney;

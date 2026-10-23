@@ -11,6 +11,7 @@ import { ContextMenu, useContextMenu } from '../shared/ContextMenu'
 import { Eyebrow, fs } from '../Planner/bookings/bookingParts'
 import { AuthedImg } from './CollabNotesAuthedImg'
 import { UserAvatar } from './CollabNotesUserAvatar'
+import { NoteHeadBand } from './CollabNoteHead'
 import type { CollabNote, NoteFile } from './CollabNotes.types'
 import type { User } from '../../types'
 
@@ -77,15 +78,7 @@ export function NoteCard({ note, canEdit, onUpdate, onDelete, onEdit, onView, on
       // A pinned note keeps its category colour on the frame, the way a selected booking card does.
       style={{ borderColor: note.pinned ? `color-mix(in srgb, ${color} 45%, transparent)` : 'var(--border-faint)' }}
     >
-      <div className={`flex items-center gap-2 py-1.5 ps-3 pe-1.5 ${hasBody ? 'border-b border-edge-faint' : ''}`} style={{ background: `color-mix(in srgb, ${color} 11%, transparent)` }}>
-        {/* The category is only its colour here; the name is in the tooltip and the filter above. */}
-        {note.category && (
-          <Tooltip label={note.category}>
-            <span role="img" aria-label={note.category} data-testid="note-category-dot" className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: color }} />
-          </Tooltip>
-        )}
-        <span className="min-w-0 flex-1 truncate font-bold text-content" style={fs(13, 'body')}>{note.title}</span>
-        {!!note.pinned && <Pin size={12} strokeWidth={2.2} className="flex-none" style={{ color }} />}
+      <NoteHeadBand title={note.title} color={color} category={note.category || null} pinned={!!note.pinned} bordered={hasBody} trailing={<>
         {/* The link rides in the title row as one round button; the host is in its tooltip. */}
         {note.website && (
           <Tooltip label={websiteHref ? linkHost(websiteHref) : note.website}>
@@ -111,7 +104,7 @@ export function NoteCard({ note, canEdit, onUpdate, onDelete, onEdit, onView, on
         <Tooltip label={author.username}>
           <span role="img" aria-label={author.username} className="flex flex-none"><UserAvatar user={author} size={20} /></span>
         </Tooltip>
-      </div>
+      </>} />
 
       {hasBody && (
         <div className="flex flex-1 flex-col gap-2 px-3 pb-2.5 pt-2">

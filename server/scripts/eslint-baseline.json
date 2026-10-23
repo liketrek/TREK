@@ -1,12 +1,12 @@
 {
   "src": {
-    "@typescript-eslint/no-explicit-any": 89,
-    "@typescript-eslint/no-non-null-assertion": 264,
+    "@typescript-eslint/no-explicit-any": 86,
+    "@typescript-eslint/no-non-null-assertion": 263,
     "@typescript-eslint/no-require-imports": 18,
     "@typescript-eslint/no-unsafe-function-type": 1,
     "@typescript-eslint/no-unused-vars": 36,
     "no-await-in-loop": 563,
-    "no-console": 236,
+    "no-console": 235,
     "no-empty": 6
   },
   "suppressed": {
@@ -16,8 +16,8 @@
     "no-misleading-character-class": 1
   },
   "tests": {
-    "@typescript-eslint/no-explicit-any": 1564,
-    "@typescript-eslint/no-non-null-assertion": 1757,
+    "@typescript-eslint/no-explicit-any": 1562,
+    "@typescript-eslint/no-non-null-assertion": 1755,
     "@typescript-eslint/no-require-imports": 25,
     "@typescript-eslint/no-unsafe-function-type": 7,
     "@typescript-eslint/no-unused-vars": 96,

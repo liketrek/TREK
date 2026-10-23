@@ -1,3 +1,5 @@
+import { idSchema } from '../common/primitives.schema';
+
 import { z } from 'zod';
 
 /**
@@ -196,3 +198,17 @@ export const packingCategoryAssigneesRequestSchema = z.object({
   user_ids: z.array(z.number()),
 });
 export type PackingCategoryAssigneesRequest = z.infer<typeof packingCategoryAssigneesRequestSchema>;
+
+/**
+ * What the assistant's `list_packing_items` reads: the items of the trip's
+ * packing list the caller may see, narrowed to one category, one bag (null:
+ * the items in no bag) or a packed state. `group_by` filters nothing; it says
+ * how the answer is meant to be shown, the way the packing list groups it.
+ */
+export const packingListItemsRequestSchema = z.object({
+  category: z.string().min(1).max(100).optional(),
+  bag_id: idSchema.nullable().optional(),
+  status: z.enum(['all', 'open', 'packed']).optional(),
+  group_by: z.enum(['category', 'bag']).optional(),
+});
+export type PackingListItemsRequest = z.infer<typeof packingListItemsRequestSchema>;

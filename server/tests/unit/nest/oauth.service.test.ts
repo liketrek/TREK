@@ -25,7 +25,9 @@ import { dbNow } from '../../../src/db/types';
 import { revokeUserSessionsForClient } from '../../../src/mcp/sessionManager';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import { AuditService } from '../../../src/nest/audit/audit.service';
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import type { CimdClient, CimdClientResolver } from '../../../src/nest/oauth/oauth-cimd';
 import {
   MAX_PENDING_CODES,
   PendingCodeStore,
@@ -34,7 +36,7 @@ import {
 } from '../../../src/nest/oauth/oauth.pending-codes';
 import { OauthService } from '../../../src/nest/oauth/oauth.service';
 import { createUser } from '../../helpers/factories';
-import { findRow, insertRow, updateRows } from '../../helpers/factories/rows';
+import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 
@@ -78,6 +80,10 @@ function makePkce() {
 // Stubbed rather than real: every case drives the MCP gate through this one
 // flag, exactly as the addons.bridge mock did before the fold.
 const addonsStub = { isAddonEnabled } as unknown as AddonsService;
+// Metadata documents are fetched by CimdClientResolver (oauth-cimd.test.ts);
+// here the service only sees what the resolver answers.
+const resolveCimd = vi.fn<(clientId: string) => Promise<CimdClient | null>>();
+const cimdStub = { resolve: resolveCimd } as unknown as CimdClientResolver;
 let svc: OauthService;
 let auditLogRepo: AuditLogRepository;
 let usersRepo: UsersRepository;
@@ -127,6 +133,7 @@ beforeAll(async () => {
     addonsStub,
     new AuditService(auditLogRepo, usersRepo),
     new UnitOfWork(t.em),
+    cimdStub,
   );
 });
 
@@ -137,6 +144,7 @@ beforeEach(() => {
   testDb.exec('DELETE FROM oauth_consents');
   testDb.exec('DELETE FROM oauth_clients');
   isAddonEnabled.mockReturnValue(true);
+  resolveCimd.mockReset().mockResolvedValue(null);
 });
 
 afterAll(async () => {
@@ -1439,8 +1447,163 @@ describe('module-scoped OAuth state', () => {
       addonsStub,
       new AuditService(auditLogRepo, usersRepo),
       new UnitOfWork(t.em),
+      cimdStub,
     );
     expect((await secondInstance.consumeAuthCode(code))?.userId).toBe(42);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Client ID Metadata Documents — an https client_id answers from its document
+// ---------------------------------------------------------------------------
+
+describe('Client ID Metadata Documents', () => {
+  const CIMD_ID = 'https://claude.ai/oauth/mcp-client-metadata';
+  const CALLBACK = 'https://claude.ai/api/mcp/auth_callback';
+
+  function cimdClient(overrides: Partial<CimdClient> = {}): CimdClient {
+    return {
+      clientId: CIMD_ID,
+      host: 'claude.ai',
+      name: 'Claude',
+      redirectUris: [CALLBACK],
+      scopes: ['trips:read', 'trips:write'],
+      ...overrides,
+    };
+  }
+
+  function authorizeParams() {
+    return {
+      response_type: 'code',
+      client_id: CIMD_ID,
+      redirect_uri: CALLBACK,
+      scope: 'trips:read',
+      code_challenge: makePkce().challenge,
+      code_challenge_method: 'S256',
+    };
+  }
+
+  it('CIMD-001: the SDK store reads a public client from the document and writes nothing', async () => {
+    resolveCimd.mockResolvedValue(cimdClient());
+    expect(await svc.getSdkClient(CIMD_ID)).toEqual({
+      client_id: CIMD_ID,
+      name: 'Claude',
+      redirect_uris: JSON.stringify([CALLBACK]),
+      allowed_scopes: JSON.stringify(['trips:read', 'trips:write']),
+      is_public: 1,
+      created_via: 'cimd',
+    });
+    expect(resolveCimd).toHaveBeenCalledWith(CIMD_ID);
+    expect(await countRows(t, OauthClients)).toBe(0);
+  });
+
+  it('CIMD-002: a document that does not resolve is an unknown client', async () => {
+    const { user } = createUser(testDb);
+    expect(await svc.getSdkClient(CIMD_ID)).toBeNull();
+    expect(await validateAuthorizeRequest(authorizeParams(), user.id)).toEqual({
+      valid: false,
+      error: 'invalid_client',
+      error_description: 'Unknown client_id',
+    });
+  });
+
+  it('CIMD-003: validation names the verified host, lets the user pick scopes and still writes nothing', async () => {
+    resolveCimd.mockResolvedValue(cimdClient());
+    const { user } = createUser(testDb);
+    const result = await validateAuthorizeRequest(authorizeParams(), user.id);
+    expect(result).toMatchObject({
+      valid: true,
+      client: { name: 'Claude', allowed_scopes: ['trips:read', 'trips:write'], verified_host: 'claude.ai' },
+      scopes: ['trips:read'],
+      consentRequired: true,
+      scopeSelectable: true,
+    });
+    expect(await countRows(t, OauthClients)).toBe(0);
+  });
+
+  it('CIMD-004: a registered client carries no verified host', async () => {
+    const { user } = createUser(testDb);
+    const created = await makeClient(user.id);
+    const result = await validateAuthorizeRequest(
+      {
+        ...authorizeParams(),
+        client_id: created.client?.client_id as string,
+        redirect_uri: 'https://example.com/callback',
+      },
+      user.id,
+    );
+    expect(result.valid).toBe(true);
+    expect(result.client).toEqual({ name: 'Test Client', allowed_scopes: ['trips:read'] });
+    expect(resolveCimd).not.toHaveBeenCalled();
+  });
+
+  it('CIMD-005: the first consent registers the client as a public, anonymous row, and it then authenticates', async () => {
+    resolveCimd.mockResolvedValue(cimdClient());
+    const { user } = createUser(testDb);
+    await saveConsent(CIMD_ID, user.id, ['trips:read']);
+
+    const row = await findRow(t, OauthClients, { client_id: CIMD_ID });
+    expect(row).toMatchObject({
+      name: 'Claude',
+      is_public: 1,
+      created_via: 'cimd',
+      allows_client_credentials: 0,
+      redirect_uris: JSON.stringify([CALLBACK]),
+      allowed_scopes: JSON.stringify(['trips:read', 'trips:write']),
+    });
+    expect(row?.user).toBeFalsy();
+    expect(await getConsent(CIMD_ID, user.id)).toEqual(['trips:read']);
+    expect((await authenticateClient(CIMD_ID, undefined))?.client_id).toBe(CIMD_ID);
+  });
+
+  it('CIMD-006: a later consent refreshes the row from the document instead of adding one', async () => {
+    resolveCimd.mockResolvedValue(cimdClient());
+    const { user } = createUser(testDb);
+    await saveConsent(CIMD_ID, user.id, ['trips:read']);
+    resolveCimd.mockResolvedValue(cimdClient({ name: 'Claude (renamed)', redirectUris: [CALLBACK, `${CALLBACK}/2`] }));
+    await saveConsent(CIMD_ID, user.id, ['trips:write']);
+
+    const rows = await findRows(t, OauthClients, { client_id: CIMD_ID });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      name: 'Claude (renamed)',
+      redirect_uris: JSON.stringify([CALLBACK, `${CALLBACK}/2`]),
+    });
+    expect(await getConsent(CIMD_ID, user.id)).toEqual(['trips:read', 'trips:write']);
+  });
+
+  it('CIMD-007: consent for a document that no longer resolves is refused and stores nothing', async () => {
+    const { user } = createUser(testDb);
+    const err = await saveConsent(CIMD_ID, user.id, ['trips:read']).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(DomainError);
+    expect((err as DomainError).getStatus()).toBe(400);
+    expect((err as DomainError).toBody()).toEqual({ error: 'invalid_client', error_description: 'Unknown client_id' });
+    expect(await countRows(t, OauthClients)).toBe(0);
+    expect(await countRows(t, OauthConsents)).toBe(0);
+  });
+
+  it('CIMD-008: a full anonymous-client table refuses a new registration with 503', async () => {
+    resolveCimd.mockResolvedValue(cimdClient());
+    const { user } = createUser(testDb);
+    const spy = vi.spyOn(clientsRepo, 'countAnonymous').mockResolvedValueOnce(500);
+    try {
+      const err = await saveConsent(CIMD_ID, user.id, ['trips:read']).catch((e: unknown) => e);
+      expect((err as DomainError).getStatus()).toBe(503);
+      expect((err as DomainError).toBody()).toEqual({ error: 'server_error' });
+      expect(await countRows(t, OauthConsents)).toBe(0);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('CIMD-009: an https id never matches a row another path registered', async () => {
+    resolveCimd.mockResolvedValue(cimdClient());
+    const { user } = createUser(testDb);
+    await insertRow(t, OauthClients, { client_id: CIMD_ID, client_secret_hash: 'hash', name: 'Settings client' });
+    await expect(saveConsent(CIMD_ID, user.id, ['trips:read'])).rejects.toMatchObject({
+      publicMessage: 'invalid_client',
+    });
+    expect((await findRow(t, OauthClients, { client_id: CIMD_ID }))?.name).toBe('Settings client');
   });
 });
 
@@ -1451,16 +1614,21 @@ describe('OauthModule', () => {
     const { OauthApiController } = await import('../../../src/nest/oauth/oauth-api.controller');
     const { OauthService: Svc } = await import('../../../src/nest/oauth/oauth.service');
 
+    const { ClaudeConnectorController } = await import('../../../src/nest/oauth/claude-connector.controller');
+    const { ClaudeConnectorService } = await import('../../../src/nest/oauth/claude-connector.service');
+    const { CimdClientResolver } = await import('../../../src/nest/oauth/oauth-cimd');
     const { TrekClientsStore, TrekOAuthProvider } = await import('../../../src/nest/oauth/oauth-sdk.provider');
     const { OauthTokenRetentionJob } = await import('../../../src/nest/oauth/oauth-token-retention.job');
 
     const controllers = Reflect.getMetadata('controllers', OauthModule);
     const providers = Reflect.getMetadata('providers', OauthModule);
-    expect(controllers).toEqual([OauthPublicController, OauthApiController]);
+    expect(controllers).toEqual([OauthPublicController, OauthApiController, ClaudeConnectorController]);
     // RateLimitService is deliberately absent: it comes from the global
     // RateLimitModule so all consumers share one set of counters.
     expect(providers).toEqual([
       Svc,
+      CimdClientResolver,
+      ClaudeConnectorService,
       TrekClientsStore,
       TrekOAuthProvider,
       OauthTokenRetentionJob,

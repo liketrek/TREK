@@ -48,7 +48,7 @@ export function StopDisc({ stop }: { stop: number | undefined }) {
  * the route's own icon, the others by their letter. The chosen one carries a
  * tick at its corner.
  */
-function VariantMark({ variant, chosen }: { variant: Pick<LegVariant, 'key' | 'current'>; chosen: boolean }) {
+export function VariantMark({ variant, chosen }: { variant: Pick<LegVariant, 'key' | 'current'>; chosen: boolean }) {
   return (
     <span
       className="relative grid h-7 w-7 flex-none place-items-center rounded-full font-geist font-bold uppercase shadow-sm"

@@ -120,5 +120,7 @@ const collab: TranslationStrings = {
     'Ta kategoria jest nadal używana przez notatki. Najpierw je przenieś lub usuń, wtedy będzie można ją usunąć.',
   'collab.notes.categoriesLocalHint':
     'Kategoria bez notatek jest zapisywana tylko w tej przeglądarce. Inni członkowie zobaczą ją, gdy użyje jej jakaś notatka.',
+  'collab.chat.fromAssistant': 'od asystenta',
+  'collab.chat.fromAssistantHint': '{name} udostępnia tę odpowiedź asystenta',
 };
 export default collab;

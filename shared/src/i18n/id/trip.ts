@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'Pilih hari terlebih dahulu',
   'trip.toast.assignedToDay': 'Tempat ditambahkan ke hari',
   'trip.toast.loadError': 'Tidak dapat memuat perjalanan',
+  'trip.toast.accessLost': 'Anda bukan lagi anggota perjalanan ini',
   'trip.toast.reorderError': 'Gagal mengurutkan ulang',
   'trip.toast.reservationUpdated': 'Reservasi diperbarui',
   'trip.toast.reservationAdded': 'Reservasi ditambahkan',

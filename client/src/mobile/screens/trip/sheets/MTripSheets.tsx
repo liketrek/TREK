@@ -26,6 +26,7 @@ import MExportSheet from './MExportSheet'
 import MMehrSheet from './MMehrSheet'
 import MTripSettingsSheet from './MTripSettingsSheet'
 import MNewTripSheet from '../../dashboard/MNewTripSheet'
+import MAssistantScreen from '../assistant/MAssistantScreen'
 import MPlacesFilterSheet from '../places/MPlacesFilterSheet'
 import MRtStopSheet from '../roadtrip/MRtStopSheet'
 import MRtStaySheet from '../roadtrip/MRtStaySheet'
@@ -123,6 +124,8 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
       <MTransportSheet planner={planner} shell={shell} />
       <MBrowseActionsSheet planner={planner} shell={shell} />
       <MMehrSheet planner={planner} shell={shell} />
+      {/* The assistant's full-screen chat, mounted with the trip so it keeps going while the map is up. */}
+      <MAssistantScreen planner={planner} shell={shell} />
       {/* The stage's own sheets. Each one checks shell.sheet?.id itself, the draft
           sheet hangs off planner.stopDraft the way the place editor hangs off its flag. */}
       <MRtStopSheet planner={planner} shell={shell} />

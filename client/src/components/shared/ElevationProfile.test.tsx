@@ -164,4 +164,51 @@ describe('ElevationProfile', () => {
     expect(band).toHaveAttribute('width', '220')
     expect(band).toHaveAttribute('fill', 'var(--map-ferrata)')
   })
+
+  it('FE-ELEV-001: a band that brings its own colour is drawn in it, a little stronger than the via ferrata tint', () => {
+    const { container } = render(
+      <ElevationProfile samples={samples} color="currentColor" gradientId="graded" bands={[{ fromM: 0, toM: 150, color: 'var(--hike-sac-t4)' }]} />,
+    )
+    const band = container.querySelector('[data-profile-band]')
+    expect(band).toHaveAttribute('fill', 'var(--hike-sac-t4)')
+    expect(band).toHaveAttribute('fill-opacity', '0.22')
+  })
+
+  it('FE-ELEV-002: other ways are drawn thin on axes shared with the route, so a longer one reaches the right edge', () => {
+    const longer = [
+      { distanceMeters: 0, elevationMeters: 100, lat: 48, lng: 11 },
+      { distanceMeters: 600, elevationMeters: 300, lat: 48.06, lng: 11.06 },
+    ]
+    const { container } = render(
+      <ElevationProfile samples={samples} color="currentColor" gradientId="compared" compare={[{ key: 'b', samples: longer, color: 'var(--hike-variant-b)' }]} />,
+    )
+    const other = container.querySelector('[data-profile-compare="b"]')
+    expect(other).toHaveAttribute('d', 'M0.0,96.0 L440.0,4.0')
+    expect(other).toHaveAttribute('stroke', 'var(--hike-variant-b)')
+    const line = container.querySelector('path[stroke="currentColor"]')?.getAttribute('d')
+    expect(line).toBe('M0.0,96.0 L73.3,50.0 L220.0,73.0')
+    expect(container.querySelector('path[fill^="url("]')?.getAttribute('d')).toContain('L220.0,100 L0.0,100 Z')
+  })
+
+  it('FE-ELEV-003: with the readout left to the caller no box is drawn over the chart, the focus line stays', () => {
+    const focus = { distanceMeters: 100, elevationMeters: 200, lat: 48.01, lng: 11.01, sampleIndex: 1 }
+    const { container } = render(
+      <ElevationProfile samples={samples} color="currentColor" gradientId="quiet" ariaLabel="Elevation profile" focus={focus} onFocusChange={vi.fn()} readout="none" />,
+    )
+    expect(container.querySelector('[data-profile-focus-readout]')).toBeNull()
+    expect(container.querySelector('[data-profile-focus-line]')).not.toBeNull()
+  })
+
+  it('FE-ELEV-004: keeps the spot a finger lifted from, while a mouse leaving clears it as before', () => {
+    const onFocus = vi.fn()
+    render(
+      <ElevationProfile samples={samples} color="currentColor" gradientId="kept" ariaLabel="Elevation profile" onFocusChange={onFocus} keepFocusOnLift />,
+    )
+    const profile = screen.getByRole('group', { name: 'Elevation profile' })
+    fireEvent.pointerLeave(profile, { pointerType: 'touch' })
+    fireEvent.pointerCancel(profile, { pointerType: 'touch' })
+    expect(onFocus).not.toHaveBeenCalledWith(null)
+    fireEvent.pointerLeave(profile, { pointerType: 'mouse' })
+    expect(onFocus).toHaveBeenLastCalledWith(null)
+  })
 })

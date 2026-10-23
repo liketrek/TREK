@@ -37,6 +37,7 @@ describe('a city walk prepared from a briefing (CW-11)', () => {
       theme_places_max: 0,
       corridor_m: 500,
       lang: 'de',
+      include_geometry: true,
     };
     expect(cityWalkBriefingRequestSchema.parse(full)).toEqual(full);
   });
@@ -64,6 +65,7 @@ describe('a city walk prepared from a briefing (CW-11)', () => {
       },
       { ...briefing, theme_places_max: CITY_WALK_BRIEFING_LIMITS.themePlaces + 1 },
       { ...briefing, corridor_m: 5000 },
+      { ...briefing, include_geometry: 'yes' },
     ];
     expect(refused.map((body) => cityWalkBriefingRequestSchema.safeParse(body).success)).toEqual(
       refused.map(() => false),

@@ -1,8 +1,12 @@
-import type { HikingPreferences, PlannableTourType, TourMaxHikingDifficulty } from '@trek/shared';
+import {
+  hikingCosting,
+  type HikingPreferences,
+  type PlannableTourType,
+  type TourMaxHikingDifficulty,
+} from '@trek/shared';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { randomId } from '../../../utils/randomId';
 import type { CostingOptions } from '../../Map/valhallaRoute';
-import { hikingCosting } from './hikingCosting';
 import { findRoundHikes, type RoundSearchReport } from './roundHikeRouting';
 import {
   canStartRound,

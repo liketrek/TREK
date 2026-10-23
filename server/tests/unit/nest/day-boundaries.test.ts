@@ -157,9 +157,18 @@ it('MCP checks demo, trip access and edit permission before saving', async () =>
   s.guards.hasTripPermission.mockReturnValue(false);
   await s.mcp.save(request, ctx);
   expect(await s.service.list(s.tripA.id)).toEqual([]);
+  // A refused call tells nobody anything.
+  expect(s.realtime.broadcast).not.toHaveBeenCalled();
   s.guards.hasTripPermission.mockReturnValue(true);
   await s.mcp.save(request, ctx);
   expect(await s.service.list(s.tripA.id)).toEqual([boundary]);
+  // Clearing a boundary goes through `remove`, which the parity case never runs, so the
+  // event it sends is pinned here: once, with the list as it is now.
+  s.realtime.broadcast.mockClear();
   await s.mcp.save({ ...request, boundary: null }, ctx);
   expect(await s.service.list(s.tripA.id)).toEqual([]);
+  expect(s.realtime.broadcast).toHaveBeenCalledTimes(1);
+  expect(s.realtime.broadcast).toHaveBeenCalledWith(String(s.tripA.id), 'roadtripBoundary:changed', {
+    boundaries: [],
+  });
 });

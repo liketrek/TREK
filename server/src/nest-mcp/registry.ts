@@ -17,7 +17,7 @@ import type {
   ToolOptions,
 } from './types';
 import { ResourceTemplate as SdkResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
 import { z } from 'zod';
 
@@ -151,6 +151,7 @@ export class McpRegistry {
   async attach(server: McpServer, ctx: McpContext, opts?: McpAttachOptions): Promise<void> {
     const registrar = server as unknown as LooseRegistrar;
     for (const { entry, instance } of this.bound) {
+      if (opts?.include && !opts.include(entry.kind, entry.options.name)) continue;
       if (!(await this.allowed(entry, ctx, instance))) continue;
       const handler = (instance as unknown as Record<string, AnyHandler>)[entry.methodName];
       switch (entry.kind) {
@@ -231,6 +232,7 @@ export class McpRegistry {
         // Claimed before the gate, so a denied entry still owns its name and a
         // later duplicate cannot slip in behind it.
         claimed.add(name);
+        if (opts.include && !opts.include('tool', name)) continue;
         const owner = tool.owner ?? NO_OWNER;
         // allowed() is inside the try because it is the second live throw site:
         // declarative access with no configured accessPolicy. Registered
@@ -475,4 +477,9 @@ export class McpRegistry {
           };
     registrar.registerPrompt(options.name, config, cb);
   }
+}
+
+/** A server of its own for a client in the same process (the assistant's tool session), to attach a registry to. */
+export function createLocalMcpServer(name: string): McpServer {
+  return new McpServer({ name, version: '1.0.0' });
 }

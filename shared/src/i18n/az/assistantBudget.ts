@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const assistantBudget: TranslationStrings = {
+  'assistant.change.verb.addPayment': 'Ödəniş qeyd et',
+  'assistant.change.verb.updatePayment': 'Ödənişi dəyiş',
+  'assistant.tool.create_budget_item_with_members': 'Xərc əlavə et',
+  'assistant.tool.set_budget_item_members': 'Xərci kimlərin bölüşdüyünü dəyiş',
+  'assistant.tool.toggle_budget_member_paid': 'Kimin ödədiyini yenilə',
+  'assistant.tool.create_settlement': 'Ödəniş qeyd et',
+  'assistant.tool.update_settlement': 'Bu ödənişi dəyiş',
+  'assistant.tool.delete_settlement': 'Bu ödənişi sil',
+  'assistant.tool.freeze_budget_rates': 'Bugünkü valyuta məzənnələrini sabitlə',
+  'assistant.followUp.whoOwes': 'Kim kimə borcludur?',
+  'assistant.followUp.recordPayments': 'Bu ödənişləri qeyd et',
+  'assistant.card.budget.open': 'Xərclər bölməsində aç',
+  'assistant.card.budget.paidBy': '{name} ödədi',
+  'assistant.card.budget.notPaid': 'Ödənilməyib',
+  'assistant.card.budget.split.equal': 'Bərabər bölünüb',
+  'assistant.card.budget.split.custom': 'Fərqli məbləğlərlə bölünüb',
+  'assistant.card.budget.split.none': 'Yalnız planlaşdırma, bölünməyib',
+  'assistant.card.budget.together': 'Cəmi {amount}',
+  'assistant.card.budget.markedPaid': '{amount} ödənilmiş kimi qeyd olunub',
+  'assistant.card.budget.receipts': '{count} qəbz',
+  'assistant.card.budget.receipts.one': '{count} qəbz',
+  'assistant.card.budget.leftOut': 'Xarici valyutada {count} xərc cəmə daxil edilmir: hələ məzənnə yoxdur.',
+  'assistant.card.budget.leftOut.one': 'Xarici valyutada {count} xərc cəmə daxil edilmir: hələ məzənnə yoxdur.',
+  'assistant.card.budget.unconverted': '{currencies} ilə {count} qeyd hesablanmır: hələ məzənnə yoxdur.',
+  'assistant.card.budget.unconverted.one': '{currencies} ilə {count} qeyd hesablanmır: hələ məzənnə yoxdur.',
+};
+export default assistantBudget;

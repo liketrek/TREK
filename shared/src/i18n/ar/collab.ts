@@ -129,5 +129,7 @@ const collab: TranslationStrings = {
   'collab.notes.categoryInUse': 'ما زالت ملاحظات تستخدم هذه الفئة. انقلها أو احذفها أولاً لتتمكن من إزالة الفئة.',
   'collab.notes.categoriesLocalHint':
     'الفئة التي لا تحتوي على ملاحظات تُحفظ في هذا المتصفح فقط. يراها الأعضاء الآخرون عندما تستخدمها ملاحظة.',
+  'collab.chat.fromAssistant': 'من المساعد',
+  'collab.chat.fromAssistantHint': 'شارك {name} هذه الإجابة من المساعد',
 };
 export default collab;

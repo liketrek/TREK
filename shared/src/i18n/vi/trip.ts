@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'Vui lòng chọn một ngày trước',
   'trip.toast.assignedToDay': 'Địa điểm đã được gán vào ngày',
   'trip.toast.loadError': 'Không thể tải chuyến đi',
+  'trip.toast.accessLost': 'Bạn không còn là thành viên của chuyến đi này',
   'trip.toast.reorderError': 'Không thể sắp xếp lại',
   'trip.toast.reservationUpdated': 'Đã cập nhật đặt chỗ',
   'trip.toast.reservationAdded': 'Đã thêm đặt chỗ',

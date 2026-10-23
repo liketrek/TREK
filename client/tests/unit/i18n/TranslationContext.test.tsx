@@ -25,6 +25,10 @@ function HtmlProbe({ tKey, params }: { tKey: string; params?: Record<string, str
   return <span data-testid="raw">{tHtml(tKey, params)}</span>;
 }
 
+// A language's string table is built from its files the first time it is asked
+// for; on a busy runner that can take longer than waitFor's default second.
+const FIRST_LOAD = { timeout: 5000 };
+
 function withLanguage(language: string) {
   seedStore(useSettingsStore, { settings: { language } });
 }
@@ -73,14 +77,14 @@ describe('TranslationProvider', () => {
     render(<TranslationProvider><Probe tKey="common.save" /></TranslationProvider>);
 
     expect(screen.getByTestId('language').textContent).toBe('de');
-    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('Speichern'));
+    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('Speichern'), FIRST_LOAD);
     expect(screen.getByTestId('locale').textContent).toBe('de-DE');
   });
 
   it('FE-COMP-I18NCTX-006: falls back to the English string for a key a locale is missing', async () => {
     withLanguage('de');
     render(<TranslationProvider><Probe tKey="does.not.exist" /></TranslationProvider>);
-    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('does.not.exist'));
+    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('does.not.exist'), FIRST_LOAD);
   });
 
   it('FE-COMP-I18NCTX-007: writes lang and ltr direction onto the html element', () => {
@@ -97,7 +101,7 @@ describe('TranslationProvider', () => {
 
     expect(document.documentElement.lang).toBe('ar');
     expect(document.documentElement.dir).toBe('rtl');
-    await waitFor(() => expect(screen.getByTestId('value').textContent).not.toBe('Save'));
+    await waitFor(() => expect(screen.getByTestId('value').textContent).not.toBe('Save'), FIRST_LOAD);
   });
 
   it('FE-COMP-I18NCTX-009: keeps the English table for an unknown language code', () => {
@@ -147,7 +151,7 @@ describe('TranslationProvider', () => {
     // English strings until the Russian chunk arrives, read with the English
     // rule: 21 is "other" there, while Russian's rule would pick English's .one.
     expect(screen.getByTestId('value').textContent).toBe('21 places');
-    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('21 место'));
+    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('21 место'), FIRST_LOAD);
   });
 
   it('FE-COMP-I18NCTX-012: the default context outside a provider echoes the key', () => {

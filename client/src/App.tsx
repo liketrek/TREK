@@ -65,6 +65,8 @@ const InAppNotificationsPage = lazyWithRetry(() => import('./pages/InAppNotifica
 const OAuthAuthorizePage = lazyWithRetry(() => import('./pages/OAuthAuthorizePage'))
 // The tour keep dialog a day plan row opens; it loads only once a tour is to be kept.
 const TourSaveToCollectionHost = lazyWithRetry(() => import('./components/Tours/collection/TourSaveToCollectionHost'))
+// The desktop assistant window: its own chunk, and nothing at all until a connection is set up.
+const AssistantHost = lazyWithRetry(() => import('./components/Assistant/AssistantHost'))
 
 // The ten phone screens are chunks of their own, alongside the desktop pages
 // rather than inside them. Each page used to import its M screen statically and
@@ -408,6 +410,12 @@ export default function App() {
       {!hideAuthedWidgets && <ErrorBoundary boundaryId="widget:background-tasks" fallback={null}><BackgroundTasksWidget /></ErrorBoundary>}
       {!hideAuthedWidgets && (isPhone ? <MSaveToCollectionSheet /> : <SaveToCollectionModal />)}
       {!hideAuthedWidgets && keepingTour && <ErrorBoundary boundaryId="widget:keep-tour" fallback={null}><Suspense fallback={null}><TourSaveToCollectionHost /></Suspense></ErrorBoundary>}
+      {/* The phone has its own assistant screen inside the trip. */}
+      {!hideAuthedWidgets && isAuthenticated && !isPhone && (
+        <ErrorBoundary boundaryId="widget:assistant" fallback={null}>
+          <Suspense fallback={null}><AssistantHost /></Suspense>
+        </ErrorBoundary>
+      )}
       <ErrorBoundary boundaryId="widget:offline-banner" fallback={null}><OfflineBanner /></ErrorBoundary>
       <ErrorBoundary boundaryId="widget:new-version" fallback={null}><NewVersionNotice /></ErrorBoundary>
       {/* One boundary for all route chunks, above <Routes> so it stays mounted

@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import DawarichIcon from '../../../../components/shared/DawarichIcon'
 import {
   Bookmark, Camera, ChevronRight, ExternalLink, Loader2, Map as MapIcon, Navigation, Paperclip,
-  Pencil, Phone, Plus, Route, RouteOff, Trash2, Upload, X,
+  Pencil, Phone, Plus, Route, RouteOff, Sparkles, Trash2, Upload, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -10,6 +10,7 @@ import { useTranslation, translateApiError } from '../../../../i18n'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useSaveToCollectionStore } from '../../../../store/saveToCollectionStore'
 import { placeToSaveTarget } from '../../../../components/Collections/saveTarget'
+import { useAssistantAsk } from '../../../../components/Assistant/useAssistantAsk'
 import {
   participantsWith, participantsWithout, placeActions, splitParticipants, usePlaceFileUpload, usePlaceImagePick,
 } from '../../../../components/Planner/usePlaceActions'
@@ -49,6 +50,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   const canManagePlace = canEditPlaces && !isTourPlace
   const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
   const openSavePicker = useSaveToCollectionStore(s => s.open)
+  const assistant = useAssistantAsk(planner.tripId)
 
   const actions = placeActions({ tripId: planner.tripId, tripActions: planner.tripActions, toast: planner.toast, t })
   const {
@@ -569,6 +571,11 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
 
             {/* ── Action row ── */}
             <div className="mt-[14px] flex items-center gap-[7px]">
+              {assistant.available && (
+                <ActionCircle onClick={() => { close(); assistant.askAbout(place.id) }} label={t('assistant.context.ask')}>
+                  <Sparkles size={15} strokeWidth={2} />
+                </ActionCircle>
+              )}
               {collectionsEnabled && !isTourPlace && (
                 <ActionCircle onClick={saveToCollection} label={t('inspector.saveToCollection')}>
                   <Bookmark size={15} strokeWidth={2} />

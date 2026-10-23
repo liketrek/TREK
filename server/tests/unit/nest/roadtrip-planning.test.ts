@@ -496,11 +496,11 @@ describe('Roadtrip MCP registration and search', () => {
   it('checks visit editing permission and ownership before moving a via', async () => {
     const service = {
       dayExists: vi.fn(() => true),
-      move: vi.fn(() => ({ id: 4 })),
-      listForDay: () => [],
-      broadcast: vi.fn(),
+      moveVia: vi.fn(() => ({ id: 4 })),
     };
-    const guards = { hasTripPermission: vi.fn(() => false) };
+    // The move and what it tells the trip are the service's; the tool hands it the MCP writer.
+    const writer = { userId: 5, surface: 'mcp' };
+    const guards = { hasTripPermission: vi.fn(() => false), tripWriter: vi.fn(async () => writer) };
     const mcp = new RoadtripMcp(
       service as never,
       { findAccessible: () => true } as never,
@@ -509,15 +509,15 @@ describe('Roadtrip MCP registration and search', () => {
     );
     const input = { tripId: 1, dayId: 2, viaId: 4, lat: 48, lng: 10 };
     await mcp.updateVia(input, ctx);
-    expect(service.move).not.toHaveBeenCalled();
+    expect(service.moveVia).not.toHaveBeenCalled();
     guards.hasTripPermission.mockReturnValue(true);
     service.dayExists.mockReturnValue(false);
     await mcp.updateVia(input, ctx);
-    expect(service.move).not.toHaveBeenCalled();
+    expect(service.moveVia).not.toHaveBeenCalled();
     service.dayExists.mockReturnValue(true);
     await mcp.updateVia(input, ctx);
-    expect(service.move).toHaveBeenCalledWith(4, 2, 48, 10, undefined);
-    expect(service.broadcast).toHaveBeenCalled();
+    expect(guards.tripWriter).toHaveBeenCalledWith(1, 5);
+    expect(service.moveVia).toHaveBeenCalledWith(2, 4, { lat: 48, lng: 10, after_order_index: undefined }, writer);
   });
 });
 
@@ -534,15 +534,14 @@ describe('RoadtripMcp — non-member refusal, one case per tool (Plan 3d Task 7 
       listForTrip: vi.fn(async () => []),
       tracksForTrip: vi.fn(async () => []),
       trackExists: vi.fn(async () => true),
-      create: vi.fn(async () => ({ id: 1 })),
-      createMany: vi.fn(async () => []),
-      reanchor: vi.fn(async () => []),
-      remove: vi.fn(async () => true),
-      move: vi.fn(async () => ({ id: 1 })),
-      broadcast: vi.fn(),
+      addVia: vi.fn(async () => ({ id: 1 })),
+      addVias: vi.fn(async () => []),
+      reanchorVias: vi.fn(async () => []),
+      removeVia: vi.fn(async () => true),
+      moveVia: vi.fn(async () => ({ id: 1 })),
     };
     const tripsRepo = { findAccessible: vi.fn(async () => findAccessible) };
-    const guards = { hasTripPermission: vi.fn(async () => true) };
+    const guards = { hasTripPermission: vi.fn(async () => true), tripWriter: vi.fn(async () => ({ userId: 5 })) };
     const mcp = new RoadtripMcp(service as never, tripsRepo as never, guards as never, {} as never);
     return { mcp, service, tripsRepo };
   }
@@ -559,28 +558,28 @@ describe('RoadtripMcp — non-member refusal, one case per tool (Plan 3d Task 7 
     const { mcp, service } = build(false);
     const res = await mcp.addVia({ tripId: 10, dayId: 1, after_order_index: 0, lat: 48, lng: 10 }, ctx);
     expect(res.isError).toBe(true);
-    expect(service.create).not.toHaveBeenCalled();
+    expect(service.addVia).not.toHaveBeenCalled();
   });
 
   it('add_route_vias refuses a non-member trip', async () => {
     const { mcp, service } = build(false);
     const res = await mcp.addVias({ tripId: 10, dayId: 1, vias: [] }, ctx);
     expect(res.isError).toBe(true);
-    expect(service.createMany).not.toHaveBeenCalled();
+    expect(service.addVias).not.toHaveBeenCalled();
   });
 
   it('reanchor_route_vias refuses a non-member trip', async () => {
     const { mcp, service } = build(false);
     const res = await mcp.reanchorVias({ tripId: 10, dayId: 1, vias: [] }, ctx);
     expect(res.isError).toBe(true);
-    expect(service.reanchor).not.toHaveBeenCalled();
+    expect(service.reanchorVias).not.toHaveBeenCalled();
   });
 
   it('remove_route_via refuses a non-member trip', async () => {
     const { mcp, service } = build(false);
     const res = await mcp.removeVia({ tripId: 10, dayId: 1, viaId: 4 }, ctx);
     expect(res.isError).toBe(true);
-    expect(service.remove).not.toHaveBeenCalled();
+    expect(service.removeVia).not.toHaveBeenCalled();
   });
 });
 
@@ -716,6 +715,50 @@ describe('corridor filtering', () => {
     expect((await read({ fromKm: 100 })).hits).toHaveLength(0);
     expect((await read({ toKm: 0 })).hits).toHaveLength(0);
     expect((await read({})).failedSources).toEqual(['plugin']);
+  });
+  it('RTMCP-001: names the two stops of the day each hit lies between, and none on a day of one stop', async () => {
+    const s = tool();
+    s.plan.calculated.days[0].stops = [
+      { name: 'Augsburg', lat: 48, lng: 10 },
+      { name: 'Ulm', lat: 48, lng: 10.06 },
+      { name: 'Stuttgart', lat: 48, lng: 10.1 },
+    ] as never;
+    const read = async () => JSON.parse((await s.mcp.corridor(input, ctx)).content[0].text as string);
+    const between = (body: { hits: { poi: { name: string }; between: unknown }[] }) =>
+      Object.fromEntries(body.hits.map((hit) => [hit.poi.name, hit.between]));
+    expect(between(await read())).toEqual({
+      Fast: ['Augsburg', 'Ulm'],
+      Unknown: ['Augsburg', 'Ulm'],
+      Slow: ['Ulm', 'Stuttgart'],
+    });
+    s.plan.calculated.days[0].stops = [{ name: 'Augsburg', lat: 48, lng: 10 }] as never;
+    expect(Object.values(between(await read()))).toEqual([null, null, null]);
+  });
+  it('RTMCP-002: places each stop after the previous one, so a day crossing itself names the right pair', async () => {
+    const s = tool();
+    // East, north, then south across the first stretch at (48, 10.05) and on below it.
+    s.plan.calculated.days[0].geometry = [
+      [48, 10],
+      [48, 10.1],
+      [48.05, 10.1],
+      [48.05, 10.05],
+      [47.95, 10.05],
+    ];
+    s.plan.calculated.days[0].stops = [
+      { name: 'Start', lat: 48, lng: 10 },
+      { name: 'Corner', lat: 48.05, lng: 10.1 },
+      { name: 'Crossing', lat: 48, lng: 10.05 },
+      { name: 'End', lat: 47.95, lng: 10.05 },
+    ] as never;
+    s.maps.search.mockResolvedValue({
+      pois: [{ osm_id: 'x', name: 'Before the crossing', lat: 48.03, lng: 10.05, category: 'charging' }],
+      sources: ['osm'],
+      failedSources: [],
+      truncated: false,
+      clamped: false,
+    } as never);
+    const body = JSON.parse((await s.mcp.corridor(input, ctx)).content[0].text as string);
+    expect(body.hits.map((hit: { between: unknown }) => hit.between)).toEqual([['Corner', 'Crossing']]);
   });
   it('leaves the ride between two terminals out of the search and drops a hit under the flight path (#2428)', async () => {
     // The day drives to the airport, flies two degrees north and east, and drives on

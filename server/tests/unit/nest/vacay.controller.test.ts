@@ -101,10 +101,12 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
       );
     });
 
-    it('sends an invite', async () => {
+    it('sends an invite, handing on the socket id', async () => {
       const sendInvite = vi.fn().mockReturnValue({});
-      expect(await makeController({ ...planBase, sendInvite }).invite(user, { user_id: 2 })).toEqual({ success: true });
-      expect(sendInvite).toHaveBeenCalledWith(10, 1, 'u', 2);
+      expect(await makeController({ ...planBase, sendInvite }).invite(user, { user_id: 2 }, 'sid')).toEqual({
+        success: true,
+      });
+      expect(sendInvite).toHaveBeenCalledWith(10, 1, 'u', 2, 'sid');
     });
 
     it('maps an acceptInvite error', () => {
@@ -119,9 +121,10 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
       const cancelInvite = vi.fn();
       const dissolvePlan = vi.fn();
       expect(await makeController({ declineInvite }).declineInvite(user, { plan_id: 5 })).toEqual({ success: true });
-      expect(await makeController({ ...planBase, cancelInvite }).cancelInvite(user, { user_id: 2 })).toEqual({
+      expect(await makeController({ ...planBase, cancelInvite }).cancelInvite(user, { user_id: 2 }, 'sid')).toEqual({
         success: true,
       });
+      expect(cancelInvite).toHaveBeenCalledWith(10, 2, 'sid');
       expect(await makeController({ dissolvePlan }).dissolve(user)).toEqual({ success: true });
     });
   });

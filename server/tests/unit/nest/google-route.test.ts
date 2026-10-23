@@ -18,7 +18,7 @@ async function setup() {
   const places = { create: vi.fn((_trip: string, stop: { name: string }) => ({ id: stop.name })), broadcast: vi.fn() };
   const assignments = {
     dayExists: vi.fn(() => true),
-    createAssignment: vi.fn((dayId: number, placeId: string) => ({ dayId, placeId })),
+    createAssignment: vi.fn((dayId: number, placeId: string) => ({ id: `a-${placeId}`, dayId, placeId })),
     broadcast: vi.fn(),
     reconcile: vi.fn(),
   };
@@ -126,7 +126,11 @@ describe('Google route import', () => {
 
   it('appends stops in order with car transport and broadcasts after saving', async () => {
     const { service, places, assignments, permissions } = await setup();
-    expect(await service.import(1, 7, input)).toEqual({ imported: 2 });
+    expect(await service.import(1, 7, input)).toEqual({
+      imported: 2,
+      place_ids: ['Munich', 'Rome'],
+      assignment_ids: ['a-Munich', 'a-Rome'],
+    });
     expect(places.create.mock.calls.map((call) => call[1].name)).toEqual(['Munich', 'Rome']);
     expect(places.create).toHaveBeenCalledWith(
       '1',
@@ -152,7 +156,7 @@ describe('Google route import', () => {
       return { id: stop.name };
     });
     assignments.createAssignment
-      .mockImplementationOnce(() => ({ dayId: 3, placeId: 'Munich' }))
+      .mockImplementationOnce(() => ({ id: 'a-Munich', dayId: 3, placeId: 'Munich' }))
       .mockImplementationOnce(() => {
         throw new Error('write failed');
       });

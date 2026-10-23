@@ -12,8 +12,10 @@ import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { AddonsModule } from '../addons/addons.module';
 import { RateLimitModule } from '../common/rate-limit.module';
 import { ApiTokenGuard } from '../public-api/api-token.guard';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { TokensModule } from '../tokens/tokens.module';
+import { AtlasWritesService } from './atlas-writes.service';
 import { AtlasController } from './atlas.controller';
 import { AtlasMcp } from './atlas.mcp';
 import { AtlasRpc } from './atlas.rpc';
@@ -50,6 +52,11 @@ import { Module } from '@nestjs/common';
  *
  * PlaceRegionsRepairJob puts right, once, the place_regions rows cached before #2527;
  * `AppSettings` is in the feature list for the marker row it reads and writes.
+ *
+ * AtlasWritesService holds the writes the routes and the tools make, each
+ * followed by `atlas:changed` to the user; it is exported for the Dawarich
+ * confirmations, which announce through it after their own commit. RealtimeModule
+ * is imported for it, so the module boots on its own (atlas.e2e) as in the app.
  */
 @Module({
   imports: [
@@ -58,6 +65,7 @@ import { Module } from '@nestjs/common';
     TokensModule,
     RateLimitModule,
     SchedulingModule,
+    RealtimeModule,
     MikroOrmModule.forFeature([
       BucketList,
       HiddenCountries,
@@ -72,7 +80,7 @@ import { Module } from '@nestjs/common';
     ]),
   ],
   controllers: [AtlasController, TravelStatsController, PublicStatsController],
-  providers: [AtlasService, AtlasMcp, AtlasRpc, ApiTokenGuard, PlaceRegionsRepairJob],
-  exports: [AtlasService],
+  providers: [AtlasService, AtlasWritesService, AtlasMcp, AtlasRpc, ApiTokenGuard, PlaceRegionsRepairJob],
+  exports: [AtlasService, AtlasWritesService],
 })
 export class AtlasModule {}

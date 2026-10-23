@@ -1,6 +1,5 @@
 import type { BookDocument } from '@trek/shared'
-import { MAX_TEXT_LENGTH } from '@trek/shared'
-import { formatBookCoords, formatBookDate } from './entryText'
+import { MAX_TEXT_LENGTH, bookCoordValue, formatBookCoords, formatBookDate } from '@trek/shared'
 
 /**
  * Reading a book's bound text back out of the journey.
@@ -137,16 +136,11 @@ function resolveOne(binding: Binding, src: BindingSource, locale: string): Resol
       // the field is genuinely absent rather than defaulted.
       if (!binding.format) return { text: entry.location ?? '' }
       if (entry.lat == null || entry.lng == null) return null
-      const value = coordValue(entry.lat, entry.lng)
+      const value = bookCoordValue(entry.lat, entry.lng)
       if (!binding.value || binding.value === value) return null
       return { text: formatBookCoords(entry.lat, entry.lng, binding.format), value }
     }
 
     default: return null
   }
-}
-
-/** What a point is, as one string, for the comparison above. */
-export function coordValue(lat: number, lng: number): string {
-  return `${lat},${lng}`
 }

@@ -273,6 +273,33 @@ describe('Tool: delete_tag', () => {
   });
 });
 
+describe('Tag writes reach every tab of the user', () => {
+  it('MCP-TAGS-001: create_tag, update_tag and delete_tag each ping the tag pickers of every tab', async () => {
+    const { user } = createUser(testDb);
+    realtime.broadcastToUserMock.mockClear();
+    await withHarness(user.id, async (h) => {
+      const created = parseToolResult(
+        await h.client.callTool({ name: 'create_tag', arguments: { name: 'Beach' } }),
+      ) as { tag: { id: number } };
+      await h.client.callTool({ name: 'update_tag', arguments: { tagId: created.tag.id, name: 'Coast' } });
+      await h.client.callTool({ name: 'delete_tag', arguments: { tagId: created.tag.id } });
+    });
+    const ping = [user.id, { type: 'tags:changed' }, undefined];
+    expect(realtime.broadcastToUserMock.mock.calls).toEqual([ping, ping, ping]);
+  });
+
+  it('MCP-TAGS-002: a tag of another user is refused without a ping', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const foreign = await makeTag(orm, other.id);
+    realtime.broadcastToUserMock.mockClear();
+    await withHarness(user.id, async (h) => {
+      expect((await h.client.callTool({ name: 'delete_tag', arguments: { tagId: foreign.id } })).isError).toBe(true);
+    });
+    expect(realtime.broadcastToUserMock).not.toHaveBeenCalled();
+  });
+});
+
 // ---------------------------------------------------------------------------
 // tags scope gating (places:read / places:write, registration-time)
 // ---------------------------------------------------------------------------

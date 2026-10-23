@@ -1,4 +1,4 @@
-// FE-W4CTX-001 to FE-W4CTX-010
+// FE-W4CTX-001 to FE-W4CTX-013
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { Trash2 } from 'lucide-react'
 import { renderHook, act } from '@testing-library/react'
@@ -122,6 +122,26 @@ describe('ContextMenu', () => {
     fireEvent.scroll(window)
     fireEvent(window, new Event('resize'))
     expect(onClose).toHaveBeenCalledTimes(3)
+  })
+
+  it('FE-W4CTX-013: Escape on an item closes the menu and goes no further, so nothing under it acts on it', () => {
+    const onClose = vi.fn()
+    const parentKeys = vi.fn()
+    const documentKeys = vi.fn()
+    document.addEventListener('keydown', documentKeys)
+    render(
+      <div onKeyDown={parentKeys}>
+        <ContextMenu menu={{ x: 0, y: 0, items: [{ label: 'Open' }] }} onClose={onClose} />
+      </div>,
+    )
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Open' }), { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledOnce()
+    expect(parentKeys).not.toHaveBeenCalled()
+    expect(documentKeys).not.toHaveBeenCalled()
+    // Any other key still reaches the page.
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Open' }), { key: 'a' })
+    expect(parentKeys).toHaveBeenCalledOnce()
+    document.removeEventListener('keydown', documentKeys)
   })
 
   it('FE-W4CTX-012: focus starts on the first usable item and the arrow keys move it, wrapping', () => {

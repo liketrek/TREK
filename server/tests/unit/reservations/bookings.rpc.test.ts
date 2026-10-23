@@ -41,6 +41,8 @@ function build(
   opts: {
     canEdit?: boolean;
     cascade?: boolean;
+    /** The update wrote the booking's stay for the first time. */
+    created?: boolean;
     stop?: boolean;
     seenActions?: string[];
     unresolved?: string[];
@@ -54,7 +56,12 @@ function build(
   const reservations = {
     createWithCost: vi.fn(() => ({ reservation: { id: 40 }, accommodationCreated: !!opts.cascade, costEvents: [] })),
     getReservation: vi.fn((id: string) => (id === '5' ? { id: 5, title: 'Hotel', type: 'lodging' } : undefined)),
-    updateWithCost: vi.fn(() => ({ reservation: { id: 5 }, accommodationChanged: !!opts.cascade, costEvents: [] })),
+    updateWithCost: vi.fn(() => ({
+      reservation: { id: 5 },
+      accommodationChanged: !!opts.cascade || !!opts.created,
+      accommodationCreated: !!opts.created,
+      costEvents: [],
+    })),
     remove: vi.fn((id: string) =>
       id === '5'
         ? {
@@ -277,6 +284,14 @@ describe('ReservationsRpc', () => {
     f.realtime.broadcast.mockClear();
     await f.host().dispatch(req('reservations.delete', { tripId: 1, reservationId: 5 }), 42);
     expect(events(f.realtime)).toEqual(['reservation:deleted']);
+  });
+
+  it('BOOK-RPC-022 an update that writes the stay for the first time announces it as created, as REST does', async () => {
+    const f = build({ created: true });
+    await f
+      .host()
+      .dispatch(req('reservations.update', { tripId: 1, reservationId: 5, input: { title: 'x', type: 'hotel' } }), 42);
+    expect(events(f.realtime)).toEqual(['accommodation:created', 'reservation:updated']);
   });
 
   it('BOOK-RPC-008e an update with a malformed endpoints array is BAD_PARAMS too', async () => {

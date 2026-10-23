@@ -1,5 +1,7 @@
 import { OauthClients } from '../../../../src/db/entities/OauthClients.entity';
+import { OauthTokens } from '../../../../src/db/entities/OauthTokens.entity';
 import type { OauthClientsRepository } from '../../../../src/db/repositories/OauthClients.repository';
+import { dbNow } from '../../../../src/db/types';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
@@ -23,6 +25,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   resetTestDb(testDb);
   t.clear();
+  await deleteRows(t, OauthTokens);
   await deleteRows(t, OauthClients);
 });
 afterAll(async () => {
@@ -303,6 +306,75 @@ describe('OauthClientsRepository', () => {
       const row = await storedClient(id);
       expect(row?.client_secret_hash).toBe('rotated'); // the nativeUpdate must stick
       expect(row?.name).toBe('kept-name'); // untouched by either read
+    });
+  });
+
+  describe('upsertCimdClient', () => {
+    const cimd = (name: string, scopes = '["trips:read"]') => ({
+      id: 'cimd-row',
+      name,
+      client_id: 'https://claude.ai/oauth/mcp-client.json',
+      client_secret_hash: '',
+      redirect_uris: '["https://claude.ai/api/mcp/auth_callback"]',
+      allowed_scopes: scopes,
+    });
+
+    it('OAUTHCLIENTREPO-017: registers a public cimd client, then refreshes it from its document', async () => {
+      await clients.upsertCimdClient(cimd('Claude'));
+      expect(await storedClient('cimd-row')).toMatchObject({
+        name: 'Claude',
+        is_public: 1,
+        created_via: 'cimd',
+        user_id: null,
+        allows_client_credentials: 0,
+      });
+      await clients.upsertCimdClient({ ...cimd('Claude (new)', '["trips:read","places:write"]'), id: 'ignored' });
+      expect(await findRow(t, OauthClients, { id: 'ignored' })).toBeNull();
+      expect(await storedClient('cimd-row')).toMatchObject({
+        name: 'Claude (new)',
+        allowed_scopes: '["trips:read","places:write"]',
+      });
+    });
+
+    it('OAUTHCLIENTREPO-018: leaves a client another path registered under that client_id alone', async () => {
+      const { id } = await seedClient({ clientId: 'https://claude.ai/oauth/mcp-client.json', name: 'Registered' });
+      await clients.upsertCimdClient(cimd('Claude'));
+      expect(await storedClient(id)).toMatchObject({ name: 'Registered', created_via: 'settings_ui' });
+    });
+  });
+
+  describe('deleteUnusedCimdBefore', () => {
+    const CUTOFF = dbNow(new Date('2026-10-01T00:00:00Z'));
+    const OLD = '2026-09-01 00:00:00';
+
+    async function holdToken(clientId: string): Promise<void> {
+      const { user } = createUser(testDb);
+      await insertRow(t, OauthTokens, {
+        client: clientId,
+        user: user.id,
+        access_token_hash: `acc-${clientId}`,
+        refresh_token_hash: `ref-${clientId}`,
+        access_token_expires_at: new Date(Date.now() + 3600_000).toISOString(),
+        refresh_token_expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+      });
+    }
+
+    it('OAUTHCLIENTREPO-019: drops old cimd clients nobody holds a token for, and counts them', async () => {
+      const unused = await seedClient({ createdVia: 'cimd' });
+      const held = await seedClient({ createdVia: 'cimd' });
+      const recent = await seedClient({ createdVia: 'cimd' });
+      const registered = await seedClient({ createdVia: 'settings_ui' });
+      await Promise.all(
+        [unused, held, registered].map((client) => updateRows(t, OauthClients, { id: client.id }, { created_at: OLD })),
+      );
+      await updateRows(t, OauthClients, { id: recent.id }, { created_at: '2026-10-15 00:00:00' });
+      await holdToken(held.clientId);
+
+      expect(await clients.deleteUnusedCimdBefore(CUTOFF)).toBe(1);
+      expect(await storedClient(unused.id)).toBeNull();
+      const kept = await Promise.all([held, recent, registered].map((client) => storedClient(client.id)));
+      for (const row of kept) expect(row).not.toBeNull();
+      expect(await clients.deleteUnusedCimdBefore(CUTOFF)).toBe(0);
     });
   });
 });

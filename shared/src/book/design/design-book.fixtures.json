@@ -1,0 +1,2812 @@
+{
+ "rich": {
+  "input": {
+   "locale": "en-GB",
+   "title": "Atlantic coast",
+   "subtitle": "Two weeks north",
+   "coverPhotoId": 100,
+   "entries": [
+    {
+     "id": 1,
+     "title": "Day 1 in Lisboa",
+     "story": null,
+     "location": "Lisboa",
+     "date": "2026-05-01",
+     "photos": [],
+     "lat": 38.72,
+     "lng": -9.14,
+     "country": "PT",
+     "dayNumber": 1,
+     "dayCount": 14
+    },
+    {
+     "id": 2,
+     "title": "Day 2 in Lisboa",
+     "story": "Coast stopped light enough at while ran the we the good look. Was to for the north coast stopped light enough at while r",
+     "location": "Lisboa",
+     "date": "2026-05-02",
+     "photos": [
+      {
+       "photoId": 100,
+       "width": 4000,
+       "height": 3000,
+       "caption": "Tram 28"
+      }
+     ],
+     "lat": 38.72,
+     "lng": -9.14,
+     "country": "PT",
+     "dayNumber": 2,
+     "dayCount": 14
+    },
+    {
+     "id": 3,
+     "title": "Day 3 in Porto",
+     "story": "Was to for the north coast stopped light enough at while ran the.\n A road along and wherever was to for the north coast stopped light enough. The we the good look a road along and wherever was to for the north. Light enough at while ran the we the good look a road along and wherever was. For the north coast stopped light enough at. Along and wherever was to for the north coast.\n The good look a road along and wherever was to. At while ran the we the good look a road along. North coast stopped light enough at while ran the we the good. Wherever was to for the north coast stopped light enough at while ran. Look a road along and wherever was to for the north coast stopped light.\n Ran the we the good look a road along and wherever was to for the. Stopped light enough at while ran the we the good look a road along and wherever. To for the north coast stopped light enough. Road along and wherever was to for the north. We the good look a road along and wherever was.\n Enough at while ran the we the good look a road. The north coast stopped light enough at while ran the we the. And wherever was to for the north coast stopped light enough at while. Good look a road along and wherever was to for the north coast stopped. While ran the we the good look a road along and wherever was to for.\n Coast stopped light enough at while ran the we the good look a road along and. Was to for the north coast stopped light. A road along and wherever was to for the. The we the good look a road along and wherever. Light enough at while ran the we the good look a.\n For the north coast stopped light enough at while ran the we. Along and wherever was to for the north coast stopped light enough at. The good look a road along and wherever was to for the north coast. At while ran the we the good look a road along and wherever was to. North coast stopped light enough at while ran the we the good look a road along.\n Wherever was to for the north coast stopped. Look a road along and wherever was to for.",
+     "location": "Porto",
+     "date": "2026-05-03",
+     "photos": [
+      {
+       "photoId": 101,
+       "width": 3000,
+       "height": 4000,
+       "caption": null
+      },
+      {
+       "photoId": 102,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      }
+     ],
+     "lat": 41.15,
+     "lng": -8.61,
+     "country": "PT",
+     "dayNumber": 3,
+     "dayCount": 14,
+     "pros": [
+      "The light"
+     ],
+     "cons": [
+      "The wind"
+     ]
+    },
+    {
+     "id": 4,
+     "title": "Day 4 in Porto",
+     "story": "A road along and wherever was to for the north coast stopped light enough. The we the good look a road along and wherever was to for the north. Light enough at while ran the we the good look a road along and wherever was. For the north coast stopped light enough at. Along and wherever was to for the north coast.\n The good look a road along and wherever was to. At while ran the we the good look a r",
+     "location": "Porto",
+     "date": "2026-05-04",
+     "photos": [
+      {
+       "photoId": 103,
+       "width": 6000,
+       "height": 2000,
+       "caption": "The bridge"
+      },
+      {
+       "photoId": 104,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      }
+     ],
+     "lat": 41.15,
+     "lng": -8.61,
+     "country": "PT",
+     "dayNumber": 4,
+     "dayCount": 14
+    },
+    {
+     "id": 5,
+     "title": null,
+     "story": null,
+     "location": "Santiago",
+     "date": "2026-05-05",
+     "photos": [
+      {
+       "photoId": 105,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 106,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 107,
+       "width": 3000,
+       "height": 4000,
+       "caption": null
+      }
+     ],
+     "lat": 42.88,
+     "lng": -8.54,
+     "country": "ES",
+     "dayNumber": 5,
+     "dayCount": 14
+    },
+    {
+     "id": 6,
+     "title": "Day 6 in Santiago",
+     "story": "Light enough at while ran the we the good look a road along and wherever was. For the north coast stopped light enough at. Along and wherever was to for the north coast.\n The good look a road along and wherever was to. At while ran the we the good look a road along. North coast stopped light enough at while ran the we the good. Wherever was to for the north coast stopped light enough at while ran. Look a road along and wherever was to for the north coast stopped light.\n Ran the we the good look a road along and wherever was to for the. Stopped light enough at while ran the we the good look a road along and wherever. To for the north coast stopped light enough. Road along and wherever was to for the north. We the good look a road along and wherever was.\n Enough at while ran the we the good look a road. The north coast stopped light enough at while ran the we the. And wherever was to for t",
+     "location": "Santiago",
+     "date": "2026-05-06",
+     "photos": [
+      {
+       "photoId": 108,
+       "width": 3000,
+       "height": 4000,
+       "caption": null
+      },
+      {
+       "photoId": 109,
+       "width": 3000,
+       "height": 4000,
+       "caption": null
+      },
+      {
+       "photoId": 110,
+       "width": 3000,
+       "height": 4000,
+       "caption": null
+      },
+      {
+       "photoId": 111,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      }
+     ],
+     "lat": 42.88,
+     "lng": -8.54,
+     "country": "ES",
+     "dayNumber": 6,
+     "dayCount": 14
+    },
+    {
+     "id": 7,
+     "title": "Day 7 in Oviedo",
+     "story": "For the north coast stopped light enough at. Along and where",
+     "location": "Oviedo",
+     "date": "2026-05-07",
+     "photos": [
+      {
+       "photoId": 112,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 113,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 114,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 115,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 116,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      }
+     ],
+     "lat": 43.36,
+     "lng": -5.85,
+     "country": "ES",
+     "dayNumber": 7,
+     "dayCount": 14
+    },
+    {
+     "id": 8,
+     "title": "Day 8 in Oviedo",
+     "story": "Along and wherever was to for the north coast.\n The good look a road along and wherever was to. At while ran the we the good look a road along. North coast stopped light enough at while ran the we the good. Wherever was to for the north coast stopped light enough at while ran. Look a road along and wherever was to for the north coast stopped light.\n Ran the we the good look a road along and wherever was to for the. Stopped light enough at while ran the we the good look a road along and wherever. To for the north coast stopped light enough. Road along and wherever was to for the north. We the good look a road along and wherever was.\n Enough at while ran the we the good look a road. The north coast stopped light enough at while ran the we the. And wherever was to for the north coast stopped light enough at while. Good look a road along and wherever was to for the north coast stopped. While ran the we the good look a road along and wherever was to for.\n Coast stopped light enough at while ran the we the good look a road along and. Was to for the north coast stopped light. A road along and wherever was to for the. The we the good look a road along and wherever. Light enough at while ran the we the good look a.\n For the north coast stopped light enough at while ran the we. Along and wherever was to for the north coast stopped light enough at. The good look a road along and wherever was to for the north coast. At while ran the we the good look a road along and wherever was to. Nort",
+     "location": "Oviedo",
+     "date": "2026-05-08",
+     "photos": [
+      {
+       "photoId": 117,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 118,
+       "width": 3000,
+       "height": 4000,
+       "caption": null
+      },
+      {
+       "photoId": 119,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 120,
+       "width": 3000,
+       "height": 4000,
+       "caption": null
+      },
+      {
+       "photoId": 121,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 122,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 123,
+       "width": 3000,
+       "height": 4000,
+       "caption": null
+      },
+      {
+       "photoId": 124,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      }
+     ],
+     "lat": 43.36,
+     "lng": -5.85,
+     "country": "ES",
+     "dayNumber": 8,
+     "dayCount": 14
+    },
+    {
+     "id": 9,
+     "title": "Day 9 in Bilbao",
+     "story": null,
+     "location": "Bilbao",
+     "date": "2026-05-09",
+     "photos": [
+      {
+       "photoId": 125,
+       "width": null,
+       "height": null,
+       "caption": null
+      }
+     ],
+     "lat": 43.26,
+     "lng": -2.93,
+     "country": "ES",
+     "dayNumber": 9,
+     "dayCount": 14
+    },
+    {
+     "id": 10,
+     "title": "Day 10 in Bilbao",
+     "story": "At while ran the we the good look a road along. North coast stopped light enough at while ran the we the good. Wherever was to for the north coast stopped light enough at while ran. Look a road along and wherever was to for the north coast stopped light.\n Ran the we the good look a road along and wh",
+     "location": "Bilbao",
+     "date": "2026-05-10",
+     "photos": [
+      {
+       "photoId": 126,
+       "width": 4000,
+       "height": 3000,
+       "caption": "Dusk"
+      }
+     ],
+     "lat": 43.26,
+     "lng": -2.93,
+     "country": "ES",
+     "dayNumber": 10,
+     "dayCount": 14
+    },
+    {
+     "id": 11,
+     "title": "Day 11 in Biarritz",
+     "story": null,
+     "location": "Biarritz",
+     "date": "2026-05-11",
+     "photos": [
+      {
+       "photoId": 127,
+       "width": 3000,
+       "height": 4000,
+       "caption": null
+      },
+      {
+       "photoId": 128,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 129,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      }
+     ],
+     "lat": 43.48,
+     "lng": -1.56,
+     "country": "FR",
+     "dayNumber": 11,
+     "dayCount": 14
+    },
+    {
+     "id": 12,
+     "title": "Day 12 in Biarritz",
+     "story": null,
+     "location": "Biarritz",
+     "date": "2026-05-12",
+     "photos": [],
+     "lat": 43.48,
+     "lng": -1.56,
+     "country": "FR",
+     "dayNumber": 12,
+     "dayCount": 14
+    }
+   ],
+   "page": {
+    "preset": "square-210",
+    "pageWidth": 210,
+    "pageHeight": 210,
+    "bleed": 3,
+    "safe": 5,
+    "pageNumbers": {
+     "show": false,
+     "startAt": 2,
+     "position": "outer",
+     "margin": 12,
+     "size": 8,
+     "autoColor": true,
+     "color": "#8a8578",
+     "font": "sans"
+    }
+   },
+   "stats": {
+    "journeyId": 1,
+    "distance": 1420000,
+    "days": 14,
+    "steps": 12,
+    "photos": 41,
+    "places": 12,
+    "furthest": 980000,
+    "countries": [
+     {
+      "code": "PT",
+      "name": "Portugal",
+      "places": 4,
+      "firstVisit": "2026-05-01"
+     },
+     {
+      "code": "ES",
+      "name": "Spain",
+      "places": 5,
+      "firstVisit": "2026-05-05"
+     },
+     {
+      "code": "FR",
+      "name": "France",
+      "places": 3,
+      "firstVisit": "2026-05-11"
+     }
+    ],
+    "points": [
+     {
+      "lat": 38.72,
+      "lng": -9.14,
+      "label": "Lisboa",
+      "date": "2026-05-01",
+      "country": "PT",
+      "tripId": null,
+      "photoId": 100,
+      "entryId": 1
+     },
+     {
+      "lat": 41.15,
+      "lng": -8.61,
+      "label": "Porto",
+      "date": "2026-05-03",
+      "country": "PT",
+      "tripId": null,
+      "photoId": null,
+      "entryId": 2
+     },
+     {
+      "lat": 42.88,
+      "lng": -8.54,
+      "label": "Santiago",
+      "date": "2026-05-05",
+      "country": "ES",
+      "tripId": null,
+      "photoId": 102,
+      "entryId": 3
+     },
+     {
+      "lat": 43.36,
+      "lng": -5.85,
+      "label": "Oviedo",
+      "date": "2026-05-07",
+      "country": "ES",
+      "tripId": null,
+      "photoId": null,
+      "entryId": 4
+     },
+     {
+      "lat": 43.26,
+      "lng": -2.93,
+      "label": "Bilbao",
+      "date": "2026-05-09",
+      "country": "ES",
+      "tripId": null,
+      "photoId": 104,
+      "entryId": 5
+     },
+     {
+      "lat": 43.48,
+      "lng": -1.56,
+      "label": "Biarritz",
+      "date": "2026-05-11",
+      "country": "FR",
+      "tripId": null,
+      "photoId": null,
+      "entryId": 6
+     },
+     {
+      "lat": 44.84,
+      "lng": -0.58,
+      "label": "Bordeaux",
+      "date": "2026-05-13",
+      "country": "FR",
+      "tripId": null,
+      "photoId": 106,
+      "entryId": 7
+     }
+    ],
+    "trips": [],
+    "excluded": [],
+    "start": "2026-05-01",
+    "end": "2026-05-14"
+   },
+   "path": [
+    [
+     [
+      38.72,
+      -9.14
+     ],
+     [
+      39.5,
+      -9
+     ],
+     [
+      41.15,
+      -8.61
+     ]
+    ],
+    [
+     [
+      42.88,
+      -8.54
+     ],
+     [
+      43.3,
+      -6
+     ],
+     [
+      43.36,
+      -5.85
+     ],
+     [
+      43.26,
+      -2.93
+     ]
+    ]
+   ],
+   "stationsLabel": "Stations",
+   "dayLabel": "DAY",
+   "summaryLabel": "Trip summary",
+   "countriesLabel": "Countries",
+   "distanceLabel": "Distance",
+   "prosLabel": "Pros",
+   "consLabel": "Cons",
+   "candidates": [
+    {
+     "photoId": 100,
+     "takenAt": "2026-05-02T12:10:00",
+     "lat": 38.72,
+     "lng": -9.14,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Tram 28",
+     "entryIds": [
+      2
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "a6f096b17fa1630e",
+      "sharpness": 120,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 101,
+     "takenAt": "2026-05-03T12:11:00",
+     "lat": 41.15,
+     "lng": -8.61,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [
+      3
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "56984de1216e0955",
+      "sharpness": 121,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 102,
+     "takenAt": "2026-05-03T12:12:00",
+     "lat": 41.15,
+     "lng": -8.61,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      3
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "f8cf19356da23ad9",
+      "sharpness": 122,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 103,
+     "takenAt": "2026-05-04T12:13:00",
+     "lat": 41.15,
+     "lng": -8.61,
+     "width": 6000,
+     "height": 2000,
+     "caption": "The bridge",
+     "entryIds": [
+      4
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "a7d8b4d113fccc86",
+      "sharpness": 123,
+      "clipped": 0.01,
+      "origWidth": 6000,
+      "origHeight": 2000
+     }
+    },
+    {
+     "photoId": 104,
+     "takenAt": "2026-05-04T12:14:00",
+     "lat": 41.15,
+     "lng": -8.61,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      4
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "49005149c25eda2a",
+      "sharpness": 124,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 105,
+     "takenAt": "2026-05-05T12:15:00",
+     "lat": 42.88,
+     "lng": -8.54,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      5
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "fb37226c4e17184b",
+      "sharpness": 125,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 106,
+     "takenAt": "2026-05-05T12:16:00",
+     "lat": 42.88,
+     "lng": -8.54,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      5
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "a6318983ddb88e37",
+      "sharpness": 126,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 107,
+     "takenAt": "2026-05-05T12:17:00",
+     "lat": 42.88,
+     "lng": -8.54,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [
+      5
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "48697291581b8b06",
+      "sharpness": 127,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 108,
+     "takenAt": "2026-05-06T12:18:00",
+     "lat": 42.88,
+     "lng": -8.54,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [
+      6
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "fa913c6f28dd3f28",
+      "sharpness": 128,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 109,
+     "takenAt": "2026-05-06T12:19:00",
+     "lat": 42.88,
+     "lng": -8.54,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [
+      6
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "9cb80945b71aacac",
+      "sharpness": 129,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 110,
+     "takenAt": "2026-05-06T12:20:00",
+     "lat": 42.88,
+     "lng": -8.54,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [
+      6
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "4ee0d27af914b205",
+      "sharpness": 130,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 111,
+     "takenAt": "2026-05-06T12:21:00",
+     "lat": 42.88,
+     "lng": -8.54,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      6
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "e016da31c64c8d54",
+      "sharpness": 131,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 112,
+     "takenAt": "2026-05-07T12:22:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      7
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "924ddc543da61f9d",
+      "sharpness": 132,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 113,
+     "takenAt": "2026-05-07T12:23:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      7
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "447739db76fdf0cd",
+      "sharpness": 133,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 114,
+     "takenAt": "2026-05-07T12:24:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      7
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "e69ef452f0536314",
+      "sharpness": 134,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 115,
+     "takenAt": "2026-05-07T12:25:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      7
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "98c6c0bec8613247",
+      "sharpness": 135,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 116,
+     "takenAt": "2026-05-07T12:26:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      7
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "3ad488ef7faa2a76",
+      "sharpness": 136,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 117,
+     "takenAt": "2026-05-08T12:27:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      8
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "ec254f670baa6262",
+      "sharpness": 137,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 118,
+     "takenAt": "2026-05-08T12:28:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [
+      8
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "8e4d24c09a4d8bae",
+      "sharpness": 138,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 119,
+     "takenAt": "2026-05-08T12:29:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      8
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "8e4d24c09a4d8bae",
+      "sharpness": 139,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 120,
+     "takenAt": "2026-05-08T12:30:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [
+      8
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "e2aa2a58885625e5",
+      "sharpness": 140,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 121,
+     "takenAt": "2026-05-08T12:31:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      8
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "83d48702dc4e60fb",
+      "sharpness": 141,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 122,
+     "takenAt": "2026-05-08T12:32:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      8
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "35e24da0d14ead56",
+      "sharpness": 142,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 123,
+     "takenAt": "2026-05-08T12:33:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [
+      8
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "d723022d8cfb4349",
+      "sharpness": 143,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 124,
+     "takenAt": "2026-05-08T12:34:00",
+     "lat": 43.36,
+     "lng": -5.85,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      8
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "895bea3b17e957d3",
+      "sharpness": 144,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 125,
+     "takenAt": "2026-05-09T12:35:00",
+     "lat": 43.26,
+     "lng": -2.93,
+     "width": null,
+     "height": null,
+     "caption": null,
+     "entryIds": [
+      9
+     ],
+     "inBook": false,
+     "signals": null
+    },
+    {
+     "photoId": 126,
+     "takenAt": "2026-05-10T12:36:00",
+     "lat": 43.26,
+     "lng": -2.93,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Dusk",
+     "entryIds": [
+      10
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "d403c04d5361c843",
+      "sharpness": 146,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 127,
+     "takenAt": "2026-05-11T12:37:00",
+     "lat": 43.48,
+     "lng": -1.56,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [
+      11
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "863a80379227d012",
+      "sharpness": 147,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 128,
+     "takenAt": "2026-05-11T12:38:00",
+     "lat": 43.48,
+     "lng": -1.56,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      11
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "2849617c9cbf73b1",
+      "sharpness": 148,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 129,
+     "takenAt": "2026-05-11T12:39:00",
+     "lat": 43.48,
+     "lng": -1.56,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      11
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "da8a401815615cf3",
+      "sharpness": 149,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    }
+   ],
+   "photos": [
+    {
+     "photoId": 100,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Tram 28",
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad",
+     "luma": 90,
+     "salient": {
+      "x": 0.3,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 101,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "7ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be14",
+     "luma": 127,
+     "salient": {
+      "x": 0.7,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 102,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "e147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258b",
+     "luma": 164,
+     "salient": {
+      "x": 0.35,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 103,
+     "width": 6000,
+     "height": 2000,
+     "caption": "The bridge",
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "58be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf2",
+     "luma": 201,
+     "salient": {
+      "x": 0.65,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 104,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369",
+     "luma": 118,
+     "salient": {
+      "x": 0.3,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 105,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0",
+     "luma": 155,
+     "salient": {
+      "x": 0.7,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 106,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147",
+     "luma": 192,
+     "salient": {
+      "x": 0.35,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 107,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be",
+     "luma": 109,
+     "salient": {
+      "x": 0.65,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 108,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "8be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf25",
+     "luma": 146,
+     "salient": {
+      "x": 0.3,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 109,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "f258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369c",
+     "luma": 183,
+     "salient": {
+      "x": 0.7,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 110,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "69cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad03",
+     "luma": 100,
+     "salient": {
+      "x": 0.35,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 111,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "d0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147a",
+     "luma": 137,
+     "salient": {
+      "x": 0.65,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 112,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "47ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be1",
+     "luma": 174,
+     "salient": {
+      "x": 0.3,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 113,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258",
+     "luma": 91,
+     "salient": {
+      "x": 0.7,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 114,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf",
+     "luma": 128,
+     "salient": {
+      "x": 0.35,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 115,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "9cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad036",
+     "luma": 165,
+     "salient": {
+      "x": 0.65,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 116,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad",
+     "luma": 202,
+     "salient": {
+      "x": 0.3,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 117,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "7ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be14",
+     "luma": 119,
+     "salient": {
+      "x": 0.7,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 118,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "e147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258b",
+     "luma": 156,
+     "salient": {
+      "x": 0.35,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 119,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "58be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf2",
+     "luma": 193,
+     "salient": {
+      "x": 0.65,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 120,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369",
+     "luma": 110,
+     "salient": {
+      "x": 0.3,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 121,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0",
+     "luma": 147,
+     "salient": {
+      "x": 0.7,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 122,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147",
+     "luma": 184,
+     "salient": {
+      "x": 0.35,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 123,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be",
+     "luma": 101,
+     "salient": {
+      "x": 0.65,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 124,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "8be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf25",
+     "luma": 138,
+     "salient": {
+      "x": 0.3,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 125,
+     "width": null,
+     "height": null,
+     "caption": null
+    },
+    {
+     "photoId": 126,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Dusk",
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "69cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad03",
+     "luma": 92,
+     "salient": {
+      "x": 0.35,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 127,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "d0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147a",
+     "luma": 129,
+     "salient": {
+      "x": 0.65,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 128,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "47ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be1",
+     "luma": 166,
+     "salient": {
+      "x": 0.3,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 129,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258",
+     "luma": 203,
+     "salient": {
+      "x": 0.7,
+      "y": 0.45
+     }
+    }
+   ]
+  }
+ },
+ "sparse": {
+  "input": {
+   "locale": "pt-PT",
+   "title": "Algarve",
+   "subtitle": null,
+   "coverPhotoId": 902,
+   "entries": [
+    {
+     "id": 501,
+     "title": "Arrival",
+     "story": "We landed late and found the house by torchlight.",
+     "location": "Faro",
+     "date": "2026-03-01",
+     "photos": [
+      {
+       "photoId": 900,
+       "width": 1600,
+       "height": 1200,
+       "caption": null
+      }
+     ]
+    },
+    {
+     "id": 502,
+     "title": "Stop",
+     "story": null,
+     "location": "Tavira",
+     "date": "2026-03-02",
+     "photos": []
+    },
+    {
+     "id": 503,
+     "title": null,
+     "story": null,
+     "location": "Olhao",
+     "date": "2026-03-03",
+     "photos": []
+    },
+    {
+     "id": 504,
+     "title": "Cliffs",
+     "story": "Wind all day.",
+     "location": "Sagres",
+     "date": "2026-03-04",
+     "photos": [
+      {
+       "photoId": 901,
+       "width": null,
+       "height": null,
+       "caption": "Edge"
+      },
+      {
+       "photoId": 902,
+       "width": 3000,
+       "height": 4000,
+       "caption": null
+      }
+     ]
+    }
+   ],
+   "page": {
+    "preset": "square-210",
+    "pageWidth": 210,
+    "pageHeight": 210,
+    "bleed": 3,
+    "safe": 5,
+    "pageNumbers": {
+     "show": false,
+     "startAt": 2,
+     "position": "outer",
+     "margin": 12,
+     "size": 8,
+     "autoColor": true,
+     "color": "#8a8578",
+     "font": "sans"
+    }
+   },
+   "stats": {
+    "journeyId": 3,
+    "distance": 210000,
+    "days": 4,
+    "steps": 3,
+    "photos": 3,
+    "places": 4,
+    "furthest": 120000,
+    "countries": [
+     {
+      "code": "PT",
+      "name": "Portugal",
+      "places": 4,
+      "firstVisit": "2026-03-01"
+     }
+    ],
+    "points": [
+     {
+      "lat": 37.02,
+      "lng": -7.93,
+      "label": "Faro",
+      "date": "2026-03-01",
+      "country": "PT",
+      "tripId": null,
+      "photoId": 900,
+      "entryId": 501
+     },
+     {
+      "lat": 37.13,
+      "lng": -7.65,
+      "label": "Tavira",
+      "date": "2026-03-02",
+      "country": "PT",
+      "tripId": null,
+      "photoId": null,
+      "entryId": 502
+     },
+     {
+      "lat": 37,
+      "lng": -8.94,
+      "label": "Sagres",
+      "date": "2026-03-04",
+      "country": "PT",
+      "tripId": null,
+      "photoId": 902,
+      "entryId": 504
+     }
+    ],
+    "trips": [],
+    "excluded": [],
+    "start": "2026-03-01",
+    "end": "2026-03-04"
+   },
+   "stationsLabel": "Paragens",
+   "dayLabel": "DIA",
+   "summaryLabel": "Resumo",
+   "countriesLabel": "Paises",
+   "distanceLabel": "Distance",
+   "prosLabel": "Pros",
+   "consLabel": "Cons",
+   "candidates": [
+    {
+     "photoId": 900,
+     "takenAt": "2026-03-01T12:10:00",
+     "lat": null,
+     "lng": null,
+     "width": 1600,
+     "height": 1200,
+     "caption": null,
+     "entryIds": [
+      501
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "a6f096b17fa1630e",
+      "sharpness": 120,
+      "clipped": 0.01,
+      "origWidth": 1600,
+      "origHeight": 1200
+     }
+    },
+    {
+     "photoId": 901,
+     "takenAt": "2026-03-04T12:11:00",
+     "lat": null,
+     "lng": null,
+     "width": null,
+     "height": null,
+     "caption": "Edge",
+     "entryIds": [
+      504
+     ],
+     "inBook": false,
+     "signals": null
+    },
+    {
+     "photoId": 902,
+     "takenAt": "2026-03-04T12:12:00",
+     "lat": null,
+     "lng": null,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [
+      504
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "f8cf19356da23ad9",
+      "sharpness": 122,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    }
+   ],
+   "photos": [
+    {
+     "photoId": 900,
+     "width": 1600,
+     "height": 1200,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad",
+     "luma": 90,
+     "salient": {
+      "x": 0.3,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 901,
+     "width": null,
+     "height": null,
+     "caption": "Edge"
+    },
+    {
+     "photoId": 902,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "e147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258b",
+     "luma": 164,
+     "salient": {
+      "x": 0.35,
+      "y": 0.45
+     }
+    }
+   ]
+  }
+ },
+ "nostats": {
+  "input": {
+   "locale": "fr-FR",
+   "title": "Carnet",
+   "subtitle": "Automne",
+   "coverPhotoId": null,
+   "entries": [
+    {
+     "id": 301,
+     "title": "Chapter 1",
+     "story": "And wherever was to for the north coast stopped. Good look a road along and wherever was to for. While ran the we the good look a road along and. Coast stopped light enough at while ran the we the good look. Was to for the north coast stopped light e",
+     "location": null,
+     "date": "2026-10-01",
+     "photos": []
+    },
+    {
+     "id": 302,
+     "title": "Chapter 2",
+     "story": "Good look a road along and wherever was to for. While ran the we the good look a road along and. Coast stopped light enough at while ran the we the good look. Was to for the north coast stopped light enough at while ran the.\n A road along and wherever was to for the north coast stopped light enough. The we the good look a road along and wherever was to for the north. Light enough at while ran the we the good look a road along and wherever was. For the north coast stopped light enough at. Along a",
+     "location": null,
+     "date": "2026-10-02",
+     "photos": [
+      {
+       "photoId": 149,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 150,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 151,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      },
+      {
+       "photoId": 152,
+       "width": 4000,
+       "height": 3000,
+       "caption": null
+      }
+     ]
+    },
+    {
+     "id": 303,
+     "title": "Chapter 3",
+     "story": "While ran the we the good look a road along and. Coast stopped light enough at while ran the we the good look. Was to for the north coast stopped light enough at while ran the.\n A road along and wherever was to for the north coast stopped light enough. The we the good look a road along and wherever was to for the north. Light enough at while ran the we the good look a road along and wherever was. For the north coast stopped light enough at. Along and wherever was to for the north coast.\n The good look a road along and wherever was to. At while ran the we the good look a road along. North coast stopped light enough at while ran the we the good. Wherever was to for the north coast stopped light enough at while ran. Look a road along and where",
+     "location": null,
+     "date": "2026-10-03",
+     "photos": []
+    },
+    {
+     "id": 304,
+     "title": "Chapter 4",
+     "story": "Coast stopped light enough at while ran the we the good look. Was to for the north coast stopped light enough at while ran the.\n A road along and wherever was to for the north coast stopped light enough. The we the good look a road along and wherever was to for the north. Light enough at while ran the we the good look a road along and wherever was. For the north coast stopped light enough at. Along and wherever was to for the north coast.\n The good look a road along and wherever was to. At while ran the we the good look a road along. North coast stopped light enough at while ran the we the good. Wherever was to for the north coast stopped light enough at while ran. Look a road along and wherever was to for the north coast stopped light.\n Ran the we the good look a road along and wherever was to for the. Stopped light enough at while ran the we the good look a road along and wherever. To for the north coast stopped light enough. Road along and wherever was to for the north. We the good",
+     "location": null,
+     "date": "2026-10-04",
+     "photos": []
+    },
+    {
+     "id": 305,
+     "title": "Chapter 5",
+     "story": "Was to for the north coast stopped light enough at while ran the.\n A road along and wherever was to for the north coast stopped light enough. The we the good look a road along and wherever was to for the north. Light enough at while ran the we the good look a road along and wherever was. For the north coast stopped light enough at. Along and wherever was to for the north coast.\n The good look a road along and wherever was to. At while ran the we the good look a road along. North coast stopped light enough at while ran the we the good. Wherever was to for the north coast stopped light enough at while ran. Look a road along and wherever was to for the north coast stopped light.\n Ran the we the good look a road along and wherever was to for the. Stopped light enough at while ran the we the good look a road along and wherever. To for the north coast stopped light enough. Road along and wherever was to for the north. We the good look a road along and wherever was.\n Enough at while ran the we the good look a road. The north coast stopped light enough at while ran the we the. And wherever was to for the north coast stopped light enough at while. Good look a road along and wherever was to for the north coast stopped. While ran the we the",
+     "location": null,
+     "date": "2026-10-05",
+     "photos": []
+    }
+   ],
+   "page": {
+    "preset": "a4-portrait",
+    "pageWidth": 210,
+    "pageHeight": 297,
+    "bleed": 3,
+    "safe": 5,
+    "pageNumbers": {
+     "show": false,
+     "startAt": 2,
+     "position": "outer",
+     "margin": 12,
+     "size": 8,
+     "autoColor": true,
+     "color": "#8a8578",
+     "font": "sans"
+    }
+   },
+   "stats": null,
+   "stationsLabel": "Stations",
+   "dayLabel": "DAY",
+   "summaryLabel": "Trip summary",
+   "countriesLabel": "Countries",
+   "distanceLabel": "Distance",
+   "prosLabel": "Pros",
+   "consLabel": "Cons",
+   "candidates": [
+    {
+     "photoId": 149,
+     "takenAt": "2026-10-02T12:10:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      302
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "a6f096b17fa1630e",
+      "sharpness": 120,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 150,
+     "takenAt": "2026-10-02T12:11:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      302
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "56984de1216e0955",
+      "sharpness": 121,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 151,
+     "takenAt": "2026-10-02T12:12:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      302
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "f8cf19356da23ad9",
+      "sharpness": 122,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 152,
+     "takenAt": "2026-10-02T12:13:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [
+      302
+     ],
+     "inBook": false,
+     "signals": {
+      "phash": "a7d8b4d113fccc86",
+      "sharpness": 123,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 132,
+     "takenAt": "2026-05-20T12:14:00",
+     "lat": null,
+     "lng": null,
+     "width": 3000,
+     "height": 4000,
+     "caption": "Gallery 0",
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "49005149c25eda2a",
+      "sharpness": 124,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 133,
+     "takenAt": "2026-05-20T12:15:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "fb37226c4e17184b",
+      "sharpness": 125,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 134,
+     "takenAt": "2026-05-20T12:16:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "a6318983ddb88e37",
+      "sharpness": 126,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 135,
+     "takenAt": "2026-05-20T12:17:00",
+     "lat": null,
+     "lng": null,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "48697291581b8b06",
+      "sharpness": 127,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 136,
+     "takenAt": "2026-05-20T12:18:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Gallery 4",
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "fa913c6f28dd3f28",
+      "sharpness": 128,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 137,
+     "takenAt": "2026-05-20T12:19:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "9cb80945b71aacac",
+      "sharpness": 129,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 138,
+     "takenAt": "2026-05-20T12:20:00",
+     "lat": null,
+     "lng": null,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "4ee0d27af914b205",
+      "sharpness": 130,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 139,
+     "takenAt": "2026-05-20T12:21:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "e016da31c64c8d54",
+      "sharpness": 131,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 140,
+     "takenAt": "2026-05-20T12:22:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Gallery 8",
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "924ddc543da61f9d",
+      "sharpness": 132,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 141,
+     "takenAt": "2026-05-20T12:23:00",
+     "lat": null,
+     "lng": null,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "447739db76fdf0cd",
+      "sharpness": 133,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 142,
+     "takenAt": "2026-05-20T12:24:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "e69ef452f0536314",
+      "sharpness": 134,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 143,
+     "takenAt": "2026-05-20T12:25:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "98c6c0bec8613247",
+      "sharpness": 135,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 144,
+     "takenAt": "2026-05-20T12:26:00",
+     "lat": null,
+     "lng": null,
+     "width": 3000,
+     "height": 4000,
+     "caption": "Gallery 12",
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "3ad488ef7faa2a76",
+      "sharpness": 136,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 145,
+     "takenAt": "2026-05-20T12:27:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "ec254f670baa6262",
+      "sharpness": 137,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 146,
+     "takenAt": "2026-05-20T12:28:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "8e4d24c09a4d8bae",
+      "sharpness": 138,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    },
+    {
+     "photoId": 147,
+     "takenAt": "2026-05-20T12:29:00",
+     "lat": null,
+     "lng": null,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "30560be83fb513b3",
+      "sharpness": 139,
+      "clipped": 0.01,
+      "origWidth": 3000,
+      "origHeight": 4000
+     }
+    },
+    {
+     "photoId": 148,
+     "takenAt": "2026-05-20T12:30:00",
+     "lat": null,
+     "lng": null,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Gallery 16",
+     "entryIds": [],
+     "inBook": false,
+     "signals": {
+      "phash": "e2aa2a58885625e5",
+      "sharpness": 140,
+      "clipped": 0.01,
+      "origWidth": 4000,
+      "origHeight": 3000
+     }
+    }
+   ],
+   "photos": [
+    {
+     "photoId": 149,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad",
+     "luma": 90,
+     "salient": {
+      "x": 0.3,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 150,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "7ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be14",
+     "luma": 127,
+     "salient": {
+      "x": 0.7,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 151,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "e147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258b",
+     "luma": 164,
+     "salient": {
+      "x": 0.35,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 152,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "58be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf2",
+     "luma": 201,
+     "salient": {
+      "x": 0.65,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 132,
+     "width": 3000,
+     "height": 4000,
+     "caption": "Gallery 0",
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369",
+     "luma": 118,
+     "salient": {
+      "x": 0.3,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 133,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0",
+     "luma": 155,
+     "salient": {
+      "x": 0.7,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 134,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147",
+     "luma": 192,
+     "salient": {
+      "x": 0.35,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 135,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be",
+     "luma": 109,
+     "salient": {
+      "x": 0.65,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 136,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Gallery 4",
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "8be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf25",
+     "luma": 146,
+     "salient": {
+      "x": 0.3,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 137,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "f258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369c",
+     "luma": 183,
+     "salient": {
+      "x": 0.7,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 138,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "69cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad03",
+     "luma": 100,
+     "salient": {
+      "x": 0.35,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 139,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "d0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147a",
+     "luma": 137,
+     "salient": {
+      "x": 0.65,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 140,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Gallery 8",
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "47ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be1",
+     "luma": 174,
+     "salient": {
+      "x": 0.3,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 141,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258",
+     "luma": 91,
+     "salient": {
+      "x": 0.7,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 142,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf",
+     "luma": 128,
+     "salient": {
+      "x": 0.35,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 143,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "9cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad036",
+     "luma": 165,
+     "salient": {
+      "x": 0.65,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 144,
+     "width": 3000,
+     "height": 4000,
+     "caption": "Gallery 12",
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad",
+     "luma": 202,
+     "salient": {
+      "x": 0.3,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 145,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "7ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be14",
+     "luma": 119,
+     "salient": {
+      "x": 0.7,
+      "y": 0.45
+     }
+    },
+    {
+     "photoId": 146,
+     "width": 4000,
+     "height": 3000,
+     "caption": null,
+     "palette": [
+      "#c0392b:0.35",
+      "#f2e8d5:0.4",
+      "#2c3e50:0.25"
+     ],
+     "busy": "e147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258b",
+     "luma": 156,
+     "salient": {
+      "x": 0.35,
+      "y": 0.4
+     }
+    },
+    {
+     "photoId": 147,
+     "width": 3000,
+     "height": 4000,
+     "caption": null,
+     "palette": [
+      "#2e86ab:0.5",
+      "#f6f5f0:0.3",
+      "#3b3b3b:0.2"
+     ],
+     "busy": "58be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369cf2",
+     "luma": 193,
+     "salient": {
+      "x": 0.65,
+      "y": 0.55
+     }
+    },
+    {
+     "photoId": 148,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Gallery 16",
+     "palette": [
+      "#6a994e:0.45",
+      "#e9d8a6:0.35",
+      "#1f1f1f:0.2"
+     ],
+     "busy": "cf258be147ad0369cf258be147ad0369cf258be147ad0369cf258be147ad0369",
+     "luma": 110,
+     "salient": {
+      "x": 0.3,
+      "y": 0.45
+     }
+    }
+   ],
+   "gallery": [
+    {
+     "photoId": 132,
+     "width": 3000,
+     "height": 4000,
+     "caption": "Gallery 0"
+    },
+    {
+     "photoId": 133,
+     "width": 4000,
+     "height": 3000,
+     "caption": null
+    },
+    {
+     "photoId": 134,
+     "width": 4000,
+     "height": 3000,
+     "caption": null
+    },
+    {
+     "photoId": 135,
+     "width": 3000,
+     "height": 4000,
+     "caption": null
+    },
+    {
+     "photoId": 136,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Gallery 4"
+    },
+    {
+     "photoId": 137,
+     "width": 4000,
+     "height": 3000,
+     "caption": null
+    },
+    {
+     "photoId": 138,
+     "width": 3000,
+     "height": 4000,
+     "caption": null
+    },
+    {
+     "photoId": 139,
+     "width": 4000,
+     "height": 3000,
+     "caption": null
+    },
+    {
+     "photoId": 140,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Gallery 8"
+    },
+    {
+     "photoId": 141,
+     "width": 3000,
+     "height": 4000,
+     "caption": null
+    },
+    {
+     "photoId": 142,
+     "width": 4000,
+     "height": 3000,
+     "caption": null
+    },
+    {
+     "photoId": 143,
+     "width": 4000,
+     "height": 3000,
+     "caption": null
+    },
+    {
+     "photoId": 144,
+     "width": 3000,
+     "height": 4000,
+     "caption": "Gallery 12"
+    },
+    {
+     "photoId": 145,
+     "width": 4000,
+     "height": 3000,
+     "caption": null
+    },
+    {
+     "photoId": 146,
+     "width": 4000,
+     "height": 3000,
+     "caption": null
+    },
+    {
+     "photoId": 147,
+     "width": 3000,
+     "height": 4000,
+     "caption": null
+    },
+    {
+     "photoId": 148,
+     "width": 4000,
+     "height": 3000,
+     "caption": "Gallery 16"
+    }
+   ]
+  }
+ }
+}

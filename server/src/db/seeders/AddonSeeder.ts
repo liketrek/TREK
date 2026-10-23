@@ -142,6 +142,15 @@ export const DEFAULT_ADDONS: AddonRow[] = [
     sort_order: 15,
   },
   {
+    id: 'ai_assistant',
+    name: 'AI Assistant',
+    description: 'A chat in the trip that reads the plan and proposes changes you confirm',
+    type: 'integration',
+    icon: 'Sparkles',
+    enabled: 0,
+    sort_order: 18,
+  },
+  {
     id: 'collections',
     name: 'Collections',
     description:

@@ -23,6 +23,7 @@ import { createUser } from '../../helpers/factories';
 
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { notificationsStub } from '../../helpers/notifications';
 import { createTestUnitOfWork } from '../../helpers/test-uow';
 import {
@@ -91,6 +92,8 @@ async function storedRows<T extends object>(
 // VACAY-SVC-067 (vacay.bridge delegation) died with the bridge — its only
 // consumer, the legacy tripService, folded into the DI-native TripsService.
 let svc: VacayService;
+/** What the service hands the sockets, for the cases that read who hears a write. */
+const realtime = new FakeRealtimeService();
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -102,7 +105,7 @@ beforeAll(async () => {
     await createTestVacayCompanyHolidaysRepo(testDb), await createTestVacayHolidayCalendarsRepo(testDb),
     await createTestVacaySharesRepo(testDb), await createTestVacayUserSettingsRepo(testDb),
     await createTestSchoolHolidayRegionsRepo(testDb),
-    new RealtimeService(), notificationsStub(), await createTestUnitOfWork(testDb),
+    realtime, notificationsStub(), await createTestUnitOfWork(testDb),
   );
 });
 
@@ -857,6 +860,58 @@ describe('cancelInvite', () => {
 
     const row = await storedRow(VacayPlanMembers, { plan: ownerPlan.id, user: target.id });
     expect(row).toBeUndefined();
+  });
+});
+
+describe('invites and dissolving reach the actor too (G34)', () => {
+  const sent = () => realtime.broadcastToUserMock.mock.calls.map(([to, msg, sid]) => [to, msg.type, sid]);
+
+  it('VACAY-SVC-076: an invite reaches the invitee, and the plan\'s own tabs read the plan again', async () => {
+    const { user: owner, plan } = await setupUserWithPlan();
+    const { user: target } = createUser(testDb);
+    realtime.broadcastToUserMock.mockClear();
+
+    await svc.sendInvite(plan.id, owner.id, 'owner', target.id, 'sock-o');
+
+    expect(sent()).toEqual([
+      [target.id, 'vacay:invite', undefined],
+      [owner.id, 'vacay:settings', 'sock-o'],
+    ]);
+  });
+
+  it('VACAY-SVC-077: a cancel reaches the invitee and the plan; a decline the plan and the one declining', async () => {
+    const { user: owner, plan } = await setupUserWithPlan();
+    const { user: target } = createUser(testDb);
+    await insertMember(plan.id, target.id, 'pending');
+    realtime.broadcastToUserMock.mockClear();
+
+    await svc.cancelInvite(plan.id, target.id, 'sock-o');
+    expect(sent()).toEqual([
+      [target.id, 'vacay:cancelled', 'sock-o'],
+      [owner.id, 'vacay:cancelled', 'sock-o'],
+    ]);
+
+    await insertMember(plan.id, target.id, 'pending');
+    realtime.broadcastToUserMock.mockClear();
+    await svc.declineInvite(target.id, plan.id, 'sock-t');
+    expect(sent()).toEqual([
+      [owner.id, 'vacay:declined', 'sock-t'],
+      [target.id, 'vacay:declined', 'sock-t'],
+    ]);
+  });
+
+  it('VACAY-SVC-078: dissolving tells everyone on the plan, the one dissolving it included', async () => {
+    const { user: owner, plan } = await setupUserWithPlan();
+    const { user: member } = createUser(testDb);
+    await insertMember(plan.id, member.id, 'accepted');
+    realtime.broadcastToUserMock.mockClear();
+
+    await svc.dissolvePlan(owner.id, 'sock-o');
+
+    expect(sent().filter(([, type]) => type === 'vacay:dissolved')).toEqual([
+      [owner.id, 'vacay:dissolved', 'sock-o'],
+      [member.id, 'vacay:dissolved', 'sock-o'],
+    ]);
   });
 });
 

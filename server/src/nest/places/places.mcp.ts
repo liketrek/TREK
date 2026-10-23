@@ -109,6 +109,8 @@ export class PlacesMcp {
     if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
     const place = await this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, email, opening_hours: hoursText(opening_hours), image_url, price, currency, stop_type });
     this.guards.safeBroadcast(tripId, 'place:created', { place });
+    // The journey hook the REST route and the plugin RPC run after the same write.
+    await this.places.onCreated(String(tripId), place.id);
     return ok({ place });
   }
 
@@ -220,8 +222,11 @@ export class PlacesMcp {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
     const place = await this.places.update(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, email, opening_hours: opening_hours === undefined ? undefined : hoursText(opening_hours), image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent });
-    if (!place) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
+    // No base version is sent, so the update never answers a conflict; the guard only narrows the type.
+    if (!place || isUpdateConflict(place)) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     this.guards.safeBroadcast(tripId, 'place:updated', { place });
+    // As on REST: the journey entries made from this place follow its new name, address and time.
+    await this.places.onUpdated(place.id);
     return ok({ place });
   }
 
@@ -248,6 +253,7 @@ export class PlacesMcp {
     if (result === 'too_large') return errorResult('That image is too large.');
     if (!result || isUpdateConflict(result)) return errorResult('Place not found.');
     this.guards.safeBroadcast(tripId, 'place:updated', { place: result });
+    await this.places.onUpdated(result.id);
     return ok({ place: result });
   }
 
@@ -521,7 +527,11 @@ export class PlacesMcp {
     }
 
     const updated = await this.places.updateMany(String(tripId), placeIds, fields);
-    for (const place of updated) this.guards.safeBroadcast(tripId, 'place:updated', { place });
+    // Per place, the event and then the journey hook, in the order POST /places/bulk-update keeps.
+    for (const place of updated) {
+      this.guards.safeBroadcast(tripId, 'place:updated', { place });
+      await this.places.onUpdated(place.id);
+    }
     return ok({ count: updated.length, updatedIds: updated.map(p => p.id), skipped: placeIds.length - updated.length });
   }
 

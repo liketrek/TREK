@@ -238,6 +238,23 @@ describe('Tool: reorder_reservations', () => {
     });
   });
 
+  it("names the day under REST's day_id and keeps the dayId the tool always sent", async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const res = createReservation(testDb, trip.id, { title: 'Train', type: 'train', day_id: day.id });
+    const positions = [{ id: res.id, day_plan_position: 3 }];
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'reorder_reservations',
+        arguments: { tripId: trip.id, positions, dayId: day.id },
+      });
+    });
+    expect(broadcastMock.mock.calls.filter((c) => c[1] === 'reservation:positions')).toEqual([
+      [trip.id, 'reservation:positions', { positions, day_id: day.id, dayId: day.id, _source: 'mcp' }],
+    ]);
+  });
+
   it('returns access denied for non-member', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb);

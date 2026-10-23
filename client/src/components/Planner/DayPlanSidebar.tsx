@@ -20,6 +20,8 @@ import GoogleMapsIcon from '../shared/GoogleMapsIcon'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
+import { useAssistantMenu } from '../Assistant/useAssistantMenu'
+import AssistantDayPreview from '../Assistant/AssistantDayPreview'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
@@ -1252,16 +1254,14 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     isMobile,
   } = withDayPlanDefaults(props)
   const onClearDay = props.onClearDay
-  // Below lg the plan and the places sit in separate tabs, so there is nothing
-  // to drag between. A coarse pointer is no longer a reason of its own: tablets
-  // reach the same drag through a long press (#1616).
+  // Below lg plan and places sit in separate tabs; tablets drag by long press (#1616).
   const dragDisabled = isMobile
   const ctxMenu = useContextMenu()
+  const ai = useAssistantMenu(tripId)
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const can = useCanDo()
   const canEditDays = can('day_edit', trip)
-  // Editing or deleting the place itself is a place right; taking it off the
-  // day stays a day right (#2446).
+  // Editing or deleting the place is a place right; taking it off the day a day right (#2446).
   const canEditPlaces = can('place_edit', trip)
   // The calendar subscription hands out a link that reads the trip without an
   // account, so it sits behind the same permission as the public share link.
@@ -1578,7 +1578,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
           ].filter(Boolean)
           // Right-click on the head: what can be added, and emptying the day (#2470).
           const dayMenuItems = [
-            ...addItems,
+            ...addItems, ...ai.day(day.id),
             ...(onClearDay && da.length > 0 ? [
               { divider: true },
               { label: t('dayplan.clearDay'), icon: Eraser, danger: true, onClick: () => onClearDay(day.id) },
@@ -1708,8 +1708,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                 <div
                   data-dp="day-body"
                   className="border-t border-edge-faint px-1.5 pb-1.5 pt-1.5"
-                  // The activity list — the largest region and the one behind the
-                  // densest text, so its tint is the faintest of the three.
+                  // The activity list, the largest region behind the densest text: the faintest tint.
                   style={dayBodyStyle(dayTintBackground(dayTint, 'activity', '--day-tint-activity'))}
                   onDragOver={e => { e.preventDefault(); const cur = dropTargetRef.current; if (draggingId && (!cur || cur.startsWith('end-'))) setDropTargetKey(`end-${day.id}`) }}
                   onDrop={e => {
@@ -1870,7 +1869,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                           },
                           safeHttpUrl(place.website) && { label: t('inspector.website'), icon: ExternalLink, onClick: () => window.open(safeHttpUrl(place.website)!, '_blank', 'noopener,noreferrer') },
                           collectionsEnabled && { label: t('inspector.saveToCollection'), icon: Bookmark, onClick: () => openSaveToCollection(place, !!isTourPlace, tripId) },
-                          { divider: true },
+                          ...ai.place(place), { divider: true },
                           canEditPlaces &&
                             onDeletePlace &&
                             !(toursEnabled && (props.tourPlaceIds?.has(place.id) || place.tour_place_id === place.id)) && {
@@ -2530,7 +2529,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       </Tooltip>
                     ) : connector
                   })()}
-                  {/* Drop-Zone am Listenende — immer vorhanden als Drop-Target */}
+                  <AssistantDayPreview tripId={tripId} dayId={day.id} />{/* The assistant's waiting changes, then the drop zone at the list end */}
                   <div
                     style={{ minHeight: 12, padding: '2px 8px' }}
                     onDragOver={e => { e.preventDefault(); e.stopPropagation(); if (dropTargetKey !== `end-${day.id}`) setDropTargetKey(`end-${day.id}`) }}

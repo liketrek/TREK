@@ -14,13 +14,14 @@ import { TripsRepository } from '../../db/repositories/Trips.repository';
 import { UsersRepository } from '../../db/repositories/Users.repository';
 import { AssignmentsService } from '../assignments/assignments.service';
 import { NAME_TO_CODE } from '../atlas/atlas-geo';
+import { AtlasWritesService } from '../atlas/atlas-writes.service';
 import { AtlasService } from '../atlas/atlas.service';
 import { UnitOfWork } from '../database/unit-of-work';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 import { JourneyEntryStaysService } from '../journey/journey-entry-stays.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PlacesService } from '../places/places.service';
-import { DawarichClient, type DawarichCreds } from './dawarich.client';
+import { DawarichClient, DawarichError, type DawarichCreds } from './dawarich.client';
 import { minutesBetween, toNumber } from './dawarich.helpers';
 import { DawarichService } from './dawarich.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -37,7 +38,20 @@ import {
   type DawarichBucketScan,
   type DawarichSuggestion,
   type DawarichSuggestionList,
+  type DawarichErrorCode,
 } from '@trek/shared';
+
+/**
+ * The failures that are the instance's rather than one request's: it cannot
+ * be reached (a timeout included), it turns the key away, or it asks TREK to
+ * slow down. A bucket-list scan stops at the first of them.
+ */
+const INSTANCE_FAILURES: ReadonlySet<DawarichErrorCode> = new Set<DawarichErrorCode>([
+  'unreachable',
+  'unauthorized',
+  'forbidden',
+  'rate_limited',
+]);
 
 /**
  * What a user does with the stays a sync brought in.
@@ -75,6 +89,8 @@ export class DawarichSuggestionsService {
     @InjectRepository(BucketList) private readonly bucketList: BucketListRepository,
     @InjectRepository(Users) private readonly users: UsersRepository,
     private readonly uow: UnitOfWork,
+    // Tells the user's tabs once a tick or a country landed in their atlas.
+    private readonly atlasWrites: AtlasWritesService,
   ) {}
 
   /**
@@ -161,7 +177,7 @@ export class DawarichSuggestionsService {
       case 'journal':
         return this.acceptAsJournalEntry(userId, row, body, sid);
       case 'bucket_list':
-        return this.acceptAsBucketTick(userId, row, body);
+        return this.acceptAsBucketTick(userId, row, body, sid);
     }
   }
 
@@ -236,14 +252,18 @@ export class DawarichSuggestionsService {
     // broadcast of a write that then rolls back is a lie every other client
     // believes, and the journey mirror writes on its own.
     //
-    // The same two side effects the places controller performs, because this IS
-    // a place somebody added to the trip. Skipping them is why an accepted stay
-    // used to need a page reload to show up.
+    // The same side effects the place and assignment routes perform, because
+    // this IS a place somebody added to the trip. Skipping them is why an
+    // accepted stay used to need a page reload to show up.
     this.places.broadcast(String(tripId), 'place:created', { place: created }, sid);
-    await this.places.onCreated(String(tripId), placeId);
     if (assignment) {
       this.assignments.broadcast(String(tripId), 'assignment:created', { assignment }, sid);
+      // What the planner runs once a stop is on a day: the journeys the trip is
+      // linked to gain its skeleton and hear about it. The place hook below
+      // would add the skeleton too, but without a word to anyone.
+      await this.assignments.reconcile(tripId, sid);
     }
+    await this.places.onCreated(String(tripId), placeId);
 
     return {
       suggestion: (await this.getOne(userId, row.id))!,
@@ -279,10 +299,9 @@ export class DawarichSuggestionsService {
     // failure between them leaves an entry in the journal with the stay still
     // listed as unhandled — and the next acceptance writes a second copy of it.
     //
-    // The journey domain broadcasts the new entry from inside `createEntry`, so
-    // that one notification can still outrun a rollback. Moving it out means
-    // changing that domain's contract, which this integration has no business
-    // doing; the write itself is what had to stop being two.
+    // `createEntry` stays quiet in here (its last argument) and the entry is
+    // announced below, after the commit, as the day take-over does it: an event
+    // sent from inside could outrun a rollback.
     const entry = await this.uow.transactional(async () => {
       const created = await this.journey.createEntry(
         body.journalId,
@@ -298,6 +317,7 @@ export class DawarichSuggestionsService {
           location_lng: body.lng ?? row.lng ?? undefined,
         },
         sid,
+        false,
       );
       if (!created) throw new AcceptError('journal_forbidden', 'Journey not found', 404);
       // Recorded on the entry like a stay of a day taken over whole (JRN-02),
@@ -316,6 +336,7 @@ export class DawarichSuggestionsService {
       await this.markAccepted(row.id, 'journal', { journalEntryId: created.id });
       return created;
     });
+    await this.journey.broadcastJourneyEvent(entry.journey_id, 'journey:entry:created', { entry }, sid);
     return {
       suggestion: (await this.getOne(userId, row.id))!,
       createdPlaceId: null,
@@ -329,6 +350,7 @@ export class DawarichSuggestionsService {
     userId: number,
     row: SuggestionRow,
     body: DawarichAccept,
+    sid?: string,
   ): Promise<DawarichAcceptResult> {
     const itemId = body.bucketListItemId ?? row.matched_bucket_list_item_id;
     if (!itemId) {
@@ -341,6 +363,7 @@ export class DawarichSuggestionsService {
       await this.bucketList.markVisited(itemId, userId, row.started_at);
       await this.markAccepted(row.id, 'bucket_list', { bucketItemId: itemId });
     });
+    this.atlasWrites.announce(userId, sid);
 
     return {
       suggestion: (await this.getOne(userId, row.id))!,
@@ -408,6 +431,11 @@ export class DawarichSuggestionsService {
    * One upstream request per wish, so it is capped and explicitly triggered
    * rather than run on a timer. The cap is reported, never silent: a user with
    * eighty wishes must not be told their other thirty had no match.
+   *
+   * For the same reason an instance that cannot answer at all ends the scan
+   * with its error instead of reporting every wish as unmatched: one that does
+   * not answer would otherwise hold the request for a timeout per wish, and
+   * one that refuses the key would read as "you never got anywhere".
    */
   async scanBucketList(userId: number): Promise<DawarichBucketScan> {
     const creds = await this.dawarich.getCredentials(userId);
@@ -447,7 +475,10 @@ export class DawarichSuggestionsService {
     let stays;
     try {
       stays = await this.client.findVisitsNear(creds, lat, lng, DAWARICH_BUCKET_MATCH_RADIUS_M, 20);
-    } catch {
+    } catch (err) {
+      // The instance itself is down or turns the key away: every later wish
+      // would fail the same way, so the scan ends here with that error.
+      if (err instanceof DawarichError && INSTANCE_FAILURES.has(err.code)) throw err;
       // One wish that could not be checked is not a failed scan; it reports as
       // "no match found" and the user can run it again.
       return null;
@@ -481,7 +512,7 @@ export class DawarichSuggestionsService {
   }
 
   /** Tick off wishes the user confirmed after reading a scan. */
-  async confirmBucketVisits(userId: number, itemIds: number[], visitedAt?: string): Promise<number> {
+  async confirmBucketVisits(userId: number, itemIds: number[], visitedAt?: string, sid?: string): Promise<number> {
     const now = new Date().toISOString();
     let updated = 0;
     await this.uow.transactional(async () => {
@@ -495,6 +526,7 @@ export class DawarichSuggestionsService {
         updated += await this.bucketList.markVisitedIfUnset(itemId, userId, stamp);
       }
     });
+    if (updated > 0) this.atlasWrites.announce(userId, sid);
     return updated;
   }
 
@@ -504,8 +536,10 @@ export class DawarichSuggestionsService {
   }
 
   /** Undo a tick. Clears the source with it, so the entry reads as untouched again. */
-  async clearBucketVisit(userId: number, itemId: number): Promise<boolean> {
-    return this.bucketList.clearVisited(itemId, userId);
+  async clearBucketVisit(userId: number, itemId: number, sid?: string): Promise<boolean> {
+    const cleared = await this.bucketList.clearVisited(itemId, userId);
+    if (cleared) this.atlasWrites.announce(userId, sid);
+    return cleared;
   }
 
   // ── Atlas ──────────────────────────────────────────────────────────────────
@@ -577,7 +611,7 @@ export class DawarichSuggestionsService {
    * `INSERT OR IGNORE` underneath means a country already marked by hand keeps
    * its own provenance — confirming it again does not relabel it as imported.
    */
-  async acceptAtlasCountries(userId: number, codes: string[]): Promise<number> {
+  async acceptAtlasCountries(userId: number, codes: string[], sid?: string): Promise<number> {
     let marked = 0;
     await this.uow.transactional(async () => {
       for (const raw of codes) {
@@ -588,6 +622,8 @@ export class DawarichSuggestionsService {
         if (await this.atlas.markCountry(userId, code, 'dawarich')) marked++;
       }
     });
+    // Once, after the commit, rather than per country from inside the transaction.
+    if (marked > 0) this.atlasWrites.announce(userId, sid);
     return marked;
   }
 }

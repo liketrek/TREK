@@ -16,6 +16,7 @@ import {
   corridorTiles,
   drivenPieces,
   inRiddenRange,
+  insertIndexForAlong,
   projectOntoRoute,
   rideGaps,
   riddenRanges,
@@ -92,7 +93,7 @@ export class RoadtripPlanningMcp {
   @Tool({
     name: 'search_roadtrip_corridor',
     description:
-      'Search for fuel, charging, rest areas, campsites, food, sights or accommodation along a calculated roadtrip day, without a browser. Uses the routed road, not a straight line, and leaves out the ride between the two terminals of a flight, train, ferry, cruise or bus booking: no rectangle is searched under it and nothing found there is a hit. Returns distance along the route and distance from it. Search rectangles are paged in batches of six; continue with nextOffset until null for full coverage. Optional name, socket family and minimum power filter the matches; missing charging details mean unknown. Does not add stops. Add a chosen place and assign it to the appropriate stored day, preserving any via anchors. With roadtrip_hotel_bookends on, the road of the day includes the drive from the stay slept in and to the stay of that night; a place found there belongs at the start or the end of the stored day. Routing failures refuse the corridor search rather than searching an invented line.',
+      'Search for fuel, charging, rest areas, campsites, food, sights or accommodation along a calculated roadtrip day, without a browser. Uses the routed road, not a straight line, and leaves out the ride between the two terminals of a flight, train, ferry, cruise or bus booking: no rectangle is searched under it and nothing found there is a hit. Returns distance along the route, distance from it and the names of the two stops of the day each hit lies between. Search rectangles are paged in batches of six; continue with nextOffset until null for full coverage. Optional name, socket family and minimum power filter the matches; missing charging details mean unknown. Does not add stops. Add a chosen place and assign it to the appropriate stored day, preserving any via anchors. With roadtrip_hotel_bookends on, the road of the day includes the drive from the stay slept in and to the stay of that night; a place found there belongs at the start or the end of the stored day. Routing failures refuse the corridor search rather than searching an invented line.',
     inputSchema: roadtripCorridorRequestSchema.shape,
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'read' },
@@ -117,12 +118,31 @@ export class RoadtripPlanningMcp {
       // not on that stretch: nothing under it is tiled or on the way (#2428).
       const ridden = riddenRanges(line, rideGaps(day.stops));
       const tiles = drivenPieces(line, ridden).flatMap((piece) => corridorTiles(piece, input.widthKm));
+      // The stops a hit lies between, so a chosen one can be put at its place in the day.
+      // Each stop is placed on the road from the previous one on: a day that passes a spot
+      // twice (a loop, a crossing) would otherwise put a later stop back at the first pass.
+      let reachedKm = 0;
+      const anchors = day.stops.flatMap((stop) => {
+        const alongKm = projectOntoRoute(stop, line, { fromKm: reachedKm, toKm: Number.POSITIVE_INFINITY })?.alongKm;
+        if (alongKm === undefined) return [];
+        reachedKm = alongKm;
+        return [{ name: stop.name, alongKm }];
+      });
+      const betweenStops = (alongKm: number): [string, string] | null => {
+        if (anchors.length < 2) return null;
+        const index = insertIndexForAlong(
+          anchors.map((anchor) => anchor.alongKm),
+          alongKm,
+        );
+        return [anchors[index - 1].name, anchors[index].name];
+      };
       const hits = new Map<
         string,
         {
           poi: Awaited<ReturnType<RoadtripSearchService['search']>>['pois'][number];
           alongKm: number;
           distanceKm: number;
+          between: [string, string] | null;
         }
       >();
       const page = tiles.slice(input.offset, input.offset + 6);
@@ -159,7 +179,12 @@ export class RoadtripPlanningMcp {
               )
                 continue;
             }
-            hits.set(poi.osm_id, { poi, alongKm: projection.alongKm, distanceKm: projection.offRouteKm });
+            hits.set(poi.osm_id, {
+              poi,
+              alongKm: projection.alongKm,
+              distanceKm: projection.offRouteKm,
+              between: betweenStops(projection.alongKm),
+            });
           }
         } catch {
           failedAreas.push(input.offset + page.indexOf(bbox));

@@ -1,10 +1,12 @@
 import { badRequest } from '../common/domain-error';
+import { thinnedLine } from './tours.helpers';
 import {
   clockOf,
   haversineMetres,
   minutesOf,
   stationFit,
   stationHoursOn,
+  TOUR_DISPLAY_LINE_POINTS,
   TOUR_MAX_SNAP_M,
   TOUR_POI_MAX_CATEGORIES,
   TOUR_STATION_HOURS_MAX,
@@ -574,6 +576,19 @@ function estimateOf(way: FootWay) {
     why: way.why,
     position: way.position,
   };
+}
+
+/**
+ * The way on foot for drawing, thinned to TOUR_DISPLAY_LINE_POINTS, where it
+ * was planned and the caller asked for it (include_geometry); nothing else.
+ */
+export function walkLineGeometry(
+  way: FootWay,
+  asked: boolean | undefined,
+): { line_geometry?: Array<[number, number]> } {
+  return asked === true && way.kind === 'routed'
+    ? { line_geometry: thinnedLine(way.line, TOUR_DISPLAY_LINE_POINTS) }
+    : {};
 }
 
 /** The walk as the proposal says it: its stations with their times, the gaps, the totals and what create_city_walk takes. */

@@ -89,6 +89,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loginButton': 'Đăng nhập vào TREK',
   'oauth.authorize.requestLabel': 'Yêu cầu ủy quyền',
   'oauth.authorize.requestDescription': 'Ứng dụng này đang yêu cầu quyền truy cập vào tài khoản TREK của bạn.',
+  'oauth.authorize.verifiedHost': 'Tên miền đã xác minh: {host}',
   'oauth.authorize.trustNote':
     'Chỉ cấp quyền truy cập cho các ứng dụng mà bạn tin tưởng. Dữ liệu của bạn vẫn còn trên máy chủ của bạn.',
   'oauth.authorize.selectScope': 'Chọn ít nhất một phạm vi',

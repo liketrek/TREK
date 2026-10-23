@@ -122,10 +122,14 @@ export function makeShareToken(
     >
   > = {},
 ): Promise<EntityDTO<ShareTokens>> {
-  return createRow(orm, ShareTokens, {
-    trip: tripId,
-    createdByRef: createdBy,
-    token: overrides.token ?? `share-${nextSeq('share-token')}-${tripId}`,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    ShareTokens,
+    {
+      trip: tripId,
+      createdByRef: createdBy,
+      token: overrides.token ?? `share-${nextSeq('share-token')}-${tripId}`,
+    },
+    overrides,
+  );
 }

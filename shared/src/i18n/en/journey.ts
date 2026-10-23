@@ -296,7 +296,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty',
   'journey.studio.autoLayout': 'Auto layout',
   'journey.studio.export': 'Export',
-  'journey.studio.day': 'DAY',
+  'journey.studio.day': 'DAY {day}',
   'journey.studio.stations': 'Stations',
   'journey.studio.peersHere': 'here',
   'journey.studio.folioAuto': 'Automatic',
@@ -451,7 +451,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Marks',
   'journey.studio.dateMark': 'Date',
   'journey.studio.dayMark': 'Day counter',
-  'journey.studio.dayWord': 'DAY',
   'journey.studio.coordsMark': 'Coordinates',
   'journey.studio.coordsDms': 'Degrees',
   'journey.studio.coordsDecimal': 'Decimal',
@@ -649,6 +648,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Rotate left',
   'journey.studio.rotateRight': 'Rotate right',
   'journey.studio.saveReadOnly': 'Read-only, not saved',
+  'journey.studio.saveNewer': 'A newer Studio saved this book. Reload to edit it.',
+  'journey.studio.saveReload': 'Reload',
   'journey.studio.filterPhotos': 'Filter photos',
   'journey.studio.filterAll': 'All photos',
   'journey.studio.filterLoose': 'Not in an entry',
@@ -892,5 +893,15 @@ const journey: TranslationStrings = {
     'Recorded days and the stays taken from them, on days with a published entry. They show where and when you were, your accommodation too.',
   'journey.share.needsMap': 'Share the map to switch this on',
   'journey.editor.tags': 'Tags',
+  'journey.studio.assistant.toggle': 'Assistant',
+  'journey.studio.assistant.toggleHint': 'Design the book together with the assistant',
+  'journey.studio.assistant.panel': 'Book assistant',
+  'journey.studio.assistant.welcome': 'What should the book look like?',
+  'journey.studio.assistant.readOnly':
+    'You can only view this book, so I can answer questions but not change anything.',
+  'journey.studio.assistant.notice':
+    'The assistant can look at the page you are working on. Only that page goes to {provider}, as a picture showing just the photos you added yourself. Who is in your photos cannot be detected.',
+  'journey.studio.assistant.noticeAllow': 'Show it pages',
+  'journey.studio.assistant.noticeLater': 'Not now',
 };
 export default journey;

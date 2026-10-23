@@ -7,13 +7,14 @@
  * live in tools-packing.test.ts.
  */
 import { db as testDb } from '../../../src/db/database';
+import { Notifications } from '../../../src/db/entities/Notifications.entity';
 import { PackingBags } from '../../../src/db/entities/PackingBags.entity';
 import { PackingCategoryAssignees } from '../../../src/db/entities/PackingCategoryAssignees.entity';
 import { PackingItems } from '../../../src/db/entities/PackingItems.entity';
 import { PackingTemplateCategories } from '../../../src/db/entities/PackingTemplateCategories.entity';
 import { PackingTemplateItems } from '../../../src/db/entities/PackingTemplateItems.entity';
 import { PackingTemplates } from '../../../src/db/entities/PackingTemplates.entity';
-import { createUser, createAdmin, createTrip, createPackingItem } from '../../helpers/factories';
+import { addTripMember, createUser, createAdmin, createTrip, createPackingItem } from '../../helpers/factories';
 import { addPackingBagMembers, makePackingBag, makePackingItem } from '../../helpers/factories/packing';
 import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
@@ -285,6 +286,24 @@ describe('Tool: delete_packing_bag', () => {
       expect(result.isError).toBe(true);
     });
   });
+
+  // It used to report success and send both events for a bag that was not there.
+  it('answers a bag that is not on the trip as not found, like REST, and sends nothing', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const { id: bagId } = await makePackingBag(orm, otherTrip.id, { name: 'Elsewhere', color: '#000000' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'delete_packing_bag',
+        arguments: { tripId: trip.id, bagId },
+      });
+      expect(result.isError).toBe(true);
+      expect((result.content as { text: string }[])[0].text).toBe('Bag not found.');
+      expect(broadcastMock).not.toHaveBeenCalled();
+      expect(await findRow(orm, PackingBags, { id: bagId })).not.toBeNull();
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -371,6 +390,26 @@ describe('Tool: set_packing_category_assignees', () => {
     });
   });
 
+  // The REST route always notified the tagged travellers; the tool now does too.
+  it('notifies the fellow traveller it tags, as the REST route does', async () => {
+    const { user } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, member.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_packing_category_assignees',
+        arguments: { tripId: trip.id, categoryName: 'Clothing', userIds: [member.id] },
+      });
+      expect(result.isError).toBeFalsy();
+      // The send is fire and forget: it lands one turn of the event loop later.
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      const sent = await findRow(orm, Notifications, { recipient: member.id });
+      expect(sent?.text_key).toBe('notif.packing_tagged.text');
+      expect(JSON.parse(String(sent?.text_params))).toMatchObject({ actor: user.username, category: 'Clothing' });
+    });
+  });
+
   it('clears assignees when passed empty array', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -435,6 +474,37 @@ describe('Tool: apply_packing_template', () => {
         arguments: { tripId: trip.id, templateId: 99999 },
       });
       expect(result.isError).toBe(true);
+      expect((result.content as { text: string }[])[0].text).toBe('Template not found.');
+      expect(broadcastMock).not.toHaveBeenCalled();
+    });
+  });
+
+  // It always landed on the common list; REST has taken the visibility since #1565.
+  it("takes the visibility like REST: personal items are the caller's own and reach the caller alone", async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const templateId = await insertRow(orm, PackingTemplates, { name: 'Diving', createdByRef: user.id });
+    const categoryId = await insertRow(orm, PackingTemplateCategories, {
+      template: templateId,
+      name: 'Gear',
+      sort_order: 0,
+    });
+    await insertRow(orm, PackingTemplateItems, { category: categoryId, name: 'Mask', sort_order: 0 });
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'apply_packing_template',
+        arguments: { tripId: trip.id, templateId, visibility: 'personal' },
+      });
+      const data = parseToolResult(result) as { items: { is_private: number; owner_id: number }[] };
+      expect(data.items).toEqual([expect.objectContaining({ is_private: 1, owner_id: user.id })]);
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'packing:template-applied',
+        expect.objectContaining({ items: data.items }),
+        undefined,
+        user.id,
+      );
     });
   });
 });

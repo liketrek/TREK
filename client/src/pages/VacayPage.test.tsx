@@ -210,7 +210,7 @@ describe('VacayPage', () => {
   });
 
   // FE-PAGE-VACAY-013: WebSocket vacay:update triggers loadPlan + loadEntries + loadStats
-  it('handles vacay:update WebSocket message', () => {
+  it('handles vacay:update WebSocket message', async () => {
     const mockLoadPlan = vi.fn().mockResolvedValue(undefined);
     const mockLoadEntries = vi.fn().mockResolvedValue(undefined);
     const mockLoadStats = vi.fn().mockResolvedValue(undefined);
@@ -219,13 +219,13 @@ describe('VacayPage', () => {
     render(<VacayPage />);
     const handler = addListenerMock.mock.calls[0][0];
     handler({ type: 'vacay:update' });
-    expect(mockLoadPlan).toHaveBeenCalled();
-    expect(mockLoadEntries).toHaveBeenCalledWith(2025);
-    expect(mockLoadStats).toHaveBeenCalledWith(2025);
+    await vi.waitFor(() => expect(mockLoadPlan).toHaveBeenCalled());
+    await vi.waitFor(() => expect(mockLoadEntries).toHaveBeenCalledWith(2025));
+    await vi.waitFor(() => expect(mockLoadStats).toHaveBeenCalledWith(2025));
   });
 
   // FE-PAGE-VACAY-014: WebSocket vacay:settings also calls loadAll
-  it('handles vacay:settings WebSocket message', () => {
+  it('handles vacay:settings WebSocket message', async () => {
     const mockLoadAll = vi.fn().mockResolvedValue(undefined);
     const mockLoadPlan = vi.fn().mockResolvedValue(undefined);
     const addListenerMock = websocket.addListener as ReturnType<typeof vi.fn>;
@@ -235,12 +235,12 @@ describe('VacayPage', () => {
     // loadAll is called once on mount, reset to track the WS-triggered call
     mockLoadAll.mockClear();
     handler({ type: 'vacay:settings' });
-    expect(mockLoadAll).toHaveBeenCalled();
-    expect(mockLoadPlan).toHaveBeenCalled();
+    await vi.waitFor(() => expect(mockLoadAll).toHaveBeenCalled());
+    await vi.waitFor(() => expect(mockLoadPlan).toHaveBeenCalled());
   });
 
   // FE-PAGE-VACAY-015: WebSocket vacay:invite calls loadAll
-  it('handles vacay:invite WebSocket message', () => {
+  it('handles vacay:invite WebSocket message', async () => {
     const mockLoadAll = vi.fn().mockResolvedValue(undefined);
     const addListenerMock = websocket.addListener as ReturnType<typeof vi.fn>;
     seedStore(useVacayStore, makeVacayState({ loadAll: mockLoadAll }) as any);
@@ -248,7 +248,7 @@ describe('VacayPage', () => {
     const handler = addListenerMock.mock.calls[0][0];
     mockLoadAll.mockClear();
     handler({ type: 'vacay:invite' });
-    expect(mockLoadAll).toHaveBeenCalled();
+    await vi.waitFor(() => expect(mockLoadAll).toHaveBeenCalled());
   });
 
   // FE-PAGE-VACAY-016: Add next year button calls addYear with max+1
@@ -380,7 +380,7 @@ describe('VacayPage', () => {
   });
 
   // FE-PAGE-VACAY-025: WebSocket vacay:share reloads shares and shared calendars
-  it('handles vacay:share WebSocket message', () => {
+  it('handles vacay:share WebSocket message', async () => {
     const mockLoadShares = vi.fn().mockResolvedValue(undefined);
     const mockLoadSharedCalendars = vi.fn().mockResolvedValue(undefined);
     const addListenerMock = websocket.addListener as ReturnType<typeof vi.fn>;
@@ -392,7 +392,69 @@ describe('VacayPage', () => {
     const handler = addListenerMock.mock.calls[0][0];
     mockLoadSharedCalendars.mockClear();
     handler({ type: 'vacay:share' });
-    expect(mockLoadShares).toHaveBeenCalled();
-    expect(mockLoadSharedCalendars).toHaveBeenCalledWith(2025);
+    await vi.waitFor(() => expect(mockLoadShares).toHaveBeenCalled());
+    await vi.waitFor(() => expect(mockLoadSharedCalendars).toHaveBeenCalledWith(2025));
+  });
+
+  it('FE-BCAST-020: a burst of vacay events reads each part once, after it settles', () => {
+    const mockLoadPlan = vi.fn().mockResolvedValue(undefined);
+    const mockLoadAll = vi.fn().mockResolvedValue(undefined);
+    const mockLoadShares = vi.fn().mockResolvedValue(undefined);
+    const addListenerMock = websocket.addListener as ReturnType<typeof vi.fn>;
+    seedStore(useVacayStore, makeVacayState({ loadPlan: mockLoadPlan, loadAll: mockLoadAll, loadShares: mockLoadShares }) as never);
+    render(<VacayPage />);
+    const handler = addListenerMock.mock.calls[0][0];
+    mockLoadAll.mockClear();
+    mockLoadPlan.mockClear();
+    mockLoadShares.mockClear();
+    vi.useFakeTimers();
+    try {
+      // An assistant step marking days one by one, then a share and an invite in the same breath.
+      for (let i = 0; i < 20; i++) handler({ type: 'vacay:update' });
+      handler({ type: 'vacay:share' });
+      handler({ type: 'vacay:invite' });
+      expect(mockLoadPlan).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(400);
+      expect(mockLoadPlan).toHaveBeenCalledTimes(1);
+      expect(mockLoadAll).toHaveBeenCalledTimes(1);
+      expect(mockLoadShares).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('FE-BCAST-027: a steady stream of vacay events still reads within two seconds', () => {
+    const mockLoadPlan = vi.fn().mockResolvedValue(undefined);
+    const addListenerMock = websocket.addListener as ReturnType<typeof vi.fn>;
+    seedStore(useVacayStore, makeVacayState({ loadPlan: mockLoadPlan }) as never);
+    render(<VacayPage />);
+    const handler = addListenerMock.mock.calls[0][0];
+    mockLoadPlan.mockClear();
+    vi.useFakeTimers();
+    try {
+      // One event every 300 ms, closer than the 400 ms settle time: without a cap
+      // the read would wait for the stream to stop.
+      for (let i = 0; i < 6; i++) {
+        handler({ type: 'vacay:update' });
+        vi.advanceTimersByTime(300);
+      }
+      expect(mockLoadPlan).not.toHaveBeenCalled();
+      handler({ type: 'vacay:update' });
+      vi.advanceTimersByTime(300);
+      expect(mockLoadPlan).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('FE-PAGE-VACAY-026: a link with a year opens Vacay on it; one without a usable year opens as before', () => {
+    const mockLoadAll = vi.fn().mockResolvedValue(undefined);
+    seedStore(useVacayStore, makeVacayState({ loadAll: mockLoadAll }) as never);
+    const { unmount } = render(<VacayPage />, { initialEntries: ['/vacay?year=2027'] });
+    expect(mockLoadAll).toHaveBeenCalledWith(2027);
+    unmount();
+    mockLoadAll.mockClear();
+    render(<VacayPage />, { initialEntries: ['/vacay?year=next'] });
+    expect(mockLoadAll).toHaveBeenCalledWith(undefined);
   });
 });

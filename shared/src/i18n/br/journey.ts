@@ -298,7 +298,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'DIA',
+  'journey.studio.day': 'DIA {day}',
   'journey.studio.stations': 'Etapas',
   'journey.studio.peersHere': 'aqui',
   'journey.studio.folioAuto': 'Automático',
@@ -454,7 +454,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Marcas',
   'journey.studio.dateMark': 'Data',
   'journey.studio.dayMark': 'Contador de dias',
-  'journey.studio.dayWord': 'DIA',
   'journey.studio.coordsMark': 'Coordenadas',
   'journey.studio.coordsDms': 'Graus',
   'journey.studio.coordsDecimal': 'Decimal',
@@ -653,6 +652,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Girar à esquerda',
   'journey.studio.rotateRight': 'Girar à direita',
   'journey.studio.saveReadOnly': 'Somente leitura, nada é salvo',
+  'journey.studio.saveNewer': 'Uma versão mais recente do Studio salvou este livro. Recarregue para editar.',
+  'journey.studio.saveReload': 'Recarregar',
   'journey.studio.filterPhotos': 'Filtrar fotos',
   'journey.studio.filterAll': 'Todas as fotos',
   'journey.studio.filterLoose': 'Sem entrada',
@@ -904,5 +905,15 @@ const journey: TranslationStrings = {
     'Dias gravados e as paradas tiradas deles, nos dias com um registro publicado. Mostram onde e quando você esteve, inclusive sua hospedagem.',
   'journey.share.needsMap': 'Compartilhe o mapa para ativar isto',
   'journey.editor.tags': 'Bomennoù',
+  'journey.studio.assistant.toggle': 'Assistente',
+  'journey.studio.assistant.toggleHint': 'Crie o livro junto com o assistente',
+  'journey.studio.assistant.panel': 'Assistente do livro',
+  'journey.studio.assistant.welcome': 'Como o livro deve ficar?',
+  'journey.studio.assistant.readOnly':
+    'Você só pode visualizar este livro, então posso responder perguntas, mas não alterar nada.',
+  'journey.studio.assistant.notice':
+    'O assistente pode olhar a página em que você está trabalhando. Só essa página vai para {provider}, como uma imagem que mostra apenas as fotos que você mesmo adicionou. Não é possível detectar quem aparece nas suas fotos.',
+  'journey.studio.assistant.noticeAllow': 'Mostrar páginas',
+  'journey.studio.assistant.noticeLater': 'Agora não',
 };
 export default journey;

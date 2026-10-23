@@ -6,14 +6,18 @@
  */
 import { db as testDb } from '../../../src/db/database';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
+import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
-import { createUser, createTrip, createDay } from '../../helpers/factories';
+import { AirtrailLinkService } from '../../../src/nest/integrations/airtrail-link.service';
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import { createUser, createTrip, createDay, createPlace } from '../../helpers/factories';
 import { makeBudgetItem } from '../../helpers/factories/budget';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { makeDay } from '../../helpers/factories/trips';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { oneByOne } from '../../helpers/one-by-one';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 
@@ -524,6 +528,48 @@ describe('Tool: delete_transport', () => {
     });
   });
 
+  // A hotel booking the booking form retyped as a train keeps its stay link. The
+  // tool used to take the stay along without saying so, so the planner's hotel
+  // block outlived it until a reload; REST always sent accommodation:deleted.
+  it('takes along the stay a booking retyped from a hotel still carries, and says so as REST does', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day1 = createDay(testDb, trip.id, { day_number: 1 });
+    const day2 = createDay(testDb, trip.id, { day_number: 2 });
+    const hotel = createPlace(testDb, trip.id, { name: 'Grand Hotel' });
+    await withHarness(user.id, async (h) => {
+      const created = await h.client.callTool({
+        name: 'create_reservation',
+        arguments: {
+          tripId: trip.id,
+          title: 'Grand Hotel',
+          type: 'hotel',
+          place_id: hotel.id,
+          start_day_id: day1.id,
+          end_day_id: day2.id,
+        },
+      });
+      const { reservation } = parseToolResult(created) as { reservation: { id: number } };
+      await updateRows(orm, Reservations, { id: reservation.id }, { type: 'train' });
+      broadcastMock.mockClear();
+
+      const result = await h.client.callTool({
+        name: 'delete_transport',
+        arguments: { tripId: trip.id, reservationId: reservation.id },
+      });
+      expect(parseToolResult(result)).toEqual({ success: true });
+      expect(await countRows(orm, DayAccommodations, { trip: trip.id })).toBe(0);
+      expect(broadcastMock.mock.calls.map((c) => c[1]).slice(-2)).toEqual([
+        'accommodation:deleted',
+        'reservation:deleted',
+      ]);
+      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'accommodation:deleted', {
+        accommodationId: expect.anything(),
+        _source: 'mcp',
+      });
+    });
+  });
+
   it('404s an unknown reservation id', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -549,6 +595,75 @@ describe('Tool: delete_transport', () => {
       expect((result as { isError?: boolean }).isError).toBe(true);
       expect((result as { content: { text: string }[] }).content[0].text).toContain('Trip not found');
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// What a transport write does past the trip's room, as on REST
+// ---------------------------------------------------------------------------
+
+describe('Transport tools: the booking notice and the AirTrail push', () => {
+  it('create, update and delete each tell the fellow travellers, as the booking routes do', async () => {
+    const notify = vi.spyOn(ReservationsService.prototype, 'notifyBookingChange').mockResolvedValue(undefined);
+    try {
+      const { user } = createUser(testDb);
+      const trip = createTrip(testDb, user.id);
+      await withHarness(user.id, async (h) => {
+        const created = parseToolResult(
+          await h.client.callTool({
+            name: 'create_transport',
+            arguments: { tripId: trip.id, type: 'train', title: 'ICE 1001' },
+          }),
+        ) as { reservation: { id: number } };
+        const reservationId = created.reservation.id;
+        await h.client.callTool({
+          name: 'update_transport',
+          arguments: { tripId: trip.id, reservationId, title: 'ICE 1003' },
+        });
+        await h.client.callTool({ name: 'delete_transport', arguments: { tripId: trip.id, reservationId } });
+      });
+      // The trip id travels as text from some callers and as a number from others; the notice reads both alike.
+      expect(notify.mock.calls.map(([tripId, ...rest]) => [Number(tripId), ...rest])).toEqual([
+        [trip.id, user.id, 'ICE 1001', 'train'],
+        [trip.id, user.id, 'ICE 1003', 'train'],
+        [trip.id, user.id, 'ICE 1003', 'train'],
+      ]);
+    } finally {
+      notify.mockRestore();
+    }
+  });
+
+  // Before, an edit over MCP stayed local and the next AirTrail pull overwrote it.
+  it('pushes an edit of a linked AirTrail flight back to AirTrail, and only of a linked one', async () => {
+    const push = vi.spyOn(AirtrailLinkService.prototype, 'pushReservationToAirtrail').mockResolvedValue(undefined);
+    try {
+      const { user } = createUser(testDb);
+      const trip = createTrip(testDb, user.id);
+      let linked = 0;
+      await withHarness(user.id, async (h) => {
+        const create = async (title: string) =>
+          (
+            parseToolResult(
+              await h.client.callTool({
+                name: 'create_transport',
+                arguments: { tripId: trip.id, type: 'flight', title, endpoints: flightEndpoints },
+              }),
+            ) as { reservation: { id: number } }
+          ).reservation.id;
+        linked = await create('AY1502');
+        const local = await create('LX638');
+        await updateRows(orm, Reservations, { id: linked }, { external_source: 'airtrail', external_id: '501' });
+        await oneByOne([linked, local], (reservationId) =>
+          h.client.callTool({
+            name: 'update_transport',
+            arguments: { tripId: trip.id, reservationId, status: 'confirmed' },
+          }),
+        );
+      });
+      expect(push.mock.calls).toEqual([[linked, trip.id]]);
+    } finally {
+      push.mockRestore();
+    }
   });
 });
 

@@ -1,6 +1,7 @@
 import * as LucideIcons from 'lucide-react'
 import { resolvePluginIcon } from '../shared/PluginIcon'
 import type { LucideIcon } from 'lucide-react'
+import { BOOK_DESIGN_ICONS } from '@trek/shared'
 
 /**
  * Every drawing in lucide, as a list a picker can show.
@@ -58,19 +59,13 @@ export const ICON_NAMES: string[] = buildNames()
  * Filtered against the real export list, so a lucide version that renames one
  * of them quietly drops it instead of drawing a fallback in the shelf.
  */
-const FEATURED = [
-  'Plane', 'Train', 'TrainFront', 'Car', 'Bus', 'Ship', 'Bike', 'Footprints', 'Sailboat',
-  'MapPin', 'Map', 'Compass', 'Navigation', 'Route', 'Globe', 'Milestone', 'Signpost',
-  'Mountain', 'MountainSnow', 'Waves', 'TreePine', 'Palmtree', 'Flower2', 'Leaf', 'Bird', 'Fish',
-  'Sun', 'Sunrise', 'Sunset', 'Moon', 'Cloud', 'CloudRain', 'CloudLightning', 'Snowflake',
-  'Umbrella', 'Thermometer', 'Wind',
-  'Tent', 'Backpack', 'Luggage', 'BedDouble', 'Hotel', 'Key', 'Anchor',
-  'Coffee', 'UtensilsCrossed', 'Wine', 'Beer', 'IceCream', 'Croissant',
-  'Camera', 'Image', 'Film', 'Music', 'BookOpen', 'PenLine', 'Quote', 'Sticker',
-  'Heart', 'Star', 'Sparkles', 'Flag', 'Ticket', 'Gift', 'PartyPopper',
-  'Clock', 'CalendarDays', 'CreditCard', 'Wallet', 'ShoppingBag',
-  'Landmark', 'Church', 'Castle', 'Building2', 'Home', 'Binoculars', 'Telescope',
-]
+/*
+ * The shelf itself lives in @trek/shared (book-icons.ts), beside the whole
+ * list the book engine takes (BOOK_ICON_NAMES): the assistant may name any
+ * drawing a person could pick here, and iconLibrary.test.ts holds that list
+ * to ICON_NAMES.
+ */
+const FEATURED: readonly string[] = BOOK_DESIGN_ICONS
 
 /** The starter shelf, minus anything this version of lucide does not have. */
 export const FEATURED_ICONS: string[] = FEATURED.filter(name => ICON_NAMES.includes(name))

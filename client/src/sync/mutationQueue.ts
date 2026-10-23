@@ -97,6 +97,8 @@ let _lastTempId = 0
 /**
  * Mint a collision-free temporary (negative) id for an offline-created entity.
  * Monotonic across the session so same-millisecond creates never collide.
+ * Never use it for trips: the assistant keys a journey's chat by the negated
+ * journey id (store/assistantChatKey.ts) and relies on trip ids being positive.
  */
 export function nextTempId(): number {
   const now = Date.now()

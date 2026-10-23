@@ -105,5 +105,7 @@ const collab: TranslationStrings = {
     'このカテゴリーを使っているノートがまだあります。先にそのノートを移動または削除してください。',
   'collab.notes.categoriesLocalHint':
     'ノートのないカテゴリーはこのブラウザーにのみ保存されます。ノートで使われると、ほかのメンバーにも表示されます。',
+  'collab.chat.fromAssistant': 'アシスタントから',
+  'collab.chat.fromAssistantHint': '{name}さんがアシスタントの回答を共有しました',
 };
 export default collab;

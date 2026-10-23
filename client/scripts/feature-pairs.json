@@ -16,10 +16,15 @@
       "feature": "Addon manager",
       "hooks": [
         "src/components/Admin/addons/addonModel.ts",
-        "src/components/Admin/addons/useAddonManager.ts",
-        "src/components/Admin/addons/useLlmParsingConfig.ts"
+        "src/components/Admin/addons/useAddonManager.ts"
       ],
       "desktop": ["src/components/Admin/AddonManager.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminAddonManager.tsx"]
+    },
+    {
+      "feature": "Addon manager: AI tile",
+      "hooks": ["src/components/Admin/addons/useAiAddonTile.ts"],
+      "desktop": ["src/components/Admin/addons/AiAddonTile.tsx"],
       "mobile": ["src/mobile/screens/admin/MAdminAddonManager.tsx"]
     },
     {
@@ -57,6 +62,21 @@
       "hooks": ["src/pages/admin/adminModel.ts"],
       "desktop": ["src/pages/admin/AdminUsersTab.tsx"],
       "mobile": ["src/mobile/screens/admin/MAdminUsersSection.tsx"]
+    },
+    {
+      "feature": "AI assistant chat",
+      "hooks": ["src/components/Assistant/useAssistantThread.ts"],
+      "desktop": ["src/components/Assistant/AssistantWindow.tsx"],
+      "mobile": ["src/mobile/screens/trip/assistant/MAssistantScreen.tsx"]
+    },
+    {
+      "feature": "Assistant hints",
+      "hooks": ["src/components/Assistant/useAssistantHints.ts"],
+      "desktop": ["src/components/Assistant/AssistantHeader.tsx", "src/components/Assistant/AssistantLauncher.tsx"],
+      "mobile": [
+        "src/mobile/screens/trip/assistant/MAssistantScreen.tsx",
+        "src/mobile/screens/trip/sheets/MMehrSheet.tsx"
+      ]
     },
     {
       "feature": "Atlas country/region action sheet",
@@ -206,8 +226,7 @@
         "src/components/Collections/CollectionPicker.tsx",
         "src/components/Collections/CollectionPlaceDetail.tsx",
         "src/components/Collections/ListEditorModal.tsx",
-        "src/components/Collections/MSaveToCollectionSheet.tsx",
-        "src/components/Collections/StatusBadge.tsx"
+        "src/components/Collections/MSaveToCollectionSheet.tsx"
       ],
       "mobile": [
         "src/mobile/screens/collections/MCollAddSheet.tsx",
@@ -245,8 +264,8 @@
       "mobile": ["src/mobile/screens/trip/sheets/MCostSheet.tsx", "src/mobile/screens/trip/tabs/MCostsTab.tsx"]
     },
     {
-      "feature": "Costs/budget ledger: useCostsLedger, useSettlementForm",
-      "hooks": ["src/components/Budget/useCostsLedger.ts", "src/components/Budget/useSettlementForm.ts"],
+      "feature": "Costs/budget ledger: useCostsLedger, useSettlementForm, useExpenseLinks",
+      "hooks": ["src/components/Budget/useCostsLedger.ts", "src/components/Budget/useSettlementForm.ts", "src/components/Budget/useExpenseLinks.ts"],
       "desktop": ["src/components/Budget/CostsPanel.tsx"],
       "mobile": ["src/mobile/screens/trip/tabs/MCostsTab.tsx"]
     },
@@ -659,6 +678,12 @@
       "mobile": ["src/mobile/screens/settings/MSettingsGeneral.tsx"]
     },
     {
+      "feature": "Settings / Integrations / AI assistant",
+      "hooks": ["src/components/Settings/ai/useAiConnections.ts"],
+      "desktop": ["src/components/Settings/ai/AiConnectionSection.tsx"],
+      "mobile": ["src/mobile/screens/settings/MAiConnectionSection.tsx"]
+    },
+    {
       "feature": "Settings / Integrations / AI parsing",
       "hooks": ["src/components/Settings/useLlmConnection.ts"],
       "desktop": ["src/components/Settings/LlmConnectionSection.tsx"],
@@ -976,7 +1001,6 @@
     "src/mobile/screens/trip/sheets/MBrowseActionsSheet.tsx": "Phone action sheet for a pool place that calls planner handlers and the shared placeToSaveTarget.",
     "src/mobile/screens/trip/sheets/MDaysSheet.tsx": "Button based day reorder sheet over planner.handleReorderDays; the desktop reorders by drag.",
     "src/mobile/screens/trip/sheets/MLinkedCosts.tsx": "Already shares useExpenseLinks with the desktop BookingCostsSection; only markup and a search filter are local.",
-    "src/mobile/screens/trip/sheets/MMehrSheet.tsx": "Phone dock overflow menu that only opens tabs and sheets.",
     "src/mobile/screens/trip/sheets/MTripSheetUi.tsx": "Phone sheet UI primitives (eyebrow, headers, stat boxes, action circles) and a time display helper.",
     "src/mobile/screens/trip/sheets/PlFileAttach.tsx": "Markup only; pending files and link actions come through props from the phone form sheets.",
     "src/mobile/screens/trip/sheets/PlSheetChrome.tsx": "Phone form sheet chrome primitives (header, footer, field classes).",

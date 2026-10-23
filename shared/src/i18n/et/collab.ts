@@ -110,5 +110,7 @@ const collab: TranslationStrings = {
     'Mõned märkmed kasutavad seda kategooriat veel. Teisalda või kustuta need enne, siis saab kategooria eemaldada.',
   'collab.notes.categoriesLocalHint':
     'Märkmeteta kategooria salvestatakse ainult selles brauseris. Teised liikmed näevad seda, kui mõni märge seda kasutab.',
+  'collab.chat.fromAssistant': 'assistendilt',
+  'collab.chat.fromAssistantHint': '{name} jagas seda assistendi vastust',
 };
 export default collab;

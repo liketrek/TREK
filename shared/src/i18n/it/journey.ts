@@ -297,7 +297,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'GIORNO',
+  'journey.studio.day': 'GIORNO {day}',
   'journey.studio.stations': 'Tappe',
   'journey.studio.peersHere': 'qui',
   'journey.studio.folioAuto': 'Automatico',
@@ -453,7 +453,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Segni',
   'journey.studio.dateMark': 'Data',
   'journey.studio.dayMark': 'Contagiorni',
-  'journey.studio.dayWord': 'GIORNO',
   'journey.studio.coordsMark': 'Coordinate',
   'journey.studio.coordsDms': 'Gradi',
   'journey.studio.coordsDecimal': 'Decimale',
@@ -652,6 +651,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Ruota a sinistra',
   'journey.studio.rotateRight': 'Ruota a destra',
   'journey.studio.saveReadOnly': 'Sola lettura, non si salva',
+  'journey.studio.saveNewer': 'Una versione più recente di Studio ha salvato questo libro. Ricarica per modificarlo.',
+  'journey.studio.saveReload': 'Ricarica',
   'journey.studio.filterPhotos': 'Filtra foto',
   'journey.studio.filterAll': 'Tutte le foto',
   'journey.studio.filterLoose': 'Senza voce',
@@ -905,5 +906,15 @@ const journey: TranslationStrings = {
     'Giorni registrati e le soste ricavate da essi, nei giorni con una voce pubblicata. Mostrano dove e quando sei stato, anche il tuo alloggio.',
   'journey.share.needsMap': 'Condividi la mappa per attivarlo',
   'journey.editor.tags': 'Tag',
+  'journey.studio.assistant.toggle': 'Assistente',
+  'journey.studio.assistant.toggleHint': 'Progetta il libro insieme all’assistente',
+  'journey.studio.assistant.panel': 'Assistente del libro',
+  'journey.studio.assistant.welcome': 'Come dovrebbe essere il libro?',
+  'journey.studio.assistant.readOnly':
+    'Puoi solo visualizzare questo libro, quindi posso rispondere alle domande ma non modificare nulla.',
+  'journey.studio.assistant.notice':
+    'L’assistente può guardare la pagina su cui stai lavorando. Solo quella pagina viene inviata a {provider}, come immagine che mostra soltanto le foto che hai aggiunto tu. Non è possibile riconoscere chi compare nelle tue foto.',
+  'journey.studio.assistant.noticeAllow': 'Mostra le pagine',
+  'journey.studio.assistant.noticeLater': 'Non ora',
 };
 export default journey;

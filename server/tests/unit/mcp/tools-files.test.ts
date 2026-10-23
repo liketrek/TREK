@@ -829,6 +829,8 @@ describe('Tool: link_trip_file', () => {
       });
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result.content)).toContain('File not found.');
+      // Nothing was linked, so no tab is told about the other trip's file.
+      expect(broadcastMock).not.toHaveBeenCalledWith(expect.anything(), 'file:updated', expect.anything());
     });
   });
 
@@ -989,6 +991,56 @@ describe('Tool: unlink_trip_file', () => {
       expect(result.isError).toBe(true);
     });
     expect(await linkRows(file.id)).toHaveLength(1);
+  });
+});
+
+describe('Link changes reach every tab', () => {
+  /** The one file:updated a link change sent, and the file it carried. */
+  function sentFile() {
+    expect(broadcastMock.mock.calls.map((call) => call[1])).toEqual(['file:updated']);
+    return broadcastMock.mock.calls[0][2].file as {
+      id: number;
+      linked_place_ids: number[];
+      linked_reservation_ids: number[];
+    };
+  }
+
+  it('MCP-FILES-001: link_trip_file sends the file again with every link it now carries', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const reservation = createReservation(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const file = await insertFile(trip.id);
+    await linkFile(orm, file.id, { reservation: reservation.id });
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'link_trip_file',
+        arguments: { tripId: trip.id, fileId: file.id, place_id: place.id },
+      });
+    });
+    expect(sentFile()).toMatchObject({
+      id: file.id,
+      linked_reservation_ids: [reservation.id],
+      linked_place_ids: [place.id],
+    });
+  });
+
+  it('MCP-FILES-002: unlink_trip_file sends the file with the links it has left', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const reservation = createReservation(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const file = await insertFile(trip.id);
+    await linkFile(orm, file.id, { reservation: reservation.id });
+    await linkFile(orm, file.id, { place: place.id });
+    const doomed = (await linkRows(file.id))[0].id;
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'unlink_trip_file',
+        arguments: { tripId: trip.id, fileId: file.id, linkId: doomed },
+      });
+    });
+    expect(sentFile()).toMatchObject({ id: file.id, linked_reservation_ids: [], linked_place_ids: [place.id] });
   });
 });
 

@@ -1,4 +1,5 @@
 import type { BookFrame } from '@trek/shared'
+import { BOOK_RELIEF_TILES, BOOK_SATELLITE_TILES } from '@trek/shared'
 import { attributionFor } from './mapTiles'
 
 /**
@@ -72,9 +73,7 @@ export function sourceIdOf(el: { source: string; tileUrl: string }, options: Map
  * reverse of the slippy convention. The substitution is by name, so the order
  * in the template is all that matters.
  */
-const RELIEF_TILES = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best'
-  + '/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8'
-  + '/{z}/{y}/{x}.jpeg'
+const RELIEF_TILES = BOOK_RELIEF_TILES
 
 /**
  * Real satellite imagery, and the answer to what relief cannot do.
@@ -97,8 +96,7 @@ const RELIEF_TILES = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best'
  * Attribution is not optional under that licence, which is why it travels into
  * the document with the source.
  */
-const SATELLITE_TILES = 'https://tiles.maps.eox.at/wmts/1.0.0'
-  + '/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg'
+const SATELLITE_TILES = BOOK_SATELLITE_TILES
 
 /**
  * What a book may be made of.

@@ -1,6 +1,6 @@
 import { readEnv, getAppUrl } from '../../app-config';
 import { Notifications } from '../../db/entities/Notifications.entity';
-import type { NotificationsRepository } from '../../db/repositories/Notifications.repository';
+import type { NotificationJoinRow, NotificationsRepository } from '../../db/repositories/Notifications.repository';
 import { logDebug, logError } from '../audit/audit-log.logger';
 import { avatarUrl } from '../common/avatarUrl';
 import { UnitOfWork } from '../database/unit-of-work';
@@ -93,6 +93,20 @@ interface NotificationRow {
 }
 
 type RespondResult = { success: boolean; error?: string; notification?: NotificationRow };
+
+/**
+ * A stored notification as the bell reads it: the time as ISO UTC, the sender's
+ * avatar as a URL. The repository row's `type`/`scope`/`response` are plain
+ * TEXT; narrowing them to the unions above is the same unchecked boundary the
+ * legacy `db.all<NotificationRow>(...)` generic drew.
+ */
+function withSender(row: NotificationJoinRow): NotificationRow {
+  return {
+    ...row,
+    created_at: toUtcIso(row.created_at!),
+    sender_avatar: avatarUrl({ avatar: row.sender_avatar }),
+  } as NotificationRow;
+}
 
 // ── Event config map ───────────────────────────────────────────────────────
 
@@ -612,34 +626,45 @@ export class NotificationsService {
     const total = await this.notificationsRepo.countForRecipient(userId, unreadOnly);
     const unread_count = await this.notificationsRepo.countUnreadForRecipient(userId);
 
-    // The repository row's `type`/`scope`/`response` are the physical TEXT
-    // columns (plain `string`); this service's own `NotificationRow` narrows
-    // them to the literal unions it writes — the same unchecked boundary the
-    // legacy `db.all<NotificationRow>(...)` generic drew (SQLite has no enum
-    // type to check against either way).
-    const mapped = rows.map((r) => ({
-      ...r,
-      created_at: toUtcIso(r.created_at!),
-      sender_avatar: avatarUrl({ avatar: r.sender_avatar }),
-    })) as NotificationRow[];
-
-    return { notifications: mapped, total, unread_count };
+    return { notifications: rows.map(withSender), total, unread_count };
   }
 
   async unreadCount(userId: number): Promise<number> {
     return await this.notificationsRepo.countUnreadForRecipient(userId);
   }
 
-  async markRead(notificationId: number, userId: number): Promise<boolean> {
-    return (await this.notificationsRepo.setRead(notificationId, userId, 1)) > 0;
+  /**
+   * The read state of one of the user's notifications. The user's other tabs and
+   * devices get the row as it now reads (`socketId`, REST's requesting tab, is
+   * left out: it changed its bell itself), so their bell and count follow.
+   */
+  async markRead(notificationId: number, userId: number, socketId: string | undefined): Promise<boolean> {
+    return this.setReadState(notificationId, userId, 1, socketId);
   }
 
-  async markUnread(notificationId: number, userId: number): Promise<boolean> {
-    return (await this.notificationsRepo.setRead(notificationId, userId, 0)) > 0;
+  async markUnread(notificationId: number, userId: number, socketId: string | undefined): Promise<boolean> {
+    return this.setReadState(notificationId, userId, 0, socketId);
   }
 
-  async markAllRead(userId: number): Promise<number> {
-    return await this.notificationsRepo.markAllRead(userId);
+  /** Every notification of the user read at once; the other tabs read their list again when anything changed. */
+  async markAllRead(userId: number, socketId: string | undefined): Promise<number> {
+    const count = await this.notificationsRepo.markAllRead(userId);
+    if (count > 0) this.realtime.broadcastToUser(userId, { type: 'notification:read-all' }, socketId);
+    return count;
+  }
+
+  private async setReadState(id: number, userId: number, read: 0 | 1, socketId: string | undefined) {
+    if ((await this.notificationsRepo.setRead(id, userId, read)) === 0) return false;
+    const row = await this.notificationsRepo.findWithSenderById(id);
+    if (row) {
+      this.realtime.broadcastToUser(userId, { type: 'notification:updated', notification: withSender(row) }, socketId);
+    }
+    return true;
+  }
+
+  /** The name a notification gives its actor, as the routes read it off their session user. */
+  async actorName(userId: number): Promise<string> {
+    return (await this.notificationsRepo.findUserBasic(userId))?.username ?? '';
   }
 
   async deleteOne(notificationId: number, userId: number): Promise<boolean> {
@@ -691,14 +716,7 @@ export class NotificationsService {
       return { success: false, error: err instanceof Error ? err.message : 'Action failed' };
     }
 
-    const updated = (await this.notificationsRepo.findWithSenderById(notificationId))!;
-
-    // Same unchecked-narrowing boundary as `listInApp`'s `mapped` above.
-    const mappedUpdated = {
-      ...updated,
-      created_at: toUtcIso(updated.created_at!),
-      sender_avatar: avatarUrl({ avatar: updated.sender_avatar }),
-    } as NotificationRow;
+    const mappedUpdated = withSender((await this.notificationsRepo.findWithSenderById(notificationId))!);
 
     this.realtime.broadcastToUser(userId, { type: 'notification:updated', notification: mappedUpdated });
 

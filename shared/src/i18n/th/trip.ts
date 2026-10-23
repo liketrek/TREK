@@ -93,6 +93,7 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaceBookedSame':
     'การดำเนินการนี้จะลบการพักที่จองไว้ที่ “{name}” รวมถึงการจองและค่าใช้จ่ายที่ผูกไว้ด้วย',
   'trip.toast.loadError': 'ไม่สามารถโหลดทริปได้',
+  'trip.toast.accessLost': 'คุณไม่ได้เป็นสมาชิกของทริปนี้อีกต่อไป',
   'transit.noResultsVia': 'ไม่พบเส้นทางผ่าน {provider} ลองเปลี่ยนเวลาหรือตัวกรอง',
   'trip.settings.title': 'การตั้งค่าทริป',
   'trip.settings.people': 'ผู้คน',

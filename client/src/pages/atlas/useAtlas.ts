@@ -16,6 +16,7 @@ import { dawarichApi } from '../../api/dawarich'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
 import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
+import { useServerPing } from '../../sync/useServerPing'
 import type { AtlasConfirmAction, VisitedRegionMap } from './useAtlasCountryActions'
 import { createWishlistPattern, svgWishlistFill } from './atlasWishlistFill'
 
@@ -173,13 +174,12 @@ export function useAtlas() {
     return opts
   }, [geoData, resolveName])
 
-  // Load atlas data + bucket list
-  //
-  // Re-run on `atlasEpoch` so a confirmation made elsewhere on the page — the
-  // Dawarich card ticking wishes off or marking countries (#2279) — lands in the
-  // same numbers the map is drawing, rather than only after a reload.
+  // Load atlas data + bucket list. Re-run on `atlasEpoch` so a confirmation made on the
+  // page (the Dawarich card, #2279) or a change in another tab or through MCP
+  // (atlas:changed, once per burst) lands in the numbers the map draws, without a reload.
   const [atlasEpoch, setAtlasEpoch] = useState(0)
   const reloadAfterDawarich = useCallback(() => setAtlasEpoch(epoch => epoch + 1), [])
+  useServerPing('atlas:changed', true, async () => reloadAfterDawarich())
 
   /**
    * Undo a wish that a recording ticked off.

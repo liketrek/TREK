@@ -31,10 +31,14 @@ export async function isFormatted(path) {
   if (!options) throw new RatchetError(`no Prettier config applies to ${path}`);
   try {
     return await prettier.check(readText(path), { ...options, filepath: path });
-  } catch {
+  } catch (err) {
+    stopped.set(path, String(err instanceof Error ? err.message : err).split('\n')[0]);
     return false;
   }
 }
+
+/** Why Prettier gave up on a file, by its path, so the failure line can say it was not about style. */
+const stopped = new Map();
 
 /** The files under root that Prettier would rewrite, keyed by their path from root. */
 export async function unformatted(root) {
@@ -74,6 +78,8 @@ export async function check({
   if (list) for (const key of found) log(`${allowed.has(key) ? 'listed' : 'new   '}  ${key}`);
   for (const key of fresh) {
     error(`FAIL  ${key} is not formatted. Run: npx prettier --write ${key}`);
+    const why = stopped.get(join(root, key));
+    if (why) error(`      Prettier could not format it: ${why}`);
   }
   for (const key of stale) {
     error(`FAIL  ${key} is listed in scripts/format-baseline.json but is formatted now or gone.`);

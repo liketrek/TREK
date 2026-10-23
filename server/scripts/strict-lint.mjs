@@ -94,6 +94,9 @@ function check(argv) {
         (entry ? `its baseline is ${entry}. ` : 'a file without a baseline entry may have none. ') +
         'Run npx tsc -p tsconfig.strict.json --noEmit to see them; narrow the null case or type the parameter.',
     );
+    // The first few in the log too, so a red CI job names them without a local run.
+    const shown = output.split('\n').filter((line) => line.startsWith(`${file}(`));
+    for (const line of shown.slice(0, 5)) console.error(`  ${line.trim()}`);
   }
   const stale = staleCounts(baseline, counts);
   reportStale(stale, { file: 'strict-baseline.json', command: 'lint:strict', root: serverDir, error: console.error });

@@ -728,6 +728,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'Süni intellektlə təhlil',
   'admin.addons.catalog.llm_parsing.description':
     'Daxili təhlilçinin oxuya bilmədiyi rezervasiyaları seçdiyiniz süni intellekt modeli ilə oxuyur',
+  'admin.addons.catalog.ai_assistant.name': 'Süni intellekt köməkçisi',
+  'admin.addons.catalog.ai_assistant.description':
+    'Hər səfərdə sualları cavablandıran və təsdiqlədiyiniz dəyişikliklər təklif edən söhbət',
   'admin.addons.llm.vision.auto': 'Avtomatik',
   'admin.addons.llm.vision.on': 'Bəli',
   'admin.addons.llm.vision.off': 'Xeyr',
@@ -992,6 +995,34 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Kateqoriyanı sil',
   'admin.packingTemplates.deleteCategoryConfirm': '"{name}" kateqoriyası və bütün elementləri silinsin?',
   'admin.rotateJwt.button': 'Yenilə',
+  'admin.addons.ai.name': 'Süni intellekt',
+  'admin.addons.ai.description':
+    'Assistent və rezervasiya idxalı üçün bir bağlantı. MCP digər süni intellekt tətbiqlərinə TREK-dən istifadə etməyə imkan verir.',
+  'admin.addons.ai.setup': 'Süni intellekti qur',
+  'admin.addons.ai.dialogSub':
+    'Assistentin və süni intellekt təhlilinin paylaşdığı bağlantı və hər birinin nə edə biləcəyi.',
+  'admin.addons.ai.tab.connection': 'Bağlantı',
+  'admin.addons.ai.parsing.readsWith': 'Rezervasiyaları bununla oxuyur',
+  'admin.addons.ai.parsing.own': 'Öz bağlantısı',
+  'admin.addons.ai.parsing.ownHint': 'Ortaq bağlantının əvəzinə istifadə olunur.',
+  'admin.addons.ai.parsing.useShared': 'Ortaq bağlantıdan istifadə et',
+  'admin.addons.ai.parsing.sharedTag': 'Ortaq',
+  'admin.addons.ai.parsing.perUser': 'Hər kəs öz ayarlarındakı bağlantı ilə oxuyur.',
+  'admin.addons.ai.parsing.none':
+    'Hələ bağlantı yoxdur. Hamı üçün birini qurun və ya süni intellekt təhlilinə öz bağlantısını verin.',
+  'admin.addons.ai.parsing.setupOwn': 'Başqasından istifadə et',
+  'admin.addons.ai.parsing.installed': 'Serverdə quraşdırılıb',
+  'admin.addons.ai.parsing.refresh': 'Yenilə',
+  'admin.addons.ai.parsing.noModels': 'Hələ quraşdırılmış model yoxdur. Aşağıdan birini endirin.',
+  'admin.addons.ai.parsing.pullTitle': 'Tövsiyə olunan modeli endir',
+  'admin.addons.ai.parsing.pull': 'Endir',
+  'admin.addons.ai.parsing.pulling': 'Endirilir…',
+  'admin.addons.ai.parsing.use': 'İstifadə et',
+  'admin.addons.ai.parsing.selected': 'Seçilib',
+  'admin.addons.ai.parsing.pulled': 'Model endirildi',
+  'admin.addons.ai.parsing.pullFailed': 'Modeli endirmək mümkün olmadı',
+  'admin.addons.ai.parsing.unreachable': 'Yerli serverə qoşulmaq mümkün deyil',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Adətən lazım deyil',
 };
 
 export default admin;

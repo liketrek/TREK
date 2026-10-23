@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { useTranslation } from '../../i18n'
 import { useElementSize } from '../../hooks/useElementSize'
 import { useElementRect } from '../../hooks/useElementRect'
@@ -146,6 +146,26 @@ export function useCollections() {
     if (collections.some(l => l.id === id) || incomingInvites.some(inv => inv.collection_id === id)) return
     navigate('/collections', { replace: true })
   }, [listsLoaded, loading, routeId, collections, incomingInvites, navigate])
+
+  // A link to one saved place (/collections/:id?place=<id>, the assistant's
+  // "Open in Collections") opens it once the list on the route holds it, and
+  // then drops the param, so a reload or the back button does not reopen it.
+  // A list that has loaded without the place (deleted or moved since) drops
+  // the param too, rather than leave the URL on a place the page cannot show.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const linkedPlaceId = Number(searchParams.get('place'))
+  useEffect(() => {
+    if (!Number.isInteger(linkedPlaceId) || linkedPlaceId <= 0 || placesLoading) return
+    if (typeof activeId !== 'number' || String(activeId) !== routeId) return
+    const held = places.some(p => p.id === linkedPlaceId && p.collection_id === activeId)
+    if (!held && places.some(p => p.collection_id !== activeId)) return
+    if (held) setSelectedPlaceId(linkedPlaceId)
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.delete('place')
+      return next
+    }, { replace: true })
+  }, [linkedPlaceId, placesLoading, activeId, routeId, places, setSelectedPlaceId, setSearchParams])
 
   // Live sync via WebSocket. collections:deleted / :removed must bounce a member
   // off a list that was removed (or that they were kicked from) under them.

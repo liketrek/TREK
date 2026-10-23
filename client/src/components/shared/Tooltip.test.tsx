@@ -1,4 +1,4 @@
-// FE-W4TIP-001 to FE-W4TIP-015
+// FE-W4TIP-001 to FE-W4TIP-017
 import { createRef, useRef } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '../../../tests/helpers/render'
@@ -192,5 +192,24 @@ describe('Tooltip — inside a component that owns the ref', () => {
     render(<Tooltip label="Delete"><button>y</button></Tooltip>)
     hover(screen.getByRole('button'))
     expect(screen.getByRole('tooltip')).toHaveStyle({ whiteSpace: 'nowrap' })
+  })
+})
+
+describe('Tooltip — with a shortcut', () => {
+  it('FE-W4TIP-016: shows the keys beside the label, one chip per key', () => {
+    render(<Tooltip label="Assistant" shortcut={['⌘', 'K']}><button>x</button></Tooltip>)
+    hover(screen.getByRole('button'))
+
+    const tip = screen.getByRole('tooltip')
+    expect(tip).toHaveTextContent('Assistant')
+    const keys = tip.querySelectorAll('kbd > span')
+    expect(Array.from(keys).map(k => k.textContent)).toEqual(['⌘', 'K'])
+  })
+
+  it('FE-W4TIP-017: an empty shortcut leaves the plain label', () => {
+    render(<Tooltip label="Assistant" shortcut={[]}><button>x</button></Tooltip>)
+    hover(screen.getByRole('button'))
+
+    expect(screen.getByRole('tooltip').querySelector('kbd')).toBeNull()
   })
 })

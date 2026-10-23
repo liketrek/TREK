@@ -1,6 +1,8 @@
-import { render, screen } from '../../../../../tests/helpers/render'
+import { fireEvent, render, screen } from '../../../../../tests/helpers/render'
+import type { AiStatusResponse } from '@trek/shared'
+import { chatOf, useAssistantStore } from '../../../../store/assistantStore'
 import type { ReactNode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildPlace } from '../../../../../tests/helpers/factories'
 import type { TripPlanner, MTripShellApi } from '../MTripShell'
 import MPlaceSheet from './MPlaceSheet'
@@ -98,5 +100,25 @@ describe('MPlaceSheet tour exclusion', () => {
     expect(screen.queryByRole('button', { name: 'dayplan.excludeFromRoute' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Remove from Day' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'inspector.addToDay' })).not.toBeInTheDocument()
+  })
+})
+
+describe('MPlaceSheet ask the assistant', () => {
+  const initial = useAssistantStore.getState()
+  afterEach(() => useAssistantStore.setState(initial, true))
+
+  it('offers no ask until the assistant has a connection to use', () => {
+    render(<MPlaceSheet planner={planner({ tripId: 5, setSelectedPlaceId: vi.fn() })} shell={shell} />)
+    expect(screen.queryByRole('button', { name: 'Ask' })).not.toBeInTheDocument()
+  })
+
+  it('closes the sheet and opens the chat about the place', () => {
+    useAssistantStore.setState({ status: { available: true } as AiStatusResponse })
+    const setSelectedPlaceId = vi.fn()
+    render(<MPlaceSheet planner={planner({ tripId: 5, setSelectedPlaceId })} shell={shell} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Ask' }))
+    expect(setSelectedPlaceId).toHaveBeenCalledWith(null)
+    expect(useAssistantStore.getState().window.open).toBe(true)
+    expect(chatOf(useAssistantStore.getState(), 5).focus).toEqual({ placeIds: [42] })
   })
 })

@@ -204,7 +204,14 @@ export class TripsRpc {
     const target = await this.em.getRepository(Users).findIdAndEmail(targetUserId);
     if (!target) throw new ForbiddenResource(`no user ${targetUserId}`);
     // The acting user is recorded as the inviter.
-    return this.membership.joinTripAsMember(tripId, targetUserId, actor);
+    const result = await this.membership.joinTripAsMember(tripId, targetUserId, actor);
+    // The open planners learn of the member as they do from REST and MCP. A
+    // plugin has no socket of its own, so the whole room hears it.
+    if (result.joined) {
+      const member = await this.roster.findMember(tripId, targetUserId);
+      if (member) this.realtime.broadcast(tripId, 'member:added', { member });
+    }
+    return result;
   }
 
   @PluginMethod('trips.removeMember', { permission: 'db:write:members' })
@@ -218,6 +225,7 @@ export class TripsRpc {
     const ownerId = await this.em.getRepository(Trips).getOwnerId(tripId); // RP6 — TripsRepository.getOwnerId
     if (ownerId !== null && ownerId === targetUserId) throw new ForbiddenResource('cannot remove the trip owner');
     await this.roster.removeMember(tripId, targetUserId);
+    this.realtime.broadcast(tripId, 'member:removed', { userId: targetUserId });
     return { removed: true };
   }
 }

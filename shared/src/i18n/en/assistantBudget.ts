@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const assistantBudget: TranslationStrings = {
+  'assistant.change.verb.addPayment': 'Record a payment',
+  'assistant.change.verb.updatePayment': 'Change a payment',
+  'assistant.tool.create_budget_item_with_members': 'Add expense',
+  'assistant.tool.set_budget_item_members': 'Change who shares the cost',
+  'assistant.tool.toggle_budget_member_paid': 'Update who has paid',
+  'assistant.tool.create_settlement': 'Record a payment',
+  'assistant.tool.update_settlement': 'Change the payment',
+  'assistant.tool.delete_settlement': 'Delete the payment',
+  'assistant.tool.freeze_budget_rates': "Pin today's exchange rates",
+  'assistant.followUp.whoOwes': 'Who owes whom?',
+  'assistant.followUp.recordPayments': 'Record these payments',
+  'assistant.card.budget.open': 'Open in Costs',
+  'assistant.card.budget.paidBy': '{name} paid',
+  'assistant.card.budget.notPaid': 'Not paid',
+  'assistant.card.budget.split.equal': 'Split evenly',
+  'assistant.card.budget.split.custom': 'Split unevenly',
+  'assistant.card.budget.split.none': 'Planning only, not split',
+  'assistant.card.budget.together': 'Together {amount}',
+  'assistant.card.budget.markedPaid': '{amount} marked paid',
+  'assistant.card.budget.receipts': '{count} receipts',
+  'assistant.card.budget.receipts.one': '{count} receipt',
+  'assistant.card.budget.leftOut': '{count} foreign expenses are left out of the total: no exchange rate yet.',
+  'assistant.card.budget.leftOut.one': '{count} foreign expense is left out of the total: no exchange rate yet.',
+  'assistant.card.budget.unconverted': '{count} entries in {currencies} are not counted: no exchange rate yet.',
+  'assistant.card.budget.unconverted.one': '{count} entry in {currencies} is not counted: no exchange rate yet.',
+};
+export default assistantBudget;

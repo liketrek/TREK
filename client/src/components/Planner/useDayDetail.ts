@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useEffectEvent, useRef } from 'react'
 import type { WeatherResult } from '@trek/shared'
 import { weatherApi } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
 import { isDayInAccommodationRange } from '../../utils/dayOrder'
 import { applyStayStops } from '../../store/stayStops'
 import { stayCheckoutDay, stayRequestBody } from './stayFormModel'
+import { useStaysRefresh } from './useStaysRefresh'
 import type { Accommodation, Day } from '../../types'
 
 export interface HotelForm {
@@ -81,6 +82,23 @@ export function useDayRename(onCommit: (title: string) => void) {
   return { editingTitle, setEditingTitle, titleDraft, setTitleDraft, titleInputRef, startRename, commitRename }
 }
 
+/**
+ * The stay the panel holds once its stays were read again. The picked one (the
+ * stay being edited) stays picked, as its fresh copy, while it is still on the
+ * day. One that left the day while the panel stayed on it, cancelled or moved
+ * away by someone else, leaves nothing picked: falling back to the day's first
+ * stay would hand an open editor another stay to save over. With nothing
+ * picked, or on another day, the day's first stay is taken.
+ */
+function stayAfterReload(picked: Accommodation | null, forDay: Accommodation[], sameDay: boolean): Accommodation | null {
+  if (picked) {
+    const kept = forDay.find(a => a.id === picked.id)
+    if (kept) return kept
+    if (sameDay) return null
+  }
+  return forDay[0] ?? null
+}
+
 /** Day-detail data + accommodation logic: weather load, accommodations list,
  *  hotel picker form state and create/update/delete handlers.
  *
@@ -107,21 +125,39 @@ export function useDayDetail(day: Day | null, days: Day[], tripId: number, lat: 
   // would otherwise overwrite the new day's forecast and hotel.
   const { weather, loading } = useDayForecast(!!(day?.date && lat && lng), day?.date, lat, lng, language)
 
+  // A stay booked, moved or cancelled elsewhere (the assistant, a fellow
+  // traveller, a plugin, a booking import) reaches this panel as a nudge, and the
+  // panel reads its stays again through the effect below.
+  const [staysRevision, setStaysRevision] = useState(0)
+  useStaysRefresh(() => setStaysRevision(r => r + 1))
+
+  // The day the stays on show were read for, so that a read of the same day can
+  // tell a stay that left it from a switch to another day.
+  const staysDayRef = useRef<number | undefined>(undefined)
+  // Shows a read of the stays against the latest pick and editor state.
+  const showStays = useEffectEvent((all: Accommodation[]) => {
+    const forDay = all.filter(isForDay)
+    const sameDay = staysDayRef.current === day?.id
+    staysDayRef.current = day?.id
+    const next = stayAfterReload(accommodation, forDay, sameDay)
+    setAccommodations(all)
+    setDayAccommodations(forDay)
+    setAccommodation(next)
+    // The stay open in the editor is no longer on this day: close the editor,
+    // so Save neither writes its form over another stay nor books it anew.
+    if (showHotelPicker === 'edit' && accommodation && next?.id !== accommodation.id) setShowHotelPicker(false)
+  })
+
   useEffect(() => {
     if (!tripId) return
     let cancelled = false
     accommodationRepo.list(tripId)
       .then(data => {
-        if (cancelled) return
-        const all: Accommodation[] = data.accommodations || []
-        setAccommodations(all)
-        const allForDay = all.filter(isForDay)
-        setDayAccommodations(allForDay)
-        setAccommodation(allForDay[0] || null)
+        if (!cancelled) showStays(data.accommodations || [])
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [tripId, day?.id])
+  }, [tripId, day?.id, staysRevision])
 
   useEffect(() => { if (day) setHotelDayRange(defaultHotelDayRange(day)) }, [day?.id])
 
@@ -154,7 +190,7 @@ export function useDayDetail(day: Day | null, days: Day[], tripId: number, lat: 
     setAccommodations(all)
     const forDay = all.filter(isForDay)
     setDayAccommodations(forDay)
-    setAccommodation(forDay[0] || null)
+    setAccommodation(stayAfterReload(accommodation, forDay, true))
     onAccommodationChange?.()
   }
 

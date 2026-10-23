@@ -126,6 +126,15 @@ const DEFAULT_ADDONS = [
     sort_order: 12,
   },
   {
+    id: 'ai_assistant',
+    name: 'AI Assistant',
+    description: 'A chat in the trip that reads the plan and proposes changes you confirm',
+    type: 'integration',
+    icon: 'Sparkles',
+    enabled: 0,
+    sort_order: 18,
+  },
+  {
     id: 'naver_list_import',
     name: 'Naver List Import',
     description: 'Import places from shared Naver Maps lists',

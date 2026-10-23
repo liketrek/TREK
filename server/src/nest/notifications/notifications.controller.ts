@@ -19,6 +19,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   HttpException,
   Param,
@@ -149,8 +150,11 @@ export class NotificationsController {
   }
 
   @Put('in-app/read-all')
-  async readAll(@CurrentUser() user: User): Promise<{ success: boolean; count: number }> {
-    return { success: true, count: await this.notifications.markAllRead(user.id) };
+  async readAll(
+    @CurrentUser() user: User,
+    @Headers('x-socket-id') socketId?: string,
+  ): Promise<{ success: boolean; count: number }> {
+    return { success: true, count: await this.notifications.markAllRead(user.id, socketId) };
   }
 
   @Delete('in-app/all')
@@ -159,18 +163,26 @@ export class NotificationsController {
   }
 
   @Put('in-app/:id/read')
-  async markRead(@CurrentUser() user: User, @Param('id') idParam: string): Promise<{ success: boolean }> {
+  async markRead(
+    @CurrentUser() user: User,
+    @Param('id') idParam: string,
+    @Headers('x-socket-id') socketId?: string,
+  ): Promise<{ success: boolean }> {
     const id = this.parseId(idParam);
-    if (!(await this.notifications.markRead(id, user.id))) {
+    if (!(await this.notifications.markRead(id, user.id, socketId))) {
       throw new HttpException({ error: 'Not found' }, 404);
     }
     return { success: true };
   }
 
   @Put('in-app/:id/unread')
-  async markUnread(@CurrentUser() user: User, @Param('id') idParam: string): Promise<{ success: boolean }> {
+  async markUnread(
+    @CurrentUser() user: User,
+    @Param('id') idParam: string,
+    @Headers('x-socket-id') socketId?: string,
+  ): Promise<{ success: boolean }> {
     const id = this.parseId(idParam);
-    if (!(await this.notifications.markUnread(id, user.id))) {
+    if (!(await this.notifications.markUnread(id, user.id, socketId))) {
       throw new HttpException({ error: 'Not found' }, 404);
     }
     return { success: true };

@@ -30,6 +30,8 @@ import {
   dawarichSuggestionStateSchemaBody,
   dawarichSuggestionTargetSchema,
   dawarichSyncStateSchema,
+  dawarichTimeWindowSchema,
+  DAWARICH_WINDOW_MAX_DAYS,
   dawarichTrackDaySchema,
   dawarichTrackSchema,
   dawarichTrackSegmentSchema,
@@ -39,7 +41,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 /**
- * DAWARICH-SCHEMA-001..043: the Dawarich contracts.
+ * DAWARICH-SCHEMA-001..044: the Dawarich contracts.
  *
  * This is the layer both sides of the integration agree on, and the feature is
  * built out of things that are deliberately lenient in one place and
@@ -732,5 +734,18 @@ describe('the tuning numbers', () => {
     expect(DAWARICH_SYNC_LOOKBACK_DAYS).toBe(3);
     // A stay can end after midnight, so the window reaches one day past the trip.
     expect(DAWARICH_SYNC_LOOKAHEAD_DAYS).toBe(1);
+  });
+});
+
+describe('dawarichTimeWindowSchema', () => {
+  it('DAWARICH-SCHEMA-044 needs both ends, each a non-empty string, and leaves the order and the 400-day span to the server', () => {
+    // The order and the span are the server's to check (parseTimeWindow), because
+    // the MCP input is this shape's fields and a refinement on the object would
+    // never run there. What the schema itself owes is that neither end is missing.
+    expect(dawarichTimeWindowSchema.safeParse({ from: '2025-01-01', to: '2025-12-31' }).success).toBe(true);
+    expect(dawarichTimeWindowSchema.safeParse({ from: '2025-01-01' }).success).toBe(false);
+    expect(dawarichTimeWindowSchema.safeParse({ from: '', to: '2025-12-31' }).success).toBe(false);
+    expect(dawarichTimeWindowSchema.safeParse({ from: 20250101, to: '2025-12-31' }).success).toBe(false);
+    expect(DAWARICH_WINDOW_MAX_DAYS).toBe(400);
   });
 });

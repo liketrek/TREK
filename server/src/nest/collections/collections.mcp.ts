@@ -13,6 +13,8 @@ import {
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { CollectionsItemsService } from './collections-items.service';
 import { CollectionsService } from './collections.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import {
@@ -26,6 +28,7 @@ import {
   collectionLabelAssignRequestSchema,
   collectionInviteRequestSchema,
   collectionSetStatusFromTripRequestSchema,
+  collectionItemsRequestSchema,
   collectionLinkSchema,
   COLLECTION_STATUSES,
   COLLECTION_ROLES,
@@ -42,6 +45,7 @@ import type {
   CollectionLabelUpdateRequest,
   CollectionLabelAssignRequest,
   CollectionSetStatusFromTripRequest,
+  CollectionItemsRequest,
   CollectionStatus,
   CollectionRole,
 } from '@trek/shared';
@@ -84,6 +88,8 @@ export class CollectionsMcp {
     private readonly collections: CollectionsService,
     @InjectRepository(Users) private readonly users: UsersRepository,
     readonly addons: AddonsService,
+    private readonly guards: McpToolGuardsService,
+    private readonly items: CollectionsItemsService,
   ) {}
 
   // ── Read ──────────────────────────────────────────────────────────────
@@ -175,6 +181,23 @@ export class CollectionsMcp {
   ) {
     try {
       return ok(await this.collections.findMembership(ctx.userId, query));
+    } catch (err) {
+      return fail(err);
+    }
+  }
+
+  @Tool({
+    name: 'get_collection_items',
+    description:
+      'Read saved places and labels by their own ids across every list the user can see, without loading whole lists: each place with its status, labels, rating and notes, and the lists they sit in with their colour, size, labels and members. Saved place ids are collection place ids, never trip place ids. Ids the user cannot see are left out.',
+    inputSchema: collectionItemsRequestSchema.shape,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: collectionsAddonOn,
+    access: { group: 'collections', mode: 'read' },
+  })
+  async getCollectionItems(request: CollectionItemsRequest, ctx: McpContext) {
+    try {
+      return ok(await this.items.getItems(ctx.userId, request));
     } catch (err) {
       return fail(err);
     }
@@ -405,7 +428,8 @@ export class CollectionsMcp {
   })
   async copyCollectionPlacesToTrip(body: CollectionCopyToTripRequest, ctx: McpContext) {
     try {
-      return ok(await this.collections.copyToTrip(ctx.userId, body));
+      // The copies reach every tab of the trip, the asking one included.
+      return ok(await this.collections.copyToTrip(ctx.userId, body, this.guards.tripEvents(body.trip_id)));
     } catch (err) {
       return fail(err);
     }

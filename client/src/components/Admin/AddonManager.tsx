@@ -1,9 +1,7 @@
-import { useId, type ComponentType } from 'react'
+import type { ComponentType } from 'react'
 import { useTranslation } from '../../i18n'
 import { useIsDark } from '../../hooks/useIsDark'
-import { Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, Sparkles, Luggage, Plane, Server, Cloud, Bookmark, Users, Loader2, RefreshCw, Mountain, CarFront } from 'lucide-react'
-import CustomSelect from '../shared/CustomSelect'
-import { asLlmVision, LLM_VISION_MODES, type LlmVision } from '@trek/shared'
+import { Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, Sparkles, Luggage, Plane, Bookmark, Users, Loader2, Mountain, CarFront } from 'lucide-react'
 import EmptyState from '../shared/EmptyState'
 import DawarichIcon from '../shared/DawarichIcon'
 import AirTrailIcon from '../shared/AirTrailIcon'
@@ -12,11 +10,10 @@ import AddonTile from './AddonTile'
 import AddonSubRow from './AddonSubRow'
 import { Tooltip } from '../shared/Tooltip'
 import { fs } from '../shared/DialogShell'
-import { EditorField, INPUT, Segmented } from '../shared/dialogParts'
-import { SettingsCard, SettingsHint, StatusPill, SETTINGS_BUTTON_PRIMARY } from '../Settings/settingsKit'
-import { type Addon, type CollabFeatures, ANTHROPIC_HINT, COLLAB_SUB_FEATURES, getAddonLabel, MASKED, RECOMMENDED_MODELS } from './addons/addonModel'
+import { SettingsCard, StatusPill } from '../Settings/settingsKit'
+import { type Addon, type CollabFeatures, COLLAB_SUB_FEATURES, getAddonLabel } from './addons/addonModel'
 import { useAddonManager } from './addons/useAddonManager'
-import { useLlmParsingConfig } from './addons/useLlmParsingConfig'
+import AiAddonTile from './addons/AiAddonTile'
 import { ImmichIcon, SynologyIcon } from './addons/PhotoProviderIcons'
 import WandererMark from '../Tours/wanderer/WandererMark'
 
@@ -74,7 +71,7 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
   const { t } = useTranslation()
   const dark = useIsDark()
   const {
-    addons, loading, handleToggle, tripAddons, globalAddons, integrationAddons, providerOptions, documentProviderOptions,
+    addons, loading, handleToggle, tripAddons, globalAddons, integrationAddons, aiAddons, providerOptions, documentProviderOptions,
     toursWanderer,
     toggleToursWanderer,
     mapSwitches,
@@ -154,33 +151,29 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
         )
       })
     }
+    // An array, not a fragment: the tile counts its rows to fold them behind the
+    // "N options" bar the way Collab's and Documents' are.
     if (addon.id === 'tours' && addon.enabled) {
-      return (
-        <>
+      return [
+        <AddonSubRow
+          key="wanderer"
+          icon={<WandererMark size={14} />}
+          title={t('admin.toursWanderer.title')}
+          description={t('admin.toursWanderer.subtitle')}
+          enabled={toursWanderer}
+          onToggle={() => void toggleToursWanderer()}
+        />,
+        ...mapSwitches.map(({ key, Icon, titleKey, subtitleKey, enabled, toggle }) => (
           <AddonSubRow
-            icon={<WandererMark size={14} />}
-            title={t('admin.toursWanderer.title')}
-            description={t('admin.toursWanderer.subtitle')}
-            enabled={toursWanderer}
-            onToggle={() => void toggleToursWanderer()}
+            key={key}
+            icon={<Icon size={14} />}
+            title={t(titleKey)}
+            description={t(subtitleKey)}
+            enabled={enabled}
+            onToggle={() => void toggle()}
           />
-          {mapSwitches.map(({ key, Icon, titleKey, subtitleKey, enabled, toggle }) => (
-            <AddonSubRow
-              key={key}
-              icon={<Icon size={14} />}
-              title={t(titleKey)}
-              description={t(subtitleKey)}
-              enabled={enabled}
-              onToggle={() => void toggle()}
-            />
-          ))}
-        </>
-      )
-    }
-    // The AI-parsing settings hang off their tile like every other sub-feature,
-    // just as a form instead of toggle rows.
-    if (addon.id === 'llm_parsing' && addon.enabled) {
-      return <LlmParsingConfig addon={addon} />
+        )),
+      ]
     }
     return null
   }
@@ -209,9 +202,9 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
     { key: 'trip', addons: tripAddons },
     { key: 'global', addons: globalAddons },
     { key: 'integration', addons: integrationAddons },
-  ].filter(g => g.addons.length > 0)
+  ].filter(g => g.addons.length > 0 || (g.key === 'integration' && aiAddons.length > 0))
   const enabledCount = addons.filter(a => a.type !== 'photo_provider' && a.type !== 'document_provider' && a.enabled).length
-  const totalCount = tripAddons.length + globalAddons.length + integrationAddons.length
+  const totalCount = tripAddons.length + globalAddons.length + integrationAddons.length + aiAddons.length
 
   const subtitle = (
     <span className="inline-flex flex-wrap items-center gap-1">
@@ -242,8 +235,12 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
             const meta = TYPE_META[g.key]
             return (
               <section key={g.key} className="min-w-0 overflow-hidden rounded-[14px] border border-edge-faint bg-surface-card">
-                <GroupHead icon={meta.icon} label={t(meta.labelKey)} hint={t(meta.hintKey)} addons={g.addons} t={t} />
-                <div className="divide-y divide-edge-faint">{g.addons.map(tile)}</div>
+                <GroupHead icon={meta.icon} label={t(meta.labelKey)} hint={t(meta.hintKey)} addons={g.key === 'integration' ? [...aiAddons, ...g.addons] : g.addons} t={t} />
+                <div className="divide-y divide-edge-faint">
+                  {/* The AI addons share a connection and a settings dialog, so they head the column as one tile. */}
+                  {g.key === 'integration' && aiAddons.length > 0 && <AiAddonTile addons={aiAddons} onToggle={handleToggle} />}
+                  {g.addons.map(tile)}
+                </div>
               </section>
             )
           })}
@@ -280,142 +277,5 @@ function GroupHead({ icon: Icon, label, hint, addons, t }: {
         <p className="m-0 mt-0.5 leading-snug text-content-faint" style={fs(11)}>{hint}</p>
       </div>
     </div>
-  )
-}
-
-const EYEBROW = 'font-geist font-bold uppercase tracking-[.08em] text-content-faint'
-const SMALL_BUTTON = 'inline-flex flex-none items-center rounded-[9px] px-2.5 py-1 font-medium transition-colors disabled:cursor-default disabled:opacity-60'
-
-/**
- * Instance-wide AI-parsing config. When set, applies to the whole instance and
- * overrides per-user config (see server llmConfig.ts). The API key is masked on
- * read; an unchanged mask is treated as a no-op by the server. For the local
- * provider, it also lists installed Ollama models and can pull NuExtract models.
- */
-function LlmParsingConfig({ addon }: { addon: Addon }) {
-  const { t } = useTranslation()
-  const {
-    provider, setProvider, model, setModel, baseUrl, setBaseUrl, baseUrlPlaceholder, apiKey, setApiKey, vision, setVision, saving,
-    installed, modelsErr, loadingModels, pulling, pullPct, pullStatus, isInstalled, loadModels, pull, save,
-  } = useLlmParsingConfig(addon)
-  const fieldId = useId()
-
-  const providerOptions = [
-    { value: 'local', label: 'Local · OpenAI-compatible', icon: <Server size={14} />, badge: 'Ollama' },
-    { value: 'openai', label: 'OpenAI', icon: <Cloud size={14} /> },
-    { value: 'anthropic', label: 'Anthropic', icon: <Sparkles size={14} /> },
-  ]
-  const visionOptions = LLM_VISION_MODES.map(value => ({ value, label: t(`admin.addons.llm.vision.${value}`) }))
-
-  /* Lives in the tile's shelf like the collab toggles, so it is one column of
-     eyebrow fields: the band this used to be had a whole page width. */
-  return (
-    <li className={`flex flex-col gap-3 p-3 ${saving ? 'opacity-60' : ''}`}>
-      <SettingsHint>
-        Instance-wide — applies to all users. Leave blank to let each user configure their own provider.
-      </SettingsHint>
-
-      <EditorField label="Provider">
-        <CustomSelect value={provider} onChange={v => setProvider(String(v))} options={providerOptions} />
-      </EditorField>
-      <EditorField label="Base URL" htmlFor={`${fieldId}-url`}>
-        <input id={`${fieldId}-url`} type="url" autoComplete="off" className={INPUT} value={baseUrl} onChange={e => setBaseUrl(e.target.value)} onBlur={loadModels} placeholder={baseUrlPlaceholder} />
-      </EditorField>
-      <EditorField
-        label="API key"
-        htmlFor={`${fieldId}-key`}
-        hint={provider === 'anthropic' ? ANTHROPIC_HINT : undefined}
-      >
-        <input id={`${fieldId}-key`} type="password" className={INPUT} value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder={apiKey === MASKED ? MASKED : provider === 'local' ? '(often not required)' : 'sk-…'} />
-      </EditorField>
-      <EditorField label="Model" htmlFor={`${fieldId}-model`}>
-        <input id={`${fieldId}-model`} autoComplete="off" className={`${INPUT} font-geist`} value={model} onChange={e => setModel(e.target.value)} placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'} />
-      </EditorField>
-
-      <EditorField label={t('settings.aiParsing.multimodal')} hint={t(provider === 'local' ? 'admin.addons.llm.vision.hintLocal' : 'admin.addons.llm.vision.hintCloud')}>
-        <Segmented<LlmVision>
-          label={t('settings.aiParsing.multimodal')}
-          value={vision}
-          onChange={v => setVision(asLlmVision(v))}
-          options={visionOptions}
-          fill
-        />
-      </EditorField>
-
-      {/* Local model management (Ollama) */}
-      {provider === 'local' && (
-        <div className="flex flex-col gap-2.5 rounded-[12px] border border-edge-faint bg-surface-card p-3">
-          <div className="flex items-center gap-2">
-            <span className={`${EYEBROW} min-w-0 flex-1 truncate`} style={fs(9.5)}>Installed on the server</span>
-            <button type="button" onClick={loadModels} disabled={loadingModels}
-              className="inline-flex flex-none items-center gap-1 rounded-full px-2 py-0.5 font-medium text-content-muted hover:bg-surface-secondary hover:text-content disabled:cursor-default disabled:opacity-60"
-              style={fs(11.5, 'body')}>
-              <RefreshCw size={11} strokeWidth={2.2} className={loadingModels ? 'animate-spin' : undefined} />
-              {loadingModels ? 'Loading…' : 'Refresh'}
-            </button>
-          </div>
-          {modelsErr && <p className="m-0 break-words text-danger" style={fs(11.5)}>{modelsErr}</p>}
-          {!modelsErr && installed.length === 0 && !loadingModels && (
-            <SettingsHint>No models installed yet — pull one below.</SettingsHint>
-          )}
-          {installed.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {installed.map(name => (
-                <button type="button"
-                  key={name}
-                  title={name}
-                  onClick={() => setModel(name)}
-                  aria-pressed={model === name}
-                  className={`max-w-full truncate rounded-full px-2.5 py-[3px] font-geist font-medium transition-colors ${model === name ? 'bg-accent text-accent-text' : 'border border-edge bg-surface-card text-content-muted hover:text-content'}`}
-                  style={fs(11.5)}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="flex flex-col gap-2 border-t border-edge-faint pt-2.5">
-            <span className={EYEBROW} style={fs(9.5)}>Pull a recommended model</span>
-            {RECOMMENDED_MODELS.map(m => {
-              const installedHere = isInstalled(m.id)
-              const isPulling = pulling === m.id
-              const active = model === m.id
-              return (
-                <div key={m.id} className="min-w-0" title={m.note}>
-                  <div className="flex items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate font-medium text-content" style={fs(12.5, 'body')}>{m.label}</span>
-                    {m.recommended && <StatusPill tone="success">Recommended</StatusPill>}
-                    {installedHere ? (
-                      <button type="button" onClick={() => setModel(m.id)} disabled={active} className={`${SMALL_BUTTON} ${active ? 'bg-surface-tertiary text-content-muted' : 'bg-surface-card text-content shadow-sm ring-1 ring-edge-faint hover:bg-surface-secondary'}`} style={fs(12, 'body')}>
-                        {active ? 'Selected' : 'Use'}
-                      </button>
-                    ) : (
-                      <button type="button" onClick={() => pull(m.id)} disabled={!!pulling} className={`${SMALL_BUTTON} bg-accent text-accent-text hover:opacity-90`} style={fs(12, 'body')}>
-                        {isPulling ? 'Pulling…' : 'Pull'}
-                      </button>
-                    )}
-                  </div>
-                  {isPulling && (
-                    <div className="mt-2">
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-tertiary">
-                        <div className="h-full rounded-full bg-accent transition-[width] duration-200" style={{ width: `${pullPct}%` }} />
-                      </div>
-                      <div className="mt-1 truncate font-geist tabular-nums text-content-faint" style={fs(11)}>{pullStatus}{pullPct ? ` · ${pullPct}%` : ''}</div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      <div className="flex justify-end">
-        <button type="button" onClick={save} disabled={saving} className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-      </div>
-    </li>
   )
 }

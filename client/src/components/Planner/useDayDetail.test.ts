@@ -1,13 +1,19 @@
 // FE-PLANNER-USEDAYDETAIL-001 to -009: the forecast, the in-place rename and the
 // stay write the desktop day panel and the phone day and stay sheets share.
+// FE-PLANNER-USEDAYDETAIL-010 to -014: the desktop day panel's own stays follow
+// a stay written elsewhere without a reload, and the stay open in its editor is
+// never swapped for another one to save over.
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { WeatherResult } from '@trek/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { buildDay } from '../../../tests/helpers/factories';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { accommodationsApi, weatherApi } from '../../api/client';
+import { accommodationRepo } from '../../repo/accommodationRepo';
 import { useTripStore } from '../../store/tripStore';
-import { useDayForecast, useDayRename, writeStay } from './useDayDetail';
+import type { Accommodation } from '../../types';
+import { useDayDetail, useDayForecast, useDayRename, writeStay } from './useDayDetail';
 
 const SUNNY = { temp: 21, main: 'Clear', description: 'clear sky' } as WeatherResult;
 
@@ -136,5 +142,122 @@ describe('writeStay', () => {
 
     update.mockRejectedValueOnce(new Error('overlap'));
     await expect(writeStay(3, 4, body)).rejects.toThrow('overlap');
+  });
+});
+
+describe('useDayDetail stays', () => {
+  const arrival = buildDay({ id: 1 });
+  const departure = buildDay({ id: 2 });
+  const days = [arrival, departure];
+  const stay = (id: number, startDayId: number, endDayId: number): Accommodation => ({
+    id,
+    trip_id: 3,
+    place_id: 7,
+    start_day_id: startDayId,
+    end_day_id: endDayId,
+  });
+  /** A stay written by someone else, as the trip room hands it to the store. */
+  const writtenElsewhere = (type: 'accommodation:created' | 'accommodation:updated', accommodation: Accommodation) =>
+    act(() => useTripStore.getState().handleRemoteEvent({ type, accommodation }));
+
+  it('FE-PLANNER-USEDAYDETAIL-010: stays booked elsewhere show in the day panel after one reload', async () => {
+    const tonight = stay(8, 1, 2);
+    const later = stay(9, 2, 2);
+    const list = vi
+      .spyOn(accommodationRepo, 'list')
+      .mockResolvedValueOnce({ accommodations: [] })
+      .mockResolvedValue({ accommodations: [tonight, later] });
+    const { result } = renderHook(() => useDayDetail(arrival, days, 3, null, null, 'en'));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
+
+    writtenElsewhere('accommodation:created', tonight);
+    writtenElsewhere('accommodation:created', later);
+
+    await waitFor(() => expect(result.current.dayAccommodations).toEqual([tonight]));
+    expect(result.current.accommodations).toEqual([tonight, later]);
+    expect(result.current.accommodation).toEqual(tonight);
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-PLANNER-USEDAYDETAIL-011: the stay open for editing stays selected through that reload', async () => {
+    const first = stay(8, 1, 1);
+    const second = stay(9, 1, 2);
+    const list = vi.spyOn(accommodationRepo, 'list').mockResolvedValue({ accommodations: [first, second] });
+    const { result } = renderHook(() => useDayDetail(arrival, days, 3, null, null, 'en'));
+    await waitFor(() => expect(result.current.accommodation).toEqual(first));
+    act(() => result.current.setAccommodation(second));
+
+    const moved = { ...second, check_in: '15:00' };
+    list.mockResolvedValue({ accommodations: [first, moved] });
+    writtenElsewhere('accommodation:updated', moved);
+
+    await waitFor(() => expect(result.current.accommodation).toEqual(moved));
+    expect(result.current.dayAccommodations).toEqual([first, moved]);
+  });
+
+  /**
+   * Opens the editor on the day's second stay, lets someone else take it off the
+   * day, and hands back what the panel shows afterwards.
+   */
+  async function editedStayLeavesTheDay(
+    afterwards: Accommodation[],
+    event: 'accommodation:updated' | 'accommodation:deleted'
+  ) {
+    const first = stay(8, 1, 1);
+    const second = stay(9, 1, 2);
+    const list = vi.spyOn(accommodationRepo, 'list').mockResolvedValue({ accommodations: [first, second] });
+    const update = vi.spyOn(accommodationRepo, 'update');
+    const view = renderHook(() => useDayDetail(arrival, days, 3, null, null, 'en'));
+    await waitFor(() => expect(view.result.current.dayAccommodations).toEqual([first, second]));
+    act(() => {
+      view.result.current.setAccommodation(second);
+      view.result.current.setShowHotelPicker('edit');
+    });
+
+    list.mockResolvedValue({ accommodations: afterwards });
+    if (event === 'accommodation:deleted') {
+      act(() => useTripStore.getState().handleRemoteEvent({ type: event, accommodationId: second.id }));
+    } else {
+      writtenElsewhere(event, afterwards[1] ?? second);
+    }
+    await waitFor(() => expect(view.result.current.dayAccommodations).toEqual([first]));
+    return { ...view, update };
+  }
+
+  it('FE-PLANNER-USEDAYDETAIL-012: the stay open in the editor, cancelled elsewhere, closes the editor and leaves none to save over', async () => {
+    const { result, update } = await editedStayLeavesTheDay([stay(8, 1, 1)], 'accommodation:deleted');
+
+    expect(result.current.accommodation).toBeNull();
+    expect(result.current.showHotelPicker).toBe(false);
+    await act(() => result.current.handleUpdateAccommodation());
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('FE-PLANNER-USEDAYDETAIL-013: the stay open in the editor, moved to another day elsewhere, closes the editor too', async () => {
+    const { result } = await editedStayLeavesTheDay([stay(8, 1, 1), stay(9, 2, 2)], 'accommodation:updated');
+
+    expect(result.current.accommodation).toBeNull();
+    expect(result.current.showHotelPicker).toBe(false);
+  });
+
+  it("FE-PLANNER-USEDAYDETAIL-014: saving the stay open in the editor keeps it picked, not the day's first", async () => {
+    const first = stay(8, 1, 1);
+    const second = stay(9, 1, 2);
+    const saved = { ...second, check_in: '15:00' };
+    const list = vi.spyOn(accommodationRepo, 'list').mockResolvedValue({ accommodations: [first, second] });
+    const update = vi.spyOn(accommodationRepo, 'update').mockResolvedValue({ accommodation: saved });
+    const { result } = renderHook(() => useDayDetail(arrival, days, 3, null, null, 'en'));
+    await waitFor(() => expect(result.current.dayAccommodations).toEqual([first, second]));
+    act(() => {
+      result.current.setAccommodation(second);
+      result.current.setShowHotelPicker('edit');
+    });
+
+    list.mockResolvedValue({ accommodations: [first, saved] });
+    await act(() => result.current.handleUpdateAccommodation());
+
+    expect(update).toHaveBeenCalledWith(3, second.id, expect.any(Object));
+    expect(result.current.accommodation).toEqual(saved);
+    expect(result.current.showHotelPicker).toBe(false);
   });
 });

@@ -9,6 +9,7 @@ import { useTranslation } from '../../../i18n';
 import { useAddonStore } from '../../../store/addonStore';
 import { useToast } from '../../shared/Toast';
 import { type Addon, type ProviderOption, isPhotosAddon } from './addonModel';
+import { aiAddonsOf, isAiAddon } from './aiAddons';
 
 /** A switch under Tours as the server keeps it, read into `set`; `onError` tells the admin it could not be read. */
 function loadToursFlag(
@@ -139,7 +140,9 @@ export function useAddonManager() {
 
   const tripAddons = addons.filter((a) => a.type === 'trip' && !isPhotosAddon(a));
   const globalAddons = addons.filter((a) => a.type === 'global');
-  const integrationAddons = addons.filter((a) => a.type === 'integration');
+  // The AI addons leave the list to sit together on one tile at its head.
+  const integrationAddons = addons.filter((a) => a.type === 'integration' && !isAiAddon(a));
+  const aiAddons = aiAddonsOf(addons);
   const providerOptions = addons.filter((a) => a.type === 'photo_provider').map(asOption);
   // No credential form under these, unlike the photo providers: a document connection
   // belongs to a trip and is entered there. The admin only decides whether a provider
@@ -153,6 +156,7 @@ export function useAddonManager() {
     tripAddons,
     globalAddons,
     integrationAddons,
+    aiAddons,
     providerOptions,
     documentProviderOptions,
     toursWanderer,

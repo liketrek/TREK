@@ -86,6 +86,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loginButton': '登录 TREK',
   'oauth.authorize.requestLabel': '授权请求',
   'oauth.authorize.requestDescription': '此应用正在请求访问你的 TREK 账户。',
+  'oauth.authorize.verifiedHost': '已验证的域名：{host}',
   'oauth.authorize.trustNote': '只向你信任的应用授权，你的数据仍保留在自己的服务器上。',
   'oauth.authorize.selectScope': '请至少选择一项权限范围',
   'oauth.authorize.approveScopes': '批准（{count} 项权限）',

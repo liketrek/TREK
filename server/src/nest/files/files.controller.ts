@@ -374,6 +374,7 @@ export class FilesController {
     @Param('tripId') tripId: string,
     @Param('id') id: string,
     @Body() body: FileLinkDto,
+    @Headers('x-socket-id') socketId?: string,
   ) {
     if (!(await this.files.can('file_edit', trip, user))) {
       throw new HttpException({ error: 'No permission' }, 403);
@@ -388,12 +389,16 @@ export class FilesController {
       place_id: body.place_id,
       budget_item_id: body.budget_item_id,
     });
-    const links = await this.files.createFileLink(id, {
-      reservation_id: body.reservation_id,
-      assignment_id: body.assignment_id,
-      place_id: body.place_id,
-      budget_item_id: body.budget_item_id,
-    });
+    const links = await this.files.linkFile(
+      id,
+      {
+        reservation_id: body.reservation_id,
+        assignment_id: body.assignment_id,
+        place_id: body.place_id,
+        budget_item_id: body.budget_item_id,
+      },
+      this.files.restWriter(tripId, user, socketId),
+    );
     return { success: true, links };
   }
 
@@ -406,6 +411,7 @@ export class FilesController {
     @Param('tripId') tripId: string,
     @Param('id') id: string,
     @Param('linkId') linkId: string,
+    @Headers('x-socket-id') socketId?: string,
   ) {
     if (!(await this.files.can('file_edit', trip, user))) {
       throw new HttpException({ error: 'No permission' }, 403);
@@ -417,7 +423,7 @@ export class FilesController {
     if (!file) {
       throw new HttpException({ error: 'File not found' }, 404);
     }
-    await this.files.deleteFileLink(linkId, id);
+    await this.files.unlinkFile(id, linkId, this.files.restWriter(tripId, user, socketId));
     return { success: true };
   }
 

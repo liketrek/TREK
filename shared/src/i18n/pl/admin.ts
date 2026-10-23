@@ -660,6 +660,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'Analiza AI',
   'admin.addons.catalog.llm_parsing.description':
     'Odczytuje rezerwacje, których nie rozumie wbudowany parser, przy użyciu wybranego modelu AI',
+  'admin.addons.catalog.ai_assistant.name': 'Asystent AI',
+  'admin.addons.catalog.ai_assistant.description':
+    'Czat w każdej podróży, który odpowiada na pytania i proponuje zmiany do Twojego zatwierdzenia',
   'admin.addons.llm.vision.auto': 'Automatycznie',
   'admin.addons.llm.vision.on': 'Tak',
   'admin.addons.llm.vision.off': 'Nie',
@@ -1020,5 +1023,31 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Usuń kategorię',
   'admin.packingTemplates.deleteCategoryConfirm': 'Usunąć kategorię "{name}" wraz ze wszystkimi jej pozycjami?',
   'admin.rotateJwt.button': 'Odnów',
+  'admin.addons.ai.name': 'AI', // same-as-en
+  'admin.addons.ai.description':
+    'Jedno połączenie dla asystenta i importu rezerwacji. MCP pozwala innym aplikacjom AI korzystać z TREK.',
+  'admin.addons.ai.setup': 'Skonfiguruj AI',
+  'admin.addons.ai.dialogSub': 'Połączenie wspólne dla asystenta i analizy AI oraz to, co każde z nich może robić.',
+  'admin.addons.ai.tab.connection': 'Połączenie',
+  'admin.addons.ai.parsing.readsWith': 'Czyta rezerwacje za pomocą',
+  'admin.addons.ai.parsing.own': 'Własne połączenie',
+  'admin.addons.ai.parsing.ownHint': 'Używane zamiast wspólnego połączenia.',
+  'admin.addons.ai.parsing.useShared': 'Użyj wspólnego połączenia',
+  'admin.addons.ai.parsing.sharedTag': 'Wspólne',
+  'admin.addons.ai.parsing.perUser': 'Każda osoba czyta za pomocą własnego połączenia z ustawień.',
+  'admin.addons.ai.parsing.none': 'Brak połączenia. Skonfiguruj jedno dla wszystkich albo daj analizie AI własne.',
+  'admin.addons.ai.parsing.setupOwn': 'Użyj innego',
+  'admin.addons.ai.parsing.installed': 'Zainstalowane na serwerze',
+  'admin.addons.ai.parsing.refresh': 'Odśwież',
+  'admin.addons.ai.parsing.noModels': 'Brak zainstalowanych modeli. Pobierz jeden poniżej.',
+  'admin.addons.ai.parsing.pullTitle': 'Pobierz zalecany model',
+  'admin.addons.ai.parsing.pull': 'Pobierz',
+  'admin.addons.ai.parsing.pulling': 'Pobieranie…',
+  'admin.addons.ai.parsing.use': 'Użyj',
+  'admin.addons.ai.parsing.selected': 'Wybrany',
+  'admin.addons.ai.parsing.pulled': 'Model pobrany',
+  'admin.addons.ai.parsing.pullFailed': 'Nie udało się pobrać modelu',
+  'admin.addons.ai.parsing.unreachable': 'Nie można połączyć się z lokalnym serwerem',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Zwykle niepotrzebny',
 };
 export default admin;

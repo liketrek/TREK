@@ -1,3 +1,4 @@
+import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { PackingWritesService } from '../../../src/nest/packing/packing-writes.service';
 import { PackingController as RoutePackingController } from '../../../src/nest/packing/packing.controller';
 import type { PackingService } from '../../../src/nest/packing/packing.service';
@@ -62,11 +63,13 @@ function makeService(overrides: Partial<PackingService> = {}): PackingService {
  * The route over the real item use cases (PackingWritesService), with the
  * permission granted: the 403 lives in trip-access.guard.test.ts, and these
  * cases pin what the route answers and broadcasts through the service mock.
+ * The notifications answer the actor's name the assignee notification gives.
  */
 const allowAll = { checkPermission: vi.fn().mockResolvedValue(true) } as unknown as PermissionsService;
+const notifications = { actorName: vi.fn().mockResolvedValue('u') } as unknown as NotificationsService;
 class PackingController extends RoutePackingController {
   constructor(svc: PackingService) {
-    super(svc, new PackingWritesService(svc, allowAll));
+    super(svc, new PackingWritesService(svc, allowAll, notifications));
   }
 }
 
@@ -377,11 +380,17 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
   });
 
   describe('PUT /reorder', () => {
-    it('reorders the items and reports success', async () => {
+    it('reorders the items, tells the other tabs and reports success', async () => {
       const reorderItems = vi.fn();
-      const svc = makeService({ reorderItems } as Partial<PackingService>);
-      expect(await new PackingController(svc).reorder(user, '5', { orderedIds: [3, 1, 2] })).toEqual({ success: true });
+      const broadcast = vi.fn();
+      const svc = makeService({ reorderItems, broadcast } as Partial<PackingService>);
+      expect(await new PackingController(svc).reorder(user, '5', { orderedIds: [3, 1, 2] }, 'sock')).toEqual({
+        success: true,
+      });
       expect(reorderItems).toHaveBeenCalledWith('5', [3, 1, 2]);
+      // The route used to tell nobody; it now sends what the MCP tool always sent,
+      // skipping the tab that reordered.
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:reordered', { orderedIds: [3, 1, 2] }, 'sock');
     });
   });
 
@@ -669,12 +678,15 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
     it('applies a template, broadcasts the added items and reports the count', async () => {
       const items = [{ id: 1 }, { id: 2 }, { id: 3 }];
       const applyTemplate = vi.fn().mockReturnValue(items);
-      const broadcastItem = vi.fn();
-      const svc = makeService({ applyTemplate, broadcastItem } as Partial<PackingService>);
+      const broadcast = vi.fn();
+      const broadcastBagTotals = vi.fn();
+      const svc = makeService({ applyTemplate, broadcast, broadcastBagTotals } as Partial<PackingService>);
       const res = await new PackingController(svc).applyTemplate(user, '5', '1', {}, 'sock');
       expect(res).toEqual({ items, count: 3 });
       expect(applyTemplate).toHaveBeenCalledWith('5', 1, 'common', user.id);
-      expect(broadcastItem).toHaveBeenCalledWith('5', 'packing:template-applied', { items }, items[0], 'sock');
+      // Common items: the whole room, the applying tab left out.
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:template-applied', { items }, 'sock');
+      expect(broadcastBagTotals).toHaveBeenCalledWith('5');
     });
 
     // #1565: the template must follow the tab the user is on, and a personal apply
@@ -682,11 +694,13 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
     it('applies a template into the personal list and keeps the broadcast to its owner', async () => {
       const items = [{ id: 1, is_private: 1, owner_id: user.id }];
       const applyTemplate = vi.fn().mockReturnValue(items);
-      const broadcastItem = vi.fn();
-      const svc = makeService({ applyTemplate, broadcastItem } as Partial<PackingService>);
+      const broadcast = vi.fn();
+      const broadcastToViewers = vi.fn();
+      const svc = makeService({ applyTemplate, broadcast, broadcastToViewers } as Partial<PackingService>);
       await new PackingController(svc).applyTemplate(user, '5', '1', { visibility: 'personal' }, 'sock');
       expect(applyTemplate).toHaveBeenCalledWith('5', 1, 'personal', user.id);
-      expect(broadcastItem).toHaveBeenCalledWith('5', 'packing:template-applied', { items }, items[0], 'sock');
+      expect(broadcastToViewers).toHaveBeenCalledWith('5', 'packing:template-applied', { items }, [user.id], 'sock');
+      expect(broadcast).not.toHaveBeenCalledWith('5', 'packing:template-applied', expect.anything(), 'sock');
     });
 
     it('falls back to the common pool for an unknown visibility', async () => {
@@ -783,7 +797,18 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
         { category: 'Clothes', assignees: [{ user_id: 2 }] },
         'sock',
       );
-      expect(notifyTagged).toHaveBeenCalledWith('5', user, 'Clothes', [2]);
+      // The actor is named by the name on its account row, as the MCP tool names it.
+      expect(notifyTagged).toHaveBeenCalledWith('5', { id: user.id, username: 'u' }, 'Clothes', [2]);
+    });
+
+    it('notifies nobody when the category is cleared', async () => {
+      const notifyTagged = vi.fn();
+      const svc = makeService({
+        updateCategoryAssignees: vi.fn().mockReturnValue([]),
+        notifyTagged,
+      } as Partial<PackingService>);
+      await new PackingController(svc).updateCategoryAssignees(user, '5', 'Clothes', { user_ids: [] }, 'sock');
+      expect(notifyTagged).not.toHaveBeenCalled();
     });
   });
 });

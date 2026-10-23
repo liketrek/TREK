@@ -322,7 +322,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'Bu açılım hələ boşdur',
   'journey.studio.autoLayout': 'Avtomatik tərtibat',
   'journey.studio.export': 'İxrac et',
-  'journey.studio.day': 'GÜN',
+  'journey.studio.day': 'GÜN {day}',
   'journey.studio.stations': 'Dayanacaqlar',
   'journey.studio.peersHere': 'burada',
   'journey.studio.folioAuto': 'Avtomatik',
@@ -495,7 +495,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Nişanlar',
   'journey.studio.dateMark': 'Tarix',
   'journey.studio.dayMark': 'Gün sayğacı',
-  'journey.studio.dayWord': 'GÜN',
   'journey.studio.coordsMark': 'Koordinatlar',
   'journey.studio.coordsDms': 'Dərəcə',
   'journey.studio.coordsDecimal': 'Onluq',
@@ -713,6 +712,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Sola fırlat',
   'journey.studio.rotateRight': 'Sağa fırlat',
   'journey.studio.saveReadOnly': 'Yalnız oxuma rejimi — yadda saxlanılmadı',
+  'journey.studio.saveNewer': 'Bu kitabı Studio-nun daha yeni versiyası saxlayıb. Redaktə etmək üçün yenidən yükləyin.',
+  'journey.studio.saveReload': 'Yenidən yüklə',
 
   'journey.studio.filterPhotos': 'Fotoları filtrlə',
   'journey.studio.filterAll': 'Bütün fotolar',
@@ -974,5 +975,15 @@ const journey: TranslationStrings = {
     'Dərc olunmuş qeydi olan qeydə alınmış günlər və onlardan götürülmüş dayanacaqlar. Harada və nə vaxt olduğunu, qaldığın yeri də göstərir.',
   'journey.share.needsMap': 'Bunu açmaq üçün xəritəni paylaş',
   'journey.editor.tags': 'Etiketlər',
+  'journey.studio.assistant.toggle': 'Köməkçi',
+  'journey.studio.assistant.toggleHint': 'Kitabı köməkçi ilə birlikdə tərtib et',
+  'journey.studio.assistant.panel': 'Kitab köməkçisi',
+  'journey.studio.assistant.welcome': 'Kitab necə görünsün?',
+  'journey.studio.assistant.readOnly':
+    'Bu kitaba yalnız baxa bilərsiniz, ona görə suallara cavab verə bilərəm, amma heç nəyi dəyişə bilmərəm.',
+  'journey.studio.assistant.notice':
+    'Köməkçi üzərində işlədiyin səhifəyə baxa bilər. {provider} xidmətinə yalnız bu səhifə, yalnız özün əlavə etdiyin fotoların göründüyü şəkil kimi göndərilir. Fotolarında kimin olduğunu müəyyən etmək mümkün deyil.',
+  'journey.studio.assistant.noticeAllow': 'Səhifələri göstər',
+  'journey.studio.assistant.noticeLater': 'İndi yox',
 };
 export default journey;

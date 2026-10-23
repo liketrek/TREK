@@ -105,5 +105,7 @@ const collab: TranslationStrings = {
     '이 카테고리를 쓰는 노트가 아직 있습니다. 먼저 노트를 옮기거나 삭제해야 카테고리를 지울 수 있습니다.',
   'collab.notes.categoriesLocalHint':
     '노트가 없는 카테고리는 이 브라우저에만 저장됩니다. 노트에서 사용하면 다른 멤버에게도 보입니다.',
+  'collab.chat.fromAssistant': '어시스턴트 답변',
+  'collab.chat.fromAssistantHint': '{name}님이 어시스턴트의 답변을 공유했습니다',
 };
 export default collab;

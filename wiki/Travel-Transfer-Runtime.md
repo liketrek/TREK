@@ -6,6 +6,33 @@ Native planner projections now include provider photos, linked journey content a
 external documents. The runtime advertises `complete-snapshots`. This is source
 implementation and synthetic acceptance; it does not update an installed TREK image.
 
+## Production qualification hold · 24 October 2026
+
+This draft is not production-qualified. A synthetic probe of the real transfer
+service showed that returning two 1 MiB ranges from a provider-backed 2 MiB file
+fetches the whole provider file four times (8 MiB), excluding snapshot preparation.
+`readOriginal` prepares every source again and `consumeStream` reads an entire
+provider original for each requested range. The local-storage 512 MiB test does
+not establish provider performance or request-budget acceptance. Bounded provider
+preparation/range delivery with current authorization, immutable snapshot bytes
+and final full-file hash verification is still required before large-file release.
+
+The companion Memories engine also compared original manifests as ordered arrays,
+although native enrichment can reorder the same originals. Its fix compares
+validated unique identities and still rejects changed digests; this is a companion
+source fix, not evidence that any installed Memories image contains it.
+
+The branch now incorporates `dev` at `a70ff750` and preserves both sides of the
+JSON-column registry conflict. Native collaboration messages retain the new
+`origin` field as historical source data. Unknown newly populated domains remain
+fail-closed and require explicit mappings; the complete-snapshot capability is not
+a promise that every future upstream domain is already supported.
+
+After integration: 1,301 targeted tests across 29 files pass; source/test TypeScript,
+format/size/import-boundary/transaction and generated entity/table checks pass.
+Required upstream CI and actual provider/two-server acceptance remain outstanding.
+No installed TREK image was changed.
+
 The PR adds six private tables, a native mapping column and a chunk-checksum column.
 No Docker, dependencies, deployment settings, accounts or provider credentials are
 installed by this change. Maintainer Discord approval remains unconfirmed; the PR

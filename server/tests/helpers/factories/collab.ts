@@ -14,15 +14,19 @@ export function makeCollabNote(
   userId: number,
   overrides: EntityData<CollabNotes> = {},
 ): Promise<CollabNoteRow> {
-  return createRow(orm, CollabNotes, {
-    trip: tripId,
-    user: userId,
-    title: 'Test Note',
-    content: null,
-    category: 'General',
-    color: '#6366f1',
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    CollabNotes,
+    {
+      trip: tripId,
+      user: userId,
+      title: 'Test Note',
+      content: null,
+      category: 'General',
+      color: '#6366f1',
+    },
+    overrides,
+  );
 }
 
 /** A chat message on the trip; `replyToRef` makes it a reply. */
@@ -32,5 +36,5 @@ export function makeCollabMessage(
   userId: number,
   overrides: EntityData<CollabMessages> = {},
 ): Promise<CollabMessageRow> {
-  return createRow(orm, CollabMessages, { trip: tripId, user: userId, text: 'Test message', ...overrides });
+  return createRow(orm, CollabMessages, { trip: tripId, user: userId, text: 'Test message' }, overrides);
 }

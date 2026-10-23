@@ -13,12 +13,15 @@ import { Users } from '../../db/entities/Users.entity';
 import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { AddonsModule } from '../addons/addons.module';
 import { AppConfigModule } from '../app-config/app-config.module';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { PlaceImportModule } from '../place-import/place-import.module';
+import { PlacesModule } from '../places/places.module';
 import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
+import { CollectionsItemsService } from './collections-items.service';
 import { CollectionsController } from './collections.controller';
 import { MAX_COVER_SIZE } from './collections.controller';
 import { CollectionsMcp } from './collections.mcp';
@@ -54,6 +57,10 @@ import { MulterModule } from '@nestjs/platform-express';
     AppConfigModule,
     PluginGuardsModule,
     PlaceImportModule,
+    // Copying saved places into a trip runs the places domain's journey hook, and
+    // the copy tool sends its place events the way every MCP tool does.
+    PlacesModule,
+    McpSharedModule,
     MikroOrmModule.forFeature([
       Collections,
       CollectionMembers,
@@ -70,7 +77,7 @@ import { MulterModule } from '@nestjs/platform-express';
     ]),
   ],
   controllers: [CollectionsController],
-  providers: [CollectionsService, CollectionsMcp, CollectionsRpc],
+  providers: [CollectionsService, CollectionsItemsService, CollectionsMcp, CollectionsRpc],
   exports: [CollectionsService],
 })
 export class CollectionsModule {}

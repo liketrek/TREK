@@ -634,6 +634,26 @@ async function main() {
       }
     }
 
+    // --- ai_connections: secrets ---
+    // The AI assistant's connections keep their credential in ONE encrypted
+    // JSON blob (src/nest/ai-connections/ai-secrets.ts): an API key, or a
+    // ChatGPT sign-in's tokens. Left out of a rotation, the instance's
+    // connection asks the admin for its key again and every ChatGPT user has
+    // to sign in anew. The table arrived with a later migration, hence the
+    // existence check.
+    if (tableExists('ai_connections')) {
+      const aiConnections = db.prepare('SELECT id, secrets FROM ai_connections WHERE secrets IS NOT NULL').all() as {
+        id: number;
+        secrets: string;
+      }[];
+      for (const row of aiConnections) {
+        const newVal = migrateApiKeyValue(row.secrets, `ai_connections[${row.id}].secrets`);
+        if (newVal !== null) {
+          db.prepare('UPDATE ai_connections SET secrets = ? WHERE id = ?').run(newVal, row.id);
+        }
+      }
+    }
+
     // --- trip_document_links: webhook_secret ---
     // The secret a provider signs its webhook calls with, stored through the
     // same blob helper. It is written once when the link is created and never

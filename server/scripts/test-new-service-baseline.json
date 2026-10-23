@@ -34,7 +34,6 @@
     "tests/unit/mcp/tools-transit.test.ts": 1,
     "tests/unit/nest-rpc/plugin-guards.test.ts": 1,
     "tests/unit/nest-rpc/rpc-kit/registry.service.test.ts": 3,
-    "tests/unit/nest/accommodations.event-parity.test.ts": 1,
     "tests/unit/nest/accommodations.service.test.ts": 1,
     "tests/unit/nest/addons.service.test.ts": 2,
     "tests/unit/nest/admin.service.test.ts": 11,

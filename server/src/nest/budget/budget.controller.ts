@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { toRowId } from '../common/row-id';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { Trip } from '../permissions/trip.decorator';
+import { BudgetWritesService } from './budget-writes.service';
 import {
   BudgetCreateItemDto,
   BudgetUpdateItemDto,
@@ -57,7 +58,10 @@ import {
 // passes, so the HTTP and MCP paths cannot demand different rights.
 @UseGuards(JwtAuthGuard, TripAccessGuard)
 export class BudgetController {
-  constructor(private readonly budget: BudgetService) {}
+  constructor(
+    private readonly budget: BudgetService,
+    private readonly writes: BudgetWritesService,
+  ) {}
 
   @Get()
   async list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
@@ -207,12 +211,9 @@ export class BudgetController {
     @Body() body: BudgetCreateItemDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const refusal = await this.budget.linkRefusal(tripId, body);
-    if (refusal) throw new HttpException({ error: refusal }, 400);
-    const item = await this.budget.create(tripId, body);
-    // A booking mirrors the total of its expenses (#2084); a new one adds to it.
-    if (item.reservation_id) await this.budget.resyncReservationPrice(tripId, item.reservation_id, socketId);
-    this.budget.broadcast(tripId, 'budget:created', { item }, socketId);
+    // The use case answers the link refusal (#2084) and works out the price of a
+    // linked booking, the way the MCP tool adding an expense with its split does.
+    const item = await this.writes.createItem(tripId, body, this.writes.restWriter(tripId, user, socketId));
     return { item };
   }
 

@@ -168,6 +168,14 @@ describe('MCollabChat', () => {
     expect(screen.getByText('plain')).toHaveClass('whitespace-pre-wrap')
   })
 
+  it('FE-MOB-CCHAT-034: a shared assistant answer carries its label, a typed message none', async () => {
+    serveMessages([chatMsg(1, { text: 'typed' }), chatMsg(2, { text: 'shared', origin: 'assistant' })])
+    await renderChat()
+    expect(screen.getAllByText('from the assistant')).toHaveLength(1)
+    expect(screen.getByText('shared').closest('.flex-col')).toHaveTextContent('from the assistant')
+    expect(screen.getByText('typed').closest('.flex-col')).not.toHaveTextContent('from the assistant')
+  })
+
   it('FE-MOB-CCHAT-008: shows the quoted message above a reply bubble', async () => {
     serveMessages([
       chatMsg(1, { text: 'Where do we meet?' }),

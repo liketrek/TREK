@@ -56,17 +56,23 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
     if (!menu) return
     const handler = () => onClose()
     // A fixed menu stays where it opened, so it closes when the page under it
-    // moves or the window changes size, and Escape closes it like any menu.
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    // moves or the window changes size. Escape closes it in the capture phase
+    // and goes no further, so a dialog, the assistant column or Studio under
+    // it does not act on the same key.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      onClose()
+    }
     document.addEventListener('click', handler)
     document.addEventListener('contextmenu', handler)
-    document.addEventListener('keydown', onKey)
+    document.addEventListener('keydown', onKey, true)
     window.addEventListener('scroll', handler, true)
     window.addEventListener('resize', handler)
     return () => {
       document.removeEventListener('click', handler)
       document.removeEventListener('contextmenu', handler)
-      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('keydown', onKey, true)
       window.removeEventListener('scroll', handler, true)
       window.removeEventListener('resize', handler)
     }

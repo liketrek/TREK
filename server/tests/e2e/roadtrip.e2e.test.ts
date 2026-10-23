@@ -183,7 +183,7 @@ describe('Roadtrip e2e (real guard chain + temp SQLite)', () => {
   it('validates Google route preview and import before executing either service', async () => {
     const routes = app.get(GoogleRouteService);
     const preview = vi.spyOn(routes, 'preview').mockResolvedValue({ stops: [] });
-    const save = vi.spyOn(routes, 'import').mockResolvedValue({ imported: 2 });
+    const save = vi.spyOn(routes, 'import').mockResolvedValue({ imported: 2, place_ids: [], assignment_ids: [] });
     const input = {
       dayId: 3,
       stops: [

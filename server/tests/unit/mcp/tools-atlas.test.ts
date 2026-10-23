@@ -1,10 +1,12 @@
 /**
  * Unit tests for MCP atlas and bucket list tools:
- * mark_country_visited, unmark_country_visited, create_bucket_list_item, delete_bucket_list_item.
+ * mark_country_visited, unmark_country_visited, create_bucket_list_item, delete_bucket_list_item,
+ * list_bucket_list.
  */
 import { db as testDb } from '../../../src/db/database';
 import { BucketList } from '../../../src/db/entities/BucketList.entity';
 import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
+import { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import { createUser, createBucketListItem, createVisitedCountry } from '../../helpers/factories';
 import { countRows, findRow } from '../../helpers/factories/rows';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
@@ -55,9 +57,26 @@ describe('Tool: mark_country_visited', () => {
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
       expect(data.country_code).toBe('FR');
+      // Where the atlas stands now, which the assistant's card and answer read.
+      expect(data.after).toEqual({ country_status: 'visited', countries_visited: 1 });
       const row = await findRow(orm, VisitedCountries, { user: user.id, country_code: 'FR' });
       expect(row).toBeTruthy();
     });
+  });
+
+  it('MCP-ATLAS-AFTER-001: a failed read after the mark leaves `after` out, not the done write', async () => {
+    const { user } = createUser(testDb);
+    const stats = vi.spyOn(AtlasService.prototype, 'stats').mockRejectedValue(new Error('stats unavailable'));
+    try {
+      await withHarness(user.id, async (h) => {
+        const result = await h.client.callTool({ name: 'mark_country_visited', arguments: { country_code: 'NO' } });
+        expect(result.isError).toBeFalsy();
+        expect(parseToolResult(result)).toEqual({ success: true, country_code: 'NO' });
+        expect(await findRow(orm, VisitedCountries, { user: user.id, country_code: 'NO' })).toBeTruthy();
+      });
+    } finally {
+      stats.mockRestore();
+    }
   });
 
   it('is idempotent — marking twice does not error', async () => {
@@ -92,8 +111,11 @@ describe('Tool: unmark_country_visited', () => {
     createVisitedCountry(testDb, user.id, 'ES');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'unmark_country_visited', arguments: { country_code: 'ES' } });
-      const data = parseToolResult(result) as any;
-      expect(data.success).toBe(true);
+      expect(parseToolResult(result)).toEqual({
+        success: true,
+        country_code: 'ES',
+        after: { country_status: null, countries_visited: 0 },
+      });
       const row = await findRow(orm, VisitedCountries, { user: user.id, country_code: 'ES' });
       expect(row).toBeNull();
     });
@@ -247,6 +269,35 @@ describe('Tool: delete_bucket_list_item', () => {
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_bucket_list_item', arguments: { itemId: item.id } });
       expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// list_bucket_list
+// ---------------------------------------------------------------------------
+
+describe('Tool: list_bucket_list', () => {
+  it("MCP-ATLAS-BUCKET-001: answers the user's own wishes with their ids, shaped like GET /bucket-list", async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const kyoto = createBucketListItem(testDb, user.id, { name: 'Kyoto', country_code: 'JP', notes: 'In autumn' });
+    createBucketListItem(testDb, other.id, { name: "Other's Wish" });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'list_bucket_list', arguments: {} });
+      const data = parseToolResult(result) as { items: Array<Record<string, unknown>> };
+      expect(data.items).toHaveLength(1);
+      expect(data.items[0]).toMatchObject({ id: kyoto.id, name: 'Kyoto', country_code: 'JP', notes: 'In autumn' });
+    });
+  });
+
+  it('MCP-ATLAS-BUCKET-002: answers an empty list, and reads for a demo user too', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'list_bucket_list', arguments: {} });
+      expect(result.isError).toBeFalsy();
+      expect(parseToolResult(result)).toEqual({ items: [] });
     });
   });
 });

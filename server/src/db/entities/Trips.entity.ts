@@ -1,6 +1,7 @@
 import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { TripsRepository } from '../repositories/Trips.repository';
 import { DbTimestampType } from '../types';
+import { AssistantThreads } from './AssistantThreads.entity';
 import { BudgetCategoryOrder } from './BudgetCategoryOrder.entity';
 import { BudgetItems } from './BudgetItems.entity';
 import { BudgetSettlements } from './BudgetSettlements.entity';
@@ -57,6 +58,7 @@ export class Trips {
   created_at?: string | null;
   updated_at?: string | null;
   reminder_sent_for?: string | null;
+  assistant_threads_collection = new Collection<AssistantThreads>(this);
   budget_category_order_collection = new Collection<BudgetCategoryOrder>(this);
   budget_items_collection = new Collection<BudgetItems>(this);
   budget_settlements_collection = new Collection<BudgetSettlements>(this);
@@ -122,6 +124,7 @@ export const TripsSchema = defineEntity({
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`).index('idx_trips_created_at'),
     updated_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     reminder_sent_for: p.text().nullable(),
+    assistant_threads_collection: () => p.oneToMany(AssistantThreads).mappedBy('trip').hidden(),
     budget_category_order_collection: () => p.oneToMany(BudgetCategoryOrder).mappedBy('trip').hidden(),
     budget_items_collection: () => p.oneToMany(BudgetItems).mappedBy('trip').hidden(),
     budget_settlements_collection: () => p.oneToMany(BudgetSettlements).mappedBy('trip').hidden(),

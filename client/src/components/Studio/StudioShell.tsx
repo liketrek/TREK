@@ -21,6 +21,8 @@ import { PeerBadges } from './PeerBadges'
 import { TrimField } from './TrimField'
 import { Tooltip } from '../shared/Tooltip'
 import { useStudioStore } from '../../store/studioStore'
+import { StudioAssistantColumn, StudioAssistantToggle, StudioPageStage } from './StudioAssistantPanel'
+import { useStudioAssistant, type StudioAssistant } from './useStudioAssistant'
 import '../../styles/dashboard.css'
 import '../../styles/studio.css'
 import './bookFontFaces'
@@ -42,6 +44,7 @@ export default function StudioShell() {
   const navigate = useNavigate()
   const [bookView, setBookView] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const assistant = useStudioAssistant({ journeyId: s.journeyId, flush: s.flushBook })
 
   if (s.isMobile) {
     return createPortal(
@@ -83,7 +86,13 @@ export default function StudioShell() {
         aria-modal="true"
         aria-label={s.t('journey.studio.title')}
       >
-        <StudioBar s={s} bookView={bookView} setBookView={setBookView} onExport={() => setExporting(true)} />
+        <StudioBar
+          s={s}
+          bookView={bookView}
+          setBookView={setBookView}
+          onExport={() => setExporting(true)}
+          assistant={assistant}
+        />
         {/* The journey gallery's picker, inside Studio's own layer (#2271). */}
         {s.providerPick && s.journey && (
           <ProviderPicker
@@ -119,12 +128,15 @@ export default function StudioShell() {
             spreadIndex={s.activeSpread}
             page={s.page}
             stats={s.stats}
+            path={s.path}
             source={s.source}
             setPageNumbers={s.setPageNumbers}
             t={s.t}
             locale={s.locale}
           />
         </div>
+        <StudioAssistantColumn assistant={assistant} title={s.journey?.title} bookVersion={s.bookVersion} />
+        <StudioPageStage assistant={assistant} />
 
         {exporting && s.doc && (
           <StudioExport
@@ -143,8 +155,11 @@ export default function StudioShell() {
 type Studio = ReturnType<typeof useJourneyStudio>
 
 function StudioBar({
-  s, bookView, setBookView, onExport,
-}: { s: Studio; bookView: boolean; setBookView: (v: boolean) => void; onExport: () => void }) {
+  s, bookView, setBookView, onExport, assistant,
+}: {
+  s: Studio; bookView: boolean; setBookView: (v: boolean) => void; onExport: () => void
+  assistant: StudioAssistant
+}) {
   return (
     <div className="st-bar">
       <button type="button" onClick={s.close} className="st-back" title={s.t('journey.studio.backToJourney')}>
@@ -217,6 +232,8 @@ function StudioBar({
         <div className="st-sep" />
 
         <AutoLayoutButton s={s} />
+        {/* The book's assistant, as a column beside the page; only where it can run for this user. */}
+        <StudioAssistantToggle assistant={assistant} />
         <button type="button"
           className="st-tool is-primary"
           onClick={onExport}

@@ -7,9 +7,10 @@ import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { isManagedLockedKey, splitManagedKeys } from '../common/managed';
 import { ResponseContract } from '../common/response-contract';
+import { SettingsWritesService } from './settings-writes.service';
 import { AdminDefaultUserSettingsDto, SettingUpsertDto, SettingsBulkDto } from './settings.dto';
 import { SettingsService, isAdminOnlyEndpointSetting } from './settings.service';
-import { Body, Controller, Get, HttpCode, HttpException, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, HttpException, Post, Put, Req, UseGuards } from '@nestjs/common';
 import {
   MASKED_SETTING_VALUE,
   PLANNER_TRIP_VIEWS_KEY,
@@ -40,6 +41,8 @@ export class SettingsController {
   constructor(
     private readonly settings: SettingsService,
     private readonly env: RuntimeEnvService,
+    // The writes, which tell the user's other tabs which keys changed.
+    private readonly writes: SettingsWritesService,
   ) {}
 
   /**
@@ -87,7 +90,7 @@ export class SettingsController {
 
   @Put()
   @ResponseContract(settingUpsertResponseSchema)
-  async upsert(@CurrentUser() user: User, @Body() body: SettingUpsertDto) {
+  async upsert(@CurrentUser() user: User, @Body() body: SettingUpsertDto, @Headers('x-socket-id') socketId?: string) {
     this.assertMayWriteInstanceEndpoint({ [body.key]: body.value });
     this.assertValidValues({ [body.key]: body.value });
     // assertMayWriteInstanceEndpoint only covers llm_base_url and provider 'local'.
@@ -100,19 +103,19 @@ export class SettingsController {
     if (body.value === MASKED_SETTING_VALUE) {
       return { success: true, key: body.key, unchanged: true };
     }
-    await this.settings.upsertSetting(user.id, body.key, body.value);
+    await this.writes.saveOne(user.id, body.key, body.value, socketId);
     return { success: true, key: body.key, value: body.value };
   }
 
   @Post('bulk')
   @HttpCode(200) // Express answers bulk with res.json (200), not the POST-default 201.
   @ResponseContract(settingsBulkResponseSchema)
-  async bulk(@CurrentUser() user: User, @Body() body: SettingsBulkDto) {
+  async bulk(@CurrentUser() user: User, @Body() body: SettingsBulkDto, @Headers('x-socket-id') socketId?: string) {
     this.assertMayWriteInstanceEndpoint(body.settings);
     this.assertValidValues(body.settings);
     const { allowed, blocked } = splitManagedKeys(body.settings, this.env.isManaged());
     try {
-      const updated = await this.settings.bulkUpsertSettings(user.id, allowed);
+      const updated = await this.writes.saveMany(user.id, allowed, socketId);
       return { success: true, updated, ...(blocked.length ? { managed_keys: blocked } : {}) };
     } catch (err) {
       console.error('Error saving settings:', err);

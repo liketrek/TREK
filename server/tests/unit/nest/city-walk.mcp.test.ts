@@ -28,7 +28,12 @@ import { makeUser } from '../../helpers/factories/users';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestModule, type TestModule } from '../../helpers/test-module';
 import { MikroORM } from '@mikro-orm/core';
-import { stationKeySchema, type CityWalkBriefingRequest, type CityWalkStation } from '@trek/shared';
+import {
+  stationKeySchema,
+  TOUR_DISPLAY_LINE_POINTS,
+  type CityWalkBriefingRequest,
+  type CityWalkStation,
+} from '@trek/shared';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -478,6 +483,46 @@ describe('CityWalkMcp (CW-11)', () => {
     );
     expect(offTheWay.foot_way).toEqual({ planned: false, why: 'station_off_the_way', position: 2 });
     expect(offTheWay.tour).toMatchObject({ route_pending: true, distance: null, duration: null });
+  });
+
+  it('CWALK-MCP-008: adds the way on foot for drawing only when asked, thinned to what a card draws, and none without a way', async () => {
+    const f = await fixture();
+    // A way of a thousand points from the hotel to the station.
+    const line = Array.from({ length: 1000 }, (_, index): [number, number] => [48 + index * 0.000018, 11]);
+    route.mockResolvedValue({
+      leg: { line },
+      parts: [
+        { distance: 1000, duration: 750 },
+        { distance: 1000, duration: 750 },
+      ],
+      snapped: [{ meters: 2 }, { meters: 2 }, { meters: 2 }],
+      avoidMissed: [],
+    });
+    const briefing = briefingOf(f, {
+      day_id: undefined,
+      theme_places_max: 0,
+      trip_places: undefined,
+      appointments: undefined,
+      end: { name: 'Station', lat: 48.018, lng: 11 },
+    });
+    const drawn = read(
+      await mcp.proposeCityWalk({ tripId: f.trip.id, ...briefing, include_geometry: true }, ctx(f.user.id)),
+    );
+    expect(drawn.estimate).toEqual({ kind: 'routed', profile: 'walking' });
+    expect(drawn.line_geometry).toHaveLength(TOUR_DISPLAY_LINE_POINTS);
+    expect(drawn.line_geometry[0]).toEqual(line[0]);
+    expect(drawn.line_geometry.at(-1)).toEqual(line.at(-1));
+
+    const plain = read(await mcp.proposeCityWalk({ tripId: f.trip.id, ...briefing }, ctx(f.user.id)));
+    expect(plain).not.toHaveProperty('line_geometry');
+    expect(plain.stations).toEqual(drawn.stations);
+
+    route.mockRejectedValue(new Error('Routing provider returned 503'));
+    const unrouted = read(
+      await mcp.proposeCityWalk({ tripId: f.trip.id, ...briefing, include_geometry: true }, ctx(f.user.id)),
+    );
+    expect(unrouted.estimate.kind).toBe('straight_line');
+    expect(unrouted).not.toHaveProperty('line_geometry');
   });
 
   it('CWALK-MCP-005: the proposal reads only and the creation writes, both on the Tours addon', async () => {

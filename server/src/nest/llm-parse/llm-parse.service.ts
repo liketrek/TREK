@@ -61,6 +61,14 @@ export class LlmParseService {
     private readonly local: LlmLocalService,
   ) {}
 
+  /**
+   * The admin's AI parsing endpoint without its key, for the AI assistant's
+   * admin form to start from. Read only; AI parsing itself is not touched.
+   */
+  instanceEndpoint(): ReturnType<LlmConfigResolver['readInstanceEndpoint']> {
+    return this.llmConfig.readInstanceEndpoint();
+  }
+
   /** True when the addon is enabled AND a usable config resolves for this user. */
   async isAvailable(userId: number): Promise<boolean> {
     return (await this.llmConfig.resolve(userId)) !== null;

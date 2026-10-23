@@ -295,7 +295,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'GÜN',
+  'journey.studio.day': '{day}. GÜN',
   'journey.studio.stations': 'Duraklar',
   'journey.studio.peersHere': 'burada',
   'journey.studio.folioAuto': 'Otomatik',
@@ -452,7 +452,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'İşaretler',
   'journey.studio.dateMark': 'Tarih',
   'journey.studio.dayMark': 'Gün sayacı',
-  'journey.studio.dayWord': 'GÜN',
   'journey.studio.coordsMark': 'Koordinatlar',
   'journey.studio.coordsDms': 'Derece',
   'journey.studio.coordsDecimal': 'Ondalık',
@@ -651,6 +650,9 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Sola döndür',
   'journey.studio.rotateRight': 'Sağa döndür',
   'journey.studio.saveReadOnly': 'Salt okunur, kaydedilmiyor',
+  'journey.studio.saveNewer':
+    'Bu kitap Studio’nun daha yeni bir sürümüyle kaydedildi. Düzenlemek için yeniden yükleyin.',
+  'journey.studio.saveReload': 'Yeniden yükle',
   'journey.studio.filterPhotos': 'Fotoğrafları filtrele',
   'journey.studio.filterAll': 'Tüm fotoğraflar',
   'journey.studio.filterLoose': 'Bir kayıtta değil',
@@ -894,5 +896,15 @@ const journey: TranslationStrings = {
     'Yayınlanmış bir girdisi olan günlerde kaydedilmiş günler ve onlardan alınan duraklar. Nerede ve ne zaman olduğunu, konakladığın yeri de gösterir.',
   'journey.share.needsMap': 'Bunu açmak için haritayı paylaş',
   'journey.editor.tags': 'Etiketler',
+  'journey.studio.assistant.toggle': 'Asistan',
+  'journey.studio.assistant.toggleHint': 'Kitabı asistanla birlikte tasarla',
+  'journey.studio.assistant.panel': 'Kitap asistanı',
+  'journey.studio.assistant.welcome': 'Kitap nasıl görünsün?',
+  'journey.studio.assistant.readOnly':
+    'Bu kitabı yalnızca görüntüleyebiliyorsun, bu yüzden soruları yanıtlarım ama bir şey değiştiremem.',
+  'journey.studio.assistant.notice':
+    'Asistan üzerinde çalıştığın sayfaya bakabilir. {provider} hizmetine yalnızca bu sayfa, sadece kendi eklediğin fotoğrafları gösteren bir görüntü olarak gider. Fotoğraflarında kimin olduğu tespit edilemez.',
+  'journey.studio.assistant.noticeAllow': 'Sayfaları göster',
+  'journey.studio.assistant.noticeLater': 'Şimdi değil',
 };
 export default journey;

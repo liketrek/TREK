@@ -633,6 +633,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'Analýza pomocí AI',
   'admin.addons.catalog.llm_parsing.description':
     'Přečte rezervace, které vestavěný analyzátor nezvládne, pomocí zvoleného modelu AI',
+  'admin.addons.catalog.ai_assistant.name': 'AI asistent',
+  'admin.addons.catalog.ai_assistant.description':
+    'Chat v každé cestě, který odpovídá na otázky a navrhuje změny, které potvrdíš',
   'admin.addons.llm.vision.auto': 'Automaticky',
   'admin.addons.llm.vision.on': 'Ano',
   'admin.addons.llm.vision.off': 'Ne',
@@ -973,5 +976,32 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Smazat kategorii',
   'admin.packingTemplates.deleteCategoryConfirm': 'Smazat kategorii "{name}" a všechny její položky?',
   'admin.rotateJwt.button': 'Obnovit',
+  'admin.addons.ai.name': 'AI', // same-as-en
+  'admin.addons.ai.description':
+    'Jedno připojení pro asistenta a import rezervací. MCP umožní jiným AI aplikacím používat TREK.',
+  'admin.addons.ai.setup': 'Nastavit AI',
+  'admin.addons.ai.dialogSub': 'Připojení, které sdílí asistent a AI zpracování, a co smí každý z nich.',
+  'admin.addons.ai.tab.connection': 'Připojení',
+  'admin.addons.ai.parsing.readsWith': 'Čte rezervace pomocí',
+  'admin.addons.ai.parsing.own': 'Vlastní připojení',
+  'admin.addons.ai.parsing.ownHint': 'Používá se místo sdíleného připojení.',
+  'admin.addons.ai.parsing.useShared': 'Použít sdílené připojení',
+  'admin.addons.ai.parsing.sharedTag': 'Sdílené',
+  'admin.addons.ai.parsing.perUser': 'Každý čte pomocí vlastního připojení ze svého nastavení.',
+  'admin.addons.ai.parsing.none':
+    'Zatím žádné připojení. Nastavte jedno pro všechny, nebo dejte AI zpracování vlastní.',
+  'admin.addons.ai.parsing.setupOwn': 'Použít jiné',
+  'admin.addons.ai.parsing.installed': 'Nainstalované na serveru',
+  'admin.addons.ai.parsing.refresh': 'Obnovit',
+  'admin.addons.ai.parsing.noModels': 'Zatím nejsou nainstalované žádné modely. Stáhněte si jeden níže.',
+  'admin.addons.ai.parsing.pullTitle': 'Stáhnout doporučený model',
+  'admin.addons.ai.parsing.pull': 'Stáhnout',
+  'admin.addons.ai.parsing.pulling': 'Stahování…',
+  'admin.addons.ai.parsing.use': 'Použít',
+  'admin.addons.ai.parsing.selected': 'Vybráno',
+  'admin.addons.ai.parsing.pulled': 'Model stažen',
+  'admin.addons.ai.parsing.pullFailed': 'Model se nepodařilo stáhnout',
+  'admin.addons.ai.parsing.unreachable': 'Místní server není dostupný',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Většinou není potřeba',
 };
 export default admin;

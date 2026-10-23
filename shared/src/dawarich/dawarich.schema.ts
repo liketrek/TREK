@@ -331,6 +331,30 @@ export const dawarichTrackSchema = z.object({
 });
 export type DawarichTrack = z.infer<typeof dawarichTrackSchema>;
 
+/** The longest window one read of the recordings may span. */
+export const DAWARICH_WINDOW_MAX_DAYS = 400;
+
+/**
+ * An explicit window of the recordings, as GET /atlas/suggestions and GET
+ * /track take it in their query and the MCP tools take it as input. Both ends
+ * are required and `to` lies after `from`, within DAWARICH_WINDOW_MAX_DAYS:
+ * a half-open range would read everything since the epoch, the request that
+ * makes an instance time out. The server checks the order and the span.
+ */
+export const dawarichTimeWindowSchema = z.object({
+  from: z
+    .string()
+    .min(1)
+    .describe('Start of the window, ISO 8601 (2025-06-01 or 2025-06-01T00:00:00Z); a bare date is its midnight UTC'),
+  to: z
+    .string()
+    .min(1)
+    .describe(
+      `End of the window, ISO 8601, after from and at most ${DAWARICH_WINDOW_MAX_DAYS} days later; a bare date is its midnight UTC, so give the day after the last one to include it`,
+    ),
+});
+export type DawarichTimeWindow = z.infer<typeof dawarichTimeWindowSchema>;
+
 // ── Atlas ────────────────────────────────────────────────────────────────────
 
 /**

@@ -49,7 +49,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 //   only ever written whole, by the take-over of its day).
 // + journey_recording_prep: id, journey_id, user_id (a status row always names its journey and its person).
 // + tour_drafts: id, trip_id, user_id, payload (a draft is only ever written whole, by the planner that keeps it).
-const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 544;
+// + ai_connections: id, scope, kind, model; assistant_threads: id, user_id, trip_id, title;
+//   assistant_messages: id, thread_id, role, parts; assistant_tool_calls: id, thread_id, message_id,
+//   provider_call_id, tool_name, args, preview; assistant_usage: user_id, day, paid_by (each row is
+//   written whole by the assistant, which always knows all of them).
+// + trek_photo_signals: id, photo_id, algo (a measurement always names its photo and how it was made).
+// - assistant_threads.trip_id: a thread may be about a journey instead, so it is nullable now.
+// + journey_book_revisions: id, journey_id, version, document (a revision is only ever written whole).
+const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 572;
 
 describe('entity class fields never carry a NaN initialiser (task-4-review-shape.md, Important 1)', () => {
   it('CLASSFIELD-001: new X() has no own property whose value is NaN, across all 133 entities', () => {

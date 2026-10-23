@@ -627,11 +627,17 @@ export class AdminService {
       //
       // AirTrail and Dawarich: both addons exist to reach a server the admin
       // runs themselves, and a managed instance has no route to one.
+      //
+      // AI assistant: the same reasoning as AI parsing, and its connection
+      // would put a key of the instance's own beside the operator's.
       .filter(
         (a) =>
           !(
             readEnv().managed.enabled &&
-            (a.id === ADDON_IDS.LLM_PARSING || a.id === ADDON_IDS.AIRTRAIL || a.id === ADDON_IDS.DAWARICH)
+            (a.id === ADDON_IDS.LLM_PARSING ||
+              a.id === ADDON_IDS.AI_ASSISTANT ||
+              a.id === ADDON_IDS.AIRTRAIL ||
+              a.id === ADDON_IDS.DAWARICH)
           ),
       );
     const providers = (await this.photoProviders.listAllOrdered())
@@ -709,7 +715,7 @@ export class AdminService {
     // the operator owns the endpoint, the model and the per-document cost, so
     // there is nothing here for an instance admin to set — including whether it
     // runs at all. listAddons hides the row; this closes the route behind it.
-    if (readEnv().managed.enabled && id === ADDON_IDS.LLM_PARSING) {
+    if (readEnv().managed.enabled && (id === ADDON_IDS.LLM_PARSING || id === ADDON_IDS.AI_ASSISTANT)) {
       throw new DomainError(403, MANAGED_FORBIDDEN_ERROR.error);
     }
 

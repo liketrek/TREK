@@ -1,3 +1,4 @@
+import type { AtlasWritesService } from '../../../src/nest/atlas/atlas-writes.service';
 import { AtlasController } from '../../../src/nest/atlas/atlas.controller';
 import { BucketItemExistsError } from '../../../src/nest/atlas/atlas.service';
 import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
@@ -11,8 +12,9 @@ import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 8 } as User;
 
-function makeController(svc: Partial<AtlasService>) {
-  return new AtlasController(svc as AtlasService);
+/** The reads come from AtlasService, the writes from AtlasWritesService; one stub stands in for both. */
+function makeController(svc: Partial<AtlasService> & Partial<AtlasWritesService>) {
+  return new AtlasController(svc as unknown as AtlasService, svc as unknown as AtlasWritesService);
 }
 
 function makeRes() {
@@ -89,12 +91,33 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
     it('POST mark returns success and upper-cases', async () => {
       const markCountry = vi.fn();
       expect(await makeController({ markCountry }).markCountry(user, 'de')).toEqual({ success: true });
-      expect(markCountry).toHaveBeenCalledWith(8, 'DE');
+      expect(markCountry).toHaveBeenCalledWith(8, 'DE', undefined);
     });
 
     it('DELETE mark returns success', async () => {
       const unmarkCountry = vi.fn();
       expect(await makeController({ unmarkCountry }).unmarkCountry(user, 'FR')).toEqual({ success: true });
+    });
+
+    it('ATLAS-CTRL-001: every write hands on X-Socket-Id, so the tab that asked is left out of atlas:changed', async () => {
+      const writes = {
+        markCountry: vi.fn(),
+        unmarkCountry: vi.fn(),
+        markRegion: vi.fn(),
+        unmarkRegion: vi.fn(),
+        createBucketItem: vi.fn().mockReturnValue({ id: 1 }),
+        updateBucketItem: vi.fn().mockReturnValue({ id: 1 }),
+        deleteBucketItem: vi.fn().mockReturnValue(true),
+      };
+      const c = makeController(writes);
+      await c.markCountry(user, 'de', 'sock-1');
+      await c.unmarkCountry(user, 'de', 'sock-1');
+      await c.markRegion(user, 'by', { name: 'Bavaria', country_code: 'de' }, 'sock-1');
+      await c.unmarkRegion(user, 'by', 'sock-1');
+      await c.createBucketItem(user, { name: 'Tokyo' }, 'sock-1');
+      await c.updateBucketItem(user, '1', { name: 'Kyoto' }, 'sock-1');
+      await c.deleteBucketItem(user, '1', 'sock-1');
+      for (const write of Object.values(writes)) expect(write.mock.calls[0]?.at(-1)).toBe('sock-1');
     });
   });
 
@@ -108,7 +131,7 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
       expect(
         await makeController({ markRegion }).markRegion(user, 'by', { name: 'Bavaria', country_code: 'de' }),
       ).toEqual({ success: true });
-      expect(markRegion).toHaveBeenCalledWith(8, 'BY', 'Bavaria', 'DE');
+      expect(markRegion).toHaveBeenCalledWith(8, 'BY', 'Bavaria', 'DE', undefined);
     });
   });
 
@@ -130,14 +153,18 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
       expect(
         await makeController({ createBucketItem }).createBucketItem(user, { name: 'Tokyo', lat: 35, lng: 139 }),
       ).toEqual({ item: { id: 1, name: 'Tokyo' } });
-      expect(createBucketItem).toHaveBeenCalledWith(8, {
-        name: 'Tokyo',
-        lat: 35,
-        lng: 139,
-        country_code: undefined,
-        notes: undefined,
-        target_date: undefined,
-      });
+      expect(createBucketItem).toHaveBeenCalledWith(
+        8,
+        {
+          name: 'Tokyo',
+          lat: 35,
+          lng: 139,
+          country_code: undefined,
+          notes: undefined,
+          target_date: undefined,
+        },
+        undefined,
+      );
     });
 
     it('forwards a wished-for region, as the MCP tool does (#1901)', async () => {
@@ -150,6 +177,7 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
       expect(createBucketItem).toHaveBeenCalledWith(
         8,
         expect.objectContaining({ country_code: 'DE', region_code: 'DE-BY' }),
+        undefined,
       );
     });
 

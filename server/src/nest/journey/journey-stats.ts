@@ -158,6 +158,41 @@ export function collectCountries(points: StatsInputPoint[], names: Record<string
     }));
 }
 
+/**
+ * English country names for whatever codes a journey turned up.
+ *
+ * `Intl.DisplayNames` rather than a bundled table or the admin-0 properties:
+ * Node has the CLDR data already, the names it gives are the ones every other
+ * piece of software shows, and parsing 30MB of boundary GeoJSON to read a
+ * `NAME` field would be an absurd way to learn that IS is Iceland.
+ *
+ * English on purpose: the client re-resolves these into the reader's language
+ * when it places the element, and a book needs the country's name in the
+ * language the book is written in, not the language of whoever's server it is.
+ */
+function regionNames(): Intl.DisplayNames | null {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' });
+  } catch {
+    // A Node built without full ICU has no region names. Codes are a poor
+    // label but a working one, and a book page is not worth a 500 over.
+    return null;
+  }
+}
+
+/** The English name of every country the points pass through, by upper-case code. */
+export function countryNamesFor(points: { country: string | null }[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  const display = regionNames();
+  for (const p of points) {
+    if (!p.country) continue;
+    const code = p.country.toUpperCase();
+    if (out[code]) continue;
+    out[code] = (display?.of(code) ?? code) || code;
+  }
+  return out;
+}
+
 export interface StatsInput {
   journeyId: number;
   /** The route, already in the order it should be drawn. */

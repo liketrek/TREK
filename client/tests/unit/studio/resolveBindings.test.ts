@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { BookDocument, BookElement } from '@trek/shared'
-import { normalizeBookDocument } from '@trek/shared'
-import {
-  resolveBindings, coordValue, type BindingSource,
-} from '../../../src/components/Studio/resolveBindings'
+import { bookCoordValue as coordValue, normalizeBookDocument } from '@trek/shared'
+import { resolveBindings, type BindingSource } from '../../../src/components/Studio/resolveBindings'
 
 /**
  * A bound element catching up with the journal (#1973).

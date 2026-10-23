@@ -6,13 +6,31 @@ import type { DaysRepository } from '../../db/repositories/Days.repository';
 import type { PlacesRepository } from '../../db/repositories/Places.repository';
 import type { RoadtripDayTracksRepository } from '../../db/repositories/RoadtripDayTracks.repository';
 import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
+import type { User } from '../../types';
 import { DomainError } from '../common/domain-error';
 import { toRowId } from '../common/row-id';
+import { restTripWriter, type TripWriter } from '../common/trip-writer';
 import { UnitOfWork } from '../database/unit-of-work';
 import { RealtimeService } from '../realtime/realtime.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Injectable } from '@nestjs/common';
-import type { RoadtripDayTrack, RoadtripVia, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { Injectable, Logger } from '@nestjs/common';
+import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared';
+
+/** A via as a write places it: after which stop of the day, and where. */
+type ViaInput = { after_order_index: number; lat: number; lng: number };
+
+/** A chain of vias laid on one day, the legs it clears first and the track it was fitted to. */
+type ViaChainInput = {
+  vias: ViaInput[];
+  replace_legs?: number[];
+  track?: { place_id: number; stray_km?: number | null } | null;
+};
+
+/** The vias a re-anchoring moves to other legs, and those whose leg is gone. */
+type ViaReanchorInput = { vias: { id: number; after_order_index: number }[]; remove?: number[] };
+
+/** Where a dragged via lands, and the leg it now follows when the drag crossed a stop. */
+type ViaMove = { lat: number; lng: number; after_order_index?: number };
 
 /**
  * Via points: the places a day's drive is made to pass through without stopping.
@@ -30,6 +48,8 @@ import type { RoadtripDayTrack, RoadtripVia, TrekWsPayload, TrekWsTripEventName 
  */
 @Injectable()
 export class RoadtripService {
+  private readonly logger = new Logger(RoadtripService.name);
+
   constructor(
     private readonly realtime: RealtimeService,
     private readonly uow: UnitOfWork,
@@ -39,24 +59,98 @@ export class RoadtripService {
     @InjectRepository(RoadtripDayTracks) private readonly tracksRepo: RoadtripDayTracksRepository,
   ) {}
 
+  /** The REST caller of a via write: its events leave out the socket that sent the request. */
+  restWriter(tripId: string, user: User, socketId: string | undefined): TripWriter {
+    return restTripWriter(this.realtime, tripId, user, socketId);
+  }
+
   /**
-   * Tells the trip's other clients what the drive looks like now.
+   * The via writes below, one use case each for the routes and the tools alike. The caller
+   * has checked that the day belongs to the trip and that the writer may edit its days; each
+   * writes, then tells the trip what the day's drive runs through now, after the commit.
+   */
+  async addVia(dayId: string | number, input: ViaInput, writer: TripWriter): Promise<RoadtripVia> {
+    const via = await this.create(dayId, input);
+    await this.announceDay(dayId, writer);
+    return via;
+  }
+
+  /**
+   * A chain laid on one day, then the track the day follows now: a batch is how a day starts
+   * following a recorded track, so the rail draws a badge for it and the map a line. The
+   * track event goes out even when the batch named none, as it always has.
+   */
+  async addVias(
+    tripId: string | number,
+    dayId: string | number,
+    input: ViaChainInput,
+    writer: TripWriter,
+  ): Promise<RoadtripVia[]> {
+    const vias = await this.createMany(dayId, input);
+    await this.announceDay(dayId, writer);
+    try {
+      const tracks = await this.tracksForTrip(tripId);
+      writer.events.emit('roadtripTrack:changed', {
+        dayId: String(dayId),
+        track: tracks.find((t) => String(t.day_id) === String(dayId)) ?? null,
+      });
+    } catch {
+      this.logger.warn(`Committed vias for day ${String(dayId)}: track notification failed`);
+    }
+    return vias;
+  }
+
+  async reanchorVias(dayId: string | number, input: ViaReanchorInput, writer: TripWriter): Promise<RoadtripVia[]> {
+    const vias = await this.reanchor(dayId, input);
+    await this.announceDay(dayId, writer);
+    return vias;
+  }
+
+  /** Null, and nothing said, when the via is not on this day. */
+  async moveVia(
+    dayId: string | number,
+    id: string | number,
+    to: ViaMove,
+    writer: TripWriter,
+  ): Promise<RoadtripVia | null> {
+    const via = await this.move(id, dayId, to.lat, to.lng, to.after_order_index);
+    if (via) await this.announceDay(dayId, writer);
+    return via;
+  }
+
+  /** False, and nothing said, when the via is not on this day. */
+  async removeVia(dayId: string | number, id: string | number, writer: TripWriter): Promise<boolean> {
+    const removed = await this.remove(id, dayId);
+    if (removed) await this.announceDay(dayId, writer);
+    return removed;
+  }
+
+  /**
+   * Tells the trip what this day's drive is routed through now.
    *
    * Two people planning a road trip look at the same line on the same map, and a reshaped
-   * drive moves every arrival time after it — so this is not "how one person draws their
+   * drive moves every arrival time after it, so this is not "how one person draws their
    * route", which is what it was taken for when these routes were written silent.
    *
-   * The whole day's list goes out rather than the one point that changed: a via carries no
-   * identity anybody reads, the client holds them per day, and a drag is a burst of writes
-   * whose only interesting state is the one that lands last.
+   * The whole day's list goes out, read back rather than assembled from the write: a via
+   * carries no identity anybody reads, the client holds them per day, a reanchor rewrites
+   * the set and a batch may clear legs before filling them. REST leaves out the socket that
+   * made the change, so the person dragging does not get their point handed back mid-drag;
+   * a tool call has no socket, so the tab that asked hears it like everyone else.
+   *
+   * The day id goes out as text, the way the routes have always sent it, on every surface.
+   * Other senders of this event (assignments, accommodations, hike plans) still send a
+   * number, as their own routes always did; the client reads it through `Number()` either way.
+   *
+   * The write is committed by the time this runs, so a failed read or send is logged and
+   * swallowed: the caller gets the row it wrote, not a 500 for a change that landed.
    */
-  broadcast<E extends TrekWsTripEventName>(
-    tripId: string,
-    event: E,
-    payload: TrekWsPayload<E>,
-    socketId: string | undefined,
-  ): void {
-    this.realtime.broadcast(tripId, event, payload, socketId);
+  private async announceDay(dayId: string | number, writer: TripWriter): Promise<void> {
+    try {
+      writer.events.emit('roadtripVia:changed', { dayId: String(dayId), vias: await this.listForDay(dayId) });
+    } catch {
+      this.logger.warn(`Committed vias for day ${String(dayId)}: realtime notification failed`);
+    }
   }
 
   /**
@@ -110,6 +204,7 @@ export class RoadtripService {
     return await this.viasRepo.listForTrip(tripIdNum);
   }
 
+  /** Silent: writes and tells nobody. Callers that change a trip go through `addVia`. */
   async create(
     dayId: string | number,
     input: { after_order_index: number; lat: number; lng: number; sequence?: number },
@@ -140,6 +235,8 @@ export class RoadtripService {
    *
    * `replace_legs` clears by leg rather than by day, so vias the traveller placed by hand
    * on other legs survive a track being laid on this one.
+   *
+   * Silent: writes and tells nobody. Callers that change a trip go through `addVias`.
    */
   async createMany(
     dayId: string | number,
@@ -202,7 +299,11 @@ export class RoadtripService {
     return await this.placesRepo.isTrackInTrip(placeId, tripIdNum);
   }
 
-  /** Moving a via is the whole edit; where it sits in the chain does not change. */
+  /**
+   * Moving a via is the whole edit; where it sits in the chain does not change.
+   *
+   * Silent: writes and tells nobody. Callers that change a trip go through `moveVia`.
+   */
   async move(
     id: string | number,
     dayId: string | number,
@@ -243,6 +344,8 @@ export class RoadtripService {
    * Silent about ids it does not find. The caller computed this list from a snapshot of
    * the day, and a via somebody else deleted in the meantime is not a failure of the
    * re-anchoring; failing the batch over it would leave the rest of the day mis-pinned.
+   *
+   * Silent: writes and tells nobody. Callers that change a trip go through `reanchorVias`.
    */
   async reanchor(
     dayId: string | number,
@@ -300,6 +403,7 @@ export class RoadtripService {
     });
   }
 
+  /** Silent: writes and tells nobody. Callers that change a trip go through `removeVia`. */
   async remove(id: string | number, dayId: string | number): Promise<boolean> {
     const idNum = toRowId(id);
     const dayIdNum = toRowId(dayId);

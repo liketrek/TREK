@@ -262,6 +262,17 @@ export class ToursService {
   async createTour(tripId: string, input: TourCreateCommand, socketId?: string): Promise<TourCreateResponse> {
     // The controller's TripAccessGuard already resolved this trip id.
     const tid = toRowId(tripId)!;
+    const placeId = await this.uow.transactional(() => this.insertTour(tid, input));
+    return await this.announceCreatedTour(tripId, placeId, socketId);
+  }
+
+  /**
+   * The rows of a new tour (its place, its facet, its control points), written
+   * inside the caller's transaction after the same checks, so a caller can put
+   * more into that write (a hike put on its day). Answers the new place's id;
+   * the trip is told by announceCreatedTour once the write committed.
+   */
+  async insertTour(tid: number, input: TourCreateCommand): Promise<number> {
     await this.assertTourTypeEnabled(input.tour_type);
     checkTourCommand(input);
     const start = input.route_geometry ? input.route_geometry[0] : firstPointOf(input.waypoints);
@@ -270,36 +281,37 @@ export class ToursService {
     }
     const fields = tourRouteFields(input);
     const derivedFrom = input.derived_from_place_id ?? null;
-
-    const placeId = await this.uow.transactional(async () => {
-      // What it was planned from has to be an import (no waypoints of its own) of this same trip,
-      // read in the write so it cannot go meanwhile.
-      if (derivedFrom !== null) {
-        const source = await this.toursRepo.findInTrip(tid, derivedFrom);
-        if (!source || source.origin === 'trek' || source.has_waypoints) {
-          throw new DomainError(400, 'derived_from_place_id is not an imported tour of this trip');
-        }
+    // What it was planned from has to be an import (no waypoints of its own) of this same trip,
+    // read in the write so it cannot go meanwhile.
+    if (derivedFrom !== null) {
+      const source = await this.toursRepo.findInTrip(tid, derivedFrom);
+      if (!source || source.origin === 'trek' || source.has_waypoints) {
+        throw new DomainError(400, 'derived_from_place_id is not an imported tour of this trip');
       }
-      const id = await this.placesRepo.insertTourPlace({
-        trip_id: tid,
-        name: input.name,
-        lat: start[0],
-        lng: start[1],
-        route_geometry: input.route_geometry ? JSON.stringify(input.route_geometry) : null,
-        description: input.description ?? null,
-        website: input.website ?? null,
-      });
-      await this.toursRepo.insertTour({
-        place_id: id,
-        ...fields,
-        planned_duration_minutes: fields.planned_duration_minutes ?? null,
-        break_additional_minutes: fields.break_additional_minutes ?? null,
-        derived_from_place_id: derivedFrom,
-      });
-      await this.waypointsRepo.insertForPlace(id, keyedWaypoints(await this.linkedWaypoints(tid, input.waypoints)));
-      return id;
+    }
+    const id = await this.placesRepo.insertTourPlace({
+      trip_id: tid,
+      name: input.name,
+      lat: start[0],
+      lng: start[1],
+      route_geometry: input.route_geometry ? JSON.stringify(input.route_geometry) : null,
+      description: input.description ?? null,
+      website: input.website ?? null,
     });
+    await this.toursRepo.insertTour({
+      place_id: id,
+      ...fields,
+      planned_duration_minutes: fields.planned_duration_minutes ?? null,
+      break_additional_minutes: fields.break_additional_minutes ?? null,
+      derived_from_place_id: derivedFrom,
+    });
+    await this.waypointsRepo.insertForPlace(id, keyedWaypoints(await this.linkedWaypoints(tid, input.waypoints)));
+    return id;
+  }
 
+  /** A tour just written, read back as a create answers it, and the trip told once every row committed. */
+  async announceCreatedTour(tripId: string, placeId: number, socketId?: string): Promise<TourCreateResponse> {
+    const tid = toRowId(tripId)!;
     const row = await this.toursRepo.findInTrip(tid, placeId);
     const place = await this.placesRepo.findWithTagsAndRatings(placeId);
     if (!row || !place) throw new Error('Created tour could not be loaded');

@@ -1,5 +1,5 @@
 import type { BookElement, BookPageSetup, BookSpread } from '@trek/shared'
-import { elementId } from './bookIds'
+import { bookElementId as elementId } from '@trek/shared'
 
 /**
  * What was copied, and from where (#2316).

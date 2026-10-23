@@ -1,10 +1,11 @@
-// FE-COMP-INTEGRATIONS-001 to FE-COMP-INTEGRATIONS-047
+// FE-COMP-INTEGRATIONS-001 to FE-COMP-INTEGRATIONS-050
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useAddonStore } from '../../store/addonStore';
+import { useAssistantStore } from '../../store/assistantStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
 import { ToastContainer } from '../shared/Toast';
@@ -32,6 +33,20 @@ function mcpEndpointRow() {
 
 const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
 
+const LAN_CONNECTOR = {
+  mcpUrl: 'http://192.168.1.20:3000/mcp',
+  deepLink: 'https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=TREK&connectorUrl=x',
+  qrSvg: '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+};
+
+function enableAddons(ids: string[]) {
+  seedStore(useAddonStore, {
+    addons: ids.map(id => ({ id, name: id, type: 'integration', icon: '', enabled: true })),
+    loaded: true,
+    loadAddons: vi.fn(),
+  });
+}
+
 beforeAll(() => {
   Object.defineProperty(navigator, 'clipboard', {
     value: { writeText: clipboardWriteText },
@@ -43,6 +58,7 @@ beforeAll(() => {
 beforeEach(() => {
   clipboardWriteText.mockClear();
   resetAllStores();
+  useAssistantStore.setState({ status: null });
   vi.clearAllMocks();
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useAddonStore, {
@@ -55,6 +71,7 @@ beforeEach(() => {
     http.get('/api/addons', () => HttpResponse.json({ addons: [] })),
     http.get('/api/oauth/clients', () => HttpResponse.json({ clients: [] })),
     http.get('/api/oauth/sessions', () => HttpResponse.json({ sessions: [] })),
+    http.get('/api/integrations/claude-connector', () => HttpResponse.json(LAN_CONNECTOR)),
   );
 });
 
@@ -977,5 +994,57 @@ describe('IntegrationsTab – failure toasts', () => {
 
     await screen.findByText('Failed to revoke session');
     expect(screen.getByText('Session App')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-INTEGRATIONS-048: the AI assistant card follows its addon and stays off a managed install', async () => {
+    server.use(
+      http.get('/api/ai/status', () =>
+        HttpResponse.json({
+          available: false,
+          policy: 'instance_or_user',
+          canConnectOwn: true,
+          effective: null,
+          own: null,
+          instance: null,
+          quota: null,
+          privacyAcked: false,
+          retention: { mode: 'days', days: 90 },
+          openrouterOAuth: false,
+        }),
+      ),
+    );
+    const off = render(<IntegrationsTab />);
+    expect(screen.queryByText('AI assistant')).not.toBeInTheDocument();
+    off.unmount();
+
+    enableAddons(['ai_assistant']);
+    const { unmount } = render(<IntegrationsTab />);
+    expect(await screen.findByText('What would you like to chat with?')).toBeInTheDocument();
+    unmount();
+
+    seedStore(useAuthStore, { managed: true });
+    render(<IntegrationsTab />);
+    expect(screen.queryByText('What would you like to chat with?')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-INTEGRATIONS-049: the Claude card explains why a LAN install cannot be added', async () => {
+    enableMcp();
+    render(<IntegrationsTab />);
+    expect(await screen.findByText('Claude can only reach TREK when it is available over https on the internet.')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Open in Claude/ })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-INTEGRATIONS-050: the Claude card links a public install into Claude', async () => {
+    server.use(
+      http.get('/api/integrations/claude-connector', () =>
+        HttpResponse.json({ ...LAN_CONNECTOR, mcpUrl: 'https://trip.example.org/mcp' }),
+      ),
+    );
+    enableMcp();
+    render(<IntegrationsTab />);
+    const link = await screen.findByRole('link', { name: /Open in Claude/ });
+    expect(link).toHaveAttribute('href', LAN_CONNECTOR.deepLink);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(screen.getByText('https://trip.example.org/mcp')).toBeInTheDocument();
   });
 });

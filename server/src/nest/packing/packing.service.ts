@@ -891,7 +891,7 @@ export class PackingService {
   }
 
   /** Fire-and-forget tag notification, mirroring the legacy dynamic import. */
-  async notifyTagged(tripId: string, actor: User, category: string, userIds: unknown): Promise<void> {
+  async notifyTagged(tripId: string, actor: Pick<User, 'id' | 'username'>, category: string, userIds: unknown): Promise<void> {
     if (!Array.isArray(userIds) || userIds.length === 0) return;
     // Injected, not a lazy import of the old notifications bridge. The laziness bought
     // nothing the module graph does not already give — NotificationsModule

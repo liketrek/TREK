@@ -17,9 +17,10 @@ const ICON: Record<HikingPreferenceKey, ComponentType<{ size?: number; strokeWid
 /**
  * MF-08: what a hike asks the router for besides its difficulty limit, as
  * switches under it. Only preferences the router was seen to honour are here
- * (hikingCostingOptions says which and how they were checked), each with what
- * it really does in a line of its own; the info dot says they weigh the way
- * and give way where there is none other, and that none of them grades a path.
+ * (hikingCostingOptions in @trek/shared says which and how they were checked),
+ * each with what it really does in a line of its own; the info dot says they
+ * weigh the way and give way where there is none other, and that none of them
+ * grades a path.
  * Switching one plans the route again, as one step of the history.
  */
 export function HikingPreferencesField({

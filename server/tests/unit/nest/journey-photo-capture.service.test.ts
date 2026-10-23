@@ -1,9 +1,11 @@
 /**
- * JourneyPhotoCaptureService (#1587): the capture-time backfill as every journey
- * surface runs it, and the refresh that has to follow it so the gallery re-sorts
- * without anyone reloading.
+ * JourneyPhotoCaptureService (#1587): provider photos as every journey surface
+ * adds them (the adds, then journey:updated to everyone on the journey), the
+ * capture-time backfill that follows, and the refresh after it so the gallery
+ * re-sorts without anyone reloading.
  */
 import { Users } from '../../../src/db/entities/Users.entity';
+import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import { JourneyPhotoCaptureService } from '../../../src/nest/journey/journey-photo-capture.service';
 import type { MapsService } from '../../../src/nest/maps/maps.service';
@@ -42,6 +44,15 @@ function build(changed: boolean | Error = true) {
   const placeEntriesFromPhotos = vi.fn((): { entryId: number; journeyId: number; lat: number; lng: number }[] => []);
   const nameEntryLocation = vi.fn();
   const reverseGeocode = vi.fn(async () => ({ name: 'Marienplatz', address: 'Munich' }));
+  // Each asset lands as a gallery row whose trek photo id is the asset's number; 'dup' is already there.
+  const landed = (assetId: string) => (assetId === 'dup' ? null : { id: Number(assetId), photo_id: Number(assetId) });
+  const addProviderPhoto = vi.fn((_entryId: number, _userId: number, _provider: string, assetId: string) =>
+    landed(assetId),
+  );
+  const addProviderPhotoToGallery = vi.fn((_journeyId: number, _userId: number, _provider: string, assetId: string) =>
+    landed(assetId),
+  );
+  const transactional = vi.fn(<T>(fn: () => Promise<T>) => fn());
   const svc = new JourneyPhotoCaptureService(
     { run, schedule } as unknown as PhotoCaptureBackfillService,
     {
@@ -49,12 +60,18 @@ function build(changed: boolean | Error = true) {
       journeyIdOfEntry,
       placeEntriesFromPhotos,
       nameEntryLocation,
+      addProviderPhoto,
+      addProviderPhotoToGallery,
     } as unknown as JourneyDomainService,
     { reverseGeocode } as unknown as MapsService,
     t.orm,
+    { transactional } as unknown as UnitOfWork,
   );
   return {
     svc,
+    addProviderPhoto,
+    addProviderPhotoToGallery,
+    transactional,
     run,
     schedule,
     broadcastJourneyEvent,
@@ -93,29 +110,44 @@ describe('JourneyPhotoCaptureService', () => {
     expect(broadcastJourneyEvent).not.toHaveBeenCalled();
   });
 
-  it('JPCAP-003: an entry add is reported against the journey that entry belongs to', async () => {
-    const { svc, journeyIdOfEntry, broadcastJourneyEvent } = build(true);
+  it('JPCAP-003: an entry add lands in one transaction, then its journey hears journey:updated and the fill follows', async () => {
+    const { svc, addProviderPhoto, transactional, journeyIdOfEntry, broadcastJourneyEvent, run } = build(true);
 
-    svc.scheduleForEntry(4, [{ id: 1, photo_id: 11 }], 3);
+    const added = await svc.addProviderPhotos(
+      { entryId: 4 },
+      3,
+      { provider: 'immich', assetIds: ['11', 'dup'], mediaTypes: ['video'], caption: 'cap', passphrase: 'pw' },
+      'sock-1',
+    );
 
-    await vi.waitFor(() => expect(broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:photos:updated', {}));
+    // The duplicate answers null and is left out of what comes back.
+    expect(added).toEqual([{ id: 11, photo_id: 11 }]);
+    expect(transactional).toHaveBeenCalledTimes(1);
+    expect(addProviderPhoto).toHaveBeenNthCalledWith(1, 4, 3, 'immich', '11', 'cap', 'pw', 'video');
+    expect(addProviderPhoto).toHaveBeenNthCalledWith(2, 4, 3, 'immich', 'dup', 'cap', 'pw', 'image');
     expect(journeyIdOfEntry).toHaveBeenCalledWith(4);
+    // The REST tab that asked is left out; it reads its own answer.
+    expect(broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:updated', {}, 'sock-1');
+    await vi.waitFor(() => expect(broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:photos:updated', {}));
+    expect(run).toHaveBeenCalledWith([11], 3);
   });
 
-  it('JPCAP-003b: a journey lookup that rejects is logged against the entry and fills nothing', async () => {
-    const { svc, run, journeyIdOfEntry, broadcastJourneyEvent } = build(true);
-    journeyIdOfEntry.mockImplementation(() => {
-      throw new Error('db gone');
-    });
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it('JPCAP-003b: a gallery add stores no caption and, over MCP, tells every tab; a batch where nothing landed tells no one', async () => {
+    const { svc, addProviderPhotoToGallery, journeyIdOfEntry, broadcastJourneyEvent, run } = build(true);
 
-    svc.scheduleForEntry(4, [{ id: 1, photo_id: 11 }], 3);
+    await svc.addProviderPhotos({ journeyId: 9 }, 3, { provider: 'synology', assetIds: ['21'], caption: 'cap' });
 
-    await vi.waitFor(() =>
-      expect(error).toHaveBeenCalledWith('[Journey] capture refresh failed for entry 4:', 'db gone'),
-    );
-    expect(run).not.toHaveBeenCalled();
+    expect(addProviderPhotoToGallery).toHaveBeenCalledWith(9, 3, 'synology', '21', undefined, undefined, 'image');
+    expect(journeyIdOfEntry).not.toHaveBeenCalled();
+    expect(broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:updated', {}, undefined);
+    await vi.waitFor(() => expect(broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:photos:updated', {}));
+    expect(run).toHaveBeenCalledWith([21], 3);
+
+    broadcastJourneyEvent.mockClear();
+    run.mockClear();
+    expect(await svc.addProviderPhotos({ journeyId: 9 }, 3, { provider: 'synology', assetIds: ['dup'] })).toEqual([]);
     expect(broadcastJourneyEvent).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
   });
 
   it('JPCAP-004: an entry that has gone still gets its photos filled, with no one to tell', async () => {
@@ -125,7 +157,8 @@ describe('JourneyPhotoCaptureService', () => {
     expect(run).toHaveBeenCalledWith([11], 3);
     expect(broadcastJourneyEvent).not.toHaveBeenCalled();
 
-    svc.scheduleForEntry(5, [{ id: 1, photo_id: 12 }], 3);
+    // Entry 5 belongs to no journey any more: its photos are filled, and no event goes out.
+    await svc.addProviderPhotos({ entryId: 5 }, 3, { provider: 'immich', assetIds: ['12'] });
     await vi.waitFor(() => expect(run).toHaveBeenCalledWith([12], 3));
     expect(broadcastJourneyEvent).not.toHaveBeenCalled();
   });
@@ -134,7 +167,7 @@ describe('JourneyPhotoCaptureService', () => {
     const { svc, run, journeyIdOfEntry } = build(true);
 
     svc.scheduleForJourney(9, [null, { id: 1 }, { photo_id: 'x' }], 3);
-    svc.scheduleForEntry(4, [], 3);
+    svc.scheduleForJourney(9, [], 3);
 
     expect(run).not.toHaveBeenCalled();
     expect(journeyIdOfEntry).not.toHaveBeenCalled();
@@ -264,14 +297,19 @@ describe('JourneyPhotoCaptureService', () => {
         broadcastJourneyEvent,
         journeyIdOfEntry: () => 9,
         placeEntriesFromPhotos: () => [],
+        addProviderPhoto: (_entryId: number, _userId: number, _provider: string, assetId: string) => ({
+          photo_id: Number(assetId),
+        }),
       } as unknown as JourneyDomainService,
       { reverseGeocode: vi.fn() } as unknown as MapsService,
       t.orm,
+      { transactional: <T>(fn: () => Promise<T>) => fn() } as unknown as UnitOfWork,
     );
     const rows = (from: number) => Array.from({ length: 5 }, (_, i) => ({ photo_id: from + i }));
+    const assets = (from: number) => Array.from({ length: 5 }, (_, i) => String(from + i));
 
     svc.scheduleForJourney(9, rows(10), 3);
-    svc.scheduleForEntry(4, rows(20), 3);
+    await svc.addProviderPhotos({ entryId: 4 }, 3, { provider: 'immich', assetIds: assets(20) });
     svc.scheduleUpload(rows(30), 3);
 
     await vi.waitFor(() => expect(recordCaptureMetadata).toHaveBeenCalledTimes(15));
@@ -284,8 +322,9 @@ describe('JourneyPhotoCaptureService', () => {
       lat: null,
       lng: null,
     });
-    // One event per provider batch, none for the upload.
-    await vi.waitFor(() => expect(broadcastJourneyEvent).toHaveBeenCalledTimes(2));
+    // One order refresh per provider batch, none for the upload.
+    const refreshes = () => broadcastJourneyEvent.mock.calls.filter(([, event]) => event === 'journey:photos:updated');
+    await vi.waitFor(() => expect(refreshes()).toHaveLength(2));
     expect(broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:photos:updated', {});
   });
 });
@@ -319,15 +358,15 @@ describe('JourneyPhotoCaptureService — request context of the detached work', 
     expect(error).not.toHaveBeenCalled();
   });
 
-  it('JPCAP-CTX-002: scheduleForEntry looks the journey up inside the fork too', async () => {
-    const { svc, journeyIdOfEntry, broadcastJourneyEvent } = build(true);
-    journeyIdOfEntry.mockImplementation((async () => {
+  it('JPCAP-CTX-002: the fill after an entry add runs inside its own fork, after the add has answered', async () => {
+    const { svc, run, broadcastJourneyEvent } = build(true);
+    run.mockImplementation(async () => {
       await realRead();
-      return 9;
-    }) as never);
+      return true;
+    });
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    svc.scheduleForEntry(4, [{ id: 1, photo_id: 11 }], 3);
+    await svc.addProviderPhotos({ entryId: 4 }, 3, { provider: 'immich', assetIds: ['11'] });
 
     await vi.waitFor(() => expect(broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:photos:updated', {}));
     expect(error).not.toHaveBeenCalled();

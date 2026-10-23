@@ -52,6 +52,12 @@ export function prepareLlmAddonConfigForWrite(
 ): Record<string, unknown> {
   const out: Record<string, unknown> = { ...incoming };
   if ('vision' in incoming) out.vision = asLlmVision(incoming.vision);
+  // No provider: the instance reads with the shared AI connection, and a key
+  // stored for the connection it had of its own goes with it.
+  if (!incoming.provider) {
+    delete out.apiKey;
+    return out;
+  }
   const key = incoming.apiKey;
   if (key === undefined || key === null || key === '' || key === MASKED_VALUE) {
     // Keep the existing encrypted key untouched (mask echoed or no key supplied).

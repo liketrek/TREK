@@ -19,6 +19,7 @@ import { verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { avatarUrl } from '../common/avatarUrl';
 import { DomainError } from '../common/domain-error';
 import { toRowId } from '../common/row-id';
+import { restTripWriter, type TripWriter } from '../common/trip-writer';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -44,6 +45,18 @@ function formatFile(file: TripFileJoinRow) {
     ...file,
     url: `/api/trips/${tripId}/files/${file.id}/download`,
     uploaded_by_avatar: avatarUrl({ avatar: file.uploaded_by_avatar }),
+  };
+}
+
+/** A file as the file list shows it: the row plus the ids of everything its links point at. */
+function withLinkedIds(file: TripFileJoinRow, fileLinks: FileLinkTargetRow[]) {
+  return {
+    ...formatFile(file),
+    linked_reservation_ids: fileLinks.filter((l) => l.reservation_id).map((l) => l.reservation_id),
+    linked_place_ids: fileLinks.filter((l) => l.place_id).map((l) => l.place_id),
+    // MCP's link_trip_file and plugins can pin a file to one stop of the plan.
+    linked_assignment_ids: fileLinks.filter((l) => l.assignment_id).map((l) => l.assignment_id),
+    linked_budget_item_ids: fileLinks.filter((l) => l.budget_item_id).map((l) => l.budget_item_id),
   };
 }
 
@@ -343,17 +356,7 @@ export class FilesService {
       linksMap[link.file_id].push(link);
     }
 
-    return files.map((f) => {
-      const fileLinks = linksMap[f.id] || [];
-      return {
-        ...formatFile(f),
-        linked_reservation_ids: fileLinks.filter((l) => l.reservation_id).map((l) => l.reservation_id),
-        linked_place_ids: fileLinks.filter((l) => l.place_id).map((l) => l.place_id),
-        // MCP's link_trip_file and plugins can pin a file to one stop of the plan.
-        linked_assignment_ids: fileLinks.filter((l) => l.assignment_id).map((l) => l.assignment_id),
-        linked_budget_item_ids: fileLinks.filter((l) => l.budget_item_id).map((l) => l.budget_item_id),
-      };
-    });
+    return files.map((f) => withLinkedIds(f, linksMap[f.id] || []));
   }
 
   /** R2: `createFile`'s `trip_files` insert and its conditional `file_links` insert (FL9+FL10) run inside one transaction. */
@@ -545,5 +548,40 @@ export class FilesService {
 
   async getFileLinks(fileId: string | number) {
     return await this.fileLinksRepo.listForFileWithReservationTitle(toRowId(fileId) ?? -1);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Link changes, for every surface
+  // ---------------------------------------------------------------------------
+
+  /** REST's writer for a file use case: the trip room minus the tab that sent the request. */
+  restWriter(tripId: string | number, user: Pick<User, 'id' | 'role'>, socketId: string | undefined): TripWriter {
+    return restTripWriter(this.realtime, tripId, user, socketId);
+  }
+
+  /**
+   * Attaches a file to one more booking, place, stop or expense. Every tab of the
+   * trip gets the file again with all its links, the way the file list reads it,
+   * so the attachment shows without a reload. The callers have checked the file
+   * and the targets against the trip.
+   */
+  async linkFile(fileId: string | number, targets: Parameters<FilesService['createFileLink']>[1], writer: TripWriter) {
+    const links = await this.createFileLink(fileId, targets);
+    await this.announceLinks(fileId, writer);
+    return links;
+  }
+
+  /** Removes one attachment of a file; the file stays, and every tab gets it with the links it has left. */
+  async unlinkFile(fileId: string | number, linkId: string | number, writer: TripWriter): Promise<void> {
+    await this.deleteFileLink(linkId, fileId);
+    await this.announceLinks(fileId, writer);
+  }
+
+  private async announceLinks(fileId: string | number, writer: TripWriter): Promise<void> {
+    const idNum = toRowId(fileId) ?? -1;
+    const row = await this.tripFilesRepo.findByIdWithJoins(idNum);
+    if (!row) return;
+    const file = withLinkedIds(row, await this.fileLinksRepo.listForFiles([idNum]));
+    writer.events.emit('file:updated', { file });
   }
 }

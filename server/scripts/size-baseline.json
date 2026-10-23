@@ -11,11 +11,11 @@
   "src/nest/collections/collections.service.ts": 1478,
   "src/nest/doc-sync/doc-sync.service.ts": 1060,
   "src/nest/doc-sync/providers/synology-drive.client.ts": 1160,
-  "src/nest/journey/journey-domain.service.ts": 1785,
+  "src/nest/journey/journey-domain.service.ts": 1770,
   "src/nest/places/places.service.ts": 1592,
   "src/nest/plugins/plugin-runtime.service.ts": 1463,
   "src/nest/plugins/runtime/plugin-sdk.ts": 1093,
   "src/nest/reservations/reservations.service.ts": 1237,
   "src/nest/trips/trips.service.ts": 1006,
-  "src/nest/vacay/vacay.service.ts": 1419
+  "src/nest/vacay/vacay.service.ts": 1416
 }

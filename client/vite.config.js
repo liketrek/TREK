@@ -79,7 +79,9 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],
         // build:analyze drops a treemap next to the app; it must never end up in a
         // precache manifest if someone ships that build by accident.
-        globIgnores: ['**/stats.html'],
+        // The assistant's chat (@assistant-ui, about 110 kB gzip) only runs online, so
+        // installing it for every user offline would be pure cost; it loads when opened.
+        globIgnores: ['**/stats.html', '**/AssistantSurface-*.js'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [
           /^\/api/,

@@ -26,7 +26,7 @@ import { RAIL_GRID, STAT_LABEL } from './RoadtripSidebar.constants'
 import { RefuelBand } from './RoadtripSidebarRefuelBand'
 import { DriveBand, SpillBlock } from './RoadtripSidebarDriveBands'
 import { BookendStop, BookingChips, RideBlock, TerminalStop, UndatedRides } from './RoadtripSidebarBookingRows'
-import { RouteViaStop, ServiceStop, Stop } from './RoadtripSidebarStopRows'
+import { RouteViaStop, ServiceStop, Stop, type StopVehicle } from './RoadtripSidebarStopRows'
 import { DayHeader, TripSummary } from './RoadtripSidebarHeaders'
 
 interface RoadtripSidebarProps {
@@ -138,8 +138,19 @@ const RAIL_NARROW_PX = 330
  * move, a stay edit or a refuel offer still names the day the server knows it by. See
  * `nightSpill.ts`.
  */
-function DaySection({ day, selectedAssignmentId, onSelectStop, onOpenBooking, canEditBookings, reservations, dayOrder, stopDays, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind, onSetStopFill, onFollowTrack, viaCount, trackName, refuel, onAskRefuel, onAcceptRefuel, loading, collapsed, onToggle, onFocusPoint, narrow }: {
+export function DaySection({ day, selectedAssignmentId, onSelectStop, onOpenBooking, canEditBookings, reservations, dayOrder, stopDays, onReorderStop, onMoveStopToDay, drag, onAskAlternatives, openAlternatives, onEditStay, onSetStopKind, onSetStopFill, onFollowTrack, viaCount, trackName, refuel, onAskRefuel, onAcceptRefuel, loading, collapsed, onToggle, onFocusPoint, narrow, chargingOf, vehicle, dayColors, flush }: {
   onFocusPoint?: RoadtripSidebarProps['onFocusPoint']
+  /**
+   * What a charger's row shows of its availability, for a day that is a snapshot (the
+   * assistant's card). Absent asks the live badge, as the rail does.
+   */
+  chargingOf?: (stop: RoadtripStop) => React.ReactNode
+  /** The vehicle the day was worked out for, when it is not the trip's saved one. */
+  vehicle?: StopVehicle
+  /** Whether days wear their own colour, when the day is not drawn from the saved settings. */
+  dayColors?: boolean
+  /** Without the rail's side margins, for a card that sits inside another surface. */
+  flush?: boolean
   /** The rail is pulled too narrow for every badge; the stop count gives way. */
   narrow?: boolean
   day: RoadtripDay
@@ -378,6 +389,8 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onOpenBooking, ca
         {service ? (
           <ServiceStop
             stop={stop}
+            charging={chargingOf?.(stop)}
+            vehicle={vehicle}
             entry={day.schedule.entries[i]}
             late={lateness}
             driveFindings={findingsFor(i)}
@@ -393,6 +406,8 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onOpenBooking, ca
         ) : (
           <Stop
             stop={stop}
+            charging={chargingOf?.(stop)}
+            vehicle={vehicle}
             number={counted}
             entry={day.schedule.entries[i]}
             late={lateness}
@@ -456,8 +471,8 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onOpenBooking, ca
   }
 
   return (
-    <section className="mx-3.5 shrink-0 overflow-hidden rounded-2xl border border-edge-faint bg-surface-card">
-      <DayHeader day={day} collapsed={collapsed} onToggle={onToggle} narrow={narrow} onFollowTrack={onFollowTrack} viaCount={viaCount} trackName={trackName} />
+    <section className={`${flush ? '' : 'mx-3.5 '}shrink-0 overflow-hidden rounded-2xl border border-edge-faint bg-surface-card`}>
+      <DayHeader day={day} collapsed={collapsed} onToggle={onToggle} narrow={narrow} onFollowTrack={onFollowTrack} viaCount={viaCount} trackName={trackName} dayColors={dayColors} />
       {/* One list item per stop, with the drive that follows it inside — the chain is a
           list of places, not of alternating places and connectors. A service stop owns
           the drive leaving it in exactly the same way, which is what splits its leg into
@@ -532,7 +547,7 @@ function DaySection({ day, selectedAssignmentId, onSelectStop, onOpenBooking, ca
 }
 
 /** The stop in flight and the row it is hovering, shared by every day in the rail. */
-interface DragState {
+export interface DragState {
   from: { dayId: number; index: number; assignmentId: number } | null
   setFrom: (v: DragState['from']) => void
   dropAt: { dayId: number; index: number } | null

@@ -121,6 +121,17 @@ describe('photo frames', () => {
     expect(container.querySelector('img')).not.toBeNull()
   })
 
+  /*
+   * The print view lays every sheet out at once; a picture the browser put off
+   * until it scrolled into view is a picture missing from the PDF.
+   */
+  it('loads a photo lazily on the canvas and at once in print', () => {
+    const { container: canvas } = draw([photo()])
+    expect(canvas.querySelector('img')?.getAttribute('loading')).toBe('lazy')
+    const { container: printing } = draw([photo()], { print: true })
+    expect(printing.querySelector('img')?.getAttribute('loading')).toBe('eager')
+  })
+
   it('cuts a masked photo with an objectBoundingBox clip, so it follows a resize', () => {
     const { container } = draw([photo({ mask: 'heart' })])
     const clip = container.querySelector('clipPath')!

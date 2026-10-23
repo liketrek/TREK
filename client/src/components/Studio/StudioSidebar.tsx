@@ -8,13 +8,16 @@ import { useElementSize } from '../../hooks/useElementSize'
 import { useStudioStore } from '../../store/studioStore'
 import { formatDate } from '../../utils/formatters'
 import { useToast } from '../shared/Toast'
-import { SpreadFold, SpreadView } from './SpreadView'
+import { SpreadThumb } from './SpreadThumb'
 import { folioLabel, foliosOf } from './bookSheets'
 import { photoSrc } from './bookRender'
-import { elementId as uid } from './bookIds'
-import { formatBookCoords, formatBookDate, type CoordFormat } from './entryText'
-import { coordValue } from './resolveBindings'
-import { COVER_TEMPLATES, TEMPLATES, applyTemplate } from './templates'
+import {
+  BOOK_COVER_TEMPLATES as COVER_TEMPLATES, BOOK_TEMPLATES as TEMPLATES, applyBookTemplate as applyTemplate,
+  bookElementId as uid,
+} from '@trek/shared'
+import {
+  bookCoordValue as coordValue, formatBookCoords, formatBookDate, type BookCoordFormat as CoordFormat,
+} from '@trek/shared'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
 import { PanelHead as Head } from './StudioPanelHead'
 import { StudioElementsPanel } from './StudioElementsPanel'
@@ -165,6 +168,8 @@ function PagesPanel({
 }: { page: BookPageSetup; pxPerMm: number; bookView: boolean; t: (k: string) => string }) {
   const doc = useStudioStore(s => s.doc)
   const active = useStudioStore(s => s.activeSpread)
+  // The page a chat card points at, outlined here (journey-studio.md 4.2).
+  const hinted = useStudioStore(s => s.hintSpread)
   const setActive = useStudioStore(s => s.setActiveSpread)
   const addSpread = useStudioStore(s => s.addSpread)
   const insertSpread = useStudioStore(s => s.insertSpread)
@@ -187,30 +192,22 @@ function PagesPanel({
       <div className="st-panel-scroll">
         <div className="st-thumbs" ref={list.ref}>
           {spreads.map((sp, i) => {
-            const single = sp.role !== 'inner'
-            const wMm = single ? page.pageWidth : page.pageWidth * 2
-            // The same component at a smaller scale, not a second drawing of the
-            // page — a spread can never look different here than on the sheet.
-            const scale = THUMB_W / (wMm * pxPerMm)
             const editable = canEditSpread(i)
             return (
               <div className="st-thumb-row" key={sp.id}>
                 <button type="button"
-                  className={`st-thumb ${i === active ? 'is-active' : ''}`}
+                  className={`st-thumb ${i === active ? 'is-active' : ''} ${sp.id === hinted ? 'is-hinted' : ''}`}
                   onClick={() => setActive(i)}
                 >
-                  <div className="st-thumb-sheet" style={{ width: THUMB_W, height: page.pageHeight * pxPerMm * scale }}>
-                    <div
-                      style={{
-                        position: 'absolute', left: 0, top: 0,
-                        width: `${wMm}mm`, height: `${page.pageHeight}mm`,
-                        transform: `scale(${scale})`, transformOrigin: 'top left',
-                      }}
-                    >
-                      <SpreadView spread={sp} page={page} folios={foliosOf(spreads, i, page.pageNumbers.startAt)} />
-                    </div>
-                    {bookView && !single && <SpreadFold page={page} scaled={pxPerMm * scale} />}
-                  </div>
+                  <SpreadThumb
+                    spread={sp}
+                    page={page}
+                    width={THUMB_W}
+                    pxPerMm={pxPerMm}
+                    folios={foliosOf(spreads, i, page.pageNumbers.startAt)}
+                    fold={bookView}
+                    className="st-thumb-sheet"
+                  />
                   <span className="st-thumb-label">
                     {sp.role === 'cover' ? t('journey.studio.cover')
                       : sp.role === 'back' ? t('journey.studio.backCover')

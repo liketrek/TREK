@@ -31,6 +31,31 @@ export const chargingInfoSchema = z.object({
 });
 export type ChargingInfo = z.infer<typeof chargingInfoSchema>;
 
+/** A charger's cheapest energy price: per kWh, in its tariff's currency. */
+export interface ChargingEnergyPrice {
+  price: number;
+  currency: string;
+}
+
+/**
+ * The cheapest price per kWh a charger publishes that holds for everyone: an
+ * energy component with tax included and no condition attached. Null when it
+ * publishes none, or publishes them in more than one currency, which no single
+ * figure can compare. The planner's badge and the assistant's card both read it.
+ */
+export function cheapestEnergy(tariffs: ChargingInfo['tariffs']): ChargingEnergyPrice | null {
+  const energy = tariffs.flatMap((tariff) =>
+    tariff.components
+      .filter((component) => component.kind === 'ENERGY' && component.taxIncluded && !component.conditional)
+      .map((component) => ({ price: component.price, currency: tariff.currency })),
+  );
+  if (new Set(energy.map((component) => component.currency)).size !== 1) return null;
+  return energy.reduce<ChargingEnergyPrice | null>(
+    (best, item) => (!best || item.price < best.price ? item : best),
+    null,
+  );
+}
+
 /**
  * A charging station addressed by where it is, rather than by a row in `places`.
  *

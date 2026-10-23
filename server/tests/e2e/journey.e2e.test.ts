@@ -5,6 +5,7 @@
  * ordering (404 wins over 401), auth, the service-owned 403/404 mapping, status
  * codes and the unguarded public route.
  */
+import type { McpContext } from '../../src/nest-mcp';
 import { AddonsService } from '../../src/nest/addons/addons.service';
 import { notFound } from '../../src/nest/common/domain-error';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
@@ -13,6 +14,7 @@ import { JourneyBookService } from '../../src/nest/journey/journey-book.service'
 import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
 import { JourneyMapService } from '../../src/nest/journey/journey-map.service';
 import { JourneyShareService } from '../../src/nest/journey/journey-share.service';
+import { JourneyTracksMcp } from '../../src/nest/journey/journey-tracks.mcp';
 import { JourneyModule } from '../../src/nest/journey/journey.module';
 import { PhotoCaptureBackfillService } from '../../src/nest/memories/photo-capture-backfill.service';
 import { StorageService } from '../../src/nest/storage/storage.service';
@@ -102,6 +104,7 @@ const { jsvc } = vi.hoisted(() => ({
     uploadGalleryPhotos: vi.fn(),
     broadcastJourneyEvent: vi.fn(),
     journeyIdOfEntry: vi.fn(),
+    journeyTracks: vi.fn(),
   },
 }));
 
@@ -120,7 +123,6 @@ const { booksvc } = vi.hoisted(() => ({
     canOpen: vi.fn(),
     saveBook: vi.fn(),
     deleteBook: vi.fn(),
-    broadcastSaved: vi.fn(),
   },
 }));
 
@@ -172,7 +174,6 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     booksvc.canOpen.mockReset();
     booksvc.saveBook.mockReset();
     booksvc.deleteBook.mockReset();
-    booksvc.broadcastSaved.mockReset();
   });
 
   afterAll(async () => {
@@ -356,7 +357,8 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
       .set('Cookie', sessionCookie(1))
       .set('X-Socket-Id', 'sock-7')
       .send({ document: {} });
-    expect(booksvc.broadcastSaved).toHaveBeenCalledWith(9, 1, { id: 3, version: 5 }, 'sock-7');
+    // The service announces the save after its commit, leaving out this socket.
+    expect(booksvc.saveBook.mock.calls[0][3]).toEqual({ socketId: 'sock-7' });
   });
 
   it('409 with the current record in the body, not a bare status', async () => {
@@ -368,7 +370,6 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('Book was changed by someone else');
     expect(res.body.current.version).toBe(6);
-    expect(booksvc.broadcastSaved).not.toHaveBeenCalled();
   });
 
   it('404 on saving into an inaccessible journey', async () => {
@@ -490,6 +491,8 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual({ photos: [{ id: 5, journey_id: 9, photo_id: 77 }], added: 1 });
+    // The add itself goes out at once; no X-Socket-Id here, so no tab is left out.
+    expect(jsvc.broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:updated', {}, undefined);
     await vi.waitFor(() => expect(jsvc.broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:photos:updated', {}));
     expect(backfillRun).toHaveBeenCalledWith([77], 1);
   });
@@ -510,16 +513,18 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     await vi.waitFor(() => expect(jsvc.broadcastJourneyEvent).toHaveBeenCalledWith(9, 'journey:photos:updated', {}));
     expect(jsvc.journeyIdOfEntry).toHaveBeenCalledWith(3);
 
-    // Nothing learned: the photos are where they already were, so no refresh.
+    // Nothing learned: the photos are where they already were, so no refresh
+    // follows. The add is still told, to every tab but the one that asked.
     jsvc.broadcastJourneyEvent.mockReset();
     backfillRun.mockReset().mockResolvedValue(false);
     await request(server)
       .post('/api/journeys/entries/3/provider-photos')
       .set('Cookie', sessionCookie(1))
+      .set('X-Socket-Id', 'sock-3')
       .send({ provider: 'immich', asset_ids: ['a3'] });
     await vi.waitFor(() => expect(backfillRun).toHaveBeenCalled());
     await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(jsvc.broadcastJourneyEvent).not.toHaveBeenCalled();
+    expect(jsvc.broadcastJourneyEvent.mock.calls).toEqual([[9, 'journey:updated', {}, 'sock-3']]);
   });
 
   it('a gallery upload gets its capture time read, and no journey refresh: the client sends one file per request (#1587)', async () => {
@@ -615,5 +620,60 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     const missing = await request(server).get('/api/public/journey/bad/map-layers');
     expect(missing.status).toBe(404);
     expect(missing.body).toEqual({ error: 'Not found' });
+  });
+
+  // ── GPX tracks: the route and get_journey_tracks read the same service ────
+
+  const TRACK = {
+    place_id: 4,
+    trip_id: 2,
+    name: 'Lagoon loop',
+    color: '#1971c2',
+    points: [
+      [45.43, 12.33],
+      [45.44, 12.34],
+    ] as [number, number][],
+  };
+  const asMcp = { userId: 1 } as McpContext;
+
+  it('JOURNEY-E2E-001: the tracks route and get_journey_tracks answer the same tracks, the tool by size with a thinned line', async () => {
+    jsvc.journeyTracks.mockReset();
+    jsvc.journeyTracks.mockResolvedValue([TRACK]);
+
+    const res = await request(server).get('/api/journeys/9/tracks').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ tracks: [TRACK] });
+
+    const tool = await app.get(JourneyTracksMcp).getJourneyTracks({ journeyId: 9 }, asMcp);
+    expect(JSON.parse(tool.content[0]?.text ?? '')).toEqual({
+      tracks: [
+        {
+          place_id: 4,
+          trip_id: 2,
+          name: 'Lagoon loop',
+          kind: 'trip_gpx',
+          color: '#1971c2',
+          point_count: 2,
+          distance_km: 1.4,
+          display_geometry: TRACK.points,
+        },
+      ],
+    });
+    expect(jsvc.journeyTracks.mock.calls).toEqual([
+      [9, 1],
+      [9, 1],
+    ]);
+  });
+
+  it('JOURNEY-E2E-002: a journey out of reach is a 404 on the route and the journey refusal over MCP', async () => {
+    jsvc.journeyTracks.mockReset();
+    jsvc.journeyTracks.mockResolvedValue(null);
+
+    const res = await request(server).get('/api/journeys/9/tracks').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Journey not found' });
+
+    const tool = await app.get(JourneyTracksMcp).getJourneyTracks({ journeyId: 9 }, asMcp);
+    expect(tool).toEqual({ content: [{ type: 'text', text: 'Journey not found or access denied.' }], isError: true });
   });
 });

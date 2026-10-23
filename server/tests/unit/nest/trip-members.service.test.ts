@@ -432,6 +432,21 @@ describe('listMembers shaping', () => {
     expect(byId.get(bare.id)!.is_guest).toBe(false);
     expect(ownerRow.is_guest).toBe(false);
   });
+
+  it('MEMBERS-SVC-020: findMember returns one roster row by id, and nothing for the owner, a stranger or a missing trip', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    const row = await roster.findMember(trip.id, member.id);
+    expect(row).toMatchObject({ id: member.id, role: 'member', is_guest: false, avatar_url: null });
+    // The owner is not a trip_members row, so the plugin path never announces them.
+    expect(await roster.findMember(trip.id, owner.id)).toBeUndefined();
+    expect(await roster.findMember(trip.id, stranger.id)).toBeUndefined();
+    expect(await roster.findMember(999999, member.id)).toBeUndefined();
+  });
 });
 
 // ── Task 6 review items (M1, L2) ─────────────────────────────────────────────

@@ -18,6 +18,7 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { createUser, createTrip, createDay, createPlace } from '../../helpers/factories';
 import { addTripMember } from '../../helpers/factories';
 import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
@@ -31,6 +32,8 @@ vi.mock('../../../src/db/database', async () => {
 });
 
 let orm: TestOrm;
+// Every tool here broadcasts through this one, so a case can read what went out.
+const realtime = new FakeRealtimeService();
 
 // The permissions cache is module-scoped, so a write through any instance is
 // what the tool's own check reads back.
@@ -46,6 +49,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   resetTestDb(testDb);
+  realtime.reset();
   // resetTestDb leaves the addons table alone, so each run restates it. The
   // addon ships disabled, which is why the tools were invisible before.
   setAddonEnabled(testDb, ADDON_IDS.ROADTRIP, true);
@@ -57,7 +61,7 @@ afterAll(async () => {
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false, scopes: null });
+  const h = await createMcpHarness({ realtime, userId, withResources: false, scopes: null });
   try {
     await fn(h);
   } finally {
@@ -391,6 +395,30 @@ describe('road-trip MCP tools', () => {
         expect(description, name).toContain('roadtrip_hotel_bookends');
         expect(description, name).toContain('kept but not used');
       }
+    });
+  });
+
+  it('MCP-ROADTRIP-015: adding a via tells the trip once, with the day id as text and no socket left out', async () => {
+    // G8: the tool used to send the day id as a number where the route sent text. It now runs
+    // the same use case through the MCP writer, so the payload matches the route's.
+    const { user, trip, day } = await scenario();
+
+    await withHarness(user.id, async (h) => {
+      const added = await h.client.callTool({
+        name: 'add_route_via',
+        arguments: { tripId: trip.id, dayId: day.id, after_order_index: 0, lat: 53, lng: 10 },
+      });
+      expect(added.isError).toBeFalsy();
+      const { via } = parseToolResult(added) as { via: { id: number } };
+
+      const sent = realtime.broadcastMock.mock.calls.filter(([, event]) => event === 'roadtripVia:changed');
+      expect(sent).toHaveLength(1);
+      // Three arguments: room-wide, with no socket to leave out.
+      expect(sent[0]).toHaveLength(3);
+      const [tripId, , payload] = sent[0];
+      expect(String(tripId)).toBe(String(trip.id));
+      expect(payload).toMatchObject({ dayId: String(day.id), _source: 'mcp' });
+      expect((payload.vias as { id: number }[]).map((v) => v.id)).toEqual([via.id]);
     });
   });
 

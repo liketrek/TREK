@@ -19,6 +19,7 @@ import { sessions } from '../../src/mcp/sessionManager';
 import type { McpDynamicTool } from '../../src/nest-mcp';
 import { AuditService } from '../../src/nest/audit/audit.service';
 import { UnitOfWork } from '../../src/nest/database/unit-of-work';
+import { CimdClientResolver } from '../../src/nest/oauth/oauth-cimd';
 import { OauthService } from '../../src/nest/oauth/oauth.service';
 import { setPluginMcpToolSource } from '../../src/plugin-mcp-tools';
 import { generateToken } from '../helpers/auth';
@@ -85,6 +86,7 @@ beforeAll(async () => {
     await createTestAddonsService(testDb),
     new AuditService(t.repo(AuditLog), t.repo(Users)),
     new UnitOfWork(t.em),
+    nestApp.get(CimdClientResolver),
   );
 });
 

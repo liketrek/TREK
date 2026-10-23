@@ -1,6 +1,6 @@
-// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-031
+// FE-JRN-DETHOOK-001 to FE-JRN-DETHOOK-039
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
-import { useLocation } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { delay, http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { act, render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
@@ -91,9 +91,12 @@ function Harness({ renderEntries = true }: { renderEntries?: boolean }) {
   const state = useJourneyDetail();
   latest = state;
   const location = useLocation();
+  const [, setSearchParams] = useSearchParams();
   return (
     <div>
       <span data-testid="search">{location.search}</span>
+      {/* A link into the open journal, the way the assistant chat's "Open in the journal" sends one. */}
+      <button type="button" data-testid="relink" onClick={() => setSearchParams({ entry: '2' })} />
       <div ref={state.feedRef} data-testid="feed">
         {renderEntries && (state.current?.entries ?? []).map(e => (
           <div key={e.id} data-entry-id={String(e.id)} data-testid={`entry-${e.id}`}>{e.title}</div>
@@ -241,6 +244,143 @@ describe('useJourneyDetail', () => {
     handler({ journeyId: 7 });
     await new Promise(r => setTimeout(r, 20));
     expect(latest.current?.title).toBe('Japan 2026');
+  });
+
+  it('FE-JRN-DETHOOK-032: a journey deleted elsewhere returns to the journey list instead of reading it again', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const handler = vi.mocked(addListener).mock.calls[0][0] as (e: Record<string, unknown>) => void;
+    const reads = vi.fn();
+    server.use(http.get('/api/journeys/7', () => {
+      reads();
+      return HttpResponse.json({ error: 'gone' }, { status: 404 });
+    }));
+
+    handler({ type: 'journey:deleted', journeyId: 7 });
+    expect(mockNavigate).toHaveBeenCalledWith('/journey');
+    expect(addToast).toHaveBeenCalledWith('Journey deleted', 'info', undefined);
+    await new Promise(r => setTimeout(r, 20));
+    expect(reads).not.toHaveBeenCalled();
+  });
+
+  it('FE-JRN-DETHOOK-037: photo book saves and presence frames do not read the journey again', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const handler = vi.mocked(addListener).mock.calls[0][0] as (e: Record<string, unknown>) => void;
+    const reads = vi.fn();
+    server.use(http.get('/api/journeys/7', () => {
+      reads();
+      return HttpResponse.json(buildDetail());
+    }));
+
+    handler({ type: 'journey:book:saved', journeyId: 7, version: 3, savedBy: 2 });
+    handler({ type: 'journey:book:peers', journeyId: 7, peers: [] });
+    handler({ type: 'journey:book:cursor', journeyId: 7, x: 1, y: 2, spreadIndex: 0 });
+    await new Promise(r => setTimeout(r, 20));
+    expect(reads).not.toHaveBeenCalled();
+  });
+
+  it('FE-JRN-DETHOOK-038: a burst of changes while a reload is open reads the journey once more, not once per event', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const handler = vi.mocked(addListener).mock.calls[0][0] as (e: Record<string, unknown>) => void;
+    const reads = vi.fn();
+    server.use(http.get('/api/journeys/7', async () => {
+      reads();
+      await delay(30);
+      return HttpResponse.json(buildDetail({ title: 'After the burst' }));
+    }));
+
+    for (let i = 0; i < 5; i++) handler({ type: 'journey:entry:updated', journeyId: 7 });
+    await waitFor(() => expect(reads).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(latest.current?.title).toBe('After the burst'));
+    await new Promise(r => setTimeout(r, 80));
+    expect(reads).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-JRN-DETHOOK-039: a reload that fails keeps the journal shown and the next change reads it again', async () => {
+    setup();
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    const handler = vi.mocked(addListener).mock.calls[0][0] as (e: Record<string, unknown>) => void;
+    let fail = true;
+    const reads = vi.fn();
+    server.use(http.get('/api/journeys/7', () => {
+      reads();
+      return fail
+        ? HttpResponse.json({ error: 'boom' }, { status: 500 })
+        : HttpResponse.json(buildDetail({ title: 'Back again' }));
+    }));
+
+    handler({ type: 'journey:entry:updated', journeyId: 7 });
+    await waitFor(() => expect(reads).toHaveBeenCalledTimes(1));
+    await new Promise(r => setTimeout(r, 20));
+    expect(latest.current?.title).toBe('Japan 2026');
+
+    fail = false;
+    handler({ type: 'journey:entry:updated', journeyId: 7 });
+    await waitFor(() => expect(latest.current?.title).toBe('Back again'));
+  });
+
+  it('FE-JRN-DETHOOK-033: ?entry= opens the journal at that entry, scrolls it in and leaves the URL', async () => {
+    const scrolled = vi.fn();
+    vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(function (this: HTMLElement) {
+      scrolled(this.getAttribute('data-entry-id'));
+    });
+    setup({ search: '?entry=2' });
+
+    await waitFor(() => expect(latest.openAtEntryId).toBe('2'));
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe(''));
+    await waitFor(() => expect(scrolled).toHaveBeenCalledWith('2'));
+    expect(latest.activeEntryId).toBe('2');
+  });
+
+  it('FE-JRN-DETHOOK-034: an ?entry= this journal does not hold is dropped and opens it as usual', async () => {
+    setup({ search: '?entry=99' });
+
+    await waitFor(() => expect(latest.current).not.toBeNull());
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe(''));
+    expect(latest.openAtEntryId).not.toBe('99');
+  });
+
+  it('FE-JRN-DETHOOK-035: a second link to the same entry, with the journal open already, scrolls to it again', async () => {
+    const scrolled = vi.fn();
+    vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(function (this: HTMLElement) {
+      scrolled(this.getAttribute('data-entry-id'));
+    });
+    setup({ search: '?entry=2' });
+    await waitFor(() => expect(scrolled).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe(''));
+
+    fireEvent.click(screen.getByTestId('relink'));
+
+    await waitFor(() => expect(scrolled).toHaveBeenCalledTimes(2));
+    expect(scrolled).toHaveBeenLastCalledWith('2');
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe(''));
+  });
+
+  it('FE-JRN-DETHOOK-036: an entry added nearer today does not scroll the open journal again', async () => {
+    const day = (offset: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() + offset);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    const detail = buildDetail({
+      entries: [buildEntry({ entry_date: day(-3) }), buildEntry({ id: 2, title: 'Kyoto', entry_date: day(2) })],
+    });
+    serveJourney(detail);
+    const scrolled = vi.fn();
+    vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(function (this: HTMLElement) {
+      scrolled(this.getAttribute('data-entry-id'));
+    });
+    setup();
+    await waitFor(() => expect(scrolled).toHaveBeenCalledWith('1'));
+
+    const added = buildEntry({ id: 3, title: 'Nara', entry_date: day(-1) });
+    act(() => useJourneyStore.setState({ current: { ...detail, entries: [...detail.entries, added] } }));
+
+    await waitFor(() => expect(latest.openAtEntryId).toBe('3'));
+    await new Promise(r => setTimeout(r, 450));
+    expect(scrolled).toHaveBeenCalledTimes(1);
   });
 
   it('FE-JRN-DETHOOK-010: the websocket listener is detached on unmount', async () => {

@@ -14,6 +14,7 @@ import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { Settings } from '../../../src/db/entities/Settings.entity';
 import { encrypt_api_key } from '../../../src/nest/common/crypto/apiKeyCrypto';
 import { MANAGED_LOCKED_SETTING_KEYS } from '../../../src/nest/common/managed';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { DISPLAY_PREFERENCE_KEYS } from '../../../src/nest/settings/settings.mcp';
 import {
   isAdminOnlyEndpointSetting,
@@ -23,7 +24,9 @@ import {
 import { createUser } from '../../helpers/factories';
 import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
 import { setUserSetting } from '../../helpers/factories/settings';
+import type { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { bootTestApp } from '../../helpers/test-app';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { MASKED_SETTING_VALUE } from '@trek/shared';
@@ -572,5 +575,30 @@ describe('Settings tools, scope gating', () => {
     const names = await listToolNames(user.id, ['trips:read']);
     expect(names).not.toContain('get_display_settings');
     expect(names).not.toContain('update_display_settings');
+  });
+});
+
+describe('update_display_settings reaches every tab', () => {
+  it('MCP-SETTINGS-001: tells every tab of the user which keys changed, never their values', async () => {
+    const { user } = createUser(testDb);
+    // The fake the harness container was booted with, which records every user message.
+    const realtime = (await bootTestApp()).get(RealtimeService) as FakeRealtimeService;
+    realtime.broadcastToUserMock.mockClear();
+    await withHarness(user.id, async (h) => {
+      await update(h, { temperature_unit: 'fahrenheit', week_start: 'sunday' });
+    });
+    expect(realtime.broadcastToUserMock.mock.calls).toEqual([
+      [user.id, { type: 'settings:updated', keys: ['temperature_unit', 'week_start'] }, undefined],
+    ]);
+  });
+
+  it('MCP-SETTINGS-002: a refused change sends nothing', async () => {
+    const { user } = createUser(testDb);
+    const realtime = (await bootTestApp()).get(RealtimeService) as FakeRealtimeService;
+    realtime.broadcastToUserMock.mockClear();
+    await withHarness(user.id, async (h) => {
+      expect((await update(h, { temperature_unit: 'kelvin' })).isError).toBe(true);
+    });
+    expect(realtime.broadcastToUserMock).not.toHaveBeenCalled();
   });
 });

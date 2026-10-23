@@ -13,13 +13,17 @@ export function makePackingItem(
   tripId: number,
   overrides: EntityData<PackingItems> = {},
 ): Promise<PackingItemRow> {
-  return createRow(orm, PackingItems, {
-    trip: tripId,
-    name: 'Test Item',
-    category: 'Clothing',
-    checked: 0,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    PackingItems,
+    {
+      trip: tripId,
+      name: 'Test Item',
+      category: 'Clothing',
+      checked: 0,
+    },
+    overrides,
+  );
 }
 
 /** A bag on the trip. */
@@ -28,11 +32,15 @@ export function makePackingBag(
   tripId: number,
   overrides: EntityData<PackingBags> = {},
 ): Promise<PackingBagRow> {
-  return createRow(orm, PackingBags, {
-    trip: tripId,
-    name: `Bag ${nextSeq('packing-bag')}`,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    PackingBags,
+    {
+      trip: tripId,
+      name: `Bag ${nextSeq('packing-bag')}`,
+    },
+    overrides,
+  );
 }
 
 /** Shares the bag with the users; pairs that already exist are skipped. */

@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'Παρακαλώ επιλέξτε πρώτα μια ημέρα',
   'trip.toast.assignedToDay': 'Το μέρος ανατέθηκε στην ημέρα',
   'trip.toast.loadError': 'Δεν ήταν δυνατή η φόρτωση του ταξιδιού',
+  'trip.toast.accessLost': 'Δεν είστε πλέον μέλος αυτού του ταξιδιού',
   'trip.toast.reorderError': 'Η αναδιάταξη απέτυχε',
   'trip.toast.reservationUpdated': 'Η κράτηση ενημερώθηκε',
   'trip.toast.reservationAdded': 'Η κράτηση προστέθηκε',

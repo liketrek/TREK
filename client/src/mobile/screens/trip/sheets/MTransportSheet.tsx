@@ -12,6 +12,9 @@ import { runsOnDay } from '../../../../utils/reservationRoutes'
 import { filesFor } from '../../../../utils/reservationFiles'
 import { bookingDayLabel, segmentCodeLabel } from '../../../../components/Planner/transportDetailModel'
 import type { Reservation } from '../../../../types'
+import { useSearchParams } from 'react-router'
+import { isTransportReservationType } from '@trek/shared'
+import { useBookingLink } from '../../../../hooks/useBookingLink'
 import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
 
 interface TransportSheetPayload {
@@ -58,6 +61,40 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   const open = shell.sheet?.id === 'transport'
   const payload = (shell.sheet?.payload ?? {}) as TransportSheetPayload
   const liveRes = planner.reservations.find(r => r.id === payload.reservationId) ?? null
+
+  // The map with a booking's route drawn on it: the route switched on, the sheet
+  // closed, the plan tab and the map shown. The map draws the day on the chips, and
+  // the Transports tab lists the whole trip, so the booking may run on a different
+  // day. Moved last, because entering the map picks the day the shell was already
+  // holding. A day inside the booking's span, the all-days view and a booking bound
+  // to no day are left as they are.
+  const revealOnMap = (r: Reservation) => {
+    if (!planner.visibleConnections.includes(r.id)) planner.toggleConnection(r.id)
+    shell.closeSheet()
+    if (shell.trTab !== 'plan') shell.setTrTab('plan')
+    if (shell.view !== 'map') shell.toggleView()
+    const bookingDayId = r.day_id ?? r.end_day_id
+    if (planner.selectedDayId != null && bookingDayId != null && !runsOnDay(r, planner.selectedDayId, planner.days)) {
+      planner.handleSelectDay(bookingDayId, false)
+      planner.setExpandedDayIds(new Set([bookingDayId]))
+    }
+  }
+
+  // A transport the chat points at (?booking=) opens here, or with &map=1 its route on
+  // the map; any other booking stays on its tab.
+  const [searchParams, setSearchParams] = useSearchParams()
+  useBookingLink({
+    searchParams,
+    setSearchParams,
+    tripId: planner.tripId,
+    reservations: planner.reservations,
+    loaded: !planner.isLoading && planner.trip?.id === planner.tripId,
+    take: (booking, toMap) => {
+      if (!isTransportReservationType(booking.type)) return
+      if (toMap) revealOnMap(booking)
+      else shell.openSheet('transport', { reservationId: booking.id })
+    },
+  })
 
   const canEditDays = planner.can('day_edit', planner.trip)
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
@@ -117,19 +154,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
       planner.toggleConnection(res.id)
       return
     }
-    if (!switchedOn) planner.toggleConnection(res.id)
-    shell.closeSheet()
-    if (shell.trTab !== 'plan') shell.setTrTab('plan')
-    if (shell.view !== 'map') shell.toggleView()
-    // The map draws the day on the chips, and the Transports tab lists the whole trip, so
-    // the booking may run on a different day. Moved last, because entering the map picks
-    // the day the shell was already holding. A day inside the booking's span, the
-    // all-days view and a booking bound to no day are left as they are.
-    const bookingDayId = res.day_id ?? res.end_day_id
-    if (planner.selectedDayId != null && bookingDayId != null && !runsOnDay(res, planner.selectedDayId, planner.days)) {
-      planner.handleSelectDay(bookingDayId, false)
-      planner.setExpandedDayIds(new Set([bookingDayId]))
-    }
+    revealOnMap(res)
   }
 
   const editTransport = () => {

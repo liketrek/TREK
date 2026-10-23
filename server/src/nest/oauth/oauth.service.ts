@@ -28,6 +28,7 @@ import { AuditService } from '../audit/audit.service';
 import { DomainError } from '../common/domain-error';
 import { toRowId } from '../common/row-id';
 import { UnitOfWork } from '../database/unit-of-work';
+import { CimdClientResolver, isCimdClientId, type CimdClient } from './oauth-cimd';
 import {
   ACCESS_TOKEN_TTL_S,
   CODE_CHALLENGE_RE,
@@ -95,7 +96,8 @@ export interface ValidateAuthorizeResult {
   valid: boolean;
   error?: string;
   error_description?: string;
-  client?: { name: string; allowed_scopes: string[] };
+  /** `verified_host` only for a metadata-document client: the host its document came from. */
+  client?: { name: string; allowed_scopes: string[]; verified_host?: string };
   scopes?: string[];
   resource?: string | null;
   /** true when user is logged in but consent UI must be shown */
@@ -104,6 +106,16 @@ export interface ValidateAuthorizeResult {
   loginRequired?: boolean;
   /** true when the client was registered via machine DCR — user may adjust scopes on the consent screen */
   scopeSelectable?: boolean;
+}
+
+/** The client an authorization request names, from its row or its metadata document. */
+interface AuthorizeClient {
+  name: string;
+  redirectUris: string[];
+  allowedScopes: string[];
+  scopeSelectable: boolean;
+  /** The host a metadata-document client was fetched from; null for a registered one. */
+  verifiedHost: string | null;
 }
 
 /**
@@ -124,6 +136,7 @@ export class OauthService {
     private readonly addons: AddonsService,
     private readonly audit: AuditService,
     private readonly uow: UnitOfWork,
+    private readonly cimd: CimdClientResolver,
     private readonly pendingCodes: PendingCodeStore = pendingCodesSlot.get(),
   ) {}
 
@@ -317,15 +330,46 @@ export class OauthService {
   }
 
   async saveConsent(clientId: string, userId: number, scopes: string[], ip?: string | null): Promise<void> {
+    const cimdClient = isCimdClientId(clientId) ? await this.cimd.resolve(clientId) : null;
+    if (isCimdClientId(clientId) && !cimdClient) {
+      throw new DomainError(400, 'invalid_client', { details: { error_description: 'Unknown client_id' } });
+    }
     // Union existing consent with newly approved scopes (M5: never narrow stored consent)
     const existing = (await this.getConsent(clientId, userId)) ?? [];
     const merged = Array.from(new Set([...existing, ...scopes]));
-    await this.consents.upsertGrant(clientId, userId, encodeJson(OAUTH_CONSENT_SCOPES, merged));
+    await this.uow.transactional(async () => {
+      if (cimdClient) await this.registerCimdClient(cimdClient);
+      await this.consents.upsertGrant(clientId, userId, encodeJson(OAUTH_CONSENT_SCOPES, merged));
+    });
     await this.audit.writeAudit({
       userId,
       action: 'oauth.consent.grant',
       details: { client_id: clientId, scopes: merged },
       ip,
+    });
+  }
+
+  /**
+   * A metadata-document client gets its row when a signed-in user first
+   * approves it, never on the anonymous authorize request: the consent and
+   * token rows need it as their foreign key, and an unauthenticated caller must
+   * not be able to grow the table. Every later consent refreshes it from the
+   * document. It counts against the same cap as anonymous DCR clients.
+   */
+  private async registerCimdClient(client: CimdClient): Promise<void> {
+    const row = await this.clients.findSdkProjection(client.clientId);
+    if (row && row.created_via !== 'cimd') {
+      throw new DomainError(400, 'invalid_client', { details: { error_description: 'Unknown client_id' } });
+    }
+    if (!row && (await this.clients.countAnonymous()) >= 500) throw new DomainError(503, 'server_error');
+    await this.clients.upsertCimdClient({
+      id: randomUUID(),
+      name: client.name,
+      client_id: client.clientId,
+      // Public client: an opaque random value satisfies NOT NULL, as for public DCR clients.
+      client_secret_hash: randomBytes(32).toString('hex'),
+      redirect_uris: encodeJson(OAUTH_CLIENT_REDIRECT_URIS, client.redirectUris),
+      allowed_scopes: encodeJson(OAUTH_CLIENT_ALLOWED_SCOPES, client.scopes),
     });
   }
 
@@ -430,7 +474,8 @@ export class OauthService {
   // -------------------------------------------------------------------------
 
   /** SDK clients-store read: the exact row shape the MCP SDK adapter
-   *  (oauth-sdk.provider.ts) maps to OAuthClientInformationFull. */
+   *  (oauth-sdk.provider.ts) maps to OAuthClientInformationFull. A client id
+   *  that is an https URL answers from its metadata document, not the table. */
   async getSdkClient(clientId: string): Promise<{
     client_id: string;
     name: string;
@@ -439,7 +484,18 @@ export class OauthService {
     is_public: number;
     created_via: string;
   } | null> {
-    return this.clients.findSdkProjection(clientId);
+    if (!isCimdClientId(clientId)) return this.clients.findSdkProjection(clientId);
+    const client = await this.cimd.resolve(clientId);
+    return client
+      ? {
+          client_id: client.clientId,
+          name: client.name,
+          redirect_uris: encodeJson(OAUTH_CLIENT_REDIRECT_URIS, client.redirectUris),
+          allowed_scopes: encodeJson(OAUTH_CLIENT_ALLOWED_SCOPES, client.scopes),
+          is_public: 1,
+          created_via: 'cimd',
+        }
+      : null;
   }
 
   async getUserByAccessToken(rawToken: string): Promise<OAuthTokenInfo | null> {
@@ -701,12 +757,12 @@ export class OauthService {
       return { valid: false, error: 'invalid_request', error_description: 'client_id is required' };
     }
 
-    const client = await this.clients.findByClientIdFull(params.client_id);
+    const client = await this.loadAuthorizeClient(params.client_id);
     if (!client) {
       return { valid: false, error: 'invalid_client', error_description: 'Unknown client_id' };
     }
 
-    const allowedUris = decodeJson(OAUTH_CLIENT_REDIRECT_URIS, client.redirect_uris, `client ${client.client_id}`);
+    const allowedUris = client.redirectUris;
     // Exact match except for the loopback port, which RFC 8252 §7.3 leaves to
     // the OS, and which the SDK's authorize handler already relaxes, so a
     // native client got a 302 to consent and an invalid_redirect_uri from this
@@ -742,7 +798,7 @@ export class OauthService {
       return { valid: false, error: 'invalid_scope', error_description: 'At least one scope is required' };
     }
 
-    const allowedScopes = decodeJson(OAUTH_CLIENT_ALLOWED_SCOPES, client.allowed_scopes, `client ${client.client_id}`);
+    const allowedScopes = client.allowedScopes;
     // Narrow to the intersection: drop scopes the client isn't permitted for rather
     // than rejecting the whole request (per OAuth 2.0 §3.3 scope narrowing).
     const grantedScopes = requestedScopes.filter((s) => allowedScopes.includes(s));
@@ -765,11 +821,40 @@ export class OauthService {
 
     return {
       valid: true,
-      client: { name: client.name, allowed_scopes: allowedScopes },
+      client: {
+        name: client.name,
+        allowed_scopes: allowedScopes,
+        ...(client.verifiedHost ? { verified_host: client.verifiedHost } : {}),
+      },
       scopes: grantedScopes,
       resource: resource ?? mcpResource,
       consentRequired,
-      scopeSelectable: client.created_via === 'dcr',
+      scopeSelectable: client.scopeSelectable,
+    };
+  }
+
+  private async loadAuthorizeClient(clientId: string): Promise<AuthorizeClient | null> {
+    if (isCimdClientId(clientId)) {
+      const doc = await this.cimd.resolve(clientId);
+      // Machine-registered like a DCR client, so the user picks the scopes.
+      return doc
+        ? {
+            name: doc.name,
+            redirectUris: doc.redirectUris,
+            allowedScopes: doc.scopes,
+            scopeSelectable: true,
+            verifiedHost: doc.host,
+          }
+        : null;
+    }
+    const row = await this.clients.findByClientIdFull(clientId);
+    if (!row) return null;
+    return {
+      name: row.name,
+      redirectUris: decodeJson(OAUTH_CLIENT_REDIRECT_URIS, row.redirect_uris, `client ${row.client_id}`),
+      allowedScopes: decodeJson(OAUTH_CLIENT_ALLOWED_SCOPES, row.allowed_scopes, `client ${row.client_id}`),
+      scopeSelectable: row.created_via === 'dcr',
+      verifiedHost: null,
     };
   }
 

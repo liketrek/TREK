@@ -126,6 +126,7 @@ function build(
         updateCollection: vi.fn(() => ({})),
         savePlace: vi.fn(() => ({})),
         copyToTrip: vi.fn(() => ({})),
+        tripEvents: vi.fn(() => ({ emit: vi.fn(), emitAll: vi.fn() })),
         deletePlace: vi.fn(() => Promise.resolve(undefined)),
         ...overrides.collections,
       } as never,
@@ -449,6 +450,16 @@ describe('addon-gated domains validate their input', () => {
     const host = build({ collections: { updateCollection } });
     await host.dispatch(req('collections.update', { id: 1, input: { description: 'only this' } }), 42);
     expect(updateCollection).toHaveBeenCalled();
+  });
+
+  it('ADDONERR-010b2 a copy hands the service the target trip and no socket, so every open planner hears it', async () => {
+    const sink = { emit: vi.fn(), emitAll: vi.fn() };
+    const tripEvents = vi.fn(() => sink);
+    const copyToTrip = vi.fn(() => ({ copied: 1, skipped: [] }));
+    const host = build({ collections: { tripEvents, copyToTrip } });
+    await host.dispatch(req('collections.copyToTrip', { input: { trip_id: 7, place_ids: [3] } }), 42);
+    expect(tripEvents).toHaveBeenCalledWith(7, undefined);
+    expect(copyToTrip).toHaveBeenCalledWith(42, { trip_id: 7, place_ids: [3] }, sink);
   });
 
   it('ADDONERR-010c a journal entry update carries a non-object input through asPayload', async () => {

@@ -284,7 +284,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': '第',
+  'journey.studio.day': '第{day}天',
   'journey.studio.stations': '途经地',
   'journey.studio.peersHere': '在线',
   'journey.studio.folioAuto': '自动',
@@ -435,7 +435,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': '标记',
   'journey.studio.dateMark': '日期',
   'journey.studio.dayMark': '天数计数',
-  'journey.studio.dayWord': 'DAY',
   'journey.studio.coordsMark': '坐标',
   'journey.studio.coordsDms': '度分秒',
   'journey.studio.coordsDecimal': '十进制',
@@ -630,6 +629,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': '向左旋转',
   'journey.studio.rotateRight': '向右旋转',
   'journey.studio.saveReadOnly': '只读，不会保存',
+  'journey.studio.saveNewer': '此书由更新版本的 Studio 保存。请重新加载后再编辑。',
+  'journey.studio.saveReload': '重新加载',
   'journey.studio.filterPhotos': '筛选照片',
   'journey.studio.filterAll': '全部照片',
   'journey.studio.filterLoose': '不属于任何条目',
@@ -840,5 +841,14 @@ const journey: TranslationStrings = {
   'journey.share.recordingsHint': '有已发布日记的日子的记录，以及从中取用的停留点。会显示你何时去过哪里，也包括住处。',
   'journey.share.needsMap': '共享地图后才能开启',
   'journey.editor.tags': '标签',
+  'journey.studio.assistant.toggle': '助手',
+  'journey.studio.assistant.toggleHint': '与助手一起设计这本书',
+  'journey.studio.assistant.panel': '书籍助手',
+  'journey.studio.assistant.welcome': '这本书想做成什么样子？',
+  'journey.studio.assistant.readOnly': '你只能查看这本书，所以我可以回答问题，但不能做任何更改。',
+  'journey.studio.assistant.notice':
+    '助手可以查看你正在编辑的页面。只有这一页会以图片形式发送给 {provider}，图片中只显示你自己添加的照片。无法识别照片中的人物是谁。',
+  'journey.studio.assistant.noticeAllow': '允许查看页面',
+  'journey.studio.assistant.noticeLater': '暂不',
 };
 export default journey;

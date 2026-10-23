@@ -105,5 +105,7 @@ const collab: TranslationStrings = {
     'Masih ada catatan yang memakai kategori ini. Pindahkan atau hapus catatan tersebut dulu agar kategori bisa dihapus.',
   'collab.notes.categoriesLocalHint':
     'Kategori tanpa catatan hanya disimpan di browser ini. Anggota lain baru melihatnya setelah ada catatan yang memakainya.',
+  'collab.chat.fromAssistant': 'dari asisten',
+  'collab.chat.fromAssistantHint': '{name} membagikan jawaban asisten ini',
 };
 export default collab;

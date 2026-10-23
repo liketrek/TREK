@@ -37,6 +37,7 @@ describe('i18n untranslated ratchet', () => {
       'https://ntfy.sh',
       'your@email.com',
       '<b>{name}</b>',
+      'Ctrl',
     ]) {
       expect([same, isInvariant(same)]).toEqual([same, true]);
     }

@@ -41,6 +41,8 @@ const BOOKEND_VIA_NOTE =
  * the controller demands, so an assistant can never do through a tool what a person
  * cannot do through the UI. Reads go through the same day-belongs-to-trip check, so a
  * valid day id from another trip is not reachable by way of one the caller can see.
+ * The writes and their events are the service's use cases the routes call too; a tool
+ * call has no socket of its own, so the tab that asked hears the change like everyone else.
  */
 @McpController()
 export class RoadtripMcp {
@@ -99,8 +101,8 @@ export class RoadtripMcp {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.roadtrip.dayExists(dayId, tripId))) return noAccess();
-    const via = await this.roadtrip.create(dayId, { after_order_index, lat, lng });
-    await this.announce(tripId, dayId);
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
+    const via = await this.roadtrip.addVia(dayId, { after_order_index, lat, lng }, writer);
     return ok({ via });
   }
 
@@ -173,18 +175,8 @@ export class RoadtripMcp {
     // a place id from another trip, or a place that is not a track at all, become this
     // day's label.
     if (track && !(await this.roadtrip.trackExists(track.place_id, tripId))) return noAccess();
-    const made = await this.roadtrip.createMany(dayId, { vias, replace_legs, track });
-    await this.announce(tripId, dayId);
-    const tracks = await this.roadtrip.tracksForTrip(String(tripId));
-    this.roadtrip.broadcast(
-      String(tripId),
-      'roadtripTrack:changed',
-      {
-        dayId,
-        track: tracks.find((t) => String(t.day_id) === String(dayId)) ?? null,
-      },
-      undefined,
-    );
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
+    const made = await this.roadtrip.addVias(tripId, dayId, { vias, replace_legs, track }, writer);
     return ok({ vias: made });
   }
 
@@ -231,8 +223,8 @@ export class RoadtripMcp {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.roadtrip.dayExists(dayId, tripId))) return noAccess();
-    const next = await this.roadtrip.reanchor(dayId, { vias, remove });
-    await this.announce(tripId, dayId);
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
+    const next = await this.roadtrip.reanchorVias(dayId, { vias, remove }, writer);
     return ok({ vias: next });
   }
 
@@ -252,8 +244,8 @@ export class RoadtripMcp {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.roadtrip.dayExists(dayId, tripId))) return noAccess();
-    if (!(await this.roadtrip.remove(viaId, dayId))) return noAccess();
-    await this.announce(tripId, dayId);
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
+    if (!(await this.roadtrip.removeVia(dayId, viaId, writer))) return noAccess();
     return ok({ success: true });
   }
 
@@ -270,29 +262,10 @@ export class RoadtripMcp {
     if (!(await this.tripsRepo.findAccessible(input.tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', input.tripId, ctx.userId))) return permissionDenied();
     if (!(await this.roadtrip.dayExists(input.dayId, input.tripId))) return noAccess();
-    const via = await this.roadtrip.move(input.viaId, input.dayId, input.lat, input.lng, input.after_order_index);
+    const writer = await this.guards.tripWriter(input.tripId, ctx.userId);
+    const { lat, lng, after_order_index } = input;
+    const via = await this.roadtrip.moveVia(input.dayId, input.viaId, { lat, lng, after_order_index }, writer);
     if (!via) return noAccess();
-    await this.announce(input.tripId, input.dayId);
     return ok({ via });
-  }
-
-  /**
-   * Says what this day's drive is routed through now.
-   *
-   * The same announcement the REST routes make, because it is the same change: a via laid
-   * by an assistant moves the line on everybody's map exactly as one dragged by hand.
-   * No originating socket to exclude here — a tool call has no socket of its own, so the
-   * client that asked for it hears about it like everyone else.
-   */
-  private async announce(tripId: number, dayId: number): Promise<void> {
-    this.roadtrip.broadcast(
-      String(tripId),
-      'roadtripVia:changed',
-      {
-        dayId,
-        vias: await this.roadtrip.listForDay(String(dayId)),
-      },
-      undefined,
-    );
   }
 }

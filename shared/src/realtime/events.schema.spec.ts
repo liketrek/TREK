@@ -54,6 +54,7 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'todo:updated': { item: { id: 4 } },
   'todo:deleted': { itemId: 4 },
   'todo:assignees': { category: 'before', assignees: [1] },
+  'todo:reordered': { orderedIds: [4, 3] },
   'budget:created': { item: { id: 11 } },
   'budget:updated': { item: { id: 11 } },
   'budget:deleted': { itemId: 11 },
@@ -75,6 +76,7 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'trip:deleted': { id: 1 },
   'member:added': { member: { user_id: 2 } },
   'member:removed': { userId: 2 },
+  'member:updated': { member: { id: 2, username: 'Guest Ana' } },
   'trip:journal:changed': {},
   'docsync:changed': { linkId: 4, pulled: 2, pushed: 1 },
   'file:created': { file: { id: 13 } },
@@ -96,6 +98,11 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'memories:updated': { userId: 1 },
   'notification:new': { notification: { id: 21, sender_username: 'ana' } },
   'notification:updated': { notification: { id: 21 } },
+  'notification:read-all': {},
+  'trips:changed': {},
+  'settings:updated': { keys: ['temperature_unit', 'dark_mode'] },
+  'tags:changed': {},
+  'atlas:changed': {},
   'collections:updated': { collectionId: 4 },
   'collections:accepted': { collectionId: 4 },
   'collections:declined': { collectionId: 4 },
@@ -114,6 +121,8 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'vacay:share': { from: { id: 1 } },
   'vacay:share-removed': {},
   'vacay:shared-update': {},
+  'journey:updated': { journeyId: 3 },
+  'journey:deleted': { journeyId: 3 },
   'journey:trip:synced': { journeyId: 3, tripId: 1 },
   'journey:entry:created': { journeyId: 3, entry: { id: 5 } },
   'journey:entry:updated': { journeyId: 3, entry: { id: 5 } },
@@ -150,7 +159,7 @@ const DRIFT_VARIANTS: Partial<Record<TrekWsEventName, Record<string, unknown>[]>
 };
 
 describe('@trek/shared realtime event registry', () => {
-  it('WSEVT-REG-001: pins the authoritative inventory counts (77 trip + 34 user = 111)', () => {
+  it('WSEVT-REG-001: pins the authoritative inventory counts (79 trip + 41 user = 120)', () => {
     // 67th to 69th trip event: the three collab:link:* a shared link emits.
     // 70th and 71st: the road trip's vias and tracks, which used to be written silently.
     // 74th: docsync:changed, so a sync run that moved documents refreshes the
@@ -163,9 +172,14 @@ describe('@trek/shared realtime event registry', () => {
     // capture times of an import have landed (#1587).
     // 34th: journey:recording:updated, so every map of a journey shows a day's
     // recorded route once somebody took it over (JRN-01).
-    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(77);
-    expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(34);
-    expect(TREK_WS_EVENT_NAMES).toHaveLength(111);
+    // 78th and 79th trip event, 35th to 41st user event: what the broadcast
+    // parity work found no event for (todo:reordered, member:updated;
+    // notification:read-all, trips:changed, settings:updated, tags:changed,
+    // atlas:changed, journey:updated, journey:deleted). Registered first, the
+    // writes that send them follow.
+    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(79);
+    expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(41);
+    expect(TREK_WS_EVENT_NAMES).toHaveLength(120);
   });
 
   it('WSEVT-REG-002: every name is domain:action shaped and outside the reserved plugin: namespace', () => {
@@ -206,5 +220,16 @@ describe('@trek/shared realtime event registry', () => {
       _source: 'mcp',
     });
     expect(result.success).toBe(true);
+    const strict = TREK_WS_EVENTS['settings:updated'].payload.safeParse({ keys: ['dark_mode'], _source: 'mcp' });
+    expect(strict.success).toBe(true);
+  });
+
+  it('WSEVT-REG-008: settings:updated never carries a value, and member:updated no more than who and the name', () => {
+    const settings = TREK_WS_EVENTS['settings:updated'].payload;
+    expect(settings.safeParse({ keys: ['dark_mode'], values: { dark_mode: 'on' } }).success).toBe(false);
+    const member = TREK_WS_EVENTS['member:updated'].payload;
+    expect(member.safeParse({ member: { id: 2, username: 'Guest Ana', email: 'ana@example.org' } }).success).toBe(
+      false,
+    );
   });
 });

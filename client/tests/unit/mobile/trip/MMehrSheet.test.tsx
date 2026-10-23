@@ -1,13 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FolderOpen, Users } from 'lucide-react'
+import type { AiStatusResponse } from '@trek/shared'
 import MMehrSheet from '../../../../src/mobile/screens/trip/sheets/MMehrSheet'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { TripFile, TripMember } from '../../../../src/types'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores } from '../../../helpers/store'
+import { useAssistantStore } from '../../../../src/store/assistantStore'
+import { useTripStore } from '../../../../src/store/tripStore'
+import { buildAssignment, buildDay, buildPlace, buildTrip } from '../../../helpers/factories'
 import { fireEvent, render, screen, within } from '../../../helpers/render'
 
-// FE-MOB-MEHR-001 to FE-MOB-MEHR-014
+// FE-MOB-MEHR-001 to FE-MOB-MEHR-017
 //
 // The sheet takes its copy from the real TranslationProvider, so the visible
 // strings are asserted in English.
@@ -173,6 +177,47 @@ describe('MMehrSheet', () => {
       // sheet is the action rows alone.
       expect(screen.queryByRole('button', { name: 'Lists' })).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Trip settings' }).parentElement).not.toHaveClass('mt-2')
+    })
+  })
+
+  describe('the assistant tile', () => {
+    const initial = useAssistantStore.getState()
+    afterEach(() => useAssistantStore.setState(initial, true))
+
+    it('FE-MOB-MEHR-015: is not there until the assistant has a connection to use', () => {
+      renderSheet()
+      expect(screen.queryByRole('button', { name: /Ask TREK/ })).not.toBeInTheDocument()
+    })
+
+    it('FE-MOB-MEHR-016: leads the sheet and opens the chat in place of it', () => {
+      useAssistantStore.setState({ status: { available: true } as AiStatusResponse })
+      const { shell } = renderSheet()
+      fireEvent.click(screen.getByRole('button', { name: /Ask TREK/ }))
+      expect(shell.closeSheet).toHaveBeenCalledTimes(1)
+      expect(useAssistantStore.getState().window).toEqual({ open: true, minimized: false })
+    })
+
+    it('FE-MOB-MEHR-017: counts the warnings in the plan not seen yet, and opening the chat counts them seen', () => {
+      window.localStorage.clear()
+      useAssistantStore.setState({ status: { available: true } as AiStatusResponse })
+      const places = [
+        buildPlace({ id: 70, place_time: '10:00', end_time: '12:00' }),
+        buildPlace({ id: 71, place_time: '11:00', end_time: '12:30' }),
+      ]
+      useTripStore.setState({
+        trip: buildTrip({ id: 1, start_date: '2099-06-01', end_date: '2099-06-01' }),
+        days: [buildDay({ id: 1, date: '2099-06-01' })],
+        places,
+        assignments: {
+          '1': places.map((place, i) => buildAssignment({ id: 80 + i, place_id: place.id, order_index: i, place })),
+        },
+        reservations: [],
+        dayNotes: {},
+      })
+      renderSheet()
+      expect(screen.getByText('1 thing to check in your plan')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /Ask TREK/ }))
+      expect(screen.queryByText('1 thing to check in your plan')).not.toBeInTheDocument()
     })
   })
 })

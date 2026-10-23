@@ -86,6 +86,17 @@ describe('CollabMessagesRepository — share.service.ts SH16 read', () => {
     expect(typed.map((m) => m.avatar)).toEqual(['alice.png', null]);
   });
 
+  it('insertMessage — keeps where a message came from, and nothing for one typed in the chat', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const typed = await collabMessagesRepo.insertMessage(trip.id, user.id, 'typed', null);
+    const shared = await collabMessagesRepo.insertMessage(trip.id, user.id, 'shared', null, 'assistant');
+    expect((await collabMessagesRepo.findWithReply(typed))?.origin).toBeNull();
+    expect(await collabMessagesRepo.findWithReply(shared)).toMatchObject({ text: 'shared', origin: 'assistant' });
+    const listed = await collabMessagesRepo.listPublicForShare(trip.id);
+    expect(listed.find((m) => m.id === shared)?.origin).toBe('assistant');
+  });
+
   it('listPublicForShare — [] for a trip with no messages', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

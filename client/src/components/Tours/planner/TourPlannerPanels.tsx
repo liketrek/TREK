@@ -5,7 +5,7 @@ import type { Day } from '../../../types'
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useTourFerrataCrossingStore } from '../../../store/tourFerrataCrossingStore'
-import { formatDistance, formatElevation } from '../../../utils/units'
+import { formatDistance } from '../../../utils/units'
 import ConfirmDialog from '../../shared/ConfirmDialog'
 import { NEUTRAL_TINT, fs } from '../../shared/DialogShell'
 import EmptyState from '../../shared/EmptyState'
@@ -15,7 +15,7 @@ import { BOX } from '../../Planner/bookings/bookingParts'
 import { BarButton, SoftPill } from '../../Planner/planParts'
 import TourListRow from '../TourListRow'
 import ElevationProfile from '../../shared/ElevationProfile'
-import { formatPlannedTourDuration, hikeSourceBadgeLabel, tourSource } from '../tourPresentation'
+import { formatPlannedTourDuration, hikeSourceBadgeLabel, profileFocusLabel, tourSource } from '../tourPresentation'
 import { CardAction, FoldButton, RailCard, RailFacts, TourDayMenu, TourListCard, TourNotice, TourSection, type TourMetricField } from '../tourParts'
 import { movingTimeLabel, tourMetricFacts, withoutHeights } from '../tourFacts'
 import { TourDetailsSection, TourNameField } from './TourEditorFields'
@@ -40,7 +40,7 @@ import { stageKeysOfTour } from '../stages/stageSpread'
 import { TourStageOverview } from '../stages/TourStageOverview'
 import { useTourStageRail } from '../stages/useTourStageRail'
 import { useTripStore } from '../../../store/tripStore'
-import type { DistanceIndexedProfileSample, RouteProfileFocus } from '../../../utils/routeGeometry'
+import type { DistanceIndexedProfileSample } from '../../../utils/routeGeometry'
 import type { TourPlannerController } from './useTourPlanner'
 import { RailStatusBadges } from './TourRailStatus'
 import type { Translate } from './railStatusText'
@@ -75,13 +75,6 @@ import { walkTimeFields } from '../walk/walkTimeFields'
 
 /** The tinted head band both rails open with, like every panel head in the planner. */
 export const RAIL_HEAD = 'flex flex-none items-start gap-2 border-b border-edge-faint px-3 py-2.5'
-
-function profileFocusLabel(focus: RouteProfileFocus, t: Translate, unit: 'metric' | 'imperial'): string {
-  return t('tours.planner.inspector.profileFocus', {
-    distance: formatDistance(focus.distanceMeters / 1000, unit),
-    elevation: focus.elevationMeters == null ? '-' : formatElevation(focus.elevationMeters, unit),
-  })
-}
 
 /** The title of a rail's head band, with an optional line under it. */
 export function RailTitle({ title, sub, aside }: { title: string; sub?: ReactNode; aside?: ReactNode }) {

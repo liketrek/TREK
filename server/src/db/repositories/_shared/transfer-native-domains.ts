@@ -346,7 +346,7 @@ export const NATIVE_DOMAINS: NativeDomain[] = [
   {
     table: 'collab_messages',
     kind: 'chat_messages',
-    columns: 'id trip_id user_id text reply_to created_at deleted'.split(' ').filter(Boolean),
+    columns: 'id trip_id user_id text reply_to created_at deleted origin'.split(' ').filter(Boolean),
     keys: 'id'.split(' ').filter(Boolean),
     scope: { column: 'trip_id', parent: 'trips', key: 'id' },
     aliases: {},

@@ -295,6 +295,92 @@ describe('journey read tools', () => {
     });
   });
 
+  it('MCP-JRN-ENTRY-001: list_journey_entries keeps the days from/to name and names its journey', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h, 'Berlin 2026');
+      const days = [
+        ['2026-10-20', 'Before'],
+        ['2026-10-21', 'Yesterday'],
+        ['2026-10-22', 'Today'],
+      ] as const;
+      // One after the other, in this order.
+      await days.reduce(async (previous, [entry_date, title]) => {
+        await previous;
+        await h.client.callTool({
+          name: 'create_journey_entry',
+          arguments: { journeyId: journey.id, entry_date, title },
+        });
+      }, Promise.resolve());
+      const read = async (range: Record<string, string>) =>
+        parseToolResult(
+          await h.client.callTool({ name: 'list_journey_entries', arguments: { journeyId: journey.id, ...range } }),
+        ) as { entries: Array<{ title: string }>; journey: { id: number; title: string } };
+
+      const day = await read({ from: '2026-10-21', to: '2026-10-21' });
+      expect(day.entries.map((e) => e.title)).toEqual(['Yesterday']);
+      expect(day.journey).toEqual({ id: journey.id, title: 'Berlin 2026' });
+      expect((await read({ from: '2026-10-21' })).entries.map((e) => e.title)).toEqual(['Yesterday', 'Today']);
+      expect((await read({ to: '2026-10-20' })).entries.map((e) => e.title)).toEqual(['Before']);
+      expect((await read({})).entries).toHaveLength(3);
+    });
+  });
+
+  it('MCP-JRN-ENTRY-002: list_journey_entries refuses a day that is no calendar day', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h);
+      const result = await h.client.callTool({
+        name: 'list_journey_entries',
+        arguments: { journeyId: journey.id, from: '2026-02-30' },
+      });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('MCP-JRN-ENTRY-003: get_journey_entry answers one entry with its photos and its journey', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const journey = await seedJourney(h, 'Japan');
+      const created = parseToolResult(
+        await h.client.callTool({
+          name: 'create_journey_entry',
+          arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'Arrival', story: '**Tokyo**' },
+        }),
+      ) as { entry: { id: number } };
+      const data = parseToolResult(
+        await h.client.callTool({ name: 'get_journey_entry', arguments: { entryId: created.entry.id } }),
+      ) as { entry: { id: number; title: string; photos: unknown[] }; journey: { id: number; title: string } };
+      expect(data.entry.id).toBe(created.entry.id);
+      expect(data.entry.title).toBe('Arrival');
+      expect(data.entry.photos).toEqual([]);
+      expect(data.journey).toEqual({ id: journey.id, title: 'Japan' });
+    });
+  });
+
+  it('MCP-JRN-ENTRY-004: get_journey_entry does not show an entry of a journal the caller cannot see', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    let entryId = 0;
+    await withHarness(other.id, async (h) => {
+      const journey = await seedJourney(h, 'Private');
+      entryId = (
+        parseToolResult(
+          await h.client.callTool({
+            name: 'create_journey_entry',
+            arguments: { journeyId: journey.id, entry_date: '2026-07-01', title: 'Mine' },
+          }),
+        ) as { entry: { id: number } }
+      ).entry.id;
+    });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'get_journey_entry', arguments: { entryId } });
+      expect(result.isError).toBe(true);
+      const missing = await h.client.callTool({ name: 'get_journey_entry', arguments: { entryId: entryId + 1000 } });
+      expect(missing.isError).toBe(true);
+    });
+  });
+
   it('list_journey_contributors returns the contributor rows', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {

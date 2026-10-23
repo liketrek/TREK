@@ -43,6 +43,20 @@ describe('addonStore', () => {
       await useAddonStore.getState().loadAddons();
       expect(useAddonStore.getState().toursWanderer).toBe(false);
     });
+
+    it('keeps the collab chat on unless the response turns it off', async () => {
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [] })));
+      await useAddonStore.getState().loadAddons();
+      expect(useAddonStore.getState().collabChat).toBe(true);
+
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [], collabFeatures: { chat: true } })));
+      await useAddonStore.getState().loadAddons();
+      expect(useAddonStore.getState().collabChat).toBe(true);
+
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [], collabFeatures: { chat: false } })));
+      await useAddonStore.getState().loadAddons();
+      expect(useAddonStore.getState().collabChat).toBe(false);
+    });
   });
 
   describe('FE-ADDON-002: isEnabled returns true for known addon', () => {

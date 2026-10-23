@@ -8,10 +8,11 @@ import { Tooltip } from '../../shared/Tooltip';
 import { bikePaintCss } from '../bike/bikePaint';
 import { FigureBadge } from '../paddle/FigureBadge';
 import { CardAction } from '../tourParts';
-import { HIKE_FACETS, type HikeFacet } from './hikeFacetSpecs';
 import { facetPaint, isUnknownClass, type FacetRow } from './hikeFacets';
+import { HIKE_FACETS, type HikeFacet } from './hikeFacetSpecs';
 import { hikePaintCss } from './hikePaint';
 import { sacStepOfClass } from './sacGrades';
+import { GradeChip } from './SacStepChip';
 import type { HikeWays } from './useHikeWays';
 
 const percent = (share: number) => `${Math.round(share * 100)} %`;
@@ -52,20 +53,8 @@ const writtenTags = (facet: HikeFacet, row: FacetRow) => row.tags.map((tag) => `
 function ClassChip({ facet, row }: { facet: HikeFacet; row: FacetRow }) {
   const step = sacStepOfClass(row.key);
   const unknown = isUnknownClass(row.key);
-  return (
-    <span className="inline-flex h-[18px] w-[34px] flex-none items-center justify-center gap-1 rounded-full bg-surface-card font-geist font-semibold tabular-nums text-content shadow-sm ring-1 ring-inset ring-edge-faint">
-      <span
-        aria-hidden="true"
-        className="h-2 w-2 flex-none rounded-full"
-        style={{ background: paintOf(facet, row.key) }}
-      />
-      {(step !== null || unknown) && (
-        <span className={unknown ? 'text-content-faint' : ''} style={fs(10.5)}>
-          {step === null ? '?' : stepName(step)}
-        </span>
-      )}
-    </span>
-  );
+  const text = step !== null ? stepName(step) : unknown ? '?' : null;
+  return <GradeChip color={paintOf(facet, row.key)} text={text} faint={unknown} />;
 }
 
 /** Where a row's class comes from, said in its tooltip: what OpenStreetMap wrote, or why it is unknown. */

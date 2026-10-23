@@ -245,9 +245,7 @@ export class TodoMcp {
     access: { group: 'todos', mode: 'write' },
   })
   async reorderTodos({ tripId, orderedIds }: { tripId: number; orderedIds: number[] }, ctx: McpContext) {
-    if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
-    await this.todos.reorderItems(tripId, orderedIds);
+    await this.todos.reorder(tripId, orderedIds, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ success: true });
   }
 

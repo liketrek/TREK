@@ -1,6 +1,8 @@
 import type { TourListItem, TourOrigin } from '@trek/shared'
 import { tourTimeEstimate, tourWebsiteSchema, type TourTimeEstimate } from '@trek/shared'
 import { formatDurationShort } from '@trek/shared/roadtrip'
+import type { RouteProfileFocus } from '../../utils/routeGeometry'
+import { formatDistance, formatElevation } from '../../utils/units'
 import { walkTimesOf, type WalkTimes } from './planner/stationModel'
 import type { TourMetricField } from './tourParts'
 
@@ -206,4 +208,16 @@ export function statusLabel(status: TourFilter, t: Translate): string {
   if (status === 'unplanned') return t('places.unplanned')
   if (status === 'planned') return t('places.planned')
   return t('places.all')
+}
+
+/**
+ * A spot of a route's height profile in words, as the planner's profile and
+ * the chat's tour card both say it: how far along, and how high where the
+ * heights are known.
+ */
+export function profileFocusLabel(focus: RouteProfileFocus, t: Translate, unit: 'metric' | 'imperial'): string {
+  return t('tours.planner.inspector.profileFocus', {
+    distance: formatDistance(focus.distanceMeters / 1000, unit),
+    elevation: focus.elevationMeters == null ? '-' : formatElevation(focus.elevationMeters, unit),
+  })
 }

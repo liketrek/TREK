@@ -1,4 +1,6 @@
 import { Tags } from '../../db/entities/Tags.entity';
+import { RealtimeModule } from '../realtime/realtime.module';
+import { TagWritesService } from './tag-writes.service';
 import { TagsController } from './tags.controller';
 import { TagsMcp } from './tags.mcp';
 import { TagsRpc } from './tags.rpc';
@@ -15,12 +17,13 @@ import { Module } from '@nestjs/common';
  * precedent comment).
  */
 @Module({
-  imports: [MikroOrmModule.forFeature([Tags])],
+  // RealtimeModule for TagWritesService, which tells a user's other tabs that their tags changed.
+  imports: [RealtimeModule, MikroOrmModule.forFeature([Tags])],
   controllers: [TagsController],
   // TagsRpc must stay in providers: the plugin RPC registry discovers marked
   // PROVIDERS only, and a missing entry here would leave tags.* answering
   // PERMISSION_DENIED with no other symptom.
-  providers: [TagsService, TagsMcp, TagsRpc],
+  providers: [TagsService, TagWritesService, TagsMcp, TagsRpc],
   // For in-container consumers (TagsRpc).
   exports: [TagsService],
 })

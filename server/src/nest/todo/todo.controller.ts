@@ -65,8 +65,13 @@ export class TodoController {
   @RequirePermission('packing_edit')
   @Put('reorder')
   @ResponseContract(successResponseSchema)
-  async reorder(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: TodoReorderDto) {
-    await this.todo.reorderItems(tripId, body.orderedIds);
+  async reorder(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Body() body: TodoReorderDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    await this.todo.reorder(tripId, body.orderedIds, this.todo.restWriter(tripId, user, socketId));
     return { success: true };
   }
 

@@ -4,13 +4,14 @@
  * Reads the book from a journey and writes the spreads out as data: every
  * measurement divided by the page it was drawn on, so the same template lays
  * out on an A4 landscape book as it does on the 210mm square it was designed
- * for. Run from server/, output goes to the client.
+ * for. Run from server/; the output is the shared auto layout's data file
+ * (shared/src/book/auto/auto-templates.data.ts). Run Prettier on it before committing.
  */
 const Database = require('better-sqlite3');
 const fs = require('fs');
 
 const JOURNEY = Number(process.argv[2] || 7);
-const OUT = process.argv[3] || '../client/src/components/Studio/bookTemplates.data.ts';
+const OUT = process.argv[3] || '../shared/src/book/auto/auto-templates.data.ts';
 
 const db = new Database('data/travel.db', { readonly: true });
 const row = db.prepare('SELECT document FROM journey_books WHERE journey_id = ?').get(JOURNEY);
@@ -62,7 +63,7 @@ const body = spreads
   )
   .join('\n');
 
-const file = `import type { BookElement } from '@trek/shared'
+const file = `import type { BookElement } from '../book.schema';
 
 /**
  * The spread templates, as data.
@@ -97,16 +98,16 @@ const file = `import type { BookElement } from '@trek/shared'
  * was drawn.
  */
 
-export interface SpreadTemplate {
-  id: string
-  background: string | null
-  /** Frames and sizes are fractions — see the note above. */
-  elements: BookElement[]
+export interface AutoTemplate {
+  id: string;
+  background: string | null;
+  /** Frames and sizes are fractions; see the note above. */
+  elements: BookElement[];
 }
 
-export const SPREAD_TEMPLATES: SpreadTemplate[] = [
+export const AUTO_TEMPLATES: readonly AutoTemplate[] = [
 ${body}
-]
+];
 `;
 
 fs.writeFileSync(OUT, file);

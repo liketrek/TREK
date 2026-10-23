@@ -15,13 +15,15 @@ import type { SaveState } from './useBookStore'
  * which is exactly the wrong habit for the one time it says something else.
  */
 export function SaveIndicator({
-  state, t, onAcceptTheirs, onKeepMine, onRetry,
+  state, t, onAcceptTheirs, onKeepMine, onRetry, onReload = reloadStudio,
 }: {
   state: SaveState
   t: (k: string) => string
   onAcceptTheirs: (current: BookRecord) => void
   onKeepMine: (current: BookRecord) => void
   onRetry: () => void
+  /** Load this Studio again, for a book a newer one saved. A full reload by default. */
+  onReload?: () => void
 }) {
   if (state.status === 'conflict') {
     return (
@@ -38,6 +40,24 @@ export function SaveIndicator({
         </button>
         <button type="button" onClick={() => onKeepMine(state.current)}>
           {t('journey.studio.saveKeepMine')}
+        </button>
+      </div>
+    )
+  }
+
+  if (state.status === 'newer') {
+    /*
+     * The one state with a way out the user has to take themselves: a newer
+     * Studio saved this book, this tab cannot write it without losing what
+     * that one added, and only a reload brings the newer Studio here. Loud
+     * like a conflict, because until then nothing done here is kept.
+     */
+    return (
+      <div className="st-save is-conflict" role="alert">
+        <AlertTriangle size={13} />
+        <span>{t('journey.studio.saveNewer')}</span>
+        <button type="button" onClick={onReload}>
+          {t('journey.studio.saveReload')}
         </button>
       </div>
     )
@@ -85,4 +105,9 @@ export function SaveIndicator({
   }
 
   return null
+}
+
+/** The default way back to a current Studio: the page again, which loads the newest build. */
+function reloadStudio() {
+  window.location.reload()
 }

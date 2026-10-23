@@ -110,5 +110,7 @@ const collab: TranslationStrings = {
     "Notennoù a implij c'hoazh ar rummad-mañ. Fiñvit pe dilamit anezho da gentañ evit lemel ar rummad.",
   'collab.notes.categoriesLocalHint':
     "Ur rummad hep notenn n'eo enrollet nemet er merdeer-mañ. An izili all a wel anezhañ pa vo implijet gant ur note.",
+  'collab.chat.fromAssistant': 'do assistente',
+  'collab.chat.fromAssistantHint': '{name} compartilhou esta resposta do assistente',
 };
 export default collab;

@@ -1,5 +1,6 @@
 import { DomainError } from '../../../src/nest/common/domain-error';
 import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
+import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { PackingWritesService } from '../../../src/nest/packing/packing-writes.service';
 import type { PackingService } from '../../../src/nest/packing/packing.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
@@ -63,7 +64,8 @@ function setup(overrides: Record<string, unknown> = {}, opts: { allowed?: boolea
   const permissions = {
     checkPermission: vi.fn().mockResolvedValue(opts.allowed ?? true),
   } as unknown as PermissionsService;
-  const writes = new PackingWritesService(packing, permissions);
+  const notifications = { actorName: vi.fn().mockResolvedValue('u') } as unknown as NotificationsService;
+  const writes = new PackingWritesService(packing, permissions, notifications);
   const guards = new McpToolGuardsService(
     { getOwnerId: vi.fn().mockResolvedValue(1) } as never,
     { getRole: vi.fn().mockResolvedValue('user') } as never,
@@ -80,7 +82,7 @@ function setup(overrides: Record<string, unknown> = {}, opts: { allowed?: boolea
     await fn(writer);
     return { names: names(), calls: [...realtime.broadcast.mock.calls] };
   };
-  return { writes, packing, permissions, realtime, run };
+  return { writes, packing, permissions, notifications, realtime, run };
 }
 
 describe('packing item events: REST == MCP', () => {
@@ -214,5 +216,105 @@ describe('packing item use cases: refusals', () => {
     expect(err.toBody()).toEqual({ error: 'conflict', server });
     expect(Object.keys(err.toBody())).toEqual(['error', 'server']);
     expect(s.packing.updateItem).toHaveBeenCalledWith('5', 3, { name: 'x' }, ['name'], 'stale', 1);
+  });
+});
+
+describe('packing list use cases: REST == MCP', () => {
+  const shared = { id: 3, is_private: 1, owner_id: 1, recipients: [{ user_id: 2 }] };
+  const mcpText = (err: unknown) => (err as DomainError).mcpMessage ?? (err as DomainError).publicMessage;
+
+  it('PACK-LIST-001: a sharing change drops the item from the room, re-adds it for its viewers, and pings no bag totals', async () => {
+    const s = setup({ setItemSharing: vi.fn().mockResolvedValue(shared) });
+    const rest = await s.run('rest', (w) => s.writes.setSharing('5', 3, 'shared', [2], w));
+    const mcp = await s.run('mcp', (w) => s.writes.setSharing(5, 3, 'shared', [2], w));
+    // The MCP tool used to add a bag-totals ping the route never sent.
+    expect(mcp.names).toEqual(rest.names);
+    expect(rest.names).toEqual(['packing:deleted', 'packing:created', 'packing:created']);
+    expect(rest.calls.slice(1).map((c) => c[4])).toEqual([1, 2]);
+    expect(mcp.calls.slice(1).map((c) => c[4])).toEqual([1, 2]);
+    expect(s.packing.setItemSharing).toHaveBeenCalledWith(5, 3, 1, 'shared', [2]);
+  });
+
+  it("PACK-LIST-002: only the owner changes the sharing: REST's 403 and MCP's sentence, nothing sent", async () => {
+    const s = setup({ setItemSharing: vi.fn().mockResolvedValue({ forbidden: true }) });
+    const err = await s.run('mcp', (w) => s.writes.setSharing(5, 3, 'personal', [], w)).catch((e: unknown) => e);
+    expect((err as DomainError).getStatus()).toBe(403);
+    expect((err as DomainError).toBody()).toEqual({ error: 'Only the owner can change sharing' });
+    expect(mcpText(err)).toBe('Only the owner can change sharing.');
+    expect(s.realtime.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('PACK-LIST-003: a reorder tells the other tabs on both surfaces, REST skipping the sender', async () => {
+    const s = setup({ reorderItems: vi.fn().mockResolvedValue(undefined) });
+    const rest = await s.run('rest', (w) => s.writes.reorder('5', [3, 1], w));
+    const mcp = await s.run('mcp', (w) => s.writes.reorder(5, [3, 1], w));
+    expect(rest.calls).toEqual([['5', 'packing:reordered', { orderedIds: [3, 1] }, 'sock']]);
+    expect(mcp.calls).toEqual([[5, 'packing:reordered', { orderedIds: [3, 1], _source: 'mcp' }]]);
+  });
+
+  it('PACK-LIST-004: a bag delete sends the delete and the totals ping; a bag off the trip is a 404 and sends nothing', async () => {
+    const s = setup({ deleteBag: vi.fn().mockResolvedValue(true) });
+    const rest = await s.run('rest', (w) => s.writes.deleteBag('5', 7, w));
+    const mcp = await s.run('mcp', (w) => s.writes.deleteBag(5, 7, w));
+    expect(mcp.names).toEqual(rest.names);
+    expect(rest.names).toEqual(['packing:bag-deleted', 'packing:bag-totals']);
+
+    const gone = setup({ deleteBag: vi.fn().mockResolvedValue(false) });
+    const err = await gone.run('mcp', (w) => gone.writes.deleteBag(5, 7, w)).catch((e: unknown) => e);
+    expect((err as DomainError).getStatus()).toBe(404);
+    expect((err as DomainError).toBody()).toEqual({ error: 'Bag not found' });
+    expect(mcpText(err)).toBe('Bag not found.');
+    expect(gone.realtime.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('PACK-LIST-005: category assignees go to the room and notify the tagged travellers on both surfaces', async () => {
+    const assignees = [{ user_id: 2 }];
+    const s = setup({ updateCategoryAssignees: vi.fn().mockResolvedValue(assignees), notifyTagged: vi.fn() });
+    const rest = await s.run('rest', (w) => s.writes.setCategoryAssignees('5', 'Clothes', [2], w));
+    const mcp = await s.run('mcp', (w) => s.writes.setCategoryAssignees(5, 'Clothes', [2], w));
+    expect(mcp.names).toEqual(rest.names);
+    expect(rest.calls).toEqual([['5', 'packing:assignees', { category: 'Clothes', assignees }, 'sock']]);
+    // The MCP tool used to tell none of them; both name the actor by name.
+    const actor = { id: 1, username: 'u' };
+    expect(s.packing.notifyTagged).toHaveBeenNthCalledWith(1, '5', actor, 'Clothes', [2]);
+    expect(s.packing.notifyTagged).toHaveBeenNthCalledWith(2, '5', actor, 'Clothes', [2]);
+    expect(s.notifications.actorName).toHaveBeenCalledWith(1);
+  });
+
+  it('PACK-LIST-006: clearing a category notifies nobody, and an actor without a name is not named', async () => {
+    const s = setup({ updateCategoryAssignees: vi.fn().mockResolvedValue([]), notifyTagged: vi.fn() });
+    await s.run('mcp', (w) => s.writes.setCategoryAssignees(5, 'Clothes', [], w));
+    expect(s.notifications.actorName).not.toHaveBeenCalled();
+
+    vi.mocked(s.notifications.actorName).mockResolvedValueOnce('');
+    await s.run('mcp', (w) => s.writes.setCategoryAssignees(5, 'Clothes', [2], w));
+    expect(s.packing.notifyTagged).not.toHaveBeenCalled();
+  });
+
+  it('PACK-LIST-007: a template applied as personal items reaches its owner alone, on both surfaces', async () => {
+    const items = [{ id: 8, is_private: 1, owner_id: 1 }];
+    const s = setup({ applyTemplate: vi.fn().mockResolvedValue(items) });
+    const rest = await s.run('rest', (w) => s.writes.applyTemplate('5', 4, 'personal', w));
+    const mcp = await s.run('mcp', (w) => s.writes.applyTemplate(5, 4, 'personal', w));
+    expect(rest.calls).toEqual([
+      ['5', 'packing:template-applied', { items }, 'sock', 1],
+      ['5', 'packing:bag-totals', {}, undefined],
+    ]);
+    expect(mcp.calls).toEqual([
+      [5, 'packing:template-applied', { items, _source: 'mcp' }, undefined, 1],
+      ['5', 'packing:bag-totals', {}, undefined],
+    ]);
+    // The owner rides along on both, so a personal apply is the writer's own list.
+    expect(s.packing.applyTemplate).toHaveBeenNthCalledWith(1, '5', 4, 'personal', 1);
+    expect(s.packing.applyTemplate).toHaveBeenNthCalledWith(2, 5, 4, 'personal', 1);
+  });
+
+  it("PACK-LIST-008: a missing or empty template is REST's 404 and MCP's own sentence, nothing sent", async () => {
+    const s = setup({ applyTemplate: vi.fn().mockResolvedValue(null) });
+    const err = await s.run('mcp', (w) => s.writes.applyTemplate(5, 4, 'common', w)).catch((e: unknown) => e);
+    expect((err as DomainError).getStatus()).toBe(404);
+    expect((err as DomainError).toBody()).toEqual({ error: 'Template not found or empty' });
+    expect(mcpText(err)).toBe('Template not found.');
+    expect(s.realtime.broadcast).not.toHaveBeenCalled();
   });
 });

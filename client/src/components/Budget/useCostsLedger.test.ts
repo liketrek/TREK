@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { buildBudgetItem, buildTrip } from '../../../tests/helpers/factories';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { budgetApi } from '../../api/client';
+import { addListener } from '../../api/websocket';
 import { clearAll, offlineDb } from '../../db/offlineDb';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -348,5 +349,26 @@ describe('useCostsLedger: offline (#2601)', () => {
       await offlineDb.mutationQueue.clear();
     });
     await waitFor(() => expect(settlementMock().mock.calls.length).toBeGreaterThan(before));
+  });
+});
+
+describe('useCostsLedger: changes written elsewhere', () => {
+  it('FE-BCAST-017: a burst of payment, split and guest events reads the balances once more', async () => {
+    // Only this test's listeners: the mock keeps the calls of earlier tests otherwise.
+    vi.mocked(addListener).mockClear();
+    const { result } = setup();
+    await waitFor(() => expect(result.current.settlement).toEqual(SETTLEMENT));
+    const before = settlementMock().mock.calls.length;
+    act(() => {
+      for (const [listener] of vi.mocked(addListener).mock.calls) {
+        listener({ type: 'budget:settlement-created', settlement: { id: 31 } });
+        listener({ type: 'budget:member-paid-updated', itemId: 4, userId: 2, paid: 1 });
+        listener({ type: 'member:updated', member: { id: 2, username: 'Bo' } });
+        listener({ type: 'budget:created', item: { id: 99 } });
+      }
+    });
+    await waitFor(() => expect(settlementMock()).toHaveBeenCalledTimes(before + 1));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(settlementMock()).toHaveBeenCalledTimes(before + 1);
   });
 });

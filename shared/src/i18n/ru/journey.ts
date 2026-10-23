@@ -310,7 +310,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'ДЕНЬ',
+  'journey.studio.day': 'ДЕНЬ {day}',
   'journey.studio.stations': 'Остановки',
   'journey.studio.peersHere': 'здесь',
   'journey.studio.folioAuto': 'Автоматически',
@@ -469,7 +469,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Метки',
   'journey.studio.dateMark': 'Дата',
   'journey.studio.dayMark': 'Счётчик дней',
-  'journey.studio.dayWord': 'ДЕНЬ',
   'journey.studio.coordsMark': 'Координаты',
   'journey.studio.coordsDms': 'Градусы',
   'journey.studio.coordsDecimal': 'Десятичные',
@@ -668,6 +667,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Повернуть влево',
   'journey.studio.rotateRight': 'Повернуть вправо',
   'journey.studio.saveReadOnly': 'Только чтение, не сохраняется',
+  'journey.studio.saveNewer': 'Эту книгу сохранила более новая версия Studio. Перезагрузите, чтобы редактировать.',
+  'journey.studio.saveReload': 'Перезагрузить',
   'journey.studio.filterPhotos': 'Фильтр фото',
   'journey.studio.filterAll': 'Все фото',
   'journey.studio.filterLoose': 'Без записи',
@@ -946,5 +947,15 @@ const journey: TranslationStrings = {
     'Записанные дни и взятые из них остановки, в дни с опубликованной записью. Они показывают, где и когда вы были, в том числе ваше жильё.',
   'journey.share.needsMap': 'Откройте доступ к карте, чтобы включить это',
   'journey.editor.tags': 'Теги',
+  'journey.studio.assistant.toggle': 'Ассистент',
+  'journey.studio.assistant.toggleHint': 'Создавайте книгу вместе с ассистентом',
+  'journey.studio.assistant.panel': 'Ассистент книги',
+  'journey.studio.assistant.welcome': 'Какой должна быть книга?',
+  'journey.studio.assistant.readOnly':
+    'Эту книгу вы можете только просматривать, поэтому я отвечу на вопросы, но ничего не изменю.',
+  'journey.studio.assistant.notice':
+    'Ассистент может посмотреть страницу, над которой вы работаете. В {provider} отправляется только эта страница, в виде изображения, на котором видны лишь фото, добавленные вами. Определить, кто изображён на ваших фото, невозможно.',
+  'journey.studio.assistant.noticeAllow': 'Показывать страницы',
+  'journey.studio.assistant.noticeLater': 'Не сейчас',
 };
 export default journey;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowUp, ChevronUp, ImagePlus, Loader2, Reply, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
+import CollabAssistantBadge from '../../../../components/Collab/CollabAssistantBadge'
 import { useCollabChatData } from '../../../../components/Collab/useCollabChatData'
 import { useAuthStore } from '../../../../store/authStore'
 import { useTranslation } from '../../../../i18n'
@@ -13,6 +14,7 @@ import {
   formatChatClockTime,
   formatChatDateSeparator,
   isEmojiOnlyText,
+  isFromAssistant,
   isSameSender,
   shouldShowChatDateSeparator,
   type ChatMessage,
@@ -301,6 +303,11 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
       <div className={`flex min-w-0 max-w-[78%] flex-col ${own ? 'items-end' : 'items-start'}`}>
         {showHeader && (
           <span className="mb-[2px] ps-1 font-geist text-[0.59375rem] font-bold text-m-faint">{msg.username}</span>
+        )}
+        {isFromAssistant(msg) && (
+          <span className="mb-[2px] ps-1">
+            <CollabAssistantBadge name={msg.username} phone />
+          </span>
         )}
 
         <button

@@ -1,7 +1,7 @@
 import type { StoreApi } from 'zustand'
 import type { TrekWsTripEventName } from '@trek/shared'
 import type { TripStoreState } from '../tripStore'
-import type { Assignment, Place, Day, DayNote, PackingItem, TodoItem, BudgetItem, BudgetItemMember, Reservation, Trip, TripFile, WebSocketEvent } from '../../types'
+import type { Assignment, AssignmentParticipant, Place, Day, DayNote, PackingItem, TodoItem, BudgetItem, BudgetItemMember, Reservation, Trip, TripFile, WebSocketEvent } from '../../types'
 import { offlineDb } from '../../db/offlineDb'
 import { useAuthStore } from '../authStore'
 import { mergeAssignmentPlace } from './placesSlice'
@@ -87,6 +87,61 @@ const putTripFile: DexieWriter = async payload => {
   await offlineDb.tripFiles.put(payload.file as TripFile)
 }
 
+/** The key of the day whose plan holds the assignment, if this tab has it. */
+function dayKeyOf(state: TripStoreState, assignmentId: number): string | undefined {
+  return Object.keys(state.assignments).find(key => state.assignments[key].some(a => a.id === assignmentId))
+}
+
+/**
+ * A list in the order a `*:reordered` event names. A named row takes its index in
+ * the event as `sort_order`, which is what the server stores (ids this tab does not
+ * hold still count), and moves to the front in that order. Rows the event does not
+ * name keep their `sort_order` and sit behind, since the server leaves them alone.
+ */
+function inEventOrder<T extends { id: number; sort_order: number }>(items: T[], orderedIds: unknown): T[] | null {
+  if (!Array.isArray(orderedIds)) return null
+  // A repeated id ends where the server's last write for it puts it.
+  const position = new Map<number, number>()
+  ;(orderedIds as number[]).forEach((id, index) => position.set(id, index))
+  const at = (item: T): number => position.get(item.id) ?? 0
+  const named = items
+    .filter(item => position.has(item.id))
+    .sort((a, b) => at(a) - at(b))
+    .map(item => (item.sort_order === at(item) ? item : { ...item, sort_order: at(item) }))
+  return [...named, ...items.filter(item => !position.has(item.id))]
+}
+
+/** A guest renamed: `member:updated` carries the id and the new name. */
+function renamedMember(payload: Record<string, unknown>): { id: number; username: string } | null {
+  const member = payload.member as { id?: unknown; username?: unknown } | undefined
+  if (typeof member?.id !== 'number' || typeof member.username !== 'string') return null
+  return { id: member.id, username: member.username }
+}
+
+type NamedPerson = { user_id: number; username: string }
+
+/** Whether a list of people stored on a row names this person. */
+function names(people: readonly NamedPerson[] | undefined, id: number): boolean {
+  return (people ?? []).some(person => person.user_id === id)
+}
+
+/** `people` with this person's name changed, the same array when nothing changes. */
+function withName<P extends NamedPerson>(people: P[] | undefined, id: number, username: string): P[] | undefined {
+  if (!people?.some(person => person.user_id === id && person.username !== username)) return people
+  return people.map(person => (person.user_id === id ? { ...person, username } : person))
+}
+
+/** `list` with `patch` applied, the same array when no row changes. */
+function patchRows<T>(list: T[], patch: (row: T) => T): T[] {
+  let changed = false
+  const next = list.map(row => {
+    const patched = patch(row)
+    if (patched !== row) changed = true
+    return patched
+  })
+  return changed ? next : list
+}
+
 /**
  * Per-event IndexedDB write-through, keyed by the shared WS event registry.
  * The key set is enumerable on purpose: the registry-parity test asserts every
@@ -115,6 +170,10 @@ export const DEXIE_WRITERS: Partial<Record<TrekWsTripEventName, DexieWriter>> = 
     ])
   },
   'assignment:reordered': writePayloadDay,
+  'assignment:participants': async (payload, state) => {
+    const dayKey = dayKeyOf(state, Number(payload.assignmentId))
+    if (dayKey) await _writeDayToDb(Number(dayKey), state)
+  },
 
   // ── Days ─────────────────────────────────────────────────────────────────
   'day:created': writeDayById,
@@ -134,12 +193,19 @@ export const DEXIE_WRITERS: Partial<Record<TrekWsTripEventName, DexieWriter>> = 
   'packing:deleted': async payload => {
     await offlineDb.packingItems.delete(payload.itemId as number)
   },
+  // The rows this tab holds already passed the privacy check on their way in.
+  'packing:reordered': async (_payload, state) => {
+    await offlineDb.packingItems.bulkPut(state.packingItems)
+  },
 
   // ── Todo ─────────────────────────────────────────────────────────────────
   'todo:created': putTodoItem,
   'todo:updated': putTodoItem,
   'todo:deleted': async payload => {
     await offlineDb.todoItems.delete(payload.itemId as number)
+  },
+  'todo:reordered': async (_payload, state) => {
+    await offlineDb.todoItems.bulkPut(state.todoItems)
   },
 
   // ── Budget ───────────────────────────────────────────────────────────────
@@ -168,6 +234,31 @@ export const DEXIE_WRITERS: Partial<Record<TrekWsTripEventName, DexieWriter>> = 
   // ── Trip ─────────────────────────────────────────────────────────────────
   'trip:updated': async payload => {
     await offlineDb.trips.put(payload.trip as Trip)
+  },
+  // A deleted trip must not come back from the cache on the next offline start.
+  'trip:deleted': async payload => {
+    await offlineDb.trips.delete(Number(payload.id))
+  },
+  // Nor may a trip this user was taken off: the server no longer lets them read it.
+  'member:removed': async (payload, state) => {
+    const me = useAuthStore.getState().user?.id
+    if (!state.trip || me == null || Number(payload.userId) !== me) return
+    await offlineDb.trips.delete(state.trip.id)
+  },
+  // The rows the rename reached, read from the state the applier left.
+  'member:updated': async (payload, state) => {
+    const member = renamedMember(payload)
+    if (!member) return
+    const { id } = member
+    const dayIds = Object.keys(state.assignments)
+      .filter(key => state.assignments[key].some(a => names(a.participants, id)))
+      .map(Number)
+    await Promise.all([
+      offlineDb.budgetItems.bulkPut(state.budgetItems.filter(i => names(i.members, id))),
+      offlineDb.reservations.bulkPut(state.reservations.filter(r => names(r.travelers, id))),
+      offlineDb.packingItems.bulkPut(state.packingItems.filter(i => names(i.recipients, id) || names(i.contributors, id))),
+      ...dayIds.map(dayId => _writeDayToDb(dayId, state)),
+    ])
   },
 
   // ── Files ─────────────────────────────────────────────────────────────────
@@ -337,6 +428,20 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
       }
     }
   },
+  // Who joins a visit, as the participant chips in the day plan and the place
+  // inspector show it. The event names the assignment only, so find its day.
+  'assignment:participants': (payload, state) => {
+    const assignmentId = Number(payload.assignmentId)
+    const dayKey = dayKeyOf(state, assignmentId)
+    if (!dayKey || !Array.isArray(payload.participants)) return {}
+    const participants = payload.participants as AssignmentParticipant[]
+    return {
+      assignments: {
+        ...state.assignments,
+        [dayKey]: state.assignments[dayKey].map(a => (a.id === assignmentId ? { ...a, participants } : a)),
+      },
+    }
+  },
 
   // Days
   'day:created': (payload, state) => {
@@ -401,6 +506,10 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
   'packing:deleted': (payload, state) => ({
     packingItems: state.packingItems.filter(i => i.id !== payload.itemId),
   }),
+  'packing:reordered': (payload, state) => {
+    const packingItems = inEventOrder(state.packingItems, payload.orderedIds)
+    return packingItems ? { packingItems } : {}
+  },
 
   // Todo
   'todo:created': (payload, state) => {
@@ -413,6 +522,10 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
   'todo:deleted': (payload, state) => ({
     todoItems: state.todoItems.filter(i => i.id !== payload.itemId),
   }),
+  'todo:reordered': (payload, state) => {
+    const todoItems = inEventOrder(state.todoItems, payload.orderedIds)
+    return todoItems ? { todoItems } : {}
+  },
 
   // Budget
   'budget:created': (payload, state) => {
@@ -509,6 +622,53 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
 
   // Trip
   'trip:updated': payload => ({ trip: payload.trip as Trip }),
+  // The open trip deleted elsewhere: the planner says so and leaves (tripGone).
+  // The key is `id`, not the transport's `tripId`.
+  'trip:deleted': (payload, state) => {
+    const tripId = Number(payload.id)
+    return state.trip?.id === tripId ? { tripGone: { tripId, reason: 'deleted' } } : {}
+  },
+  // Only the removal of this user means anything to the store: the planner then
+  // leaves the trip. The roster itself is page-local (useTripRosterSync reads it
+  // again on every member event). A removed guest stays on the rows that list it
+  // until they are read again: a member taken off keeps those rows on the server,
+  // and this store cannot tell a guest from a member.
+  'member:removed': (payload, state) => {
+    const me = useAuthStore.getState().user?.id
+    if (!state.trip || me == null || Number(payload.userId) !== me) return {}
+    return { tripGone: { tripId: state.trip.id, reason: 'removed' } }
+  },
+  // A guest renamed. The roster itself is read again by useTripRosterSync; the name
+  // is also stored inside the rows that list people, so it changes there too.
+  'member:updated': (payload, state) => {
+    const member = renamedMember(payload)
+    if (!member) return {}
+    const { id, username } = member
+    return {
+      budgetItems: patchRows(state.budgetItems, item => {
+        const members = withName(item.members, id, username)
+        return members === item.members ? item : { ...item, members }
+      }),
+      reservations: patchRows(state.reservations, reservation => {
+        const travelers = withName(reservation.travelers, id, username)
+        return travelers === reservation.travelers ? reservation : { ...reservation, travelers }
+      }),
+      packingItems: patchRows(state.packingItems, item => {
+        const recipients = withName(item.recipients, id, username)
+        const contributors = withName(item.contributors, id, username)
+        return recipients === item.recipients && contributors === item.contributors
+          ? item
+          : { ...item, recipients, contributors }
+      }),
+      assignments: Object.fromEntries(Object.entries(state.assignments).map(([dayKey, items]) => [
+        dayKey,
+        patchRows(items, assignment => {
+          const participants = withName(assignment.participants, id, username)
+          return participants === assignment.participants ? assignment : { ...assignment, participants }
+        }),
+      ])),
+    }
+  },
 
   // Files
   'file:created': (payload, state) => {
@@ -529,8 +689,50 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
   },
 }
 
-/** The deletes that can take a booked night along with them. */
-const STAY_TAKING_EVENTS = new Set<string>(['day:deleted', 'place:deleted', 'accommodation:deleted'])
+/** How long events of one kind are collected before the store reads once. */
+const STORE_REFRESH_SETTLE_MS = 250
+const pendingRefreshes = new Map<string, ReturnType<typeof setTimeout>>()
+
+/**
+ * Runs `refresh` once for a burst of events of one kind: one assistant step can
+ * apply up to fifty changes, every one of them its own event.
+ */
+function refreshOncePerBurst(kind: string, refresh: () => void): void {
+  if (pendingRefreshes.has(kind)) return
+  pendingRefreshes.set(kind, setTimeout(() => {
+    pendingRefreshes.delete(kind)
+    refresh()
+  }, STORE_REFRESH_SETTLE_MS))
+}
+
+type StoreRefresh = (get: GetState) => void
+
+/**
+ * Events whose change the store reads back from the server instead of applying
+ * it from the payload, keyed by the shared WS event registry like the appliers.
+ */
+export const STORE_REFRESHES: Partial<Record<TrekWsTripEventName, StoreRefresh>> = {
+  // A template applied elsewhere sends its new rows as one bare list, without the
+  // item events' privacy guarantees (a template applied to "my list" adds items
+  // only their owner may see). Read the list again through the repo instead.
+  'packing:template-applied': get => refreshOncePerBurst('packing', () => {
+    const tripId = get().trip?.id
+    if (tripId) void get().reloadPackingItems(tripId)
+  }),
+}
+
+/**
+ * The changes that add, move or take away a booked night: a stay written
+ * elsewhere (the assistant, a fellow traveller, a plugin, a booking import), and
+ * the deletes that can take a stay along with them.
+ */
+const STAY_REFRESH_EVENTS = new Set<string>([
+  'accommodation:created',
+  'accommodation:updated',
+  'accommodation:deleted',
+  'day:deleted',
+  'place:deleted',
+])
 
 /**
  * Applies a remote WebSocket event to the local Zustand store, keeping state in sync across collaborators.
@@ -550,6 +752,7 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
       : undefined
 
   set(state => STATE_APPLIERS[type as TrekWsTripEventName]?.(payload, state) ?? {})
+  STORE_REFRESHES[type as TrekWsTripEventName]?.(get)
 
   // Accommodation cards read their thumbnail from a page-local copy of the
   // place, not from this store, so a new hero image would only appear there
@@ -574,13 +777,15 @@ export function handleRemoteEvent(set: SetState, get: GetState, event: WebSocket
     if (tripId) get().loadReservations(tripId)
   }
 
-  // A deleted day cancels a stay that checked in or out on it, a deleted place
-  // the stay booked at it, and the stays live in page-local planner state rather
-  // than this store. This rides the planner's existing accommodations:refresh
-  // event on purpose, the legacy window bus the place image and trip date
-  // handlers here use as well. Retiring it means moving the stays into a store
-  // slice, a change of its own.
-  if (STAY_TAKING_EVENTS.has(type)) window.dispatchEvent(new CustomEvent('accommodations:refresh'))
+  // A stay booked, changed or cancelled elsewhere, a deleted day that cancels a
+  // stay checking in or out on it, a deleted place that takes the stay booked at
+  // it: the stays live in page-local state (useTripPlanner, useDayDetail) rather
+  // than this store, so each of these asks them to read their stays again, and
+  // useStaysRefresh folds a burst into one reload. This rides the planner's
+  // existing accommodations:refresh event on purpose, the legacy window bus the
+  // place image and trip date handlers here use as well. Retiring it means
+  // moving the stays into a store slice, a change of its own.
+  if (STAY_REFRESH_EVENTS.has(type)) window.dispatchEvent(new CustomEvent('accommodations:refresh'))
 
   // A reorder/insert re-pins dates and re-stamps booking times server-side, so
   // pull the authoritative days + reservations for collaborators.

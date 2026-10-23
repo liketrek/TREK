@@ -58,6 +58,10 @@ import { FakeRealtimeService } from '../../helpers/fake-realtime';
 
 const realtime = new FakeRealtimeService();
 const broadcastToUser = realtime.broadcastToUserMock;
+// copyToTrip's journey hook; collections.copy-to-trip.test.ts covers it on the booted module.
+const placesHooks = { onCreated: vi.fn(async (_tripId: string, _placeId: number) => undefined) };
+/** The events of a copy, sent the way the REST route sends them, through the fake transport. */
+const copyEvents = (tripId: number) => svc.tripEvents(tripId, 'sock-copy');
 
 const orm = () => sharedTestOrm(testDb);
 
@@ -129,6 +133,7 @@ beforeAll(async () => {
     await createTestPlacesRepo(testDb), await createTestPlaceRatingsRepo(testDb),
     await createTestTagsRepo(testDb), await createTestUsersRepo(testDb),
     buildPlaceImportService(),
+    placesHooks as never,
   );
   photoCache = new PlacePhotoCacheService(
     makeStorageFixture('photos/google/').storage,
@@ -496,7 +501,7 @@ describe('copyToTrip', () => {
     createPlace(testDb, trip.id, { name: 'Pantheon' });
     const p2 = (await svc.savePlace(u.id, { collection_id: col.id, name: 'Pantheon' })).place!;
 
-    const res = await svc.copyToTrip(u.id, { trip_id: trip.id, place_ids: [p1.id, p2.id] });
+    const res = await svc.copyToTrip(u.id, { trip_id: trip.id, place_ids: [p1.id, p2.id] }, copyEvents(trip.id));
     expect(res.copied).toBe(1);
     expect(res.skipped.map((s) => s.name)).toEqual(['Pantheon']);
 
@@ -515,7 +520,7 @@ describe('copyToTrip', () => {
     const p = (await svc.savePlace(owner.id, { collection_id: hidden.id, name: 'Secret' })).place!;
     const trip = createTrip(testDb, stranger.id);
 
-    await expect(svc.copyToTrip(stranger.id, { trip_id: trip.id, place_ids: [p.id] })).rejects.toThrow();
+    await expect(svc.copyToTrip(stranger.id, { trip_id: trip.id, place_ids: [p.id] }, copyEvents(trip.id))).rejects.toThrow();
   });
 
   it('COLLECTIONS-SVC-022: rejects a trip the user cannot edit (403/404)', async () => {
@@ -525,7 +530,7 @@ describe('copyToTrip', () => {
     const trip = createTrip(testDb, owner2.id); // u has no access
     const col = await svc.createCollection(u.id, { name: 'C' });
     const p = (await svc.savePlace(u.id, { collection_id: col.id, name: 'X' })).place!;
-    await expect(svc.copyToTrip(u.id, { trip_id: trip.id, place_ids: [p.id] })).rejects.toThrow();
+    await expect(svc.copyToTrip(u.id, { trip_id: trip.id, place_ids: [p.id] }, copyEvents(trip.id))).rejects.toThrow();
   });
 
   it('COLLECTIONS-SVC-023: a trip MEMBER can copy (place_edit allowed)', async () => {
@@ -536,7 +541,7 @@ describe('copyToTrip', () => {
     addTripMember(testDb, trip.id, member.id);
     const col = await svc.createCollection(member.id, { name: 'C' });
     const p = (await svc.savePlace(member.id, { collection_id: col.id, name: 'Forum' })).place!;
-    const res = await svc.copyToTrip(member.id, { trip_id: trip.id, place_ids: [p.id] });
+    const res = await svc.copyToTrip(member.id, { trip_id: trip.id, place_ids: [p.id] }, copyEvents(trip.id));
     expect(res.copied).toBe(1);
   });
 });
@@ -667,7 +672,7 @@ describe('fusion invitations', () => {
 // ── deleteCollection snapshot + broadcast + cascade ──────────────────────────
 
 describe('deleteCollection', () => {
-  it('COLLECTIONS-SVC-040: owner-only; snapshots accepted+pending, broadcasts collections:deleted, cascades', async () => {
+  it("COLLECTIONS-SVC-040: owner-only; snapshots accepted+pending, broadcasts collections:deleted to them and the owner's other tabs, cascades", async () => {
     const owner = createUser(testDb).user;
     const accepted = createUser(testDb).user;
     const pending = createUser(testDb).user;
@@ -681,12 +686,14 @@ describe('deleteCollection', () => {
     await expect(svc.deleteCollection(accepted.id, col.id)).rejects.toThrow();
 
     broadcastToUser.mockClear();
-    await svc.deleteCollection(owner.id, col.id);
+    await svc.deleteCollection(owner.id, col.id, 'sock-9');
 
     const targets = broadcastToUser.mock.calls.map((c) => c[0]);
-    expect(targets).toEqual(expect.arrayContaining([accepted.id, pending.id]));
-    expect(targets).not.toContain(owner.id);
+    // The owner too (G33): the assistant's tab and the owner's other devices drop the list.
+    expect(targets).toEqual(expect.arrayContaining([owner.id, accepted.id, pending.id]));
     expect(broadcastToUser.mock.calls.every((c) => (c[1] as { type: string }).type === 'collections:deleted')).toBe(true);
+    // Only the tab that asked is left out.
+    expect(broadcastToUser.mock.calls.every((c) => c[2] === 'sock-9')).toBe(true);
 
     expect(await countRows(await orm(), Collections, { id: col.id })).toBe(0);
     expect(await placesIn(col.id)).toEqual({ n: 0 });
@@ -944,7 +951,7 @@ describe('collaborative ratings (#1435)', () => {
 
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id); // member is on the trip, so their vote carries
-    const res = await svc.copyToTrip(owner.id, { trip_id: trip.id, place_ids: [cp.id] });
+    const res = await svc.copyToTrip(owner.id, { trip_id: trip.id, place_ids: [cp.id] }, copyEvents(trip.id));
     expect(res.copied).toBe(1);
 
     const newPlace = await newestPlace(trip.id);
@@ -988,7 +995,7 @@ describe('collaborative ratings (#1435)', () => {
 
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, inTrip.id);
-    await svc.copyToTrip(owner.id, { trip_id: trip.id, place_ids: [cp.id] });
+    await svc.copyToTrip(owner.id, { trip_id: trip.id, place_ids: [cp.id] }, copyEvents(trip.id));
 
     const newPlace = await newestPlace(trip.id);
     const ids = (await placeVotes(newPlace.id))
@@ -1186,7 +1193,7 @@ describe('bulk status', () => {
     await svc.setStatus(owner.id, saved.id, 'visited');
 
     expect((await svc.findMembership(viewer.id, { google_place_id: 'gp-9' })).lists).toEqual([
-      { collection_id: readonly.id, name: 'Shared', place_id: saved.id, status: 'visited', can_edit: false },
+      { collection_id: readonly.id, name: 'Shared', color: '#6366f1', place_id: saved.id, status: 'visited', can_edit: false },
     ]);
     expect((await svc.findMembership(owner.id, { google_place_id: 'gp-9' })).lists[0].can_edit).toBe(true);
   });
@@ -1810,7 +1817,7 @@ describe('Plan 3h Task 2 — R6 two-layer authorization order', () => {
     const spy = vi.spyOn(permissionsForSpy, 'checkPermission');
     spy.mockClear();
     try {
-      await svc.copyToTrip(owner.id, { trip_id: strangerTrip.id, place_ids: [cp.id] });
+      await svc.copyToTrip(owner.id, { trip_id: strangerTrip.id, place_ids: [cp.id] }, copyEvents(strangerTrip.id));
       expect.unreachable('copyToTrip should have refused');
     } catch (e) {
       expect((e as { status: number }).status).toBe(404);
@@ -1833,7 +1840,9 @@ describe('Plan 3h Task 2 — R6 two-layer authorization order', () => {
     const strangerTrip = createTrip(testDb, strangerOwner.id); // owner (the caller) is not on this trip
 
     const before = await countRows(await orm(), Places, { trip: strangerTrip.id });
-    await expect(svc.copyToTrip(owner.id, { trip_id: strangerTrip.id, place_ids: [cp.id] })).rejects.toThrow();
+    await expect(
+      svc.copyToTrip(owner.id, { trip_id: strangerTrip.id, place_ids: [cp.id] }, copyEvents(strangerTrip.id)),
+    ).rejects.toThrow();
     const after = await countRows(await orm(), Places, { trip: strangerTrip.id });
     expect(after).toBe(before); // no places row (CL64), and therefore no place_tags/place_ratings rows either
   });

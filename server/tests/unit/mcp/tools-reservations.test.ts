@@ -9,6 +9,7 @@ import { ReservationDayPositions } from '../../../src/db/entities/ReservationDay
 import { ReservationTravelers } from '../../../src/db/entities/ReservationTravelers.entity';
 import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
 import {
   createUser,
   createTrip,
@@ -479,6 +480,51 @@ describe('Tool: delete_reservation', () => {
 });
 
 // ---------------------------------------------------------------------------
+// The notice to fellow travellers
+// ---------------------------------------------------------------------------
+
+describe('Reservation tools: the booking notice', () => {
+  // The booking routes always told the other travellers; the tools did not.
+  it('create, update, the hotel link and delete each tell the fellow travellers, as REST does', async () => {
+    const notify = vi.spyOn(ReservationsService.prototype, 'notifyBookingChange').mockResolvedValue(undefined);
+    try {
+      const { user } = createUser(testDb);
+      const trip = createTrip(testDb, user.id);
+      const day1 = createDay(testDb, trip.id, { day_number: 1 });
+      const day2 = createDay(testDb, trip.id, { day_number: 2 });
+      const hotel = createPlace(testDb, trip.id, { name: 'Ritz' });
+      await withHarness(user.id, async (h) => {
+        const created = parseToolResult(
+          await h.client.callTool({
+            name: 'create_reservation',
+            arguments: { tripId: trip.id, title: 'Ritz', type: 'hotel' },
+          }),
+        ) as { reservation: { id: number } };
+        const reservationId = created.reservation.id;
+        await h.client.callTool({
+          name: 'update_reservation',
+          arguments: { tripId: trip.id, reservationId, title: 'Ritz Paris' },
+        });
+        await h.client.callTool({
+          name: 'link_hotel_accommodation',
+          arguments: { tripId: trip.id, reservationId, place_id: hotel.id, start_day_id: day1.id, end_day_id: day2.id },
+        });
+        await h.client.callTool({ name: 'delete_reservation', arguments: { tripId: trip.id, reservationId } });
+      });
+      // The trip id travels as text from some callers and as a number from others; the notice reads both alike.
+      expect(notify.mock.calls.map(([tripId, ...rest]) => [Number(tripId), ...rest])).toEqual([
+        [trip.id, user.id, 'Ritz', 'hotel'],
+        [trip.id, user.id, 'Ritz Paris', 'hotel'],
+        [trip.id, user.id, 'Ritz Paris', 'hotel'],
+        [trip.id, user.id, 'Ritz Paris', 'hotel'],
+      ]);
+    } finally {
+      notify.mockRestore();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // link_hotel_accommodation
 // ---------------------------------------------------------------------------
 
@@ -512,6 +558,8 @@ describe('Tool: link_hotel_accommodation', () => {
       expect(Number.isInteger(data.reservation.accommodation_id)).toBe(true);
       expect(Number.isInteger(data.accommodation_id)).toBe(true);
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'accommodation:created', expect.any(Object));
+      // A new stay is created, not also updated: the booking form's PUT sends the same.
+      expect(broadcastMock.mock.calls.some((c) => c[1] === 'accommodation:updated')).toBe(false);
     });
   });
 
@@ -540,6 +588,7 @@ describe('Tool: link_hotel_accommodation', () => {
     });
 
     // Update link
+    broadcastMock.mockClear();
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'link_hotel_accommodation',
@@ -552,6 +601,8 @@ describe('Tool: link_hotel_accommodation', () => {
         },
       });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'accommodation:updated', expect.any(Object));
+      // The stay already existed, so it is not announced as a new one.
+      expect(broadcastMock.mock.calls.some((c) => c[1] === 'accommodation:created')).toBe(false);
     });
   });
 
@@ -1102,5 +1153,181 @@ describe('Tool: list_upcoming_reservations', () => {
       const result = await h.client.callTool({ name: 'list_upcoming_reservations', arguments: { limit: 0 } });
       expect(result.isError).toBe(true);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// list_reservations / list_accommodations
+//
+// The assistant's booking reads: the bookings with their readable details,
+// never the raw metadata (provider ids, a leg's own reference), and the stays
+// with their place, each behind the trip's access check and its scope.
+// ---------------------------------------------------------------------------
+
+async function withScopedHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes: string[] | null = null) {
+  const h = await createMcpHarness({ realtime, userId, withResources: false, scopes });
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
+}
+
+interface ListedBooking {
+  id: number;
+  title: string;
+  type: string;
+  metadata?: unknown;
+  details: Record<string, unknown>;
+}
+
+async function listed(userId: number, args: Record<string, unknown>): Promise<ListedBooking[]> {
+  let out: ListedBooking[] = [];
+  await withScopedHarness(userId, async (h) => {
+    const data = parseToolResult(await h.client.callTool({ name: 'list_reservations', arguments: args })) as {
+      reservations: ListedBooking[];
+    };
+    out = data.reservations;
+  });
+  return out;
+}
+
+/** A trip with a flight with stopover legs on day 1, a dinner on day 2 and a hotel stay. */
+async function seedTrip(userId: number) {
+  const trip = createTrip(testDb, userId);
+  const day1 = createDay(testDb, trip.id, { date: '2026-06-03' });
+  const day2 = createDay(testDb, trip.id, { date: '2026-06-04' });
+  const flight = await insertRow(orm, Reservations, {
+    trip: trip.id,
+    day: day1.id,
+    title: 'Frankfurt to New York',
+    type: 'flight',
+    status: 'confirmed',
+    confirmation_number: 'ABC123',
+    metadata: JSON.stringify({
+      airline: 'Lufthansa',
+      flight_number: 'LH 400',
+      seat: '12A',
+      airtrail_ids: [4, 5],
+      legs: [
+        { from: 'FRA', to: 'MUC', flight_number: 'LH 101', confirmation_number: 'LEG-REF', dep_time: '08:15' },
+        { from: 'MUC', to: 'JFK', flight_number: 'LH 410', arr_day_id: day2.id, arr_time: '13:05' },
+      ],
+    }),
+  });
+  const dinner = await insertRow(orm, Reservations, {
+    trip: trip.id,
+    day: day2.id,
+    title: 'Dinner',
+    type: 'restaurant',
+    metadata: JSON.stringify({ price: '80' }),
+  });
+  return { trip, day1, day2, flight, dinner };
+}
+
+describe('Tool: list_reservations', () => {
+  it('RESREAD-MCP-001: lists the bookings with their readable details and without the raw metadata', async () => {
+    const { user } = createUser(testDb);
+    const { trip } = await seedTrip(user.id);
+    const bookings = await listed(user.id, { tripId: trip.id });
+    expect(bookings.map((b) => b.title).sort()).toEqual(['Dinner', 'Frankfurt to New York']);
+    const flight = bookings.find((b) => b.type === 'flight');
+    expect(flight).not.toHaveProperty('metadata');
+    expect(flight?.details).toMatchObject({ airline: 'Lufthansa', flight_number: 'LH 400', seat: '12A' });
+    expect(flight?.details.legs).toEqual([
+      { from: 'FRA', to: 'MUC', flight_number: 'LH 101', dep_time: '08:15' },
+      expect.objectContaining({ from: 'MUC', to: 'JFK', flight_number: 'LH 410', arr_time: '13:05' }),
+    ]);
+    // A provider id and a leg's own reference stay with the booking.
+    expect(JSON.stringify(flight?.details)).not.toContain('airtrail_ids');
+    expect(JSON.stringify(flight?.details)).not.toContain('LEG-REF');
+    expect(bookings.find((b) => b.type === 'restaurant')?.details).toEqual({ price: '80' });
+  });
+
+  it('RESREAD-MCP-005: says that a leg holds a reference, never the reference itself', async () => {
+    const { user } = createUser(testDb);
+    const { trip } = await seedTrip(user.id);
+    const bookings = await listed(user.id, { tripId: trip.id });
+    expect(bookings.find((b) => b.type === 'flight')?.details.has_leg_reference).toBe(true);
+    expect(bookings.find((b) => b.type === 'restaurant')?.details).not.toHaveProperty('has_leg_reference');
+  });
+
+  it('RESREAD-MCP-002: keeps one kind, or the bookings on one day (a leg arriving on it counts)', async () => {
+    const { user } = createUser(testDb);
+    const { trip, day1, day2 } = await seedTrip(user.id);
+    expect((await listed(user.id, { tripId: trip.id, kinds: ['transport'] })).map((b) => b.type)).toEqual(['flight']);
+    expect((await listed(user.id, { tripId: trip.id, kinds: ['booking'] })).map((b) => b.type)).toEqual(['restaurant']);
+    expect((await listed(user.id, { tripId: trip.id, dayId: day1.id })).map((b) => b.type)).toEqual(['flight']);
+    expect((await listed(user.id, { tripId: trip.id, dayId: day2.id })).map((b) => b.type).sort()).toEqual([
+      'flight',
+      'restaurant',
+    ]);
+  });
+
+  it('RESREAD-MCP-003: refuses a trip the user cannot see', async () => {
+    const { user } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const { trip } = await seedTrip(user.id);
+    await withScopedHarness(stranger.id, async (h) => {
+      const result = await h.client.callTool({ name: 'list_reservations', arguments: { tripId: trip.id } });
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  it('RESREAD-MCP-004: rides reservations:read and is hidden from a token without it', async () => {
+    const { user } = createUser(testDb);
+    await withScopedHarness(
+      user.id,
+      async (h) => {
+        expect((await h.client.listTools()).tools.map((t) => t.name)).toContain('list_reservations');
+      },
+      ['reservations:read'],
+    );
+    await withScopedHarness(
+      user.id,
+      async (h) => {
+        expect((await h.client.listTools()).tools.map((t) => t.name)).not.toContain('list_reservations');
+      },
+      ['places:read'],
+    );
+  });
+});
+
+describe('Tool: list_accommodations', () => {
+  it('RESREAD-MCP-010: lists the stays with their place and check-in and check-out', async () => {
+    const { user } = createUser(testDb);
+    const { trip, day1, day2 } = await seedTrip(user.id);
+    const hotel = createPlace(testDb, trip.id, { name: 'Mercure', lat: 52.53, lng: 13.38 });
+    createDayAccommodation(testDb, trip.id, hotel.id, day1.id, day2.id, { check_in: '15:00', confirmation: 'H-1' });
+    await withScopedHarness(user.id, async (h) => {
+      const data = parseToolResult(
+        await h.client.callTool({ name: 'list_accommodations', arguments: { tripId: trip.id } }),
+      ) as { accommodations: Array<Record<string, unknown>> };
+      expect(data.accommodations).toHaveLength(1);
+      expect(data.accommodations[0]).toMatchObject({
+        place_id: hotel.id,
+        place_name: 'Mercure',
+        start_day_id: day1.id,
+        end_day_id: day2.id,
+        check_in: '15:00',
+      });
+    });
+  });
+
+  it('RESREAD-MCP-011: refuses a trip the user cannot see, and is hidden from a token without trip reads', async () => {
+    const { user } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const { trip } = await seedTrip(user.id);
+    await withScopedHarness(stranger.id, async (h) => {
+      const result = await h.client.callTool({ name: 'list_accommodations', arguments: { tripId: trip.id } });
+      expect(result.isError).toBe(true);
+    });
+    await withScopedHarness(
+      user.id,
+      async (h) => {
+        expect((await h.client.listTools()).tools.map((t) => t.name)).not.toContain('list_accommodations');
+      },
+      ['places:read'],
+    );
   });
 });

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useAuthStore } from '../../store/authStore'
@@ -6,6 +6,7 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { tripsApi } from '../../api/client'
 import { useAddonStore } from '../../store/addonStore'
+import { useServerPing } from '../../sync/useServerPing'
 import type { PackingItem } from '../../types'
 import { parseImportLines, sortItemsByName } from './packingListPanel.helpers'
 import { groupPackingItems, itemOrderWithCategoryMoved, packingCategoryOrder, packingProgress, packingViewItems } from './packingListModel'
@@ -18,6 +19,9 @@ import { usePackingTemplates } from './usePackingTemplates'
 export type { CategoryAssignee } from './usePackingCategoryAssignees'
 
 const PACKING_SORT_KEY = 'trek:packing-sort'
+
+/** The roster events that change who the pickers offer. */
+const MEMBER_EVENTS = ['member:added', 'member:updated', 'member:removed'] as const
 
 export type PackingSort = 'manual' | 'name'
 
@@ -78,14 +82,19 @@ export function usePackingList({ tripId, items, openImportSignal = 0, addCategor
   // Trip members & category assignees
   const [tripMembers, setTripMembers] = useState<TripMember[]>([])
 
+  const readMembers = useCallback(() => tripsApi.getMembers(tripId).then(data => {
+    const all: TripMember[] = []
+    if (data.owner) all.push({ id: data.owner.id, username: data.owner.username, avatar: data.owner.avatar_url, is_guest: false })
+    if (data.members) all.push(...data.members.map((m: any) => ({ id: m.id, username: m.username, avatar: m.avatar_url, is_guest: !!m.is_guest })))
+    setTripMembers(all)
+  }).catch(() => {}), [tripId])
+
   useEffect(() => {
-    tripsApi.getMembers(tripId).then(data => {
-      const all: TripMember[] = []
-      if (data.owner) all.push({ id: data.owner.id, username: data.owner.username, avatar: data.owner.avatar_url, is_guest: false })
-      if (data.members) all.push(...data.members.map((m: any) => ({ id: m.id, username: m.username, avatar: m.avatar_url, is_guest: !!m.is_guest })))
-      setTripMembers(all)
-    }).catch(() => {})
-  }, [tripId])
+    void readMembers()
+  }, [readMembers])
+  // A traveller or guest added, renamed or removed elsewhere: the pickers read the
+  // roster again, once per burst (the phone list reads the planner's roster).
+  useServerPing(MEMBER_EVENTS, true, readMembers)
 
   const { categoryAssignees, setAssignees: handleSetAssignees } = usePackingCategoryAssignees({ tripId, t, toast })
 

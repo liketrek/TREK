@@ -1,5 +1,6 @@
 import { AccommodationsController } from '../../../src/nest/accommodations/accommodations.controller';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
+import { DomainError } from '../../../src/nest/common/domain-error';
 import type { User } from '../../../src/types';
 import { HttpException } from '@nestjs/common';
 
@@ -265,6 +266,104 @@ describe('AccommodationsController (parity with the legacy accommodations sub-ro
 
       await controller.remove(user, '5', '9', 'sock');
       expect(remove).toHaveBeenLastCalledWith('9', { keepStop: false });
+    });
+  });
+});
+
+/**
+ * The gate and the checks every surface shares, called on the use cases
+ * directly with an MCP writer. That REST and MCP send the same events is held
+ * by the broadcast parity group (tests/integration/broadcast-parity/bookings.cases.ts).
+ */
+describe('stay use cases: the shared gate and checks', () => {
+  const writer = (role = 'user') => ({
+    userId: 1,
+    role,
+    surface: 'mcp' as const,
+    events: { emit: vi.fn(), emitAll: vi.fn() },
+  });
+  const stay = { place_id: 2, start_day_id: 10, end_day_id: 11 };
+  const cancelled = {
+    linkedReservationId: 4,
+    deletedBudgetItemId: null,
+    linkedReservationIds: [4, 5],
+    deletedBudgetItemIds: [],
+    mirror: noMirror,
+  };
+
+  it("ACC-UC-001: a trip the writer cannot see refuses with REST's 404 and MCP's own wording", async () => {
+    const svc = makeService({ trips: { findAccessible: vi.fn().mockResolvedValue(undefined) } });
+    const err = await svc.createStay(5, stay, writer()).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(DomainError);
+    expect((err as DomainError).getStatus()).toBe(404);
+    expect((err as DomainError).toBody()).toEqual({ error: 'Trip not found' });
+    expect((err as DomainError).mcpMessage).toBe('Trip not found or access denied.');
+  });
+
+  it('ACC-UC-002: a writer without day_edit is refused before anything is read or written', async () => {
+    const create = vi.fn();
+    const svc = makeService({ permissions: { checkPermission: vi.fn().mockResolvedValue(false) }, create });
+    const err = (await svc.createStay(5, stay, writer()).catch((e: unknown) => e)) as DomainError;
+    expect(err.getStatus()).toBe(403);
+    expect(err.mcpMessage).toBe('You do not have permission to perform this action on this trip.');
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("ACC-UC-003: the permission check sees the writer's role and whether it is a member", async () => {
+    const checkPermission = vi.fn().mockResolvedValue(true);
+    const svc = makeService({
+      permissions: { checkPermission },
+      trips: { findAccessible: vi.fn().mockResolvedValue({ user_id: 2 }) },
+      get: vi.fn().mockResolvedValue({ id: 9 }),
+      remove: vi.fn().mockResolvedValue(cancelled),
+    });
+    await svc.deleteStay(5, 9, writer('admin'));
+    expect(checkPermission).toHaveBeenCalledWith('day_edit', 'admin', 2, 1, true);
+  });
+
+  it('ACC-UC-004: every reference miss is listed for MCP, the first one answers REST', async () => {
+    const validateRefs = vi.fn().mockResolvedValue([{ message: 'Place not found' }, { message: 'End day not found' }]);
+    const svc = makeService({ validateRefs });
+    const err = (await svc.createStay(5, stay, writer()).catch((e: unknown) => e)) as DomainError;
+    expect(err.getStatus()).toBe(404);
+    expect(err.toBody()).toEqual({ error: 'Place not found' });
+    expect(err.mcpMessage).toBe('Place not found, End day not found');
+  });
+
+  it('ACC-UC-005: an edit checks the references it names, on MCP as on REST', async () => {
+    // The MCP tool used to write a place or day it never looked up.
+    const update = vi.fn();
+    const validateRefs = vi.fn().mockResolvedValue([{ message: 'Place not found' }]);
+    const svc = makeService({ validateRefs, update, get: vi.fn().mockResolvedValue({ id: 9 }) });
+    const err = (await svc.updateStay(5, 9, { place_id: 99 }, writer()).catch((e: unknown) => e)) as DomainError;
+    expect(err.getStatus()).toBe(404);
+    expect(validateRefs).toHaveBeenCalledWith(5, 99, undefined, undefined);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('ACC-UC-006: an edit or a cancellation of a stay that is not on the trip is a 404', async () => {
+    const svc = makeService({ get: vi.fn().mockResolvedValue(undefined) });
+    const errors = (await Promise.all(
+      [svc.updateStay(5, 9, {}, writer()), svc.deleteStay(5, 9, writer())].map((p) => p.catch((e: unknown) => e)),
+    )) as DomainError[];
+    for (const err of errors) {
+      expect(err.toBody()).toEqual({ error: 'Accommodation not found' });
+      expect(err.mcpMessage).toBe('Accommodation not found.');
+    }
+  });
+
+  it("ACC-UC-007: a cancellation over MCP keeps the keys its tool always sent next to REST's", async () => {
+    const svc = makeService({
+      get: vi.fn().mockResolvedValue({ id: 9 }),
+      remove: vi.fn().mockResolvedValue(cancelled),
+    });
+    const mcp = writer();
+    await svc.deleteStay(5, 9, mcp);
+    expect(mcp.events.emit).toHaveBeenLastCalledWith('accommodation:deleted', {
+      accommodationId: 9,
+      id: 9,
+      linkedReservationId: 4,
+      linkedReservationIds: [4, 5],
     });
   });
 });

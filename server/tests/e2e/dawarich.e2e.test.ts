@@ -15,21 +15,31 @@
  * 401, the shape of a connection nobody has configured, the two URL rejections
  * that need no DNS, the suggestions envelope's `connected: false`, and the
  * cross-user isolation — someone else's suggestion is invisible and untouchable
- * through your own session, and answers the same 404 a missing one does.
+ * through your own session, and answers the same 404 a missing one does. The
+ * bucket-list and Atlas tools of DawarichAtlasMcp run next to their routes on
+ * the same container, so the two channels are held to the same answers.
  */
 import { db } from '../../src/db/database';
+import { BucketList } from '../../src/db/entities/BucketList.entity';
 import { DawarichConnections } from '../../src/db/entities/DawarichConnections.entity';
 import { DawarichVisitSuggestions } from '../../src/db/entities/DawarichVisitSuggestions.entity';
+import { VisitedCountries } from '../../src/db/entities/VisitedCountries.entity';
+import { trekMcpErrorMapper } from '../../src/mcp/nest-mcp-policy';
+import type { McpContext, McpTextResult } from '../../src/nest-mcp';
 import { AddonsService } from '../../src/nest/addons/addons.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { DawarichClient } from '../../src/nest/integrations/dawarich.client';
+import { withRequestContext } from '../../src/nest/database/request-context';
+import { DawarichAtlasMcp } from '../../src/nest/integrations/dawarich-atlas.mcp';
+import { DawarichClient, DawarichError } from '../../src/nest/integrations/dawarich.client';
 import { DawarichModule } from '../../src/nest/integrations/dawarich.module';
 import { createUser } from '../helpers/factories';
+import { makeBucketListItem } from '../helpers/factories/atlas';
 import { countRows, deleteRows, findRow, insertRow } from '../helpers/factories/rows';
 import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
 import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { sessionCookie } from './harness';
+import { MikroORM } from '@mikro-orm/core';
 import { Test } from '@nestjs/testing';
 
 import cookieParser from 'cookie-parser';
@@ -376,5 +386,127 @@ describe('Dawarich e2e (real addon gate + real auth guard + real services + temp
     expect(res.body.id).toBe(mine);
     expect(res.body.state).toBe('dismissed');
     expect((await findRow(orm, DawarichVisitSuggestions, { id: mine }))?.state).toBe('dismissed');
+  });
+
+  // ── Bucket list and Atlas over MCP: the same services, the same answers ──
+
+  const asUser = (userId: number) => ({ userId, scopes: null, isStaticToken: false }) as McpContext;
+  const viaMcp = <T>(fn: (mcp: DawarichAtlasMcp) => Promise<T>) =>
+    withRequestContext(app.get(MikroORM), () => fn(app.get(DawarichAtlasMcp)));
+  const answerOf = (result: McpTextResult) => JSON.parse(result.content[0]?.text ?? '');
+
+  it('DAWARICH-E2E-040: a wish ticked off over MCP is ticked off for REST, and only its owner can clear it', async () => {
+    const wish = await makeBucketListItem(orm, ownerId, { name: 'Alhambra', lat: 37.176, lng: -3.588 });
+
+    const confirmed = await viaMcp((mcp) =>
+      mcp.confirmBucketVisits({ itemIds: [wish.id], visitedAt: '2024-04-02T10:00:00Z' }, asUser(ownerId)),
+    );
+    expect(answerOf(confirmed)).toEqual({ updated: 1 });
+    const again = await request(server)
+      .post('/api/integrations/dawarich/bucket-list/confirm')
+      .set('Cookie', sessionCookie(ownerId))
+      .send({ itemIds: [wish.id] });
+    expect(again.status).toBe(200);
+    expect(again.body).toEqual({ updated: 0 });
+    expect(await findRow(orm, BucketList, { id: wish.id })).toMatchObject({
+      visited_at: '2024-04-02T10:00:00Z',
+      visited_source: 'dawarich',
+    });
+
+    const foreign = await viaMcp((mcp) => mcp.clearBucketVisit({ itemId: wish.id }, asUser(strangerId)));
+    expect(foreign).toEqual({ content: [{ type: 'text', text: 'Bucket-list entry not found' }], isError: true });
+    const foreignRest = await request(server)
+      .delete(`/api/integrations/dawarich/bucket-list/${wish.id}/visit`)
+      .set('Cookie', sessionCookie(strangerId));
+    expect(foreignRest.status).toBe(404);
+    expect(foreignRest.body).toEqual({ error: 'Bucket-list entry not found' });
+
+    expect(answerOf(await viaMcp((mcp) => mcp.clearBucketVisit({ itemId: wish.id }, asUser(ownerId))))).toEqual({
+      success: true,
+    });
+    expect(await findRow(orm, BucketList, { id: wish.id })).toMatchObject({ visited_at: null, visited_source: null });
+  });
+
+  it('DAWARICH-E2E-041: countries accepted over MCP land in the Atlas once, as REST then finds them', async () => {
+    const marked = await viaMcp((mcp) => mcp.acceptAtlasCountries({ countryCodes: ['PT', 'es'] }, asUser(ownerId)));
+    expect(answerOf(marked)).toEqual({ marked: 2 });
+
+    const again = await request(server)
+      .post('/api/integrations/dawarich/atlas/accept')
+      .set('Cookie', sessionCookie(ownerId))
+      .send({ countryCodes: ['PT', 'ES'] });
+    expect(again.status).toBe(200);
+    expect(again.body).toEqual({ marked: 0 });
+    expect(await countRows(orm, VisitedCountries, { user: ownerId, source: 'dawarich' })).toBe(2);
+  });
+
+  it('DAWARICH-E2E-042: without a connection both reads refuse alike, and a backwards window is the route 400 before anything is asked', async () => {
+    const scan = await request(server)
+      .post('/api/integrations/dawarich/bucket-list/scan')
+      .set('Cookie', sessionCookie(ownerId));
+    expect(scan.status).toBe(400);
+    expect(scan.body).toEqual({ error: 'Dawarich is not connected', code: 'not_connected' });
+    expect(await viaMcp((mcp) => mcp.scanBucketList({}, asUser(ownerId)))).toEqual({
+      content: [{ type: 'text', text: 'Dawarich is not connected' }],
+      isError: true,
+    });
+
+    const window = { from: '2026-01-01T00:00:00Z', to: '2026-03-01T00:00:00Z' };
+    const suggestions = await request(server)
+      .get('/api/integrations/dawarich/atlas/suggestions')
+      .query(window)
+      .set('Cookie', sessionCookie(ownerId));
+    expect(suggestions.status).toBe(400);
+    expect(suggestions.body).toEqual({ error: 'Dawarich is not connected', code: 'not_connected' });
+    expect(await viaMcp((mcp) => mcp.suggestAtlasCountries(window, asUser(ownerId)))).toEqual({
+      content: [{ type: 'text', text: 'Dawarich is not connected' }],
+      isError: true,
+    });
+
+    const backwards = { from: window.to, to: window.from };
+    const refused = await request(server)
+      .get('/api/integrations/dawarich/atlas/suggestions')
+      .query(backwards)
+      .set('Cookie', sessionCookie(ownerId));
+    expect(refused.status).toBe(400);
+    expect(refused.body).toEqual({ error: 'to must be after from' });
+    const thrown = await viaMcp((mcp) => mcp.suggestAtlasCountries(backwards, asUser(ownerId))).then(
+      () => undefined,
+      (err: unknown) => err,
+    );
+    expect(thrown).toMatchObject({ status: 400, publicMessage: 'to must be after from' });
+    // The tool call answers with the route's sentence: the registry maps the refusal to an error result.
+    expect(trekMcpErrorMapper(thrown)).toEqual({
+      content: [{ type: 'text', text: 'to must be after from' }],
+      isError: true,
+    });
+  });
+
+  it('DAWARICH-E2E-043: an instance that does not answer ends a scan after one lookup: the route 502 and the same sentence over MCP', async () => {
+    await insertRow(orm, DawarichConnections, {
+      user: ownerId,
+      url: 'https://dawarich.example',
+      api_key: 'plain-legacy-key',
+    });
+    await Promise.all(
+      ['Alhambra', 'Petra'].map((name) => makeBucketListItem(orm, ownerId, { name, lat: 37.176, lng: -3.588 })),
+    );
+    const findVisitsNear = vi.mocked(app.get(DawarichClient).findVisitsNear);
+    findVisitsNear.mockClear();
+    const down = () => new DawarichError('unreachable', 'Could not reach Dawarich', undefined, 'ETIMEDOUT');
+    findVisitsNear.mockRejectedValueOnce(down()).mockRejectedValueOnce(down());
+
+    const scan = await request(server)
+      .post('/api/integrations/dawarich/bucket-list/scan')
+      .set('Cookie', sessionCookie(ownerId));
+    expect(scan.status).toBe(502);
+    expect(scan.body).toEqual({ error: 'Could not reach Dawarich', code: 'unreachable', detail: 'ETIMEDOUT' });
+    expect(await viaMcp((mcp) => mcp.scanBucketList({}, asUser(ownerId)))).toEqual({
+      content: [{ type: 'text', text: 'Could not reach Dawarich' }],
+      isError: true,
+    });
+    // One lookup per channel, not one per wish.
+    expect(findVisitsNear).toHaveBeenCalledTimes(2);
+    await deleteRows(orm, BucketList, { user: ownerId });
   });
 });

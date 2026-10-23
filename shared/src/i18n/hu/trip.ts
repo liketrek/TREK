@@ -22,6 +22,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'Kérjük, először válassz egy napot',
   'trip.toast.assignedToDay': 'Hely hozzárendelve a naphoz',
   'trip.toast.loadError': 'Az utazást nem sikerült betölteni',
+  'trip.toast.accessLost': 'Már nem vagy tagja ennek az utazásnak',
   'trip.toast.reorderError': 'Nem sikerült átrendezni',
   'trip.toast.reservationUpdated': 'Foglalás frissítve',
   'trip.toast.reservationAdded': 'Foglalás hozzáadva',

@@ -17,7 +17,7 @@ import { openLeg } from '../../../helpers/legAlternatives'
 import { RT_ALT_BAR_LIFT } from '../../../../src/mobile/screens/trip/roadtrip/useMRtAlternatives'
 import { corePoiCategories, pluginPoiCategories } from '../../../../src/components/Map/usePoiCategories'
 
-// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-050
+// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-051
 //
 // The stage's pins come out of the trip store rather than the planner's map list, so the
 // stage fixtures seed the store and leave `mapPlaces` to stand for what the plan tab shows.
@@ -1002,5 +1002,22 @@ describe('MMapArea — viewport', () => {
 
     unmount()
     expect(useTripStore.getState().planMapViewport).toBeNull()
+  })
+})
+
+describe("MMapArea: the chat's routes", () => {
+  it("FE-MOB-MAPAREA-051: the chat's routes reach the plan map, a tap points along them, and no hover is wired", () => {
+    const onPoint = vi.fn()
+    const lines = [{ id: 'c1:look:route', ref: 'c1', lines: [[[47.7, 12.5], [47.8, 12.6]]], color: '#0a84ff', casing: '#fff' }]
+    const assistantMap = {
+      assistantRouteLines: lines,
+      onAssistantRouteHover: vi.fn(),
+      onAssistantRoutePoint: onPoint,
+    }
+    renderArea({}, { assistantMap } as unknown as Partial<TripPlanner>)
+    expect(mocks.props.assistantRouteLines).toBe(lines)
+    expect(mocks.props.onAssistantRouteHover).toBeUndefined()
+    ;(mocks.props.onAssistantRoutePoint as (ref: string, lat: number, lng: number) => void)('c1', 47.75, 12.55)
+    expect(onPoint).toHaveBeenCalledWith('c1', 47.75, 12.55)
   })
 })

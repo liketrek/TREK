@@ -14,7 +14,7 @@ export type PluginRow = EntityDTO<Plugins>;
  * settings surface wants.
  */
 export async function makePlugin(orm: FactoryOrm, id: string, overrides: EntityData<Plugins> = {}): Promise<PluginRow> {
-  await insertRow(orm, Plugins, { id, name: id, version: '1.0.0', ...overrides });
+  await insertRow(orm, Plugins, { id, name: id, version: '1.0.0' }, overrides);
   const plugin = await findRow(orm, Plugins, { id });
   if (!plugin) throw new Error(`makePlugin: no plugin ${id} after its insert`);
   return plugin;
@@ -27,12 +27,16 @@ export function makePluginSettingsField(
   fieldKey: string,
   overrides: EntityData<PluginSettingsFields> = {},
 ): Promise<EntityDTO<PluginSettingsFields>> {
-  return createRow(orm, PluginSettingsFields, {
-    plugin_id: pluginId,
-    field_key: fieldKey,
-    label: fieldKey,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    PluginSettingsFields,
+    {
+      plugin_id: pluginId,
+      field_key: fieldKey,
+      label: fieldKey,
+    },
+    overrides,
+  );
 }
 
 /** Stores the user's config for the plugin as JSON, replacing any earlier one. */

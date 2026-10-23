@@ -3,27 +3,25 @@ import { useTranslation } from '../../../i18n'
 import { useIsDark } from '../../../hooks/useIsDark'
 import {
   Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen,
-  Sparkles, Luggage, Plane, Server, Cloud, Bookmark, Users, Check, Loader2, Mountain, CarFront,
+  Sparkles, Luggage, Plane, Bookmark, Users, Loader2, Mountain, CarFront, Settings2, ChevronRight,
 } from 'lucide-react'
 import DawarichIcon from '../../../components/shared/DawarichIcon'
 import AirTrailIcon from '../../../components/shared/AirTrailIcon'
 import { DOCUMENT_PROVIDER_ICONS } from '../../../components/shared/DocumentProviderIcons'
 import MToggle from '../../components/MToggle'
-import { LLM_VISION_MODES } from '@trek/shared'
 import {
   type Addon,
   type CollabFeatures,
   type ProviderOption,
-  ANTHROPIC_HINT,
   COLLAB_SUB_FEATURES,
   getAddonLabel,
-  MASKED,
-  RECOMMENDED_MODELS,
 } from '../../../components/Admin/addons/addonModel'
 import { useAddonManager } from '../../../components/Admin/addons/useAddonManager'
-import { useLlmParsingConfig } from '../../../components/Admin/addons/useLlmParsingConfig'
+import AiSettingsDialog from '../../../components/Admin/addons/AiAdminConfig'
+import { AI_ADDON_ICONS, type AiAddonId } from '../../../components/Admin/addons/aiAddons'
+import { useAiAddonTile } from '../../../components/Admin/addons/useAiAddonTile'
 import { ImmichIcon, SynologyIcon } from '../../../components/Admin/addons/PhotoProviderIcons'
-import { MAdminButton, MAdminCard, MAdminClampedText, MAdminField, MAdminInput, MAdminSecretInput } from './MAdminUi'
+import { MAdminCard, MAdminClampedText } from './MAdminUi'
 import WandererMark from '../../../components/Tours/wanderer/WandererMark'
 
 // Keys are the `icon` column from the addons table; anything unknown falls back to
@@ -63,7 +61,7 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
   const { t } = useTranslation()
   const dark = useIsDark()
   const {
-    addons, loading, handleToggle, tripAddons, globalAddons, integrationAddons, providerOptions, documentProviderOptions,
+    addons, loading, handleToggle, tripAddons, globalAddons, integrationAddons, aiAddons, providerOptions, documentProviderOptions,
     toursWanderer,
     toggleToursWanderer,
     mapSwitches,
@@ -169,19 +167,13 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
             </MAdminCard>
           )}
 
-          {/* Integration Addons */}
-          {integrationAddons.length > 0 && (
+          {/* Integration Addons, headed by the AI ones as one group, as on the desktop */}
+          {(integrationAddons.length > 0 || aiAddons.length > 0) && (
             <MAdminCard>
               <MGroupHead icon={Link2} label={t('admin.addons.type.integration')} hint={t('admin.addons.integrationHint')} />
+              {aiAddons.length > 0 && <MAiAddons addons={aiAddons} onToggle={handleToggle} />}
               {integrationAddons.map((addon, i) => (
-                <div key={addon.id}>
-                  <MAddonRow addon={addon} onToggle={handleToggle} t={t} first={i === 0} />
-                  {addon.id === 'llm_parsing' && addon.enabled && (
-                    <div className="mt-1 border-t border-[color:var(--m-rowbr)] pt-3">
-                      <LlmParsingConfig addon={addon} />
-                    </div>
-                  )}
-                </div>
+                <MAddonRow key={addon.id} addon={addon} onToggle={handleToggle} t={t} first={i === 0 && aiAddons.length === 0} />
               ))}
             </MAdminCard>
           )}
@@ -279,209 +271,50 @@ function MSubRow({ icon: Icon, providerIcon: ProviderIcon, title, subtitle, enab
   )
 }
 
-/**
- * Instance-wide AI-parsing config. When set, applies to the whole instance and
- * overrides per-user config (see server llmConfig.ts). The API key is masked on
- * read; an unchanged mask is treated as a no-op by the server. For the local
- * provider, it also lists installed Ollama models and can pull NuExtract models.
- */
-function LlmParsingConfig({ addon }: { addon: Addon }) {
+/** The AI addons as one group: a head row, their switches, and the button to the settings dialog. */
+function MAiAddons({ addons, onToggle }: { addons: Addon[]; onToggle: (addon: Addon) => void }) {
   const { t } = useTranslation()
-  const {
-    provider, setProvider, model, setModel, baseUrl, setBaseUrl, baseUrlPlaceholder, apiKey, setApiKey, vision, setVision, saving,
-    installed, modelsErr, loadingModels, pulling, pullPct, pullStatus, isInstalled, loadModels, pull, save,
-  } = useLlmParsingConfig(addon)
-
-  const sectionCls = 'font-geist text-[0.625rem] font-bold uppercase tracking-[0.06em] text-m-faint'
-
-  const providerOptions = [
-    { value: 'local', label: 'Local · OpenAI-compatible', icon: <Server size={14} />, badge: 'Ollama' },
-    { value: 'openai', label: 'OpenAI', icon: <Cloud size={14} /> },
-    { value: 'anthropic', label: 'Anthropic', icon: <Sparkles size={14} /> },
-  ]
-
+  const tile = useAiAddonTile(addons)
   return (
-    <div className="space-y-5 ps-[50px]">
-      <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">
-        Set instance-wide config (applies to all users). Leave blank to let each user configure their own provider.
-      </p>
-
-      {/* Connection */}
-      <section className="space-y-3">
-        <div className={sectionCls}>Connection</div>
-        <MAdminField label="Provider">
-          <div className="space-y-[6px]">
-            {providerOptions.map((opt) => {
-              const active = provider === opt.value
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setProvider(opt.value)}
-                  className={`flex w-full items-center gap-2 rounded-xl border px-3 py-[10px] text-start ${
-                    active ? 'border-[color:var(--m-act)] bg-[color:var(--m-ic)]' : 'border-[color:var(--m-rowbr)]'
-                  }`}
-                >
-                  <span className="flex-none text-m-muted">{opt.icon}</span>
-                  <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">{opt.label}</span>
-                  {opt.badge && (
-                    <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.5625rem] font-bold text-m-muted">
-                      {opt.badge}
-                    </span>
-                  )}
-                  {active && <Check size={15} strokeWidth={2.4} className="flex-none text-m-ink" />}
-                </button>
-              )
-            })}
-          </div>
-        </MAdminField>
-        <MAdminField label="Base URL">
-          <MAdminInput
-            type="url"
-            autoComplete="off"
-            value={baseUrl}
-            onChange={e => setBaseUrl(e.target.value)}
-            onBlur={loadModels}
-            placeholder={baseUrlPlaceholder}
+    <div>
+      <div className="flex items-center gap-3 py-[11px]">
+        <span className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-[11px] bg-[color:var(--m-ic)] text-m-ink">
+          <Sparkles size={18} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-[0.8125rem] font-bold text-m-ink">{t('admin.addons.ai.name')}</span>
+          <p className="mt-[1px] font-geist text-[0.625rem] leading-relaxed text-m-muted">{t('admin.addons.ai.description')}</p>
+        </div>
+        <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[0.5625rem] font-bold text-m-muted">
+          {tile.enabledCount}/{addons.length}
+        </span>
+      </div>
+      {addons.map(addon => {
+        const label = getAddonLabel(t, addon)
+        return (
+          <MSubRow
+            key={addon.id}
+            icon={AI_ADDON_ICONS[addon.id as AiAddonId]}
+            title={label.name}
+            subtitle={label.description}
+            enabled={addon.enabled}
+            onToggle={() => onToggle(addon)}
           />
-        </MAdminField>
-        <MAdminField label="API key">
-          <MAdminSecretInput
-            value={apiKey}
-            onChange={e => setApiKey(e.target.value)}
-            placeholder={apiKey === MASKED ? MASKED : provider === 'local' ? '(often not required)' : 'sk-…'}
-          />
-        </MAdminField>
-        {provider === 'anthropic' && (
-          <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">{ANTHROPIC_HINT}</p>
-        )}
-      </section>
-
-      {/* Model */}
-      <section className="space-y-3">
-        <div className={sectionCls}>Model</div>
-        <MAdminInput
-          autoComplete="off"
-          value={model}
-          onChange={e => setModel(e.target.value)}
-          placeholder={provider === 'anthropic' ? 'claude-opus-4-8' : provider === 'openai' ? 'gpt-4o' : 'select or pull below'}
-        />
-
-        <MAdminField label={t('settings.aiParsing.multimodal')}>
-          <div role="radiogroup" aria-label={t('settings.aiParsing.multimodal')} className="flex gap-[6px]">
-            {LLM_VISION_MODES.map((mode) => {
-              const active = vision === mode
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setVision(mode)}
-                  className={`flex-1 rounded-xl border px-3 py-[10px] text-[0.8125rem] font-semibold text-m-ink ${
-                    active ? 'border-[color:var(--m-act)] bg-[color:var(--m-ic)]' : 'border-[color:var(--m-rowbr)]'
-                  }`}
-                >
-                  {t(`admin.addons.llm.vision.${mode}`)}
-                </button>
-              )
-            })}
-          </div>
-        </MAdminField>
-        <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">
-          {t(provider === 'local' ? 'admin.addons.llm.vision.hintLocal' : 'admin.addons.llm.vision.hintCloud')}
-        </p>
-
-        {/* Local model management (Ollama) */}
-        {provider === 'local' && (
-          <div className="space-y-3 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[0.75rem] font-semibold text-m-ink">Installed on the server</span>
-              <button
-                type="button"
-                onClick={loadModels}
-                disabled={loadingModels}
-                className="font-geist text-[0.6875rem] text-m-muted underline disabled:opacity-60"
-              >
-                {loadingModels ? 'Loading…' : 'Refresh'}
-              </button>
-            </div>
-            {modelsErr && <p className="font-geist text-[0.6875rem] text-[color:var(--m-st-danger)]">{modelsErr}</p>}
-            {!modelsErr && installed.length === 0 && !loadingModels && (
-              <p className="font-geist text-[0.6875rem] text-m-faint">No models installed yet — pull one below.</p>
-            )}
-            {installed.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {installed.map(name => (
-                  <button
-                    key={name}
-                    type="button"
-                    title={name}
-                    onClick={() => setModel(name)}
-                    className={`max-w-full truncate rounded-full border px-[10px] py-[5px] text-[0.6875rem] ${
-                      model === name ? 'border-transparent bg-m-act text-m-actfg' : 'border-[color:var(--m-rowbr)] text-m-ink'
-                    }`}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="border-t border-[color:var(--m-rowbr)] pt-3">
-              <div className="mb-2 text-[0.75rem] font-semibold text-m-ink">Pull a recommended model</div>
-              <div className="space-y-1">
-                {RECOMMENDED_MODELS.map(m => {
-                  const installedHere = isInstalled(m.id)
-                  const isPulling = pulling === m.id
-                  const active = model === m.id
-                  return (
-                    <div
-                      key={m.id}
-                      className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${
-                        active ? 'border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)]' : 'border-transparent'
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[0.8125rem] text-m-ink">{m.label}</span>
-                          {m.recommended && (
-                            <span className="rounded-md bg-[color:color-mix(in_srgb,var(--m-st-confirmed)_15%,transparent)] px-1.5 py-px font-geist text-[0.5625rem] font-bold text-[color:var(--m-st-confirmed)]">
-                              Recommended
-                            </span>
-                          )}
-                        </div>
-                        <div className="font-geist text-[0.625rem] leading-relaxed text-m-faint">{m.note}</div>
-                        {isPulling && (
-                          <div className="mt-1.5">
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[color:var(--m-ic)]">
-                              <div className="h-full bg-m-act transition-[width] duration-200" style={{ width: `${pullPct}%` }} />
-                            </div>
-                            <div className="mt-0.5 font-geist text-[0.5625rem] text-m-faint">{pullStatus}{pullPct ? ` · ${pullPct}%` : ''}</div>
-                          </div>
-                        )}
-                      </div>
-                      {installedHere ? (
-                        <MAdminButton variant="ghost" disabled={active} onClick={() => setModel(m.id)}>
-                          {active ? 'Selected' : 'Use'}
-                        </MAdminButton>
-                      ) : (
-                        <MAdminButton busy={isPulling} disabled={!!pulling} onClick={() => pull(m.id)}>
-                          {isPulling ? 'Pulling…' : 'Pull'}
-                        </MAdminButton>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      <MAdminButton busy={saving} onClick={save}>
-        {saving ? 'Saving…' : 'Save'}
-      </MAdminButton>
+        )
+      })}
+      {tile.canSetUp && (
+        <button
+          type="button"
+          onClick={tile.openDialog}
+          className="flex w-full items-center gap-3 border-t border-[color:var(--m-rowbr)] py-[11px] ps-[50px] text-start"
+        >
+          <Settings2 size={14} className="flex-none text-m-faint" />
+          <span className="min-w-0 flex-1 truncate text-[0.75rem] font-bold text-m-ink">{t('admin.addons.ai.setup')}</span>
+          <ChevronRight size={15} className="flex-none text-m-faint rtl:rotate-180" />
+        </button>
+      )}
+      {tile.dialogOpen && <AiSettingsDialog addons={addons} onClose={tile.closeDialog} />}
     </div>
   )
 }
+

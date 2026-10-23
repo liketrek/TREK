@@ -9,6 +9,7 @@ import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { BudgetSettlements } from '../../../src/db/entities/BudgetSettlements.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import type { TripAccess } from '../../../src/db/repositories/Trips.repository';
+import type { BudgetWritesService } from '../../../src/nest/budget/budget-writes.service';
 import { BudgetController } from '../../../src/nest/budget/budget.controller';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
@@ -187,6 +188,24 @@ describe('Tool: create_budget_item_with_members', () => {
       const data = parseToolResult(result) as any;
       expect(data.item.members.map((m: any) => m.user_id).sort()).toEqual([user.id, member.id].sort());
       expect(data.item.persons).toBe(2);
+      // What POST /budget sends for the same write: budget:created alone, its item
+      // already carrying the split (the members-updated that followed is gone).
+      expect(broadcastMock.mock.calls).toEqual([[trip.id, 'budget:created', { item: data.item, _source: 'mcp' }]]);
+    });
+  });
+
+  it('refuses a trip the caller cannot see with the trip gate, and sends nothing', async () => {
+    const { user } = createUser(testDb);
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item_with_members',
+        arguments: { tripId: trip.id, name: 'Villa', total_price: 800 },
+      });
+      expect(result.isError).toBe(true);
+      expect((result.content as { text: string }[])[0].text).toBe('Trip not found or access denied.');
+      expect(broadcastMock).not.toHaveBeenCalled();
     });
   });
 
@@ -287,6 +306,8 @@ describe('Settlement tools', () => {
         await createTestUnitOfWork(testDb),
         ...(await budgetRepoArgs(testDb)),
       ),
+      // The settlement route reads only; it never reaches the write use cases.
+      {} as BudgetWritesService,
     );
   }
 

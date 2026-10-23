@@ -195,6 +195,17 @@ export interface McpAttachOptions {
    */
   around?: (info: { kind: McpEntryKind; name: string }, call: () => unknown) => unknown;
   /**
+   * Narrows THIS session to the entries the host names: an entry for which it
+   * answers false is never attached, as if it were not registered. Checked
+   * before the entry's `when` and `access`, so it can only take entries away,
+   * never grant one the policy would refuse. Dynamic tools go through it too.
+   *
+   * This is how a host builds a session for a narrower client than an MCP
+   * connection (the in-app assistant attaches its allowlist and nothing
+   * else); omitted, every entry is considered as before.
+   */
+  include?: (kind: McpEntryKind, name: string) => boolean;
+  /**
    * Extra tools contributed for THIS session only, on top of the decorated
    * ones. Consulted once per `attach()`, after every registered entry.
    *

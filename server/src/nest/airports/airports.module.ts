@@ -19,5 +19,7 @@ import { Module } from '@nestjs/common';
   imports: [MikroOrmModule.forFeature([Reservations, ReservationEndpoints]), SchedulingModule],
   controllers: [AirportsController],
   providers: [AirportsService, AirportsMcp],
+  // The assistant's cards name an airport by its code (AssistantModule).
+  exports: [AirportsService],
 })
 export class AirportsModule {}

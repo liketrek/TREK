@@ -1,7 +1,7 @@
 /**
  * Unit tests for the packing MCP surface (PackingMcp, DI-discovered):
  * create_packing_item, update_packing_item, toggle_packing_item,
- * delete_packing_item, set_packing_item_sharing, plus the two bag fields that
+ * delete_packing_item, set_packing_item_sharing, list_packing_items, plus the two bag fields that
  * drive the fill bar, the registration-time scope/addon gating and the
  * trek://trips/{tripId}/packing + .../packing/bags resources (moved from the
  * legacy registerResources — see resources.test.ts). The advanced tools live
@@ -589,6 +589,9 @@ describe('Tool: set_packing_item_sharing', () => {
     });
     expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:deleted', expect.any(Object));
     expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:created', expect.any(Object), undefined, user.id);
+    // Exactly what the REST route sends: who sees an item moves no bag weight,
+    // so the bag-totals ping the tool used to add is gone.
+    expect(broadcastMock.mock.calls.map((c) => c[1])).toEqual(['packing:deleted', 'packing:created']);
   });
 
   it('lets only the owner change sharing', async () => {
@@ -889,11 +892,60 @@ describe('Tool: delete_packing_item', () => {
 });
 
 // ---------------------------------------------------------------------------
+// list_packing_items
+// ---------------------------------------------------------------------------
+
+describe('Tool: list_packing_items', () => {
+  it("PACKMCP-001: hides another member's own items; narrows to a category, a bag, no bag or a status", async () => {
+    const { user } = createUser(testDb);
+    const { user: mate } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    addTripMember(testDb, trip.id, mate.id);
+    const { id: bagId } = await makePackingBag(orm, trip.id, { name: 'Carry-On' });
+    const jacket = createPackingItem(testDb, trip.id, { name: 'Jacket', category: 'Clothes' });
+    createPackingItem(testDb, trip.id, { name: 'Charger', category: 'Tech' });
+    const diary = createPackingItem(testDb, trip.id, { name: 'Diary', category: 'Clothes' });
+    await updateRows(orm, PackingItems, { id: jacket.id }, { bag: bagId, checked: 1 });
+    await updateRows(orm, PackingItems, { id: diary.id }, { is_private: 1, owner: mate.id });
+
+    await withHarness(user.id, async (h) => {
+      const names = async (args: Record<string, unknown>) => {
+        const result = await h.client.callTool({ name: 'list_packing_items', arguments: { tripId: trip.id, ...args } });
+        const data = parseToolResult(result) as { items: Array<{ name: string }>; bags: Array<{ id: number }> };
+        return { names: data.items.map((item) => item.name).sort(), bags: data.bags.map((bag) => bag.id) };
+      };
+      expect(await names({})).toEqual({ names: ['Charger', 'Jacket'], bags: [bagId] });
+      expect((await names({ category: 'Clothes' })).names).toEqual(['Jacket']);
+      expect((await names({ bag_id: bagId })).names).toEqual(['Jacket']);
+      expect((await names({ bag_id: null })).names).toEqual(['Charger']);
+      expect((await names({ status: 'open' })).names).toEqual(['Charger']);
+      expect((await names({ status: 'packed' })).names).toEqual(['Jacket']);
+    });
+  });
+
+  it('PACKMCP-002: answers a trip the user is not part of with the access-denied payload', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id);
+    createPackingItem(testDb, trip.id, { name: 'Jacket' });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'list_packing_items', arguments: { tripId: trip.id } });
+      expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Scope gating (packing read/write, registration-time)
 // ---------------------------------------------------------------------------
 
 describe('Packing tools — scope gating', () => {
-  const READ_TOOLS = ['list_packing_bags', 'get_packing_category_assignees', 'list_packing_templates'];
+  const READ_TOOLS = [
+    'list_packing_items',
+    'list_packing_bags',
+    'get_packing_category_assignees',
+    'list_packing_templates',
+  ];
   const WRITE_TOOLS = [
     'create_packing_item',
     'toggle_packing_item',
@@ -921,7 +973,7 @@ describe('Packing tools — scope gating', () => {
     }
   }
 
-  it('registers all eighteen tools with null scopes (full access)', async () => {
+  it('registers all nineteen tools with null scopes (full access)', async () => {
     const { user } = createUser(testDb);
     const names = await listToolNames(user.id, null);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).toContain(tool);

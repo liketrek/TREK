@@ -1,7 +1,7 @@
 {
   "name": "@trek/root",
   "private": true,
-  "version": "4.3.3",
+  "version": "4.3.4",
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
@@ -46,11 +46,11 @@
     "react-dom": "19.3.0",
     "@hono/node-server": "^1.19.13",
     "brace-expansion@^2.0.0": "^2.1.7",
-    "dompurify": "^3.4.16",
+    "dompurify": "^3.4.17",
     "fast-uri": "^3.1.8",
     "file-type": "^21.3.4",
     "hono": "^4.13.11",
-    "ip-address": "^10.7.1",
+    "ip-address": "^10.7.4",
     "js-yaml@^5.0.0": "^5.4.1",
     "multer": "^2.4.0",
     "proxy-addr": "^2.0.8",

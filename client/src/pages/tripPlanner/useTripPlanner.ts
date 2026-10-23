@@ -12,7 +12,6 @@ import { resolvePluginIcon } from '../../components/shared/PluginIcon'
 import { useTranslation } from '../../i18n'
 import { addonsApi, authApi, tripsApi, healthApi, placesApi } from '../../api/client'
 import { TRANSPORT_TYPES } from '../../utils/dayMerge'
-import { accommodationRepo } from '../../repo/accommodationRepo'
 import { offlineDb } from '../../db/offlineDb'
 import { isEffectivelyOffline } from '../../sync/networkMode'
 import { useAuthStore } from '../../store/authStore'
@@ -32,13 +31,14 @@ import { useAddonStore } from '../../store/addonStore'
 import { usePlannerHistory } from '../../hooks/usePlannerHistory'
 import { useIsTouch } from '../../hooks/useIsTouch'
 import { usePluginStore } from '../../store/pluginStore'
-import type { Accommodation, Assignment, TripMember, Day, Reservation } from '../../types'
+import type { Assignment, TripMember, Day, Reservation } from '../../types'
 import { OFM_POSITRON, DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { useTileUrl } from '../../hooks/useTileUrl'
 import { placesForDays } from './tripPlannerModel'
 import { isDeepLinkableTripTab, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
 import { showReservationOnMap } from '../../components/Planner/bookings/showOnMap'
+import { useTripStays } from '../../components/Planner/useTripStays'
 import {
   parseStoredConnections, resolveEffectiveConnections, resolveVisibleConnectionIds,
   toggleConnectionId, toggleAllConnections as flipAllConnectionsMode,
@@ -46,9 +46,12 @@ import {
 } from '../../utils/connectionsVisibility'
 import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
 import { useDayDelete } from './useDayDelete'
+import { useTripRosterSync } from './useTripRosterSync'
 import { useDayAdd } from './useDayAdd'
 import { usePlannerDialogs } from './usePlannerDialogs'
 import { usePlaceDeepLink } from './usePlaceDeepLink'
+import { useAssistantDeepLink } from './useAssistantDeepLink'
+import { useAssistantCompareView, useAssistantMapLink } from './useAssistantMapLink'
 import { usePlannerMapView } from './usePlannerMapView'
 import { useMapPlaces } from './useMapPlaces'
 import { useRoadtripFeed } from './useRoadtripFeed'
@@ -63,6 +66,21 @@ import { useBookingEdits } from './useBookingEdits'
 import { usePlannerTripView } from './usePlannerTripView'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
+
+/**
+ * The trip's roster from the server: the owner and the members. Null offline
+ * or when it could not be read; the roster on screen then stays, and the next
+ * member event or reload reads it again.
+ */
+async function fetchRoster(tripId: number): Promise<TripMember[] | null> {
+  if (!tripId || isEffectivelyOffline()) return null
+  try {
+    const d = await tripsApi.getMembers(tripId)
+    return [d.owner, ...(d.members || [])].filter(Boolean)
+  } catch {
+    return null
+  }
+}
 
 /**
  * Trip planner page logic, the big one. Owns the trip store wiring, addon
@@ -159,7 +177,10 @@ export function useTripPlanner() {
     )
   }, [roadtripMode, roadtripSettings.roadtrip_service_stops_in_days, storedAssignments])
   const [collabFeatures, setCollabFeatures] = useState<{ chat: boolean; notes: boolean; links: boolean; polls: boolean; whatsnext: boolean }>({ chat: true, notes: true, links: true, polls: true, whatsnext: true })
-  const [tripAccommodations, setTripAccommodations] = useState<Accommodation[]>([])
+  // Stays live in page-local state rather than the store, so store-level
+  // refreshes (a stay booked or changed elsewhere, a remote trip date change,
+  // reconnect hydration) nudge them, one read per burst (#1288).
+  const { tripAccommodations, setTripAccommodations, loadAccommodations } = useTripStays(tripId)
   const places = useMemo(
     () => (roadtripMode
       ? allPlaces
@@ -171,20 +192,12 @@ export function useTripPlanner() {
 
   // Re-fetch the trip roster so consumers (Costs participants, Collab, …) pick up a
   // just-added guest or member without a full page reload.
-  const refreshMembers = useCallback(() => {
-    if (!tripId || isEffectivelyOffline()) return
-    tripsApi.getMembers(tripId).then(d => {
-      const all = [d.owner, ...(d.members || [])].filter(Boolean)
-      setTripMembers(all)
-    }).catch(() => {})
+  const refreshMembers = useCallback(async () => {
+    const roster = await fetchRoster(tripId)
+    if (roster) setTripMembers(roster)
   }, [tripId])
-
-  const loadAccommodations = useCallback(() => {
-    if (tripId) {
-      accommodationRepo.list(tripId).then(d => setTripAccommodations(d.accommodations || [])).catch(() => {})
-      tripActions.loadReservations(tripId)
-    }
-  }, [tripId])
+  // A member added, removed or renamed elsewhere, and the trip going away under us.
+  useTripRosterSync(tripId, refreshMembers)
 
   useEffect(() => {
     addonsApi.enabled().then(data => {
@@ -430,23 +443,18 @@ export function useTripPlanner() {
           .then(rows => setTripMembers(rows))
           .catch(() => {})
       } else {
-        refreshMembers()
+        // The roster lands from the read's callback, never synchronously inside the effect.
+        void fetchRoster(tripId).then(roster => { if (roster) setTripMembers(roster) })
       }
     }
   }, [tripId])
 
-  // Accommodations live in this hook's local state, so store-level refreshes
-  // (remote trip date change, reconnect hydration) nudge us via this event (#1288).
-  useEffect(() => {
-    const onRefresh = () => loadAccommodations()
-    window.addEventListener('accommodations:refresh', onRefresh)
-    return () => window.removeEventListener('accommodations:refresh', onRefresh)
-  }, [loadAccommodations])
-
   useTripWebSocket(tripId, invalidateTourPlaceIds)
 
+  // While the assistant compares a block it changed with the plan before it, the map shows that plan.
+  const assistantView = useAssistantCompareView({ tripId, assignments, storedAssignments, places })
   const { expandedDayIds, setExpandedDayIds, mapPlaces, dayOrderMap, dayPlaces } = useMapPlaces({
-    places, assignments, selectedDayId, days, tripAccommodations, reservations, toursEnabled, tripId, tourPlaceIds, isMobile,
+    places: assistantView.places, assignments: assistantView.assignments, selectedDayId, days, tripAccommodations, reservations, toursEnabled, tripId, tourPlaceIds, isMobile,
   })
 
   // Fed whenever the addon is on, not only while the mode is being looked at.
@@ -461,7 +469,7 @@ export function useTripPlanner() {
   const roadtripVias = useRoadtripVias(tripId, !!enabledAddons.roadtrip)
   // MDT-02: where the stages of the multi-day tours run, so a day holding one routes to and draws that stage.
   const tourStageStops = useMemo(() => tourStageStopsByPlace(tours), [tours])
-  const { route, routeWalking, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments, roadtripVias: roadtripVias.byDay, tourStageStops }, selectedDayId, routeShown, routeProfile, tripAccommodations)
+  const { route, routeWalking, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments: assistantView.assignments, roadtripVias: roadtripVias.byDay, tourStageStops }, selectedDayId, routeShown, routeProfile, tripAccommodations)
   // Road trip mode already draws the whole trip its own way, so the overview stands
   // down there rather than drawing a second set of lines over it.
   const overviewActive = overviewShown && !roadtripMode
@@ -487,6 +495,10 @@ export function useTripPlanner() {
     setMobileSidebarOpen(null)
     updateRouteForDay(dayId)
   }, [updateRouteForDay, isMobileRef, mapLockedRef, setFitKey])
+  useAssistantDeepLink({ searchParams, setSearchParams, tripId, days, selectDay: handleSelectDay })
+  const assistantMap = useAssistantMapLink({
+    tripId, isMobile, mapLocked, mapPlaces, assignments: assistantView.assignments, markersLocked: assistantView.markersLocked, selectDay: handleSelectDay,
+  })
 
   const handlePlaceClick = useCallback((placeId: number | null, assignmentId?: number | null) => {
     if (assignmentId) {
@@ -762,5 +774,7 @@ export function useTripPlanner() {
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
     mapTileUrl, fontStyle, splashDone,
+    // The assistant on the map, handed to MapViewAuto whole by both shells.
+    assistantMap,
   }
 }

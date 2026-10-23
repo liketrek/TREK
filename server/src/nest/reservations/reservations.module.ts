@@ -20,6 +20,8 @@ import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { ReservationWritesService } from './reservation-writes.service';
+import { ReservationsReadMcp } from './reservations-read.mcp';
 import { ReservationsReadModule } from './reservations-read.module';
 import { ReservationsController } from './reservations.controller';
 import { ReservationsMcp } from './reservations.mcp';
@@ -79,7 +81,9 @@ import { Module } from '@nestjs/common';
     ]),
   ],
   controllers: [ReservationsController, UpcomingReservationsController],
-  providers: [ReservationsService, ReservationsMcp, ReservationsRpc],
+  // ReservationWritesService: the booking use cases the controller and the MCP tools share.
+  // ReservationsReadMcp: the assistant's read of the bookings with their readable details.
+  providers: [ReservationsService, ReservationWritesService, ReservationsMcp, ReservationsReadMcp, ReservationsRpc],
   // For in-container consumers (ReservationsRpc, TripsService, BookingImportService).
   exports: [ReservationsService],
 })

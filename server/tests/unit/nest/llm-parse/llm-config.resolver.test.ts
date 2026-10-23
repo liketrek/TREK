@@ -2,6 +2,7 @@ import type { AddonsRepository } from '../../../../src/db/repositories/Addons.re
 import type { AddonsService } from '../../../../src/nest/addons/addons.service';
 import { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
 import type { SettingsService } from '../../../../src/nest/settings/settings.service';
+import type { ModuleRef } from '@nestjs/core';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -20,7 +21,16 @@ const settingsStub = { getUserSettings, getAdminUserDefaults, getDecryptedUserSe
 
 const addonsStub = { isAddonEnabled } as unknown as AddonsService;
 const addonsRepoStub = { findById } as unknown as AddonsRepository;
-const resolver = new LlmConfigResolver(settingsStub, addonsRepoStub, addonsStub);
+// The assistant's connection, offered through the port; unregistered unless a case provides it.
+const forParsing = vi.fn();
+let portRegistered = false;
+const moduleRefStub = {
+  get: vi.fn(() => {
+    if (!portRegistered) throw new Error('not registered');
+    return { forParsing };
+  }),
+} as unknown as ModuleRef;
+const resolver = new LlmConfigResolver(settingsStub, addonsRepoStub, addonsStub, moduleRefStub);
 
 function setInstanceConfig(config: Record<string, unknown> | undefined) {
   findById.mockResolvedValue(config === undefined ? null : { id: 'llm_parsing', config });
@@ -33,6 +43,8 @@ beforeEach(() => {
   getUserSettings.mockReturnValue({});
   getAdminUserDefaults.mockReturnValue({});
   getDecryptedUserSetting.mockReturnValue(null);
+  portRegistered = false;
+  forParsing.mockResolvedValue(null);
 });
 
 describe('resolveLlmConfig', () => {
@@ -167,5 +179,53 @@ describe('readLocalServerAccess (#2649)', () => {
     expect(await resolver.readLocalServerAccess()).toBeNull();
     setInstanceConfig(undefined);
     expect(await resolver.readLocalServerAccess()).toBeNull();
+  });
+});
+
+describe('readInstanceEndpoint', () => {
+  it('answers the saved provider, model and address, never the key', async () => {
+    setInstanceConfig({ provider: 'local', model: 'qwen3.5:4b', baseUrl: ' http://10.0.0.2:11434 ', apiKey: 'k' });
+    expect(await resolver.readInstanceEndpoint()).toEqual({
+      provider: 'local',
+      model: 'qwen3.5:4b',
+      baseUrl: 'http://10.0.0.2:11434',
+    });
+  });
+
+  it('answers null when nothing usable is saved', async () => {
+    expect(await resolver.readInstanceEndpoint()).toBeNull();
+    setInstanceConfig({ provider: 'anthropic', model: '' });
+    expect(await resolver.readInstanceEndpoint()).toBeNull();
+  });
+});
+
+describe('the shared AI connection', () => {
+  const shared = { provider: 'openai', model: 'gemini-3-flash', apiKey: 'g', baseUrl: 'https://gemini.test/openai' };
+
+  it('LLMRES-SHARED-001: reads with the assistant connection when parsing has none of its own', async () => {
+    portRegistered = true;
+    forParsing.mockResolvedValue(shared);
+    setInstanceConfig({ vision: 'on' });
+    expect(await resolver.resolve(7)).toEqual({ ...shared, vision: 'on' });
+    expect(forParsing).toHaveBeenCalledWith(7);
+  });
+
+  it('LLMRES-SHARED-002: an instance config of its own still wins, and the shared one beats a personal one', async () => {
+    portRegistered = true;
+    forParsing.mockResolvedValue(shared);
+    setInstanceConfig({ provider: 'anthropic', model: 'claude-x', apiKey: 'a' });
+    expect(await resolver.resolve(1)).toMatchObject({ provider: 'anthropic', model: 'claude-x' });
+    expect(forParsing).not.toHaveBeenCalled();
+
+    setInstanceConfig(undefined);
+    getUserSettings.mockReturnValue({ llm_provider: 'openai', llm_model: 'gpt-4o' });
+    expect(await resolver.resolve(1)).toMatchObject({ model: 'gemini-3-flash', vision: 'auto' });
+  });
+
+  it('LLMRES-SHARED-003: without the port or a usable connection, the personal config answers', async () => {
+    getUserSettings.mockReturnValue({ llm_provider: 'openai', llm_model: 'gpt-4o' });
+    expect(await resolver.resolve(1)).toMatchObject({ provider: 'openai', model: 'gpt-4o' });
+    portRegistered = true;
+    expect(await resolver.resolve(1)).toMatchObject({ provider: 'openai', model: 'gpt-4o' });
   });
 });

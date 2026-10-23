@@ -1,0 +1,30 @@
+import type { TranslationStrings } from '../types';
+
+const assistantBudget: TranslationStrings = {
+  'assistant.change.verb.addPayment': 'Registreeri makse',
+  'assistant.change.verb.updatePayment': 'Muuda makset',
+  'assistant.tool.create_budget_item_with_members': 'Lisa kulu',
+  'assistant.tool.set_budget_item_members': 'Muuda, kes kulu jagab',
+  'assistant.tool.toggle_budget_member_paid': 'Uuenda, kes on maksnud',
+  'assistant.tool.create_settlement': 'Registreeri makse',
+  'assistant.tool.update_settlement': 'Muuda seda makset',
+  'assistant.tool.delete_settlement': 'Kustuta see makse',
+  'assistant.tool.freeze_budget_rates': 'Kinnita tänased vahetuskursid',
+  'assistant.followUp.whoOwes': 'Kes võlgneb kellele?',
+  'assistant.followUp.recordPayments': 'Registreeri need maksed',
+  'assistant.card.budget.open': 'Ava kuludes',
+  'assistant.card.budget.paidBy': '{name} maksis',
+  'assistant.card.budget.notPaid': 'Maksmata',
+  'assistant.card.budget.split.equal': 'Jagatud võrdselt',
+  'assistant.card.budget.split.custom': 'Jagatud ebavõrdselt',
+  'assistant.card.budget.split.none': 'Ainult planeerimine, jagamata',
+  'assistant.card.budget.together': 'Kokku {amount}',
+  'assistant.card.budget.markedPaid': '{amount} märgitud makstuks',
+  'assistant.card.budget.receipts': '{count} kviitungit',
+  'assistant.card.budget.receipts.one': '{count} kviitung',
+  'assistant.card.budget.leftOut': '{count} välisvaluutas kulu ei ole summas: vahetuskurssi veel pole.',
+  'assistant.card.budget.leftOut.one': '{count} välisvaluutas kulu ei ole summas: vahetuskurssi veel pole.',
+  'assistant.card.budget.unconverted': '{count} kirjet valuutas {currencies} ei arvestata: vahetuskurssi veel pole.',
+  'assistant.card.budget.unconverted.one': '{count} kirje valuutas {currencies} ei arvestata: vahetuskurssi veel pole.',
+};
+export default assistantBudget;

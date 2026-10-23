@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'Najprv prosím vyberte deň',
   'trip.toast.assignedToDay': 'Miesto bolo priradené k dňu',
   'trip.toast.loadError': 'Cestu sa nepodarilo načítať',
+  'trip.toast.accessLost': 'Už nie ste členom tejto cesty',
   'trip.toast.reorderError': 'Nepodarilo sa zmeniť poradie',
   'trip.toast.reservationUpdated': 'Rezervácia aktualizovaná',
   'trip.toast.reservationAdded': 'Rezervácia pridaná',

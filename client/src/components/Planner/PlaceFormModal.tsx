@@ -21,7 +21,7 @@ import {
 } from './PlaceFormModal.helpers'
 import { useNewCategory, usePlaceForm } from './usePlaceForm'
 import { usePlaceSearch } from './usePlaceSearch'
-import { guessCategoryId } from './placeCategoryGuess'
+import { guessCategoryId } from '@trek/shared'
 import { getNavigationTargets, openNavigationTarget } from './placeNavigation'
 import { NavigationMenu } from '../shared/NavigationMenu'
 import { offersGoogleRetry } from '../../utils/placeSource'

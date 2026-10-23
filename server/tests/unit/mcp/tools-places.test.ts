@@ -16,8 +16,10 @@ import { PlaceRatings } from '../../../src/db/entities/PlaceRatings.entity';
 import { PlaceRegions } from '../../../src/db/entities/PlaceRegions.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { DomainError } from '../../../src/nest/common/domain-error';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
+import { StorageService } from '../../../src/nest/storage/storage.service';
 import {
   createUser,
   createTrip,
@@ -33,6 +35,7 @@ import { linkTripToJourney } from '../../helpers/factories/journeys';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { bootTestApp } from '../../helpers/test-app';
 // PlacesMcp and PlacesService both inject MapsService (search_place and the
 // import enrichment), so the geo calls are stubbed on the prototype — see
 // beforeEach — rather than through a module mock.
@@ -40,6 +43,7 @@ import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 
+import { Readable } from 'node:stream';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
@@ -1487,6 +1491,111 @@ describe('journey hooks on the MCP delete paths', () => {
     });
 
     expect(await skeletonFor(journey.id, foreign.id)).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Journey hooks on the MCP create and update paths: the same ones REST runs
+// ---------------------------------------------------------------------------
+
+describe('journey hooks on the MCP create and update paths', () => {
+  /** A place planned on a day of a trip with a linked journey, and the skeleton entry made from it. */
+  async function plannedWithSkeleton(placeName: string, skeletonTitle = placeName) {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id, { name: placeName });
+    createDayAssignment(testDb, day.id, place.id);
+    const journey = createJourney(testDb, user.id);
+    await linkJourney(journey.id, trip.id);
+    await seedSkeleton(journey.id, trip.id, place.id, user.id, skeletonTitle);
+    return { user, trip, day, place, journey };
+  }
+
+  it('MCP-PLACES-JRN-001: update_place carries a rename into the journey entry made from the place', async () => {
+    const { user, trip, place, journey } = await plannedWithSkeleton('Musée');
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_place',
+        arguments: { tripId: trip.id, placeId: place.id, name: "Musée d'Orsay" },
+      });
+      expect(result.isError).toBeFalsy();
+    });
+    expect((await skeletonFor(journey.id, place.id))?.title).toBe("Musée d'Orsay");
+  });
+
+  it('MCP-PLACES-JRN-002: bulk_update_places carries a new time into the journey entry of every place', async () => {
+    const { user, trip, day, place, journey } = await plannedWithSkeleton('Market');
+    const second = createPlace(testDb, trip.id, { name: 'Harbour' });
+    createDayAssignment(testDb, day.id, second.id);
+    await seedSkeleton(journey.id, trip.id, second.id, user.id, 'Harbour');
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'bulk_update_places',
+        arguments: { tripId: trip.id, placeIds: [place.id, second.id], place_time: '10:30' },
+      });
+      expect((parseToolResult(result) as { count: number }).count).toBe(2);
+    });
+    expect((await skeletonFor(journey.id, place.id))?.entry_time).toBe('10:30');
+    expect((await skeletonFor(journey.id, second.id))?.entry_time).toBe('10:30');
+  });
+
+  it('MCP-PLACES-JRN-003: set_place_image_from_file runs the journey hook after the new picture', async () => {
+    // The entry still carries a title the place no longer has; the hook writes the place's own back.
+    const { user, trip, place, journey } = await plannedWithSkeleton('Lighthouse', 'Old title');
+    const storage = (await bootTestApp(realtime)).get(StorageService);
+    await storage.put('files', 'beacon.jpg', Readable.from(Buffer.from('img')), { contentType: 'image/jpeg' });
+    const file = await makeTripFile(orm, trip.id, {
+      filename: 'beacon.jpg',
+      original_name: 'beacon.jpg',
+      mime_type: 'image/jpeg',
+      file_size: 3,
+    });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'set_place_image_from_file',
+        arguments: { tripId: trip.id, placeId: place.id, fileId: file.id },
+      });
+      expect(result.isError).toBeFalsy();
+    });
+    expect(await imageOf(place.id)).toMatch(/^\/uploads\/places\/[0-9a-f-]+\.jpg$/);
+    expect((await skeletonFor(journey.id, place.id))?.title).toBe('Lighthouse');
+  });
+
+  it('MCP-PLACES-JRN-004: create_place hands the new place to the journey hook, as POST /places does', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const hook = vi.spyOn(JourneyDomainService.prototype, 'onPlaceCreated');
+    try {
+      await withHarness(user.id, async (h) => {
+        const created = parseToolResult(
+          await h.client.callTool({ name: 'create_place', arguments: { tripId: trip.id, name: 'Night market' } }),
+        ) as { place: { id: number } };
+        expect(hook).toHaveBeenCalledWith(trip.id, created.place.id);
+      });
+    } finally {
+      hook.mockRestore();
+    }
+  });
+
+  it('MCP-PLACES-JRN-005: update_place on a missing place sends nothing and runs no journey hook', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const hook = vi.spyOn(JourneyDomainService.prototype, 'onPlaceUpdated');
+    broadcastMock.mockClear();
+    try {
+      await withHarness(user.id, async (h) => {
+        const result = await h.client.callTool({
+          name: 'update_place',
+          arguments: { tripId: trip.id, placeId: 99999, name: 'Nowhere' },
+        });
+        expect(result.isError).toBe(true);
+      });
+      expect(hook).not.toHaveBeenCalled();
+      expect(broadcastMock.mock.calls.filter(([, event]) => event === 'place:updated')).toHaveLength(0);
+    } finally {
+      hook.mockRestore();
+    }
   });
 });
 

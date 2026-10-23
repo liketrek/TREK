@@ -35,6 +35,8 @@ export class DiscoveryMetadataService {
       code_challenge_methods_supported: ['S256'],
       token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
       scopes_supported: ALL_SCOPES,
+      // An https client_id is resolved as its metadata document (nest/oauth/oauth-cimd.ts).
+      client_id_metadata_document_supported: true,
     };
     return this.oauthMetadata;
   }

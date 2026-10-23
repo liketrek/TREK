@@ -2,15 +2,18 @@ import { Days } from '../../../src/db/entities/Days.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { RoadtripDayTracks } from '../../../src/db/entities/RoadtripDayTracks.entity';
 import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
+import type { TripWriter } from '../../../src/nest/common/trip-writer';
 import { RoadtripService } from '../../../src/nest/roadtrip/roadtrip.service';
+import type { User } from '../../../src/types';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { createDay, createPlace, createTrip, createUser } from '../../helpers/factories';
 import { updateRows } from '../../helpers/factories/rows';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { createTestUnitOfWork } from '../../helpers/test-uow';
+import type { RoadtripVia } from '@trek/shared';
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Via points and tracks, against real rows through
@@ -32,9 +35,9 @@ afterAll(async () => {
   testDb.close();
 });
 
-async function makeService() {
+async function makeService(realtime: { broadcast: (...args: unknown[]) => void } = { broadcast: () => {} }) {
   return new RoadtripService(
-    { broadcast: () => {} } as never,
+    realtime as never,
     await createTestUnitOfWork(testDb),
     t.repo(Days),
     t.repo(Places),
@@ -372,5 +375,126 @@ describe('RoadtripService', () => {
     expect(rows).toHaveLength(2);
     expect(rows.map((r) => r.after_order_index)).toEqual([0, 0]);
     expect(rows.map((r) => r.sequence).sort((a, b) => a - b)).toEqual([0, 1]);
+  });
+});
+
+interface Sent {
+  event: string;
+  payload: { dayId?: unknown; vias?: RoadtripVia[]; track?: unknown };
+  all: boolean;
+}
+
+/** A writer that keeps what a use case sends, in order, as a TripEventSink receives it. */
+function recordingWriter(): { sent: Sent[]; writer: TripWriter } {
+  const sent: Sent[] = [];
+  const keep = (event: string, payload: unknown, all: boolean) => {
+    sent.push({ event, payload: payload as Sent['payload'], all });
+  };
+  const writer: TripWriter = {
+    userId: 1,
+    role: 'user',
+    surface: 'mcp',
+    events: {
+      emit: (event, payload) => keep(event, payload, false),
+      emitAll: (event, payload) => keep(event, payload, true),
+    },
+  };
+  return { sent, writer };
+}
+
+/**
+ * Two people planning one road trip look at the same line on the same map, and a reshaped
+ * drive moves every arrival time after it. Each via write is one use case for the routes
+ * and the tools alike, and tells the trip what the day runs through now once it is written.
+ */
+describe('RoadtripService: telling the trip', () => {
+  let service: RoadtripService;
+  let f: Awaited<ReturnType<typeof fixture>>;
+  beforeEach(async () => {
+    service = await makeService();
+    f = await fixture();
+  });
+
+  it('SRV-ROADTRIP-021: every via write sends the day read back after it, with the day id as text', async () => {
+    const { sent, writer } = recordingWriter();
+    const first = await service.addVia(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 }, writer);
+    const second = await service.addVia(String(f.dayA1.id), { after_order_index: 1, lat: 54, lng: 11 }, writer);
+    const moved = await service.moveVia(f.dayA1.id, first.id, { lat: 53.5, lng: 10.5 }, writer);
+    // The reanchor answers nothing it was asked to move: what goes out is the day as it is now.
+    await service.reanchorVias(f.dayA1.id, { vias: [], remove: [second.id] }, writer);
+    await service.removeVia(f.dayA1.id, first.id, writer);
+
+    expect(sent.map((s) => s.event)).toEqual(Array(5).fill('roadtripVia:changed'));
+    expect(sent.some((s) => s.all)).toBe(false);
+    // G8: the routes always sent the day id as the path spelled it; a tool sends it the same way.
+    expect(sent.map((s) => s.payload.dayId)).toEqual(Array(5).fill(String(f.dayA1.id)));
+    expect(sent.map((s) => s.payload.vias?.map((v) => v.id))).toEqual([
+      [first.id],
+      [first.id, second.id],
+      [first.id, second.id],
+      [first.id],
+      [],
+    ]);
+    expect(sent[2]?.payload.vias?.[0]).toEqual(moved);
+  });
+
+  it('SRV-ROADTRIP-022: a chain says which track the day follows now, after its vias', async () => {
+    const { sent, writer } = recordingWriter();
+    const chain = { vias: [{ after_order_index: 0, lat: 53, lng: 10 }], track: { place_id: f.track.id, stray_km: 2 } };
+    const made = await service.addVias(f.tripA.id, f.dayA1.id, chain, writer);
+    // Left out, the track stays; the event still says which one the day follows.
+    await service.addVias(f.tripA.id, f.dayA1.id, { vias: [] }, writer);
+    await service.addVias(f.tripA.id, f.dayA1.id, { vias: [], track: null }, writer);
+
+    const followed = { day_id: f.dayA1.id, place_id: f.track.id, stray_km: 2 };
+    expect(sent.map((s) => [s.event, s.payload])).toEqual([
+      ['roadtripVia:changed', { dayId: String(f.dayA1.id), vias: made }],
+      ['roadtripTrack:changed', { dayId: String(f.dayA1.id), track: followed }],
+      ['roadtripVia:changed', { dayId: String(f.dayA1.id), vias: made }],
+      ['roadtripTrack:changed', { dayId: String(f.dayA1.id), track: followed }],
+      ['roadtripVia:changed', { dayId: String(f.dayA1.id), vias: made }],
+      ['roadtripTrack:changed', { dayId: String(f.dayA1.id), track: null }],
+    ]);
+  });
+
+  it('SRV-ROADTRIP-023: a via that is not on the day changes nothing and tells nobody', async () => {
+    const { sent, writer } = recordingWriter();
+    const other = await service.create(f.dayA2.id, { after_order_index: 0, lat: 53, lng: 10 });
+
+    expect(await service.moveVia(f.dayA1.id, other.id, { lat: 1, lng: 2 }, writer)).toBeNull();
+    expect(await service.removeVia(f.dayA1.id, other.id, writer)).toBe(false);
+    expect(sent).toEqual([]);
+    expect(await service.listForDay(f.dayA2.id)).toEqual([other]);
+  });
+
+  it('SRV-ROADTRIP-024: the REST writer sends to the trip and leaves out the socket that made the change', async () => {
+    const calls: unknown[][] = [];
+    const rest = await makeService({ broadcast: (...args) => calls.push(args) });
+    const user = { id: 1, role: 'user' } as User;
+    const tripId = String(f.tripA.id);
+    const dayId = String(f.dayA1.id);
+
+    const via = await rest.addVia(
+      dayId,
+      { after_order_index: 0, lat: 53, lng: 10 },
+      rest.restWriter(tripId, user, 'sock'),
+    );
+
+    expect(calls).toEqual([[tripId, 'roadtripVia:changed', { dayId, vias: [via] }, 'sock']]);
+  });
+
+  it('SRV-ROADTRIP-025: a read that fails after the commit is logged, and the write still answers', async () => {
+    const { sent, writer } = recordingWriter();
+    vi.spyOn(service, 'listForDay').mockRejectedValueOnce(new Error('read failed'));
+    const via = await service.addVia(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 }, writer);
+    expect(sent).toEqual([]);
+
+    // The chain's track read fails on its own: the via event has gone, the track event is skipped.
+    vi.spyOn(service, 'tracksForTrip').mockRejectedValueOnce(new Error('read failed'));
+    const vias = await service.addVias(f.tripA.id, f.dayA1.id, { vias: [] }, writer);
+    expect(sent.map((s) => s.event)).toEqual(['roadtripVia:changed']);
+
+    expect(vias).toEqual([via]);
+    expect(await service.listForDay(f.dayA1.id)).toEqual([via]);
   });
 });

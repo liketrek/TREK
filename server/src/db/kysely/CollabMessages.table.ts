@@ -10,4 +10,5 @@ export interface CollabMessagesTable {
   reply_to: InsertOptional<number | null>;
   created_at: InsertOptional<string | null>;
   deleted: InsertOptional<number | null>;
+  origin: InsertOptional<string | null>;
 }

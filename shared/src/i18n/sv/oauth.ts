@@ -93,6 +93,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loginButton': 'Logga in på TREK',
   'oauth.authorize.requestLabel': 'Begäran om behörighet',
   'oauth.authorize.requestDescription': 'Den här applikationen begär åtkomst till ditt TREK konto.',
+  'oauth.authorize.verifiedHost': 'Verifierad domän: {host}',
   'oauth.authorize.trustNote': 'Ge endast åtkomst till applikationer som du litar på. Dina data förblir på din server.',
   'oauth.authorize.selectScope': 'Välj minst ett tillämpningsområde',
   'oauth.authorize.approveScopes': 'Godkänn ({count} tillämpningsområden)',

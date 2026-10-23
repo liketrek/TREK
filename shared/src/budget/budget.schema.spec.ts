@@ -9,6 +9,8 @@ import {
   budgetUpdateMembersRequestSchema,
   budgetToggleMemberPaidRequestSchema,
   budgetReorderItemsRequestSchema,
+  budgetItemsPageSchema,
+  BUDGET_ITEMS_PAGE_DEFAULT,
   COST_CATEGORIES,
   typeToCostCategory,
 } from './budget.schema';
@@ -155,5 +157,17 @@ describe('budgetUnconvertedSchema', () => {
     expect(budgetUnconvertedSchema.safeParse({ item_ids: ['3'], settlement_ids: [], currencies: [] }).success).toBe(
       false,
     );
+  });
+});
+
+describe('budgetItemsPageSchema', () => {
+  it('takes no paging at all, or an offset and a limit of 1 to 100 whole expenses', () => {
+    expect(budgetItemsPageSchema.safeParse({}).success).toBe(true);
+    expect(budgetItemsPageSchema.safeParse({ offset: 0, limit: 1 }).success).toBe(true);
+    expect(budgetItemsPageSchema.safeParse({ offset: 150, limit: 100 }).success).toBe(true);
+    for (const page of [{ offset: -1 }, { offset: 1.5 }, { limit: 0 }, { limit: 101 }, { limit: '10' }]) {
+      expect(budgetItemsPageSchema.safeParse(page).success, JSON.stringify(page)).toBe(false);
+    }
+    expect(BUDGET_ITEMS_PAGE_DEFAULT).toBe(50);
   });
 });

@@ -1,9 +1,11 @@
-import { ChevronRight, FileDown, Settings, Settings2 } from 'lucide-react'
+import { ChevronRight, FileDown, Settings, Settings2, Sparkles } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
 import { dockTabIds } from '../dockTabs'
 import { useTranslation } from '../../../../i18n'
+import { useAssistantAsk } from '../../../../components/Assistant/useAssistantAsk'
+import { useAssistantHints } from '../../../../components/Assistant/useAssistantHints'
 
 /** Demo tile tints per legacy tab id; plugins share the files neutral. */
 const TILE_COLORS: Record<string, string> = {
@@ -26,6 +28,9 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   const { t } = useTranslation()
   const open = shell.sheet?.id === 'mehr'
   const canEditTrip = planner.can('trip_edit', planner.trip)
+  const assistant = useAssistantAsk(planner.tripId)
+  // Warnings not shown yet turn the tile's line into a count; the dock gets no dot.
+  const hints = useAssistantHints(planner.tripId, { withStays: false })
 
   // Derived from the same priority list the dock seats itself from, so a section
   // can never show up in both places at once.
@@ -59,6 +64,31 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   return (
     <MSheet open={open} onClose={shell.closeSheet} variant="bottom" dimTransparent ariaLabel={t('mobileTrip.more')}>
       <div className="overflow-y-auto p-[10px]">
+        {/* The assistant leads the sheet: the one way into it on the phone besides "Ask" on a place. */}
+        {assistant.available && (
+          <button
+            type="button"
+            onClick={() => {
+              shell.closeSheet()
+              hints.markWarnsSeen()
+              assistant.open()
+            }}
+            className="mb-2 flex w-full items-center gap-[13px] rounded-[18px] bg-[color:var(--m-ic)] px-4 py-[14px] text-start"
+          >
+            <div className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-[11px] bg-m-act text-m-actfg">
+              <Sparkles size={19} strokeWidth={1.9} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-body font-bold">{t('assistant.mobile.tile')}</div>
+              <div className="truncate text-caption text-m-muted">
+                {hints.unseenWarn > 0
+                  ? t('assistant.mobile.tileHints', { count: hints.unseenWarn })
+                  : t('assistant.mobile.tileHint')}
+              </div>
+            </div>
+            <ChevronRight size={16} strokeWidth={2} className="flex-none text-m-faint" />
+          </button>
+        )}
         {gridTabs.length > 0 && (
           <div className="grid grid-cols-2 gap-2">
             {gridTabs.map(tab => {

@@ -6,6 +6,7 @@ import type { TodoItemsRepository } from '../../db/repositories/TodoItems.reposi
 import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
+import { requireTripWrite, restTripWriter, type TripWriter } from '../common/trip-writer';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -158,6 +159,21 @@ export class TodoService {
         await this.todoItemsRepo.setSortOrder(orderedIds[index], tripId, index);
       }
     });
+  }
+
+  /** The REST caller of a todo use case: its events skip the socket that sent the request. */
+  restWriter(tripId: string, user: User, socketId: string | undefined): TripWriter {
+    return restTripWriter(this.realtime, tripId, user, socketId);
+  }
+
+  /**
+   * The list's new order, for every surface. Both used to save it and tell
+   * nobody, so another open list kept the old order until a reload.
+   */
+  async reorder(tripId: string | number, orderedIds: number[], writer: TripWriter): Promise<void> {
+    await requireTripWrite({ access: this.tripsRepo, permissions: this.permissions }, 'packing_edit', tripId, writer);
+    await this.reorderItems(tripId, orderedIds);
+    writer.events.emit('todo:reordered', { orderedIds });
   }
 
   async getCategoryAssignees(tripId: string | number) {

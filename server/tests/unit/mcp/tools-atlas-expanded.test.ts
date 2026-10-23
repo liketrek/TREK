@@ -268,7 +268,11 @@ describe('Tool: list_visited_regions', () => {
 
     await withHarness(user.id, async (h) => {
       const unmark = await h.client.callTool({ name: 'unmark_region_visited', arguments: { regionCode: 'IT-62' } });
-      expect(parseToolResult(unmark)).toEqual({ success: true });
+      // The places of the trip keep Italy on the map; only the region is gone.
+      expect(parseToolResult(unmark)).toEqual({
+        success: true,
+        after: { country_status: 'visited', countries_visited: 1, regions_visited: 0 },
+      });
       const tombstone = await findRow(orm, HiddenRegions, { user: user.id, region_code: 'IT-62' });
       expect(tombstone).toBeTruthy();
 
@@ -369,7 +373,7 @@ describe('Tool: mark_region_visited', () => {
         name: 'unmark_region_visited',
         arguments: { regionCode: 'jp-13' },
       });
-      expect(parseToolResult(unmark)).toEqual({ success: true });
+      expect(parseToolResult(unmark)).toMatchObject({ success: true });
       expect(await findRow(orm, VisitedRegions, { user: user.id })).toBeNull();
     });
   });
@@ -388,6 +392,8 @@ describe('Tool: mark_region_visited', () => {
       expect(data.region.name).toBe('California');
       expect(data.region.country_code).toBe('US');
       expect(data.region.manuallyMarked).toBe(true);
+      // Where the atlas stands now, for the assistant's card: the region brought its country along.
+      expect(data.after).toEqual({ country_status: 'visited', countries_visited: 1, regions_visited: 1 });
       const row = await findRow(orm, VisitedRegions, { user: user.id, region_code: 'US-CA' });
       expect(row).toBeTruthy();
     });
@@ -419,8 +425,11 @@ describe('Tool: unmark_region_visited', () => {
         name: 'unmark_region_visited',
         arguments: { regionCode: 'IT-LO' },
       });
-      const data = parseToolResult(result) as any;
-      expect(data.success).toBe(true);
+      // The last region of a country it was never marked for takes the country along.
+      expect(parseToolResult(result)).toEqual({
+        success: true,
+        after: { country_status: null, countries_visited: 0, regions_visited: 0 },
+      });
       expect(await findRow(orm, VisitedRegions, { user: user.id, region_code: 'IT-LO' })).toBeNull();
     });
   });

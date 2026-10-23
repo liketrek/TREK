@@ -8,7 +8,7 @@ import { SoftPill, WhiteBadge } from '../../Planner/planParts';
 import { DialogSection, fs } from '../../shared/DialogShell';
 import { CardAction, TourNotice } from '../tourParts';
 import { linkName } from './packingLinkName';
-import { CategoryDot, DimmedLink } from './packingLinkParts';
+import { CheckCircle, DimmedLink, PackedBar, PackTile } from './packingLinkParts';
 import { TourPackingLinkDialog } from './TourPackingLinkDialog';
 import { useTourPackingLink, type TourPackingLinkController } from './useTourPackingLink';
 
@@ -30,36 +30,11 @@ function SectionPill({ onClick, icon, children }: { onClick: () => void; icon: R
   );
 }
 
-/** The backpack tile with the item count on its corner, the way a waypoint's number carries its marks. */
-function PackTile({ count, color }: { count: number; color: string | null }) {
-  return (
-    <span className="relative grid h-9 w-9 flex-none place-items-center rounded-full bg-surface-secondary text-content-muted">
-      <Backpack size={16} strokeWidth={2} aria-hidden="true" />
-      <span
-        aria-hidden="true"
-        className="absolute -end-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-accent px-1 font-geist font-semibold tabular-nums text-accent-text ring-2 ring-surface-card"
-        style={fs(9.5)}
-      >
-        {count}
-      </span>
-      {color && (
-        <span className="absolute -bottom-0.5 -start-0.5 grid h-3.5 w-3.5 place-items-center rounded-full bg-surface-card">
-          <CategoryDot color={color} />
-        </span>
-      )}
-    </span>
-  );
-}
-
 /** One item as Packing keeps it, read only: ticked off or not, its name and how many. */
 function ItemRow({ item }: { item: PackingItem }) {
   return (
     <li className="flex min-w-0 items-center gap-2 py-1">
-      <span
-        className={`grid h-4 w-4 flex-none place-items-center rounded-full ${item.checked ? 'bg-accent text-accent-text' : 'ring-1 ring-inset ring-edge'}`}
-      >
-        {!!item.checked && <Check size={10} strokeWidth={3} aria-hidden="true" />}
-      </span>
+      <CheckCircle done={!!item.checked} />
       <span
         className={`min-w-0 flex-1 truncate ${item.checked ? 'text-content-faint line-through' : 'text-content-secondary'}`}
         style={fs(12, 'body')}
@@ -109,12 +84,7 @@ function LinkedCard({ packing, onOpenPacking }: { packing: TourPackingLinkContro
       </div>
       {total > 0 ? (
         <>
-          <div className="h-1 overflow-hidden rounded-full bg-surface-secondary" aria-hidden="true">
-            <div
-              className="h-full rounded-full bg-accent transition-[width] duration-300"
-              style={{ width: `${(linked.packed / total) * 100}%` }}
-            />
-          </div>
+          <PackedBar packed={linked.packed} total={total} />
           <ul className="m-0 flex list-none flex-col p-0">
             {linked.items.slice(0, SHOWN_ITEMS).map((item) => (
               <ItemRow key={item.id} item={item} />

@@ -13,7 +13,7 @@ export {
 } from './helpers';
 export { McpRegistryService } from './mcp-registry.service';
 export { McpModule } from './mcp.module';
-export { McpRegistry, type McpRegistryOptions } from './registry';
+export { createLocalMcpServer, McpRegistry, type McpRegistryOptions } from './registry';
 export { createTestRegistry } from './testing';
 export {
   type McpAccess,

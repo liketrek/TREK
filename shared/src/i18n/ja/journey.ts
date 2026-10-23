@@ -288,7 +288,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': '日目',
+  'journey.studio.day': '{day}日目',
   'journey.studio.stations': '立ち寄り先',
   'journey.studio.peersHere': '閲覧中',
   'journey.studio.folioAuto': '自動',
@@ -441,7 +441,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'マーク',
   'journey.studio.dateMark': '日付',
   'journey.studio.dayMark': '日数カウンター',
-  'journey.studio.dayWord': 'DAY',
   'journey.studio.coordsMark': '座標',
   'journey.studio.coordsDms': '度分秒',
   'journey.studio.coordsDecimal': '十進度',
@@ -640,6 +639,9 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': '左に回転',
   'journey.studio.rotateRight': '右に回転',
   'journey.studio.saveReadOnly': '閲覧のみ・保存されません',
+  'journey.studio.saveNewer':
+    'この本は新しいバージョンの Studio で保存されました。編集するには再読み込みしてください。',
+  'journey.studio.saveReload': '再読み込み',
   'journey.studio.filterPhotos': '写真を絞り込む',
   'journey.studio.filterAll': 'すべての写真',
   'journey.studio.filterLoose': 'エントリーに属さない',
@@ -864,5 +866,14 @@ const journey: TranslationStrings = {
     '公開済みのエントリーがある日の記録と、そこから取り込んだ滞在。宿泊先も含め、いつどこにいたかがわかります。',
   'journey.share.needsMap': '有効にするには地図を共有してください',
   'journey.editor.tags': 'タグ',
+  'journey.studio.assistant.toggle': 'アシスタント',
+  'journey.studio.assistant.toggleHint': 'アシスタントと一緒に本をデザイン',
+  'journey.studio.assistant.panel': '本のアシスタント',
+  'journey.studio.assistant.welcome': 'どんな本にしますか？',
+  'journey.studio.assistant.readOnly': 'この本は閲覧のみなので、質問には答えられますが、変更はできません。',
+  'journey.studio.assistant.notice':
+    'アシスタントは作業中のページを見ることができます。{provider} に送られるのはそのページだけで、あなた自身が追加した写真だけが写った画像として送られます。写真に誰が写っているかは判別できません。',
+  'journey.studio.assistant.noticeAllow': 'ページを見せる',
+  'journey.studio.assistant.noticeLater': '今はしない',
 };
 export default journey;

@@ -9,6 +9,7 @@ import { db as testDb } from '../../../src/db/database';
 import { TodoCategoryAssignees } from '../../../src/db/entities/TodoCategoryAssignees.entity';
 import { TodoItems } from '../../../src/db/entities/TodoItems.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { TodoService } from '../../../src/nest/todo/todo.service';
@@ -250,6 +251,56 @@ describe('reorderItems', () => {
     expect(rows[0].id).toBe(c.id);
     expect(rows[1].id).toBe(a.id);
     expect(rows[2].id).toBe(b.id);
+  });
+});
+
+// ── reorder (the use case) ────────────────────────────────────────────────────
+
+describe('reorder', () => {
+  function writerFor(userId: number) {
+    const events = { emit: vi.fn(), emitAll: vi.fn() };
+    return { writer: { userId, role: 'user', surface: 'mcp' as const, events }, events };
+  }
+
+  it('TODO-SVC-025: saves the order, then tells the other tabs once with todo:reordered', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const a = (await svc.createItem(trip.id, { name: 'A' })) as { id: number };
+    const b = (await svc.createItem(trip.id, { name: 'B' })) as { id: number };
+    const { writer, events } = writerFor(user.id);
+
+    await svc.reorder(trip.id, [b.id, a.id], writer);
+
+    const rows = await findRows(await sharedTestOrm(testDb), TodoItems, { trip: trip.id }, { sort_order: 'asc' });
+    expect(rows.map((r) => r.id)).toEqual([b.id, a.id]);
+    expect(events.emit.mock.calls).toEqual([['todo:reordered', { orderedIds: [b.id, a.id] }]]);
+    expect(events.emitAll).not.toHaveBeenCalled();
+  });
+
+  it('TODO-SVC-026: a trip the writer cannot see is refused before the write, and nothing is sent', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const a = (await svc.createItem(trip.id, { name: 'A' })) as { id: number };
+    const { writer, events } = writerFor(stranger.id);
+
+    const err = await svc.reorder(trip.id, [a.id], writer).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(DomainError);
+    expect((err as DomainError).getStatus()).toBe(404);
+    expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it("TODO-SVC-027: the REST writer skips the requesting socket, as every todo route's broadcast does", () => {
+    // The service holds a plain RealtimeService; its method lives on the prototype.
+    const broadcast = vi.spyOn(RealtimeService.prototype, 'broadcast').mockImplementation(() => undefined);
+    try {
+      const writer = svc.restWriter('5', { id: 1, role: 'user' } as never, 'sock');
+      expect(writer).toMatchObject({ userId: 1, role: 'user', socketId: 'sock', surface: 'rest' });
+      writer.events.emit('todo:reordered', { orderedIds: [2, 1] });
+      expect(broadcast).toHaveBeenCalledWith('5', 'todo:reordered', { orderedIds: [2, 1] }, 'sock');
+    } finally {
+      broadcast.mockRestore();
+    }
   });
 });
 

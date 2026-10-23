@@ -21,12 +21,16 @@ export async function makeTodoItem(
       );
       return last?.sort_order == null ? 0 : last.sort_order + 1;
     }));
-  return createRow(orm, TodoItems, {
-    trip: tripId,
-    name: 'Test Todo',
-    checked: 0,
-    category: null,
-    ...overrides,
-    sort_order: sortOrder,
-  });
+  return createRow(
+    orm,
+    TodoItems,
+    {
+      trip: tripId,
+      name: 'Test Todo',
+      checked: 0,
+      category: null,
+      sort_order: sortOrder,
+    },
+    { ...overrides, sort_order: sortOrder },
+  );
 }

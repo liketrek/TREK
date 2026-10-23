@@ -81,7 +81,9 @@ export class CollectionsRpc {
     if (!parsed.success) throw new BadParams(`invalid copy request: ${schemaMessage(parsed.error)}`);
     const userId = this.requireCollectionsUser(ctx, 'writes');
     await this.requireCollectionsAddon();
-    return this.mapCollectionError(() => this.collections.copyToTrip(userId, parsed.data as never));
+    // A plugin has no socket: every open planner of the trip hears the copied places.
+    const events = this.collections.tripEvents(parsed.data.trip_id, undefined);
+    return this.mapCollectionError(() => this.collections.copyToTrip(userId, parsed.data as never, events));
   }
 
   @PluginMethod('collections.deletePlace', { permission: 'db:write:collections' })

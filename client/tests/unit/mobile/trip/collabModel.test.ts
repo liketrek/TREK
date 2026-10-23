@@ -4,6 +4,7 @@ import {
   OTHER_BUBBLE_RADIUS,
   OWN_BUBBLE_RADIUS,
   QUICK_REACTIONS,
+  bubbleRadius,
   buildCategoryColorMap,
   formatChatClockTime,
   formatChatDateSeparator,
@@ -163,6 +164,17 @@ describe('collabModel — chat', () => {
     expect(shouldShowChatDateSeparator(a, undefined)).toBe(true);
     expect(shouldShowChatDateSeparator(b, a)).toBe(false);
     expect(shouldShowChatDateSeparator(c, b)).toBe(true);
+  });
+
+  it('FE-MOB-CLBM-024: bubbleRadius rounds a bubble and puts the tail on the sender side of the last one', () => {
+    expect(bubbleRadius(true, false)).toEqual({
+      borderStartStartRadius: 18,
+      borderStartEndRadius: 18,
+      borderEndEndRadius: 18,
+      borderEndStartRadius: 18,
+    });
+    expect(bubbleRadius(true, true)).toMatchObject({ borderEndEndRadius: 4, borderEndStartRadius: 18 });
+    expect(bubbleRadius(false, true)).toMatchObject({ borderEndEndRadius: 18, borderEndStartRadius: 4 });
   });
 
   it('FE-MOB-CLBM-010: isSameSender compares user ids loosely and needs both messages', () => {

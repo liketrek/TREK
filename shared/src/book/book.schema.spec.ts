@@ -1,3 +1,4 @@
+import { normalizeBookDocument } from './book-normalize';
 import {
   MAX_BOOK_LAYOUTS,
   MAX_SPREAD_ELEMENTS,
@@ -7,7 +8,6 @@ import {
   bookSpreadSchema,
   bookStatsElementSchema,
   bookTextElementSchema,
-  normalizeBookDocument,
 } from './book.schema';
 
 import { describe, expect, it } from 'vitest';

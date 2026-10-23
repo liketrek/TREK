@@ -7,13 +7,19 @@ import {
   TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_READONLY,
   ok,
 } from '../../nest-mcp';
 import { UnitOfWork } from '../database/unit-of-work';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { PlacesService } from '../places/places.service';
 import { AccommodationsService } from './accommodations.service';
-import { idSchema, placeWebsiteSchema } from '@trek/shared';
+import {
+  idSchema,
+  listAccommodationsRequestSchema,
+  placeWebsiteSchema,
+  type ListAccommodationsRequest,
+} from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -326,6 +332,19 @@ export class AccommodationsMcp {
       writer,
     );
     return ok({ success: true, linkedReservationId, linkedReservationIds, removedAssignments: mirror.removed });
+  }
+
+  @Tool({
+    name: 'list_accommodations',
+    description:
+      'List where a trip sleeps, stay by stay: the place, its address and position, the check-in and check-out days with their times, and the booking linked to it, its reference included, as the trip-accommodations resource reads them.',
+    inputSchema: listAccommodationsRequestSchema.shape,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'trips', mode: 'read' },
+  })
+  async listAccommodations({ tripId }: ListAccommodationsRequest, ctx: McpContext) {
+    if (!(await this.accommodations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    return ok({ accommodations: await this.accommodations.listAccommodations(tripId) });
   }
 
   @ResourceTemplate({

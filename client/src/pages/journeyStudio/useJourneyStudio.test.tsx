@@ -1,8 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
-import type { JourneyStats } from '@trek/shared'
+import type { BookRecord, JourneyStats } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
 import { useJourneyStore } from '../../store/journeyStore'
+import { useAuthStore } from '../../store/authStore'
 import { journeyApi } from '../../api/client'
+import { addListener } from '../../api/websocket'
 import { uploadStudioPhotos } from '../../components/Studio/studioUpload'
 
 vi.mock('../../components/Studio/studioUpload', () => ({
@@ -33,12 +35,11 @@ vi.mock('../../api/websocket', async importOriginal => ({
   sendBookCursor: vi.fn(),
 }))
 
-const autoLayout = await vi.importActual<typeof import('../../components/Studio/autoLayout')>(
-  '../../components/Studio/autoLayout',
-)
-const buildBook = vi.fn(autoLayout.buildBook)
-vi.mock('../../components/Studio/autoLayout', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../components/Studio/autoLayout')>()
+// The auto layout lives in @trek/shared now; the hook's call into it is watched through a partial mock.
+const shared = await vi.importActual<typeof import('@trek/shared')>('@trek/shared')
+const buildBook = vi.fn(shared.buildBook)
+vi.mock('@trek/shared', async importOriginal => {
+  const actual = await importOriginal<typeof import('@trek/shared')>()
   return { ...actual, buildBook: (...args: Parameters<typeof actual.buildBook>) => buildBook(...args) }
 })
 
@@ -67,7 +68,7 @@ function seedJourney() {
 beforeEach(() => {
   seedJourney()
   buildBook.mockClear()
-  useStudioStore.setState({ doc: null, selection: [], activeSpread: 0, past: [], future: [] })
+  useStudioStore.setState({ doc: null, selection: [], activeSpread: 0, past: [], future: [], readOnly: false })
   vi.spyOn(journeyApi, 'getBook').mockResolvedValue({ book: null } as never)
   vi.spyOn(journeyApi, 'saveBook').mockResolvedValue({} as never)
   vi.spyOn(journeyApi, 'stats').mockResolvedValue(stats() as never)
@@ -293,5 +294,125 @@ describe('pictures and stops', () => {
     const { result } = await mountStudio()
 
     expect(result.current.canEdit).toBe(false)
+  })
+
+  /*
+   * A book a newer Studio saved has already lost, in this copy, what this build
+   * cannot read. It is shown and never changed, for every role, and let go once
+   * Studio closes so the next book opens as it should.
+   */
+  it('FE-STUDIO-REV-001: holds a book a newer Studio saved read-only until Studio closes', async () => {
+    const document = { ...shared.blankBook({ title: 'Iceland' }), schemaRev: shared.BOOK_SCHEMA_REV + 1 }
+    vi.mocked(journeyApi.getBook).mockResolvedValue({
+      book: { id: 3, journeyId: 9, title: 'Iceland', version: 4, updatedAt: '', updatedBy: 1, document },
+    } as never)
+    const { result, unmount } = await mountStudio()
+
+    await waitFor(() => expect(result.current.saveState.status).toBe('newer'))
+    expect(result.current.canEdit).toBe(false)
+    expect(result.current.canUndo).toBe(false)
+    expect(useStudioStore.getState().readOnly).toBe(true)
+    const before = useStudioStore.getState().doc
+    act(() => { useStudioStore.getState().commit(d => ({ ...d, title: 'edited' })) })
+    expect(useStudioStore.getState().doc).toBe(before)
+    expect(journeyApi.saveBook).not.toHaveBeenCalled()
+
+    unmount()
+    expect(useStudioStore.getState().readOnly).toBe(false)
+  })
+})
+
+/**
+ * A save from elsewhere while the book is open (the assistant applying a page
+ * edit, or another editor): the shell hands it to the store's adoptRemote, not
+ * to load, so the user stays on their page, and flushBook is what the chat
+ * panel calls before it lets the assistant write.
+ */
+describe('saves from elsewhere', () => {
+  beforeEach(() => {
+    vi.mocked(addListener).mockClear()
+    useAuthStore.setState({ user: { id: 2 } } as never)
+    vi.mocked(journeyApi.saveBook).mockImplementation(
+      async (_id, body) =>
+        ({
+          id: 3, journeyId: 9, title: 'Iceland', version: 2,
+          updatedAt: '2026-10-22 10:00:00', updatedBy: 2, document: body.document,
+        }) as BookRecord,
+    )
+  })
+
+  afterEach(() => {
+    useAuthStore.setState({ user: null } as never)
+  })
+
+  /** Write a pending edit through flushBook, so nothing local is outstanding. */
+  async function openAndFlush() {
+    const view = await mountStudio()
+    act(() => { useStudioStore.getState().commit(d => ({ ...d, title: 'edited' })) })
+    let ok: boolean | undefined
+    await act(async () => { ok = await view.result.current.flushBook() })
+    return { ...view, ok }
+  }
+
+  /** The book as the server now has it: one page more, in front of the page the user is on. */
+  function remoteWithPageBefore(index: number) {
+    const local = useStudioStore.getState().doc
+    if (!local) throw new Error('the book is not open')
+    const at = local.spreads[index]
+    const spreads = [
+      ...local.spreads.slice(0, index),
+      { ...at, id: 'from-elsewhere', elements: [] },
+      ...local.spreads.slice(index),
+    ]
+    return { document: { ...local, spreads }, activeId: at.id }
+  }
+
+  async function deliverSave(savedBy: number) {
+    await act(async () => {
+      for (const call of vi.mocked(addListener).mock.calls) {
+        call[0]({ type: 'journey:book:saved', journeyId: 9, version: 5, savedBy })
+      }
+      await Promise.resolve()
+    })
+  }
+
+  it('FE-STUDIO-WIRE-001: flushBook writes the pending edit and says it landed', async () => {
+    const { ok } = await openAndFlush()
+    expect(ok).toBe(true)
+    const calls = vi.mocked(journeyApi.saveBook).mock.calls
+    expect((calls[calls.length - 1][1].document as { title?: string }).title).toBe('edited')
+  })
+
+  it('FE-STUDIO-WIRE-002: a save of this user keeps the page by its id and is one undo away', async () => {
+    await openAndFlush()
+    act(() => { useStudioStore.getState().setActiveSpread(2) })
+    const { document, activeId } = remoteWithPageBefore(2)
+    vi.mocked(journeyApi.getBook).mockResolvedValue({
+      book: { id: 3, journeyId: 9, title: 'Iceland', version: 5, updatedAt: '', updatedBy: 2, document },
+    } as never)
+
+    await deliverSave(2)
+
+    await waitFor(() => expect(useStudioStore.getState().doc?.spreads[2].id).toBe('from-elsewhere'))
+    const state = useStudioStore.getState()
+    expect(state.activeSpread).toBe(3)
+    expect(state.doc?.spreads[3].id).toBe(activeId)
+    expect(state.canUndo()).toBe(true)
+  })
+
+  it('FE-STUDIO-WIRE-003: a save by somebody else keeps the page but is not one Ctrl+Z away', async () => {
+    await openAndFlush()
+    act(() => { useStudioStore.getState().setActiveSpread(2) })
+    const { document, activeId } = remoteWithPageBefore(2)
+    vi.mocked(journeyApi.getBook).mockResolvedValue({
+      book: { id: 3, journeyId: 9, title: 'Iceland', version: 5, updatedAt: '', updatedBy: 7, document },
+    } as never)
+
+    await deliverSave(7)
+
+    await waitFor(() => expect(useStudioStore.getState().doc?.spreads[2].id).toBe('from-elsewhere'))
+    const state = useStudioStore.getState()
+    expect(state.doc?.spreads[state.activeSpread].id).toBe(activeId)
+    expect(state.canUndo()).toBe(false)
   })
 })

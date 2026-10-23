@@ -33,14 +33,6 @@ import {
 } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 
-/** A packing item row carrying the privacy fields (#858) used to scope broadcasts. */
-type PackingItemRow = {
-  is_private?: number;
-  owner_id?: number | null;
-  recipients?: { user_id: number }[];
-  [key: string]: unknown;
-};
-
 /**
  * /api/trips/:tripId/packing — trip-scoped packing list (items, bags, templates,
  * assignees).
@@ -132,9 +124,9 @@ export class PackingController {
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Body() body: PackingReorderDto,
-    @Headers('x-socket-id') _socketId?: string,
+    @Headers('x-socket-id') socketId?: string,
   ) {
-    await this.packing.reorderItems(tripId, body.orderedIds);
+    await this.writes.reorder(tripId, body.orderedIds, this.writes.restWriter(tripId, user, socketId));
     return { success: true };
   }
 
@@ -214,23 +206,14 @@ export class PackingController {
     if (itemId === null) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
-    const updated = await this.packing.setItemSharing(
+    // The use case answers the 404, the owner-only 403 and both events.
+    const updated = await this.writes.setSharing(
       tripId,
       itemId,
-      user.id,
       body.visibility,
       Array.isArray(body.recipient_ids) ? body.recipient_ids : [],
+      this.writes.restWriter(tripId, user, socketId),
     );
-    if (!updated) {
-      throw new HttpException({ error: 'Item not found' }, 404);
-    }
-    if ((updated as { forbidden?: boolean }).forbidden) {
-      throw new HttpException({ error: 'Only the owner can change sharing' }, 403);
-    }
-    // The viewer set just changed: drop the item from the whole room, then re-add
-    // it for whoever can now see it (owner + recipients, or everyone if Common).
-    this.packing.broadcast(tripId, 'packing:deleted', { itemId }, socketId);
-    this.packing.emitToViewers(tripId, 'packing:created', { item: updated }, updated as PackingItemRow, socketId);
     return { item: updated };
   }
 
@@ -386,13 +369,8 @@ export class PackingController {
     if (bagIdNum === null) {
       throw new HttpException({ error: 'Bag not found' }, 404);
     }
-    if (!(await this.packing.deleteBag(tripId, bagIdNum))) {
-      throw new HttpException({ error: 'Bag not found' }, 404);
-    }
-    this.packing.broadcast(tripId, 'packing:bag-deleted', { bagId: bagIdNum }, socketId);
-    // bag_id is ON DELETE SET NULL, so everything that was in it just landed in
-    // the unassigned pile — both figures moved.
-    this.packing.broadcastBagTotals(tripId);
+    // The use case answers an unknown bag with the same 404 and sends nothing then.
+    await this.writes.deleteBag(tripId, bagIdNum, this.writes.restWriter(tripId, user, socketId));
     return { success: true };
   }
 
@@ -414,18 +392,18 @@ export class PackingController {
     // Plan 4 Task 8b (U6) — :templateId is parsed ONCE here (toRowId, not
     // Number(): rule 15's NaN-into-SQL trap). A malformed id never matched
     // under the legacy affinity CAST either, so it 404s with the same body
-    // this handler's own not-found branch already produces below.
+    // the use case's own not-found refusal produces below.
     const templateIdNum = toRowId(templateId);
     if (templateIdNum === null) {
       throw new HttpException({ error: 'Template not found or empty' }, 404);
     }
     const visibility = body?.visibility === 'personal' ? 'personal' : 'common';
-    const added = await this.packing.applyTemplate(tripId, templateIdNum, visibility, user.id);
-    if (!added) {
-      throw new HttpException({ error: 'Template not found or empty' }, 404);
-    }
-    this.packing.broadcastItem(tripId, 'packing:template-applied', { items: added }, added[0], socketId);
-    this.packing.broadcastBagTotals(tripId);
+    const added = await this.writes.applyTemplate(
+      tripId,
+      templateIdNum,
+      visibility,
+      this.writes.restWriter(tripId, user, socketId),
+    );
     return { items: added, count: added.length };
   }
 
@@ -487,9 +465,12 @@ export class PackingController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const category = decodeURIComponent(categoryName);
-    const rows = await this.packing.updateCategoryAssignees(tripId, category, body.user_ids);
-    this.packing.broadcast(tripId, 'packing:assignees', { category, assignees: rows }, socketId);
-    await this.packing.notifyTagged(tripId, user, category, body.user_ids);
+    const rows = await this.writes.setCategoryAssignees(
+      tripId,
+      category,
+      body.user_ids,
+      this.writes.restWriter(tripId, user, socketId),
+    );
     return { assignees: rows };
   }
 }

@@ -1,10 +1,12 @@
 import { DomainError } from '../common/domain-error';
+import { restTripEvents, type TripBroadcast, type TripEventSink } from '../common/trip-writer';
 import path from 'path';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { isUploadedPlaceImage } from '../places/place-image';
+import { PlacesService } from '../places/places.service';
 import { StorageService } from '../storage/storage.service';
 import { Collections } from '../../db/entities/Collections.entity';
 import { CollectionsRepository, type CollectionPlaceRow } from '../../db/repositories/Collections.repository';
@@ -66,7 +68,7 @@ import type {
   CollectionUpdateRequest,
   CollectionSavePlaceRequest,
   CollectionSaveResult,
-  CollectionCopyToTripRequest,
+  CollectionCopyToTripRequest, CollectionCopyToTripResponse,
   CollectionPlaceUpdateRequest,
   CollectionStatus,
   CollectionLabel,
@@ -127,6 +129,7 @@ export class CollectionsService {
     @InjectRepository(Tags) private readonly tags: TagsRepository,
     @InjectRepository(Users) private readonly users: UsersRepository,
     private readonly placeImport: PlaceImportService,
+    private readonly places: PlacesService, // the journey hook of every place copyToTrip adds
   ) {}
 
   /**
@@ -417,21 +420,19 @@ export class CollectionsService {
    * carries no duplicate count. Adding to a list that already exists is
    * importIntoCollection below.
    */
-  async importCollection(userId: number, body: CollectionImportRequest): Promise<CollectionImportResult> {
+  async importCollection(userId: number, body: CollectionImportRequest, sid?: string): Promise<CollectionImportResult> {
     const file = body.file;
     const name = (body.name ?? file.name).trim().slice(0, 120) || file.name;
 
     const result = await this.uow.transactional(async () => {
       const collection = await this.createCollection(userId, {
-        name,
-        description: file.description ?? null,
-        color: file.color ?? undefined,
-        icon: file.icon ?? undefined,
-      });
+        name, description: file.description ?? null, color: file.color ?? undefined, icon: file.icon ?? undefined,
+      }, undefined, false);
       const labels = await this.labelIdsForFile(collection.id, file.labels);
       const counts = await this.writeFilePlaces(collection.id, userId, file, labels.byName, { skipDuplicates: false });
       return { collectionId: collection.id, ...counts };
     });
+    await this.notifyCollectionUsers(result.collectionId, sid, 'collections:updated'); // after the commit
 
     const collection = await this.getCollectionRow(result.collectionId);
     return {
@@ -583,7 +584,8 @@ export class CollectionsService {
     });
   }
 
-  async createCollection(userId: number, body: CollectionCreateRequest): Promise<Collection> {
+  /** `announce: false` leaves the event to a caller whose own transaction is still open (importCollection). */
+  async createCollection(userId: number, body: CollectionCreateRequest, socketId?: string, announce = true): Promise<Collection> {
     // The MAX read and the insert in one transaction: two lists created at once
     // cannot take the same position.
     const id = await this.uow.transactional(async () => this.collectionsRepo.insertCollection({
@@ -596,8 +598,8 @@ export class CollectionsService {
       links: serializeLinks(body.links),
       sort_order: (await this.collectionsRepo.maxSortOrder(userId)) + 1,
     }));
-    const col = await this.getCollectionRow(id);
-    return { ...col, is_owner: true };
+    if (announce) await this.notifyCollectionUsers(id, socketId, 'collections:updated'); // the owner's tabs list it
+    return { ...(await this.getCollectionRow(id)), is_owner: true };
   }
 
   async updateCollection(userId: number, id: number, body: CollectionUpdateRequest, socketId?: string): Promise<Collection> {
@@ -627,7 +629,7 @@ export class CollectionsService {
     return { ...col, is_owner: col.owner_id === userId };
   }
 
-  async deleteCollection(userId: number, id: number): Promise<void> {
+  async deleteCollection(userId: number, id: number, socketId?: string): Promise<void> {
     await this.assertAccess(userId, id);
     if (!(await this.isOwner(userId, id))) httpError(403, 'Only the owner can delete this list');
 
@@ -637,20 +639,16 @@ export class CollectionsService {
 
     await this.collectionsRepo.deleteById(id); // CASCADE drops members + places + tags
 
-    [...new Set([...accepted, ...pending])]
-      .filter(uid => uid !== userId)
-      .forEach(uid => this.realtime.broadcastToUser(uid, { type: 'collections:deleted', collectionId: id }));
+    [...new Set([userId, ...accepted, ...pending])] // the owner's tabs too, all but the one that asked
+      .forEach(uid => this.realtime.broadcastToUser(uid, { type: 'collections:deleted', collectionId: id }, socketId));
   }
 
-  async reorderCollections(userId: number, orderedIds: number[]): Promise<void> {
+  async reorderCollections(userId: number, orderedIds: number[], socketId?: string): Promise<void> {
     const visible = new Set(await this.accessibleCollectionIds(userId));
-    await this.uow.transactional(async () => {
-      await this.collectionsRepo.setSortOrders(
-        orderedIds
-          .map((cid, index) => ({ id: cid, sortOrder: index }))
-          .filter(({ id }) => visible.has(id)),
-      );
-    });
+    const orders = orderedIds.map((cid, index) => ({ id: cid, sortOrder: index })).filter(({ id }) => visible.has(id));
+    await this.uow.transactional(async () => this.collectionsRepo.setSortOrders(orders));
+    const moved = orders[0]?.id; // the order is the user's own, so only their tabs hear it
+    if (moved) this.realtime.broadcastToUser(userId, { type: 'collections:updated', collectionId: moved }, socketId);
   }
 
   // -------------------------------------------------------------------------
@@ -1125,10 +1123,13 @@ export class CollectionsService {
   // Copy to trip
   // -------------------------------------------------------------------------
 
-  async copyToTrip(userId: number, body: CollectionCopyToTripRequest): Promise<{ copied: number; skipped: { id: number; name: string }[] }> {
-    // R6's OPPOSITE order from `savePlace`: trip access (AP6, this method's own
-    // entry guard) FIRST, then the `place_edit` permission check SECOND — each
-    // method preserves its OWN legacy order independently, never forced to match.
+  /** The sink a copy's events take: REST skips its X-Socket-Id, a plugin (no socket) reaches every tab. */
+  tripEvents = (tripId: number, socketId: string | undefined): TripEventSink =>
+    restTripEvents((this.realtime.broadcast as TripBroadcast).bind(this.realtime), tripId, socketId);
+
+  /** Copy saved places into a trip; after the commit each copy goes out as `place:created`, as in the planner. */
+  async copyToTrip(userId: number, body: CollectionCopyToTripRequest, events: TripEventSink): Promise<CollectionCopyToTripResponse> {
+    // R6's opposite order from `savePlace`: trip access (AP6) first, then `place_edit`; each keeps its legacy order.
     const trip = await this.trips.findAccessible(body.trip_id, userId);
     if (!trip) httpError(404, 'Trip not found');
     const role = (await this.users.getRole(userId)) ?? 'user';
@@ -1136,13 +1137,8 @@ export class CollectionsService {
       httpError(403, 'Not allowed to edit this trip');
     }
 
-    // Votes only travel for users who are members of THIS trip (owner + members),
-    // so copying never surfaces a collection member with no tie to the trip.
-    // Symmetric with copyTripRatings' collection-member filter (#1435).
-    const tripMemberIds = new Set<number>([trip.user_id]);
-    for (const memberId of await this.tripMembers.listUserIdsByTrip(body.trip_id)) {
-      tripMemberIds.add(memberId);
-    }
+    // Votes travel only for the trip's owner and members, as in copyTripRatings (#1435).
+    const tripMemberIds = new Set<number>([trip.user_id, ...(await this.tripMembers.listUserIdsByTrip(body.trip_id))]);
 
     // Visibility on every SOURCE place — no cross-user exfiltration via copy.
     const sources: CollectionPlaceCopyRow[] = [];
@@ -1153,8 +1149,7 @@ export class CollectionsService {
       sources.push(row);
     }
 
-    // Trip dedup set — same helpers the importers use, so a place renamed in the
-    // trip is still recognised by its provider id when it is copied again (#1550).
+    // The importers' dedup set: a place renamed in the trip is still known by its provider id (#1550).
     const existing = await this.tripPlaces.dedupCandidatesForTrip(body.trip_id);
     const dedup: DedupSet = { names: new Set(), coords: [], externalIds: new Set() };
     for (const r of existing) {
@@ -1163,7 +1158,7 @@ export class CollectionsService {
       else if (r.lat != null && r.lng != null) dedup.coords.push({ lat: r.lat, lng: r.lng });
     }
 
-    let copied = 0;
+    const created: CollectionCopyToTripResponse['created'] = []; // each new trip place by the saved place it came from
     const skipped: { id: number; name: string }[] = [];
     // The whole copy is one logical write — atomic since the post-fold quirk pass.
     await this.uow.transactional(async () => {
@@ -1175,9 +1170,7 @@ export class CollectionsService {
           skipped.push({ id: s.id, name: s.name });
           continue;
         }
-        // CL64 — cross-domain WRITE into 3c's `places`, gated by the trip-access +
-        // permission checks above (the cross-tenant guard: a caller who can see
-        // the collection place but not the target trip never reaches this write).
+        // CL64: a cross-domain write into `places`, behind the trip-access and permission checks above.
         const newPlaceId = await this.tripPlaces.insertFromCollectionPlace({
           trip_id: body.trip_id, name: s.name, description: s.description, lat: s.lat, lng: s.lng,
           address: s.address, category_id: s.category_id, price: s.price, currency: s.currency,
@@ -1186,17 +1179,19 @@ export class CollectionsService {
         });
         const tagIds = await this.collectionPlaces.tagIdsFor(s.id);
         await this.tags.insertIgnore(newPlaceId, tagIds);
-        // Ratings travel into the trip too (#1435), but only for trip members — a
-        // collection voter who isn't on the trip stays out of it. Trip members keep
-        // voting there; nothing is mirrored back.
+        // Ratings of trip members travel along (#1435); nothing is mirrored back.
         const votes = await this.collectionPlaceRatings.listForPlace(s.id);
         for (const v of votes) if (tripMemberIds.has(v.user_id)) await this.tripPlaceRatings.insertIgnore(newPlaceId, v.user_id, v.rating);
-
         trackInsertedInDedupSet(s, dedup);
-        copied++;
+        created.push({ id: newPlaceId, source_id: s.id });
       }
     });
-    return { copied, skipped };
+    const rows = await Promise.all(created.map(({ id }) => this.tripPlaces.findWithTagsAndRatings(id))); // reads only
+    for (const [i, place] of rows.entries()) {
+      if (place) events.emit('place:created', { place }); // as the place routes send it
+      await this.places.onCreated(String(body.trip_id), created[i].id); // a no-op on no day, kept for parity
+    }
+    return { copied: created.length, skipped, created };
   }
 
   // -------------------------------------------------------------------------
@@ -1224,7 +1219,7 @@ export class CollectionsService {
       const role = await this.roleOf(userId, r.collection_id);
       lists.push({
         collection_id: r.collection_id,
-        name: r.name,
+        name: r.name, color: r.color,
         place_id: r.place_id,
         status: (r.status as CollectionStatus) ?? 'idea',
         can_edit: role !== null && role !== 'viewer',
@@ -1358,7 +1353,7 @@ export class CollectionsService {
 
   async sendInvite(
     collectionId: number, inviterId: number, inviterUsername: string, targetUserId: number,
-    role: 'viewer' | 'editor' | 'admin' = 'editor',
+    role: 'viewer' | 'editor' | 'admin' = 'editor', socketId?: string,
   ): Promise<void> {
     if (!(await this.isOwner(inviterId, collectionId))) throw new DomainError(403, 'Not allowed');
     if (targetUserId === inviterId) throw new DomainError(400, 'Cannot invite yourself');
@@ -1375,6 +1370,7 @@ export class CollectionsService {
     await this.members.insertInvite(collectionId, targetUserId, role);
 
     this.realtime.broadcastToUser(targetUserId, { type: 'collections:invite', from: { id: inviterId, username: inviterUsername }, collectionId });
+    await this.notifyCollectionUsers(collectionId, socketId); // the inviter's tabs list the pending invite
 
     // Injected, not a lazy import of the old notifications bridge. The laziness bought
     // nothing the module graph does not already give — NotificationsModule
@@ -1393,18 +1389,21 @@ export class CollectionsService {
   async declineInvite(userId: number, collectionId: number, socketId: string | undefined): Promise<void> {
     await this.members.deletePending(collectionId, userId);
     await this.notifyCollectionUsers(collectionId, socketId, 'collections:declined');
+    this.realtime.broadcastToUser(userId, { type: 'collections:declined', collectionId }, socketId); // the decliner too
   }
 
-  async cancelInvite(collectionId: number, ownerId: number, targetUserId: number): Promise<void> {
+  async cancelInvite(collectionId: number, ownerId: number, targetUserId: number, socketId?: string): Promise<void> {
     if (!(await this.isOwner(ownerId, collectionId))) httpError(403, 'Not allowed');
     await this.members.deletePending(collectionId, targetUserId);
     this.realtime.broadcastToUser(targetUserId, { type: 'collections:cancelled', collectionId });
+    await this.notifyCollectionUsers(collectionId, socketId); // the owner's tabs drop the pending invite
   }
 
   async leaveCollection(userId: number, collectionId: number, socketId: string | undefined): Promise<void> {
     if (await this.isOwner(userId, collectionId)) httpError(400, 'Owner cannot leave; delete the list');
     await this.members.deleteAccepted(collectionId, userId);
     await this.notifyCollectionUsers(collectionId, socketId, 'collections:left');
+    this.realtime.broadcastToUser(userId, { type: 'collections:removed', collectionId }, socketId); // as if removed
   }
 
   /** Owner removes an already-accepted member (a "kick"). */

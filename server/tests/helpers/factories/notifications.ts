@@ -13,16 +13,20 @@ export function makeNotification(
   recipientId: number,
   overrides: EntityData<Notifications> = {},
 ): Promise<NotificationRow> {
-  return createRow(orm, Notifications, {
-    recipient: recipientId,
-    type: 'simple',
-    scope: 'user',
-    target: recipientId,
-    title_key: 'notifications.test.title',
-    text_key: 'notifications.test.text',
-    is_read: 0,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    Notifications,
+    {
+      recipient: recipientId,
+      type: 'simple',
+      scope: 'user',
+      target: recipientId,
+      title_key: 'notifications.test.title',
+      text_key: 'notifications.test.text',
+      is_read: 0,
+    },
+    overrides,
+  );
 }
 
 /** Sets the instance's active notification channels ('email', 'webhook', 'email,webhook', 'none'). */

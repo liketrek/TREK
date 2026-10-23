@@ -20,15 +20,19 @@ export async function makeJourney(
   overrides: EntityData<Journeys> = {},
 ): Promise<JourneyRow> {
   const now = Date.now();
-  const journey = await createRow(orm, Journeys, {
-    user: userId,
-    title: `Test Journey ${nextSeq('journey')}`,
-    subtitle: null,
-    status: 'active',
-    created_at: now,
-    updated_at: now,
-    ...overrides,
-  });
+  const journey = await createRow(
+    orm,
+    Journeys,
+    {
+      user: userId,
+      title: `Test Journey ${nextSeq('journey')}`,
+      subtitle: null,
+      status: 'active',
+      created_at: now,
+      updated_at: now,
+    },
+    overrides,
+  );
   await insertRow(orm, JourneyContributors, { journey: journey.id, user: userId, role: 'owner', added_at: now });
   return journey;
 }
@@ -41,17 +45,21 @@ export function makeJourneyEntry(
   overrides: EntityData<JourneyEntries> = {},
 ): Promise<JourneyEntryRow> {
   const now = Date.now();
-  return createRow(orm, JourneyEntries, {
-    journey: journeyId,
-    author: authorId,
-    type: 'entry',
-    entry_date: '2026-01-15',
-    visibility: 'private',
-    sort_order: 0,
-    created_at: now,
-    updated_at: now,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    JourneyEntries,
+    {
+      journey: journeyId,
+      author: authorId,
+      type: 'entry',
+      entry_date: '2026-01-15',
+      visibility: 'private',
+      sort_order: 0,
+      created_at: now,
+      updated_at: now,
+    },
+    overrides,
+  );
 }
 
 /** Adds the user as a contributor; an existing contributor keeps their role. */

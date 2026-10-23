@@ -222,7 +222,7 @@ describe('useTripPlanner — bootstrap', () => {
     await waitFor(() => expect(tripsApi.getMembers).toHaveBeenCalledTimes(1))
 
     env.forcedOffline = true
-    act(() => { result.current.refreshMembers() })
+    await act(async () => { await result.current.refreshMembers() })
 
     expect(tripsApi.getMembers).toHaveBeenCalledTimes(1)
   })
@@ -284,16 +284,16 @@ describe('useTripPlanner — bootstrap', () => {
     expect(actions.loadReservations).toHaveBeenCalledTimes(1)
   })
 
-  it('FE-TP-HOOK-011: the accommodations:refresh event reloads the accommodation list', async () => {
+  it('FE-TP-HOOK-011: stays booked elsewhere in one burst reload the stay list once and show in it', async () => {
     seedTrip()
-    await renderPlanner()
-    await waitFor(() => expect(accommodationRepo.list).toHaveBeenCalledTimes(1))
+    const { result } = await renderPlanner()
+    const booked = [8, 9].map(id => ({ id, trip_id: 42 }))
+    vi.mocked(accommodationRepo.list).mockResolvedValue({ accommodations: booked as never })
 
-    await act(async () => {
-      window.dispatchEvent(new Event('accommodations:refresh'))
-    })
-
-    await waitFor(() => expect(accommodationRepo.list).toHaveBeenCalledTimes(2))
+    act(() => booked.forEach(accommodation =>
+      useTripStore.getState().handleRemoteEvent({ type: 'accommodation:created', accommodation })))
+    await waitFor(() => expect(result.current.tripAccommodations.map(a => a.id)).toEqual([8, 9]))
+    expect(accommodationRepo.list).toHaveBeenCalledTimes(2)
   })
 
   it('FE-TP-HOOK-012: the splash gate opens once the trip finished loading', async () => {
@@ -2788,7 +2788,7 @@ describe('useTripPlanner — misc state', () => {
       owner: { user_id: 1, username: 'owner' },
       members: [{ user_id: 2 }, { user_id: 3 }],
     })
-    act(() => { result.current.refreshMembers() })
+    await act(async () => { await result.current.refreshMembers() })
 
     await waitFor(() => expect(result.current.tripMembers).toHaveLength(3))
   })

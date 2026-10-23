@@ -297,7 +297,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'NAP',
+  'journey.studio.day': '{day}. NAP',
   'journey.studio.stations': 'Állomások',
   'journey.studio.peersHere': 'itt',
   'journey.studio.folioAuto': 'Automatikus',
@@ -451,7 +451,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Jelek',
   'journey.studio.dateMark': 'Dátum',
   'journey.studio.dayMark': 'Napszámláló',
-  'journey.studio.dayWord': 'NAP',
   'journey.studio.coordsMark': 'Koordináták',
   'journey.studio.coordsDms': 'Fok',
   'journey.studio.coordsDecimal': 'Tizedes',
@@ -650,6 +649,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Forgatás balra',
   'journey.studio.rotateRight': 'Forgatás jobbra',
   'journey.studio.saveReadOnly': 'Csak olvasható, nem mentődik',
+  'journey.studio.saveNewer': 'Ezt a könyvet a Studio egy újabb verziója mentette. Töltsd újra a szerkesztéshez.',
+  'journey.studio.saveReload': 'Újratöltés',
   'journey.studio.filterPhotos': 'Fotók szűrése',
   'journey.studio.filterAll': 'Összes fotó',
   'journey.studio.filterLoose': 'Nincs bejegyzésben',
@@ -902,5 +903,15 @@ const journey: TranslationStrings = {
     'Rögzített napok és a belőlük átvett megállók azokon a napokon, amelyekhez közzétett bejegyzés tartozik. Megmutatják, hol és mikor jártál, a szállásodat is.',
   'journey.share.needsMap': 'Oszd meg a térképet a bekapcsoláshoz',
   'journey.editor.tags': 'Címkék',
+  'journey.studio.assistant.toggle': 'Asszisztens',
+  'journey.studio.assistant.toggleHint': 'Tervezd meg a könyvet az asszisztenssel',
+  'journey.studio.assistant.panel': 'Könyvasszisztens',
+  'journey.studio.assistant.welcome': 'Milyen legyen a könyv?',
+  'journey.studio.assistant.readOnly':
+    'Ezt a könyvet csak megtekintheted, ezért kérdésekre válaszolok, de semmit nem módosítok.',
+  'journey.studio.assistant.notice':
+    'Az asszisztens megnézheti az oldalt, amelyen dolgozol. Csak ez az oldal kerül a(z) {provider} szolgáltatóhoz, képként, amelyen csak a saját magad által hozzáadott fotók látszanak. Azt, hogy ki szerepel a fotóidon, nem lehet felismerni.',
+  'journey.studio.assistant.noticeAllow': 'Oldalak megmutatása',
+  'journey.studio.assistant.noticeLater': 'Most nem',
 };
 export default journey;

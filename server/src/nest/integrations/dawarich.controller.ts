@@ -16,6 +16,7 @@ import {
   DawarichSettingsDto,
   DawarichSuggestionStateDto,
 } from './dawarich.dto';
+import { parseTimeWindow } from './dawarich.helpers';
 import { DawarichService } from './dawarich.service';
 import {
   Body,
@@ -160,14 +161,16 @@ export class DawarichController {
 
   @Post('bucket-list/confirm')
   @HttpCode(200)
-  async confirmBucketVisits(@CurrentUser() user: User, @Body() body: DawarichBucketConfirmDto) {
-    return { updated: await this.suggestions.confirmBucketVisits(user.id, body.itemIds, body.visitedAt) };
+  async confirmBucketVisits(@CurrentUser() user: User, @Body() body: DawarichBucketConfirmDto, @Req() req: Request) {
+    return {
+      updated: await this.suggestions.confirmBucketVisits(user.id, body.itemIds, body.visitedAt, socketId(req)),
+    };
   }
 
   @Delete('bucket-list/:itemId/visit')
   @HttpCode(200)
-  async clearBucketVisit(@CurrentUser() user: User, @Param('itemId') itemId: string) {
-    const cleared = await this.suggestions.clearBucketVisit(user.id, parseId(itemId));
+  async clearBucketVisit(@CurrentUser() user: User, @Param('itemId') itemId: string, @Req() req: Request) {
+    const cleared = await this.suggestions.clearBucketVisit(user.id, parseId(itemId), socketId(req));
     if (!cleared) throw new HttpException({ error: 'Bucket-list entry not found' }, 404);
     return { success: true };
   }
@@ -176,14 +179,14 @@ export class DawarichController {
 
   @Get('atlas/suggestions')
   async atlasSuggestions(@CurrentUser() user: User, @Query('from') from?: string, @Query('to') to?: string) {
-    const window = parseWindow(from, to);
+    const window = parseTimeWindow(from, to);
     return this.guardAsync(() => this.suggestions.atlasSuggestions(user.id, window.from, window.to));
   }
 
   @Post('atlas/accept')
   @HttpCode(200)
-  async acceptAtlasCountries(@CurrentUser() user: User, @Body() body: DawarichAtlasAcceptDto) {
-    return { marked: await this.suggestions.acceptAtlasCountries(user.id, body.countryCodes) };
+  async acceptAtlasCountries(@CurrentUser() user: User, @Body() body: DawarichAtlasAcceptDto, @Req() req: Request) {
+    return { marked: await this.suggestions.acceptAtlasCountries(user.id, body.countryCodes, socketId(req)) };
   }
 
   // ── Track overlay ──────────────────────────────────────────────────────────
@@ -215,7 +218,7 @@ export class DawarichController {
     @Query('to') to?: string,
     @Query('offset') offset?: string,
   ) {
-    const window = parseWindow(from, to);
+    const window = parseTimeWindow(from, to);
     return this.guardAsync(() =>
       this.tracks.forWindow(user.id, window.from.toISOString(), window.to.toISOString(), parseOffset(offset)),
     );
@@ -308,25 +311,6 @@ function parseDate(raw: string | undefined): string | undefined {
     throw new HttpException({ error: 'Dates must be ISO, YYYY-MM-DD' }, 400);
   }
   return raw;
-}
-
-/**
- * An explicit instant window. Both ends are required together: a half-open
- * range would silently become "everything since the epoch" on one side, which
- * is the request that makes an instance time out.
- */
-function parseWindow(from: string | undefined, to: string | undefined): { from: Date; to: Date } {
-  const start = from ? new Date(from) : null;
-  const end = to ? new Date(to) : null;
-  if (!start || !end || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) {
-    throw new HttpException({ error: 'from and to are required ISO timestamps' }, 400);
-  }
-  if (end <= start) throw new HttpException({ error: 'to must be after from' }, 400);
-  const MAX_DAYS = 400;
-  if (end.getTime() - start.getTime() > MAX_DAYS * 86_400_000) {
-    throw new HttpException({ error: `Window must be ${MAX_DAYS} days or less` }, 400);
-  }
-  return { from: start, to: end };
 }
 
 /** The originating client's socket id, so a broadcast does not echo back to it. */

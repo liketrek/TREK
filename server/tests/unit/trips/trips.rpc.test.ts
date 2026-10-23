@@ -71,6 +71,7 @@ export function build(opts: { allow?: (action: string) => boolean; updateThrows?
   // Membership left TripsService for its own domain.
   const roster = {
     removeMember: vi.fn(),
+    findMember: vi.fn(async (_tripId: number, userId: number) => ({ id: userId, username: 'bob', role: 'member' })),
   } as unknown as TripMembersService & Record<string, ReturnType<typeof vi.fn>>;
   const membership = { joinTripAsMember: vi.fn(() => ({ joined: true })) } as unknown as TripMembershipService &
     Record<string, ReturnType<typeof vi.fn>>;
@@ -328,6 +329,18 @@ describe('TripsRpc membership', () => {
     const f = build();
     expect((await f.host().dispatch(req('trips.addMember', { tripId: 1, userId: 7 }), 42)).ok).toBe(true);
     expect(f.membership.joinTripAsMember).toHaveBeenCalledWith(1, 7, 42);
+    // The whole room hears it: a plugin has no socket to leave out.
+    expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'member:added', {
+      member: { id: 7, username: 'bob', role: 'member' },
+    });
+  });
+
+  it('TRIPS-RPC-021 a join that changes nothing announces nothing', async () => {
+    const f = build();
+    vi.mocked(f.membership.joinTripAsMember).mockResolvedValueOnce({ joined: false, tripId: 1 });
+    expect((await f.host().dispatch(req('trips.addMember', { tripId: 1, userId: 7 }), 42)).ok).toBe(true);
+    expect(f.roster.findMember).not.toHaveBeenCalled();
+    expect(f.realtime.broadcast).not.toHaveBeenCalled();
   });
 
   it('TRIPS-RPC-014 member management is its own grant, separate from every other write', async () => {
@@ -352,12 +365,14 @@ describe('TripsRpc membership', () => {
     const res = (await f.host().dispatch(req('trips.removeMember', { tripId: 1, userId: 42 }), 42)) as RpcError;
     expect(res.error.message).toBe('cannot remove the trip owner');
     expect(f.roster.removeMember).not.toHaveBeenCalled();
+    expect(f.realtime.broadcast).not.toHaveBeenCalled();
   });
 
   it('TRIPS-RPC-017 a non-owner member is removed', async () => {
     const f = build();
     expect((await f.host().dispatch(req('trips.removeMember', { tripId: 1, userId: 7 }), 42)).ok).toBe(true);
     expect(f.roster.removeMember).toHaveBeenCalledWith(1, 7);
+    expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'member:removed', { userId: 7 });
   });
 
   it('TRIPS-RPC-018 without member_manage nothing changes', async () => {

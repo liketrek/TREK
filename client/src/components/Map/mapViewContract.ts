@@ -1,5 +1,6 @@
 import type { DawarichTrack, RoadtripHazard, RoadtripVia } from '@trek/shared';
 import type { Day, Place, Reservation, RouteVia } from '../../types';
+import type { AssistantRouteLine } from '../../types/assistantMap';
 import type { ViewportPadding } from '../../utils/mapViewport';
 import type { RouteProfileFocus } from '../../utils/routeGeometry';
 import type { FerrataMapLayer } from '../Ferratas/useFerrataMapLayer';
@@ -197,6 +198,77 @@ export interface MapViewProps {
    * it; the Leaflet renderer takes the prop and never calls it.
    */
   onMapReady?: (map: CompassMap | null) => void;
+  /** The assistant's suggestions that are not on the map yet, drawn as dashed pins outside the clusters. */
+  assistantGhosts?: AssistantGhost[];
+  /** The suggestion under the pointer, in the chat or on the map; its ghost pulses. */
+  assistantHoveredId?: string | null;
+  onAssistantGhostHover?: (id: string | null) => void;
+  onAssistantGhostClick?: (id: string) => void;
+  /** A place already on the map that the hovered suggestion is about; its own pin pulses instead of a ghost. */
+  assistantPulsePlaceId?: number | null;
+  /** Where the assistant asks the map to look; a new `key` is a new request. */
+  assistantCamera?: AssistantCamera | null;
+  /** Places that just arrived from an applied suggestion; their pins pop once. */
+  poppedPlaceIds?: readonly number[];
+  /** The routes the chat shows beside the plan: proposed ways, held changes, the way a change replaces. */
+  assistantRouteLines?: AssistantRouteLine[];
+  /** The pointer onto a route line (its `ref`) or off every one; the phone leaves it out, a tap points instead. */
+  onAssistantRouteHover?: (ref: string | null) => void;
+  /** The pointer moving along a route line, or a tap on it: where on the map, for the route's profile. */
+  onAssistantRoutePoint?: (ref: string, lat: number, lng: number) => void;
+  /** While the map shows the plan before a change, its pins cannot be dragged onto a day. */
+  markersLocked?: boolean;
+}
+
+/** The assistant's part of the contract, which both renderers hand to their assistant modules whole. */
+export type AssistantMapProps = Pick<
+  MapViewProps,
+  | 'assistantGhosts'
+  | 'assistantHoveredId'
+  | 'onAssistantGhostHover'
+  | 'onAssistantGhostClick'
+  | 'assistantPulsePlaceId'
+  | 'assistantCamera'
+  | 'poppedPlaceIds'
+  | 'markersLocked'
+  | 'assistantRouteLines'
+  | 'onAssistantRouteHover'
+  | 'onAssistantRoutePoint'
+  | 'routeProfileFocus'
+>;
+
+/**
+ * A suggested place drawn before it exists. `color` and `icon` are its
+ * category's. A spot a card marks (a road trip's new via) is a small
+ * `point` instead of a pin, and lights with its change's row by `ref`.
+ */
+export interface AssistantGhost {
+  id: string;
+  lat: number;
+  lng: number;
+  name: string;
+  color?: string;
+  icon?: string;
+  variant?: 'pin' | 'point';
+  /** The key it lights by, when several ghosts belong to one change; its `id` otherwise. */
+  ref?: string;
+}
+
+/**
+ * A camera move the assistant asks for. `fit` frames all points, `pan` only
+ * brings their centre into view when it is outside. `auto` marks a move the
+ * user did not ask for: the map skips it while the user is moving the map
+ * themselves. `cover` is what the assistant's window hides of the map.
+ */
+export interface AssistantCamera {
+  key: string;
+  points: [number, number][];
+  mode: 'fit' | 'pan';
+  animate: boolean;
+  auto: boolean;
+  /** When it was asked for (ms since the epoch): a map that mounts right after still carries it out. */
+  at?: number;
+  cover?: { side: 'left' | 'right'; px: number } | null;
 }
 
 /**

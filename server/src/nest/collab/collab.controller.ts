@@ -167,15 +167,11 @@ export class CollabController {
     @Body() body: CollabNoteCreateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const note = await this.collab.createNote(tripId, user.id, {
-      title: body.title,
-      content: body.content,
-      category: body.category,
-      color: body.color,
-      website: body.website,
-    });
-    this.collab.broadcast(tripId, 'collab:note:created', { note }, socketId);
-    await this.collab.notifyCollab(tripId, user);
+    const note = await this.collab.postNote(
+      tripId,
+      { title: body.title, content: body.content, category: body.category, color: body.color, website: body.website },
+      this.collab.restWriter(tripId, user, socketId),
+    );
     return { note };
   }
 
@@ -525,25 +521,24 @@ export class CollabController {
     }
     const replyTo =
       body.reply_to === undefined || body.reply_to === '' || body.reply_to === null ? null : Number(body.reply_to);
-    const result = await this.collab.createMessage(
+    const result = await this.collab.postMessage(
       tripId,
-      user.id,
-      text,
-      Number.isFinite(replyTo as number) ? replyTo : null,
-      uploaded.map((file) => ({
-        filename: file.filename,
-        originalname: file.originalname,
-        size: file.size,
-        mimetype: file.mimetype,
-      })),
+      {
+        text,
+        replyTo: Number.isFinite(replyTo as number) ? replyTo : null,
+        files: uploaded.map((file) => ({
+          filename: file.filename,
+          originalname: file.originalname,
+          size: file.size,
+          mimetype: file.mimetype,
+        })),
+      },
+      this.collab.restWriter(tripId, user, socketId),
     );
     if (result.error === 'reply_not_found') {
       for (const name of committed) await this.storage.delete('files', name).catch(() => {});
       throw new HttpException({ error: 'Reply target message not found' }, 400);
     }
-    this.collab.broadcast(tripId, 'collab:message:created', { message: result.message }, socketId);
-    const preview = text || 'sent an image';
-    await this.collab.notifyCollab(tripId, user, preview.length > 80 ? preview.substring(0, 80) + '...' : preview);
     return { message: result.message };
   }
 

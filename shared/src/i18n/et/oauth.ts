@@ -91,6 +91,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.loginButton': 'Logi TREKi sisse',
   'oauth.authorize.requestLabel': 'Juurdepääsutaotlus',
   'oauth.authorize.requestDescription': 'See rakendus taotleb juurdepääsu sinu TREKi kontole.',
+  'oauth.authorize.verifiedHost': 'Kinnitatud domeen: {host}',
   'oauth.authorize.trustNote': 'Anna juurdepääs ainult usaldatud rakendustele. Sinu andmed jäävad sinu serverisse.',
   'oauth.authorize.selectScope': 'Vali vähemalt üks õiguste ulatus',
   'oauth.authorize.approveScopes': 'Luba ({count} ulatust)',

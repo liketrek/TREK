@@ -47,6 +47,13 @@ export interface PlanMapViewport {
   east: number
 }
 
+/** The open trip went away under this tab, and why. */
+export interface TripGone {
+  tripId: number
+  /** Deleted by someone else, or this user is no longer one of its members. */
+  reason: 'deleted' | 'removed'
+}
+
 export interface TripStoreState
   extends PlacesSlice,
     AssignmentsSlice,
@@ -83,6 +90,12 @@ export interface TripStoreState
   planMapViewport: PlanMapViewport | null
   isLoading: boolean
   error: string | null
+  /**
+   * Set by the remote handler when the open trip was deleted elsewhere or this
+   * user was taken off it (or left it in another tab). The planner says so and
+   * goes back to the trip list; nothing else reads it.
+   */
+  tripGone: TripGone | null
 
   setSelectedDay: (dayId: number | null) => void
   setPlacesFilter: (filter: string) => void
@@ -99,6 +112,11 @@ export interface TripStoreState
   updateTrip: (tripId: number | string, data: Partial<Trip> & { date_shift_mode?: 'keep_bookings' | 'shift_all' }) => Promise<Trip>
   addTag: (data: Partial<Tag> & { name: string }) => Promise<Tag>
   addCategory: (data: Partial<Category> & { name: string }) => Promise<Category>
+  /** Reads the user's tags again after they changed elsewhere (`tags:changed`). */
+  reloadTags: () => Promise<void>
+  /** Reads the packing list again, for a change no item event describes (a template applied). */
+  reloadPackingItems: (tripId: number | string) => Promise<void>
+  clearTripGone: () => void
 }
 
 export const useTripStore = create<TripStoreState>((set, get) => ({
@@ -121,6 +139,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   planMapViewport: null,
   isLoading: false,
   error: null,
+  tripGone: null,
 
   setSelectedDay: (dayId: number | null) => set({ selectedDayId: dayId }),
   setPlacesFilter: (filter: string) => set({ placesFilter: filter }),
@@ -151,7 +170,10 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     placesRatingFilter: 'all',
     planMapViewport: null,
     error: null,
+    tripGone: null,
   }),
+
+  clearTripGone: () => set({ tripGone: null }),
 
   loadTrip: async (tripId: number | string) => {
     get().resetTrip()
@@ -278,6 +300,28 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
       return result.tag
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error creating tag'))
+    }
+  },
+
+  // Online only: offline the cached tags are all there is, and the change that
+  // pinged us is not readable anyway. A failed read keeps the tags on screen.
+  reloadTags: async () => {
+    if (!isEffectivelyOnline()) return
+    try {
+      const { tags } = await tagsApi.list()
+      set({ tags })
+    } catch {
+      // The next trip load reads them again.
+    }
+  },
+
+  // Through the repo like loadTrip, so the offline cache follows the new list.
+  reloadPackingItems: async (tripId: number | string) => {
+    try {
+      const { items } = await packingRepo.list(tripId)
+      if (String(get().trip?.id) === String(tripId)) set({ packingItems: items })
+    } catch {
+      // The list on screen stays; the next reload or reconnect catches up.
     }
   },
 

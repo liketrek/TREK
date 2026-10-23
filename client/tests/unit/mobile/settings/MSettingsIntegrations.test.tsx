@@ -4,6 +4,8 @@ import { render, screen } from '../../../helpers/render';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { useAddonStore } from '../../../../src/store/addonStore';
 import { useAuthStore } from '../../../../src/store/authStore';
+import { useSettingsStore } from '../../../../src/store/settingsStore';
+import { buildSettings } from '../../../helpers/factories';
 import MSettingsIntegrations from '../../../../src/mobile/screens/settings/MSettingsIntegrations';
 
 // The four sections are covered by their own suites — stub them so this file
@@ -16,6 +18,11 @@ vi.mock('../../../../src/mobile/screens/settings/MAirTrailConnectionSection', ()
 }));
 vi.mock('../../../../src/mobile/screens/settings/MLlmConnectionSection', () => ({
   default: () => <div data-testid="llm" />,
+}));
+vi.mock('../../../../src/mobile/screens/settings/MAiConnectionSection', () => ({
+  default: ({ assistant, parsing }: { assistant: boolean; parsing: boolean }) => (
+    <div data-testid="ai" data-assistant={String(assistant)} data-parsing={String(parsing)} />
+  ),
 }));
 vi.mock('../../../../src/mobile/screens/settings/MSettingsMcp', () => ({
   default: () => <div data-testid="mcp" />,
@@ -53,12 +60,24 @@ describe('MSettingsIntegrations', () => {
     expect(screen.queryByTestId('llm')).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-SETINT-003: the llm_parsing addon reveals the AI connection section', () => {
+  it('FE-MOB-SETINT-003: the llm_parsing addon reveals the AI connection, which parsing reads with', () => {
     seedAddons(['llm_parsing']);
     render(<MSettingsIntegrations />);
 
-    expect(screen.getByTestId('llm')).toBeInTheDocument();
+    const ai = screen.getByTestId('ai');
+    expect(ai).toHaveAttribute('data-parsing', 'true');
+    expect(ai).toHaveAttribute('data-assistant', 'false');
+    // No personal parsing model saved: its old form is not offered.
+    expect(screen.queryByTestId('llm')).not.toBeInTheDocument();
     expect(screen.queryByTestId('airtrail')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-SETINT-008: a personal parsing model saved earlier keeps its form', () => {
+    seedAddons(['llm_parsing']);
+    seedStore(useSettingsStore, { settings: buildSettings({ llm_provider: 'openai', llm_model: 'gpt-4o' }) });
+    render(<MSettingsIntegrations />);
+
+    expect(screen.getByTestId('llm')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETINT-004: the mcp addon reveals the MCP configuration', () => {
@@ -73,7 +92,7 @@ describe('MSettingsIntegrations', () => {
     render(<MSettingsIntegrations />);
 
     expect(screen.getByTestId('airtrail')).toBeInTheDocument();
-    expect(screen.getByTestId('llm')).toBeInTheDocument();
+    expect(screen.getByTestId('ai')).toBeInTheDocument();
     expect(screen.getByTestId('mcp')).toBeInTheDocument();
   });
 

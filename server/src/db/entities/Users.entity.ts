@@ -1,7 +1,10 @@
 import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { UsersRepository } from '../repositories/Users.repository';
 import { DbTimestampType } from '../types';
+import { AiConnections } from './AiConnections.entity';
 import { AssignmentParticipants } from './AssignmentParticipants.entity';
+import { AssistantThreads } from './AssistantThreads.entity';
+import { AssistantUsage } from './AssistantUsage.entity';
 import { AuditLog } from './AuditLog.entity';
 import { BucketList } from './BucketList.entity';
 import { BudgetItemMembers } from './BudgetItemMembers.entity';
@@ -131,7 +134,10 @@ export class Users {
   display_name?: string | null;
   immich_allow_insecure_tls: number & Opt = 0;
   email_self_asserted: number & Opt = 0;
+  ai_connections_collection = new Collection<AiConnections>(this);
   assignment_participants_collection = new Collection<AssignmentParticipants>(this);
+  assistant_threads_collection = new Collection<AssistantThreads>(this);
+  assistant_usage_collection = new Collection<AssistantUsage>(this);
   audit_log_collection = new Collection<AuditLog>(this);
   bucket_list_collection = new Collection<BucketList>(this);
   budget_item_members_collection = new Collection<BudgetItemMembers>(this);
@@ -287,7 +293,10 @@ export const UsersSchema = defineEntity({
     display_name: p.text().nullable(),
     immich_allow_insecure_tls: p.integer().default(0),
     email_self_asserted: p.integer().default(0),
+    ai_connections_collection: () => p.oneToMany(AiConnections).mappedBy('user').hidden(),
     assignment_participants_collection: () => p.oneToMany(AssignmentParticipants).mappedBy('user').hidden(),
+    assistant_threads_collection: () => p.oneToMany(AssistantThreads).mappedBy('user').hidden(),
+    assistant_usage_collection: () => p.oneToMany(AssistantUsage).mappedBy('user').hidden(),
     audit_log_collection: () => p.oneToMany(AuditLog).mappedBy('user').hidden(),
     bucket_list_collection: () => p.oneToMany(BucketList).mappedBy('user').hidden(),
     budget_item_members_collection: () => p.oneToMany(BudgetItemMembers).mappedBy('user').hidden(),

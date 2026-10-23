@@ -13,7 +13,7 @@ export function makeVacayPlan(
   ownerId: number,
   overrides: EntityData<VacayPlans> = {},
 ): Promise<VacayPlanRow> {
-  return createRow(orm, VacayPlans, { owner: ownerId, ...overrides });
+  return createRow(orm, VacayPlans, { owner: ownerId }, overrides);
 }
 
 /** Invites the user into the plan; `status: 'accepted'` (the default here) makes them a member. */
@@ -34,5 +34,5 @@ export function makeVacayEntry(
   date: string,
   overrides: EntityData<VacayEntries> = {},
 ): Promise<EntityDTO<VacayEntries>> {
-  return createRow(orm, VacayEntries, { plan: planId, user: userId, date, ...overrides });
+  return createRow(orm, VacayEntries, { plan: planId, user: userId, date }, overrides);
 }

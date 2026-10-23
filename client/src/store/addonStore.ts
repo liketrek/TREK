@@ -31,6 +31,8 @@ interface AddonState {
   toursHikingMap: boolean
   /** Tours is on and the admin offers CyclOSM in its planner (BIK-06). */
   toursCycleMap: boolean
+  /** The collab chat is on: the admin can switch it off inside the collab addon. */
+  collabChat: boolean
   loaded: boolean
   loadAddons: () => Promise<void>
   isEnabled: (id: string) => boolean
@@ -42,6 +44,7 @@ export const useAddonStore = create<AddonState>((set, get) => ({
   toursWanderer: false,
   toursHikingMap: false,
   toursCycleMap: false,
+  collabChat: true,
   loaded: false,
 
   loadAddons: async () => {
@@ -51,6 +54,7 @@ export const useAddonStore = create<AddonState>((set, get) => ({
         toursWanderer: !!data.toursWanderer,
         toursHikingMap: !!data.toursHikingMap,
         toursCycleMap: !!data.toursCycleMap,
+        collabChat: data.collabFeatures?.chat !== false,
         loaded: true,
       })
     } catch {

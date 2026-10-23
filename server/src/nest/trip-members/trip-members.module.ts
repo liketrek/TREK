@@ -7,6 +7,7 @@ import { BudgetModule } from '../budget/budget.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { TripMemberWritesService } from './trip-member-writes.service';
 import { TripMembersController } from './trip-members.controller';
 import { TripMembersService } from './trip-members.service';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
@@ -37,7 +38,8 @@ import { Module } from '@nestjs/common';
     MikroOrmModule.forFeature([Trips, TripMembers, Users]),
   ],
   controllers: [TripMembersController],
-  providers: [TripMembersService],
-  exports: [TripMembersService],
+  providers: [TripMembersService, TripMemberWritesService],
+  // The writes for TripsMcp, whose roster tools announce through the same use cases as these routes.
+  exports: [TripMembersService, TripMemberWritesService],
 })
 export class TripMembersModule {}

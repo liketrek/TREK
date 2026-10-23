@@ -1,10 +1,11 @@
-import { useEffect, useRef, useMemo, useState, createElement, useCallback } from 'react'
+import { useEffect, useRef, useMemo, useState, useCallback } from 'react'
 import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
 import { useStableVias } from './viaMarkerState'
 import { usePlannerWaypointMarkersGL } from './usePlannerWaypointMarkersGL'
+import { carryAssistantMarks, useAssistantMapGL } from './useAssistantMapGL'
 import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors'
 import { serviceMarkerHtml, serviceMarkerOuter } from '../Roadtrip/serviceMarker'
-import { renderIconMarkup } from '../../utils/iconMarkup'
+import { categoryIconSvg } from './categoryIconSvg'
 import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n/TranslationContext'
@@ -16,7 +17,6 @@ import { MapLockPill } from './MapLockPill'
 import { useMarkerThumbs } from './useMarkerThumbs'
 import { placeMarkerLook, type PlaceMarkerFlags } from './markerLook'
 import { markerPhotoHtml, placePhotoFull, placePhotoUrl } from './placePhoto'
-import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
 import { ReservationMapboxOverlay } from './reservationsMapbox'
@@ -49,13 +49,7 @@ import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 import { selectedPlaceTarget } from './selectedPlaceTarget'
-
-function categoryIconSvg(iconName: string | null | undefined, size: number): string {
-  const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
-  try {
-    return renderIconMarkup(createElement(IconComponent, { size, color: 'white', strokeWidth: 2.5 }))
-  } catch { return '' }
-}
+import { PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID } from './placeClusterLayers'
 
 // Marker grouping for the GL map (#1385): MapLibre/Mapbox can't show the rich
 // HTML photo markers *and* cluster them natively, so we feed the place points
@@ -64,8 +58,6 @@ function categoryIconSvg(iconName: string | null | undefined, size: number): str
 // points the source reports as currently unclustered. Grouping is always on,
 // matching the Leaflet map's MarkerClusterGroup.
 const PLACE_CLUSTER_SOURCE_ID = 'trip-place-clusters'
-const PLACE_CLUSTER_CIRCLE_LAYER_ID = 'trip-place-clusters-circle'
-const PLACE_CLUSTER_COUNT_LAYER_ID = 'trip-place-clusters-count'
 const PLACE_UNCLUSTERED_LAYER_ID = 'trip-place-unclustered-hit'
 
 type PlaceWithCoords = Place & { lat: number; lng: number }
@@ -562,6 +554,7 @@ export function MapViewGL({
   glProvider = 'mapbox-gl',
   gl,
   onMapReady,
+  ...assistant
 }: Props) {
   const { t } = useTranslation()
   const rawMapboxStyle = useSettingsStore(s => s.settings.mapbox_style || MAPBOX_DEFAULT_STYLE)
@@ -640,6 +633,7 @@ export function MapViewGL({
   /** The road-trip via handles (#1797) — hand-positioned like the rest, so listed here. */
   const viaPinsRef = useRef<PlacePin[]>([])
   const plannerWaypointPinsRef = useRef<PlacePin[]>([])
+  const assistantGhostPinsRef = useRef<PlacePin[]>([])
   const profileFocusPinRef = useRef<PlacePin | null>(null)
   /** The drive-time pills on the offered routes; same treatment. */
   const altLabelsRef = useRef<PlacePin[]>([])
@@ -652,6 +646,7 @@ export function MapViewGL({
     routeViaMarkersRef.current.forEach(pin => pin.reposition())
     viaPinsRef.current.forEach(pin => pin.reposition())
     plannerWaypointPinsRef.current.forEach(pin => pin.reposition())
+    assistantGhostPinsRef.current.forEach(pin => pin.reposition())
     profileFocusPinRef.current?.reposition()
     altLabelsRef.current.forEach(pin => pin.reposition())
   }, [])
@@ -1659,7 +1654,7 @@ export function MapViewGL({
         // Drag onto a day in the plan (#891). Markers are rebuilt from scratch
         // on every reconcile, so the listeners go with the element and need no
         // teardown of their own.
-        if (markersDraggableRef.current) makeMarkerDraggable(el, place.id)
+        if (markersDraggableRef.current && !assistant.markersLocked) makeMarkerDraggable(el, place.id)
         el.addEventListener('click', (ev) => {
           ev.stopPropagation()
           // Clear the card right away — the flyTo that follows moves the marker
@@ -1688,7 +1683,7 @@ export function MapViewGL({
         // Recreate marker each time rather than patching internal state —
         // mapbox-gl's internal _element bookkeeping breaks under DOM swaps.
         const existing = markersRef.current.get(place.id)
-        if (existing) existing.remove()
+        if (existing) { carryAssistantMarks(existing.el, el); existing.remove() }
         // Default (viewport-aligned) anchors keep the marker parallel to the
         // screen so its pixel centre lines up with the route line at any
         // pitch. Tried `pitchAlignment: 'map'` to snap markers onto terrain,
@@ -1761,7 +1756,7 @@ export function MapViewGL({
       map.off('zoomend', scheduleReconcile)
       map.off('idle', scheduleReconcile)
     }
-  }, [places, selectedPlaceId, dayOrderMap, photoUrls, mapReady, glProvider, clusterLoosely])
+  }, [places, selectedPlaceId, dayOrderMap, photoUrls, mapReady, glProvider, clusterLoosely, assistant.markersLocked])
 
   // Search results stay separate from the planned itinerary.
   useEffect(() => {
@@ -2018,6 +2013,7 @@ export function MapViewGL({
     const bottom = hasInspector ? 320 : hasDayDetail ? 280 : 60
     return { top, right: rightWidth + 40, bottom, left: leftWidth + 40 }
   }, [isMobile, leftWidth, rightWidth, hasInspector, hasDayDetail])
+  useAssistantMapGL({ mapRef, mapReady, gl, pinsRef: assistantGhostPinsRef, attachPin: attachPlannerWaypointPin, markersRef, padding: paddingOpts, assistant })
 
   const prevFitKey = useRef<number | null>(-1)
   const pendingRouteFitRef = useRef<{ fitKey: number | null; routeKey: string } | null>(null)

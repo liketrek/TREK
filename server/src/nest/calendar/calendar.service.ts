@@ -9,7 +9,7 @@ import type { ReservationsRepository } from '../../db/repositories/Reservations.
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { decodeJson } from '../../utils/json-column';
 import { NotFoundError } from '../common/domain-errors';
-import { resolveTimeZone } from '../common/timezoneService';
+import { offsetMinutesAt, resolveTimeZone } from '../common/timezoneService';
 import { addDays } from '../days/days.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -85,30 +85,6 @@ function isValidTimeZone(zone: string): boolean {
   if (_tzValidCache.size >= 1000) _tzValidCache.clear();
   _tzValidCache.set(zone, ok);
   return ok;
-}
-
-// One formatter per zone: the transition scan below asks it about once a day
-// across the calendar's span.
-const _offsetFormatters = new Map<string, Intl.DateTimeFormat>();
-function offsetFormatter(zone: string): Intl.DateTimeFormat {
-  let f = _offsetFormatters.get(zone);
-  if (!f) {
-    f = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'longOffset' });
-    if (_offsetFormatters.size >= 1000) _offsetFormatters.clear();
-    _offsetFormatters.set(zone, f);
-  }
-  return f;
-}
-
-/** The zone's UTC offset at instant `ms`, in minutes east of UTC. */
-function offsetMinutesAt(zone: string, ms: number): number {
-  const raw =
-    offsetFormatter(zone)
-      .formatToParts(new Date(ms))
-      .find((p) => p.type === 'timeZoneName')?.value ?? 'GMT';
-  const m = raw.match(/GMT([+-])(\d{2}):?(\d{2})?/);
-  if (!m) return 0; // "GMT" (UTC) has no offset digits
-  return (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] ?? 0));
 }
 
 /** An offset in minutes as iCalendar writes it: "+0200", "-0330". */

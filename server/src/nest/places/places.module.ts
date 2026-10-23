@@ -82,9 +82,9 @@ import { MulterModule } from '@nestjs/platform-express';
     // PL33's `importKmlPlaces` folder → category lookup. Plan 3h Task 6 adds
     // `CollectionPlaces` for SV-PI2 (`reclaimPlaceImage`'s second existence
     // check) — a read-only cross-domain repository reference, not a
-    // `CollectionsModule` import, so it creates no cycle (`CollectionsModule`
-    // does not import `PlacesModule` either — both sides reach the other's
-    // table only through `forFeature`).
+    // `CollectionsModule` import, so it creates no cycle: `CollectionsModule`
+    // imports this module for copyToTrip's journey hook, and this side reaches
+    // the collections table only through `forFeature`.
     MikroOrmModule.forFeature([
       Places,
       Tags,

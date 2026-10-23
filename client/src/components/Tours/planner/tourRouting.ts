@@ -1,11 +1,13 @@
-import type {
-  BikeProfile,
-  HikingPreferences,
-  RunProfile,
-  SkiColourScheme,
-  SkiRunDifficulty,
-  SkiSegmentKind,
-  TourFixedLeg,
+import {
+  hikingCosting,
+  TOURS_MAX_HIKING_DIFFICULTY,
+  type BikeProfile,
+  type HikingPreferences,
+  type RunProfile,
+  type SkiColourScheme,
+  type SkiRunDifficulty,
+  type SkiSegmentKind,
+  type TourFixedLeg,
 } from '@trek/shared'
 import type { Waypoint } from '../../../types'
 import {
@@ -20,7 +22,6 @@ import {
   type ValhallaNoPath,
   type ValhallaRun,
 } from '../../Map/valhallaRoute'
-import { hikingCosting, TOURS_MAX_HIKING_DIFFICULTY } from './hikingCosting'
 import { densifyLine, lineLengthM } from './tourFixedLegs'
 import { MAX_TOUR_SNAP_M, type TourRouteGap, type TourRouteUnreachable } from './tourRouteOutcome'
 

@@ -650,6 +650,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'MI-elemzés',
   'admin.addons.catalog.llm_parsing.description':
     'Beolvassa azokat a foglalásokat, amelyeket a beépített értelmező nem tud, az általad választott MI-modellel',
+  'admin.addons.catalog.ai_assistant.name': 'MI-asszisztens',
+  'admin.addons.catalog.ai_assistant.description':
+    'Csevegés minden utazásban, amely válaszol a kérdésekre, és módosításokat javasol, amelyeket te hagysz jóvá',
   'admin.addons.llm.vision.auto': 'Automatikus',
   'admin.addons.llm.vision.on': 'Igen',
   'admin.addons.llm.vision.off': 'Nem',
@@ -982,5 +985,33 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Kategória törlése',
   'admin.packingTemplates.deleteCategoryConfirm': 'Törlöd a(z) "{name}" kategóriát és az összes elemét?',
   'admin.rotateJwt.button': 'Megújítás',
+  'admin.addons.ai.name': 'MI',
+  'admin.addons.ai.description':
+    'Egy kapcsolat az asszisztensnek és a foglalások beolvasásának. Az MCP-vel más MI-alkalmazások is használhatják a TREK-et.',
+  'admin.addons.ai.setup': 'MI beállítása',
+  'admin.addons.ai.dialogSub':
+    'A kapcsolat, amelyen az asszisztens és az MI-feldolgozás osztozik, és hogy melyik mit tehet.',
+  'admin.addons.ai.tab.connection': 'Kapcsolat',
+  'admin.addons.ai.parsing.readsWith': 'A foglalásokat ezzel olvassa',
+  'admin.addons.ai.parsing.own': 'Saját kapcsolat',
+  'admin.addons.ai.parsing.ownHint': 'A közös kapcsolat helyett használja.',
+  'admin.addons.ai.parsing.useShared': 'A közös kapcsolat használata',
+  'admin.addons.ai.parsing.sharedTag': 'Közös',
+  'admin.addons.ai.parsing.perUser': 'Mindenki a saját beállításaiban megadott kapcsolattal olvas.',
+  'admin.addons.ai.parsing.none':
+    'Még nincs kapcsolat. Állíts be egyet mindenkinek, vagy adj az MI-feldolgozásnak sajátot.',
+  'admin.addons.ai.parsing.setupOwn': 'Másik használata',
+  'admin.addons.ai.parsing.installed': 'A szerverre telepítve',
+  'admin.addons.ai.parsing.refresh': 'Frissítés',
+  'admin.addons.ai.parsing.noModels': 'Még nincs telepített modell. Tölts le egyet lent.',
+  'admin.addons.ai.parsing.pullTitle': 'Ajánlott modell letöltése',
+  'admin.addons.ai.parsing.pull': 'Letöltés',
+  'admin.addons.ai.parsing.pulling': 'Letöltés…',
+  'admin.addons.ai.parsing.use': 'Használat',
+  'admin.addons.ai.parsing.selected': 'Kiválasztva',
+  'admin.addons.ai.parsing.pulled': 'Modell letöltve',
+  'admin.addons.ai.parsing.pullFailed': 'A modellt nem sikerült letölteni',
+  'admin.addons.ai.parsing.unreachable': 'A helyi szerver nem érhető el',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Általában nem kell',
 };
 export default admin;

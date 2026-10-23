@@ -199,7 +199,9 @@ describe('NotificationsController (parity with the legacy /api/notifications rou
   describe('bulk + single mutations', () => {
     it('read-all returns success + count', async () => {
       const markAllRead = vi.fn().mockReturnValue(3);
-      expect(await makeController({ markAllRead }).readAll(user)).toEqual({ success: true, count: 3 });
+      expect(await makeController({ markAllRead }).readAll(user, 'sock')).toEqual({ success: true, count: 3 });
+      // The service tells the user's other tabs; the one that asked is left out.
+      expect(markAllRead).toHaveBeenCalledWith(4, 'sock');
     });
 
     it('delete-all returns success + count', async () => {
@@ -224,8 +226,18 @@ describe('NotificationsController (parity with the legacy /api/notifications rou
 
     it('mark-read success', async () => {
       const markRead = vi.fn().mockReturnValue(true);
-      expect(await makeController({ markRead }).markRead(user, '5')).toEqual({ success: true });
-      expect(markRead).toHaveBeenCalledWith(5, 4);
+      expect(await makeController({ markRead }).markRead(user, '5', 'sock')).toEqual({ success: true });
+      expect(markRead).toHaveBeenCalledWith(5, 4, 'sock');
+    });
+
+    it('mark-unread hands the socket on, and 404s when nothing changed', async () => {
+      const markUnread = vi.fn().mockReturnValueOnce(true).mockReturnValueOnce(false);
+      expect(await makeController({ markUnread }).markUnread(user, '5', 'sock')).toEqual({ success: true });
+      expect(markUnread).toHaveBeenCalledWith(5, 4, 'sock');
+      expect(await thrown(() => makeController({ markUnread }).markUnread(user, '6'))).toEqual({
+        status: 404,
+        body: { error: 'Not found' },
+      });
     });
 
     it('delete single success', async () => {

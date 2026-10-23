@@ -13,9 +13,11 @@ import { McpModule } from '../nest-mcp';
 import { AccommodationsModule } from './accommodations/accommodations.module';
 import { AddonsModule } from './addons/addons.module';
 import { AdminModule } from './admin/admin.module';
+import { AiConnectionsModule } from './ai-connections/ai-connections.module';
 import { AirportsModule } from './airports/airports.module';
 import { AppConfigModule } from './app-config/app-config.module';
 import { AssignmentsModule } from './assignments/assignments.module';
+import { AssistantModule } from './assistant/assistant.module';
 import { AtlasModule } from './atlas/atlas.module';
 import { AuditModule } from './audit/audit.module';
 import { GlobalAuthGuard } from './auth-core/global-auth.guard';
@@ -197,6 +199,8 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     ReservationImportModule,
     ReceiptScanModule,
     LlmParseModule,
+    AiConnectionsModule,
+    AssistantModule,
     ManagedExtModule,
     // registerRequestContext off: bootstrap.ts mounts the per-request fork as a
     // pathless middleware instead, because the module's own '{*all}' route

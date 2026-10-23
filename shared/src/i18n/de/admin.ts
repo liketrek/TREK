@@ -645,6 +645,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'KI-Auswertung',
   'admin.addons.catalog.llm_parsing.description':
     'Liest Buchungen, an denen der eingebaute Parser scheitert, mit einem KI-Modell deiner Wahl',
+  'admin.addons.catalog.ai_assistant.name': 'KI-Assistent',
+  'admin.addons.catalog.ai_assistant.description':
+    'Ein Chat in jeder Reise, der Fragen beantwortet und Änderungen vorschlägt, die du bestätigst',
   'admin.addons.llm.vision.auto': 'Automatisch',
   'admin.addons.llm.vision.on': 'Ja',
   'admin.addons.llm.vision.off': 'Nein',
@@ -973,5 +976,32 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Kategorie löschen',
   'admin.packingTemplates.deleteCategoryConfirm': 'Kategorie "{name}" und alle ihre Einträge löschen?',
   'admin.rotateJwt.button': 'Erneuern',
+  'admin.addons.ai.name': 'KI',
+  'admin.addons.ai.description':
+    'Eine Verbindung für den Assistenten und das Lesen von Buchungen. MCP öffnet TREK für andere KI-Apps.',
+  'admin.addons.ai.setup': 'KI einrichten',
+  'admin.addons.ai.dialogSub': 'Die Verbindung, die Assistent und KI-Auswertung teilen, und was jeder davon darf.',
+  'admin.addons.ai.tab.connection': 'Verbindung',
+  'admin.addons.ai.parsing.readsWith': 'Liest Buchungen mit',
+  'admin.addons.ai.parsing.own': 'Eigene Verbindung',
+  'admin.addons.ai.parsing.ownHint': 'Wird statt der gemeinsamen Verbindung verwendet.',
+  'admin.addons.ai.parsing.useShared': 'Gemeinsame Verbindung verwenden',
+  'admin.addons.ai.parsing.sharedTag': 'Gemeinsam',
+  'admin.addons.ai.parsing.perUser': 'Jede Person liest mit ihrer eigenen Verbindung aus ihren Einstellungen.',
+  'admin.addons.ai.parsing.none':
+    'Noch keine Verbindung. Richte eine für alle ein oder gib der KI-Auswertung eine eigene.',
+  'admin.addons.ai.parsing.setupOwn': 'Eine andere verwenden',
+  'admin.addons.ai.parsing.installed': 'Auf dem Server installiert',
+  'admin.addons.ai.parsing.refresh': 'Aktualisieren',
+  'admin.addons.ai.parsing.noModels': 'Noch keine Modelle installiert. Lade unten eins.',
+  'admin.addons.ai.parsing.pullTitle': 'Empfohlenes Modell laden',
+  'admin.addons.ai.parsing.pull': 'Laden',
+  'admin.addons.ai.parsing.pulling': 'Lädt…',
+  'admin.addons.ai.parsing.use': 'Verwenden',
+  'admin.addons.ai.parsing.selected': 'Ausgewählt',
+  'admin.addons.ai.parsing.pulled': 'Modell geladen',
+  'admin.addons.ai.parsing.pullFailed': 'Modell konnte nicht geladen werden',
+  'admin.addons.ai.parsing.unreachable': 'Der lokale Server ist nicht erreichbar',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Meist nicht nötig',
 };
 export default admin;

@@ -38,17 +38,17 @@ export class JourneyService {
   listJourneys(userId: number) {
     return this.journey.listJourneys(userId);
   }
-  createJourney(userId: number, data: Parameters<typeof this.journey.createJourney>[1]) {
-    return this.journey.createJourney(userId, data);
+  createJourney(userId: number, data: Parameters<typeof this.journey.createJourney>[1], sid?: string) {
+    return this.journey.createJourney(userId, data, sid);
   }
   getJourneyFull(id: number, userId: number) {
     return this.journey.getJourneyFull(id, userId);
   }
-  updateJourney(id: number, userId: number, data: Parameters<typeof this.journey.updateJourney>[2]) {
-    return this.journey.updateJourney(id, userId, data);
+  updateJourney(id: number, userId: number, data: Parameters<typeof this.journey.updateJourney>[2], sid?: string) {
+    return this.journey.updateJourney(id, userId, data, sid);
   }
-  deleteJourney(id: number, userId: number) {
-    return this.journey.deleteJourney(id, userId);
+  deleteJourney(id: number, userId: number, sid?: string) {
+    return this.journey.deleteJourney(id, userId, sid);
   }
   getSuggestions(userId: number) {
     return this.journey.getSuggestions(userId);
@@ -60,19 +60,20 @@ export class JourneyService {
     id: number,
     userId: number,
     data: Parameters<typeof this.journey.updateJourneyPreferences>[2],
+    sid?: string,
   ) {
-    return this.journey.updateJourneyPreferences(id, userId, data);
+    return this.journey.updateJourneyPreferences(id, userId, data, sid);
   }
-  restoreDismissedSuggestions(id: number, userId: number) {
-    return this.journey.restoreDismissedSuggestions(id, userId);
+  restoreDismissedSuggestions(id: number, userId: number, sid?: string) {
+    return this.journey.restoreDismissedSuggestions(id, userId, sid);
   }
 
   // Trips
   addTripToJourney(id: number, tripId: number, userId: number) {
     return this.journey.addTripToJourney(id, tripId, userId);
   }
-  removeTripFromJourney(id: number, tripId: number, userId: number) {
-    return this.journey.removeTripFromJourney(id, tripId, userId);
+  removeTripFromJourney(id: number, tripId: number, userId: number, sid?: string) {
+    return this.journey.removeTripFromJourney(id, tripId, userId, sid);
   }
 
   // Entries
@@ -117,17 +118,6 @@ export class JourneyService {
   setPhotoProvider(photoId: number, provider: string, assetId: string, ownerId: number) {
     return this.journey.setPhotoProvider(photoId, provider, assetId, ownerId);
   }
-  addProviderPhoto(
-    entryId: number,
-    userId: number,
-    provider: string,
-    assetId: string,
-    caption?: string,
-    passphrase?: string,
-    mediaType?: string,
-  ) {
-    return this.journey.addProviderPhoto(entryId, userId, provider, assetId, caption, passphrase, mediaType);
-  }
   linkPhotoToEntry(entryId: number, journeyPhotoId: number, userId: number) {
     return this.journey.linkPhotoToEntry(entryId, journeyPhotoId, userId);
   }
@@ -142,17 +132,6 @@ export class JourneyService {
   }
   uploadGalleryPhotos(id: number, userId: number, filePaths: Parameters<typeof this.journey.uploadGalleryPhotos>[2]) {
     return this.journey.uploadGalleryPhotos(id, userId, filePaths);
-  }
-  addProviderPhotoToGallery(
-    id: number,
-    userId: number,
-    provider: string,
-    assetId: string,
-    caption?: string,
-    passphrase?: string,
-    mediaType?: string,
-  ) {
-    return this.journey.addProviderPhotoToGallery(id, userId, provider, assetId, caption, passphrase, mediaType);
   }
   deleteGalleryPhoto(journeyPhotoId: number, userId: number) {
     return this.journey.deleteGalleryPhoto(journeyPhotoId, userId);

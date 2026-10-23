@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { BookElement, JourneyStats } from '@trek/shared'
-import { isStale, refreshPatch, routeFor } from '../../../src/components/Studio/travelRefresh'
+import { isStale, refreshPatch, routeFor } from '@trek/shared'
 
 /**
  * A map of one trip, out of a journey made of several (#1973).

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { BookElement, JourneyStats } from '@trek/shared'
-import { isStale, liveMetrics, refreshPatch } from '../../../src/components/Studio/travelRefresh'
+import { isStale, liveMetrics, refreshPatch } from '@trek/shared'
 
 /**
  * Keeping a travel element in step with its journey (#1973).

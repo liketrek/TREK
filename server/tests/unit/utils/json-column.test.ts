@@ -1,4 +1,8 @@
 import {
+  ASSISTANT_MESSAGE_PARTS,
+  ASSISTANT_MESSAGE_PARTS_WRITE,
+  ASSISTANT_TOOL_PREVIEW,
+  ASSISTANT_TOOL_PREVIEW_WRITE,
   COLLAB_POLL_OPTIONS,
   JOURNEY_ENTRY_PROS_CONS,
   JOURNEY_ENTRY_TAGS,
@@ -155,5 +159,49 @@ describe('the declared columns', () => {
     expect(decodeJson(TOUR_CHANGE_STEP_BEFORE, encodeJson(TOUR_CHANGE_STEP_BEFORE, before))).toEqual(before);
     expect(decodeJson(TOUR_CHANGE_STEP_BEFORE, '{"waypoints":"none"}')).toBeNull();
     expect(decodeJson(TOUR_CHANGE_STEP_BEFORE, '{bad')).toBeNull();
+  });
+
+  it('JSONCOL-035: an assistant message drops a data part or card a later build wrote, never the message', () => {
+    const text = { type: 'text', text: 'Here is the walk.' };
+    const stored = JSON.stringify([
+      text,
+      { type: 'data-trek-book-page', data: { page: 3 } },
+      { type: 'data-trek-card', data: { toolCallId: 'c1', card: { kind: 'bookPage' } } },
+    ]);
+    expect(decodeJson(ASSISTANT_MESSAGE_PARTS, stored)).toEqual([
+      text,
+      { type: 'data-trek-card', data: { toolCallId: 'c1', card: null } },
+    ]);
+    expect(logMock.logWarn).not.toHaveBeenCalled();
+    expect(decodeJson(ASSISTANT_MESSAGE_PARTS, '[{"type":"text","text":5}]', 'message 9')).toEqual([]);
+    expect(logMock.logWarn).toHaveBeenCalledTimes(1);
+  });
+
+  it('JSONCOL-036: an assistant message is written strictly: a part this build cannot describe is refused', () => {
+    const parts = [{ type: 'data-trek-card' as const, data: { toolCallId: 'c1', card: null } }];
+    expect(JSON.parse(encodeJson(ASSISTANT_MESSAGE_PARTS_WRITE, parts))).toEqual(parts);
+    const unknown = [{ type: 'data-trek-book-page', data: {} }] as unknown as typeof parts;
+    expect(() => encodeJson(ASSISTANT_MESSAGE_PARTS_WRITE, unknown)).toThrow();
+    const misbuilt = [{ type: 'data-trek-card', data: { toolCallId: 'c1', card: { kind: 'bookPage' } } }];
+    expect(() => encodeJson(ASSISTANT_MESSAGE_PARTS_WRITE, misbuilt as unknown as typeof parts)).toThrow();
+    expect(ASSISTANT_MESSAGE_PARTS_WRITE.column).toBe(ASSISTANT_MESSAGE_PARTS.column);
+  });
+
+  it('JSONCOL-037: a stored change card reads a later verb as a plain update, and is written strictly', () => {
+    const preview = {
+      toolCallId: 'c1',
+      verbKey: 'addPlace' as const,
+      subject: 'Lake',
+      rows: [],
+      dayId: null,
+      placeIds: [],
+      undoable: false,
+    };
+    const later = JSON.stringify({ ...preview, verbKey: 'laterVerb' });
+    expect(decodeJson(ASSISTANT_TOOL_PREVIEW, later)).toEqual({ ...preview, verbKey: 'genericUpdate' });
+    expect(JSON.parse(encodeJson(ASSISTANT_TOOL_PREVIEW_WRITE, preview))).toEqual(preview);
+    const misbuilt = { ...preview, verbKey: 'laterVerb' } as unknown as typeof preview;
+    expect(() => encodeJson(ASSISTANT_TOOL_PREVIEW_WRITE, misbuilt)).toThrow();
+    expect(ASSISTANT_TOOL_PREVIEW_WRITE.column).toBe(ASSISTANT_TOOL_PREVIEW.column);
   });
 });

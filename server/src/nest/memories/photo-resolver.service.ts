@@ -13,6 +13,19 @@ import { UnifiedMemoriesService } from './unified-memories.service';
 import { Injectable } from '@nestjs/common';
 
 import { Response } from 'express';
+import fsPromises from 'node:fs/promises';
+
+/**
+ * What a photo's quality signals are measured on (photos/photo-signals.service.ts):
+ * a local original, or a provider's thumbnail with the original's size as the
+ * provider reports it. `none` is nothing to measure, `unavailable` a provider
+ * that did not answer now, which a later try may reach.
+ */
+export type PhotoSignalSource =
+  | { kind: 'original'; bytes: Buffer }
+  | { kind: 'thumbnail'; bytes: Buffer; width: number | null; height: number | null }
+  | { kind: 'none' }
+  | { kind: 'unavailable' };
 
 /**
  * Resolves a stored trek_photo to bytes or metadata by asking whichever provider
@@ -153,6 +166,35 @@ export class PhotoResolverService {
       return;
     }
     await provider.streamAsset(res, { ...ref, range }, kind);
+  }
+
+  /**
+   * The bytes a photo's quality signals are measured on, read with its
+   * owner's access rather than a viewer's: the signals belong to the photo,
+   * whoever asks. A local photo answers its original whole, so the size it
+   * decodes to is the original's; a provider photo its thumbnail, since an
+   * original can be hundreds of megabytes, with the size the provider reports.
+   * `none` for a photo that is gone, a video, a local original over
+   * `maxBytes` or missing, a provider TREK does not know.
+   */
+  async readForSignals(photoId: number, maxBytes: number): Promise<PhotoSignalSource> {
+    const photo = await this.photos.resolve(photoId);
+    if (!photo || photo.media_type === 'video') return { kind: 'none' };
+    if (photo.file_path) {
+      const name = this.storageName(photo.file_path);
+      const stat = name ? await this.storage.stat('journey', name).catch(() => null) : null;
+      if (!name || !stat || stat.size > maxBytes) return { kind: 'none' };
+      const bytes = await this.storage.withLocalFile('journey', name, (p) => fsPromises.readFile(p));
+      return { kind: 'original', bytes };
+    }
+    const provider = this.providers.get(photo.provider);
+    if (!provider || photo.owner_id == null || !photo.asset_id) return { kind: 'none' };
+    const ref = this.refFor(photo, photo.owner_id);
+    const thumbnail = await provider.fetchThumbnailBytes(ref);
+    if ('error' in thumbnail) return { kind: 'unavailable' };
+    const info = await provider.getAssetInfo(ref);
+    const size = info.success ? info.data : null;
+    return { kind: 'thumbnail', bytes: thumbnail.bytes, width: size?.width ?? null, height: size?.height ?? null };
   }
 
   /**

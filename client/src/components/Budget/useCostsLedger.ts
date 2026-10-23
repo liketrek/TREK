@@ -8,6 +8,7 @@ import { budgetRepo, type SettlementWriteResult } from '../../repo/budgetRepo';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { TripStoreState } from '../../store/tripStore';
+import { useServerPing } from '../../sync/useServerPing';
 import type { BudgetItem, Trip } from '../../types';
 import { downloadBlob } from '../../utils/fileDownload';
 import { localToday } from '../Planner/today';
@@ -25,6 +26,18 @@ import {
 } from './costsModel';
 import { knownPersonNames } from './CostsPanel.helpers';
 import { useFreezeMissingRates } from './useFreezeMissingRates';
+
+/** The events after which the balances are read again from the server. */
+const SETTLEMENT_RELOAD_EVENTS = [
+  'budget:settlement-created',
+  'budget:settlement-updated',
+  'budget:settlement-deleted',
+  'budget:updated',
+  'budget:members-updated',
+  'budget:member-paid-updated',
+  'member:removed',
+  'member:updated',
+] as const;
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 interface Toaster {
@@ -91,15 +104,26 @@ export function useCostsLedger({
 
   // The browser's own figure for the display currency goes along, for the server to
   // answer in it when it cannot fetch a quote itself.
+  const readSettlement = useCallback(
+    () =>
+      budgetRepo
+        .settlement(tripId, base, base !== tripCurrency ? displayPerTrip : null)
+        .then((s) => {
+          setSettlement(s);
+          setSettlementError(false);
+        })
+        .catch(() => setSettlementError(true)),
+    [tripId, base, tripCurrency, displayPerTrip]
+  );
   const loadSettlement = useCallback(() => {
-    budgetRepo
-      .settlement(tripId, base, base !== tripCurrency ? displayPerTrip : null)
-      .then((s) => {
-        setSettlement(s);
-        setSettlementError(false);
-      })
-      .catch(() => setSettlementError(true));
-  }, [tripId, base, tripCurrency, displayPerTrip]);
+    void readSettlement();
+  }, [readSettlement]);
+
+  // A payment, a split, a paid mark or a renamed or removed guest written
+  // elsewhere (a fellow traveller, the assistant) moves the balances without
+  // changing the number of expenses, so those events read the settlement again,
+  // one read per burst however many changes one assistant step applies.
+  useServerPing(SETTLEMENT_RELOAD_EVENTS, true, readSettlement);
 
   // The items reload when the trip changes; the settlement reloads on a trip or
   // currency change and when the number of expenses changes. Further refreshes are

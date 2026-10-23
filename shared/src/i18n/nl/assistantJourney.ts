@@ -1,0 +1,31 @@
+import type { TranslationStrings } from '../types';
+
+const assistantJourney: TranslationStrings = {
+  'assistant.card.journey.label': 'Dagboekberichten',
+  'assistant.card.journey.open': 'Openen in het dagboek',
+  'assistant.card.journey.entries': '{count} berichten',
+  'assistant.card.journey.entries.one': '{count} bericht',
+  'assistant.card.journey.more': 'nog {count} in het dagboek',
+  'assistant.card.journey.more.one': 'nog {count} in het dagboek',
+  'assistant.card.journey.photos': '{count} foto’s',
+  'assistant.card.journey.photos.one': '{count} foto',
+  'assistant.card.journey.toSuggestion': 'Wordt weer een suggestie',
+  'assistant.card.journey.video': 'Begint met een video',
+  'assistant.card.journey.typeEntry': 'Geschreven bericht',
+  'assistant.card.journey.typeCheckin': 'Inchecken',
+  'assistant.card.journey.notDraft': 'Geen concept meer',
+  'assistant.card.journey.onRoute': 'Weer op de route',
+  'assistant.card.journey.restored': 'Suggestie teruggehaald',
+  'assistant.change.verb.addJournalEntry': 'Dagboekbericht toevoegen',
+  'assistant.change.verb.updateJournalEntry': 'Dagboekbericht wijzigen',
+  'assistant.change.verb.removeJournalEntry': 'Dagboekbericht verwijderen',
+  'assistant.step.readingJournal': 'Het dagboek lezen',
+  'assistant.tool.create_journey': 'Dagboek beginnen',
+  'assistant.tool.update_journey': 'Dagboek wijzigen',
+  'assistant.tool.add_journey_trip': 'Reis aan het dagboek toevoegen',
+  'assistant.tool.link_trip_journal': 'Dagboek in deze reis tonen',
+  'assistant.tool.reorder_journey_entries': 'Dagboek herschikken',
+  'assistant.followUp.journalToday': 'Schrijf een bericht voor vandaag',
+  'assistant.followUp.journalSummary': 'Vat deze dagen samen',
+};
+export default assistantJourney;

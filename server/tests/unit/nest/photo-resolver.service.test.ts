@@ -25,6 +25,9 @@ import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-phot
 import { deleteRows, findRow, insertRow, insertRowIgnoringConflict } from '../../helpers/factories/rows';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
@@ -67,7 +70,7 @@ const cache = {
 };
 // Local bytes go through the storage facade (slice 3); the resolver only ever
 // addresses the 'journey' category with the 'journey/' prefix stripped.
-const storage = { exists: vi.fn(), sendToResponse: vi.fn() };
+const storage = { exists: vi.fn(), sendToResponse: vi.fn(), stat: vi.fn(), withLocalFile: vi.fn() };
 
 // Real adapters over the stubbed services, and a real registry: the cases below
 // keep asserting on immich.streamImmichAsset/synology.streamSynologyAsset, so
@@ -365,5 +368,62 @@ describe('getPhotoInfo — dispatch', () => {
     const id = await insertPhoto({ provider: 'picasa', asset_id: 'p1', owner_id: 2 });
     const result = await svc.getPhotoInfo(1, id);
     expect(result.success).toBe(false);
+  });
+});
+
+describe('readForSignals: what the quality signals are measured on', () => {
+  let dir: string;
+  let original: string;
+
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'trek-resolver-signals-'));
+    original = join(dir, 'p.jpg');
+    await writeFile(original, Buffer.from('jpeg bytes'));
+  });
+  afterAll(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('RESOLVE-020: a local original is read whole through storage, unless it is over the cap, missing or a video', async () => {
+    const id = await insertPhoto({ provider: 'local', file_path: 'journey/p.jpg' });
+    storage.stat.mockResolvedValue({ key: 'p.jpg', size: 10, mtimeMs: 0 });
+    storage.withLocalFile.mockImplementation((_category: string, _name: string, fn: (path: string) => unknown) =>
+      fn(original),
+    );
+
+    expect(await svc.readForSignals(id, 100)).toEqual({ kind: 'original', bytes: Buffer.from('jpeg bytes') });
+    expect(storage.withLocalFile).toHaveBeenCalledWith('journey', 'p.jpg', expect.any(Function));
+    expect(await svc.readForSignals(id, 5)).toEqual({ kind: 'none' });
+    storage.stat.mockRejectedValue(new Error('invalid key'));
+    expect(await svc.readForSignals(id, 100)).toEqual({ kind: 'none' });
+
+    const outside = await insertPhoto({ provider: 'local', file_path: 'elsewhere/p.jpg' });
+    const clip = await insertPhoto({ provider: 'local', file_path: 'journey/c.mp4', media_type: 'video' });
+    const bare = await insertPhoto({ provider: 'local' });
+    const unread = await Promise.all([outside, clip, bare, 999999].map((photoId) => svc.readForSignals(photoId, 100)));
+    expect(unread).toEqual([{ kind: 'none' }, { kind: 'none' }, { kind: 'none' }, { kind: 'none' }]);
+    expect(storage.withLocalFile).toHaveBeenCalledTimes(1);
+  });
+
+  it("RESOLVE-021: a provider photo answers its thumbnail and the original's size, asked with its owner's credentials", async () => {
+    const id = await insertPhoto({ provider: 'immich', asset_id: 'a1', owner_id: 5 });
+    const bytes = Buffer.from('thumb');
+    immich.fetchImmichThumbnailBytes.mockResolvedValue({ bytes, contentType: 'image/webp' });
+    immich.getAssetInfo.mockResolvedValue({ success: true, data: { id: 'a1', width: 6000, height: 4000 } });
+
+    expect(await svc.readForSignals(id, 100)).toEqual({ kind: 'thumbnail', bytes, width: 6000, height: 4000 });
+    expect(immich.fetchImmichThumbnailBytes).toHaveBeenCalledWith(5, 'a1', 5);
+    expect(immich.getAssetInfo).toHaveBeenCalledWith(5, 'a1', 5);
+
+    immich.getAssetInfo.mockResolvedValue({ error: 'offline', status: 502 });
+    expect(await svc.readForSignals(id, 100)).toEqual({ kind: 'thumbnail', bytes, width: null, height: null });
+
+    immich.fetchImmichThumbnailBytes.mockResolvedValue({ error: 'offline', status: 502 });
+    expect(await svc.readForSignals(id, 100)).toEqual({ kind: 'unavailable' });
+
+    const unknown = await insertPhoto({ provider: 'picasa', asset_id: 'p1', owner_id: 2 });
+    const ownerless = await insertPhoto({ provider: 'immich', asset_id: 'a2' });
+    expect(await svc.readForSignals(unknown, 100)).toEqual({ kind: 'none' });
+    expect(await svc.readForSignals(ownerless, 100)).toEqual({ kind: 'none' });
   });
 });

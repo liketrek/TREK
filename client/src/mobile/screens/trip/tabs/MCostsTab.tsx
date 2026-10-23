@@ -10,6 +10,7 @@ import { openFile } from '../../../../utils/fileDownload'
 import MCostSheet from '../sheets/MCostSheet'
 import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPreviewModal'
 import { useCostsLedger } from '../../../../components/Budget/useCostsLedger'
+import { useExpenseLinks } from '../../../../components/Budget/useExpenseLinks'
 import { useSettlementForm } from '../../../../components/Budget/useSettlementForm'
 import { finalBudgetFor, finalBudgetSources, formerParticipantRows, NOTE_MAX, paidByUser, readUserNote } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories'
@@ -65,6 +66,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   const [editingExpense, setEditingExpense] = useState<BudgetItem | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<BudgetItem | null>(null)
   const [previewReceipts, setPreviewReceipts] = useState<{ receipts: BudgetItemReceipt[]; initialIndex: number } | null>(null)
+  useExpenseLinks(tripId, budgetItems, (e) => { if (canEdit) { setEditingExpense(e); setExpenseModalOpen(true) } })
 
   const groups = useMemo(() => groupLedgerByDay(filtered, filteredSettlements), [filtered, filteredSettlements])
   const catKeys = useMemo(() => categoryFilterKeys(budgetItems), [budgetItems])

@@ -28,12 +28,16 @@ import { RoadtripModule } from '../roadtrip/roadtrip.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { WandererModule } from '../wanderer/wanderer.module';
+import { WeatherModule } from '../weather/weather.module';
 import { CityWalkBriefingService } from './city-walk-briefing.service';
 import { CityWalkFootWayService } from './city-walk-foot-way.service';
 import { CityWalkMcp } from './city-walk.mcp';
 import { CollectionTourTakeOverController, CollectionToursController } from './collection-tours.controller';
 import { CollectionToursMcp } from './collection-tours.mcp';
 import { CollectionToursService } from './collection-tours.service';
+import { HikePlanMcp } from './hike-plan.mcp';
+import { HikePlanService } from './hike-plan.service';
+import { HikeRoutingService } from './hike-routing.service';
 import { TourActivitiesController } from './tour-activities.controller';
 import { TourActivitiesMcp } from './tour-activities.mcp';
 import { TourActivitiesService } from './tour-activities.service';
@@ -93,9 +97,15 @@ import { Module } from '@nestjs/common';
  * link followed by the narrow resolver there (CW-06). A city walk an assistant
  * prepares from a briefing reads the day and places of the trip through the
  * tours' own repositories, is planned on foot by RoadtripModule's router and
- * is created through ToursService (CW-11). A change to a saved city walk an
- * assistant prepares for review is laid onto its saved points and planned on
- * foot by the same router, and saves nothing (MCP-T02); once the traveller
+ * is created through ToursService (CW-11). A hike an assistant plans with the
+ * traveller is proposed, created, changed or taken in from a GPX file through
+ * the same writes, its way planned on the server by HikeRoutingService, its
+ * day read from WeatherModule's detailed weather and the places along it from
+ * the tours' own search; one created on a day is put there through
+ * AssignmentsService in the same write. A
+ * change to a saved city walk an assistant prepares for review is laid onto
+ * its saved points and planned on foot by the same router, and saves nothing
+ * (MCP-T02); once the traveller
  * confirmed it, it is saved through the tour's own write, which records the
  * step for a later undo (MCP-T03). The recorded tracks assigned to a tour
  * (ACT-01) are read with its detail and written through
@@ -131,7 +141,8 @@ import { Module } from '@nestjs/common';
     WandererModule,
     // The obstacle data a paddle tour's checklist reads (PAD-06, PAD-09).
     PaddleObstaclesModule,
-    // A city walk prepared over MCP is planned on foot by the router the road trip uses (CW-11).
+    // A city walk prepared over MCP is planned on foot by the router the road trip uses (CW-11),
+    // and a hike planned on the server under its hiking limit, with its heights and the ways under it.
     RoadtripModule,
     // A saved change takes the stages a tour no longer has off their days (MDT-02).
     AssignmentsDomainModule,
@@ -142,6 +153,8 @@ import { Module } from '@nestjs/common';
     // The wanderer watch tells the user of a new hint (WAN-02) and runs as a cron.
     NotificationsModule,
     SchedulingModule,
+    // A proposed hike's day reads the detailed weather at its highest point: sun, hours and warnings.
+    WeatherModule,
     MikroOrmModule.forFeature([
       CollectionTours,
       Tours,
@@ -197,6 +210,8 @@ import { Module } from '@nestjs/common';
     TourWalkImportService,
     CityWalkFootWayService,
     CityWalkBriefingService,
+    HikeRoutingService,
+    HikePlanService,
     TourChangePreviewService,
     TourChangeSaveService,
     TourChangeUndoService,
@@ -211,6 +226,7 @@ import { Module } from '@nestjs/common';
     TourLibraryMcp,
     TourWalkImportMcp,
     CityWalkMcp,
+    HikePlanMcp,
     TourChangeMcp,
     TourChangeUndoMcp,
     TourActivitiesMcp,

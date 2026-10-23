@@ -163,6 +163,16 @@ describe('migrate-encryption.ts app_settings parity', () => {
     expect(script).toContain('SELECT id, webhook_secret FROM trip_document_links');
     expect(script).toContain('UPDATE trip_document_links SET webhook_secret = ?');
   });
+
+  // ai-secrets.ts seals every AI connection credential (an API key, a ChatGPT
+  // sign-in's tokens) in one blob. Missed by a rotation, the instance's
+  // connection needs its key again and every ChatGPT user a new sign-in.
+  it('ROTPAR-014: rotates the AI connection secrets blob', () => {
+    const aiSecrets = fs.readFileSync(path.join(SERVER_ROOT, 'src', 'nest', 'ai-connections', 'ai-secrets.ts'), 'utf8');
+    expect(aiSecrets).toContain('maybe_encrypt_api_key');
+    expect(script).toContain('SELECT id, secrets FROM ai_connections');
+    expect(script).toContain('UPDATE ai_connections SET secrets = ?');
+  });
 });
 
 describe('migrate-encryption.ts storage.backends: malformed shape', () => {

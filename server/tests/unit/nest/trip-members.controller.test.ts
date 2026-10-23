@@ -2,6 +2,8 @@ import type { AuditService } from '../../../src/nest/audit/audit.service';
 import { GUEST_HAS_PAYMENTS } from '../../../src/nest/budget/budget-departure.helpers';
 import { DomainError } from '../../../src/nest/common/domain-error';
 import { NotFoundError, ValidationError } from '../../../src/nest/common/domain-errors';
+import type { TripWriter } from '../../../src/nest/common/trip-writer';
+import type { TripMemberWritesService } from '../../../src/nest/trip-members/trip-member-writes.service';
 import { TripMembersController } from '../../../src/nest/trip-members/trip-members.controller';
 import { TripMembersModule } from '../../../src/nest/trip-members/trip-members.module';
 import type { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
@@ -32,7 +34,38 @@ const req = { headers: {} } as Request;
 
 const writeAudit = vi.fn();
 const audit = { writeAudit } as unknown as AuditService;
-const tc = (s: TripMembersService) => new TripMembersController(s, audit);
+
+/**
+ * TripMemberWritesService over the stubbed roster: the roster routes hand their
+ * writes to it, so it passes each on to the stub and records the writer the
+ * route built. What the real one sends (member:added/removed/updated, the
+ * invitation, the re-split expenses) is held by tools-trip-members.test.ts and
+ * the broadcast parity suite.
+ */
+function writesFor(s: TripMembersService) {
+  return {
+    restWriter: vi.fn(
+      (_tripId: string | number, u: User, socketId: string | undefined) =>
+        ({ userId: u.id, role: u.role, socketId }) as TripWriter,
+    ),
+    addMember: vi.fn((tripId: string, identifier: string, ownerId: number, w: TripWriter) =>
+      s.addMember(tripId, identifier, ownerId, w.userId),
+    ),
+    removeMember: vi.fn((tripId: number, userId: number, _w: TripWriter) => s.removeMember(tripId, userId)),
+    createGuest: vi.fn((tripId: string, name: string, w: TripWriter) => s.createGuest(tripId, name, w.userId)),
+    renameGuest: vi.fn((tripId: string, guestId: number, name: string, _w: TripWriter) =>
+      s.renameGuest(tripId, guestId, name),
+    ),
+    deleteGuest: vi.fn((tripId: string, guestId: number, _w: TripWriter) => s.deleteGuest(tripId, guestId)),
+  };
+}
+let writes: ReturnType<typeof writesFor>;
+const tc = (s: TripMembersService) => {
+  writes = writesFor(s);
+  return new TripMembersController(s, audit, writes as unknown as TripMemberWritesService);
+};
+/** The writer a route builds for the user of these cases. */
+const restWriter = (socketId?: string) => ({ userId: 1, role: 'user', socketId });
 
 function svc(o: Partial<TripMembersService> = {}): TripMembersService {
   return {
@@ -70,24 +103,24 @@ describe('TripMembersController', () => {
       expect(await tc(s).members(user, '9')).toEqual({ owner: { id: 1 }, members: [], current_user_id: 1 });
     });
 
-    it('POST 403 without member_manage, else adds + notifies', async () => {
+    it('POST 403 without member_manage, else adds through the roster writes', async () => {
       expect(
         await thrown(() =>
           tc(svc({ can: vi.fn().mockReturnValue(false) })).addMember(user, '9', { identifier: 'bob@x.y' }),
         ),
       ).toEqual({ status: 403, body: { error: 'No permission to manage members' } });
+      expect(writes.addMember).not.toHaveBeenCalled();
       const addMember = vi
         .fn()
         .mockReturnValue({ member: { id: 2, email: 'bob@x.y' }, targetUserId: 2, tripTitle: 'T' });
-      const notifyInvite = vi.fn();
-      const s = svc({ addMember, notifyInvite } as Partial<TripMembersService>);
-      expect(await tc(s).addMember(user, '9', { identifier: 'bob@x.y' })).toEqual({
+      const s = svc({ addMember } as Partial<TripMembersService>);
+      expect(await tc(s).addMember(user, '9', { identifier: 'bob@x.y' }, 'sock')).toEqual({
         member: { id: 2, email: 'bob@x.y' },
       });
-      expect(notifyInvite).toHaveBeenCalledWith('9', user, 2, 'T', 'bob@x.y');
-      // Task 6 review, L1: the pre-existing REST↔MCP asymmetry (§13b) — these five
-      // controller mutations broadcast NOTHING while the MCP twins all emit
-      // member:added/member:removed. Pinned here rather than "fixed".
+      // The use case announces member:added and sends the invitation, as the MCP
+      // tool does through the same method; the route only builds its writer.
+      expect(writes.restWriter).toHaveBeenCalledWith('9', user, 'sock');
+      expect(writes.addMember).toHaveBeenCalledWith('9', 'bob@x.y', 1, restWriter('sock'));
       expect(s.broadcast).not.toHaveBeenCalled();
     });
 
@@ -138,13 +171,15 @@ describe('TripMembersController', () => {
       const removeMember = vi.fn();
       const s = svc({ can: vi.fn().mockReturnValue(false), removeMember } as Partial<TripMembersService>);
       // self-removal (targetId === user.id) bypasses the permission check
-      expect(await tc(s).removeMember(user, '9', '1')).toEqual({ success: true });
+      expect(await tc(s).removeMember(user, '9', '1', 'sock')).toEqual({ success: true });
+      // The parsed trip id, as the removal itself takes it; member:removed goes out from the use case.
+      expect(writes.removeMember).toHaveBeenCalledWith(9, 1, restWriter('sock'));
+      expect(removeMember).toHaveBeenCalledWith(9, 1);
       expect(await thrown(() => tc(s).removeMember(user, '9', '2'))).toEqual({
         status: 403,
         body: { error: 'No permission to remove members' },
       });
-      // Task 6 review, L1: see the addMember case above.
-      expect(s.broadcast).not.toHaveBeenCalled();
+      expect(writes.removeMember).not.toHaveBeenCalled();
     });
   });
 
@@ -211,12 +246,12 @@ describe('TripMembersController', () => {
       });
       const createGuest = vi.fn().mockReturnValue({ member: { id: 7, username: 'Anna', is_guest: true } });
       const s = svc({ createGuest } as Partial<TripMembersService>);
-      expect(await tc(s).createGuest(user, '9', { name: 'Anna' })).toEqual({
+      expect(await tc(s).createGuest(user, '9', { name: 'Anna' }, 'sock')).toEqual({
         member: { id: 7, username: 'Anna', is_guest: true },
       });
       expect(createGuest).toHaveBeenCalledWith('9', 'Anna', user.id);
-      // Task 6 review, L1: see the addMember case above.
-      expect(s.broadcast).not.toHaveBeenCalled();
+      // member:added goes out from the use case, to the room minus the asking tab.
+      expect(writes.createGuest).toHaveBeenCalledWith('9', 'Anna', restWriter('sock'));
     });
 
     it('rename: 404 when the guest is missing, else success', async () => {
@@ -226,9 +261,8 @@ describe('TripMembersController', () => {
         body: { error: 'Guest not found' },
       });
       const ok = svc({ renameGuest: vi.fn().mockReturnValue(true) } as Partial<TripMembersService>);
-      expect(await tc(ok).renameGuest(user, '9', '7', { name: 'Bob' })).toEqual({ success: true });
-      // Task 6 review, L1: see the addMember case above.
-      expect(ok.broadcast).not.toHaveBeenCalled();
+      expect(await tc(ok).renameGuest(user, '9', '7', { name: 'Bob' }, 'sock')).toEqual({ success: true });
+      expect(writes.renameGuest).toHaveBeenCalledWith('9', 7, 'Bob', restWriter('sock'));
     });
 
     it('delete: 404 when the guest is missing, else success', async () => {
@@ -238,9 +272,8 @@ describe('TripMembersController', () => {
         body: { error: 'Guest not found' },
       });
       const ok = svc({ deleteGuest: vi.fn().mockResolvedValue(true) } as Partial<TripMembersService>);
-      expect(await tc(ok).deleteGuest(user, '9', '7')).toEqual({ success: true });
-      // Task 6 review, L1: see the addMember case above.
-      expect(ok.broadcast).not.toHaveBeenCalled();
+      expect(await tc(ok).deleteGuest(user, '9', '7', 'sock')).toEqual({ success: true });
+      expect(writes.deleteGuest).toHaveBeenCalledWith('9', 7, restWriter('sock'));
     });
 
     it('passes the 409 of a guest who moved money on as it stands, the text the MCP tool answers too (#2604)', async () => {

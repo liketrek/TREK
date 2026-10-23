@@ -11,19 +11,41 @@ interface ElevationProfileProps {
   focus?: RouteProfileFocus | null
   onFocusChange?: (focus: RouteProfileFocus | null) => void
   formatFocus?: (focus: RouteProfileFocus) => string
-  /** Stretches to mark behind the line, in metres along the route (the via ferratas a tour climbs). */
-  bands?: ReadonlyArray<{ fromM: number; toM: number }>
+  /**
+   * Stretches to mark behind the line, in metres along the route (the via
+   * ferratas a tour climbs, the hard grades of a hike), in their own colour
+   * where they bring one.
+   */
+  bands?: ReadonlyArray<{ fromM: number; toM: number; color?: string }>
   /** Spots to mark across the profile, in metres along the route (where the stages of a multi-day tour end). */
   marks?: readonly number[]
+  /** Other ways of the same route, drawn thin on the same axes so they compare at a glance. */
+  compare?: ReadonlyArray<{ key: string; samples: readonly DistanceIndexedProfileSample[]; color: string }>
+  /** Where the spot in focus is said: in a box over the chart, or nowhere (the caller says it itself). */
+  readout?: 'tooltip' | 'none'
+  /** Keeps the spot a finger lifted from in focus, so it can still be read; a mouse leaving clears it as ever. */
+  keepFocusOnLift?: boolean
 }
 
 /** A route profile whose horizontal axis represents travelled distance. */
-export default function ElevationProfile({ samples, color, height = 100, gradientId, ariaLabel, focus = null, onFocusChange, formatFocus, bands, marks }: ElevationProfileProps) {
+export default function ElevationProfile({ samples, color, height = 100, gradientId, ariaLabel, focus = null, onFocusChange, formatFocus, bands, marks, compare, readout = 'tooltip', keepFocusOnLift = false }: ElevationProfileProps) {
   const [keyboardAnnouncement, setKeyboardAnnouncement] = useState('')
   const pointerFrameRef = useRef<number | null>(null)
   const pendingPointerDistanceRef = useRef<number | null>(null)
   const width = 440
-  const chart = useMemo(() => elevationProfileModel.prepareElevationProfileChart(samples, width, height), [samples, height])
+  const domain = useMemo(
+    () => compare?.length ? elevationProfileModel.sharedProfileDomain([samples, ...compare.map(other => other.samples)]) : null,
+    [samples, compare],
+  )
+  const chart = useMemo(() => elevationProfileModel.prepareElevationProfileChart(samples, width, height, domain), [samples, height, domain])
+  const compared = useMemo(
+    () => (compare ?? []).map(other => ({
+      key: other.key,
+      color: other.color,
+      path: elevationProfileModel.prepareElevationProfileChart(other.samples, width, height, domain).linePath,
+    })),
+    [compare, height, domain],
+  )
   const interactive = samples.length >= 2 && !!onFocusChange && chart.hasGeographicCoordinates
   const focusAtDistance = (distanceMeters: number): RouteProfileFocus | null =>
     focusRouteProfileAtDistance(samples, distanceMeters)
@@ -66,8 +88,9 @@ export default function ElevationProfile({ samples, color, height = 100, gradien
       : `${Math.round(next.distanceMeters)} m · ${Math.round(next.elevationMeters)} m`))
     else setKeyboardAnnouncement('')
   }
-  const clearPointerFocus = (): void => {
+  const clearPointerFocus = (event: React.PointerEvent<SVGSVGElement>): void => {
     cancelPendingPointerFocus()
+    if (keepFocusOnLift && event.pointerType !== 'mouse') return
     onFocusChange?.(null)
     setKeyboardAnnouncement('')
   }
@@ -124,11 +147,15 @@ export default function ElevationProfile({ samples, color, height = 100, gradien
       {bands?.map(band => (
         <rect key={`${band.fromM}-${band.toM}`} data-profile-band="true" x={(band.fromM / chart.maxDistance) * width} y={0}
           width={Math.max(1, ((band.toM - band.fromM) / chart.maxDistance) * width)} height={height}
-          fill="var(--map-ferrata)" fillOpacity={0.16} />
+          fill={band.color ?? 'var(--map-ferrata)'} fillOpacity={band.color ? 0.22 : 0.16} />
       ))}
       {marks?.map(atM => (
         <line key={atM} data-profile-mark="true" x1={(atM / chart.maxDistance) * width} x2={(atM / chart.maxDistance) * width}
           y1={0} y2={height} stroke="var(--accent)" strokeOpacity={0.55} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+      ))}
+      {compared.map(other => (
+        <path key={other.key} data-profile-compare={other.key} d={other.path} fill="none" stroke={other.color} strokeOpacity={0.55}
+          strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       ))}
       <path d={chart.areaPath} fill={`url(#${gradientId})`} />
       <path d={chart.linePath} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
@@ -144,7 +171,7 @@ export default function ElevationProfile({ samples, color, height = 100, gradien
         <circle data-profile-focus-point="true" cx={`${(focusX / width) * 100}%`} cy={focusY} r={4} fill={color} stroke="var(--bg-card)" strokeWidth={2} />
       </svg>
     )}
-    {interactive && focusX != null && (
+    {interactive && readout === 'tooltip' && focusX != null && (
       <div
         data-profile-focus-readout="true"
         className="absolute top-1 z-10 overflow-hidden rounded-lg border border-edge-faint bg-surface-card px-2.5 py-1 text-content shadow-elevated"

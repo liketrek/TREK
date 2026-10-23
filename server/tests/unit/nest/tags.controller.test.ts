@@ -1,3 +1,4 @@
+import type { TagWritesService } from '../../../src/nest/tags/tag-writes.service';
 import { TagsController } from '../../../src/nest/tags/tags.controller';
 import type { TagsService } from '../../../src/nest/tags/tags.service';
 import type { User } from '../../../src/types';
@@ -9,8 +10,30 @@ import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 5 } as User;
 
+/**
+ * TagWritesService over the stubbed service: the writes go through it, so it
+ * hands each on and records the socket the route read. The tags:changed it
+ * sends is held by tools-tags-maps-weather.test.ts and the broadcast parity suite.
+ */
+function writesFor(svc: Partial<TagsService>) {
+  // As the controller gets it: a case hands in the methods its route reaches.
+  const tags = svc as TagsService;
+  return {
+    create: vi.fn((userId: number, name: string, color: string | undefined, _socketId: string | undefined) =>
+      tags.create(userId, name, color),
+    ),
+    update: vi.fn(
+      (_userId: number, id: string, changes: { name?: string; color?: string }, _socketId: string | undefined) =>
+        tags.update(id, changes.name, changes.color),
+    ),
+    remove: vi.fn((_userId: number, id: string, _socketId: string | undefined) => tags.remove(id)),
+  };
+}
+let writes: ReturnType<typeof writesFor>;
+
 function makeController(svc: Partial<TagsService>) {
-  return new TagsController(svc as TagsService);
+  writes = writesFor(svc);
+  return new TagsController(svc as TagsService, writes as unknown as TagWritesService);
 }
 
 const tag: Tag = { id: 1, user_id: 5, name: 'Beach', color: '#10b981' };
@@ -45,10 +68,12 @@ describe('TagsController (parity with the legacy /api/tags route)', () => {
 
     it('creates a tag for the caller', async () => {
       const create = vi.fn().mockReturnValue(tag);
-      expect(await makeController({ create }).create(user, anyBody({ name: 'Beach', color: '#10b981' }))).toEqual({
-        tag,
-      });
+      expect(
+        await makeController({ create }).create(user, anyBody({ name: 'Beach', color: '#10b981' }), 'sock'),
+      ).toEqual({ tag });
       expect(create).toHaveBeenCalledWith(5, 'Beach', '#10b981');
+      // Through the writes, which tell the caller's other tabs and leave out this one.
+      expect(writes.create).toHaveBeenCalledWith(5, 'Beach', '#10b981', 'sock');
     });
   });
 
@@ -69,10 +94,11 @@ describe('TagsController (parity with the legacy /api/tags route)', () => {
     it('updates an owned tag', async () => {
       const getByIdAndUser = vi.fn().mockReturnValue(tag);
       const update = vi.fn().mockReturnValue({ ...tag, name: 'Hike' });
-      expect(await makeController({ getByIdAndUser, update }).update(user, '1', anyBody({ name: 'Hike' }))).toEqual({
-        tag: { ...tag, name: 'Hike' },
-      });
+      expect(
+        await makeController({ getByIdAndUser, update }).update(user, '1', anyBody({ name: 'Hike' }), 'sock'),
+      ).toEqual({ tag: { ...tag, name: 'Hike' } });
       expect(update).toHaveBeenCalledWith('1', 'Hike', undefined);
+      expect(writes.update).toHaveBeenCalledWith(5, '1', { name: 'Hike', color: undefined }, 'sock');
     });
   });
 
@@ -90,8 +116,9 @@ describe('TagsController (parity with the legacy /api/tags route)', () => {
     it('deletes an owned tag', async () => {
       const getByIdAndUser = vi.fn().mockReturnValue(tag);
       const remove = vi.fn();
-      expect(await makeController({ getByIdAndUser, remove }).remove(user, '1')).toEqual({ success: true });
+      expect(await makeController({ getByIdAndUser, remove }).remove(user, '1', 'sock')).toEqual({ success: true });
       expect(remove).toHaveBeenCalledWith('1');
+      expect(writes.remove).toHaveBeenCalledWith(5, '1', 'sock');
     });
   });
 });

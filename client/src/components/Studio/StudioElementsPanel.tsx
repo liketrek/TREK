@@ -3,7 +3,7 @@ import { Minus, Quote, Search, Square, X } from 'lucide-react'
 import type { BookElement, BookPageSetup, BookShapeId } from '@trek/shared'
 import { useStudioStore } from '../../store/studioStore'
 import { FRAME_SHAPES, HOLED_SHAPES, SHAPE_GROUPS, SHAPE_PATHS } from './shapes'
-import { GRIDS, defaultGridBox, gridElements } from './grids'
+import { BOOK_GRIDS as GRIDS, bookGridElements as gridElements, defaultBookGridBox as defaultGridBox } from '@trek/shared'
 import { PanelHead } from './StudioPanelHead'
 import { FEATURED_ICONS, iconComponent, iconLabel, searchIcons } from './iconLibrary'
 

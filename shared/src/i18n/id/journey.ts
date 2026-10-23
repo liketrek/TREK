@@ -290,7 +290,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'This spread is still empty', // en-fallback
   'journey.studio.autoLayout': 'Auto layout', // en-fallback
   'journey.studio.export': 'Export', // en-fallback
-  'journey.studio.day': 'HARI',
+  'journey.studio.day': 'HARI {day}',
   'journey.studio.stations': 'Persinggahan',
   'journey.studio.peersHere': 'di sini',
   'journey.studio.folioAuto': 'Otomatis',
@@ -443,7 +443,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Tanda',
   'journey.studio.dateMark': 'Tanggal',
   'journey.studio.dayMark': 'Penghitung hari',
-  'journey.studio.dayWord': 'HARI',
   'journey.studio.coordsMark': 'Koordinat',
   'journey.studio.coordsDms': 'Derajat',
   'journey.studio.coordsDecimal': 'Desimal',
@@ -642,6 +641,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Putar ke kiri',
   'journey.studio.rotateRight': 'Putar ke kanan',
   'journey.studio.saveReadOnly': 'Hanya baca, tidak disimpan',
+  'journey.studio.saveNewer': 'Buku ini disimpan oleh versi Studio yang lebih baru. Muat ulang untuk mengeditnya.',
+  'journey.studio.saveReload': 'Muat ulang',
   'journey.studio.filterPhotos': 'Filter foto',
   'journey.studio.filterAll': 'Semua foto',
   'journey.studio.filterLoose': 'Tidak dalam entri',
@@ -878,5 +879,15 @@ const journey: TranslationStrings = {
     'Hari terekam dan persinggahan yang diambil darinya, pada hari yang punya catatan terbit. Menunjukkan di mana dan kapan kamu berada, termasuk penginapanmu.',
   'journey.share.needsMap': 'Bagikan peta untuk mengaktifkan ini',
   'journey.editor.tags': 'Tag',
+  'journey.studio.assistant.toggle': 'Asisten',
+  'journey.studio.assistant.toggleHint': 'Rancang buku bersama asisten',
+  'journey.studio.assistant.panel': 'Asisten buku',
+  'journey.studio.assistant.welcome': 'Seperti apa bukunya nanti?',
+  'journey.studio.assistant.readOnly':
+    'Kamu hanya bisa melihat buku ini, jadi aku bisa menjawab pertanyaan tapi tidak bisa mengubah apa pun.',
+  'journey.studio.assistant.notice':
+    'Asisten dapat melihat halaman yang sedang Anda kerjakan. Hanya halaman itu yang dikirim ke {provider}, sebagai gambar yang hanya menampilkan foto yang Anda tambahkan sendiri. Siapa yang ada di foto Anda tidak dapat dideteksi.',
+  'journey.studio.assistant.noticeAllow': 'Tunjukkan halaman',
+  'journey.studio.assistant.noticeLater': 'Nanti saja',
 };
 export default journey;

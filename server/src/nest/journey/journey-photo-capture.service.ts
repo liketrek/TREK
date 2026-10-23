@@ -1,4 +1,5 @@
 import { withRequestContext } from '../database/request-context';
+import { UnitOfWork } from '../database/unit-of-work';
 import { MapsService } from '../maps/maps.service';
 import { PhotoCaptureBackfillService } from '../memories/photo-capture-backfill.service';
 import { JourneyDomainService } from './journey-domain.service';
@@ -12,9 +13,25 @@ function trekPhotoIdsOf(photos: readonly unknown[]): number[] {
     .filter((id): id is number => typeof id === 'number');
 }
 
+/** Where a batch of provider photos goes: one entry (and with it the journey gallery), or the gallery alone. */
+export type ProviderPhotoTarget = { entryId: number } | { journeyId: number };
+
+/** A batch of photos from one library, as every surface hands it over. */
+export interface ProviderPhotoBatch {
+  provider: string;
+  assetIds: readonly string[];
+  /** Parallel to assetIds: 'video' marks a clip, anything else is an image. */
+  mediaTypes?: readonly unknown[];
+  /** Kept on an entry's photos only; the gallery add has never recorded one. */
+  caption?: string;
+  /** For an album someone shared from Synology Photos. */
+  passphrase?: string;
+}
+
 /**
- * Capture times for photos that just landed on a journey, and the refresh that
- * has to follow them (#1587).
+ * Provider photos landing on a journey: the add itself, the event that tells
+ * everyone on the journey, and the capture times and refresh that follow them
+ * (#1587).
  *
  * The add answers before anyone has asked the provider when each photo was
  * taken (#1614 keeps that on the server rather than trusting the client). So
@@ -44,38 +61,68 @@ export class JourneyPhotoCaptureService {
     private readonly journey: JourneyDomainService,
     private readonly maps: MapsService,
     private readonly orm: MikroORM,
+    private readonly uow: UnitOfWork,
   ) {}
+
+  /**
+   * Adds photos from a connected library, the one way the REST routes and the
+   * MCP tool do it. One add per asset, all in one transaction; an asset the
+   * caller may not add, or one already there, answers null and is left out of
+   * what comes back. Once they are in, everyone on the journey is told it
+   * changed (REST leaves out the tab that asked, which reads its own answer),
+   * and the provider is asked when and where each was taken, detached.
+   */
+  async addProviderPhotos(
+    target: ProviderPhotoTarget,
+    userId: number,
+    batch: ProviderPhotoBatch,
+    sid?: string,
+  ): Promise<unknown[]> {
+    const { provider, caption, passphrase } = batch;
+    const added = await this.uow.transactional(async () => {
+      const photos: unknown[] = [];
+      for (const [i, assetId] of batch.assetIds.entries()) {
+        const mediaType = batch.mediaTypes?.[i] === 'video' ? 'video' : 'image';
+        const photo =
+          'entryId' in target
+            ? await this.journey.addProviderPhoto(
+                target.entryId,
+                userId,
+                provider,
+                assetId,
+                caption,
+                passphrase,
+                mediaType,
+              )
+            : await this.journey.addProviderPhotoToGallery(
+                target.journeyId,
+                userId,
+                provider,
+                assetId,
+                undefined,
+                passphrase,
+                mediaType,
+              );
+        if (photo) photos.push(photo);
+      }
+      return photos;
+    });
+    if (added.length === 0) return added;
+    const journeyId = 'entryId' in target ? await this.journey.journeyIdOfEntry(target.entryId) : target.journeyId;
+    // An entry whose journey has gone since still gets its capture times, with no one to tell.
+    if (journeyId !== null) await this.journey.broadcastJourneyEvent(journeyId, 'journey:updated', {}, sid);
+    this.scheduleForJourney(journeyId, added, userId);
+    return added;
+  }
 
   /**
    * Provider photos just added to a journey, to its gallery or to one of its entries. Detached.
    * @txStandalone a detached refresh after the add has committed.
    */
-  scheduleForJourney(journeyId: number, photos: readonly unknown[], userId: number): void {
+  scheduleForJourney(journeyId: number | null, photos: readonly unknown[], userId: number): void {
     const ids = trekPhotoIdsOf(photos);
     if (!ids.length) return;
     void withRequestContext(this.orm, () => this.fill(journeyId, ids, userId));
-  }
-
-  /**
-   * Provider photos just added to an entry, for a caller that only knows the entry. Detached.
-   * @txStandalone a detached refresh after the add has committed.
-   */
-  scheduleForEntry(entryId: number, photos: readonly unknown[], userId: number): void {
-    const ids = trekPhotoIdsOf(photos);
-    if (!ids.length) return;
-    void withRequestContext(this.orm, () => this.fillForEntry(entryId, ids, userId));
-  }
-
-  /** scheduleForEntry's detached half: find the entry's journey, then fill. Never rejects. */
-  private async fillForEntry(entryId: number, trekPhotoIds: number[], userId: number): Promise<void> {
-    let journeyId: number | null;
-    try {
-      journeyId = await this.journey.journeyIdOfEntry(entryId);
-    } catch (err) {
-      console.error(`[Journey] capture refresh failed for entry ${entryId}:`, err instanceof Error ? err.message : err);
-      return;
-    }
-    await this.fill(journeyId, trekPhotoIds, userId);
   }
 
   /**

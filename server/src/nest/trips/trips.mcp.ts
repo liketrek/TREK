@@ -23,8 +23,11 @@ import { DomainError } from '../common/domain-error';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { tripIdPromptArg } from '../mcp-shared/prompt-args';
 import { TodoService } from '../todo/todo.service';
+import { TripMemberWritesService } from '../trip-members/trip-member-writes.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
+import { TripWritesService, type TripListWriter } from './trip-writes.service';
+import { tripUpdatePermissions } from './trips.helpers';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
 import { idSchema, MAX_TRIP_DAYS } from '@trek/shared';
 
@@ -89,7 +92,18 @@ export class TripsMcp {
     private readonly readModel: TripReadModelService,
     private readonly addons: AddonsService,
     private readonly guards: McpToolGuardsService,
+    private readonly tripWrites: TripWritesService,
+    private readonly memberWrites: TripMemberWritesService,
   ) {}
+
+  /**
+   * The caller adding a trip to their own list. Only the admin role changes what
+   * the trip_create check answers. No socket to leave out: every tab of the
+   * caller hears that the list changed.
+   */
+  private async listWriter(userId: number): Promise<TripListWriter> {
+    return { userId, role: (await this.guards.isAdminUser(userId)) ? 'admin' : 'user', socketId: undefined };
+  }
 
   // --- TRIPS ---
 
@@ -174,15 +188,10 @@ export class TripsMcp {
       return { content: [{ type: 'text' as const, text: 'End date must be after start date.' }], isError: true };
     }
     try {
-      const { trip } = await this.trips.create(ctx.userId, {
-        title,
-        description,
-        start_date,
-        end_date,
-        currency,
-        day_count,
-        reminder_days,
-      });
+      const { trip } = await this.tripWrites.create(
+        { title, description, start_date, end_date, currency, day_count, reminder_days },
+        await this.listWriter(ctx.userId),
+      );
       return ok({ trip });
     } catch (err) {
       if (err instanceof ValidationError) return errorResult(err.message);
@@ -276,7 +285,19 @@ export class TripsMcp {
     ctx: McpContext,
   ) {
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('trip_edit', tripId, ctx.userId))) return permissionDenied();
+    // updateTrip reads every field with a `!== undefined` presence sentinel, so a
+    // dated trip only goes back to dateless once an explicit null reaches it. A flag
+    // rather than a nullable start_date/end_date: clients that serialise an omitted
+    // optional as null would otherwise wipe the dates of every trip they touched.
+    const dates: { start_date?: string | null; end_date?: string | null } = clear_dates
+      ? { start_date: null, end_date: null }
+      : { start_date, end_date };
+    const fields = { title, description, ...dates, currency, is_archived, cover_image, day_count, reminder_days };
+    // The rights PUT /api/trips/:id asks for, field by field: archiving and the cover have their own.
+    const granted = await Promise.all(
+      tripUpdatePermissions(fields).map(({ action }) => this.guards.hasTripPermission(action, tripId, ctx.userId)),
+    );
+    if (granted.includes(false)) return permissionDenied();
     if (clear_dates && (start_date || end_date))
       return errorResult('clear_dates cannot be combined with start_date or end_date.');
     if (start_date) {
@@ -292,21 +313,16 @@ export class TripsMcp {
       if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== end_date)
         return { content: [{ type: 'text' as const, text: 'end_date is not a valid calendar date.' }], isError: true };
     }
-    // updateTrip reads every field with a `!== undefined` presence sentinel, so a
-    // dated trip only goes back to dateless once an explicit null reaches it. A flag
-    // rather than a nullable start_date/end_date: clients that serialise an omitted
-    // optional as null would otherwise wipe the dates of every trip they touched.
-    const dates: { start_date?: string | null; end_date?: string | null } = clear_dates
-      ? { start_date: null, end_date: null }
-      : { start_date, end_date };
     // update() re-anchors the budget before the trip row moves off the old
-    // currency (#1543) and then runs the legacy updateTrip core.
+    // currency (#1543) and then runs the legacy updateTrip core. The caller's own
+    // role, as REST hands it on, so an admin's edit of a trip they do not own is one.
+    const { role } = await this.guards.tripWriter(tripId, ctx.userId);
     try {
       const { updatedTrip, removedDays } = await this.trips.update(
         tripId,
         ctx.userId,
-        { title, description, ...dates, currency, is_archived, cover_image, day_count, reminder_days, date_shift_mode },
-        'user',
+        { ...fields, date_shift_mode },
+        role,
       );
       this.guards.safeBroadcast(tripId, 'trip:updated', { trip: updatedTrip });
       // Only when days went, so the answer to a rename or a longer trip stays as it was.
@@ -351,7 +367,8 @@ export class TripsMcp {
   })
   async deleteTrip({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!(await this.trips.isOwner(tripId, ctx.userId))) return noAccess();
-    await this.trips.remove(tripId, ctx.userId, 'user');
+    // trip:deleted goes to the room as on REST, so open tabs leave the trip.
+    await this.tripWrites.remove(tripId, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ success: true, tripId });
   }
 
@@ -488,9 +505,10 @@ export class TripsMcp {
     // in the permission matrix, and POST /api/trips/:id/members has always honoured
     // that setting (and the admin bypass inside checkPermission) where this did not.
     if (!(await this.guards.hasTripPermission('member_manage', tripId, ctx.userId))) return permissionDenied();
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
     try {
-      const result = await this.members.addMember(tripId, identifier, ownerRow.user_id, ctx.userId);
-      this.guards.safeBroadcast(tripId, 'member:added', { member: result.member });
+      // Invited the way the planner invites: the room hears of the member, the person gets the notification.
+      const result = await this.memberWrites.addMember(tripId, identifier, ownerRow.user_id, writer);
       return ok({ member: result.member });
     } catch (err) {
       const msg =
@@ -516,8 +534,7 @@ export class TripsMcp {
     // requirement: the same self-removal bypass DELETE /api/trips/:id/members/:userId has.
     if (memberId !== ctx.userId && !(await this.guards.hasTripPermission('member_manage', tripId, ctx.userId)))
       return permissionDenied();
-    await this.members.removeMember(tripId, memberId);
-    this.guards.safeBroadcast(tripId, 'member:removed', { userId: memberId });
+    await this.memberWrites.removeMember(tripId, memberId, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ success: true });
   }
 
@@ -539,8 +556,7 @@ export class TripsMcp {
     // owner calling this would get a success that changed nothing. Say so instead.
     if (ownerRow.user_id === ctx.userId)
       return errorResult('You own this trip, so you cannot leave it. Hand it to another member first, or delete it.');
-    await this.members.removeMember(tripId, ctx.userId);
-    this.guards.safeBroadcast(tripId, 'member:removed', { userId: ctx.userId });
+    await this.memberWrites.removeMember(tripId, ctx.userId, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ success: true });
   }
 
@@ -570,10 +586,9 @@ export class TripsMcp {
     const ownerRow = await this.trips.getOwner(tripId);
     if (!ownerRow || ownerRow.user_id !== ctx.userId)
       return { content: [{ type: 'text' as const, text: 'Only the trip owner can manage guests.' }], isError: true };
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
     try {
-      // No notifyInvite: a guest has no inbox.
-      const { member } = await this.members.createGuest(tripId, name, ctx.userId);
-      this.guards.safeBroadcast(tripId, 'member:added', { member });
+      const { member } = await this.memberWrites.createGuest(tripId, name, writer);
       return ok({ member });
     } catch (err) {
       const msg = err instanceof ValidationError ? err.message : 'Failed to create guest.';
@@ -597,8 +612,9 @@ export class TripsMcp {
     const ownerRow = await this.trips.getOwner(tripId);
     if (!ownerRow || ownerRow.user_id !== ctx.userId)
       return { content: [{ type: 'text' as const, text: 'Only the trip owner can manage guests.' }], isError: true };
+    const writer = await this.guards.tripWriter(tripId, ctx.userId);
     try {
-      if (!(await this.members.renameGuest(tripId, guestId, name)))
+      if (!(await this.memberWrites.renameGuest(tripId, guestId, name, writer)))
         return { content: [{ type: 'text' as const, text: 'Guest not found.' }], isError: true };
     } catch (err) {
       const msg = err instanceof ValidationError ? err.message : 'Failed to rename guest.';
@@ -623,9 +639,9 @@ export class TripsMcp {
     const ownerRow = await this.trips.getOwner(tripId);
     if (!ownerRow || ownerRow.user_id !== ctx.userId)
       return { content: [{ type: 'text' as const, text: 'Only the trip owner can manage guests.' }], isError: true };
-    if (!(await this.members.deleteGuest(tripId, guestId)))
+    // The member goes, then every expense the guest shared, split anew.
+    if (!(await this.memberWrites.deleteGuest(tripId, guestId, await this.guards.tripWriter(tripId, ctx.userId))))
       return { content: [{ type: 'text' as const, text: 'Guest not found.' }], isError: true };
-    this.guards.safeBroadcast(tripId, 'member:removed', { userId: guestId });
     return ok({ success: true });
   }
 
@@ -643,10 +659,12 @@ export class TripsMcp {
   async copyTrip({ tripId, title }: { tripId: number; title?: string }, ctx: McpContext) {
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     try {
-      const newTripId = await this.trips.copy(tripId, ctx.userId, title);
+      const newTripId = await this.tripWrites.copy(tripId, title, await this.listWriter(ctx.userId));
       const newTrip = await this.trips.canAccessTrip(newTripId, ctx.userId);
       return ok({ trip: { id: newTripId, ...newTrip } });
-    } catch {
+    } catch (err) {
+      // A refusal (no trip_create) keeps its own words; anything else stays the generic failure.
+      if (err instanceof DomainError) throw err;
       return { content: [{ type: 'text' as const, text: 'Failed to copy trip.' }], isError: true };
     }
   }

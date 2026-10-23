@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': '먼저 날을 선택하세요',
   'trip.toast.assignedToDay': '장소가 날에 배정되었습니다',
   'trip.toast.loadError': '여행을 불러오지 못했습니다',
+  'trip.toast.accessLost': '더 이상 이 여행의 멤버가 아닙니다',
   'trip.toast.reorderError': '순서 변경 실패',
   'trip.toast.reservationUpdated': '예약이 업데이트되었습니다',
   'trip.toast.reservationAdded': '예약이 추가되었습니다',

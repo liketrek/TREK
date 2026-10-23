@@ -11,10 +11,13 @@
  */
 import { db as testDb } from '../../../src/db/database';
 import { Notifications } from '../../../src/db/entities/Notifications.entity';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { createUser } from '../../helpers/factories';
 import { makeNotification } from '../../helpers/factories/notifications';
 import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
+import type { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { bootTestApp } from '../../helpers/test-app';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 
@@ -274,5 +277,62 @@ describe('Resource: trek://notifications/in-app', () => {
       const data = parseResourceResult(result) as any;
       expect(data.notifications).toEqual([]);
     });
+  });
+});
+
+describe('Read state reaches every tab of the user', () => {
+  /** The fake the harness container was booted with, emptied for the case. */
+  async function userMessages() {
+    const realtime = (await bootTestApp()).get(RealtimeService) as FakeRealtimeService;
+    realtime.broadcastToUserMock.mockClear();
+    return realtime.broadcastToUserMock;
+  }
+
+  it('MCP-NOTIF-001: mark_notification_read and _unread send the row as it now reads, to every tab', async () => {
+    const { user } = createUser(testDb);
+    const notif = await createNotification(user.id);
+    const sent = await userMessages();
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'mark_notification_read', arguments: { notificationId: notif.id } });
+      await h.client.callTool({ name: 'mark_notification_unread', arguments: { notificationId: notif.id } });
+    });
+    expect(sent.mock.calls.map(([to, message, skip]) => [to, message.type, skip])).toEqual([
+      [user.id, 'notification:updated', undefined],
+      [user.id, 'notification:updated', undefined],
+    ]);
+    const states = sent.mock.calls.map(([, message]) => message.notification as { id: number; is_read: number });
+    expect(states).toEqual([
+      expect.objectContaining({ id: notif.id, is_read: 1 }),
+      expect.objectContaining({ id: notif.id, is_read: 0 }),
+    ]);
+  });
+
+  it('MCP-NOTIF-002: mark_all_notifications_read pings once when something changed, and not for nothing', async () => {
+    const { user } = createUser(testDb);
+    await createNotification(user.id);
+    const sent = await userMessages();
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({ name: 'mark_all_notifications_read', arguments: {} });
+      await h.client.callTool({ name: 'mark_all_notifications_read', arguments: {} });
+    });
+    expect(sent.mock.calls).toEqual([[user.id, { type: 'notification:read-all' }, undefined]]);
+  });
+
+  it("MCP-NOTIF-003: marking somebody else's notification is refused and sends nothing to either user", async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const notif = await createNotification(owner.id);
+    const sent = await userMessages();
+    await withHarness(stranger.id, async (h) => {
+      const read = await h.client.callTool({ name: 'mark_notification_read', arguments: { notificationId: notif.id } });
+      const unread = await h.client.callTool({
+        name: 'mark_notification_unread',
+        arguments: { notificationId: notif.id },
+      });
+      expect(read.isError).toBe(true);
+      expect(unread.isError).toBe(true);
+    });
+    expect(sent).not.toHaveBeenCalled();
+    expect((await findRow(orm, Notifications, { id: notif.id }))?.is_read).toBe(0);
   });
 });

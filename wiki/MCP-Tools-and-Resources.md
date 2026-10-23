@@ -24,7 +24,7 @@ Compound tools collapse multi-step workflows into a single atomic transaction. I
 |---|---|---|
 | `create_and_assign_place` | `create_place` + `assign_place_to_day` | Create a place and assign it to a day. Takes the same place fields as `create_place`, `stop_type` included. Returns `{ place, assignment }`. Requires `places:write`. |
 | `create_place_accommodation` | `create_place` + `create_accommodation` | Create a place and book it as an accommodation. Returns `{ place, accommodation }`. Requires `trips:write`. |
-| `create_budget_item_with_members` | `create_budget_item` + `set_budget_item_members` | Create a budget item and set splitting members. If `userIds` is omitted, behaves like `create_budget_item`. Returns `{ item }`. Requires `budget:write`. |
+| `create_budget_item_with_members` | `create_budget_item` + `set_budget_item_members` | Create a budget item and set splitting members. If `userIds` is omitted or empty, the cost is split across all trip members, like `create_budget_item` without `member_ids`. Returns `{ item }`. Requires `budget:write`. |
 
 ### Trips
 
@@ -114,6 +114,7 @@ Requires `trips:read` or `trips:write` scope.
 | `create_accommodation` | Add an accommodation (hotel, Airbnb, etc.) linked to a place and a check-in/check-out date range. |
 | `update_accommodation` | Update fields on an existing accommodation including dates, times, confirmation, and notes. |
 | `delete_accommodation` | Delete an accommodation record from a trip. |
+| `list_accommodations` | Where the trip sleeps, stay by stay: the place with its address and position, the check-in and check-out days and times, and the booking linked to it. Requires `trips:read`. |
 
 ### Transport
 
@@ -147,6 +148,7 @@ Requires `reservations:read` or `reservations:write` scope.
 | `reorder_reservations` | Reorder reservations within a day. |
 | `set_reservation_travelers` | Set who is travelling on a booking, from the trip roster (members and guests). Replaces the list; an empty array clears it. Ids that are not on the trip come back under `ignored_user_ids` rather than being attached. |
 | `link_hotel_accommodation` | Set or update a hotel reservation's check-in/out day links and place. |
+| `list_reservations` | The bookings of one trip with their readable details (`details`: airline, flight or train number, platform, seat, the legs of a stopover booking, check-in and check-out times, price, and `has_leg_reference` when a leg holds a booking reference of its own, never the reference itself) in place of the raw metadata. `kinds` keeps `transport` or `booking`, `dayId` the bookings on that day. Requires `reservations:read`. |
 | `list_upcoming_reservations` | The next bookings across all of the user's trips, soonest first, for "what is coming up?" when no particular trip is in question. Hotel stays appear as their check-in and check-out moments. Cancelled bookings, planned public-transit journeys and archived trips are left out. `limit` defaults to 6, at most 50. Requires `reservations:read`. |
 
 ### Budget
@@ -155,6 +157,8 @@ Requires `budget:read` or `budget:write` scope. The Budget addon must be enabled
 
 | Tool | Description |
 |---|---|
+| `list_budget_items` | The trip's expenses with their ids, a page at a time (`offset`, `limit` up to 100, 50 by default). A page of long expenses ends earlier, so a client goes on at `next_offset` until it is `null`. Per expense: name, category, price and currency, date, the start of its note, the linked place or booking, who paid how much and who shares it, what a foreign expense comes to in the trip currency (`trip_amount`) and how many receipts it has (`receipt_count`). Next to the page the trip currency, the total and the totals per category over all expenses, and `unconverted_item_ids` for foreign expenses no rate converts. |
+| `get_budget_per_person` | What each person's shares of the expenses add up to and how much of that they paid, in the trip currency, as the per-person summary in the app shows it. |
 | `create_budget_item` | Add an expense with name, category, and price. |
 | `update_budget_item` | Update an expense's details, split (persons/days), or notes. `reservation_id` / `place_id` link it to a booking or place of the same trip; `null` unlinks it. |
 | `delete_budget_item` | Remove a budget item. |
@@ -193,6 +197,7 @@ Requires `places:read` or `places:write` scope.
 | `get_airport` | `geo:read` | Look up an airport by IATA code (e.g. `"ZRH"`, `"CDG"`). |
 | `get_weather` | `weather:read` | Get a weather forecast for a location and date. |
 | `get_detailed_weather` | `weather:read` | Get an hourly/detailed weather forecast for a location and date. |
+| `get_wind_forecast` | `weather:read` | Get the wind for a location on one day: per local hour the mean speed and the gusts in km/h and the direction it comes from, and the day's strongest mean, strongest gust and dominant direction. Only a forecast: a past day or one more than 16 days ahead answers its status without figures. |
 
 ### Notifications
 

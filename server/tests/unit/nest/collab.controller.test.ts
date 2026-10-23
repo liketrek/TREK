@@ -4,7 +4,8 @@ import {
   collabChatImageFilter,
   collabNoteFileFilter,
 } from '../../../src/nest/collab/collab.controller';
-import type { CollabService } from '../../../src/nest/collab/collab.service';
+import type { ChatMessageInput, CollabService } from '../../../src/nest/collab/collab.service';
+import type { TripWriter } from '../../../src/nest/common/trip-writer';
 import { TripAccessGuard, TRIP_PERMISSION_KEY } from '../../../src/nest/permissions/trip-access.guard';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
 import type { User } from '../../../src/types';
@@ -17,15 +18,30 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const user = { id: 1, username: 'u', role: 'user', email: 'u@example.test' } as User;
 
+/** The writer a route builds for its request, as the stub hands it back. */
+const restWriter = (socketId?: string) => ({ userId: 1, role: 'user', socketId });
+
 function svc(o: Partial<CollabService> = {}): CollabService {
-  return {
+  const s = {
     verifyTripAccess: vi.fn().mockResolvedValue({ user_id: 1 }),
     canEdit: vi.fn().mockResolvedValue(true),
     canUploadFiles: vi.fn().mockResolvedValue(true),
     broadcast: vi.fn(),
     notifyCollab: vi.fn(),
+    restWriter: vi.fn((_tripId: string, _user: User, socketId: string | undefined) => restWriter(socketId)),
     ...o,
   } as unknown as CollabService;
+  // The two posting use cases over the stubbed building blocks, so a case can stub
+  // createNote or createMessage as before. What the real ones send and notify is
+  // held by collab.service.test.ts and the broadcast parity suite.
+  const post = s as unknown as Record<'postNote' | 'postMessage', unknown>;
+  post.postNote ??= vi.fn((tripId: string, data: Parameters<CollabService['createNote']>[2], w: TripWriter) =>
+    s.createNote(tripId, w.userId, data),
+  );
+  post.postMessage ??= vi.fn((tripId: string, input: ChatMessageInput, w: TripWriter) =>
+    s.createMessage(tripId, w.userId, input.text, input.replyTo ?? null, input.files ?? [], input.origin ?? null),
+  );
+  return s;
 }
 
 const storageStub = {
@@ -53,23 +69,18 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
       expect(await new CollabController(s, storageStub).listNotes(user, '5')).toEqual({ notes: [{ id: 1 }] });
     });
 
-    it('POST creates + broadcasts + notifies (empty title now 400s in the Zod pipe)', async () => {
+    it('POST creates through the posting use case, which broadcasts and notifies (empty title now 400s in the Zod pipe)', async () => {
       const createNote = vi.fn().mockReturnValue({ id: 9 });
-      const broadcast = vi.fn();
-      const notifyCollab = vi.fn();
-      const s = svc({ createNote, broadcast, notifyCollab } as Partial<CollabService>);
+      const s = svc({ createNote } as Partial<CollabService>);
       expect(
         await new CollabController(s, storageStub).createNote(user, '5', { title: 'T', content: 'c' }, 'sock'),
       ).toEqual({ note: { id: 9 } });
-      expect(createNote).toHaveBeenCalledWith('5', 1, {
-        title: 'T',
-        content: 'c',
-        category: undefined,
-        color: undefined,
-        website: undefined,
-      });
-      expect(broadcast).toHaveBeenCalledWith('5', 'collab:note:created', { note: { id: 9 } }, 'sock');
-      expect(notifyCollab).toHaveBeenCalledWith('5', user);
+      const fields = { title: 'T', content: 'c', category: undefined, color: undefined, website: undefined };
+      expect(createNote).toHaveBeenCalledWith('5', 1, fields);
+      expect(s.restWriter).toHaveBeenCalledWith('5', user, 'sock');
+      expect(s.postNote).toHaveBeenCalledWith('5', fields, restWriter('sock'));
+      // Nothing goes out from the route itself, or it would go out twice.
+      expect(s.broadcast).not.toHaveBeenCalled();
     });
 
     it('PUT 404 when missing, else updates + broadcasts', async () => {
@@ -292,18 +303,13 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
           ).createMessage(user, '5', { text: 'hi', reply_to: 99 }, undefined),
         ),
       ).toEqual({ status: 400, body: { error: 'Reply target message not found' } });
-      const broadcast = vi.fn();
-      const notifyCollab = vi.fn();
-      const s = svc({
-        createMessage: vi.fn().mockResolvedValue({ message: { id: 3 } }),
-        broadcast,
-        notifyCollab,
-      } as Partial<CollabService>);
+      const s = svc({ createMessage: vi.fn().mockResolvedValue({ message: { id: 3 } }) } as Partial<CollabService>);
       expect(
         await new CollabController(s, storageStub).createMessage(user, '5', { text: 'hello' }, undefined, 'sock'),
       ).toEqual({ message: { id: 3 } });
-      expect(broadcast).toHaveBeenCalledWith('5', 'collab:message:created', { message: { id: 3 } }, 'sock');
-      expect(notifyCollab).toHaveBeenCalledWith('5', user, 'hello');
+      // The posting use case sends and notifies; the route hands it the trimmed text and its writer.
+      expect(s.postMessage).toHaveBeenCalledWith('5', { text: 'hello', replyTo: null, files: [] }, restWriter('sock'));
+      expect(s.broadcast).not.toHaveBeenCalled();
     });
 
     it('refuses a caller who cannot reach the trip or cannot write, from inside the handler', async () => {
@@ -380,12 +386,12 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
       expect(broadcast).toHaveBeenCalledWith('5', 'collab:message:deleted', { messageId: 3, username: 'bob' }, 'sock');
     });
 
-    it("U5: deleteMessage broadcast falls back to the caller's own username when the service's username is undefined (the real, pre-existing shape)", async () => {
+    it("U5: deleteMessage broadcast falls back to the caller's own username when the service's username is undefined", async () => {
       const broadcast = vi.fn();
-      // `CollabService.deleteMessage` really does return `{ username: undefined }`
-      // (findInTrip never joins users) — the controller's `result.username ||
-      // user.username` fallback is what keeps the broadcast correct, and only
-      // works because the route already requires caller === message owner.
+      // `CollabService.deleteMessage` returned `{ username: undefined }` for
+      // years (findInTrip never joined users). It now reads the author's name,
+      // but the controller keeps its `result.username || user.username`
+      // fallback, which is correct because only the owner may delete.
       const s = svc({
         deleteMessage: vi.fn().mockResolvedValue({ username: undefined }),
         broadcast,

@@ -26,6 +26,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'Bitte wähle zuerst einen Tag aus',
   'trip.toast.assignedToDay': 'Ort wurde dem Tag zugewiesen',
   'trip.toast.loadError': 'Reise konnte nicht geladen werden',
+  'trip.toast.accessLost': 'Du bist kein Mitglied dieser Reise mehr',
   'trip.toast.reorderError': 'Fehler beim Sortieren',
   'trip.toast.reservationUpdated': 'Reservierung aktualisiert',
   'trip.toast.reservationAdded': 'Reservierung hinzugefügt',

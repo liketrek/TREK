@@ -298,7 +298,7 @@ const journey: TranslationStrings = {
   'journey.studio.emptySpread': 'Diese Doppelseite ist noch leer',
   'journey.studio.autoLayout': 'Automatisch anordnen',
   'journey.studio.export': 'Exportieren',
-  'journey.studio.day': 'TAG',
+  'journey.studio.day': 'TAG {day}',
   'journey.studio.stations': 'Stationen',
   'journey.studio.peersHere': 'hier',
   'journey.studio.folioAuto': 'Automatisch',
@@ -454,7 +454,6 @@ const journey: TranslationStrings = {
   'journey.studio.marks': 'Marken',
   'journey.studio.dateMark': 'Datum',
   'journey.studio.dayMark': 'Tageszähler',
-  'journey.studio.dayWord': 'TAG',
   'journey.studio.coordsMark': 'Koordinaten',
   'journey.studio.coordsDms': 'Grad',
   'journey.studio.coordsDecimal': 'Dezimal',
@@ -655,6 +654,8 @@ const journey: TranslationStrings = {
   'journey.studio.rotateLeft': 'Nach links drehen',
   'journey.studio.rotateRight': 'Nach rechts drehen',
   'journey.studio.saveReadOnly': 'Nur lesen, nichts wird gespeichert',
+  'journey.studio.saveNewer': 'Eine neuere Studio-Version hat dieses Buch gespeichert. Zum Bearbeiten neu laden.',
+  'journey.studio.saveReload': 'Neu laden',
   'journey.studio.filterPhotos': 'Fotos filtern',
   'journey.studio.filterAll': 'Alle Fotos',
   'journey.studio.filterLoose': 'Keinem Eintrag zugeordnet',
@@ -912,5 +913,15 @@ const journey: TranslationStrings = {
     'Aufgezeichnete Tage und die daraus übernommenen Aufenthalte, an Tagen mit veröffentlichtem Eintrag. Sie zeigen, wo und wann du warst, auch deine Unterkunft.',
   'journey.share.needsMap': 'Teile die Karte, um das einzuschalten',
   'journey.editor.tags': 'Tags', // same-as-en
+  'journey.studio.assistant.toggle': 'Assistent',
+  'journey.studio.assistant.toggleHint': 'Das Buch gemeinsam mit dem Assistenten gestalten',
+  'journey.studio.assistant.panel': 'Buch-Assistent',
+  'journey.studio.assistant.welcome': 'Wie soll das Buch aussehen?',
+  'journey.studio.assistant.readOnly':
+    'Du kannst dieses Buch nur ansehen, deshalb beantworte ich Fragen, ändere aber nichts.',
+  'journey.studio.assistant.notice':
+    'Der Assistent kann sich die Seite ansehen, an der du arbeitest. Nur diese Seite geht an {provider}, als Bild, auf dem nur deine eigenen Fotos zu sehen sind. Wer auf deinen Fotos ist, lässt sich nicht erkennen.',
+  'journey.studio.assistant.noticeAllow': 'Seiten zeigen',
+  'journey.studio.assistant.noticeLater': 'Jetzt nicht',
 };
 export default journey;

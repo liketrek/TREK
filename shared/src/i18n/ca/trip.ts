@@ -22,6 +22,7 @@ const trip: TranslationStrings = {
   'trip.toast.selectDay': 'Selecciona un dia primer',
   'trip.toast.assignedToDay': 'Lloc assignat al dia',
   'trip.toast.loadError': "No s'ha pogut carregar el viatge",
+  'trip.toast.accessLost': "Ja no ets membre d'aquest viatge",
   'trip.toast.reorderError': "No s'ha pogut reordenar",
   'trip.toast.reservationUpdated': 'Reserva actualitzada',
   'trip.toast.reservationAdded': 'Reserva afegida',

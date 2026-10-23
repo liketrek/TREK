@@ -1,5 +1,7 @@
 import {
   collectionDeleteManyRequestSchema,
+  collectionItemsRequestSchema,
+  collectionMembershipSchema,
   collectionPlaceUpdateRequestSchema,
   collectionReorderRequestSchema,
   collectionSavePlaceRequestSchema,
@@ -61,5 +63,26 @@ describe('collectionReorderRequestSchema / collectionDeleteManyRequestSchema', (
     expect(() => collectionReorderRequestSchema.parse({ orderedIds: 'nope' })).toThrow();
     expect(() => collectionReorderRequestSchema.parse({})).toThrow();
     expect(() => collectionDeleteManyRequestSchema.parse({ ids: ['a'] })).toThrow();
+  });
+});
+
+describe('collectionItemsRequestSchema', () => {
+  it('takes saved place and label ids, each optional, at most 50 places and 20 labels', () => {
+    expect(collectionItemsRequestSchema.parse({})).toEqual({});
+    const ids = (count: number) => Array.from({ length: count }, (_, i) => i + 1);
+    const asked = { placeIds: [1, 2], labelIds: [3] };
+    expect(collectionItemsRequestSchema.parse(asked)).toEqual(asked);
+    expect(() => collectionItemsRequestSchema.parse({ placeIds: ids(51) })).toThrow();
+    expect(() => collectionItemsRequestSchema.parse({ labelIds: ids(21) })).toThrow();
+    expect(() => collectionItemsRequestSchema.parse({ placeIds: [0] })).toThrow();
+  });
+});
+
+describe('collectionMembershipSchema', () => {
+  it("reads a list's colour where the server sends it, and a list without one from an older server", () => {
+    const list = { collection_id: 1, name: 'Paris', place_id: 2, status: 'want', can_edit: true };
+    const coloured = collectionMembershipSchema.parse({ saved: true, lists: [{ ...list, color: '#e11d48' }] });
+    expect(coloured.lists[0]?.color).toBe('#e11d48');
+    expect(collectionMembershipSchema.parse({ saved: true, lists: [list] }).lists[0]?.color).toBeUndefined();
   });
 });

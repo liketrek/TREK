@@ -110,5 +110,7 @@ const collab: TranslationStrings = {
     'Er gebruiken nog notities deze categorie. Verplaats of verwijder ze eerst, dan kun je de categorie verwijderen.',
   'collab.notes.categoriesLocalHint':
     'Een categorie zonder notities wordt alleen in deze browser bewaard. Andere leden zien haar zodra een notitie haar gebruikt.',
+  'collab.chat.fromAssistant': 'van de assistent',
+  'collab.chat.fromAssistantHint': '{name} heeft dit antwoord van de assistent gedeeld',
 };
 export default collab;

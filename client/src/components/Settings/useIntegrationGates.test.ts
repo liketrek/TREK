@@ -24,13 +24,14 @@ describe('useIntegrationGates', () => {
       mcpEnabled: true,
       airtrailEnabled: false,
       llmEnabled: true,
+      aiAssistantEnabled: false,
       dawarichEnabled: false,
       hasIntegrations: true,
     });
   });
 
   it('FE-COMP-INTEGRATION-GATES-002: any one integration addon opens the tab, none keeps it closed', () => {
-    for (const id of ['memories', 'mcp', 'airtrail', 'llm_parsing', 'dawarich']) {
+    for (const id of ['memories', 'mcp', 'airtrail', 'llm_parsing', 'ai_assistant', 'dawarich']) {
       seedAddons([id]);
       expect(renderHook(() => useIntegrationGates({ reloadAddons: false })).result.current.hasIntegrations).toBe(true);
     }

@@ -21,6 +21,7 @@ import { checkSsrf, createOutboundDispatcher } from '../../utils/ssrfGuard';
 import { avatarUrl } from '../common/avatarUrl';
 import { RateLimitService } from '../common/rate-limit.service';
 import { toRowId } from '../common/row-id';
+import { restTripWriter, type TripWriter } from '../common/trip-writer';
 import { UnitOfWork } from '../database/unit-of-work';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -68,6 +69,20 @@ export interface LinkPreviewResult {
   error?: string;
   /** Set when the caller is out of preview fetches; the controller turns it into a 429. */
   rateLimited?: boolean;
+}
+
+/** What a chat notification shows of a message: its first 80 characters, or that it was an image. */
+function chatPreview(text: string): string {
+  const shown = text.trim() || 'sent an image';
+  return shown.length > 80 ? `${shown.substring(0, 80)}...` : shown;
+}
+
+/** A chat message as postMessage takes it; only the assistant's share sets `origin`. */
+export interface ChatMessageInput {
+  text: string;
+  replyTo?: number | null;
+  files?: Array<{ filename: string; originalname: string; size: number; mimetype: string }>;
+  origin?: string | null;
 }
 
 /**
@@ -140,13 +155,13 @@ function scrapeOpenGraph(html: string): Omit<LinkPreviewResult, 'url'> {
  * numeric value feeds both the trip-scoping SELECT and the write that
  * follows it.
  *
- * **`deleteMessage`'s pre-existing `username` gap.** The legacy statement
- * behind `findInTrip` (CB51) is `SELECT * FROM collab_messages WHERE id = ?
- * AND trip_id = ?` — no join to `users` — yet the legacy code returned
- * `{ username: message.username }`, a column that statement never selected.
- * That has always evaluated to `undefined` at runtime; preserved exactly
- * below (parity is law), not fixed — flagged in the task-5 report as a
- * pre-existing defect for a ruling, the same as `§17`'s other "surprises".
+ * **`deleteMessage`'s `username`.** The legacy statement behind `findInTrip`
+ * (CB51) never joined `users`, so the legacy `{ username: message.username }`
+ * was always `undefined` and REST fell back to the caller's own name. The
+ * author's name is now read through the joined shape before the delete, so
+ * MCP (which has no session user to fall back on) names the author too. REST
+ * sends the same bytes as before: only the author may delete a message, so
+ * the author's name is the caller's name.
  */
 @Injectable()
 export class CollabService {
@@ -202,6 +217,45 @@ export class CollabService {
     socketId: string | undefined,
   ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Posting (every surface)                                            */
+  /* ------------------------------------------------------------------ */
+
+  /** REST's writer for a post: the trip room minus the tab that sent the request. */
+  restWriter(tripId: string | number, user: Pick<User, 'id' | 'role'>, socketId: string | undefined): TripWriter {
+    return restTripWriter(this.realtime, tripId, user, socketId);
+  }
+
+  /**
+   * A note posted to the trip: every tab gets it, every fellow traveller a
+   * notification. The route always notified; through this, MCP does too.
+   */
+  async postNote(tripId: string | number, data: Parameters<CollabService['createNote']>[2], writer: TripWriter) {
+    const note = await this.createNote(tripId, writer.userId, data);
+    writer.events.emit('collab:note:created', { note });
+    await this.notifyCollab(String(tripId), await this.actorOf(writer));
+    return note;
+  }
+
+  /**
+   * A chat message posted to the trip, sent and notified like a typed one
+   * wherever it came from. A reply to a message that is gone comes back as
+   * `{ error }` with nothing sent, for the caller to refuse in its own words.
+   */
+  async postMessage(tripId: string | number, input: ChatMessageInput, writer: TripWriter) {
+    const { text, replyTo = null, files = [], origin = null } = input;
+    const result = await this.createMessage(tripId, writer.userId, text, replyTo, files, origin);
+    if (!result.message) return result;
+    writer.events.emit('collab:message:created', { message: result.message });
+    await this.notifyCollab(String(tripId), await this.actorOf(writer), chatPreview(text));
+    return result;
+  }
+
+  /** The writer as a notification names them: by id, and by the address the route read off its session. */
+  private async actorOf(writer: TripWriter): Promise<Pick<User, 'id' | 'username'>> {
+    return { id: writer.userId, username: await this.notifications.actorName(writer.userId) };
   }
 
   /* ------------------------------------------------------------------ */
@@ -639,6 +693,8 @@ export class CollabService {
     text: string,
     replyTo?: number | null,
     files: Array<{ filename: string; originalname: string; size: number; mimetype: string }> = [],
+    // Where the message came from when not typed in the chat: only the assistant's share sets it.
+    origin: string | null = null,
   ): Promise<{ error?: string; message?: Awaited<ReturnType<CollabService['formatMessage']>> }> {
     if (replyTo) {
       // A soft-deleted message is gone as far as anyone replying is concerned:
@@ -652,7 +708,7 @@ export class CollabService {
     // storage, so a message row that lands without its attachment rows would
     // leave those bytes with nothing pointing at them and nothing to sweep them.
     const insertedId = await this.uow.transactional(async () => {
-      const id = await this.messagesRepo.insertMessage(tripId, userId, text.trim(), replyTo || null);
+      const id = await this.messagesRepo.insertMessage(tripId, userId, text.trim(), replyTo || null, origin);
 
       for (const file of files) {
         await this.messagesRepo.insertAttachmentForMessage({
@@ -684,6 +740,7 @@ export class CollabService {
     const message = await this.messagesRepo.findInTrip(idNum, tripIdNum);
     if (!message) return { error: 'not_found' };
     if (Number(message.user_id) !== Number(userId)) return { error: 'not_owner' };
+    const author = await this.messagesRepo.findWithReply(message.id);
 
     const attachments = await this.messagesRepo.listFilenamesForMessage(message.id, tripIdNum);
     await this.uow.transactional(async () => {
@@ -698,10 +755,8 @@ export class CollabService {
         /* best effort */
       });
     }
-    // `message.username` — see the class docstring's "pre-existing `username`
-    // gap" note: `findInTrip` never joins `users`, so this has always been
-    // `undefined` at runtime. Preserved exactly, not fixed.
-    return { username: undefined };
+    // Read before the delete; see the class docstring's `username` note.
+    return { username: author?.username };
   }
 
   /* ------------------------------------------------------------------ */
@@ -852,7 +907,7 @@ export class CollabService {
   }
 
   /** Fire-and-forget collab notification (mirrors the legacy route's dynamic import). */
-  async notifyCollab(tripId: string, actor: User, preview?: string): Promise<void> {
+  async notifyCollab(tripId: string, actor: Pick<User, 'id' | 'username'>, preview?: string): Promise<void> {
     // Injected, not a lazy import of the old notifications bridge. The laziness bought
     // nothing the module graph does not already give — NotificationsModule
     // reaches nothing in this direction — and it hid the edge while handing the

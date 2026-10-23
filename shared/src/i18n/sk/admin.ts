@@ -714,6 +714,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'Analýza pomocou AI',
   'admin.addons.catalog.llm_parsing.description':
     'Prečíta rezervácie, ktoré vstavaný analyzátor nezvládne, pomocou zvoleného modelu AI',
+  'admin.addons.catalog.ai_assistant.name': 'AI asistent',
+  'admin.addons.catalog.ai_assistant.description':
+    'Chat v každej ceste, ktorý odpovedá na otázky a navrhuje zmeny, ktoré potvrdíš',
   'admin.addons.llm.vision.auto': 'Automaticky',
   'admin.addons.llm.vision.on': 'Áno',
   'admin.addons.llm.vision.off': 'Nie',
@@ -983,5 +986,32 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Odstrániť kategóriu',
   'admin.packingTemplates.deleteCategoryConfirm': 'Odstrániť kategóriu "{name}" a všetky jej položky?',
   'admin.rotateJwt.button': 'Obnoviť',
+  'admin.addons.ai.name': 'AI', // same-as-en
+  'admin.addons.ai.description':
+    'Jedno pripojenie pre asistenta a import rezervácií. MCP umožní iným AI aplikáciám používať TREK.',
+  'admin.addons.ai.setup': 'Nastaviť AI',
+  'admin.addons.ai.dialogSub': 'Pripojenie, ktoré zdieľa asistent a AI spracovanie, a čo smie každý z nich.',
+  'admin.addons.ai.tab.connection': 'Pripojenie',
+  'admin.addons.ai.parsing.readsWith': 'Číta rezervácie pomocou',
+  'admin.addons.ai.parsing.own': 'Vlastné pripojenie',
+  'admin.addons.ai.parsing.ownHint': 'Používa sa namiesto zdieľaného pripojenia.',
+  'admin.addons.ai.parsing.useShared': 'Použiť zdieľané pripojenie',
+  'admin.addons.ai.parsing.sharedTag': 'Zdieľané',
+  'admin.addons.ai.parsing.perUser': 'Každý číta pomocou vlastného pripojenia zo svojich nastavení.',
+  'admin.addons.ai.parsing.none':
+    'Zatiaľ žiadne pripojenie. Nastavte jedno pre všetkých alebo dajte AI spracovaniu vlastné.',
+  'admin.addons.ai.parsing.setupOwn': 'Použiť iné',
+  'admin.addons.ai.parsing.installed': 'Nainštalované na serveri',
+  'admin.addons.ai.parsing.refresh': 'Obnoviť',
+  'admin.addons.ai.parsing.noModels': 'Zatiaľ nie sú nainštalované žiadne modely. Stiahnite si jeden nižšie.',
+  'admin.addons.ai.parsing.pullTitle': 'Stiahnuť odporúčaný model',
+  'admin.addons.ai.parsing.pull': 'Stiahnuť',
+  'admin.addons.ai.parsing.pulling': 'Sťahovanie…',
+  'admin.addons.ai.parsing.use': 'Použiť',
+  'admin.addons.ai.parsing.selected': 'Vybrané',
+  'admin.addons.ai.parsing.pulled': 'Model stiahnutý',
+  'admin.addons.ai.parsing.pullFailed': 'Model sa nepodarilo stiahnuť',
+  'admin.addons.ai.parsing.unreachable': 'Miestny server nie je dostupný',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Väčšinou netreba',
 };
 export default admin;

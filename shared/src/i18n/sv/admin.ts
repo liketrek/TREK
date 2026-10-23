@@ -713,6 +713,9 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.llm_parsing.name': 'AI-tolkning',
   'admin.addons.catalog.llm_parsing.description':
     'Läser bokningar som den inbyggda tolken inte klarar, med en AI-modell du väljer',
+  'admin.addons.catalog.ai_assistant.name': 'AI-assistent',
+  'admin.addons.catalog.ai_assistant.description':
+    'En chatt i varje resa som svarar på frågor och föreslår ändringar som du bekräftar',
   'admin.addons.llm.vision.auto': 'Automatiskt',
   'admin.addons.llm.vision.on': 'Ja',
   'admin.addons.llm.vision.off': 'Nej',
@@ -968,5 +971,31 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.deleteCategoryTitle': 'Ta bort kategori',
   'admin.packingTemplates.deleteCategoryConfirm': 'Ta bort kategorin "{name}" och alla dess objekt?',
   'admin.rotateJwt.button': 'Rotera',
+  'admin.addons.ai.name': 'AI', // same-as-en
+  'admin.addons.ai.description':
+    'En anslutning för assistenten och bokningsimporten. Med MCP kan andra AI-appar använda TREK.',
+  'admin.addons.ai.setup': 'Konfigurera AI',
+  'admin.addons.ai.dialogSub': 'Anslutningen som assistenten och AI-tolkningen delar, och vad var och en får göra.',
+  'admin.addons.ai.tab.connection': 'Anslutning',
+  'admin.addons.ai.parsing.readsWith': 'Läser bokningar med',
+  'admin.addons.ai.parsing.own': 'Egen anslutning',
+  'admin.addons.ai.parsing.ownHint': 'Används i stället för den delade anslutningen.',
+  'admin.addons.ai.parsing.useShared': 'Använd den delade anslutningen',
+  'admin.addons.ai.parsing.sharedTag': 'Delad',
+  'admin.addons.ai.parsing.perUser': 'Var och en läser med sin egen anslutning från sina inställningar.',
+  'admin.addons.ai.parsing.none': 'Ingen anslutning ännu. Konfigurera en för alla eller ge AI-tolkningen en egen.',
+  'admin.addons.ai.parsing.setupOwn': 'Använd en annan',
+  'admin.addons.ai.parsing.installed': 'Installerade på servern',
+  'admin.addons.ai.parsing.refresh': 'Uppdatera',
+  'admin.addons.ai.parsing.noModels': 'Inga modeller installerade ännu. Hämta en nedan.',
+  'admin.addons.ai.parsing.pullTitle': 'Hämta en rekommenderad modell',
+  'admin.addons.ai.parsing.pull': 'Hämta',
+  'admin.addons.ai.parsing.pulling': 'Hämtar…',
+  'admin.addons.ai.parsing.use': 'Använd',
+  'admin.addons.ai.parsing.selected': 'Vald',
+  'admin.addons.ai.parsing.pulled': 'Modellen hämtad',
+  'admin.addons.ai.parsing.pullFailed': 'Det gick inte att hämta modellen',
+  'admin.addons.ai.parsing.unreachable': 'Den lokala servern går inte att nå',
+  'admin.addons.ai.parsing.apiKeyOptional': 'Behövs oftast inte',
 };
 export default admin;

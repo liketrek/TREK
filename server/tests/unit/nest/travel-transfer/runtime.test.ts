@@ -543,8 +543,9 @@ describe('travel transfer runtime on migrated TREK database', () => {
       currency: 'AUD',
       reservation: booking,
     });
-    await insertRow(orm, CollabMessages, { trip, user: ctx.userId, text: 'Historical message' });
+    await insertRow(orm, CollabMessages, { trip, user: ctx.userId, text: 'Historical message', origin: 'assistant' });
     const { next_cursor: _, ...graph } = await service.snapshot(ctx, String(trip), null, null, true);
+    expect(graph.records.find((r) => r.kind === 'chat_messages')?.fields.origin).toBe('assistant');
     if (process.env.TREK_TRANSFER_FIXTURE) await writeFile(process.env.TREK_TRANSFER_FIXTURE, canonical(graph));
     const created = await service.apply(ctx, await stage(graph, null, 'native-copy', true));
     const target = Number(created.trip_id);

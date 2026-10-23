@@ -44,7 +44,6 @@
   "components/Studio/StudioElementsPanel.tsx": 2,
   "components/Studio/StudioSwatches.tsx": 1,
   "components/Studio/TravelElements.tsx": 6,
-  "components/Studio/autoLayout.ts": 50,
   "components/Studio/peerColour.ts": 1,
   "components/Studio/printSheets.ts": 4,
   "components/Trips/TripMemberAvatar.tsx": 2,

@@ -1,4 +1,4 @@
-// FE-PAGE-COLL-001 to FE-PAGE-COLL-093
+// FE-PAGE-COLL-001 to FE-PAGE-COLL-095
 // The Collections page hook. The collection store is replaced by a fixture so
 // every handler/branch can be driven directly; the categories request goes
 // through MSW, and the websocket module is already mocked in tests/setup.ts.
@@ -16,9 +16,12 @@ import { useCollections } from './useCollections'
 
 const navigate = vi.fn()
 let routeParams: { id?: string } = {}
+let searchParams = new URLSearchParams()
+const setSearchParams = vi.fn()
 vi.mock('react-router', () => ({
   useNavigate: () => navigate,
   useParams: () => routeParams,
+  useSearchParams: () => [searchParams, setSearchParams],
 }))
 
 // The fixture is handed out by the mocked store hook; tests mutate it and rerender.
@@ -152,6 +155,8 @@ beforeEach(() => {
   store = makeStore()
   hoisted.store = store
   routeParams = {}
+  searchParams = new URLSearchParams()
+  setSearchParams.mockClear()
   wideMedia = false
   darkMedia = false
   navigate.mockClear()
@@ -1314,5 +1319,43 @@ describe('useCollections — route that is an invite (#2645)', () => {
     await setup()
     await act(async () => {})
     expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('FE-PAGE-COLL-094: a link to a saved place opens it once its list holds it, then drops the param', async () => {
+    routeParams = { id: '14' }
+    searchParams = new URLSearchParams('place=34&tab=map')
+    store.collections = [collection({ id: 14 })]
+    store.activeId = 14
+    store.places = [place({ id: 34, collection_id: 14 })]
+    await setup()
+    expect(store.setSelectedPlaceId).toHaveBeenCalledWith(34)
+    expect(setSearchParams).toHaveBeenCalledTimes(1)
+    const [update, options] = setSearchParams.mock.calls[0] as [(prev: URLSearchParams) => URLSearchParams, object]
+    expect(update(searchParams).toString()).toBe('tab=map')
+    expect(options).toEqual({ replace: true })
+  })
+
+  it('FE-PAGE-COLL-095: a linked place waits for its list: not another list, not while loading; a list without it drops the link', async () => {
+    routeParams = { id: '14' }
+    searchParams = new URLSearchParams('place=34')
+    store.collections = [collection({ id: 14 }), collection({ id: 2 })]
+    store.activeId = 2
+    store.places = [place({ id: 34, collection_id: 2 })]
+    const view = await setup()
+    expect(store.setSelectedPlaceId).not.toHaveBeenCalled()
+    store.activeId = 14
+    store.placesLoading = true
+    view.rerender()
+    expect(store.setSelectedPlaceId).not.toHaveBeenCalled()
+    store.placesLoading = false
+    view.rerender()
+    // The places on screen are still another list's: the place may just not have arrived.
+    expect(setSearchParams).not.toHaveBeenCalled()
+    store.places = [place({ id: 35, collection_id: 14 })]
+    view.rerender()
+    expect(store.setSelectedPlaceId).not.toHaveBeenCalled()
+    expect(setSearchParams).toHaveBeenCalledTimes(1)
+    const drop = setSearchParams.mock.calls[0]?.[0] as (prev: URLSearchParams) => URLSearchParams
+    expect(drop(new URLSearchParams('place=34&x=1')).toString()).toBe('x=1')
   })
 })

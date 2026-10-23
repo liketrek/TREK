@@ -10,6 +10,7 @@ import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, ChevronLeft, M
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
 import HelpButton from '../Help/HelpButton'
+import AssistantLauncher from '../Assistant/AssistantLauncher'
 import { resolvePluginIcon } from '../shared/PluginIcon'
 import { visibleManagedNavItems } from '../../managed'
 import { useCollapseOnOverflow } from '../../hooks/useCollapseOnOverflow'
@@ -259,6 +260,9 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onSettings
           loose siblings, which centred nothing and left the pill to fend for
           itself on top of them. */}
       <div className="flex items-center gap-4 flex-1 basis-0 min-w-max justify-end">
+
+      {/* The assistant, only once a connection this user can use is set up */}
+      {user && <AssistantLauncher variant="navbar" />}
 
       {/* Contextual help for the current screen — same footprint as the theme toggle beside it */}
       {user && <HelpButton />}

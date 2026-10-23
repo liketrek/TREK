@@ -118,7 +118,13 @@ export class TripMembersService {
   }
 
   /** Fire-and-forget trip-invite notification (mirrors the route's dynamic import). */
-  notifyInvite(tripId: string, actor: User, targetUserId: number, tripTitle: string, inviteeEmail: string): void {
+  notifyInvite(
+    tripId: string,
+    actor: Pick<User, 'id' | 'username'>,
+    targetUserId: number,
+    tripTitle: string,
+    inviteeEmail: string,
+  ): void {
     // Injected, not a lazy import of the old notifications bridge. The laziness bought
     // nothing the module graph does not already give — NotificationsModule
     // reaches nothing in this direction — and it hid the edge while handing the
@@ -149,6 +155,13 @@ export class TripMembersService {
       owner: { ...owner, role: 'owner', is_guest: false, avatar_url: avatarUrl(owner!) },
       members: members.map((m) => ({ ...m, is_guest: !!m.is_guest, avatar_url: avatarUrl(m) })),
     };
+  }
+
+  /** One member as the roster lists them, for a write that joined them by id (the plugin RPC). */
+  async findMember(tripId: number, userId: number) {
+    const ownerId = await this.tripsRepo.getOwnerId(tripId);
+    if (ownerId === null) return undefined;
+    return (await this.listMembers(tripId, ownerId)).members.find((m) => m.id === userId);
   }
 
   async addMember(

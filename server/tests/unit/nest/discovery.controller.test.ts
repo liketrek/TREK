@@ -92,6 +92,7 @@ describe('DiscoveryMetadataService', () => {
       code_challenge_methods_supported: ['S256'],
       token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
       scopes_supported: ALL_SCOPES,
+      client_id_metadata_document_supported: true,
     });
   });
 

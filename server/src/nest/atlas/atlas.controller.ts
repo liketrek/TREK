@@ -1,6 +1,7 @@
 import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { AtlasWritesService } from './atlas-writes.service';
 import { AtlasMarkRegionDto, AtlasCreateBucketItemDto, AtlasUpdateBucketItemDto } from './atlas.dto';
 import { AtlasService, BucketItemExistsError } from './atlas.service';
 import {
@@ -9,6 +10,7 @@ import {
   Delete,
   Get,
   Header,
+  Headers,
   HttpCode,
   HttpException,
   Param,
@@ -36,12 +38,16 @@ import type { Response } from 'express';
  * No addon gate — the legacy route has none, so adding one would break
  * clients when the addon is off. The one status the legacy route never sent is
  * the bucket-list 409: adding the same wish twice used to append a second row
- * (#1898).
+ * (#1898). The writes go through AtlasWritesService, which tells the user's
+ * other tabs (`atlas:changed`); X-Socket-Id leaves out the tab that asked.
  */
 @Controller('api/addons/atlas')
 @UseGuards(JwtAuthGuard)
 export class AtlasController {
-  constructor(private readonly atlas: AtlasService) {}
+  constructor(
+    private readonly atlas: AtlasService,
+    private readonly writes: AtlasWritesService,
+  ) {}
 
   @Get('stats')
   async stats(@CurrentUser() user: User) {
@@ -113,14 +119,22 @@ export class AtlasController {
 
   @Post('country/:code/mark')
   @HttpCode(200)
-  async markCountry(@CurrentUser() user: User, @Param('code') code: string): Promise<{ success: boolean }> {
-    await this.atlas.markCountry(user.id, code.toUpperCase());
+  async markCountry(
+    @CurrentUser() user: User,
+    @Param('code') code: string,
+    @Headers('x-socket-id') socketId?: string,
+  ): Promise<{ success: boolean }> {
+    await this.writes.markCountry(user.id, code.toUpperCase(), socketId);
     return { success: true };
   }
 
   @Delete('country/:code/mark')
-  async unmarkCountry(@CurrentUser() user: User, @Param('code') code: string): Promise<{ success: boolean }> {
-    await this.atlas.unmarkCountry(user.id, code.toUpperCase());
+  async unmarkCountry(
+    @CurrentUser() user: User,
+    @Param('code') code: string,
+    @Headers('x-socket-id') socketId?: string,
+  ): Promise<{ success: boolean }> {
+    await this.writes.unmarkCountry(user.id, code.toUpperCase(), socketId);
     return { success: true };
   }
 
@@ -130,14 +144,19 @@ export class AtlasController {
     @CurrentUser() user: User,
     @Param('code') code: string,
     @Body() body: AtlasMarkRegionDto,
+    @Headers('x-socket-id') socketId?: string,
   ): Promise<{ success: boolean }> {
-    await this.atlas.markRegion(user.id, code.toUpperCase(), body.name, body.country_code.toUpperCase());
+    await this.writes.markRegion(user.id, code.toUpperCase(), body.name, body.country_code.toUpperCase(), socketId);
     return { success: true };
   }
 
   @Delete('region/:code/mark')
-  async unmarkRegion(@CurrentUser() user: User, @Param('code') code: string): Promise<{ success: boolean }> {
-    await this.atlas.unmarkRegion(user.id, code.toUpperCase());
+  async unmarkRegion(
+    @CurrentUser() user: User,
+    @Param('code') code: string,
+    @Headers('x-socket-id') socketId?: string,
+  ): Promise<{ success: boolean }> {
+    await this.writes.unmarkRegion(user.id, code.toUpperCase(), socketId);
     return { success: true };
   }
 
@@ -150,6 +169,7 @@ export class AtlasController {
   async createBucketItem(
     @CurrentUser() user: User,
     @Body() body: AtlasCreateBucketItemDto,
+    @Headers('x-socket-id') socketId?: string,
   ): Promise<{ item: unknown }> {
     // The schema's min(1) admits whitespace-only names — this trim guard keeps
     // the legacy 400 for those (missing/empty names 400 in the pipe envelope).
@@ -159,15 +179,11 @@ export class AtlasController {
     const { name, lat, lng, country_code, notes, target_date, region_code } = body;
     try {
       return {
-        item: await this.atlas.createBucketItem(user.id, {
-          name,
-          lat,
-          lng,
-          country_code,
-          notes,
-          target_date,
-          region_code,
-        }),
+        item: await this.writes.createBucketItem(
+          user.id,
+          { name, lat, lng, country_code, notes, target_date, region_code },
+          socketId,
+        ),
       };
     } catch (err) {
       // #1898: the same wish twice is a conflict, not a server error. Bespoke
@@ -184,11 +200,13 @@ export class AtlasController {
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() body: AtlasUpdateBucketItemDto,
+    @Headers('x-socket-id') socketId?: string,
   ): Promise<{ item: unknown }> {
     const { name, notes, lat, lng, country_code, target_date } = body;
     let item: unknown;
     try {
-      item = await this.atlas.updateBucketItem(user.id, id, { name, notes, lat, lng, country_code, target_date });
+      const data = { name, notes, lat, lng, country_code, target_date };
+      item = await this.writes.updateBucketItem(user.id, id, data, socketId);
     } catch (err) {
       // #1898: editing a wish onto an existing one conflicts the same way a
       // duplicate create does.
@@ -204,8 +222,12 @@ export class AtlasController {
   }
 
   @Delete('bucket-list/:id')
-  async deleteBucketItem(@CurrentUser() user: User, @Param('id') id: string): Promise<{ success: boolean }> {
-    if (!(await this.atlas.deleteBucketItem(user.id, id))) {
+  async deleteBucketItem(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Headers('x-socket-id') socketId?: string,
+  ): Promise<{ success: boolean }> {
+    if (!(await this.writes.deleteBucketItem(user.id, id, socketId))) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
     return { success: true };

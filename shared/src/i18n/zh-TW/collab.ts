@@ -103,5 +103,7 @@ const collab: TranslationStrings = {
   'collab.chat.closeImage': '關閉圖片',
   'collab.notes.categoryInUse': '仍有筆記在使用此分類。請先移動或刪除這些筆記,再刪除分類。',
   'collab.notes.categoriesLocalHint': '沒有筆記的分類只儲存在此瀏覽器中。有筆記使用後，其他成員才能看到。',
+  'collab.chat.fromAssistant': '來自助理',
+  'collab.chat.fromAssistantHint': '{name} 分享了助理的這則回答',
 };
 export default collab;

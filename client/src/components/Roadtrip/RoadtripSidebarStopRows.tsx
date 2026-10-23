@@ -4,7 +4,7 @@ import ChargingInfo from './ChargingInfo'
 import { useRoadtripSettings } from '../../hooks/useRoadtripSettings'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { Tooltip } from '../shared/Tooltip'
-import { formatDurationShort, refuelsRange, serviceColor, type ScheduleEntry, type ScheduleWarning } from './roadtripModel'
+import { formatDurationShort, refuelsRange, serviceColor, type ScheduleEntry, type ScheduleWarning, type VehicleKind } from './roadtripModel'
 import { STOP_KIND_BY_KEY } from './stopKinds'
 import { spurWorthLabelling } from './accessSpur'
 import { useVehicleRange } from './useVehicleRange'
@@ -27,6 +27,23 @@ export interface StopBookings {
 }
 
 /**
+ * The vehicle a drive was worked out for, when the row is not about the trip's saved
+ * settings: the assistant's card of a preview carries its own. Absent reads the settings.
+ */
+export interface StopVehicle {
+  kind: VehicleKind | null
+  /** The fill the trip's setting gives every stop without one of its own, 1 to 100. */
+  fill: number | null
+}
+
+/** What a stop's row takes besides its bookings: the charger's badges and the vehicle, both read live when absent. */
+interface StopSnapshot {
+  /** What a charger shows of its availability. Absent asks the live badge; null shows none. */
+  charging?: React.ReactNode
+  vehicle?: StopVehicle
+}
+
+/**
  * What a stop will actually fill to: its own figure, else the traveller's default.
  *
  * Null means nothing worth saying: no per-stop figure and a default that fills right up,
@@ -44,7 +61,7 @@ function effectiveFill(own: number | null | undefined, setting: number | undefin
  * apart. It renders the bare span and nothing around it, so a stop's markup is exactly
  * what it was when each shape drew the row itself.
  */
-function StopBadgeRow({ stop, entry, late, driveFindings, onEditStay, onPickFill, bookings, canEditBookings, onOpenBooking }: Readonly<StopBookings & {
+function StopBadgeRow({ stop, entry, late, driveFindings, onEditStay, onPickFill, bookings, canEditBookings, onOpenBooking, vehicle }: Readonly<StopBookings & Pick<StopSnapshot, 'vehicle'> & {
   stop: RoadtripStop
   entry: ScheduleEntry | undefined
   late: ScheduleWarning[]
@@ -54,8 +71,10 @@ function StopBadgeRow({ stop, entry, late, driveFindings, onEditStay, onPickFill
 }>): React.ReactElement {
   // Read here rather than threaded down from the rail: the fill badge is the only thing in
   // it that depends on them.
-  const fillPercent = useRoadtripSettings(s => s.roadtrip_fill_percent)
-  const { vehicleKind } = useVehicleRange()
+  const savedFill = useRoadtripSettings(s => s.roadtrip_fill_percent)
+  const { vehicleKind: savedKind } = useVehicleRange()
+  const fillPercent = vehicle ? vehicle.fill ?? undefined : savedFill
+  const vehicleKind = vehicle ? vehicle.kind : savedKind
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
   const arrival = entry?.arrival ? formatClockTime(entry.arrival, is12h) : null
   return (
@@ -87,7 +106,7 @@ function StopBadgeRow({ stop, entry, late, driveFindings, onEditStay, onPickFill
  * the trip is actually for. Its own icon on one flat disc: three kinds of pause that all
  * mean "we are still driving", and the icon is what tells them apart.
  */
-export function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onEditStay, onPickKind, onPickFill, bookings, canEditBookings, onOpenBooking }: StopBookings & {
+export function ServiceStop({ stop, entry, late, driveFindings, selected, onSelect, onEditStay, onPickKind, onPickFill, bookings, canEditBookings, onOpenBooking, charging, vehicle }: StopBookings & StopSnapshot & {
   stop: RoadtripStop
   entry: ScheduleEntry | undefined
   /** How late the drive reaches a time pinned on this pause, or the time it was set to
@@ -171,9 +190,9 @@ export function ServiceStop({ stop, entry, late, driveFindings, selected, onSele
             className="flex min-w-0 items-center gap-2 font-semibold leading-6 tracking-[-0.012em] text-content-secondary"
             style={{ fontSize: FS.name }}
           >
-            <span className="min-w-0 truncate">{stop.name}</span>{stop.stopType === 'charging' && <ChargingInfo placeId={stop.placeId} compact />}
+            <span className="min-w-0 truncate">{stop.name}</span>{stop.stopType === 'charging' && (charging === undefined ? <ChargingInfo placeId={stop.placeId} compact /> : charging)}
           </span>
-          <StopBadgeRow stop={stop} entry={entry} late={late} driveFindings={driveFindings} onEditStay={onEditStay} onPickFill={onPickFill} bookings={bookings} canEditBookings={canEditBookings} onOpenBooking={onOpenBooking} />
+          <StopBadgeRow stop={stop} entry={entry} late={late} driveFindings={driveFindings} onEditStay={onEditStay} onPickFill={onPickFill} bookings={bookings} canEditBookings={canEditBookings} onOpenBooking={onOpenBooking} vehicle={vehicle} />
         </span>
         {entry?.arrival ? <Arrival entry={entry} /> : null}
       </button>
@@ -227,7 +246,7 @@ export function RouteViaStop({ via }: { via: RouteVia }): React.ReactElement {
   )
 }
 
-export function Stop({ stop, number, entry, late, driveFindings, selected, continues, starts, onSelect, onMove, canMove, onEditStay, onPickKind, onPickFill, bookings, canEditBookings, onOpenBooking }: StopBookings & {
+export function Stop({ stop, number, entry, late, driveFindings, selected, continues, starts, onSelect, onMove, canMove, onEditStay, onPickKind, onPickFill, bookings, canEditBookings, onOpenBooking, charging, vehicle }: StopBookings & StopSnapshot & {
   stop: RoadtripStop
   /** Position within the day: the same count the map badges its markers with. */
   number: number
@@ -324,7 +343,7 @@ export function Stop({ stop, number, entry, late, driveFindings, selected, conti
             className="flex min-w-0 items-center gap-2 font-semibold leading-6 tracking-[-0.012em] text-content"
             style={{ fontSize: FS.name }}
           >
-            <span className={stop.stopType === 'charging' ? 'min-w-0 truncate' : 'min-w-0 break-words'}>{stop.name}</span>{stop.stopType === 'charging' && <ChargingInfo placeId={stop.placeId} compact />}
+            <span className={stop.stopType === 'charging' ? 'min-w-0 truncate' : 'min-w-0 break-words'}>{stop.name}</span>{stop.stopType === 'charging' && (charging === undefined ? <ChargingInfo placeId={stop.placeId} compact /> : charging)}
           </span>
           {/* Two halves under one border: the word says what the number means, so the
               number needs no unit of explanation beside it. */}
@@ -332,7 +351,7 @@ export function Stop({ stop, number, entry, late, driveFindings, selected, conti
               "what does this stop cost", and the second only appears when the gap is far
               enough to change the plan. The dashed line on the map already says there is
               one; the number is for luggage, a gate, a track a hire car should not be on. */}
-          <StopBadgeRow stop={stop} entry={entry} late={late} driveFindings={driveFindings} onEditStay={onEditStay} onPickFill={onPickFill} bookings={bookings} canEditBookings={canEditBookings} onOpenBooking={onOpenBooking} />
+          <StopBadgeRow stop={stop} entry={entry} late={late} driveFindings={driveFindings} onEditStay={onEditStay} onPickFill={onPickFill} bookings={bookings} canEditBookings={canEditBookings} onOpenBooking={onOpenBooking} vehicle={vehicle} />
         </span>
         {entry?.arrival ? <Arrival entry={entry} /> : null}
       </span>

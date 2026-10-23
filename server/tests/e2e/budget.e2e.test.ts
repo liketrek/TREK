@@ -13,10 +13,13 @@ import { BudgetSettlements } from '../../src/db/entities/BudgetSettlements.entit
 import { Reservations } from '../../src/db/entities/Reservations.entity';
 import { TripMembers } from '../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
+import type { McpContext } from '../../src/nest-mcp';
+import { BudgetItemsMcp } from '../../src/nest/budget/budget-items.mcp';
 import { BudgetModule } from '../../src/nest/budget/budget.module';
 import { ExchangeRatesService } from '../../src/nest/budget/exchange-rates.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { withRequestContext } from '../../src/nest/database/request-context';
 import { NotificationsService } from '../../src/nest/notifications/notifications.service';
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
@@ -29,6 +32,7 @@ import { makeUser } from '../helpers/factories/users';
 import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
 import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { sessionCookie } from './harness';
+import { MikroORM } from '@mikro-orm/core';
 import { Test } from '@nestjs/testing';
 
 import cookieParser from 'cookie-parser';
@@ -859,6 +863,79 @@ describe('Budget e2e (real auth guard + temp SQLite, real budget SQL)', () => {
       const balances = settlement.body.balances as { user_id: number; balance: number }[];
       expect(Math.round(balances.reduce((a, b) => a + b.balance, 0) * 100)).toBe(0);
       expect(balances.find((b) => b.user_id === 3)?.balance).toBe(0);
+    });
+  });
+
+  describe('the read tools over MCP', () => {
+    let mcpTripId: number;
+    const asUser = (userId: number) => ({ userId }) as McpContext;
+    const call = <T>(fn: () => Promise<T>) => withRequestContext(app.get(MikroORM), fn);
+    const text = (result: { content: { text: string }[] }) => JSON.parse(result.content[0]?.text ?? '');
+
+    beforeAll(async () => {
+      mcpTripId = (await makeTrip(orm, 1, { title: 'MCP Trip', currency: 'EUR' })).id;
+      await addTripMember(orm, mcpTripId, 2);
+      await makeUser(orm, {
+        id: 6,
+        username: 'e2e-mcp-outsider',
+        email: 'mcp-outsider@example.test',
+        password_version: 0,
+      });
+    });
+
+    it('BUDGET-E2E-001: list_budget_items answers the expenses REST lists, in its order, with the trip totals', async () => {
+      const create = (body: object) =>
+        request(server).post(`/api/trips/${mcpTripId}/budget`).set('Cookie', sessionCookie(1)).send(body);
+      // One after the other, so the list order is the order they were made in.
+      const ferry = await create({ name: 'Ferry', category: 'transport', total_price: 60, member_ids: [1, 2] });
+      const diner = await create({
+        name: 'Diner',
+        category: 'food',
+        currency: 'USD',
+        exchange_rate: 1.2,
+        payers: [{ user_id: 2, amount: 36 }],
+      });
+      expect([ferry.status, diner.status]).toEqual([201, 201]);
+      const rest = await request(server).get(`/api/trips/${mcpTripId}/budget`).set('Cookie', sessionCookie(1));
+      expect(rest.status).toBe(200);
+
+      const tool = text(await call(() => app.get(BudgetItemsMcp).listBudgetItems({ tripId: mcpTripId }, asUser(2))));
+
+      type RestItem = { id: number; name: string; total_price: number; currency: string | null; members: unknown[] };
+      expect(tool.items.map((item: { id: number }) => item.id)).toEqual(rest.body.items.map((i: RestItem) => i.id));
+      expect(tool.items.map((item: { name: string; total_price: number }) => [item.name, item.total_price])).toEqual(
+        rest.body.items.map((i: RestItem) => [i.name, i.total_price]),
+      );
+      // 60 EUR and 36 USD at 1.2: 30 EUR.
+      expect(tool).toMatchObject({ currency: 'EUR', total: 90, item_count: 2, next_offset: null });
+    });
+
+    it('BUDGET-E2E-002: get_budget_per_person answers exactly what the per-person route answers', async () => {
+      const rest = await request(server)
+        .get(`/api/trips/${mcpTripId}/budget/summary/per-person`)
+        .set('Cookie', sessionCookie(1));
+      expect(rest.status).toBe(200);
+
+      const tool = text(await call(() => app.get(BudgetItemsMcp).getBudgetPerPerson({ tripId: mcpTripId }, asUser(1))));
+
+      expect(tool).toEqual(rest.body);
+      expect(tool.summary.length).toBeGreaterThan(0);
+    });
+
+    it('BUDGET-E2E-003: someone off the trip gets the REST 404 and the MCP trip refusal from both tools', async () => {
+      const rest = await request(server).get(`/api/trips/${mcpTripId}/budget`).set('Cookie', sessionCookie(6));
+      expect(rest.status).toBe(404);
+
+      const mcp = app.get(BudgetItemsMcp);
+      for (const result of [
+        await call(() => mcp.listBudgetItems({ tripId: mcpTripId }, asUser(6))),
+        await call(() => mcp.getBudgetPerPerson({ tripId: mcpTripId }, asUser(6))),
+      ]) {
+        expect(result).toEqual({
+          content: [{ type: 'text', text: 'Trip not found or access denied.' }],
+          isError: true,
+        });
+      }
     });
   });
 });

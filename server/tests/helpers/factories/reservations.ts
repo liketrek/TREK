@@ -14,13 +14,17 @@ export function makeReservation(
   tripId: number,
   overrides: EntityData<Reservations> = {},
 ): Promise<ReservationRow> {
-  return createRow(orm, Reservations, {
-    trip: tripId,
-    title: 'Test Reservation',
-    type: 'flight',
-    day: null,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    Reservations,
+    {
+      trip: tripId,
+      title: 'Test Reservation',
+      type: 'flight',
+      day: null,
+    },
+    overrides,
+  );
 }
 
 /**
@@ -32,16 +36,20 @@ export function makeReservationEndpoint(
   reservationId: number,
   overrides: EntityData<ReservationEndpoints> = {},
 ): Promise<ReservationEndpointRow> {
-  return createRow(orm, ReservationEndpoints, {
-    reservation: reservationId,
-    role: 'from',
-    sequence: 0,
-    name: 'Paris Charles de Gaulle',
-    code: 'CDG',
-    lat: 49.0097,
-    lng: 2.5479,
-    ...overrides,
-  });
+  return createRow(
+    orm,
+    ReservationEndpoints,
+    {
+      reservation: reservationId,
+      role: 'from',
+      sequence: 0,
+      name: 'Paris Charles de Gaulle',
+      code: 'CDG',
+      lat: 49.0097,
+      lng: 2.5479,
+    },
+    overrides,
+  );
 }
 
 /** Puts the user on the booking's traveller list. */
