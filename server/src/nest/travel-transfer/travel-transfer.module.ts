@@ -11,6 +11,7 @@ import { TransferNative } from './transfer-native';
 import { TransferNativeFiles } from './transfer-native-files';
 import { TransferPhotoFiles } from './transfer-photo-files';
 import { TransferRetentionJob } from './transfer-retention.job';
+import { TransferSourceCache } from './transfer-source-cache';
 import { TransferStaging } from './transfer-staging';
 import { TravelTransferMcp } from './travel-transfer.mcp';
 import { TravelTransferService } from './travel-transfer.service';
@@ -27,6 +28,7 @@ import { Module } from '@nestjs/common';
     SchedulingModule,
   ],
   providers: [
+    TransferSourceCache,
     TransferPhotoFiles,
     TransferRetentionJob,
     TransferLinkedAccess,

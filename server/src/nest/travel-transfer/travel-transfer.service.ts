@@ -77,7 +77,7 @@ export class TravelTransferService {
   ) {
     const id = await this.authority.check(ctx, target, false);
     if (id === null) fail('Trip required', 422);
-    const files = await this.files.prepare(id, privateData);
+    const files = await this.files.prepare(id, privateData, revision !== null);
     const graph = await this.uow.transactional(() => this.graphs.snapshot(id, privateData, files));
     if (revision !== null && revision !== graph.revision) fail('Trip changed during snapshot');
     if (cursor !== null && (!revision || !/^\d+$/.test(cursor))) fail('Invalid snapshot cursor', 422);
@@ -114,11 +114,11 @@ export class TravelTransferService {
     const trip = await this.authority.check(ctx, target, false);
     if (trip === null) fail('Trip required', 422);
     let includePrivate = false;
-    let files = await this.files.prepare(trip, false);
+    let files = await this.files.prepare(trip, false, true);
     let graph = await this.graphs.snapshot(trip, false, files);
     if (graph.revision !== revision) {
       includePrivate = true;
-      files = await this.files.prepare(trip, true);
+      files = await this.files.prepare(trip, true, true);
       graph = await this.graphs.snapshot(trip, true, files);
     }
     if (graph.revision !== revision) fail('Trip changed before original read');

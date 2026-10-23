@@ -1,57 +1,45 @@
 import { DocSyncTransferService } from '../doc-sync/doc-sync-transfer.service';
 import { PhotoResolverService } from '../memories/photo-resolver.service';
-import { fail, MAX_ORIGINAL } from './transfer-wire';
+import { TransferSourceCache, type PreparedSource, type TransferSource } from './transfer-source-cache';
+import { canonical, fail, sha } from './transfer-wire';
 import { Injectable } from '@nestjs/common';
 
-import { createHash } from 'node:crypto';
-import type { Readable } from 'node:stream';
+export type ProviderSource = {
+  photo?: { user: number; id: number };
+  document?: { user: number; trip: number; id: number };
+};
 
-/** No public/cache URL and no preview fallback. Even a cached TREK ACL never replaces the provider request. */
+/** Source access is revalidated for every range; snapshot preparation alone downloads the original body. */
 @Injectable()
 export class TransferPhotoFiles {
   constructor(
     private readonly photos: PhotoResolverService,
     private readonly documents: DocSyncTransferService,
+    private readonly cache: TransferSourceCache,
   ) {}
-  async consume(user: number, id: number, range?: { offset: number; limit: number }) {
-    const { stream } = await this.photos.openOriginal(user, id);
-    const result = await this.consumeStream(stream, range);
-    await this.photos.checkOriginalAccess(user, id);
-    return result;
-  }
-  async document(user: number, trip: number, id: number, range?: { offset: number; limit: number }) {
-    const original = await this.documents.openOriginal(user, trip, id);
-    const result = await this.consumeStream(original.stream, range);
-    if (
-      (original.expectedSize !== null && result.size !== original.expectedSize) ||
-      (original.expectedDigest && original.expectedDigest !== result.digest)
-    )
-      fail('External original changed during transfer');
-    await original.check();
-    return result;
-  }
-  private async consumeStream(stream: Readable, range?: { offset: number; limit: number }) {
-    const hash = createHash('sha256'),
-      parts: Buffer[] = [];
-    let size = 0;
-    try {
-      for await (const chunk of stream) {
-        const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-        const start = size;
-        size += bytes.length;
-        if (size > MAX_ORIGINAL) fail('Photo original exceeds transfer limit', 413);
-        hash.update(bytes);
-        if (range && start < range.offset + range.limit && size > range.offset)
-          parts.push(
-            Buffer.from(bytes.subarray(Math.max(0, range.offset - start), range.offset + range.limit - start)),
-          );
-      }
-    } catch {
-      // Stream errors may contain provider URLs or credential-bearing diagnostics.
-      fail('Photo original could not be read completely', 422);
-    } finally {
-      stream.destroy();
+  private async open(source: ProviderSource): Promise<TransferSource> {
+    if (source.document) {
+      const { user, trip, id } = source.document;
+      return this.documents.openOriginal(user, trip, id);
     }
-    return { size, digest: hash.digest('hex'), bytes: Buffer.concat(parts) };
+    if (!source.photo) fail('Original source is missing');
+    const { user, id } = source.photo;
+    const original = await this.photos.openOriginal(user, id);
+    return {
+      ...original,
+      expectedSize: null,
+      expectedDigest: null,
+      check: () => this.photos.checkOriginalAccess(user, id),
+    };
+  }
+  prepare(source: ProviderSource, cached: boolean) {
+    const id = sha(canonical(['provider-original-v1', source.photo ?? null, source.document ?? null]));
+    return cached ? this.cache.get(id) : this.cache.prepare(id, () => this.open(source));
+  }
+  read(source: ProviderSource, prepared: PreparedSource, offset: number, limit: number) {
+    return this.cache.read(prepared, offset, limit, () => this.open(source));
+  }
+  sweep() {
+    return this.cache.sweep();
   }
 }

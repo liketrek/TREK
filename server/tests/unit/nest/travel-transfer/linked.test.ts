@@ -33,6 +33,7 @@ import { LocalDriver } from '../../../../src/nest/storage/drivers/local.driver';
 import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
 import { StorageService } from '../../../../src/nest/storage/storage.service';
 import { TransferRetentionJob } from '../../../../src/nest/travel-transfer/transfer-retention.job';
+import { TransferSourceCache } from '../../../../src/nest/travel-transfer/transfer-source-cache';
 import { TransferStaging } from '../../../../src/nest/travel-transfer/transfer-staging';
 import { canonical, CHUNK, sha, validateGraph, type Graph } from '../../../../src/nest/travel-transfer/transfer-wire';
 import { TravelTransferModule } from '../../../../src/nest/travel-transfer/travel-transfer.module';
@@ -87,9 +88,11 @@ describe('linked native transfer with real ACLs and storage', () => {
     await updateRows(orm, PhotoProviders, { id: 'immich' }, { enabled: 1 });
     await updateRows(orm, Addons, { id: 'journey' }, { enabled: true });
     data = Buffer.from('original movie bytes\0—not a playback rendition');
-    open = vi
-      .spyOn(t.get(ImmichPhotoProvider), 'openOriginal')
-      .mockImplementation(async () => ({ stream: Readable.from(data), contentType: 'video/quicktime' }));
+    open = vi.spyOn(t.get(ImmichPhotoProvider), 'openOriginal').mockImplementation(async () => ({
+      stream: Readable.from(data),
+      contentType: 'video/quicktime',
+      sourceStamp: sha(data),
+    }));
   });
   afterEach(async () => {
     vi.restoreAllMocks();
@@ -181,6 +184,130 @@ describe('linked native transfer with real ACLs and storage', () => {
     const bytes = await service.readOriginal(ctx, copyResult.trip_id, restored.revision, graph.originals[0].id, 2, 9);
     expect(Buffer.from(bytes.data, 'base64')).toEqual(data.subarray(2, 11));
   });
+  it('downloads a provider original once for bounded snapshot range reads', async () => {
+    await photo();
+    data = Buffer.alloc(2 * CHUNK, 37);
+    let consumed = 0;
+    open.mockImplementation(async () => ({
+      stream: Readable.from(
+        (async function* () {
+          for (let offset = 0; offset < data.length; offset += CHUNK) {
+            consumed += CHUNK;
+            yield data.subarray(offset, offset + CHUNK);
+          }
+        })(),
+      ),
+      contentType: 'video/quicktime',
+      sourceStamp: sha(data),
+    }));
+    const graph = await snapshot(false);
+    await Promise.all(
+      [0, CHUNK].map(async (offset) => {
+        const read = await service.readOriginal(
+          ctx,
+          String(trip),
+          graph.revision,
+          graph.originals[0].id,
+          offset,
+          CHUNK,
+        );
+        expect(Buffer.from(read.data, 'base64')).toEqual(data.subarray(offset, offset + CHUNK));
+      }),
+    );
+    expect(consumed).toBe(data.length);
+    expect(open).toHaveBeenCalledTimes(3); // One preparation and current provider authorization for each range.
+  });
+  it('refuses cached bytes after provider denial, rebinding, or cache expiry', async () => {
+    await photo();
+    const graph = await snapshot(false);
+    const read = () => service.readOriginal(ctx, String(trip), graph.revision, graph.originals[0].id, 0, 9);
+    open.mockRejectedValueOnce(new Error('Provider denied'));
+    await expect(read()).rejects.toThrow('Provider denied');
+    open.mockResolvedValueOnce({
+      stream: Readable.from(data),
+      contentType: 'video/quicktime',
+      sourceStamp: sha('new server'),
+    });
+    await expect(read()).rejects.toThrow('source changed');
+    await storage.put('files', 'unrelated.bin', Readable.from('preserved'));
+    for await (const file of storage.list('files'))
+      if (file.key.startsWith('transfer-source-'))
+        await utimes(join(root, 'files', file.key), new Date(0), new Date(0));
+    await t.get(TransferSourceCache).sweep();
+    await expect(read()).rejects.toThrow('expired');
+    expect(await storage.exists('files', 'unrelated.bin')).toBe(true);
+    expect((await snapshot(false)).originals).toEqual(graph.originals);
+  });
+  it('pins exact snapshot bytes when a provider has no version validator, and refreshes on a new snapshot', async () => {
+    await photo();
+    open.mockImplementation(async () => ({
+      stream: Readable.from(data),
+      contentType: 'video/quicktime',
+      sourceStamp: sha('same binding, no etag'),
+    }));
+    const graph = await snapshot(false),
+      original = Buffer.from(data);
+    data = Buffer.alloc(data.length, 31);
+    const read = await service.readOriginal(ctx, String(trip), graph.revision, graph.originals[0].id, 0, CHUNK);
+    expect(Buffer.from(read.data, 'base64')).toEqual(original);
+    const refreshed = await snapshot(false);
+    expect(refreshed.revision).not.toBe(graph.revision);
+    expect(refreshed.originals[0].sha256).toBe(sha(data));
+    await expect(
+      service.readOriginal(ctx, String(trip), graph.revision, graph.originals[0].id, 0, CHUNK),
+    ).rejects.toThrow('changed');
+  });
+  it('evicts only the oldest prepared originals when reserving bounded cache space', async () => {
+    const names = [1, 2, 3].map((n) => 'transfer-source-' + String(n).repeat(48) + '.bin');
+    await Promise.all(
+      names.map(async (name, i) => {
+        await storage.put('files', name, Readable.from('x'));
+        const when = new Date(Date.now() - (3 - i) * 1000);
+        await utimes(join(root, 'files', name), when, when);
+      }),
+    );
+    await storage.put('files', 'transfer-unrelated.bin', Readable.from('preserved'));
+    await t.get(TransferSourceCache).sweep(4 * 1024 * 1024 * 1024 - 2);
+    expect(await storage.exists('files', names[0])).toBe(false);
+    expect(await storage.exists('files', names[1])).toBe(true);
+    expect(await storage.exists('files', names[2])).toBe(true);
+    expect(await storage.exists('files', 'transfer-unrelated.bin')).toBe(true);
+  });
+  it('streams a 512 MiB provider original once and reads its boundary chunks from private storage', async () => {
+    await photo();
+    const block = Buffer.alloc(64 * 1024, 29),
+      total = 512 * CHUNK;
+    let consumed = 0;
+    open.mockImplementation(async () => ({
+      stream: Readable.from(
+        (async function* () {
+          for (let n = 0; n < total / block.length; n++) {
+            consumed += block.length;
+            yield block;
+          }
+        })(),
+      ),
+      contentType: 'video/quicktime',
+      sourceStamp: sha('large original version 1'),
+    }));
+    const graph = await snapshot(false);
+    expect(graph.originals[0].size).toBe(total);
+    await Promise.all(
+      [0, total - CHUNK].map(async (offset) => {
+        const read = await service.readOriginal(
+          ctx,
+          String(trip),
+          graph.revision,
+          graph.originals[0].id,
+          offset,
+          CHUNK,
+        );
+        expect(Buffer.from(read.data, 'base64')).toEqual(Buffer.alloc(CHUNK, 29));
+      }),
+    );
+    expect(consumed).toBe(total);
+    expect(open).toHaveBeenCalledTimes(3);
+  }, 60_000);
   it('omits another persons private photo and rechecks sharing revocation', async () => {
     const other = (await makeUser(orm)).user.id;
     const { link } = await photo(other, 0);
@@ -209,6 +336,7 @@ describe('linked native transfer with real ACLs and storage', () => {
         })(),
       ),
       contentType: 'image/jpeg',
+      sourceStamp: sha(data),
     }));
     await expect(snapshot()).rejects.toThrow('could not be read completely');
     vi.spyOn(t.get(PhotoProviderRegistry), 'get').mockReturnValue(undefined);
@@ -451,7 +579,7 @@ describe('linked native transfer with real ACLs and storage', () => {
     const { link } = await photo(other, 1);
     open.mockImplementation(async () => {
       await updateRows(orm, TripPhotos, { id: link }, { shared: 0 });
-      return { stream: Readable.from(data), contentType: 'video/quicktime' };
+      return { stream: Readable.from(data), contentType: 'video/quicktime', sourceStamp: sha(data) };
     });
     await expect(snapshot()).rejects.toThrow('Photo unavailable');
   });
@@ -540,17 +668,17 @@ describe('linked native transfer with real ACLs and storage', () => {
     const { id } = await photo();
     await insertRow(orm, JourneyPhotos, { journey, photo: id, owner_id: ctx.userId, shared: 1, created_at: 1 });
     const graph = await snapshot();
-    // Public preparation, private preparation and finally the actual range stream.
+    // The prepared bytes still require a fresh provider access check before the range read.
     let reads = 0;
     open.mockImplementation(async () => {
       reads++;
-      if (reads === 3) await deleteRows(orm, JourneyContributors, { journey, user: ctx.userId });
-      return { stream: Readable.from(data), contentType: 'video/quicktime' };
+      if (reads === 1) await deleteRows(orm, JourneyContributors, { journey, user: ctx.userId });
+      return { stream: Readable.from(data), contentType: 'video/quicktime', sourceStamp: sha(data) };
     });
     await expect(service.readOriginal(ctx, String(trip), graph.revision, graph.originals[0].id, 0, 9)).rejects.toThrow(
       'changed',
     );
-    expect(reads).toBe(3);
+    expect(reads).toBe(1);
   });
   it('retains ticket line prices and named historical participants without mapping their IDs to accounts', async () => {
     const guest = (await makeUser(orm)).user;

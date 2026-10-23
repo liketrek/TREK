@@ -83,6 +83,9 @@ export class DocSyncTransferService {
     }
     return {
       stream: fetched.data.body,
+      sourceStamp: createHash('sha256')
+        .update(JSON.stringify([ctx.stamp, remote.remoteVersion, remote.size, remote.contentHash]))
+        .digest('hex'),
       expectedSize: remote.size,
       expectedDigest: remote.contentHash,
       check: async () => {

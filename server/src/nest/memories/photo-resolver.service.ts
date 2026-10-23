@@ -13,6 +13,7 @@ import { UnifiedMemoriesService } from './unified-memories.service';
 import { Injectable } from '@nestjs/common';
 
 import { Response } from 'express';
+import { createHash } from 'node:crypto';
 import fsPromises from 'node:fs/promises';
 
 /**
@@ -221,7 +222,14 @@ export class PhotoResolverService {
       const name = photo.file_path && this.storageName(photo.file_path);
       if (!name || name.includes('/') || name.includes('\\') || name === '.' || name === '..')
         throw new DomainError(422, 'Invalid local photo storage key');
-      return { ...(await this.storage.getStream('journey', name)), contentType: 'application/octet-stream' };
+      const opened = await this.storage.getStream('journey', name);
+      return {
+        ...opened,
+        contentType: 'application/octet-stream',
+        sourceStamp: createHash('sha256')
+          .update(JSON.stringify([name, opened.stat]))
+          .digest('hex'),
+      };
     }
     await this.enabled.assertProviderEnabled(photo.provider);
     const provider = this.providers.get(photo.provider);

@@ -8,14 +8,13 @@ implementation and synthetic acceptance; it does not update an installed TREK im
 
 ## Production qualification hold · 24 October 2026
 
-This draft is not production-qualified. A synthetic probe of the real transfer
-service showed that returning two 1 MiB ranges from a provider-backed 2 MiB file
-fetches the whole provider file four times (8 MiB), excluding snapshot preparation.
-`readOriginal` prepares every source again and `consumeStream` reads an entire
-provider original for each requested range. The local-storage 512 MiB test does
-not establish provider performance or request-budget acceptance. Bounded provider
-preparation/range delivery with current authorization, immutable snapshot bytes
-and final full-file hash verification is still required before large-file release.
+This draft is not production-qualified. Review reproduced repeated whole-file
+provider downloads for each 1 MiB range. The fix now prepares one verified immutable
+original in private StorageService storage and reauthorizes with the actual provider
+before each bounded cache read. The regression includes a streamed 512 MiB provider
+original with only one full body consumed; access denial, rebinding, expiry, quota
+cleanup and linked-journal revocation still refuse. Physical provider performance
+and real two-server acceptance remain outstanding.
 
 The companion Memories engine also compared original manifests as ordered arrays,
 although native enrichment can reorder the same originals. Its fix compares
@@ -28,7 +27,8 @@ JSON-column registry conflict. Native collaboration messages retain the new
 fail-closed and require explicit mappings; the complete-snapshot capability is not
 a promise that every future upstream domain is already supported.
 
-After integration: 1,301 targeted tests across 29 files pass; source/test TypeScript,
+After integration: 1,304 targeted tests across 29 files pass; additional cache
+qualification tests are recorded in the companion handoff. Source/test TypeScript,
 format/size/import-boundary/transaction and generated entity/table checks pass.
 Required upstream CI and actual provider/two-server acceptance remain outstanding.
 No installed TREK image was changed.
@@ -87,12 +87,24 @@ while reading fail. Provider sessions may renew through the existing credential
 mechanism, but no transfer creates connections, subscriptions or sync jobs.
 Credentials, passphrases, webhook tokens and diagnostic URLs are never exported.
 
-Photo/document streams are bounded and SHA-256 verified. Reading a requested range
-currently downloads and hashes the entire provider original again, avoiding stale
-cache authorization or a changed rendition. This costs bandwidth for large files;
-there is no claim of large live-provider performance acceptance. Native local files
-use storage stamp/hash checks and bounded range reads. Journal/graph revisions and
-current OAuth/trip ownership are checked again before bytes are returned.
+Photo/document streams are bounded and SHA-256 verified. A fresh snapshot (and
+conditional apply) hashes current provider originals. Revision-bound pages and byte
+reads use those immutable prepared bytes, bounded to 512 MiB per file and a 4 GiB
+runtime cache with oldest-first eviction and 26-hour retention. Random private
+`files/transfer-source-*` keys have no public download route or native file record.
+Cache expiry/eviction/corruption requires a fresh snapshot, never an unverified fallback.
+
+Every range opens the provider original with current credentials and cancels its
+body before serving the cache. Source-binding fingerprints include current origin,
+credentials/TLS policy and available HTTP validators; documents also require fresh
+saved-scope membership and matching remote versions. No credentials enter the graph.
+Providers without validators serve the exact prepared snapshot version; a new
+snapshot or conditional apply re-hashes and detects remote byte changes. This does
+not promise immediate detection of a remote edit with unchanged/missing validators.
+Native local files retain storage stamp/hash and bounded range checks. Journal/graph
+revisions and current OAuth/trip ownership are checked again before returning bytes.
+Initial preparation is linear in the originals' total size and must still finish
+within the caller's deadline; no live-provider throughput guarantee is claimed.
 
 ## Apply, retries and retention
 

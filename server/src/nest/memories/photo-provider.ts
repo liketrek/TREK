@@ -62,7 +62,7 @@ export interface PhotoProvider {
   streamAsset(res: Response, ref: PhotoAssetRef, kind: PhotoAssetKind): Promise<void>;
 
   /** Optional for third-party adapters: absence refuses original transfer, never falls back to a preview. */
-  openOriginal?(ref: PhotoAssetRef): Promise<{ stream: Readable; contentType: string }>;
+  openOriginal?(ref: PhotoAssetRef): Promise<{ stream: Readable; contentType: string; sourceStamp: string }>;
 
   /** Thumbnail bytes for the cache, rather than straight to a response. */
   fetchThumbnailBytes(ref: PhotoAssetRef): Promise<PhotoBytes | PhotoFetchError>;

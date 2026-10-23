@@ -5,6 +5,7 @@ import { StorageService } from '../storage/storage.service';
 import type { ObjectStat, ServedCategory } from '../storage/storage.types';
 import { TransferNative } from './transfer-native';
 import { TransferPhotoFiles } from './transfer-photo-files';
+import type { PreparedSource } from './transfer-source-cache';
 import { canonical, fail, MAX_ORIGINAL, sha, type Graph } from './transfer-wire';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
@@ -24,6 +25,7 @@ export interface HashedNativeFile extends NativeFileSource {
   size: number;
   digest: string;
   stamp: string;
+  prepared?: PreparedSource;
 }
 export type MaterializedFiles = Record<string, { filename: string; file_size: number; mime_type: string }>;
 const fingerprint = (stat: ObjectStat): string =>
@@ -91,7 +93,7 @@ export class TransferNativeFiles {
         fail('Invalid native original storage key', 422);
     return files;
   }
-  async prepare(trip: number, includePrivate = true): Promise<HashedNativeFile[]> {
+  async prepare(trip: number, includePrivate = true, cached = false): Promise<HashedNativeFile[]> {
     const sources = await this.uow.transactional(async () =>
       this.sources(await this.native.project(trip), (await this.store.trip(trip))?.cover_image, includePrivate),
     );
@@ -99,22 +101,14 @@ export class TransferNativeFiles {
     // Storage I/O must never occupy the database transaction/mutex.
     await sources.reduce(async (previous, source) => {
       await previous;
-      files.push(await this.hash(source));
+      files.push(await this.hash(source, cached));
     }, Promise.resolve());
     return files;
   }
-  private async hash(source: NativeFileSource): Promise<HashedNativeFile> {
-    if (source.document) {
-      const { size, digest } = await this.photos.document(
-        source.document.user,
-        source.document.trip,
-        source.document.id,
-      );
-      return { ...source, size, digest, stamp: digest };
-    }
-    if (source.photo) {
-      const { size, digest } = await this.photos.consume(source.photo.user, source.photo.id);
-      return { ...source, size, digest, stamp: digest };
+  private async hash(source: NativeFileSource, useCached = false): Promise<HashedNativeFile> {
+    if (source.document || source.photo) {
+      const prepared = await this.photos.prepare(source, useCached);
+      return { ...source, size: prepared.size, digest: prepared.digest, stamp: prepared.stamp, prepared };
     }
     const stat = await this.storage.stat(source.category, source.name);
     if (!stat) fail('Native original unavailable', 422);
@@ -172,19 +166,9 @@ export class TransferNativeFiles {
     return { ...graph, originals };
   }
   async read(file: HashedNativeFile, offset: number, limit: number): Promise<Buffer> {
-    if (file.document) {
-      const current = await this.photos.document(file.document.user, file.document.trip, file.document.id, {
-        offset,
-        limit,
-      });
-      if (current.digest !== file.digest || current.size !== file.size)
-        fail('External original changed during transfer');
-      return current.bytes;
-    }
-    if (file.photo) {
-      const current = await this.photos.consume(file.photo.user, file.photo.id, { offset, limit });
-      if (current.digest !== file.digest || current.size !== file.size) fail('Photo original changed during transfer');
-      return current.bytes;
+    if (file.photo || file.document) {
+      if (!file.prepared) fail('Prepared original is missing');
+      return this.photos.read(file, file.prepared, offset, limit);
     }
     if (offset === file.size) return Buffer.alloc(0);
     const end = Math.min(file.size, offset + limit) - 1;
@@ -283,6 +267,7 @@ export class TransferNativeFiles {
   }
   /** Restart-safe: enumerate only our storage namespace; missing staging rows are recoverable orphans. */
   async sweep() {
+    await this.photos.sweep();
     for await (const file of this.storage.list('files')) {
       if (!/^transfer-[a-f0-9]{64}\.bin$/.test(file.key) || file.mtimeMs > Date.now() - 26 * 60 * 60 * 1000) continue;
       await this.cleanup({
