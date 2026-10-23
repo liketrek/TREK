@@ -1,7 +1,7 @@
 /**
  * Which repository methods the Postgres probe calls, and with what.
  *
- * The probe has no fixtures: it reads every repository class with the
+ * This generic planner reads every repository class with the
  * TypeScript checker and builds one sample argument list per public method
  * from the declared parameter types (a number is 1, a string is "probe" or a
  * date-shaped string when the name says so, an object gets every property
@@ -13,6 +13,9 @@
  * cannot build (a callback, an EntityManager, an entity instance) makes the
  * method unprobeable: the report lists it instead of guessing, and the
  * baseline's `uncovered` list must name it, so a new one fails the run.
+ * The runner supplies explicit typed transfer arguments where correlated
+ * dynamic columns or Zod refinements cannot be inferred from types alone;
+ * those methods still run through the real SQL recorder without exemptions.
  */
 import path from 'node:path';
 import ts from 'typescript';

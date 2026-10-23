@@ -5,6 +5,7 @@ import { Trips } from '../../src/db/entities/Trips.entity';
 import { closeMcpSessions } from '../../src/mcp/index';
 import { withRequestContext } from '../../src/nest/database/request-context';
 import { OauthService } from '../../src/nest/oauth/oauth.service';
+import { RealtimeService } from '../../src/nest/realtime/realtime.service';
 import { canonical, sha, FORMAT, CHUNK } from '../../src/nest/travel-transfer/transfer-wire';
 import { deleteRows, countRows } from '../helpers/factories/rows';
 import { setAddonEnabled } from '../helpers/factories/settings';
@@ -14,7 +15,7 @@ import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 describe('travel transfer through real OAuth MCP HTTP transport', () => {
   let app: INestApplication, orm: MikroORM, oauth: OauthService;
@@ -97,6 +98,8 @@ describe('travel transfer through real OAuth MCP HTTP transport', () => {
     expect((await tool('capabilities', {})).features).toContain('complete-snapshots');
   });
   it('stages, applies, reads back and reconciles a lost acknowledgment through real endpoints', async () => {
+    const tripEvents = vi.spyOn(app.get(RealtimeService), 'broadcast');
+    const userEvents = vi.spyOn(app.get(RealtimeService), 'broadcastToUser');
     const graph = {
       format: FORMAT,
       trip: 'source',
@@ -180,6 +183,10 @@ describe('travel transfer through real OAuth MCP HTTP transport', () => {
     expect(boundary.sha256).toBe(sha(original));
     expect(boundary.chunk_sha256).toBe(sha(original.subarray(CHUNK - 1)));
     expect(await countRows(orm, Trips, { user: userId })).toBe(1);
+    expect(tripEvents).not.toHaveBeenCalled();
+    expect(userEvents).not.toHaveBeenCalled();
+    tripEvents.mockRestore();
+    userEvents.mockRestore();
     await deleteRows(orm, OauthTokens, { user: userId });
     expect((await call('tools/call', { name: 'travel_transfer_receipt', arguments: common })).status).toBe(401);
   });

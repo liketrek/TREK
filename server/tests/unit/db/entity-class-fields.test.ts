@@ -56,7 +56,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 // + trek_photo_signals: id, photo_id, algo (a measurement always names its photo and how it was made).
 // - assistant_threads.trip_id: a thread may be about a journey instead, so it is nullable now.
 // + journey_book_revisions: id, journey_id, version, document (a revision is only ever written whole).
-const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 572;
+// + travel_transfer: chunks (4), file hashes (4), graphs (4), objects (5),
+//   operations (7), silent tasks (1). All 25 scalars are supplied by the transfer runtime.
+const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 597;
 
 describe('entity class fields never carry a NaN initialiser (task-4-review-shape.md, Important 1)', () => {
   it('CLASSFIELD-001: new X() has no own property whose value is NaN, across all 133 entities', () => {

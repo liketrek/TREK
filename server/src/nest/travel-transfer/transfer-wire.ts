@@ -10,12 +10,6 @@ export const {
   MAX_GRAPH,
   MAX_ORIGINAL,
   MAX_RECORDS,
-  recordSchema,
-  originalSchema,
-  graphSchema,
-  targetSchema,
-  operationSchema,
-  chunkSchema,
   listSchema,
   snapshotSchema,
   readSchema,
@@ -24,6 +18,7 @@ export const {
   receiptSchema,
   applySchema,
 } = travelTransfer;
+const { graphSchema } = travelTransfer;
 export type Graph = z.infer<typeof graphSchema>;
 export type TransferRecord = Graph['records'][number];
 export function fail(message: string, status = 409): never {

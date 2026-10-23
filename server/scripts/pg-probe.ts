@@ -12,7 +12,9 @@
  *      case must pass;
  *   3. calls every public repository method once with sample arguments the
  *      TypeScript checker builds from its parameter types
- *      (pg-probe/arg-samples.ts), through a MikroORM Postgres driver that
+ *      (pg-probe/arg-samples.ts), with typed transfer inputs for correlated
+ *      dynamic columns and refined JSON (pg-probe/transfer-samples.ts),
+ *      through a MikroORM Postgres driver that
  *      runs each statement in its own rolled-back transaction and records
  *      whether Postgres accepted it (pg-probe/recorder.ts);
  *   4. holds the statements Postgres refuses as SQL (SQLSTATE class 42 or
@@ -71,6 +73,7 @@ import {
   type MethodResult,
   type ReportInput,
 } from './pg-probe/report';
+import { withTransferSamples } from './pg-probe/transfer-samples';
 
 import { appendFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -179,10 +182,12 @@ async function main(): Promise<number> {
     });
 
     const plans: MethodPlan[] = await timed('plan the repository calls', async () =>
-      planRepositories(
-        repositoryFiles(REPOSITORIES_DIR),
-        readCompilerOptions(path.join(SERVER_ROOT, 'tsconfig.json')),
-        SERVER_ROOT,
+      withTransferSamples(
+        planRepositories(
+          repositoryFiles(REPOSITORIES_DIR),
+          readCompilerOptions(path.join(SERVER_ROOT, 'tsconfig.json')),
+          SERVER_ROOT,
+        ),
       ),
     );
     console.log(`   ${plans.length} public repository methods`);

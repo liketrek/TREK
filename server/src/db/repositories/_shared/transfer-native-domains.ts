@@ -1,7 +1,7 @@
 import type { DB } from '../../kysely/db';
 import { LINKED_DOMAINS } from './transfer-linked-domains';
 
-export type NativeScalar = string | number | null;
+type NativeScalar = string | number | null;
 export type NativeRow = Record<string, NativeScalar>;
 export interface NativeDomain {
   table: keyof DB;
