@@ -9,9 +9,6 @@ import { OnlineOnlyError } from '../../../repo/onlineOnly';
 /** How a connection is being set up: a ChatGPT sign-in, a pasted key, or (admin only) an own server. */
 export type AiConnectMode = 'chatgpt' | 'key' | 'custom';
 
-/** Where the Claude connector card sits, for the "Using Claude?" line to jump to. */
-export const CLAUDE_CONNECTOR_ANCHOR = 'claude-connector';
-
 /** The `code` of a refused AI request (`{ error, code }`), or null when the failure carries none. */
 export function refusalCode(err: unknown): string | null {
   if (err instanceof OnlineOnlyError) return 'offline';

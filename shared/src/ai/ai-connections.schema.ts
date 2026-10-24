@@ -224,13 +224,3 @@ export const aiAdminSettingsSchema = z
   })
   .strict();
 export type AiAdminSettings = z.infer<typeof aiAdminSettingsSchema>;
-
-// ── Claude connector: /api/integrations/claude-connector ───────────────────
-
-/** GET /api/integrations/claude-connector: adding TREK's MCP server in Claude, as a link and a QR code. */
-export const aiClaudeConnectorResponseSchema = z.object({
-  mcpUrl: z.url(),
-  deepLink: z.url(),
-  qrSvg: z.string(),
-});
-export type AiClaudeConnectorResponse = z.infer<typeof aiClaudeConnectorResponseSchema>;
