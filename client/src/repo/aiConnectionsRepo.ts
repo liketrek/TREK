@@ -2,7 +2,6 @@ import {
   aiAdminConnectionResponseSchema,
   aiAdminSettingsSchema,
   aiAuthStartResponseSchema,
-  aiClaudeConnectorResponseSchema,
   aiConnectionViewSchema,
   aiModelListResponseSchema,
   aiStatusResponseSchema,
@@ -14,7 +13,7 @@ import {
   type AiOpenrouterFinishRequest,
   type AiPrivacyAckRequest,
 } from '@trek/shared';
-import { aiAdminApi, aiApi, claudeConnectorApi } from '../api/assistant';
+import { aiAdminApi, aiApi } from '../api/assistant';
 import { requireOnline } from './onlineOnly';
 
 /**
@@ -113,12 +112,5 @@ export const aiConnectionsRepo = {
   async adminModels() {
     requireOnline();
     return aiModelListResponseSchema.parse(await aiAdminApi.models()).models;
-  },
-
-  // ── Claude connector ───────────────────────────────────────────────────────
-
-  async claudeConnector() {
-    requireOnline();
-    return aiClaudeConnectorResponseSchema.parse(await claudeConnectorApi.get());
   },
 };

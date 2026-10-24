@@ -83,6 +83,13 @@ export default function MAdminGitHubPanel({ isPrerelease = false }: { isPrerelea
           </ul>
         )
       }
+      if (block.kind === 'h5') {
+        return (
+          <h5 key={idx} className="text-caption font-semibold mt-3 mb-1 text-m-ink">
+            {block.text}
+          </h5>
+        );
+      }
       if (block.kind === 'h4') {
         return (
           <h4 key={idx} className="text-xs font-semibold mt-3 mb-1 text-m-ink">

@@ -3,8 +3,7 @@ import userEvent from '@testing-library/user-event';
 import type { AiStatusResponse } from '@trek/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '../../../../tests/helpers/render';
-import { resetAllStores, seedStore } from '../../../../tests/helpers/store';
-import { useAddonStore } from '../../../store/addonStore';
+import { resetAllStores } from '../../../../tests/helpers/store';
 import { useAssistantStore } from '../../../store/assistantStore';
 
 const repo = vi.hoisted(() => ({
@@ -173,17 +172,11 @@ describe('AiConnectPanel', () => {
     expect(screen.getByRole('button', { name: /Connect OpenRouter/ })).toBeInTheDocument();
   });
 
-  it('FE-COMP-AI-CONNECT-PANEL-008: "Using Claude?" shows with the MCP addon and the sharing details fold out', async () => {
+  it('FE-COMP-AI-CONNECT-PANEL-008: the sharing details fold out', async () => {
     const user = userEvent.setup();
-    const { unmount } = render(<AiConnectPanel scope="user" onConnected={vi.fn()} />);
-    expect(screen.queryByText('Using Claude? Connect in Claude')).not.toBeInTheDocument();
+    render(<AiConnectPanel scope="user" onConnected={vi.fn()} />);
     await user.click(screen.getByRole('button', { name: /What gets shared\?/ }));
     expect(screen.getByText('Not your password, your files or your other trips.')).toBeInTheDocument();
-    unmount();
-
-    seedStore(useAddonStore, { addons: [{ id: 'mcp', name: 'MCP', type: 'integration', icon: '', enabled: true }] });
-    render(<AiConnectPanel scope="user" onConnected={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Using Claude? Connect in Claude' })).toBeInTheDocument();
   });
 
   it('FE-COMP-AI-CONNECT-PANEL-009: the admin signing in with ChatGPT is told the plan is shared, and the sign-in is for everyone', async () => {

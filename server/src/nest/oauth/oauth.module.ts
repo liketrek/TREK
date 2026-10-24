@@ -8,8 +8,6 @@ import { createMcpAddonGate } from '../addons/mcp-addon-gate';
 import { AuditModule } from '../audit/audit.module';
 import { RateLimitModule } from '../common/rate-limit.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
-import { ClaudeConnectorController } from './claude-connector.controller';
-import { ClaudeConnectorService } from './claude-connector.service';
 import { OauthApiController } from './oauth-api.controller';
 import { CimdClientResolver } from './oauth-cimd';
 import { OauthPublicController } from './oauth-public.controller';
@@ -49,8 +47,7 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
  * swapped provider too.
  *
  * Client ID Metadata Documents (oauth-cimd.ts) resolve through the injected
- * CimdClientResolver; ClaudeConnectorController hands the settings page the
- * claude.ai link to this instance's MCP endpoint.
+ * CimdClientResolver.
  *
  * Exports OauthService for AdminController (admin OAuth-session panel) and the
  * MCP transport's token verification.
@@ -73,11 +70,10 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
     SchedulingModule,
     MikroOrmModule.forFeature([OauthClients, OauthTokens, OauthConsents, Users]),
   ],
-  controllers: [OauthPublicController, OauthApiController, ClaudeConnectorController],
+  controllers: [OauthPublicController, OauthApiController],
   providers: [
     OauthService,
     CimdClientResolver,
-    ClaudeConnectorService,
     TrekClientsStore,
     TrekOAuthProvider,
     OauthTokenRetentionJob,

@@ -5,7 +5,7 @@ import { Bell, Trash2, CheckCheck } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useInAppNotificationStore } from '../../store/inAppNotificationStore.ts'
 import { useAuthStore } from '../../store/authStore'
-import InAppNotificationItem from '../Notifications/InAppNotificationItem.tsx'
+import NotificationDayList from '../Notifications/NotificationDayList'
 import ConfirmDialog from '../shared/ConfirmDialog'
 
 export default function InAppNotificationBell(): React.ReactElement {
@@ -73,9 +73,9 @@ export default function InAppNotificationBell(): React.ReactElement {
               position: 'fixed',
               top: 'var(--nav-h)',
               insetInlineEnd: 8,
-              width: 380,
+              width: 400,
               maxWidth: 'calc(100vw - 16px)',
-              maxHeight: 'min(480px, calc(100vh - var(--nav-h) - 16px))',
+              maxHeight: 'min(560px, calc(100vh - var(--nav-h) - 16px))',
               zIndex: 9999,
               display: 'flex',
               flexDirection: 'column',
@@ -119,7 +119,7 @@ export default function InAppNotificationBell(): React.ReactElement {
             </div>
 
             {/* Notification list */}
-            <div className="overflow-y-auto flex-1 py-1 border-t border-edge-secondary">
+            <div className="overflow-y-auto flex-1 pb-1 border-t border-edge-secondary">
               {isLoading && notifications.length === 0 ? (
                 <div className="flex items-center justify-center py-10">
                   <div className="w-5 h-5 border-2 rounded-full animate-spin border-edge border-t-content" />
@@ -133,9 +133,7 @@ export default function InAppNotificationBell(): React.ReactElement {
                   <p className="text-caption text-content-muted">{t('notifications.emptyDescription')}</p>
                 </div>
               ) : (
-                notifications.slice(0, 10).map(n => (
-                  <InAppNotificationItem key={n.id} notification={n} onClose={() => setOpen(false)} />
-                ))
+                <NotificationDayList notifications={notifications.slice(0, 10)} onClose={() => setOpen(false)} compact />
               )}
             </div>
 

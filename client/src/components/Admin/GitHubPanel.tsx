@@ -102,6 +102,13 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
           </ul>
         );
       }
+      if (block.kind === 'h5') {
+        return (
+          <h5 key={idx} className="mb-1 mt-3 font-semibold text-content first:mt-0" style={fs(12.5, 'body')}>
+            {block.text}
+          </h5>
+        );
+      }
       if (block.kind === 'h4') {
         return (
           <h4 key={idx} className="mb-1 mt-3 font-geist font-bold uppercase tracking-[.08em] text-content-faint first:mt-0" style={fs(10)}>
