@@ -5,7 +5,6 @@ import {
   type AiApiKeyConnectRequest,
   type AiAuthStartResponse,
   type AiChatgptFinishRequest,
-  type AiClaudeConnectorResponse,
   type AiConnectionScope,
   type AiConnectionView,
   type AiInstanceConnectionRequest,
@@ -232,8 +231,4 @@ export const aiAdminApi = {
     apiClient.put('/admin/ai/connection', body, viaProvider).then((r) => r.data),
   removeConnection: (): Promise<SuccessResponse> => apiClient.delete('/admin/ai/connection').then((r) => r.data),
   models: (): Promise<AiModelListResponse> => apiClient.get('/admin/ai/models', viaProvider).then((r) => r.data),
-};
-
-export const claudeConnectorApi = {
-  get: (): Promise<AiClaudeConnectorResponse> => apiClient.get('/integrations/claude-connector').then((r) => r.data),
 };

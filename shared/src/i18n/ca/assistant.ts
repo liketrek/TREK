@@ -66,7 +66,6 @@ const assistant: TranslationStrings = {
   'assistant.connect.statusError': 'No accessible',
   'assistant.connect.quota': '{used} de {count} missatges utilitzats avui',
   'assistant.connect.quota.one': '{used} de {count} missatge utilitzat avui',
-  'assistant.connect.claudeLink': 'Fas servir Claude? Connecta’t a Claude',
   'assistant.privacy.what': 'Què es comparteix?',
   'assistant.privacy.banner':
     'Els teus missatges i les dades del viatge que llegeix l’assistent s’envien a {provider}.',
@@ -255,14 +254,6 @@ const assistant: TranslationStrings = {
   'assistant.admin.retentionDays': '{count} dies',
   'assistant.admin.retentionDays.one': '{count} dia',
   'assistant.admin.retentionForever': 'Per sempre',
-  'assistant.claude.title': 'Connecta amb Claude',
-  'assistant.claude.description':
-    'Fes servir TREK directament a Claude: afegeix-lo com a connector, inicia sessió i ja està.',
-  'assistant.claude.open': 'Obre a Claude',
-  'assistant.claude.scan': 'O escaneja’l amb el mòbil',
-  'assistant.claude.copyUrl': 'Copia l’adreça',
-  'assistant.claude.qrAlt': 'Codi QR per afegir TREK a Claude',
-  'assistant.claude.notPublic': 'Claude només pot accedir a TREK si està disponible per https a internet.',
   'assistant.mobile.tile': 'Pregunta a TREK',
   'assistant.mobile.tileHint': 'Planifica amb l’assistent',
   'assistant.mobile.backToChat': 'Torna al xat',

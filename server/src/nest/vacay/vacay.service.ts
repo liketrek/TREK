@@ -30,7 +30,7 @@ import { SchoolHolidayRegions } from '../../db/entities/SchoolHolidayRegions.ent
 import type { SchoolHolidayRegionsRepository } from '../../db/repositories/SchoolHolidayRegions.repository';
 import {
   daysAlwaysInMonth, isBlockedWeekend, normalizeFraction, normalizeKind, normalizeYearType, pad2, parseAsUtcMillis,
-  shiftIsoDate, windowEndYear,
+  shiftIsoDate, windowEndYear, CACHE_TTL, COLORS, COUNTRY_RE, FETCH_TIMEOUT_MS, MAX_HOLIDAY_BYTES, YEAR_RE,
 } from './vacay.helpers';
 
 // ---------------------------------------------------------------------------
@@ -124,26 +124,6 @@ export interface VacayShare {
   hidden: number;
   created_at?: string;
 }
-
-const CACHE_TTL = 24 * 60 * 60 * 1000;
-const FETCH_TIMEOUT_MS = 10_000;
-// A country's holidays for one year are a few kilobytes; two megabytes means the
-// provider is misbehaving and we would rather report the usual error than buffer it.
-const MAX_HOLIDAY_BYTES = 2 * 1024 * 1024;
-// Both providers key on a 4-digit year and an ISO 3166-1 alpha-2 code. Anything
-// else has no business reaching the URL path.
-const YEAR_RE = /^\d{4}$/;
-const COUNTRY_RE = /^[A-Za-z]{2}$/;
-
-// ---------------------------------------------------------------------------
-// Color palette for auto-assign
-// ---------------------------------------------------------------------------
-
-const COLORS = [
-  '#6366f1', '#ec4899', '#14b8a6', '#8b5cf6', '#ef4444',
-  '#3b82f6', '#22c55e', '#06b6d4', '#f43f5e', '#a855f7',
-  '#10b981', '#0ea5e9', '#64748b', '#be185d', '#0d9488',
-];
 
 /**
  * Vacay domain service — owns the vacay SQL, now through the ten vacay
@@ -1150,14 +1130,27 @@ export class VacayService {
       // Removing a stray entry on a blocked day stays possible; keeping one
       // there (converted in place) does not.
       if (weekendBlocked) return { error: 'weekend_blocked' };
-      await this.entries.updateFractionKind(existing.id, frac, knd);
+      await this.uow.transactional(async () => {
+        await this.entries.updateFractionKind(existing.id, frac, knd);
+        await this.ensureYearOf(planId, userId, date);
+      });
       await this.notifyPlanUsers(planId, socketId);
       return { action: 'updated', fraction: frac, kind: knd };
     }
     if (weekendBlocked) return { error: 'weekend_blocked' };
-    await this.entries.insertEntry(planId, userId, date, '', frac, knd);
+    await this.uow.transactional(async () => {
+      await this.entries.insertEntry(planId, userId, date, '', frac, knd);
+      await this.ensureYearOf(planId, userId, date);
+    });
     await this.notifyPlanUsers(planId, socketId);
     return { action: 'added', fraction: frac, kind: knd };
+  }
+
+  /** A day written for a year the plan has not opened adds that year, or the calendar never shows it (#737 picks the period). */
+  private async ensureYearOf(planId: number, userId: number, date: string): Promise<void> {
+    const [y, m, d] = date.split('-').map(Number);
+    const year = await this.currentPeriodYear(userId, new Date(y, m - 1, d));
+    if (!(await this.years.exists(planId, year))) await this.addYear(planId, year, undefined);
   }
 
   /**
@@ -1179,6 +1172,8 @@ export class VacayService {
         await this.companyHolidays.insertHoliday(planId, date, note || '', frac); // VC120
       }
       await this.makeRoomForCompanyHoliday(planId, date, frac);
+      const owner = await this.plans.findOwnerId(planId);
+      if (owner) await this.ensureYearOf(planId, owner.owner_id, date);
       return { action: existing ? 'updated' : 'added', fraction: frac };
     });
     await this.notifyPlanUsers(planId, socketId);

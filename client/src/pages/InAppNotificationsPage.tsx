@@ -6,7 +6,7 @@ import HelpAnchor from '../components/Help/HelpAnchor'
 import EmptyState from '../components/shared/EmptyState'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import { Spinner } from '../components/shared/Spinner'
-import InAppNotificationItem from '../components/Notifications/InAppNotificationItem.tsx'
+import NotificationDayList from '../components/Notifications/NotificationDayList'
 import { useInAppNotifications } from './inAppNotifications/useInAppNotifications'
 
 export default function InAppNotificationsPage(): React.ReactElement {
@@ -88,27 +88,25 @@ function InAppNotificationsPageDesktop(): React.ReactElement {
             </button>
           </div>
 
-          {/* Notification list */}
-          <div className="rounded-2xl border overflow-hidden border-edge bg-surface-card py-1">
-            {isLoading && displayed.length === 0 ? (
-              <div className="flex items-center justify-center py-16">
-                <Spinner className="w-6 h-6 border-2 border-slate-200 border-t-current" />
-              </div>
-            ) : displayed.length === 0 ? (
+          {/* The list, one card per day. */}
+          {isLoading && displayed.length === 0 ? (
+            <div className="flex items-center justify-center py-16">
+              <Spinner className="w-6 h-6 border-2 border-edge border-t-current" />
+            </div>
+          ) : displayed.length === 0 ? (
+            <div className="rounded-2xl border border-edge bg-surface-card">
               <EmptyState scene="notifications" title={t('notifications.empty')} />
-            ) : (
-              displayed.map(n => (
-                <InAppNotificationItem key={n.id} notification={n} />
-              ))
-            )}
+            </div>
+          ) : (
+            <NotificationDayList notifications={displayed} />
+          )}
 
-            {/* Infinite scroll trigger */}
-            {hasMore && (
-              <div ref={loaderRef} className="flex items-center justify-center py-4">
-                {isLoading && <Spinner className="w-5 h-5 border-2 border-slate-200 border-t-current" />}
-              </div>
-            )}
-          </div>
+          {/* Infinite scroll trigger */}
+          {hasMore && (
+            <div ref={loaderRef} className="flex items-center justify-center py-4">
+              {isLoading && <Spinner className="w-5 h-5 border-2 border-edge border-t-current" />}
+            </div>
+          )}
         </div>
       <ConfirmDialog
         isOpen={confirmingDeleteAll}

@@ -33,12 +33,6 @@ function mcpEndpointRow() {
 
 const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
 
-const LAN_CONNECTOR = {
-  mcpUrl: 'http://192.168.1.20:3000/mcp',
-  deepLink: 'https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=TREK&connectorUrl=x',
-  qrSvg: '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
-};
-
 function enableAddons(ids: string[]) {
   seedStore(useAddonStore, {
     addons: ids.map(id => ({ id, name: id, type: 'integration', icon: '', enabled: true })),
@@ -71,7 +65,6 @@ beforeEach(() => {
     http.get('/api/addons', () => HttpResponse.json({ addons: [] })),
     http.get('/api/oauth/clients', () => HttpResponse.json({ clients: [] })),
     http.get('/api/oauth/sessions', () => HttpResponse.json({ sessions: [] })),
-    http.get('/api/integrations/claude-connector', () => HttpResponse.json(LAN_CONNECTOR)),
   );
 });
 
@@ -1025,26 +1018,5 @@ describe('IntegrationsTab – failure toasts', () => {
     seedStore(useAuthStore, { managed: true });
     render(<IntegrationsTab />);
     expect(screen.queryByText('What would you like to chat with?')).not.toBeInTheDocument();
-  });
-
-  it('FE-COMP-INTEGRATIONS-049: the Claude card explains why a LAN install cannot be added', async () => {
-    enableMcp();
-    render(<IntegrationsTab />);
-    expect(await screen.findByText('Claude can only reach TREK when it is available over https on the internet.')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Open in Claude/ })).not.toBeInTheDocument();
-  });
-
-  it('FE-COMP-INTEGRATIONS-050: the Claude card links a public install into Claude', async () => {
-    server.use(
-      http.get('/api/integrations/claude-connector', () =>
-        HttpResponse.json({ ...LAN_CONNECTOR, mcpUrl: 'https://trip.example.org/mcp' }),
-      ),
-    );
-    enableMcp();
-    render(<IntegrationsTab />);
-    const link = await screen.findByRole('link', { name: /Open in Claude/ });
-    expect(link).toHaveAttribute('href', LAN_CONNECTOR.deepLink);
-    expect(link).toHaveAttribute('target', '_blank');
-    expect(screen.getByText('https://trip.example.org/mcp')).toBeInTheDocument();
   });
 });

@@ -1614,21 +1614,18 @@ describe('OauthModule', () => {
     const { OauthApiController } = await import('../../../src/nest/oauth/oauth-api.controller');
     const { OauthService: Svc } = await import('../../../src/nest/oauth/oauth.service');
 
-    const { ClaudeConnectorController } = await import('../../../src/nest/oauth/claude-connector.controller');
-    const { ClaudeConnectorService } = await import('../../../src/nest/oauth/claude-connector.service');
     const { CimdClientResolver } = await import('../../../src/nest/oauth/oauth-cimd');
     const { TrekClientsStore, TrekOAuthProvider } = await import('../../../src/nest/oauth/oauth-sdk.provider');
     const { OauthTokenRetentionJob } = await import('../../../src/nest/oauth/oauth-token-retention.job');
 
     const controllers = Reflect.getMetadata('controllers', OauthModule);
     const providers = Reflect.getMetadata('providers', OauthModule);
-    expect(controllers).toEqual([OauthPublicController, OauthApiController, ClaudeConnectorController]);
+    expect(controllers).toEqual([OauthPublicController, OauthApiController]);
     // RateLimitService is deliberately absent: it comes from the global
     // RateLimitModule so all consumers share one set of counters.
     expect(providers).toEqual([
       Svc,
       CimdClientResolver,
-      ClaudeConnectorService,
       TrekClientsStore,
       TrekOAuthProvider,
       OauthTokenRetentionJob,

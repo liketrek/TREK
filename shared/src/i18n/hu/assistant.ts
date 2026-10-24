@@ -66,7 +66,6 @@ const assistant: TranslationStrings = {
   'assistant.connect.statusError': 'Nem érhető el',
   'assistant.connect.quota': 'Ma {used} / {count} üzenet felhasználva',
   'assistant.connect.quota.one': 'Ma {used} / {count} üzenet felhasználva',
-  'assistant.connect.claudeLink': 'Claude-ot használsz? Csatlakozz a Claude-ban',
   'assistant.privacy.what': 'Mi kerül megosztásra?',
   'assistant.privacy.banner':
     'Az üzeneteid és az utazás adatai, amelyeket az asszisztens elolvas, ide kerülnek: {provider}.',
@@ -256,15 +255,6 @@ const assistant: TranslationStrings = {
   'assistant.admin.retentionDays': '{count} nap',
   'assistant.admin.retentionDays.one': '{count} nap',
   'assistant.admin.retentionForever': 'Örökre',
-  'assistant.claude.title': 'Kapcsolódás a Claude-dal',
-  'assistant.claude.description':
-    'Használd a TREK-et közvetlenül a Claude-ban: add hozzá összekötőként, jelentkezz be, kész.',
-  'assistant.claude.open': 'Megnyitás a Claude-ban',
-  'assistant.claude.scan': 'Vagy olvasd be a telefonoddal',
-  'assistant.claude.copyUrl': 'Cím másolása',
-  'assistant.claude.qrAlt': 'QR-kód a TREK hozzáadásához a Claude-ban',
-  'assistant.claude.notPublic':
-    'A Claude csak akkor éri el a TREK-et, ha az https-en keresztül elérhető az interneten.',
   'assistant.mobile.tile': 'Kérdezd a TREK-et',
   'assistant.mobile.tileHint': 'Tervezz az asszisztenssel',
   'assistant.mobile.backToChat': 'Vissza a csevegéshez',

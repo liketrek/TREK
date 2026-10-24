@@ -2,14 +2,13 @@ import type { AiApiKeyKind, AiConnectionScope, AiParsingPrefill } from '@trek/sh
 import { ChevronRight, KeyRound, Loader2, Server, ShieldCheck } from 'lucide-react';
 import React, { useId, useState } from 'react';
 import { useTranslation } from '../../../i18n';
-import { useAddonStore } from '../../../store/addonStore';
 import { useAssistantStore } from '../../../store/assistantStore';
 import { AI_PROVIDERS, API_KEY_KINDS, providerLabel } from '../../Assistant/providerCatalog';
 import { fs } from '../../shared/DialogShell';
 import { EditorField, GRID_2, INPUT } from '../../shared/dialogParts';
 import { SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, SettingsHint, StatusPill } from '../settingsKit';
 import ChatGptPasteStep, { ConnectErrorNote } from './ChatGptPasteStep';
-import { CLAUDE_CONNECTOR_ANCHOR, type AiConnectMode } from './aiConnectModel';
+import { type AiConnectMode } from './aiConnectModel';
 import { useChatgptConnect, useCustomConnect, useKeyConnect, useOpenrouterStart } from './useAiConnect';
 
 interface AiConnectPanelProps {
@@ -399,7 +398,6 @@ export default function AiConnectPanel({ scope, onConnected, initialMode, prefil
   const chatgpt = useChatgptConnect({ active: mode === 'chatgpt', onConnected, scope });
   const keyConnect = useKeyConnect({ scope, prefill, onConnected });
   const custom = useCustomConnect({ prefill, onConnected });
-  const mcpEnabled = useAddonStore((s) => s.isEnabled('mcp'));
 
   // The privacy line names whoever would receive the messages, once that is known.
   const receivers: Record<AiConnectMode, string> = {
@@ -450,18 +448,6 @@ export default function AiConnectPanel({ scope, onConnected, initialMode, prefil
       {mode === 'custom' && <CustomForm custom={custom} />}
 
       <PrivacyNote provider={mode ? receivers[mode] : ''} />
-      {scope === 'user' && mcpEnabled && (
-        <button
-          type="button"
-          onClick={() =>
-            document.getElementById(CLAUDE_CONNECTOR_ANCHOR)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
-          className="self-start font-medium text-content-muted underline underline-offset-2 hover:text-content"
-          style={fs(12, 'body')}
-        >
-          {t('assistant.connect.claudeLink')}
-        </button>
-      )}
     </div>
   );
 }

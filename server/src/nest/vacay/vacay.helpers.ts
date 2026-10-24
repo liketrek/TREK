@@ -69,3 +69,23 @@ export function shiftIsoDate(isoDate: string, days: number): string {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+export const CACHE_TTL = 24 * 60 * 60 * 1000;
+export const FETCH_TIMEOUT_MS = 10_000;
+// A country's holidays for one year are a few kilobytes; two megabytes means the
+// provider is misbehaving and we would rather report the usual error than buffer it.
+export const MAX_HOLIDAY_BYTES = 2 * 1024 * 1024;
+// Both providers key on a 4-digit year and an ISO 3166-1 alpha-2 code. Anything
+// else has no business reaching the URL path.
+export const YEAR_RE = /^\d{4}$/;
+export const COUNTRY_RE = /^[A-Za-z]{2}$/;
+
+// ---------------------------------------------------------------------------
+// Color palette for auto-assign
+// ---------------------------------------------------------------------------
+
+export const COLORS = [
+  '#6366f1', '#ec4899', '#14b8a6', '#8b5cf6', '#ef4444',
+  '#3b82f6', '#22c55e', '#06b6d4', '#f43f5e', '#a855f7',
+  '#10b981', '#0ea5e9', '#64748b', '#be185d', '#0d9488',
+];

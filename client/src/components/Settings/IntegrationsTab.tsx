@@ -8,7 +8,6 @@ import AirTrailConnectionSection from './AirTrailConnectionSection'
 import DawarichConnectionSection from './DawarichConnectionSection'
 import LlmConnectionSection from './LlmConnectionSection'
 import AiConnectionSection from './ai/AiConnectionSection'
-import ClaudeConnectorCard from './ai/ClaudeConnectorCard'
 import ApiKeysSection from './ApiKeysSection'
 import ScopeGroupPicker from '../OAuth/ScopeGroupPicker'
 import ConfirmDialog from '../shared/ConfirmDialog'
@@ -45,7 +44,6 @@ export default function IntegrationsTab(): React.ReactElement {
           one should not have to read past a section about AI assistants. */}
       <ApiKeysSection />
       {/* TREK inside Claude rides on the MCP server, so it follows that addon. */}
-      {S.mcpEnabled && <ClaudeConnectorCard />}
       {S.mcpEnabled && <IntegrationsMcpSection S={S} />}
       <McpTokenModals S={S} />
       <OAuthClientModals S={S} />
