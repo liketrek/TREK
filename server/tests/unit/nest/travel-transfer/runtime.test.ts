@@ -567,6 +567,14 @@ describe('travel transfer runtime on migrated TREK database', () => {
     expect(updated.records.find((r) => r.kind === 'chat_messages')?.fields.text).toBe('Historical message');
     expect(t.realtime.broadcastMock).not.toHaveBeenCalled();
   });
+  it('refuses an unmapped native column rather than silently dropping its data', async () => {
+    const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Future native fields' });
+    await insertRow(orm, Places, { trip, name: 'Known place' });
+    const store = orm.em.fork().getRepository(TravelTransferOperations);
+    const rows = await store.nativeRows(trip);
+    rows.places[0].future_native_column = 'Must not be lost';
+    expect(await store.unprojectedDomain(trip, rows)).toBe('places columns');
+  });
   it('deletes a mapped native place without removing retained places or broadcasting historical changes', async () => {
     const trip = await insertRow(orm, Trips, { user: ctx.userId, title: 'Source places' });
     await insertRow(orm, Places, { trip, name: 'Remove this place' });
